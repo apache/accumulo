@@ -57,9 +57,9 @@ public class TabletServerClientService {
 
     public org.apache.accumulo.core.dataImpl.thrift.TSummaries contiuneGetSummaries(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessionId) throws NoSuchScanIDException, org.apache.thrift.TException;
 
-    public java.util.List<TCompactionQueueSummary> getCompactionQueueInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public java.util.List<TCompactionGroupSummary> getCompactionGroupInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public TExternalCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public TExternalCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public void compactionJobFinished(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, long fileSize, long entries) throws org.apache.thrift.TException;
 
@@ -99,9 +99,9 @@ public class TabletServerClientService {
 
     public void contiuneGetSummaries(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessionId, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TSummaries> resultHandler) throws org.apache.thrift.TException;
 
-    public void getCompactionQueueInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>> resultHandler) throws org.apache.thrift.TException;
+    public void getCompactionGroupInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>> resultHandler) throws org.apache.thrift.TException;
 
-    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException;
+    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException;
 
     public void compactionJobFinished(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, long fileSize, long entries, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -485,46 +485,46 @@ public class TabletServerClientService {
     }
 
     @Override
-    public java.util.List<TCompactionQueueSummary> getCompactionQueueInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public java.util.List<TCompactionGroupSummary> getCompactionGroupInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_getCompactionQueueInfo(tinfo, credentials);
-      return recv_getCompactionQueueInfo();
+      send_getCompactionGroupInfo(tinfo, credentials);
+      return recv_getCompactionGroupInfo();
     }
 
-    public void send_getCompactionQueueInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getCompactionGroupInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
-      getCompactionQueueInfo_args args = new getCompactionQueueInfo_args();
+      getCompactionGroupInfo_args args = new getCompactionGroupInfo_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      sendBase("getCompactionQueueInfo", args);
+      sendBase("getCompactionGroupInfo", args);
     }
 
-    public java.util.List<TCompactionQueueSummary> recv_getCompactionQueueInfo() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public java.util.List<TCompactionGroupSummary> recv_getCompactionGroupInfo() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      getCompactionQueueInfo_result result = new getCompactionQueueInfo_result();
-      receiveBase(result, "getCompactionQueueInfo");
+      getCompactionGroupInfo_result result = new getCompactionGroupInfo_result();
+      receiveBase(result, "getCompactionGroupInfo");
       if (result.isSetSuccess()) {
         return result.success;
       }
       if (result.sec != null) {
         throw result.sec;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionQueueInfo failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionGroupInfo failed: unknown result");
     }
 
     @Override
-    public TExternalCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public TExternalCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_reserveCompactionJob(tinfo, credentials, queueName, priority, compactor, externalCompactionId);
+      send_reserveCompactionJob(tinfo, credentials, groupName, priority, compactor, externalCompactionId);
       return recv_reserveCompactionJob();
     }
 
-    public void send_reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException
+    public void send_reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException
     {
       reserveCompactionJob_args args = new reserveCompactionJob_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setQueueName(queueName);
+      args.setGroupName(groupName);
       args.setPriority(priority);
       args.setCompactor(compactor);
       args.setExternalCompactionId(externalCompactionId);
@@ -1211,17 +1211,17 @@ public class TabletServerClientService {
     }
 
     @Override
-    public void getCompactionQueueInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>> resultHandler) throws org.apache.thrift.TException {
+    public void getCompactionGroupInfo(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getCompactionQueueInfo_call method_call = new getCompactionQueueInfo_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      getCompactionGroupInfo_call method_call = new getCompactionGroupInfo_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getCompactionQueueInfo_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<TCompactionQueueSummary>> {
+    public static class getCompactionGroupInfo_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<TCompactionGroupSummary>> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getCompactionQueueInfo_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getCompactionGroupInfo_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1229,8 +1229,8 @@ public class TabletServerClientService {
 
       @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getCompactionQueueInfo", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getCompactionQueueInfo_args args = new getCompactionQueueInfo_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getCompactionGroupInfo", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getCompactionGroupInfo_args args = new getCompactionGroupInfo_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.write(prot);
@@ -1238,20 +1238,20 @@ public class TabletServerClientService {
       }
 
       @Override
-      public java.util.List<TCompactionQueueSummary> getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public java.util.List<TCompactionGroupSummary> getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getCompactionQueueInfo();
+        return (new Client(prot)).recv_getCompactionGroupInfo();
       }
     }
 
     @Override
-    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException {
+    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      reserveCompactionJob_call method_call = new reserveCompactionJob_call(tinfo, credentials, queueName, priority, compactor, externalCompactionId, resultHandler, this, ___protocolFactory, ___transport);
+      reserveCompactionJob_call method_call = new reserveCompactionJob_call(tinfo, credentials, groupName, priority, compactor, externalCompactionId, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1259,15 +1259,15 @@ public class TabletServerClientService {
     public static class reserveCompactionJob_call extends org.apache.thrift.async.TAsyncMethodCall<TExternalCompactionJob> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private java.lang.String queueName;
+      private java.lang.String groupName;
       private long priority;
       private java.lang.String compactor;
       private java.lang.String externalCompactionId;
-      public reserveCompactionJob_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public reserveCompactionJob_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, long priority, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.queueName = queueName;
+        this.groupName = groupName;
         this.priority = priority;
         this.compactor = compactor;
         this.externalCompactionId = externalCompactionId;
@@ -1279,7 +1279,7 @@ public class TabletServerClientService {
         reserveCompactionJob_args args = new reserveCompactionJob_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setQueueName(queueName);
+        args.setGroupName(groupName);
         args.setPriority(priority);
         args.setCompactor(compactor);
         args.setExternalCompactionId(externalCompactionId);
@@ -1460,7 +1460,7 @@ public class TabletServerClientService {
       processMap.put("startGetSummariesForPartition", new startGetSummariesForPartition());
       processMap.put("startGetSummariesFromFiles", new startGetSummariesFromFiles());
       processMap.put("contiuneGetSummaries", new contiuneGetSummaries());
-      processMap.put("getCompactionQueueInfo", new getCompactionQueueInfo());
+      processMap.put("getCompactionGroupInfo", new getCompactionGroupInfo());
       processMap.put("reserveCompactionJob", new reserveCompactionJob());
       processMap.put("compactionJobFinished", new compactionJobFinished());
       processMap.put("compactionJobFailed", new compactionJobFailed());
@@ -1894,14 +1894,14 @@ public class TabletServerClientService {
       }
     }
 
-    public static class getCompactionQueueInfo<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getCompactionQueueInfo_args> {
-      public getCompactionQueueInfo() {
-        super("getCompactionQueueInfo");
+    public static class getCompactionGroupInfo<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getCompactionGroupInfo_args> {
+      public getCompactionGroupInfo() {
+        super("getCompactionGroupInfo");
       }
 
       @Override
-      public getCompactionQueueInfo_args getEmptyArgsInstance() {
-        return new getCompactionQueueInfo_args();
+      public getCompactionGroupInfo_args getEmptyArgsInstance() {
+        return new getCompactionGroupInfo_args();
       }
 
       @Override
@@ -1915,10 +1915,10 @@ public class TabletServerClientService {
       }
 
       @Override
-      public getCompactionQueueInfo_result getResult(I iface, getCompactionQueueInfo_args args) throws org.apache.thrift.TException {
-        getCompactionQueueInfo_result result = new getCompactionQueueInfo_result();
+      public getCompactionGroupInfo_result getResult(I iface, getCompactionGroupInfo_args args) throws org.apache.thrift.TException {
+        getCompactionGroupInfo_result result = new getCompactionGroupInfo_result();
         try {
-          result.success = iface.getCompactionQueueInfo(args.tinfo, args.credentials);
+          result.success = iface.getCompactionGroupInfo(args.tinfo, args.credentials);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1950,7 +1950,7 @@ public class TabletServerClientService {
       public reserveCompactionJob_result getResult(I iface, reserveCompactionJob_args args) throws org.apache.thrift.TException {
         reserveCompactionJob_result result = new reserveCompactionJob_result();
         try {
-          result.success = iface.reserveCompactionJob(args.tinfo, args.credentials, args.queueName, args.priority, args.compactor, args.externalCompactionId);
+          result.success = iface.reserveCompactionJob(args.tinfo, args.credentials, args.groupName, args.priority, args.compactor, args.externalCompactionId);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -2067,7 +2067,7 @@ public class TabletServerClientService {
       processMap.put("startGetSummariesForPartition", new startGetSummariesForPartition());
       processMap.put("startGetSummariesFromFiles", new startGetSummariesFromFiles());
       processMap.put("contiuneGetSummaries", new contiuneGetSummaries());
-      processMap.put("getCompactionQueueInfo", new getCompactionQueueInfo());
+      processMap.put("getCompactionGroupInfo", new getCompactionGroupInfo());
       processMap.put("reserveCompactionJob", new reserveCompactionJob());
       processMap.put("compactionJobFinished", new compactionJobFinished());
       processMap.put("compactionJobFailed", new compactionJobFailed());
@@ -2944,23 +2944,23 @@ public class TabletServerClientService {
       }
     }
 
-    public static class getCompactionQueueInfo<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getCompactionQueueInfo_args, java.util.List<TCompactionQueueSummary>> {
-      public getCompactionQueueInfo() {
-        super("getCompactionQueueInfo");
+    public static class getCompactionGroupInfo<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getCompactionGroupInfo_args, java.util.List<TCompactionGroupSummary>> {
+      public getCompactionGroupInfo() {
+        super("getCompactionGroupInfo");
       }
 
       @Override
-      public getCompactionQueueInfo_args getEmptyArgsInstance() {
-        return new getCompactionQueueInfo_args();
+      public getCompactionGroupInfo_args getEmptyArgsInstance() {
+        return new getCompactionGroupInfo_args();
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>>() { 
           @Override
-          public void onComplete(java.util.List<TCompactionQueueSummary> o) {
-            getCompactionQueueInfo_result result = new getCompactionQueueInfo_result();
+          public void onComplete(java.util.List<TCompactionGroupSummary> o) {
+            getCompactionGroupInfo_result result = new getCompactionGroupInfo_result();
             result.success = o;
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
@@ -2976,7 +2976,7 @@ public class TabletServerClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            getCompactionQueueInfo_result result = new getCompactionQueueInfo_result();
+            getCompactionGroupInfo_result result = new getCompactionGroupInfo_result();
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
@@ -3010,8 +3010,8 @@ public class TabletServerClientService {
       }
 
       @Override
-      public void start(I iface, getCompactionQueueInfo_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionQueueSummary>> resultHandler) throws org.apache.thrift.TException {
-        iface.getCompactionQueueInfo(args.tinfo, args.credentials,resultHandler);
+      public void start(I iface, getCompactionGroupInfo_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TCompactionGroupSummary>> resultHandler) throws org.apache.thrift.TException {
+        iface.getCompactionGroupInfo(args.tinfo, args.credentials,resultHandler);
       }
     }
 
@@ -3082,7 +3082,7 @@ public class TabletServerClientService {
 
       @Override
       public void start(I iface, reserveCompactionJob_args args, org.apache.thrift.async.AsyncMethodCallback<TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException {
-        iface.reserveCompactionJob(args.tinfo, args.credentials, args.queueName, args.priority, args.compactor, args.externalCompactionId,resultHandler);
+        iface.reserveCompactionJob(args.tinfo, args.credentials, args.groupName, args.priority, args.compactor, args.externalCompactionId,resultHandler);
       }
     }
 
@@ -17171,14 +17171,14 @@ public class TabletServerClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class getCompactionQueueInfo_args implements org.apache.thrift.TBase<getCompactionQueueInfo_args, getCompactionQueueInfo_args._Fields>, java.io.Serializable, Cloneable, Comparable<getCompactionQueueInfo_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getCompactionQueueInfo_args");
+  public static class getCompactionGroupInfo_args implements org.apache.thrift.TBase<getCompactionGroupInfo_args, getCompactionGroupInfo_args._Fields>, java.io.Serializable, Cloneable, Comparable<getCompactionGroupInfo_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getCompactionGroupInfo_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionQueueInfo_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionQueueInfo_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionGroupInfo_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionGroupInfo_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
@@ -17257,13 +17257,13 @@ public class TabletServerClientService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionQueueInfo_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionGroupInfo_args.class, metaDataMap);
     }
 
-    public getCompactionQueueInfo_args() {
+    public getCompactionGroupInfo_args() {
     }
 
-    public getCompactionQueueInfo_args(
+    public getCompactionGroupInfo_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
@@ -17275,7 +17275,7 @@ public class TabletServerClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getCompactionQueueInfo_args(getCompactionQueueInfo_args other) {
+    public getCompactionGroupInfo_args(getCompactionGroupInfo_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
@@ -17285,8 +17285,8 @@ public class TabletServerClientService {
     }
 
     @Override
-    public getCompactionQueueInfo_args deepCopy() {
-      return new getCompactionQueueInfo_args(this);
+    public getCompactionGroupInfo_args deepCopy() {
+      return new getCompactionGroupInfo_args(this);
     }
 
     @Override
@@ -17300,7 +17300,7 @@ public class TabletServerClientService {
       return this.tinfo;
     }
 
-    public getCompactionQueueInfo_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+    public getCompactionGroupInfo_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -17325,7 +17325,7 @@ public class TabletServerClientService {
       return this.credentials;
     }
 
-    public getCompactionQueueInfo_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+    public getCompactionGroupInfo_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -17399,12 +17399,12 @@ public class TabletServerClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof getCompactionQueueInfo_args)
-        return this.equals((getCompactionQueueInfo_args)that);
+      if (that instanceof getCompactionGroupInfo_args)
+        return this.equals((getCompactionGroupInfo_args)that);
       return false;
     }
 
-    public boolean equals(getCompactionQueueInfo_args that) {
+    public boolean equals(getCompactionGroupInfo_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -17447,7 +17447,7 @@ public class TabletServerClientService {
     }
 
     @Override
-    public int compareTo(getCompactionQueueInfo_args other) {
+    public int compareTo(getCompactionGroupInfo_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -17495,7 +17495,7 @@ public class TabletServerClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getCompactionQueueInfo_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getCompactionGroupInfo_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -17544,17 +17544,17 @@ public class TabletServerClientService {
       }
     }
 
-    private static class getCompactionQueueInfo_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getCompactionGroupInfo_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getCompactionQueueInfo_argsStandardScheme getScheme() {
-        return new getCompactionQueueInfo_argsStandardScheme();
+      public getCompactionGroupInfo_argsStandardScheme getScheme() {
+        return new getCompactionGroupInfo_argsStandardScheme();
       }
     }
 
-    private static class getCompactionQueueInfo_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getCompactionQueueInfo_args> {
+    private static class getCompactionGroupInfo_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getCompactionGroupInfo_args> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getCompactionQueueInfo_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getCompactionGroupInfo_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -17594,7 +17594,7 @@ public class TabletServerClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getCompactionQueueInfo_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getCompactionGroupInfo_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -17614,17 +17614,17 @@ public class TabletServerClientService {
 
     }
 
-    private static class getCompactionQueueInfo_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getCompactionGroupInfo_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getCompactionQueueInfo_argsTupleScheme getScheme() {
-        return new getCompactionQueueInfo_argsTupleScheme();
+      public getCompactionGroupInfo_argsTupleScheme getScheme() {
+        return new getCompactionGroupInfo_argsTupleScheme();
       }
     }
 
-    private static class getCompactionQueueInfo_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getCompactionQueueInfo_args> {
+    private static class getCompactionGroupInfo_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getCompactionGroupInfo_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getCompactionQueueInfo_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getCompactionGroupInfo_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
@@ -17643,7 +17643,7 @@ public class TabletServerClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionQueueInfo_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionGroupInfo_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -17665,16 +17665,16 @@ public class TabletServerClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class getCompactionQueueInfo_result implements org.apache.thrift.TBase<getCompactionQueueInfo_result, getCompactionQueueInfo_result._Fields>, java.io.Serializable, Cloneable, Comparable<getCompactionQueueInfo_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getCompactionQueueInfo_result");
+  public static class getCompactionGroupInfo_result implements org.apache.thrift.TBase<getCompactionGroupInfo_result, getCompactionGroupInfo_result._Fields>, java.io.Serializable, Cloneable, Comparable<getCompactionGroupInfo_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getCompactionGroupInfo_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.LIST, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionQueueInfo_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionQueueInfo_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionGroupInfo_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionGroupInfo_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.util.List<TCompactionQueueSummary> success; // required
+    public @org.apache.thrift.annotation.Nullable java.util.List<TCompactionGroupSummary> success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -17748,18 +17748,18 @@ public class TabletServerClientService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TCompactionQueueSummary.class))));
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TCompactionGroupSummary.class))));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionQueueInfo_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionGroupInfo_result.class, metaDataMap);
     }
 
-    public getCompactionQueueInfo_result() {
+    public getCompactionGroupInfo_result() {
     }
 
-    public getCompactionQueueInfo_result(
-      java.util.List<TCompactionQueueSummary> success,
+    public getCompactionGroupInfo_result(
+      java.util.List<TCompactionGroupSummary> success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -17770,11 +17770,11 @@ public class TabletServerClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getCompactionQueueInfo_result(getCompactionQueueInfo_result other) {
+    public getCompactionGroupInfo_result(getCompactionGroupInfo_result other) {
       if (other.isSetSuccess()) {
-        java.util.List<TCompactionQueueSummary> __this__success = new java.util.ArrayList<TCompactionQueueSummary>(other.success.size());
-        for (TCompactionQueueSummary other_element : other.success) {
-          __this__success.add(new TCompactionQueueSummary(other_element));
+        java.util.List<TCompactionGroupSummary> __this__success = new java.util.ArrayList<TCompactionGroupSummary>(other.success.size());
+        for (TCompactionGroupSummary other_element : other.success) {
+          __this__success.add(new TCompactionGroupSummary(other_element));
         }
         this.success = __this__success;
       }
@@ -17784,8 +17784,8 @@ public class TabletServerClientService {
     }
 
     @Override
-    public getCompactionQueueInfo_result deepCopy() {
-      return new getCompactionQueueInfo_result(this);
+    public getCompactionGroupInfo_result deepCopy() {
+      return new getCompactionGroupInfo_result(this);
     }
 
     @Override
@@ -17799,23 +17799,23 @@ public class TabletServerClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<TCompactionQueueSummary> getSuccessIterator() {
+    public java.util.Iterator<TCompactionGroupSummary> getSuccessIterator() {
       return (this.success == null) ? null : this.success.iterator();
     }
 
-    public void addToSuccess(TCompactionQueueSummary elem) {
+    public void addToSuccess(TCompactionGroupSummary elem) {
       if (this.success == null) {
-        this.success = new java.util.ArrayList<TCompactionQueueSummary>();
+        this.success = new java.util.ArrayList<TCompactionGroupSummary>();
       }
       this.success.add(elem);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.List<TCompactionQueueSummary> getSuccess() {
+    public java.util.List<TCompactionGroupSummary> getSuccess() {
       return this.success;
     }
 
-    public getCompactionQueueInfo_result setSuccess(@org.apache.thrift.annotation.Nullable java.util.List<TCompactionQueueSummary> success) {
+    public getCompactionGroupInfo_result setSuccess(@org.apache.thrift.annotation.Nullable java.util.List<TCompactionGroupSummary> success) {
       this.success = success;
       return this;
     }
@@ -17840,7 +17840,7 @@ public class TabletServerClientService {
       return this.sec;
     }
 
-    public getCompactionQueueInfo_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+    public getCompactionGroupInfo_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -17867,7 +17867,7 @@ public class TabletServerClientService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((java.util.List<TCompactionQueueSummary>)value);
+          setSuccess((java.util.List<TCompactionGroupSummary>)value);
         }
         break;
 
@@ -17914,12 +17914,12 @@ public class TabletServerClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof getCompactionQueueInfo_result)
-        return this.equals((getCompactionQueueInfo_result)that);
+      if (that instanceof getCompactionGroupInfo_result)
+        return this.equals((getCompactionGroupInfo_result)that);
       return false;
     }
 
-    public boolean equals(getCompactionQueueInfo_result that) {
+    public boolean equals(getCompactionGroupInfo_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -17962,7 +17962,7 @@ public class TabletServerClientService {
     }
 
     @Override
-    public int compareTo(getCompactionQueueInfo_result other) {
+    public int compareTo(getCompactionGroupInfo_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -18009,7 +18009,7 @@ public class TabletServerClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getCompactionQueueInfo_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getCompactionGroupInfo_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -18052,17 +18052,17 @@ public class TabletServerClientService {
       }
     }
 
-    private static class getCompactionQueueInfo_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getCompactionGroupInfo_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getCompactionQueueInfo_resultStandardScheme getScheme() {
-        return new getCompactionQueueInfo_resultStandardScheme();
+      public getCompactionGroupInfo_resultStandardScheme getScheme() {
+        return new getCompactionGroupInfo_resultStandardScheme();
       }
     }
 
-    private static class getCompactionQueueInfo_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getCompactionQueueInfo_result> {
+    private static class getCompactionGroupInfo_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getCompactionGroupInfo_result> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getCompactionQueueInfo_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getCompactionGroupInfo_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -18076,11 +18076,11 @@ public class TabletServerClientService {
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list130 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<TCompactionQueueSummary>(_list130.size);
-                  @org.apache.thrift.annotation.Nullable TCompactionQueueSummary _elem131;
+                  struct.success = new java.util.ArrayList<TCompactionGroupSummary>(_list130.size);
+                  @org.apache.thrift.annotation.Nullable TCompactionGroupSummary _elem131;
                   for (int _i132 = 0; _i132 < _list130.size; ++_i132)
                   {
-                    _elem131 = new TCompactionQueueSummary();
+                    _elem131 = new TCompactionGroupSummary();
                     _elem131.read(iprot);
                     struct.success.add(_elem131);
                   }
@@ -18112,7 +18112,7 @@ public class TabletServerClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getCompactionQueueInfo_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getCompactionGroupInfo_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -18120,7 +18120,7 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (TCompactionQueueSummary _iter133 : struct.success)
+            for (TCompactionGroupSummary _iter133 : struct.success)
             {
               _iter133.write(oprot);
             }
@@ -18139,17 +18139,17 @@ public class TabletServerClientService {
 
     }
 
-    private static class getCompactionQueueInfo_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getCompactionGroupInfo_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getCompactionQueueInfo_resultTupleScheme getScheme() {
-        return new getCompactionQueueInfo_resultTupleScheme();
+      public getCompactionGroupInfo_resultTupleScheme getScheme() {
+        return new getCompactionGroupInfo_resultTupleScheme();
       }
     }
 
-    private static class getCompactionQueueInfo_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getCompactionQueueInfo_result> {
+    private static class getCompactionGroupInfo_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getCompactionGroupInfo_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getCompactionQueueInfo_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getCompactionGroupInfo_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetSuccess()) {
@@ -18162,7 +18162,7 @@ public class TabletServerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (TCompactionQueueSummary _iter134 : struct.success)
+            for (TCompactionGroupSummary _iter134 : struct.success)
             {
               _iter134.write(oprot);
             }
@@ -18174,17 +18174,17 @@ public class TabletServerClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionQueueInfo_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionGroupInfo_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TList _list135 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<TCompactionQueueSummary>(_list135.size);
-            @org.apache.thrift.annotation.Nullable TCompactionQueueSummary _elem136;
+            struct.success = new java.util.ArrayList<TCompactionGroupSummary>(_list135.size);
+            @org.apache.thrift.annotation.Nullable TCompactionGroupSummary _elem136;
             for (int _i137 = 0; _i137 < _list135.size; ++_i137)
             {
-              _elem136 = new TCompactionQueueSummary();
+              _elem136 = new TCompactionGroupSummary();
               _elem136.read(iprot);
               struct.success.add(_elem136);
             }
@@ -18210,7 +18210,7 @@ public class TabletServerClientService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField GROUP_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("groupName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I64, (short)4);
     private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)5);
     private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)6);
@@ -18220,7 +18220,7 @@ public class TabletServerClientService {
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String groupName; // required
     public long priority; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
@@ -18229,7 +18229,7 @@ public class TabletServerClientService {
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
-      QUEUE_NAME((short)3, "queueName"),
+      GROUP_NAME((short)3, "groupName"),
       PRIORITY((short)4, "priority"),
       COMPACTOR((short)5, "compactor"),
       EXTERNAL_COMPACTION_ID((short)6, "externalCompactionId");
@@ -18252,8 +18252,8 @@ public class TabletServerClientService {
             return TINFO;
           case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 3: // QUEUE_NAME
-            return QUEUE_NAME;
+          case 3: // GROUP_NAME
+            return GROUP_NAME;
           case 4: // PRIORITY
             return PRIORITY;
           case 5: // COMPACTOR
@@ -18312,7 +18312,7 @@ public class TabletServerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.QUEUE_NAME, new org.apache.thrift.meta_data.FieldMetaData("queueName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.GROUP_NAME, new org.apache.thrift.meta_data.FieldMetaData("groupName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PRIORITY, new org.apache.thrift.meta_data.FieldMetaData("priority", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
@@ -18330,7 +18330,7 @@ public class TabletServerClientService {
     public reserveCompactionJob_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.lang.String queueName,
+      java.lang.String groupName,
       long priority,
       java.lang.String compactor,
       java.lang.String externalCompactionId)
@@ -18338,7 +18338,7 @@ public class TabletServerClientService {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.queueName = queueName;
+      this.groupName = groupName;
       this.priority = priority;
       setPriorityIsSet(true);
       this.compactor = compactor;
@@ -18356,8 +18356,8 @@ public class TabletServerClientService {
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      if (other.isSetQueueName()) {
-        this.queueName = other.queueName;
+      if (other.isSetGroupName()) {
+        this.groupName = other.groupName;
       }
       this.priority = other.priority;
       if (other.isSetCompactor()) {
@@ -18377,7 +18377,7 @@ public class TabletServerClientService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.queueName = null;
+      this.groupName = null;
       setPriorityIsSet(false);
       this.priority = 0;
       this.compactor = null;
@@ -18435,27 +18435,27 @@ public class TabletServerClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getQueueName() {
-      return this.queueName;
+    public java.lang.String getGroupName() {
+      return this.groupName;
     }
 
-    public reserveCompactionJob_args setQueueName(@org.apache.thrift.annotation.Nullable java.lang.String queueName) {
-      this.queueName = queueName;
+    public reserveCompactionJob_args setGroupName(@org.apache.thrift.annotation.Nullable java.lang.String groupName) {
+      this.groupName = groupName;
       return this;
     }
 
-    public void unsetQueueName() {
-      this.queueName = null;
+    public void unsetGroupName() {
+      this.groupName = null;
     }
 
-    /** Returns true if field queueName is set (has been assigned a value) and false otherwise */
-    public boolean isSetQueueName() {
-      return this.queueName != null;
+    /** Returns true if field groupName is set (has been assigned a value) and false otherwise */
+    public boolean isSetGroupName() {
+      return this.groupName != null;
     }
 
-    public void setQueueNameIsSet(boolean value) {
+    public void setGroupNameIsSet(boolean value) {
       if (!value) {
-        this.queueName = null;
+        this.groupName = null;
       }
     }
 
@@ -18551,11 +18551,11 @@ public class TabletServerClientService {
         }
         break;
 
-      case QUEUE_NAME:
+      case GROUP_NAME:
         if (value == null) {
-          unsetQueueName();
+          unsetGroupName();
         } else {
-          setQueueName((java.lang.String)value);
+          setGroupName((java.lang.String)value);
         }
         break;
 
@@ -18596,8 +18596,8 @@ public class TabletServerClientService {
       case CREDENTIALS:
         return getCredentials();
 
-      case QUEUE_NAME:
-        return getQueueName();
+      case GROUP_NAME:
+        return getGroupName();
 
       case PRIORITY:
         return getPriority();
@@ -18624,8 +18624,8 @@ public class TabletServerClientService {
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case QUEUE_NAME:
-        return isSetQueueName();
+      case GROUP_NAME:
+        return isSetGroupName();
       case PRIORITY:
         return isSetPriority();
       case COMPACTOR:
@@ -18667,12 +18667,12 @@ public class TabletServerClientService {
           return false;
       }
 
-      boolean this_present_queueName = true && this.isSetQueueName();
-      boolean that_present_queueName = true && that.isSetQueueName();
-      if (this_present_queueName || that_present_queueName) {
-        if (!(this_present_queueName && that_present_queueName))
+      boolean this_present_groupName = true && this.isSetGroupName();
+      boolean that_present_groupName = true && that.isSetGroupName();
+      if (this_present_groupName || that_present_groupName) {
+        if (!(this_present_groupName && that_present_groupName))
           return false;
-        if (!this.queueName.equals(that.queueName))
+        if (!this.groupName.equals(that.groupName))
           return false;
       }
 
@@ -18718,9 +18718,9 @@ public class TabletServerClientService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetQueueName()) ? 131071 : 524287);
-      if (isSetQueueName())
-        hashCode = hashCode * 8191 + queueName.hashCode();
+      hashCode = hashCode * 8191 + ((isSetGroupName()) ? 131071 : 524287);
+      if (isSetGroupName())
+        hashCode = hashCode * 8191 + groupName.hashCode();
 
       hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(priority);
 
@@ -18763,12 +18763,12 @@ public class TabletServerClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.compare(isSetQueueName(), other.isSetQueueName());
+      lastComparison = java.lang.Boolean.compare(isSetGroupName(), other.isSetGroupName());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetQueueName()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queueName, other.queueName);
+      if (isSetGroupName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.groupName, other.groupName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -18843,11 +18843,11 @@ public class TabletServerClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("queueName:");
-      if (this.queueName == null) {
+      sb.append("groupName:");
+      if (this.groupName == null) {
         sb.append("null");
       } else {
-        sb.append(this.queueName);
+        sb.append(this.groupName);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -18941,10 +18941,10 @@ public class TabletServerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // QUEUE_NAME
+            case 3: // GROUP_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.queueName = iprot.readString();
-                struct.setQueueNameIsSet(true);
+                struct.groupName = iprot.readString();
+                struct.setGroupNameIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -18999,9 +18999,9 @@ public class TabletServerClientService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.queueName != null) {
-          oprot.writeFieldBegin(QUEUE_NAME_FIELD_DESC);
-          oprot.writeString(struct.queueName);
+        if (struct.groupName != null) {
+          oprot.writeFieldBegin(GROUP_NAME_FIELD_DESC);
+          oprot.writeString(struct.groupName);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(PRIORITY_FIELD_DESC);
@@ -19042,7 +19042,7 @@ public class TabletServerClientService {
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetQueueName()) {
+        if (struct.isSetGroupName()) {
           optionals.set(2);
         }
         if (struct.isSetPriority()) {
@@ -19061,8 +19061,8 @@ public class TabletServerClientService {
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetQueueName()) {
-          oprot.writeString(struct.queueName);
+        if (struct.isSetGroupName()) {
+          oprot.writeString(struct.groupName);
         }
         if (struct.isSetPriority()) {
           oprot.writeI64(struct.priority);
@@ -19090,8 +19090,8 @@ public class TabletServerClientService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.queueName = iprot.readString();
-          struct.setQueueNameIsSet(true);
+          struct.groupName = iprot.readString();
+          struct.setGroupNameIsSet(true);
         }
         if (incoming.get(3)) {
           struct.priority = iprot.readI64();

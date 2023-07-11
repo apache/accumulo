@@ -282,7 +282,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   /**
-   * Tests external type executor missing queue throws error
+   * Tests external type executor missing group throws error
    */
   @Test
   public void testErrorExternalNoQueue() {
@@ -299,7 +299,7 @@ public class DefaultCompactionPlannerTest {
         "'type': 'external','maxSize':'512M'");
     var e = assertThrows(NullPointerException.class,
         () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
-    assertTrue(e.getMessage().contains("queue"), "Error message didn't contain queue");
+    assertTrue(e.getMessage().contains("group"), "Error message didn't contain group");
   }
 
   /**
@@ -316,7 +316,7 @@ public class DefaultCompactionPlannerTest {
     EasyMock.replay(conf, senv);
 
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-        "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
+        "'type': 'internal','numThreads':2", "'type': 'external','group':'q1'");
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
@@ -337,7 +337,7 @@ public class DefaultCompactionPlannerTest {
 
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
-        "'type': 'external','maxSize':'128M','queue':'q1'");
+        "'type': 'external','maxSize':'128M','group':'q1'");
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");

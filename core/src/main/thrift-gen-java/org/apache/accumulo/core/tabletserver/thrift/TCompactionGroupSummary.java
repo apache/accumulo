@@ -25,21 +25,21 @@
 package org.apache.accumulo.core.tabletserver.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompactionQueueSummary, TCompactionQueueSummary._Fields>, java.io.Serializable, Cloneable, Comparable<TCompactionQueueSummary> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TCompactionQueueSummary");
+public class TCompactionGroupSummary implements org.apache.thrift.TBase<TCompactionGroupSummary, TCompactionGroupSummary._Fields>, java.io.Serializable, Cloneable, Comparable<TCompactionGroupSummary> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TCompactionGroupSummary");
 
-  private static final org.apache.thrift.protocol.TField QUEUE_FIELD_DESC = new org.apache.thrift.protocol.TField("queue", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField GROUP_FIELD_DESC = new org.apache.thrift.protocol.TField("group", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I16, (short)2);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionQueueSummaryStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionQueueSummaryTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionGroupSummaryStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionGroupSummaryTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String queue; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String group; // required
   public short priority; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    QUEUE((short)1, "queue"),
+    GROUP((short)1, "group"),
     PRIORITY((short)2, "priority");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -56,8 +56,8 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // QUEUE
-          return QUEUE;
+        case 1: // GROUP
+          return GROUP;
         case 2: // PRIORITY
           return PRIORITY;
         default:
@@ -108,23 +108,23 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.QUEUE, new org.apache.thrift.meta_data.FieldMetaData("queue", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.GROUP, new org.apache.thrift.meta_data.FieldMetaData("group", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.PRIORITY, new org.apache.thrift.meta_data.FieldMetaData("priority", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompactionQueueSummary.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompactionGroupSummary.class, metaDataMap);
   }
 
-  public TCompactionQueueSummary() {
+  public TCompactionGroupSummary() {
   }
 
-  public TCompactionQueueSummary(
-    java.lang.String queue,
+  public TCompactionGroupSummary(
+    java.lang.String group,
     short priority)
   {
     this();
-    this.queue = queue;
+    this.group = group;
     this.priority = priority;
     setPriorityIsSet(true);
   }
@@ -132,48 +132,48 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TCompactionQueueSummary(TCompactionQueueSummary other) {
+  public TCompactionGroupSummary(TCompactionGroupSummary other) {
     __isset_bitfield = other.__isset_bitfield;
-    if (other.isSetQueue()) {
-      this.queue = other.queue;
+    if (other.isSetGroup()) {
+      this.group = other.group;
     }
     this.priority = other.priority;
   }
 
   @Override
-  public TCompactionQueueSummary deepCopy() {
-    return new TCompactionQueueSummary(this);
+  public TCompactionGroupSummary deepCopy() {
+    return new TCompactionGroupSummary(this);
   }
 
   @Override
   public void clear() {
-    this.queue = null;
+    this.group = null;
     setPriorityIsSet(false);
     this.priority = 0;
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getQueue() {
-    return this.queue;
+  public java.lang.String getGroup() {
+    return this.group;
   }
 
-  public TCompactionQueueSummary setQueue(@org.apache.thrift.annotation.Nullable java.lang.String queue) {
-    this.queue = queue;
+  public TCompactionGroupSummary setGroup(@org.apache.thrift.annotation.Nullable java.lang.String group) {
+    this.group = group;
     return this;
   }
 
-  public void unsetQueue() {
-    this.queue = null;
+  public void unsetGroup() {
+    this.group = null;
   }
 
-  /** Returns true if field queue is set (has been assigned a value) and false otherwise */
-  public boolean isSetQueue() {
-    return this.queue != null;
+  /** Returns true if field group is set (has been assigned a value) and false otherwise */
+  public boolean isSetGroup() {
+    return this.group != null;
   }
 
-  public void setQueueIsSet(boolean value) {
+  public void setGroupIsSet(boolean value) {
     if (!value) {
-      this.queue = null;
+      this.group = null;
     }
   }
 
@@ -181,7 +181,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     return this.priority;
   }
 
-  public TCompactionQueueSummary setPriority(short priority) {
+  public TCompactionGroupSummary setPriority(short priority) {
     this.priority = priority;
     setPriorityIsSet(true);
     return this;
@@ -203,11 +203,11 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case QUEUE:
+    case GROUP:
       if (value == null) {
-        unsetQueue();
+        unsetGroup();
       } else {
-        setQueue((java.lang.String)value);
+        setGroup((java.lang.String)value);
       }
       break;
 
@@ -226,8 +226,8 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case QUEUE:
-      return getQueue();
+    case GROUP:
+      return getGroup();
 
     case PRIORITY:
       return getPriority();
@@ -244,8 +244,8 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     }
 
     switch (field) {
-    case QUEUE:
-      return isSetQueue();
+    case GROUP:
+      return isSetGroup();
     case PRIORITY:
       return isSetPriority();
     }
@@ -254,23 +254,23 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof TCompactionQueueSummary)
-      return this.equals((TCompactionQueueSummary)that);
+    if (that instanceof TCompactionGroupSummary)
+      return this.equals((TCompactionGroupSummary)that);
     return false;
   }
 
-  public boolean equals(TCompactionQueueSummary that) {
+  public boolean equals(TCompactionGroupSummary that) {
     if (that == null)
       return false;
     if (this == that)
       return true;
 
-    boolean this_present_queue = true && this.isSetQueue();
-    boolean that_present_queue = true && that.isSetQueue();
-    if (this_present_queue || that_present_queue) {
-      if (!(this_present_queue && that_present_queue))
+    boolean this_present_group = true && this.isSetGroup();
+    boolean that_present_group = true && that.isSetGroup();
+    if (this_present_group || that_present_group) {
+      if (!(this_present_group && that_present_group))
         return false;
-      if (!this.queue.equals(that.queue))
+      if (!this.group.equals(that.group))
         return false;
     }
 
@@ -290,9 +290,9 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetQueue()) ? 131071 : 524287);
-    if (isSetQueue())
-      hashCode = hashCode * 8191 + queue.hashCode();
+    hashCode = hashCode * 8191 + ((isSetGroup()) ? 131071 : 524287);
+    if (isSetGroup())
+      hashCode = hashCode * 8191 + group.hashCode();
 
     hashCode = hashCode * 8191 + priority;
 
@@ -300,19 +300,19 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   }
 
   @Override
-  public int compareTo(TCompactionQueueSummary other) {
+  public int compareTo(TCompactionGroupSummary other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetQueue(), other.isSetQueue());
+    lastComparison = java.lang.Boolean.compare(isSetGroup(), other.isSetGroup());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueue()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queue, other.queue);
+    if (isSetGroup()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.group, other.group);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -348,14 +348,14 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("TCompactionQueueSummary(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("TCompactionGroupSummary(");
     boolean first = true;
 
-    sb.append("queue:");
-    if (this.queue == null) {
+    sb.append("group:");
+    if (this.group == null) {
       sb.append("null");
     } else {
-      sb.append(this.queue);
+      sb.append(this.group);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -389,17 +389,17 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     }
   }
 
-  private static class TCompactionQueueSummaryStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class TCompactionGroupSummaryStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TCompactionQueueSummaryStandardScheme getScheme() {
-      return new TCompactionQueueSummaryStandardScheme();
+    public TCompactionGroupSummaryStandardScheme getScheme() {
+      return new TCompactionGroupSummaryStandardScheme();
     }
   }
 
-  private static class TCompactionQueueSummaryStandardScheme extends org.apache.thrift.scheme.StandardScheme<TCompactionQueueSummary> {
+  private static class TCompactionGroupSummaryStandardScheme extends org.apache.thrift.scheme.StandardScheme<TCompactionGroupSummary> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, TCompactionQueueSummary struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, TCompactionGroupSummary struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -409,10 +409,10 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
           break;
         }
         switch (schemeField.id) {
-          case 1: // QUEUE
+          case 1: // GROUP
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.queue = iprot.readString();
-              struct.setQueueIsSet(true);
+              struct.group = iprot.readString();
+              struct.setGroupIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -437,13 +437,13 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, TCompactionQueueSummary struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, TCompactionGroupSummary struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.queue != null) {
-        oprot.writeFieldBegin(QUEUE_FIELD_DESC);
-        oprot.writeString(struct.queue);
+      if (struct.group != null) {
+        oprot.writeFieldBegin(GROUP_FIELD_DESC);
+        oprot.writeString(struct.group);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldBegin(PRIORITY_FIELD_DESC);
@@ -455,28 +455,28 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
 
   }
 
-  private static class TCompactionQueueSummaryTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class TCompactionGroupSummaryTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TCompactionQueueSummaryTupleScheme getScheme() {
-      return new TCompactionQueueSummaryTupleScheme();
+    public TCompactionGroupSummaryTupleScheme getScheme() {
+      return new TCompactionGroupSummaryTupleScheme();
     }
   }
 
-  private static class TCompactionQueueSummaryTupleScheme extends org.apache.thrift.scheme.TupleScheme<TCompactionQueueSummary> {
+  private static class TCompactionGroupSummaryTupleScheme extends org.apache.thrift.scheme.TupleScheme<TCompactionGroupSummary> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, TCompactionQueueSummary struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, TCompactionGroupSummary struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetQueue()) {
+      if (struct.isSetGroup()) {
         optionals.set(0);
       }
       if (struct.isSetPriority()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
-      if (struct.isSetQueue()) {
-        oprot.writeString(struct.queue);
+      if (struct.isSetGroup()) {
+        oprot.writeString(struct.group);
       }
       if (struct.isSetPriority()) {
         oprot.writeI16(struct.priority);
@@ -484,12 +484,12 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, TCompactionQueueSummary struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, TCompactionGroupSummary struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.queue = iprot.readString();
-        struct.setQueueIsSet(true);
+        struct.group = iprot.readString();
+        struct.setGroupIsSet(true);
       }
       if (incoming.get(1)) {
         struct.priority = iprot.readI16();

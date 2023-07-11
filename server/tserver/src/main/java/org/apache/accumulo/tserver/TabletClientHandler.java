@@ -96,7 +96,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionGroupSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
@@ -1311,7 +1311,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
+  public List<TCompactionGroupSummary> getCompactionGroupInfo(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
 
     if (!security.canPerformSystemActions(credentials)) {
@@ -1319,12 +1319,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    return server.getCompactionManager().getCompactionQueueSummaries();
+    return server.getCompactionManager().getCompactionGroupSummaries();
   }
 
   @Override
   public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, long priority, String compactor, String externalCompactionId)
+      String groupName, long priority, String compactor, String externalCompactionId)
       throws ThriftSecurityException, TException {
 
     if (!security.canPerformSystemActions(credentials)) {
@@ -1334,7 +1334,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
 
-    var extCompaction = server.getCompactionManager().reserveExternalCompaction(queueName, priority,
+    var extCompaction = server.getCompactionManager().reserveExternalCompaction(groupName, priority,
         compactor, eci);
 
     if (extCompaction != null) {
