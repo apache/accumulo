@@ -76,7 +76,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletResourceGroupBalanceIT.class);
 
-  public static class TSRGBalanceITConfig implements MiniClusterConfigurationCallback {
+  public static class TRGBalanceITConfig implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
@@ -91,7 +91,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void beforeAll() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new TSRGBalanceITConfig());
+    SharedMiniClusterBase.startMiniClusterWithConfig(new TRGBalanceITConfig());
   }
 
   @AfterAll
