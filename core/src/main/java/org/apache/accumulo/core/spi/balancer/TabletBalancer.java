@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -135,13 +135,13 @@ public interface TabletBalancer {
   long balance(BalanceParameters params);
 
   /**
-   * Ask the balancer if the tablet is hosted by a TabletServer in the defined resource group
+   * Get the ResourceGroup name for this tablet
    *
-   * @return true if TabletServer is in the configured resource group, false otherwise
+   * @param tabletId id of tablet
+   * @return resource group name
    * @since 4.0.0
    */
-  default boolean isHostedInResourceGroup(Configuration conf, TabletServerId currentLocation,
-      Map<String,Set<TabletServerId>> currentTServerGrouping) {
-    return true;
+  default String getResourceGroup(TabletId tabletId) {
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
   }
 }

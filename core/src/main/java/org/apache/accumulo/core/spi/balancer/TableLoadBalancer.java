@@ -23,14 +23,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -215,25 +213,11 @@ public class TableLoadBalancer implements TabletBalancer {
     return minBalanceTime;
   }
 
-  @Override
-  public boolean isHostedInResourceGroup(Configuration conf, TabletServerId currentLocation,
-      Map<String,Set<TabletServerId>> currentTServerGrouping) {
-    Objects.requireNonNull(conf, "conf cannot be null");
-    Objects.requireNonNull(currentLocation, "current location cannot be null");
-    Objects.requireNonNull(currentTServerGrouping, "tserver grouping cannot be null");
-    String property = Constants.DEFAULT_RESOURCE_GROUP_NAME;
-    if (conf.get(TABLE_ASSIGNMENT_GROUP_PROPERTY) != null) {
-      property = conf.get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
-    }
-    Set<TabletServerId> tservers = currentTServerGrouping.get(property);
-    if (tservers == null) {
-      log.warn("No TabletServers for group {} ", property);
-      // return true as there are no tablet servers in the defined group
-      // We don't want to cause churn
-      return true;
-    }
-    return tservers.contains(currentLocation);
-
+  public String getResourceGroup(TabletId tabletId) {
+    String value =
+        environment.getConfiguration(tabletId.getTable()).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    return (value == null || StringUtils.isEmpty(value)) ? Constants.DEFAULT_RESOURCE_GROUP_NAME
+        : value;
   }
 
 }

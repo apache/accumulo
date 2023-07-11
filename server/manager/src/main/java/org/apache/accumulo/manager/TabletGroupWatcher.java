@@ -85,7 +85,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
@@ -304,8 +303,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          TabletState state = tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer,
-              new ConfigurationImpl(tableConf), resourceGroups);
+          TabletState state =
+              tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;

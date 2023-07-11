@@ -20,6 +20,8 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,22 +51,30 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
+public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TabletResourceGroupBalanceIT.class);
 
   public static class TSRGBalanceITConfig implements MiniClusterConfigurationCallback {
 
@@ -226,8 +236,7 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testResourceGroupPropertyChange() throws Exception {
-
+  public void testUserTablePropertyChange() throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
@@ -240,37 +249,98 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.tableOperations().create(tableName, ntc1);
+
+      // wait for all tablets to be hosted
+      Wait.waitFor(() -> 26 != getCountOfHostedTablets(client, tableName));
+
       client.instanceOperations().waitForBalance();
 
-      assertEquals(26, getCountOfHostedTablets(client, tableName));
+      try {
+        testResourceGroupPropertyChange(client, tableName, 26);
+      } finally {
+        client.tableOperations().delete(tableName);
+      }
+    }
+  }
 
-      Map<String,String> tserverGroups = getTServerGroups();
-      assertEquals(2, tserverGroups.size());
+  @Test
+  public void testMetadataTablePropertyChange() throws Exception {
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      Ample ample = ((ClientContext) client).getAmple();
-      String tableId = client.tableOperations().tableIdMap().get(tableName);
-      List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
-          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
-      assertEquals(26, locations.size());
-      Location l1 = locations.get(0).getLocation();
-      assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
-      locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
-
-      client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
-      // Wait 2x the MAC default Manager TGW interval
-      Thread.sleep(10_000);
       client.instanceOperations().waitForBalance();
+      testResourceGroupPropertyChange(client, MetadataTable.NAME,
+          getCountOfHostedTablets(client, MetadataTable.NAME));
+    }
+  }
 
-      assertEquals(26, getCountOfHostedTablets(client, tableName));
+  @Test
+  public void testRootTablePropertyChange() throws Exception {
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
+      client.instanceOperations().waitForBalance();
+      testResourceGroupPropertyChange(client, RootTable.NAME,
+          getCountOfHostedTablets(client, RootTable.NAME));
+    }
+  }
+
+  public void testResourceGroupPropertyChange(AccumuloClient client, String tableName,
+      int numExpectedSplits) throws Exception {
+
+    assertEquals(numExpectedSplits, getCountOfHostedTablets(client, tableName));
+
+    Map<String,String> tserverGroups = getTServerGroups();
+    LOG.info("Tablet Server groups: {}", tserverGroups);
+
+    assertEquals(2, tserverGroups.size());
+
+    Ample ample = ((ClientContext) client).getAmple();
+    String tableId = client.tableOperations().tableIdMap().get(tableName);
+
+    // Validate that all of the tables tablets are on the same tserver and that
+    // the tserver is in the default resource group
+    List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
+        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    assertEquals(numExpectedSplits, locations.size());
+    Location l1 = locations.get(0).getLocation();
+    assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
+    locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
+
+    // change the resource group property for the table
+    client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
+
+    locations = ample.readTablets().forTable(TableId.of(tableId))
+        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    // wait for GROUP1 to show up in the list of locations as the current location
+    while ((locations == null || locations.isEmpty() || locations.size() != numExpectedSplits
+        || locations.get(0).getLocation() == null
+        || locations.get(0).getLocation().getType() == LocationType.FUTURE)
+        || (locations.get(0).getLocation().getType() == LocationType.CURRENT && !tserverGroups
+            .get(locations.get(0).getLocation().getHostAndPort().toString()).equals("GROUP1"))) {
       locations = ample.readTablets().forTable(TableId.of(tableId))
           .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
-      assertEquals(26, locations.size());
-      Location l2 = locations.get(0).getLocation();
-      assertEquals("GROUP1", tserverGroups.get(l2.getHostAndPort().toString()));
-      locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
+    }
+    Location group1Location = locations.get(0).getLocation();
+    assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString()).equals("GROUP1"));
 
-      client.tableOperations().delete(tableName);
+    client.instanceOperations().waitForBalance();
+
+    // validate that all tablets have the same location as the first tablet
+    locations = ample.readTablets().forTable(TableId.of(tableId))
+        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    while (locations == null || locations.isEmpty() || locations.size() != numExpectedSplits) {
+      locations = ample.readTablets().forTable(TableId.of(tableId))
+          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    }
+    if (locations.stream().map(TabletMetadata::getLocation)
+        .allMatch((l) -> group1Location.equals(l))) {
+      LOG.info("Group1 location: {} matches all tablet locations: {}", group1Location,
+          locations.stream().map(TabletMetadata::getLocation).collect(Collectors.toList()));
+    } else {
+      LOG.info("Group1 location: {} does not match all tablet locations: {}", group1Location,
+          locations.stream().map(TabletMetadata::getLocation).collect(Collectors.toList()));
+      fail();
     }
 
   }
