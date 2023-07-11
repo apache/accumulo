@@ -249,6 +249,9 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       Ample ample = ((ClientContext) client).getAmple();
       String tableId = client.tableOperations().tableIdMap().get(tableName);
+
+      // Validate that all of the tables tablets are on the same tserver and that
+      // the tserver is in the default resource group
       List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
           .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
       assertEquals(26, locations.size());
@@ -256,19 +259,39 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
       assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
       locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
+      // change the resource group property for the table
       client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
-      // Wait 2x the MAC default Manager TGW interval
-      Thread.sleep(10_000);
-      client.instanceOperations().waitForBalance();
-
-      assertEquals(26, getCountOfHostedTablets(client, tableName));
 
       locations = ample.readTablets().forTable(TableId.of(tableId))
           .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
       assertEquals(26, locations.size());
+
+      // wait for GROUP1 to show up in the list of locations
       Location l2 = locations.get(0).getLocation();
-      assertEquals("GROUP1", tserverGroups.get(l2.getHostAndPort().toString()));
-      locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
+      while (!tserverGroups.get(l2.getHostAndPort().toString()).equals("GROUP1")) {
+        locations = ample.readTablets().forTable(TableId.of(tableId))
+            .fetch(TabletMetadata.ColumnType.LOCATION).build().stream()
+            .collect(Collectors.toList());
+        if (locations == null || locations.isEmpty()) {
+          continue;
+        }
+        l2 = locations.get(0).getLocation();
+      }
+
+      client.instanceOperations().waitForBalance();
+
+      // validate that all tablets have the same location
+      Location group1Location = l2;
+      while (!locations.stream().map(TabletMetadata::getLocation)
+          .allMatch((l) -> group1Location.equals(l))) {
+        locations = ample.readTablets().forTable(TableId.of(tableId))
+            .fetch(TabletMetadata.ColumnType.LOCATION).build().stream()
+            .collect(Collectors.toList());
+        if (locations == null || locations.isEmpty()) {
+          continue;
+        }
+        assertEquals(26, locations.size());
+      }
 
       client.tableOperations().delete(tableName);
     }
