@@ -27,7 +27,6 @@ import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -984,8 +983,7 @@ public class Tablet extends TabletBase {
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
 
-      if (log.isDebugEnabled()
-          && System.nanoTime() - lastLogTime > Duration.ofSeconds(60).toNanos()) {
+      if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
         for (ScanDataSource activeScan : activeScans) {
           log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
         }
