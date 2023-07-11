@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -121,10 +123,29 @@ public class MetricsUtil {
     return commonTags;
   }
 
-  // Centralize any specific string formatting for metric names and/or tags.
+  /**
+   * Centralize any specific string formatting for metric names and/or tags. Ensure strings match
+   * the micrometer naming convention.
+   */
   public static String formatString(String name) {
-    // Ensure strings are not split by the metrics registry naming scheme.
-    // Add special character eliminations here.
+
+    // Handle spaces
+    name = name.replace(" ", ".");
+    // Handle snake_case notation
+    name = name.replace("_", ".");
+
+    // Handle camelCase notation
+    Pattern camelCasePattern = Pattern.compile("[a-z][A-Z][a-z]");
+    Matcher matcher = camelCasePattern.matcher(name);
+    StringBuilder output = new StringBuilder(name);
+    int insertCount = 0;
+    while (matcher.find()) {
+      // Pattern matches at a lowercase letter, but the insert is at the second position.
+      output.insert(matcher.start() + 1 + insertCount, ".");
+      // The correct index position will shift as inserts occur.
+      insertCount++;
+    }
+    name = output.toString();
     return name.toLowerCase();
   }
 
