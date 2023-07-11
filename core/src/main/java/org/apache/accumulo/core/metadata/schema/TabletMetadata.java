@@ -449,12 +449,9 @@ public class TabletMetadata {
           String resourceGroup = balancer.getResourceGroup(new TabletIdImpl(extent));
           log.trace("Resource Group for extent {} is {}", extent, resourceGroup);
           Set<TabletServerId> tservers = currentTServerGrouping.get(resourceGroup);
-          if (tservers == null) {
-            log.warn("No TabletServers for resource group {} ", resourceGroup);
-          } else {
-            if (!tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
-              return TabletState.ASSIGNED_TO_WRONG_GROUP;
-            }
+          if (tservers == null
+              || !tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
+            return TabletState.ASSIGNED_TO_WRONG_GROUP;
           }
         }
         return TabletState.HOSTED;
