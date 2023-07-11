@@ -19,8 +19,6 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -33,7 +31,6 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   private final ServerContext context;
   private final Configuration conf;
-  private final Map<TableId,Configuration> tableConfigs = new ConcurrentHashMap<>();
 
   public ServiceEnvironmentImpl(ServerContext context) {
     this.context = context;
@@ -47,8 +44,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public Configuration getConfiguration(TableId tableId) {
-    return tableConfigs.computeIfAbsent(tableId,
-        tid -> new ConfigurationImpl(context.getTableConfiguration(tid)));
+    return new ConfigurationImpl(context.getTableConfiguration(tableId));
   }
 
   @Override
