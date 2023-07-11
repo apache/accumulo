@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -153,6 +154,24 @@ public class SelectedFiles {
 
   public String getMetadataValue() {
     return metadataValue;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    SelectedFiles other = (SelectedFiles) obj;
+    return fateTxId == other.fateTxId && Objects.equals(files, other.files)
+        && initiallySelectedAll == other.initiallySelectedAll;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(fateTxId, files, initiallySelectedAll);
   }
 
 }

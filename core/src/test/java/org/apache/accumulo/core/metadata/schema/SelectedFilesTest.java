@@ -46,12 +46,7 @@ public class SelectedFilesTest {
     String json = original.getMetadataValue();
     SelectedFiles deserialized = SelectedFiles.from(json);
 
-    assertEquals(original.getFiles(), deserialized.getFiles(),
-        "Set of files differ between original and deserialized objects");
-    assertEquals(original.initiallySelectedAll(), deserialized.initiallySelectedAll(),
-        "Initially selected all boolean values differ between original and deserialized objects");
-    assertEquals(original.getFateTxId(), deserialized.getFateTxId(),
-        "Transaction id differ between original and deserialized objects");
+    assertEquals(original, deserialized);
   }
 
   @Test
@@ -62,6 +57,7 @@ public class SelectedFilesTest {
     SelectedFiles sf2 = new SelectedFiles(files, true, 12345L);
 
     assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
+    assertEquals(sf1, sf2);
   }
 
   @Test
