@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -74,6 +75,8 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -276,8 +279,7 @@ public class TabletManagementIterator extends SkippingIterator {
     final boolean shouldBeOnline =
         onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
 
-    TabletState state = tm.getTabletState(current, balancer,
-        env.getPluginEnv().getConfiguration(tm.getTableId()), tserverResourceGroups);
+    TabletState state = tm.getTabletState(current, balancer, tserverResourceGroups);
     if (LOG.isDebugEnabled()) {
       LOG.debug("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
           tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
@@ -382,8 +384,11 @@ public class TabletManagementIterator extends SkippingIterator {
     }
     compactionGenerator = new CompactionJobGenerator(env.getPluginEnv());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
+    BalancerEnvironmentImpl benv =
+        new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());
     balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
         TabletBalancer.class, new SimpleLoadBalancer());
+    balancer.init(benv);
     LOG.debug("Balancer is set to {}", balancer.getClass().getSimpleName());
   }
 

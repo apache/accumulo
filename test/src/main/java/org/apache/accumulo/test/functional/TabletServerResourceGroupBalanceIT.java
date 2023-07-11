@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -61,10 +63,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TabletServerResourceGroupBalanceIT.class);
 
   public static class TSRGBalanceITConfig implements MiniClusterConfigurationCallback {
 
@@ -245,6 +252,8 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
       assertEquals(26, getCountOfHostedTablets(client, tableName));
 
       Map<String,String> tserverGroups = getTServerGroups();
+      LOG.info("Tablet Server groups: {}", tserverGroups);
+
       assertEquals(2, tserverGroups.size());
 
       Ample ample = ((ClientContext) client).getAmple();
@@ -264,35 +273,36 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       locations = ample.readTablets().forTable(TableId.of(tableId))
           .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
-      assertEquals(26, locations.size());
 
-      // wait for GROUP1 to show up in the list of locations
-      Location l2 = locations.get(0).getLocation();
-      while (!tserverGroups.get(l2.getHostAndPort().toString()).equals("GROUP1")) {
+      // wait for GROUP1 to show up in the list of locations as the current location
+      while (locations == null || locations.isEmpty() || locations.size() != 26
+          || (locations.get(0).getLocation().getType() != LocationType.CURRENT && !tserverGroups
+              .get(locations.get(0).getLocation().getHostAndPort().toString()).equals("GROUP1"))) {
         locations = ample.readTablets().forTable(TableId.of(tableId))
             .fetch(TabletMetadata.ColumnType.LOCATION).build().stream()
             .collect(Collectors.toList());
-        if (locations == null || locations.isEmpty()) {
-          continue;
-        }
-        l2 = locations.get(0).getLocation();
       }
+      Location group1Location = locations.get(0).getLocation();
 
       client.instanceOperations().waitForBalance();
 
-      // validate that all tablets have the same location
-      Location group1Location = l2;
-      while (!locations.stream().map(TabletMetadata::getLocation)
-          .allMatch((l) -> group1Location.equals(l))) {
+      // validate that all tablets have the same location as the first tablet
+      locations = ample.readTablets().forTable(TableId.of(tableId))
+          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      while (locations == null || locations.isEmpty() || locations.size() != 26) {
         locations = ample.readTablets().forTable(TableId.of(tableId))
             .fetch(TabletMetadata.ColumnType.LOCATION).build().stream()
             .collect(Collectors.toList());
-        if (locations == null || locations.isEmpty()) {
-          continue;
-        }
-        assertEquals(26, locations.size());
       }
-
+      if (locations.stream().map(TabletMetadata::getLocation)
+          .allMatch((l) -> group1Location.equals(l))) {
+        LOG.info("Group1 location: {} matches all tablet locations: {}", group1Location,
+            locations.stream().map(TabletMetadata::getLocation).collect(Collectors.toList()));
+      } else {
+        LOG.info("Group1 location: {} does not match all tablet locations: {}", group1Location,
+            locations.stream().map(TabletMetadata::getLocation).collect(Collectors.toList()));
+        fail();
+      }
       client.tableOperations().delete(tableName);
     }
 

@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
@@ -53,6 +52,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -425,11 +425,11 @@ public class TabletMetadata {
   }
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers) {
-    return getTabletState(liveTServers, null, null, null);
+    return getTabletState(liveTServers, null, null);
   }
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers, TabletBalancer balancer,
-      Configuration conf, Map<String,Set<TabletServerId>> currentTServerGrouping) {
+      Map<String,Set<TabletServerId>> currentTServerGrouping) {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
@@ -444,11 +444,18 @@ public class TabletMetadata {
       return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (current != null) {
-
       if (liveTServers.contains(current.getServerInstance())) {
-        if (balancer != null && !balancer.isHostedInResourceGroup(conf,
-            new TabletServerIdImpl(current.getServerInstance()), currentTServerGrouping)) {
-          return TabletState.ASSIGNED_TO_WRONG_GROUP;
+        if (balancer != null) {
+          String resourceGroup = balancer.getResourceGroup(new TabletIdImpl(extent));
+          log.trace("Resource Group for extent {} is {}", extent, resourceGroup);
+          Set<TabletServerId> tservers = currentTServerGrouping.get(resourceGroup);
+          if (tservers == null) {
+            log.warn("No TabletServers for resource group {} ", resourceGroup);
+          } else {
+            if (!tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
+              return TabletState.ASSIGNED_TO_WRONG_GROUP;
+            }
+          }
         }
         return TabletState.HOSTED;
       } else {
