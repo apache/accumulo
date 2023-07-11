@@ -74,8 +74,7 @@ import com.google.common.net.HostAndPort;
 
 public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(TabletResourceGroupBalanceIT.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TabletResourceGroupBalanceIT.class);
 
   public static class TSRGBalanceITConfig implements MiniClusterConfigurationCallback {
 
