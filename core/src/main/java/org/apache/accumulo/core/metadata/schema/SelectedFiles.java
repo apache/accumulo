@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -89,8 +90,8 @@ public class SelectedFiles {
             try {
               out.value(file);
             } catch (IOException e) {
-              throw new UncheckedIOException("Failed to add file " + file + " to the JSON files array",
-                  e);
+              throw new UncheckedIOException(
+                  "Failed to add file " + file + " to the JSON files array", e);
             }
           });
       out.endArray();
