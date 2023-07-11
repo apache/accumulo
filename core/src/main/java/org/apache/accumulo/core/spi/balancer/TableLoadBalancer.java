@@ -213,6 +213,7 @@ public class TableLoadBalancer implements TabletBalancer {
     return minBalanceTime;
   }
 
+  @Override
   public String getResourceGroup(TabletId tabletId) {
     String value =
         environment.getConfiguration(tabletId.getTable()).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
