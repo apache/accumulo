@@ -117,7 +117,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         System.exit(-1);
       }
     }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
-        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME));
+        Constants.DEFAULT_RESOURCE_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

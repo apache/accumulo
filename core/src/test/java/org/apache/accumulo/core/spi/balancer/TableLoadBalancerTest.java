@@ -34,6 +34,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -141,13 +142,15 @@ public class TableLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()), migrations, migrationsOut));
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", 2345, "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()), migrations, migrationsOut));
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
     movedByTable.put(TableId.of(t1Id), 0);

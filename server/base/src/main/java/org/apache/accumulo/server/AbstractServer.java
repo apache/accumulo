@@ -27,6 +27,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -44,6 +45,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
+  private final String resourceGroup;
 
   private final ProcessMetrics processMetrics;
 
@@ -52,6 +54,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
+    this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     Logger log = LoggerFactory.getLogger(getClass());
@@ -70,6 +73,14 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
+  }
+
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+  }
+
+  public String getResourceGroup() {
+    return resourceGroup;
   }
 
   /**

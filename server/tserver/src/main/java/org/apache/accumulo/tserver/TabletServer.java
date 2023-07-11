@@ -73,6 +73,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -368,6 +369,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       authKeyWatcher = null;
     }
     config();
+  }
+
+  @Override
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.TSERV_GROUP_NAME);
   }
 
   public InstanceId getInstanceID() {
@@ -672,8 +678,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
-          descriptors
-              .addService(new ServiceDescriptor(tabletServerUUID, svc, getClientAddressString()));
+          descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
+              getClientAddressString(), this.getResourceGroup()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {

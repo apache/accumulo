@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -67,6 +68,12 @@ public interface TabletBalancer {
      * Assigns {@code tabletId} to {@code tabletServerId}.
      */
     void addAssignment(TabletId tabletId, TabletServerId tabletServerId);
+
+    /**
+     * @return map of resource group name to set of TServerInstance objects
+     * @since 4.0.0
+     */
+    Map<String,Set<TabletServerId>> currentResourceGroups();
   }
 
   /**
@@ -93,6 +100,13 @@ public interface TabletBalancer {
      *         migrations.
      */
     List<TabletMigration> migrationsOut();
+
+    /**
+     * @return map of resource group name to set of TServerInstance objects
+     * @since 4.0.0
+     */
+    Map<String,Set<TabletServerId>> currentResourceGroups();
+
   }
 
   /**
@@ -119,4 +133,15 @@ public interface TabletBalancer {
    * @return the time, in milliseconds, to wait before re-balancing.
    */
   long balance(BalanceParameters params);
+
+  /**
+   * Get the ResourceGroup name for this tablet
+   *
+   * @param tabletId id of tablet
+   * @return resource group name
+   * @since 4.0.0
+   */
+  default String getResourceGroup(TabletId tabletId) {
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+  }
 }
