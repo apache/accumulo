@@ -378,7 +378,7 @@ public class MetadataSchema {
     }
 
     /**
-     * This is family is used to track which tablets were compacted by a user compaction. The column
+     * This family is used to track which tablets were compacted by a user compaction. The column
      * qualifier is expected to contain the fate transaction id that is executing the compaction.
      */
     public static class CompactedColumnFamily {
