@@ -37,6 +37,10 @@ public class SelectedFilesTest {
 
   final String filePathPrefix = "hdfs://namenode:9020/accumulo/tables/1/default_tablet/";
 
+  /**
+   * Make sure a SelectedFiles object is equal to another SelectedFiles object that was created
+   * using its metadata json
+   */
   @Test
   public void testSerializationDeserialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(2);
@@ -49,6 +53,9 @@ public class SelectedFilesTest {
     assertEquals(original, deserialized);
   }
 
+  /**
+   * Ensure two SelectedFiles objects created with the same parameters are equal
+   */
   @Test
   public void testEqualSerialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
@@ -60,6 +67,10 @@ public class SelectedFilesTest {
     assertEquals(sf1, sf2);
   }
 
+  /**
+   * Ensure that two SelectedFiles objects, one created with a subset of files present in the other,
+   * are not equal
+   */
   @Test
   public void testJsonSuperSetSubset() {
     Set<StoredTabletFile> filesSuperSet = getStoredTabletFiles(3);
@@ -92,6 +103,10 @@ public class SelectedFilesTest {
         Arguments.of("123456", true, 3), Arguments.of("ABCDEF", false, 3));
   }
 
+  /**
+   * Ensure that SelectedFiles objects that are created using {@link SelectedFiles#from(String)} are
+   * created correctly
+   */
   @ParameterizedTest
   @MethodSource("provideTestJsons")
   public void testJsonStrings(String txid, boolean selAll, int numPaths) {
