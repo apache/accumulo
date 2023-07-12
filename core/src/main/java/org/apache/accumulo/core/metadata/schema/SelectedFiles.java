@@ -149,7 +149,7 @@ public class SelectedFiles {
       return false;
     }
     SelectedFiles other = (SelectedFiles) obj;
-    return fateTxId == other.fateTxId && Objects.equals(files, other.files)
+    return fateTxId == other.fateTxId && files.equals(other.files)
         && initiallySelectedAll == other.initiallySelectedAll;
   }
 

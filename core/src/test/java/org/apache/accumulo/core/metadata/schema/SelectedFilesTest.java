@@ -52,6 +52,7 @@ public class SelectedFilesTest {
     SelectedFiles deserialized = SelectedFiles.from(json);
 
     assertEquals(original, deserialized);
+    assertEquals(json, deserialized.getMetadataValue());
   }
 
   /**
