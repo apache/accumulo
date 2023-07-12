@@ -138,7 +138,7 @@ function control_service() {
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
-      # The server processes take arguments (e.g. -p, -o). Always add the -a argument
+      # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
       # using the value of $host
       #
       if [[ $# -gt 3 ]]; then
@@ -508,6 +508,8 @@ tserver:
     - localhost
 
 compactor:
+  accumulo_meta:
+    - localhost
   user_small:
     - localhost
   user_large:

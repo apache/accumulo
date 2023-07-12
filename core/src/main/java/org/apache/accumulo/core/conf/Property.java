@@ -735,7 +735,7 @@ public enum Property {
       "4.0.0"),
   TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
-          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TABLE_ASSIGNMENT_GROUP)",
+          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer)",
       "4.0.0"),
 
   // accumulo garbage collector properties
