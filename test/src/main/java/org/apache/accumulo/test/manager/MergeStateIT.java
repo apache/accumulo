@@ -45,6 +45,7 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -248,8 +249,9 @@ public class MergeStateIT extends ConfigurableMacBase {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
     for (TabletManagement tm : metaDataStateStore) {
+      TabletMetadata tabletMetadata = tm.getTabletMetadata();
       stats.update(tm.getTabletMetadata().getExtent(),
-          tm.getTabletMetadata().getTabletState(state.onlineTabletServers()),
+          TabletState.compute(tabletMetadata, state.onlineTabletServers()),
           tm.getTabletMetadata().hasChopped(), false);
     }
     return stats;

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -38,6 +39,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -98,7 +100,8 @@ class CleanUp extends ManagerRepo {
     for (Entry<Key,Value> entry : scanner) {
       final TabletManagement mti = TabletManagementIterator.decode(entry);
       final TabletMetadata tm = mti.getTabletMetadata();
-      TabletState state = tm.getTabletState(manager.onlineTabletServers());
+      Set<TServerInstance> liveTServers = manager.onlineTabletServers();
+      TabletState state = TabletState.compute(tm, liveTServers);
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
         // intentional because the manager may make metadata writes for these tablets. See #587

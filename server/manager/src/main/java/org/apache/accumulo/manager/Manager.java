@@ -750,7 +750,8 @@ public class Manager extends AbstractServer
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tm.getTabletState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
+              Set<TServerInstance> liveTServers = tserverSet.getCurrentServers();
+              if (TabletState.compute(tm, liveTServers).equals(TabletState.HOSTED)) {
                 if (tm.hasChopped()) {
                   return TabletGoalState.UNASSIGNED;
                 }
