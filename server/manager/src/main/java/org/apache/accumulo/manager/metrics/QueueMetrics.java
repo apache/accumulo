@@ -37,7 +37,7 @@ import io.micrometer.core.instrument.Tags;
 public class QueueMetrics implements MetricsProducer {
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
   private MeterRegistry meterRegistry = null;
-  private CompactionJobQueues compactionJobQueues;
+  private final CompactionJobQueues compactionJobQueues;
   private AtomicLong queueCount;
 
   public QueueMetrics(CompactionJobQueues compactionJobQueues) {
@@ -64,25 +64,25 @@ public class QueueMetrics implements MetricsProducer {
       // Register queues by ID rather than by object as queues can be deleted.
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, ceid,
-              id -> compactionJobQueues.getQueueMaxSize(id))
+              compactionJobQueues::getQueueMaxSize)
           .description("Length of priority queues")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED, ceid,
-              id -> compactionJobQueues.getQueuedJobs(id))
+              compactionJobQueues::getQueuedJobs)
           .description("Count of queued jobs")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED, ceid,
-              id -> compactionJobQueues.getDequeuedJobs(id))
+              compactionJobQueues::getDequeuedJobs)
           .description("Count of jobs dequeued")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, ceid,
-              id -> compactionJobQueues.getRejectedJobs(id))
+              compactionJobQueues::getRejectedJobs)
           .description("Count of rejected jobs")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
     }
