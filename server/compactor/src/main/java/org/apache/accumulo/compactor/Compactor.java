@@ -58,6 +58,7 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -129,7 +130,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private final UUID compactorId = UUID.randomUUID();
   private final AccumuloConfiguration aconf;
-  private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
   private final CompactionWatcher watcher;
@@ -151,13 +151,17 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
-    queueName = aconf.get(Property.COMPACTOR_QUEUE_NAME);
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
     var schedExecutor =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
+  }
+
+  @Override
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.COMPACTOR_QUEUE_NAME);
   }
 
   @Override
@@ -240,7 +244,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     String compactorQueuePath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.queueName;
+        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.getResourceGroup();
     String zPath = compactorQueuePath + "/" + hostPort;
 
     try {
@@ -275,8 +279,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       for (int i = 0; i < 25; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
-        if (compactorLock.tryLock(lw,
-            new ServiceLockData(compactorId, hostPort, ThriftService.COMPACTOR, this.queueName))) {
+        if (compactorLock.tryLock(lw, new ServiceLockData(compactorId, hostPort,
+            ThriftService.COMPACTOR, this.getResourceGroup()))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }
@@ -430,7 +434,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), queueName,
+                getContext().rpcCreds(), this.getResourceGroup(),
                 ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
                 eci.toString());
           } catch (Exception e) {
@@ -513,7 +517,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         job.getIteratorSettings().getIterators()
             .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
-        ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
+        ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, this.getResourceGroup());
         FileCompactor compactor =
             new FileCompactor(getContext(), extent, files, outputFile, job.isPropagateDeletes(),
                 cenv, iters, aConfig, tConfig.getCryptoService(), pausedMetrics);
@@ -561,7 +565,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected long getWaitTimeBetweenCompactionChecks() {
     // get the total number of compactors assigned to this queue
-    int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
+    int numCompactors =
+        ExternalCompactionUtil.countCompactors(this.getResourceGroup(), getContext());
     // Aim for around 3 compactors checking in every second
     long sleepTime = numCompactors * 1000L / 3;
     // Ensure a compactor sleeps at least around a second
@@ -616,7 +621,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         try {
           job = getNextJob(getNextId());
           if (!job.isSetExternalCompactionId()) {
-            LOG.trace("No external compactions in queue {}", this.queueName);
+            LOG.trace("No external compactions in queue {}", this.getResourceGroup());
             UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
             continue;
           }

@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -391,6 +392,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       this.onlineTables =
           Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
       return this.onlineTables;
+    }
+
+    @Override
+    public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+      return new HashMap<>();
     }
 
     @Override

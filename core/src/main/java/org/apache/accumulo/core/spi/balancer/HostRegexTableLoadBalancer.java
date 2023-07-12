@@ -357,8 +357,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}",
           e.getValue().size(), tableName, currentView.keySet());
-      getBalancerForTable(e.getKey())
-          .getAssignments(new AssignmentParamsImpl(currentView, e.getValue(), newAssignments));
+      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(currentView,
+          params.currentResourceGroups(), e.getValue(), newAssignments));
       newAssignments.forEach(params::addAssignment);
     }
   }
@@ -495,8 +495,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      getBalancerForTable(tableId)
-          .balance(new BalanceParamsImpl(currentView, migrations, newMigrations));
+      getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView,
+          params.currentResourceGroups(), migrations, newMigrations));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);

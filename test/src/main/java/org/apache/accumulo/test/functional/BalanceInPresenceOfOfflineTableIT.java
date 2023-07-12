@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -73,7 +73,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getClusterServerConfiguration().getTabletServerConfiguration()
-        .get(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME) < 2) {
+        .get(Constants.DEFAULT_RESOURCE_GROUP_NAME) < 2) {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     }
   }

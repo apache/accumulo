@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -213,7 +214,7 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private volatile TabletBalancer tabletBalancer;
+  protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
   private ManagerState state = ManagerState.INITIAL;
@@ -226,6 +227,8 @@ public class Manager extends AbstractServer
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
+  volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
+
   // ELASTICITY_TODO is this still needed?
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
@@ -953,6 +956,8 @@ public class Manager extends AbstractServer
       TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
       tserverStatus = gatherTableInformation(currentServers, temp);
       tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
+      tServerGroupingForBalancer =
+          Collections.unmodifiableMap(tserverSet.getCurrentServersGroups());
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -1006,7 +1011,7 @@ public class Manager extends AbstractServer
 
     private long balanceTablets() {
       BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
-          tserverStatus, migrationsSnapshot());
+          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot());
       long wait = tabletBalancer.balance(params);
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
@@ -1358,7 +1363,7 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1589,7 +1594,8 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(zooLockUUID, svc, managerClientAddress));
+      descriptors.addService(
+          new ServiceDescriptor(zooLockUUID, svc, managerClientAddress, this.getResourceGroup()));
     }
 
     ServiceLockData sld = new ServiceLockData(descriptors);
@@ -1742,6 +1748,11 @@ public class Manager extends AbstractServer
   }
 
   @Override
+  public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+    return tserverSet.getCurrentServersGroups();
+  }
+
+  @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
     for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
@@ -1886,11 +1897,13 @@ public class Manager extends AbstractServer
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
+      Map<String,Set<TServerInstance>> currentTServerGroups,
       Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    AssignmentParamsImpl params = AssignmentParamsImpl.fromThrift(currentStatus,
-        unassigned.entrySet().stream().collect(HashMap::new,
-            (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
-        assignedOut);
+    AssignmentParamsImpl params =
+        AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,
+            unassigned.entrySet().stream().collect(HashMap::new,
+                (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
+            assignedOut);
     tabletBalancer.getAssignments(params);
   }
 

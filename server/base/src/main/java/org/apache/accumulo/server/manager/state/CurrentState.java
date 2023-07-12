@@ -33,6 +33,8 @@ public interface CurrentState {
 
   Set<TServerInstance> onlineTabletServers();
 
+  Map<String,Set<TServerInstance>> tServerResourceGroups();
+
   Set<TServerInstance> shutdownServers();
 
   Collection<MergeInfo> merges();

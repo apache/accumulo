@@ -355,8 +355,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (true) {
       ServiceLock lock =
           new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
-      if (lock.tryLock(lockWatcher,
-          new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC))) {
+      if (lock.tryLock(lockWatcher, new ServiceLockData(zooLockUUID, addr.toString(),
+          ThriftService.GC, this.getResourceGroup()))) {
         log.debug("Got GC ZooKeeper lock");
         return;
       }

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -391,9 +392,10 @@ public enum Property {
   @Experimental
   SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
       PropertyType.STRING,
-      "Optional group name that will be made available to the "
-          + "ScanServerSelector client plugin. Groups support at least two use cases:"
-          + " dedicating resources to scans and/or using different hardware for scans.",
+      "Resource group name for this ScanServer. Resource groups support at least two use cases:"
+          + " dedicating resources to scans and/or using different hardware for scans. Clients can"
+          + " configure the ConfigurableScanServerSelector to specify the resource group to use for"
+          + " eventual consistency scans.",
       "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
@@ -730,6 +732,10 @@ public enum Property {
   TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
       PropertyType.TIMEDURATION,
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
+      "4.0.0"),
+  TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
+      "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
+          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TABLE_ASSIGNMENT_GROUP)",
       "4.0.0"),
 
   // accumulo garbage collector properties
@@ -1076,7 +1082,6 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-
   // Compactor properties
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
@@ -1102,8 +1107,8 @@ public enum Property {
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
-  COMPACTOR_QUEUE_NAME("compactor.queue", "", PropertyType.STRING,
-      "The queue for which this Compactor will perform compactions", "3.0.0"),
+  COMPACTOR_QUEUE_NAME("compactor.queue", Constants.DEFAULT_RESOURCE_GROUP_NAME,
+      PropertyType.STRING, "The queue for which this Compactor will perform compactions", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
