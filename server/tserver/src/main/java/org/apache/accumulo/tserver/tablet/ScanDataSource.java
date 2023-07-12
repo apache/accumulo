@@ -287,21 +287,14 @@ class ScanDataSource implements DataSource {
   }
 
   @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("isNull(memIters):");
-    sb.append(memIters == null);
-    sb.append(" isNull(fileManager):");
-    sb.append(fileManager == null);
-    sb.append(" fileReservationId:");
-    sb.append(fileReservationId);
-    sb.append(" interruptFlag:");
-    sb.append(interruptFlag.get());
-    sb.append(" expectedDeletionCount:");
-    sb.append(expectedDeletionCount);
-    sb.append(" scanParams=[");
-    sb.append(scanParams);
-    sb.append("]");
-    return sb.toString();
-  }
+public String toString() {
+    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+        .append("isNull(memIters)", memIters == null)
+        .append("isNull(fileManager)", fileManager == null)
+        .append("fileReservationId", fileReservationId)
+        .append("interruptFlag", interruptFlag.get())
+        .append("expectedDeletionCount", expectedDeletionCount)
+        .append("scanParams", scanParams)
+        .toString();
+}
 }
