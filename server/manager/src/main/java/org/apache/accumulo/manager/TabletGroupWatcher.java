@@ -37,6 +37,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -68,6 +70,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -81,6 +84,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -179,11 +183,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
     // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
+    private final Map<String,Set<TServerInstance>> currentTServerGrouping;
 
-    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
+    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers,
+        Map<String,Set<TServerInstance>> grouping) {
       var destinationsMod = new TreeMap<>(curTServers);
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
+      this.currentTServerGrouping = grouping;
     }
 
     public void reset() {
@@ -222,7 +229,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         // Get the current status for the current list of tservers
-        SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
+        final SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
         for (TServerInstance entry : manager.tserverSet.getCurrentServers()) {
           currentTServers.put(entry, manager.tserverStatus.get(entry));
         }
@@ -235,7 +242,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
 
-        TabletLists tLists = new TabletLists(manager, currentTServers);
+        final Map<String,Set<TServerInstance>> currentTServerGrouping =
+            manager.tserverSet.getCurrentServersGroups();
+
+        TabletLists tLists = new TabletLists(manager, currentTServers, currentTServerGrouping);
 
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
@@ -243,6 +253,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         CompactionJobGenerator compactionGenerator =
             new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+
+        final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
+        manager.tServerResourceGroups().forEach((k, v) -> {
+          resourceGroups.put(k,
+              v.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+        });
 
         // Walk through the tablets in our store, and work tablets
         // towards their goal
@@ -288,7 +304,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          final TabletState state = tm.getTabletState(currentTServers.keySet());
+          TabletState state =
+              tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -309,13 +326,50 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
+          } else if (state == TabletState.ASSIGNED_TO_WRONG_GROUP) {
+            goal = TabletGoalState.UNASSIGNED;
+          }
+          if (Manager.log.isTraceEnabled()) {
+            Manager.log.trace(
+                "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}",
+                store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
+                dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(),
+                tm.getExtent(), state, goal);
           }
 
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {
-            if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
-              goal = TabletGoalState.HOSTED;
+            if (dependentWatcher != null) {
+              // If the dependentWatcher is for the user tables, check to see
+              // that user tables exist.
+              DataLevel dependentLevel = dependentWatcher.store.getLevel();
+              boolean userTablesExist = true;
+              switch (dependentLevel) {
+                case USER:
+                  Set<TableId> onlineTables = manager.onlineTables();
+                  onlineTables.remove(RootTable.ID);
+                  onlineTables.remove(MetadataTable.ID);
+                  userTablesExist = !onlineTables.isEmpty();
+                  break;
+                case METADATA:
+                case ROOT:
+                default:
+                  break;
+              }
+              // If the stats object in the dependentWatcher is empty, then it
+              // currently does not have data about what is hosted or not. In
+              // that case host these tablets until the dependent watcher can
+              // gather some data.
+              final Map<TableId,TableCounts> stats = dependentWatcher.getStats();
+              if (dependentLevel == DataLevel.USER) {
+                if (userTablesExist
+                    && (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0)) {
+                  goal = TabletGoalState.HOSTED;
+                }
+              } else if (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0) {
+                goal = TabletGoalState.HOSTED;
+              }
             }
           }
 
@@ -374,6 +428,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   tLists.assigned.add(new Assignment(tm.getExtent(),
                       future != null ? future.getServerInstance() : null, tm.getLast()));
                   break;
+                default:
+                  break;
               }
             } else {
               switch (state) {
@@ -388,6 +444,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 case ASSIGNED_TO_DEAD_SERVER:
                   unassignDeadTablet(tLists, tm, wals);
                   break;
+                case ASSIGNED_TO_WRONG_GROUP:
                 case HOSTED:
                   TServerConnection client =
                       manager.tserverSet.getConnection(location.getServerInstance());
@@ -414,6 +471,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
+        Manager.log.trace("[{}] End stats collection: {}", store.name(), stats);
 
         // Report changes
         for (TabletState state : TabletState.values()) {
@@ -594,8 +652,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private int assignedOrHosted() {
+    return assignedOrHosted(stats.getLast());
+  }
+
+  private int assignedOrHosted(Map<TableId,TableCounts> last) {
     int result = 0;
-    for (TableCounts counts : stats.getLast().values()) {
+    for (TableCounts counts : last.values()) {
       result += counts.assigned() + counts.hosted();
     }
     return result;
@@ -1023,7 +1085,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<KeyExtent,UnassignedTablet> unassigned) {
     if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, tLists.currentTServerGrouping, unassigned,
+          assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {

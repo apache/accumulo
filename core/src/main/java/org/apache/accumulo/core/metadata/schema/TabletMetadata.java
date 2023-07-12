@@ -52,9 +52,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -75,6 +77,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.spi.balancer.TabletBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -421,6 +425,11 @@ public class TabletMetadata {
   }
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers) {
+    return getTabletState(liveTServers, null, null);
+  }
+
+  public TabletState getTabletState(Set<TServerInstance> liveTServers, TabletBalancer balancer,
+      Map<String,Set<TabletServerId>> currentTServerGrouping) {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
@@ -435,8 +444,20 @@ public class TabletMetadata {
       return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (current != null) {
-      return liveTServers.contains(current.getServerInstance()) ? TabletState.HOSTED
-          : TabletState.ASSIGNED_TO_DEAD_SERVER;
+      if (liveTServers.contains(current.getServerInstance())) {
+        if (balancer != null) {
+          String resourceGroup = balancer.getResourceGroup(new TabletIdImpl(extent));
+          log.trace("Resource Group for extent {} is {}", extent, resourceGroup);
+          Set<TabletServerId> tservers = currentTServerGrouping.get(resourceGroup);
+          if (tservers == null
+              || !tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
+            return TabletState.ASSIGNED_TO_WRONG_GROUP;
+          }
+        }
+        return TabletState.HOSTED;
+      } else {
+        return TabletState.ASSIGNED_TO_DEAD_SERVER;
+      }
     } else if (getSuspend() != null) {
       return TabletState.SUSPENDED;
     } else {

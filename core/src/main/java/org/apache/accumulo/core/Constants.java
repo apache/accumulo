@@ -124,4 +124,6 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+
+  public static final String DEFAULT_RESOURCE_GROUP_NAME = "default";
 }
