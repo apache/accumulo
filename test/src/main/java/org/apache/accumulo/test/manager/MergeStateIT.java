@@ -111,6 +111,11 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
 
     @Override
+    public Map<Long,Map<String,String>> getCompactionHints() {
+      return Map.of();
+    }
+
+    @Override
     public Set<TServerInstance> shutdownServers() {
       return Collections.emptySet();
     }

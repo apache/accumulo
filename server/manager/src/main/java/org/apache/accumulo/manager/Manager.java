@@ -59,6 +59,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -127,6 +128,7 @@ import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -163,6 +165,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -238,6 +241,17 @@ public class Manager extends AbstractServer
   @Override
   public synchronized ManagerState getManagerState() {
     return state;
+  }
+
+  @Override
+  public Map<Long,Map<String,String>> getCompactionHints() {
+    Map<Long,CompactionConfig> allConfig = null;
+    try {
+      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
+    } catch (InterruptedException | KeeperException e) {
+      throw new RuntimeException(e);
+    }
+    return Maps.transformValues(allConfig, CompactionConfig::getExecutionHints);
   }
 
   public boolean stillManager() {

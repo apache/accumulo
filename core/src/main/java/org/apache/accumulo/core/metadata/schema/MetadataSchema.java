@@ -241,9 +241,8 @@ public class MetadataSchema {
        */
       public static final String FLUSH_QUAL = "flush";
       public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
-      /**
-       * Holds compact IDs to enable waiting on a compaction to complete
-       */
+
+      // ELASTICITY_TODO remove this from code and remove it from metadata in upgrade
       public static final String COMPACT_QUAL = "compact";
       public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text(COMPACT_QUAL));
       /**
@@ -375,6 +374,15 @@ public class MetadataSchema {
 
     public static class ExternalCompactionColumnFamily {
       public static final String STR_NAME = "ecomp";
+      public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * This family is used to track which tablets were compacted by a user compaction. The column
+     * qualifier is expected to contain the fate transaction id that is executing the compaction.
+     */
+    public static class CompactedColumnFamily {
+      public static final String STR_NAME = "compacted";
       public static final Text NAME = new Text(STR_NAME);
     }
 

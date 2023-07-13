@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -83,6 +86,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Iterator used by the TabletGroupWatcher threads in the Manager. This iterator returns
@@ -90,7 +94,6 @@ import com.google.common.collect.Sets;
  * Manager.
  */
 public class TabletManagementIterator extends SkippingIterator {
-
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
 
   private static final String SERVERS_OPTION = "servers";
@@ -101,6 +104,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
   private static final String RESOURCE_GROUPS = "resourceGroups";
   private static final String TSERVER_GROUP_PREFIX = "serverGroups_";
+  private static final String COMPACTION_HINTS_OPTIONS = "compactionHints";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
 
@@ -162,6 +166,11 @@ public class TabletManagementIterator extends SkippingIterator {
     if (servers != null) {
       cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
     }
+  }
+
+  private static void setCompactionHints(final IteratorSetting cfg,
+      Map<Long,Map<String,String>> allHints) {
+    cfg.addOption(COMPACTION_HINTS_OPTIONS, GSON.get().toJson(allHints));
   }
 
   private static void setTServerResourceGroups(final IteratorSetting cfg,
@@ -257,6 +266,14 @@ public class TabletManagementIterator extends SkippingIterator {
     return result;
   }
 
+  private static Map<Long,Map<String,String>> parseCompactionHints(String json) {
+    if (json == null) {
+      return Map.of();
+    }
+    Type tt = new TypeToken<Map<Long,Map<String,String>>>() {}.getType();
+    return GSON.get().fromJson(json, tt);
+  }
+
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
       final long splitThreshold) {
     final long sumOfFileSizes =
@@ -341,6 +358,7 @@ public class TabletManagementIterator extends SkippingIterator {
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
       TabletManagementIterator.setTServerResourceGroups(tabletChange,
           state.tServerResourceGroups());
+      setCompactionHints(tabletChange, state.getCompactionHints());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -381,7 +399,8 @@ public class TabletManagementIterator extends SkippingIterator {
     if (shuttingDown != null) {
       current.removeAll(shuttingDown);
     }
-    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv());
+    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
+        parseCompactionHints(options.get(COMPACTION_HINTS_OPTIONS)));
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
         new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());

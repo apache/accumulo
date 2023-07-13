@@ -24,7 +24,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 
 public class RefreshTablets extends ManagerRepo {
@@ -48,10 +47,6 @@ public class RefreshTablets extends ManagerRepo {
     TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, tid, tableId,
         startRow, endRow, tabletMetadata -> true);
 
-    CompactRange.removeIterators(manager, tid, tableId);
-    Utils.getReadLock(manager, tableId, tid).unlock();
-    Utils.getReadLock(manager, namespaceId, tid).unlock();
-
-    return null;
+    return new CleanUp(tableId, namespaceId, startRow, endRow);
   }
 }

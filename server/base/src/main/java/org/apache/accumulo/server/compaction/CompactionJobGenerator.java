@@ -20,6 +20,7 @@ package org.apache.accumulo.server.compaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,14 +57,25 @@ public class CompactionJobGenerator {
   private final Cache<TableId,CompactionDispatcher> dispatchers;
   private final Set<CompactionServiceId> serviceIds;
   private final PluginEnvironment env;
+  private final Map<Long,Map<String,String>> allExecutionHints;
 
-  public CompactionJobGenerator(PluginEnvironment env) {
+  public CompactionJobGenerator(PluginEnvironment env,
+      Map<Long,Map<String,String>> executionHints) {
     servicesConfig = new CompactionServicesConfig(env.getConfiguration());
     serviceIds = servicesConfig.getPlanners().keySet().stream().map(CompactionServiceId::of)
         .collect(Collectors.toUnmodifiableSet());
 
     dispatchers = Caffeine.newBuilder().maximumSize(10).build();
     this.env = env;
+    if (executionHints.isEmpty()) {
+      this.allExecutionHints = executionHints;
+    } else {
+      this.allExecutionHints = new HashMap<>();
+      // Make the maps that will be passed to plugins unmodifiable. Do this once, so it does not
+      // need to be done for each tablet.
+      executionHints.forEach((k, v) -> allExecutionHints.put(k,
+          v.isEmpty() ? Map.of() : Collections.unmodifiableMap(v)));
+    }
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
@@ -77,15 +89,18 @@ public class CompactionJobGenerator {
     Collection<CompactionJob> systemJobs = Set.of();
 
     if (kinds.contains(CompactionKind.SYSTEM)) {
-      CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet);
-      systemJobs = planCompactions(serviceId, CompactionKind.SYSTEM, tablet);
+      CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
+      systemJobs = planCompactions(serviceId, CompactionKind.SYSTEM, tablet, Map.of());
     }
 
     Collection<CompactionJob> userJobs = Set.of();
 
     if (kinds.contains(CompactionKind.USER) && tablet.getSelectedFiles() != null) {
-      CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet);
-      userJobs = planCompactions(serviceId, CompactionKind.USER, tablet);
+      var hints = allExecutionHints.get(tablet.getSelectedFiles().getFateTxId());
+      if (hints != null) {
+        CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet, hints);
+        userJobs = planCompactions(serviceId, CompactionKind.USER, tablet, hints);
+      }
     }
 
     if (userJobs.isEmpty()) {
@@ -100,7 +115,8 @@ public class CompactionJobGenerator {
     }
   }
 
-  private CompactionServiceId dispatch(CompactionKind kind, TabletMetadata tablet) {
+  private CompactionServiceId dispatch(CompactionKind kind, TabletMetadata tablet,
+      Map<String,String> executionHints) {
 
     CompactionDispatcher dispatcher = dispatchers.get(tablet.getTableId(),
         tableId -> CompactionPluginUtils.createDispatcher((ServiceEnvironment) env, tableId));
@@ -124,9 +140,7 @@ public class CompactionJobGenerator {
 
           @Override
           public Map<String,String> getExecutionHints() {
-            // ELASTICITY_TODO do for user compactions. Best to do this after per user compaction
-            // config storage is changed in ZK so that it can be cached.
-            return Map.of();
+            return executionHints;
           }
         };
 
@@ -134,7 +148,7 @@ public class CompactionJobGenerator {
   }
 
   private Collection<CompactionJob> planCompactions(CompactionServiceId serviceId,
-      CompactionKind kind, TabletMetadata tablet) {
+      CompactionKind kind, TabletMetadata tablet, Map<String,String> executionHints) {
 
     CompactionPlanner planner =
         planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), serviceId));
@@ -232,8 +246,7 @@ public class CompactionJobGenerator {
 
       @Override
       public Map<String,String> getExecutionHints() {
-        // ELASTICITY_TODO implement for user compactions
-        return Map.of();
+        return executionHints;
       }
 
       @Override

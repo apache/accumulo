@@ -251,8 +251,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         int[] counts = new int[TabletState.values().length];
         stats.begin();
 
-        CompactionJobGenerator compactionGenerator =
-            new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+        CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
+            new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
 
         final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
         manager.tServerResourceGroups().forEach((k, v) -> {
