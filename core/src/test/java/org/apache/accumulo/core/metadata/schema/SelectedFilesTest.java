@@ -102,7 +102,7 @@ public class SelectedFilesTest {
 
   private static Stream<Arguments> provideTestJsons() {
     return Stream.of(Arguments.of("123456", true, 2), Arguments.of("123456", false, 2),
-        Arguments.of("123456", true, 3), Arguments.of("ABCDEF", false, 3));
+        Arguments.of("123456", false, 3), Arguments.of("654321", false, 3));
   }
 
   /**
