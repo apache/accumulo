@@ -19,19 +19,14 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -46,19 +41,14 @@ public class TabletData {
   private List<LogEntry> logEntries = new ArrayList<>();
   private HashSet<StoredTabletFile> scanFiles = new HashSet<>();
   private long flushID = -1;
-  private long compactID = -1;
   private Location lastLocation = null;
-  private Map<Long,List<ReferencedTabletFile>> bulkImported = new HashMap<>();
-  private long splitTime = 0;
   private String directoryName = null;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private final TabletHostingGoal goal;
 
   // Read tablet data from metadata tables
   public TabletData(TabletMetadata meta) {
 
     this.time = meta.getTime();
-    this.compactID = meta.getCompactId().orElse(-1);
     this.flushID = meta.getFlushId().orElse(-1);
     this.directoryName = meta.getDirName();
     this.logEntries.addAll(meta.getLogs());
@@ -70,28 +60,7 @@ public class TabletData {
 
     dataFiles.putAll(meta.getFilesMap());
 
-    meta.getLoaded().forEach((path, txid) -> {
-      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile());
-    });
-
-    this.extCompactions = meta.getExternalCompactions();
     this.goal = meta.getHostingGoal();
-  }
-
-  // Data pulled from an existing tablet to make a split
-  public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
-      MetadataTime time, long lastFlushID, long lastCompactID, Location lastLocation,
-      Map<Long,List<ReferencedTabletFile>> bulkIngestedFiles, TabletHostingGoal goal) {
-    this.directoryName = dirName;
-    this.dataFiles = highDatafileSizes;
-    this.time = time;
-    this.flushID = lastFlushID;
-    this.compactID = lastCompactID;
-    this.lastLocation = lastLocation;
-    this.bulkImported = bulkIngestedFiles;
-    this.splitTime = System.currentTimeMillis();
-    this.extCompactions = Map.of();
-    this.goal = goal;
   }
 
   public MetadataTime getTime() {
@@ -114,28 +83,12 @@ public class TabletData {
     return flushID;
   }
 
-  public long getCompactID() {
-    return compactID;
-  }
-
   public Location getLastLocation() {
     return lastLocation;
   }
 
-  public Map<Long,List<ReferencedTabletFile>> getBulkImported() {
-    return bulkImported;
-  }
-
   public String getDirectoryName() {
     return directoryName;
-  }
-
-  public long getSplitTime() {
-    return splitTime;
-  }
-
-  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
-    return extCompactions;
   }
 
   public TabletHostingGoal getHostingGoal() {

@@ -85,7 +85,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
@@ -663,7 +662,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return result;
   }
 
-  // ELASITICITY_TODO: Remove
+  // ELASITICITY_TODO: Remove??
   private void sendSplitRequest(MergeInfo info, TabletState state, TabletMetadata tm) {
     // Already split?
     if (!info.getState().equals(MergeState.SPLITTING)) {
@@ -698,17 +697,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
         try {
-          TServerConnection conn;
-          conn = manager.tserverSet.getConnection(tm.getLocation().getServerInstance());
-          if (conn != null) {
-            Manager.log.info("Asking {} to split {} at {}", tm.getLocation(), tm.getExtent(),
-                splitPoint);
-            conn.splitTablet(tm.getExtent(), splitPoint);
-          } else {
-            Manager.log.warn("Not connected to server {}", tm.getLocation());
-          }
-        } catch (NotServingTabletException e) {
-          Manager.log.debug("Error asking tablet server to split a tablet: ", e);
+          // ELASTICITY_TODO this used to send a split req to tserver, what should it do now?
+          throw new UnsupportedOperationException();
         } catch (Exception e) {
           Manager.log.warn("Error asking tablet server to split a tablet: ", e);
         }

@@ -887,6 +887,12 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     while (canCommitCompaction(ecid, tablet)) {
       ExternalCompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
 
+      // the compacted files should not exists in the tablet already
+      var tablet2 = tablet;
+      newDatafile.ifPresent(
+          newFile -> Preconditions.checkState(!tablet2.getFiles().contains(newFile.insert()),
+              "File already exists in tablet %s %s", newFile, tablet2.getFiles()));
+
       if (tablet.getLocation() != null
           && tablet.getExternalCompactions().get(ecid).getKind() != CompactionKind.USER) {
         // Write the refresh entry before attempting to update tablet metadata, this ensures that

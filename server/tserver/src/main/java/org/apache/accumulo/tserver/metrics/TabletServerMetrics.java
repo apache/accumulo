@@ -48,12 +48,6 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of entries").register(registry);
     Gauge.builder(METRICS_TSERVER_MEM_ENTRIES, util, TabletServerMetricsUtil::getEntriesInMemory)
         .description("Number of entries in memory").register(registry);
-    Gauge.builder(METRICS_TSERVER_MAJC_RUNNING, util, TabletServerMetricsUtil::getMajorCompactions)
-        .description("Number of active major compactions").register(registry);
-    Gauge
-        .builder(METRICS_TSERVER_MAJC_QUEUED, util,
-            TabletServerMetricsUtil::getMajorCompactionsQueued)
-        .description("Number of queued major compactions").register(registry);
     Gauge.builder(METRICS_TSERVER_MINC_RUNNING, util, TabletServerMetricsUtil::getMinorCompactions)
         .description("Number of active minor compactions").register(registry);
     Gauge

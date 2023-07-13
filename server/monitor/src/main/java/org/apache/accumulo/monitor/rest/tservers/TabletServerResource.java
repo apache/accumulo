@@ -175,11 +175,10 @@ public class TabletServerResource {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    total =
-        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+    total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
     historical =
-        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {

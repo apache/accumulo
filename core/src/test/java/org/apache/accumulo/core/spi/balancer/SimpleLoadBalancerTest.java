@@ -88,7 +88,7 @@ public class SimpleLoadBalancerTest {
         if (tabletId.getTable().equals(tableId)) {
           KeyExtent extent = new KeyExtent(tableId, tabletId.getEndRow(), tabletId.getPrevEndRow());
           TabletStats stats =
-              new TabletStats(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
+              new TabletStats(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0.));
           result.add(new TabletStatisticsImpl(stats));
         }
       }
