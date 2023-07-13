@@ -55,6 +55,7 @@ class UnloadTabletHandler implements Runnable {
   public void run() {
 
     Tablet t = null;
+    log.info("Tablet unload for extent {} requested.", extent);
 
     synchronized (server.unopenedTablets) {
       if (server.unopenedTablets.contains(extent)) {
