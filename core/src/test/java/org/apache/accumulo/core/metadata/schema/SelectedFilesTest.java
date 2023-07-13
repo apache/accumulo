@@ -18,16 +18,21 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,6 +75,26 @@ public class SelectedFilesTest {
   }
 
   /**
+   * Ensure that SelectedFiles objects created with file arrays of differing order yet equal entries
+   * are correctly serialized
+   */
+  @Test
+  public void testDifferentFilesOrdering() {
+    Set<StoredTabletFile> files = getStoredTabletFiles(16);
+    SortedSet<StoredTabletFile> sortedFiles = new TreeSet<>(files);
+
+    assertEquals(files, sortedFiles, "Entries in test file sets should be the same");
+    assertNotEquals(files.toString(), sortedFiles.toString(),
+        "Order of files set should differ for this test case");
+
+    SelectedFiles sf1 = new SelectedFiles(files, false, 654123L);
+    SelectedFiles sf2 = new SelectedFiles(sortedFiles, false, 654123L);
+
+    assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
+    assertEquals(sf1, sf2);
+  }
+
+  /**
    * Ensure that two SelectedFiles objects, one created with a subset of files present in the other,
    * are not equal
    */
@@ -101,8 +126,9 @@ public class SelectedFilesTest {
   }
 
   private static Stream<Arguments> provideTestJsons() {
-    return Stream.of(Arguments.of("123456", true, 2), Arguments.of("123456", false, 2),
-        Arguments.of("123456", false, 3), Arguments.of("654321", false, 3));
+    return Stream.of(Arguments.of("123456", true, 12), Arguments.of("123456", false, 12),
+        Arguments.of("123456", false, 23), Arguments.of("654321", false, 23),
+        Arguments.of("AE56E", false, 23));
   }
 
   /**
@@ -114,12 +140,11 @@ public class SelectedFilesTest {
   public void testJsonStrings(String txid, boolean selAll, int numPaths) {
     List<String> paths = getFilePaths(numPaths);
 
+    // should be resilient to unordered file arrays
+    Collections.shuffle(paths, RANDOM.get());
+
     // construct a json from the given parameters
-    String filesJsonArray =
-        paths.stream().map(path -> "'" + path + "'").collect(Collectors.joining(","));
-    String json =
-        ("{'txid':'FATE[" + txid + "]','selAll':" + selAll + ",'files':[" + filesJsonArray + "]}")
-            .replace('\'', '\"');
+    String json = getJson(txid, selAll, paths);
 
     // create a SelectedFiles object using the json
     SelectedFiles selectedFiles = SelectedFiles.from(json);
@@ -129,6 +154,29 @@ public class SelectedFilesTest {
     assertEquals(selAll, selectedFiles.initiallySelectedAll());
     Set<StoredTabletFile> expectedStoredTabletFiles = filePathsToStoredTabletFiles(paths);
     assertEquals(expectedStoredTabletFiles, selectedFiles.getFiles());
+
+    Collections.sort(paths);
+    String jsonWithSortedFiles = getJson(txid, selAll, paths);
+    assertEquals(jsonWithSortedFiles, selectedFiles.getMetadataValue());
+  }
+
+  /**
+   * Creates a json suitable to create a SelectedFiles object from. The given parameters will be
+   * inserted into the returned json String. Example of returned json String:
+   *
+   * <pre>
+   * {
+   *   "txid": "FATE[123456]",
+   *   "selAll": true,
+   *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
+   * }
+   * </pre>
+   */
+  private static String getJson(String txid, boolean selAll, List<String> paths) {
+    String filesJsonArray =
+        paths.stream().map(path -> "'" + path + "'").collect(Collectors.joining(","));
+    return ("{'txid':'" + FateTxId.formatTid(Long.parseLong(txid, 16)) + "','selAll':" + selAll
+        + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
   }
 
   /**
