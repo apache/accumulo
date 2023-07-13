@@ -880,6 +880,7 @@ public class Tablet extends TabletBase {
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
     completeClose(saveState, true);
+    log.info("Tablet {} closed.", this.extent);
   }
 
   void initiateClose(boolean saveState) {
@@ -963,8 +964,19 @@ public class Tablet extends TabletBase {
       activeScan.interrupt();
     }
 
+    long lastLogTime = System.nanoTime();
+
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
+
+      if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
+        for (ScanDataSource activeScan : activeScans) {
+          log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
+        }
+
+        lastLogTime = System.nanoTime();
+      }
+
       try {
         log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
             activeScans.size());
@@ -1100,6 +1112,8 @@ public class Tablet extends TabletBase {
     }
   }
 
+  private boolean loggedErrorForTabletComparison = false;
+
   /**
    * Checks that tablet metadata from the metadata table matches what this tablet has in memory. The
    * caller of this method must acquire the updateCounter parameter before acquiring the
@@ -1148,10 +1162,17 @@ public class Tablet extends TabletBase {
       } else {
         log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
             tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
+        loggedErrorForTabletComparison = true;
       }
     } else {
-      log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
-          tabletMetadata.getExtent(), updateCounter);
+      if (loggedErrorForTabletComparison) {
+        log.info("AMCC Tablet {} files in memory are now same as in metadata table {}",
+            tabletMetadata.getExtent(), updateCounter);
+        loggedErrorForTabletComparison = false;
+      } else {
+        log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
+            tabletMetadata.getExtent(), updateCounter);
+      }
     }
   }
 
