@@ -725,18 +725,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     // Tablet ranges intersect
     if (info.needsToBeChopped(tm.getExtent())) {
-      TServerConnection conn;
-      try {
-        conn = manager.tserverSet.getConnection(tm.getLocation().getServerInstance());
-        if (conn != null) {
-          Manager.log.info("Asking {} to chop {}", tm.getLocation(), tm.getExtent());
-          conn.chop(manager.managerLock, tm.getExtent());
-        } else {
-          Manager.log.warn("Could not connect to server {}", tm.getLocation());
-        }
-      } catch (TException e) {
-        Manager.log.warn("Communications error asking tablet server to chop a tablet");
-      }
+      throw new UnsupportedOperationException("The tablet server can no longer chop tablets");
     }
   }
 

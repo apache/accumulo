@@ -274,7 +274,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     // ELASTICITY_TODO may need to deprecate this method in 3.x and remove it 4.0. Tservers no
-    // longer run compactions.
+    // longer run compactions. See #3593
     return List.of();
   }
 

@@ -180,16 +180,6 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void chop(ServiceLock lock, KeyExtent extent) throws TException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.chop(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
     public boolean isActive(long tid) throws TException {
       ClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.CLIENT, address, context);
