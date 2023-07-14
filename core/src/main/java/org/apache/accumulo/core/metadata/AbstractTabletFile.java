@@ -20,7 +20,6 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 

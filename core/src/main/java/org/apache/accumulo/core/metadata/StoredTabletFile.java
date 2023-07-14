@@ -174,14 +174,17 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private static TabletFileCq deserialize(String json) {
     final TabletFileCqMetadataGson metadata =
         gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
-    // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally constructed
-    // with inclusive/exclusive for the start and end key inclusivity settings. (Except for Ranges with no start/end
-    // key as then the inclusivity flags do not matter)
+    // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally
+    // constructed with inclusive/exclusive for the start and end key inclusivity settings.
+    // (Except for Ranges with no start/endkey as then the inclusivity flags do not matter)
     //
-    // With this particular constructor, when setting the startRowInclusive to true and endRowInclusive to false, both
-    // the start and end row values will be taken as is and not modified and will recreate the original Range.
-    // This constructor will always set the resulting inclusivity of the Range to be true for the start row and false
-    // for end row regardless of what the startRowInclusive and endRowInclusive flags are set to.
+    // With this particular constructor, when setting the startRowInclusive to true and
+    // endRowInclusive to false, both the start and end row values will be taken as is
+    // and not modified and will recreate the original Range.
+    //
+    // This constructor will always set the resulting inclusivity of the Range to be true for the
+    // start row and false for end row regardless of what the startRowInclusive and endRowInclusive
+    // flags are set to.
     return new TabletFileCq(new Path(URI.create(metadata.path)),
         new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false));
   }
