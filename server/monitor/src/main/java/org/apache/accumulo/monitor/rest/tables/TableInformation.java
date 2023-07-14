@@ -140,12 +140,9 @@ public class TableInformation {
     this.holdTime = holdTime;
 
     if (info.scans != null) {
-      //this.queuedScans = info.scans.queued;
-      //this.runningScans = info.scans.running;
-      this.queuedScans = (int) Math.floor(Math.random() * 10);
-      this.runningScans = (int) Math.floor(Math.random() * 10);
-      //this.scansCombo = info.scans.running + "(" + info.scans.queued + ")";
-      this.scansCombo = this.runningScans + "("+ this.queuedScans + ")";
+      this.queuedScans = info.scans.queued;
+      this.runningScans = info.scans.running;
+      this.scansCombo = info.scans.running + "(" + info.scans.queued + ")";
     } else {
       this.queuedScans = 0;
       this.runningScans = 0;
@@ -153,12 +150,9 @@ public class TableInformation {
     }
 
     if (info.minors != null) {
-      //this.queuedMinorCompactions = info.minors.queued;
-      //this.runningMinorCompactions = info.minors.running;
-      this.queuedMinorCompactions = (int) Math.floor(Math.random() * 10);
-      this.runningMinorCompactions = (int) Math.floor(Math.random() * 10);
-      //this.minorCombo = info.minors.running + "(" + info.minors.queued + ")";
-      this.minorCombo = this.runningMinorCompactions + "("+ this.queuedMinorCompactions + ")";
+      this.queuedMinorCompactions = info.minors.queued;
+      this.runningMinorCompactions = info.minors.running;
+      this.minorCombo = info.minors.running + "(" + info.minors.queued + ")";
     } else {
       this.queuedMinorCompactions = 0;
       this.runningMinorCompactions = 0;
@@ -166,12 +160,9 @@ public class TableInformation {
     }
 
     if (info.majors != null) {
-      //this.queuedMajorCompactions = info.majors.queued;
-      //this.runningMajorCompactions = info.majors.running;
-      this.queuedMajorCompactions = (int) Math.floor(Math.random() * 10);
-      this.runningMajorCompactions = (int) Math.floor(Math.random() * 10);
-      //this.majorCombo = info.majors.running + "(" + info.majors.queued + ")";
-      this.majorCombo = this.runningMajorCompactions + "("+ this.queuedMajorCompactions + ")";
+      this.queuedMajorCompactions = info.majors.queued;
+      this.runningMajorCompactions = info.majors.running;
+      this.majorCombo = info.majors.running + "(" + info.majors.queued + ")";
     } else {
       this.queuedMajorCompactions = 0;
       this.runningMajorCompactions = 0;

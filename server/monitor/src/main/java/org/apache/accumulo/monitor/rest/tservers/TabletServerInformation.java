@@ -122,28 +122,22 @@ public class TabletServerInformation {
 
     this.holdtime = thriftStatus.holdTime;
 
-    //this.scansRunning = summary.scans != null ? summary.scans.running : 0;
-    //this.scansQueued = summary.scans != null ? summary.scans.queued : 0;
-    this.scansRunning = (int) Math.floor(Math.random() * 10);
-    this.scansQueued = (int) Math.floor(Math.random() * 10);
+    this.scansRunning = summary.scans != null ? summary.scans.running : 0;
+    this.scansQueued = summary.scans != null ? summary.scans.queued : 0;
     this.scansCombo = scansRunning + "(" + scansQueued + ")";
 
     this.scans = this.scansRunning;
 
     this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
 
-    //this.minorRunning = summary.minors != null ? summary.minors.running : 0;
-    //this.minorQueued = summary.minors != null ? summary.minors.queued : 0;
-    this.minorRunning = (int) Math.floor(Math.random() * 10);
-    this.minorQueued = (int) Math.floor(Math.random() * 10);
+    this.minorRunning = summary.minors != null ? summary.minors.running : 0;
+    this.minorQueued = summary.minors != null ? summary.minors.queued : 0;
     this.minorCombo = minorRunning + "(" + minorQueued + ")";
 
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
-    //this.majorRunning = summary.majors != null ? summary.majors.running : 0;
-    //this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
-    this.majorRunning = (int) Math.floor(Math.random() * 10);
-    this.majorQueued = (int) Math.floor(Math.random() * 10);
+    this.majorRunning = summary.majors != null ? summary.majors.running : 0;
+    this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
     this.majorCombo = majorRunning + "(" + majorQueued + ")";
 
     this.major = new CompactionsList(this.majorRunning, this.majorQueued);
