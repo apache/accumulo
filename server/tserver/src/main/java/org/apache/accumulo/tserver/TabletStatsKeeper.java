@@ -25,16 +25,14 @@ import org.apache.accumulo.server.util.ActionStatsUpdator;
 public class TabletStatsKeeper {
 
   // suspect we need more synchronization in this class
-  private ActionStats major = new ActionStats();
   private ActionStats minor = new ActionStats();
-  private ActionStats split = new ActionStats();
 
   public enum Operation {
     // TODO delete split
-    MAJOR, SPLIT, MINOR
+    MINOR
   }
 
-  private ActionStats[] map = {major, split, minor};
+  private ActionStats[] map = {minor};
 
   public void updateTime(Operation operation, long queued, long start, long count, boolean failed) {
     try {
@@ -63,37 +61,11 @@ public class TabletStatsKeeper {
 
   }
 
-  public void updateTime(Operation operation, long start, boolean failed) {
-    try {
-      ActionStats data = map[operation.ordinal()];
-      if (failed) {
-        data.fail++;
-        data.status--;
-      } else {
-        double t = (System.currentTimeMillis() - start) / 1000.0;
-
-        data.status--;
-        data.num++;
-        data.elapsed += t;
-        data.sumDev += t * t;
-
-        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0) {
-          resetTimes();
-        }
-      }
-    } catch (Exception E) {
-      resetTimes();
-    }
-
-  }
-
   public void saveMajorMinorTimes(TabletStats t) {
     ActionStatsUpdator.update(minor, t.minors);
   }
 
   private void resetTimes() {
-    major = new ActionStats();
-    split = new ActionStats();
     minor = new ActionStats();
   }
 
@@ -101,16 +73,7 @@ public class TabletStatsKeeper {
     minor.status++;
   }
 
-  public void incrementStatusMajor() {
-    major.status++;
-  }
-
-  // TODO remove
-  void incrementStatusSplit() {
-    split.status++;
-  }
-
   public TabletStats getTabletStats() {
-    return new TabletStats(null, null, minor, split, 0, 0, 0);
+    return new TabletStats(null, null, minor, null, 0, 0, 0);
   }
 }

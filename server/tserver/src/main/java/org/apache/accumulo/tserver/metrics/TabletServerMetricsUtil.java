@@ -117,10 +117,6 @@ public class TabletServerMetricsUtil {
     return tserver.getUnopenedCount();
   }
 
-  public String getName() {
-    return tserver.getClientAddressString();
-  }
-
   public long getTotalMinorCompactions() {
     return tserver.getTotalMinorCompactions();
   }

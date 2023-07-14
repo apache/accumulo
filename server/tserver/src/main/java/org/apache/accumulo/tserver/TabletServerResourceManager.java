@@ -650,11 +650,6 @@ public class TabletServerResourceManager {
     }
 
     // BEGIN methods that Tablets call to manage their set of open data files
-
-    public void importedDataFiles() {
-      lastReportedCommitTime = System.currentTimeMillis();
-    }
-
     public synchronized ScanFileManager newScanFileManager(ScanDispatch scanDispatch) {
       if (closed) {
         throw new IllegalStateException("closed");
@@ -732,10 +727,6 @@ public class TabletServerResourceManager {
           closed = true;
         }
       }
-    }
-
-    public TabletServerResourceManager getTabletServerResourceManager() {
-      return TabletServerResourceManager.this;
     }
   }
 

@@ -1089,10 +1089,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return resourceManager.holdTime();
   }
 
-  public SecurityOperation getSecurityOperation() {
-    return security;
-  }
-
   // avoid unnecessary redundant markings to meta
   final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs =
       new ConcurrentHashMap<>();

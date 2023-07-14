@@ -73,10 +73,6 @@ public class TabletServerScanMetrics implements MetricsProducer {
     return this.queryResultBytes.sum();
   }
 
-  public void incrementScannedCount(long amount) {
-    this.scannedCount.add(amount);
-  }
-
   public LongAdder getScannedCounter() {
     return this.scannedCount;
   }
