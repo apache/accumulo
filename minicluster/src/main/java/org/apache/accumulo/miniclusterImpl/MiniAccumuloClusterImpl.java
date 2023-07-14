@@ -629,7 +629,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new IllegalStateException("No Compactor queues configured.");
       }
       for (String name : queues) {
-        config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
+        // Allow user override
+        if (!config.getClusterServerConfiguration().getCompactorConfiguration().containsKey(name)) {
+          config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
+        }
       }
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);

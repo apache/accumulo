@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -124,6 +125,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
       cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
 
+      // Zero these compactors
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(0);
+      // Create a new queue with zero compactors.
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup("user-small", 0);
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
@@ -531,8 +536,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testManyFiles() throws Exception {
-
+  public void testQueueMetrics() throws Exception {
     // Metrics collector Thread
     final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
     final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
@@ -544,7 +548,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "cjpq")) {
             queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
           }
         }
@@ -552,6 +556,46 @@ public class BulkNewIT extends SharedMiniClusterBase {
     });
     thread.start();
 
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+
+      addSplits(c, tableName, "5000");
+
+      for (int i = 0; i < 100; i++) {
+        writeData(dir + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+      c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      // Configure Iterator for compaction and target the user-small queue
+      IteratorSetting iterSetting = new IteratorSetting(100, CompactionIT.TestFilter.class);
+      iterSetting.addOption("expectedQ", "e.metrics-test");
+      iterSetting.addOption("modulus", 7 + "");
+      CompactionConfig config =
+          new CompactionConfig().setIterators(List.of(iterSetting)).setWait(false);
+      c.tableOperations().compact(tableName, config);
+
+      Thread.sleep(50000);
+      verifyData(c, tableName, 0, 100 * 100 - 1, false);
+    }
+
+    // Only records the metrics to the log for now. Need to guarantee that the values are correct.
+    while (!queueMetrics.isEmpty()) {
+      var metric = queueMetrics.take();
+      if (metric.getTags().containsKey("queue.id")) {
+        log.debug("QUEUE Metric found: {}", queueMetrics.take());
+      } else {
+        log.debug("Metric found: {}", queueMetrics.take());
+      }
+    }
+    assertTrue(false);
+
+  }
+
+  @Test
+  public void testManyFiles() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
@@ -570,11 +614,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
-    }
-
-    // Only records the metrics to the log for now. Need to guarantee that the values are correct.
-    while (!queueMetrics.isEmpty()) {
-      log.debug("Metric found: {}", queueMetrics.take());
     }
   }
 

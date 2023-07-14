@@ -130,13 +130,13 @@ public class CompactionJobQueues {
     }
 
     // TODO make max size configurable
-    var pq = priorityQueues.computeIfAbsent(executorId,
-        eid -> new CompactionJobPriorityQueue(eid, 10000));
+    var pq =
+        priorityQueues.computeIfAbsent(executorId, eid -> new CompactionJobPriorityQueue(eid, 3));
     while (!pq.add(tabletMetadata, jobs)) {
       // This loop handles race condition where poll() closes empty priority queues. The queue could
       // be closed after its obtained from the map and before add is called.
       pq = priorityQueues.computeIfAbsent(executorId,
-          eid -> new CompactionJobPriorityQueue(eid, 10000));
+          eid -> new CompactionJobPriorityQueue(eid, 3));
     }
   }
 }
