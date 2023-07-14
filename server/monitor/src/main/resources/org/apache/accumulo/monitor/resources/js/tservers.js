@@ -166,6 +166,21 @@ $(document).ready(function () {
           }
           return data;
         }
+      },
+      {
+        "targets": [8],
+        "type": "numeric",
+        "orderData": [14, 15]
+      },
+      {
+        "targets": [9],
+        "type": "numeric",
+        "orderData": [16, 17]
+      },
+      {
+        "targets": [10],
+        "type": "numeric",
+        "orderData": [18, 19]
       }
     ],
     "columns": [{
@@ -216,6 +231,24 @@ $(document).ready(function () {
       },
       {
         "data": "osload"
+      },
+      {
+        "data": "scansRunning"
+      },
+      {
+        "data": "scansQueued"
+      },
+      {
+        "data": "minorRunning"
+      },
+      {
+        "data": "minorQueued"
+      },
+      {
+        "data": "majorRunning"
+      },
+      {
+        "data": "majorQueued"
       }
     ],
     "rowCallback": function (row, data, index) {
@@ -230,6 +263,8 @@ $(document).ready(function () {
       }
     }
   });
+
+  tserversTable.columns([14, 15, 16, 17, 18, 19]).visible(false);
 
   // Create a table for deadServers list
   deadTServersTable = $('#deadtservers').DataTable({

@@ -50,6 +50,12 @@
                 <th class="percent" title="The recent index cache hit rate.">Index Cache<br />Hit Rate&nbsp;</th>
                 <th class="percent" title="The recent data cache hit rate.">Data Cache<br />Hit Rate&nbsp;</th>
                 <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th>
+                <th title="Running Scans">Running Scans</th>
+                <th title="Queued Scans">Queued Scans</th>
+                <th title="Running MinC">Running MinC</th>
+                <th title="Queued MinC">Queued MinC</th>
+                <th title="Running MajC">Running MajC</th>
+                <th title="Queued MajC">Queued MajC</th>
               </tr>
             </thead>
             <tbody></tbody>

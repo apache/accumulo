@@ -80,6 +80,21 @@ function initTableServerTable(tableID) {
           }
           return data;
         }
+      },
+      {
+        "targets": [7],
+        "type": "numeric",
+        "orderData": [13, 14]
+      },
+      {
+        "targets": [8],
+        "type": "numeric",
+        "orderData": [15, 16]
+      },
+      {
+        "targets": [9],
+        "type": "numeric",
+        "orderData": [17, 18]
       }
     ],
     "columns": [{
@@ -133,9 +148,29 @@ function initTableServerTable(tableID) {
       },
       {
         "data": "osload"
+      },
+      {
+        "data": "scansRunning"
+      },
+      {
+        "data": "scansQueued"
+      },
+      {
+        "data": "minorRunning"
+      },
+      {
+        "data": "minorQueued"
+      },
+      {
+        "data": "majorRunning"
+      },
+      {
+        "data": "majorQueued"
       }
     ]
   });
+
+  tableServersTable.columns([13, 14, 15, 16, 17, 18]).visible(false);
 
   refreshTable();
 

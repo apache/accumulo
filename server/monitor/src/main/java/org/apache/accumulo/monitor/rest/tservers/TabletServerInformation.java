@@ -64,17 +64,17 @@ public class TabletServerInformation {
   // New variables
 
   public String ip;
-  private Integer scansRunning;
-  private Integer scansQueued;
+  public Integer scansRunning;
+  public Integer scansQueued;
   // combo string with running value and number queued in parenthesis
   public String minorCombo;
   public String majorCombo;
   public String scansCombo;
-  private Integer minorRunning;
-  private Integer minorQueued;
+  public Integer minorRunning;
+  public Integer minorQueued;
 
-  private Integer majorRunning;
-  private Integer majorQueued;
+  public Integer majorRunning;
+  public Integer majorQueued;
 
   private CompactionsList scansCompacting; // if scans is removed, change scansCompacting to scans
   private CompactionsList major;
@@ -122,22 +122,28 @@ public class TabletServerInformation {
 
     this.holdtime = thriftStatus.holdTime;
 
-    this.scansRunning = summary.scans != null ? summary.scans.running : 0;
-    this.scansQueued = summary.scans != null ? summary.scans.queued : 0;
+    //this.scansRunning = summary.scans != null ? summary.scans.running : 0;
+    //this.scansQueued = summary.scans != null ? summary.scans.queued : 0;
+    this.scansRunning = (int) Math.floor(Math.random() * 10);
+    this.scansQueued = (int) Math.floor(Math.random() * 10);
     this.scansCombo = scansRunning + "(" + scansQueued + ")";
 
     this.scans = this.scansRunning;
 
     this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
 
-    this.minorRunning = summary.minors != null ? summary.minors.running : 0;
-    this.minorQueued = summary.minors != null ? summary.minors.queued : 0;
+    //this.minorRunning = summary.minors != null ? summary.minors.running : 0;
+    //this.minorQueued = summary.minors != null ? summary.minors.queued : 0;
+    this.minorRunning = (int) Math.floor(Math.random() * 10);
+    this.minorQueued = (int) Math.floor(Math.random() * 10);
     this.minorCombo = minorRunning + "(" + minorQueued + ")";
 
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
-    this.majorRunning = summary.majors != null ? summary.majors.running : 0;
-    this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
+    //this.majorRunning = summary.majors != null ? summary.majors.running : 0;
+    //this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
+    this.majorRunning = (int) Math.floor(Math.random() * 10);
+    this.majorQueued = (int) Math.floor(Math.random() * 10);
     this.majorCombo = majorRunning + "(" + majorQueued + ")";
 
     this.major = new CompactionsList(this.majorRunning, this.majorQueued);
