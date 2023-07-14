@@ -259,12 +259,12 @@ public class MetadataTableUtil {
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaUpdateDeleteText(),
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
           new Value(entry.getValue().encode()));
     }
 
     for (StoredTabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetaUpdateDeleteText());
+      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
     }
 
     update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
@@ -358,8 +358,7 @@ public class MetadataTableUtil {
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-            bw.addMutation(
-                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
+            bw.addMutation(ample.createDeleteMutation(new ReferenceFile(tableId, stf)));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
@@ -437,6 +436,7 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":")) {
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         }
+        // TODO: Fix this?
         m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
       } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
         m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());

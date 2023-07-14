@@ -443,7 +443,8 @@ public class CompactableImplFileManagerTest {
   }
 
   static StoredTabletFile newFile(String f) {
-    return new StoredTabletFile("hdfs://nn1/accumulo/tables/1/t-0001/" + f);
+    return new StoredTabletFile(
+        StoredTabletFile.serialize("hdfs://nn1/accumulo/tables/1/t-0001/" + f));
   }
 
   static Set<StoredTabletFile> newFiles(String... strings) {

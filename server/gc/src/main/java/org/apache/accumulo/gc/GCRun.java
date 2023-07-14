@@ -162,7 +162,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         fileStream = Stream.concat(fileStream, tmScans.stream());
       }
       // map the files to Reference objects
-      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
+      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f));
       // if dirName is populated then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
@@ -173,7 +173,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getNormalizedPathStr()));
+        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }
@@ -255,7 +255,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         try {
           Path fullPath;
           Path switchedDelete =
-              VolumeUtil.switchVolume(delete, VolumeManager.FileType.TABLE, replacements);
+              VolumeUtil.switchVolume(new Path(delete), VolumeManager.FileType.TABLE, replacements);
           if (switchedDelete != null) {
             // actually replacing the volumes in the metadata table would be tricky because the
             // entries would be different rows. So it could not be

@@ -23,6 +23,8 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A base class used to represent file references that are handled by code that processes tablet
  * files.
@@ -38,6 +40,11 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
     this.range = Objects.requireNonNull(range);
+    // Ensure consistency by requiring ranges use true/false for inclusivity
+    // for start and end keys
+    Preconditions.checkArgument(
+        !hasRange() || (range.isStartKeyInclusive() && !range.isEndKeyInclusive()),
+        "The Range for a TabletFile must be startKeyInclusive=true and endKeyInclusive=false");
   }
 
   @Override
@@ -54,4 +61,5 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   public boolean hasRange() {
     return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
   }
+
 }

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -318,8 +319,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
+        var path = URI.create(String.format("file:/%020d/%s", i, longpath));
+        Mutation delFlag =
+            ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), new Path(path)));
         bw.addMutation(delFlag);
       }
     }
