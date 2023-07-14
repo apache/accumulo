@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -234,12 +236,15 @@ public class SlowOps {
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
     do {
-      List<String> tservers = client.instanceOperations().getTabletServers();
-      boolean tableFound = tservers.stream().flatMap(tserver -> {
+      List<String> servers = new ArrayList<>();
+      ExternalCompactionUtil.getCompactorAddrs((ClientContext) client).values().forEach(list -> {
+        list.forEach(hp -> servers.add(hp.toString()));
+      });
+      boolean tableFound = servers.stream().flatMap(server -> {
         // get active compactions from each server
         try {
-          List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(tserver);
-          log.trace("tserver {}, running compactions {}", tserver, ac.size());
+          List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(server);
+          log.trace("tserver {}, running compactions {}", server, ac.size());
           return ac.stream();
         } catch (AccumuloException | AccumuloSecurityException e) {
           throw new IllegalStateException("failed to get active compactions, test fails.", e);

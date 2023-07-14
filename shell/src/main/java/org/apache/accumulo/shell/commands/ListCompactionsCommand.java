@@ -30,7 +30,7 @@ import org.apache.commons.cli.Options;
 
 public class ListCompactionsCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt, filterOption;
+  private Option serverOption, disablePaginationOpt, filterOption;
 
   @Override
   public String description() {
@@ -51,9 +51,9 @@ public class ListCompactionsCommand extends Command {
 
     Stream<String> activeCompactionStream;
 
-    if (cl.hasOption(tserverOption.getOpt())) {
+    if (cl.hasOption(serverOption.getOpt())) {
       activeCompactionStream = ActiveCompactionHelper
-          .activeCompactionsForServer(cl.getOptionValue(tserverOption.getOpt()), instanceOps);
+          .activeCompactionsForServer(cl.getOptionValue(serverOption.getOpt()), instanceOps);
     } else {
       activeCompactionStream = ActiveCompactionHelper.stream(instanceOps);
     }
@@ -85,9 +85,9 @@ public class ListCompactionsCommand extends Command {
     filterOption = new Option("f", "filter", true, "show only compactions that match the regex");
     opts.addOption(filterOption);
 
-    tserverOption = new Option("ts", "tabletServer", true, "tablet server to list compactions for");
-    tserverOption.setArgName("tablet server");
-    opts.addOption(tserverOption);
+    serverOption = new Option("s", "server", true, "compactor server to list compactions for");
+    serverOption.setArgName("compactor server");
+    opts.addOption(serverOption);
 
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);

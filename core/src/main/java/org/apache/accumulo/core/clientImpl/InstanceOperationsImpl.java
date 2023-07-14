@@ -271,26 +271,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver)
+  public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
+    final var compactorAddr = HostAndPort.fromString(server);
     try {
-      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
-
-      List<ActiveCompaction> as = new ArrayList<>();
-      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
-      }
-      return as;
+      return ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
+          .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
+              CompactionHost.Type.COMPACTOR))
+          .collect(toList());
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (TException e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
-      }
     }
   }
 

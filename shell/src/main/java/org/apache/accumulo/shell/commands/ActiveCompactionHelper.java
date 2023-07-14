@@ -111,18 +111,18 @@ class ActiveCompactionHelper {
     return Stream.concat(header, stream);
   }
 
-  public static Stream<String> activeCompactionsForServer(String tserver,
+  public static Stream<String> activeCompactionsForServer(String server,
       InstanceOperations instanceOps) {
     List<String> compactions = new ArrayList<>();
     try {
-      List<ActiveCompaction> acl = new ArrayList<>(instanceOps.getActiveCompactions(tserver));
+      List<ActiveCompaction> acl = new ArrayList<>(instanceOps.getActiveCompactions(server));
       acl.sort((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
       for (ActiveCompaction ac : acl) {
         compactions.add(formatActiveCompactionLine(ac));
       }
     } catch (Exception e) {
-      log.debug("Failed to list active compactions for server {}", tserver, e);
-      compactions.add(tserver + " ERROR " + e.getMessage());
+      log.debug("Failed to list active compactions for server {}", server, e);
+      compactions.add(server + " ERROR " + e.getMessage());
     }
     return compactions.stream();
   }
