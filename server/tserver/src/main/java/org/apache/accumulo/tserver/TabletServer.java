@@ -414,7 +414,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     public void run() {
       while (true) {
         try {
-          // TODO this property is misnamed
+          // TODO this property is misnamed, opened #3606
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
@@ -920,8 +920,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       if (tablet.isMinorCompactionQueued()) {
         table.minors.queued++;
       }
-
-      // TODO remove compacting counters from TabletServerStatus
     });
 
     scanCounts.forEach((tableId, mapCounter) -> {
@@ -970,10 +968,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.logSorts = logSorter.getLogSorts();
     result.flushs = flushCounter.get();
     result.syncs = syncCounter.get();
-    // TODO remove bulk imports from TabletServerStatus
-    // result.bulkImports = new ArrayList<>();
-    // result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
-    // result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
     result.version = getVersion();
     result.responseTime = System.currentTimeMillis() - start;
     return result;
