@@ -273,25 +273,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
-    try {
-      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
-
-      List<ActiveCompaction> as = new ArrayList<>();
-      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
-      }
-      return as;
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (TException e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
-      }
-    }
+    // ELASTICITY_TODO may need to deprecate this method in 3.x and remove it 4.0. Tservers no
+    // longer run compactions. See #3593
+    return List.of();
   }
 
   @Override
@@ -299,17 +283,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
 
     Map<String,List<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
-    List<String> tservers = getTabletServers();
 
-    int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
+    int numThreads = Math.max(4, Math.min(compactors.size() / 10, 256));
     var executorService =
         context.threadPools().createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
-
-      for (String tserver : tservers) {
-        futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
-      }
 
       compactors.values().forEach(compactorList -> {
         for (HostAndPort compactorAddr : compactorList) {

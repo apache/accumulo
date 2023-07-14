@@ -89,21 +89,6 @@ public class ExternalCompactionMetadata {
     return fateTxId;
   }
 
-  // ELASTICITY_TODO remove this code when removing compaction code from tserver
-  public Set<StoredTabletFile> getNextFiles() {
-    throw new UnsupportedOperationException();
-  }
-
-  // ELASTICITY_TODO remove this code when removing compaction code from tserver
-  public boolean getInitiallySelecteAll() {
-    throw new UnsupportedOperationException();
-  }
-
-  // ELASTICITY_TODO remove this code when removing compaction code from tserver
-  public Long getCompactionId() {
-    throw new UnsupportedOperationException();
-  }
-
   // This class is used to serialize and deserialize this class using GSon. Any changes to this
   // class must consider persisted data.
   private static class GSonData {

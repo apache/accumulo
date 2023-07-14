@@ -173,14 +173,6 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static void updateTabletCompactID(KeyExtent extent, long compactID, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putCompactionId(compactID);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-  }
-
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
       Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
       ServiceLock zooLock) {
@@ -643,12 +635,4 @@ public class MetadataTableUtil {
       }
     }
   }
-
-  public static void chopped(ServerContext context, KeyExtent extent, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putChopped();
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-  }
-
 }
