@@ -208,9 +208,10 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    **/
 
   private static byte[] encodeRow(final Key key) {
-    if (key != null) {
+    final Text row = key != null ? key.getRow() : null;
+    if (row != null) {
       try (DataOutputBuffer buffer = new DataOutputBuffer()) {
-        key.write(buffer);
+        row.write(buffer);
         return buffer.getData();
       } catch (IOException e) {
         throw new UncheckedIOException(e);
@@ -220,14 +221,14 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new byte[0];
   }
 
-  private static Key decodeRow(byte[] serialized) {
+  private static Text decodeRow(byte[] serialized) {
     // Empty byte array means null row
     if (serialized.length == 0) {
       return null;
     }
 
     try (DataInputBuffer buffer = new DataInputBuffer()) {
-      final Key row = new Key();
+      final Text row = new Text();
       buffer.reset(serialized, serialized.length);
       row.readFields(buffer);
       return row;
