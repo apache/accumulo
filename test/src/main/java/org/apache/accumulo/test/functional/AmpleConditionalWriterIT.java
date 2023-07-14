@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -478,6 +479,72 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
       assertNull(context.getAmple().readTablet(e1).getOperationId());
       assertNull(context.getAmple().readTablet(e2).getOperationId());
+    }
+  }
+
+  @Test
+  public void testCompacted() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+
+      var tabletMeta1 = TabletMetadata.builder(e1).build(COMPACTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .putCompacted(55L).submit(tabletMetadata -> tabletMetadata.getCompacted().contains(55L));
+      var tabletMeta2 = TabletMetadata.builder(e2).putCompacted(45L).build(COMPACTED);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireSame(tabletMeta2, COMPACTED)
+          .putCompacted(56L).submit(tabletMetadata -> tabletMetadata.getCompacted().contains(56L));
+
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+
+      tabletMeta1 = context.getAmple().readTablet(e1);
+      assertEquals(Set.of(55L), tabletMeta1.getCompacted());
+      assertEquals(Set.of(), context.getAmple().readTablet(e2).getCompacted());
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .putCompacted(65L).putCompacted(75L).submit(tabletMetadata -> false);
+
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      tabletMeta1 = context.getAmple().readTablet(e1);
+      assertEquals(Set.of(55L, 65L, 75L), tabletMeta1.getCompacted());
+
+      // test require same with a superset
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).putCompacted(75L)
+          .putCompacted(45L).build(COMPACTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Set.of(55L, 65L, 75L), context.getAmple().readTablet(e1).getCompacted());
+
+      // test require same with a subset
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).build(COMPACTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Set.of(55L, 65L, 75L), context.getAmple().readTablet(e1).getCompacted());
+
+      // now use the exact set the tablet has
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).putCompacted(75L)
+          .build(COMPACTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Set.of(), context.getAmple().readTablet(e1).getCompacted());
     }
   }
 

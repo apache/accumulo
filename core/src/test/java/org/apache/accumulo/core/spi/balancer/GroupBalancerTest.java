@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -119,7 +120,9 @@ public class GroupBalancerTest {
               new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
         }
 
-        balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut));
+        balancer.balance(new BalanceParamsImpl(current,
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+            migrationsOut));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());

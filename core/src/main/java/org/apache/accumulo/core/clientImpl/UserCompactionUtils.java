@@ -75,7 +75,7 @@ public class UserCompactionUtils {
     }
   }
 
-  public static interface Encoder<T> {
+  public interface Encoder<T> {
     public void encode(DataOutput dout, T p);
   }
 

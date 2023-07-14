@@ -180,7 +180,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
                 tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
+              processes.add(cluster._exec(classToUse, server, configOverrides, "-o",
+                  Property.TSERV_GROUP_NAME.getKey() + "=" + e.getKey()).getProcess());
             }
           }
         }
@@ -216,7 +217,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
                 scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
+              processes.add(cluster._exec(classToUse, server, configOverrides, "-o",
+                  Property.SSERV_GROUP_NAME.getKey() + "=" + e.getKey()).getProcess());
             }
           }
         }
@@ -230,9 +232,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
                 compactorProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster
-                  .exec(classToUse, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey())
-                  .getProcess());
+              processes.add(cluster._exec(classToUse, server, configOverrides, "-o",
+                  Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey()).getProcess());
             }
           }
         }

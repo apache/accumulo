@@ -76,7 +76,8 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
         var actions = EnumSet.of(ManagementAction.NEEDS_LOCATION_UPDATE);
 
-        CompactionJobGenerator cjg = new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx));
+        CompactionJobGenerator cjg =
+            new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx), Map.of());
         var jobs = cjg.generateJobs(tm,
             EnumSet.of(CompactionKind.SYSTEM, CompactionKind.USER, CompactionKind.SELECTOR));
         if (!jobs.isEmpty()) {

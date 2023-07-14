@@ -25,9 +25,9 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -39,13 +39,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -58,7 +59,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
-import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -80,6 +80,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -103,8 +104,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 public class CompactionIT extends AccumuloClusterHarness {
 
@@ -138,34 +139,16 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   }
 
-  public static class RandomErrorThrowingSelector implements CompactionSelector {
-
-    public static final String FILE_LIST_PARAM = "filesToCompact";
-    private static Boolean ERROR_THROWN = Boolean.FALSE;
-
-    private List<String> filesToCompact;
+  public static class ErrorThrowingSelector implements CompactionSelector {
 
     @Override
     public void init(InitParameters iparams) {
-      String files = iparams.getOptions().get(FILE_LIST_PARAM);
-      Objects.requireNonNull(files);
-      String[] f = files.split(",");
-      filesToCompact = Lists.newArrayList(f);
+
     }
 
     @Override
     public Selection select(SelectionParameters sparams) {
-      if (!ERROR_THROWN) {
-        ERROR_THROWN = Boolean.TRUE;
-        throw new RuntimeException("Exception for test");
-      }
-      List<CompactableFile> matches = new ArrayList<>();
-      sparams.getAvailableFiles().forEach(cf -> {
-        if (filesToCompact.contains(cf.getFileName())) {
-          matches.add(cf);
-        }
-      });
-      return new Selection(matches);
+      throw new RuntimeException("Exception for test");
     }
 
   }
@@ -223,28 +206,16 @@ public class CompactionIT extends AccumuloClusterHarness {
         }
       }
 
-      List<String> files = FunctionalTestUtils.getRFilePaths(c, tableName);
-      assertEquals(4, files.size());
-
-      String subset = files.get(0).substring(files.get(0).lastIndexOf('/') + 1) + ","
-          + files.get(3).substring(files.get(3).lastIndexOf('/') + 1);
-
       CompactionConfig config = new CompactionConfig()
-          .setSelector(new PluginConfig(RandomErrorThrowingSelector.class.getName(),
-              Map.of(RandomErrorThrowingSelector.FILE_LIST_PARAM, subset)))
+          .setSelector(new PluginConfig(ErrorThrowingSelector.class.getName(), Map.of()))
           .setWait(true);
-      c.tableOperations().compact(tableName, config);
-
-      // check that the subset of files selected are compacted, but the others remain untouched
-      List<String> filesAfterCompact = FunctionalTestUtils.getRFilePaths(c, tableName);
-      assertFalse(filesAfterCompact.contains(files.get(0)));
-      assertTrue(filesAfterCompact.contains(files.get(1)));
-      assertTrue(filesAfterCompact.contains(files.get(2)));
-      assertFalse(filesAfterCompact.contains(files.get(3)));
+      assertThrows(AccumuloException.class, () -> c.tableOperations().compact(tableName, config));
 
       List<String> rows = new ArrayList<>();
       c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
       assertEquals(List.of("1", "2", "3", "4"), rows);
+
+      assertNoCompactionMetadata(tableName);
     }
   }
 
@@ -271,6 +242,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       try (Scanner s = client.createScanner(table1)) {
         assertFalse(s.iterator().hasNext());
       }
+
+      assertNoCompactionMetadata(table1);
     }
   }
 
@@ -291,21 +264,21 @@ public class CompactionIT extends AccumuloClusterHarness {
       }
 
       final AtomicReference<Exception> error = new AtomicReference<>();
-      final AtomicBoolean started = new AtomicBoolean(false);
       Thread t = new Thread(() -> {
         try {
-          started.set(true);
           IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
           setting.addOption("sleepTime", "3000");
           setting.addOption("seekSleepTime", "3000");
-          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
-          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+          var cconf = new CompactionConfig().setWait(true).setIterators(List.of(setting));
+          client.tableOperations().compact(table1, cconf);
         } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
           error.set(e);
         }
       });
       t.start();
-      while (!started.get()) {
+      // when the compaction starts it will create a selected files column in the tablet, wait for
+      // that to happen
+      while (countTablets(table1, tm -> tm.getSelectedFiles() != null) == 0) {
         Thread.sleep(1000);
       }
       client.tableOperations().cancelCompaction(table1);
@@ -313,6 +286,19 @@ public class CompactionIT extends AccumuloClusterHarness {
       Exception e = error.get();
       assertNotNull(e);
       assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
+      // ensure the canceled compaction deletes any tablet metadata related to the compaction
+      while (countTablets(table1,
+          tm -> tm.getSelectedFiles() != null || !tm.getCompacted().isEmpty()) > 0) {
+        Thread.sleep(1000);
+      }
+    }
+  }
+
+  private long countTablets(String tableName, Predicate<TabletMetadata> tabletTest) {
+    var tableId = TableId.of(getServerContext().tableOperations().tableIdMap().get(tableName));
+    try (var tabletsMetadata =
+        getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+      return tabletsMetadata.stream().filter(tabletTest).count();
     }
   }
 
@@ -397,28 +383,41 @@ public class CompactionIT extends AccumuloClusterHarness {
       }
 
       final AtomicReference<Exception> error = new AtomicReference<>();
-      final AtomicBoolean started = new AtomicBoolean(false);
       Thread t = new Thread(() -> {
         try {
-          started.set(true);
           IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
           setting.addOption("sleepTime", "3000");
           setting.addOption("seekSleepTime", "3000");
-          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
-          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+          var cconf = new CompactionConfig().setWait(true).setIterators(List.of(setting));
+          client.tableOperations().compact(table1, cconf);
         } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
           error.set(e);
         }
       });
       t.start();
-      while (!started.get()) {
+      // when the compaction starts it will create a selected files column in the tablet, wait for
+      // that to happen
+      while (countTablets(table1, tm -> tm.getSelectedFiles() != null) == 0) {
         Thread.sleep(1000);
       }
+
+      // grab the table id before deleting the table as its needed for a check later and can not get
+      // it after delete
+      var tableId = TableId.of(getServerContext().tableOperations().tableIdMap().get(table1));
+
       client.tableOperations().delete(table1);
       t.join();
       Exception e = error.get();
       assertNotNull(e);
       assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
+
+      // ELASTICITY_TODO make delete table fate op get operation ids before deleting
+      // there should be no metadata for the table, check to see if the compaction wrote anything
+      // after table delete
+      try (var scanner = client.createScanner(MetadataTable.NAME)) {
+        scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+        assertEquals(0, scanner.stream().count());
+      }
     }
   }
 
@@ -456,7 +455,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       // this should create an F file
       client.tableOperations().flush(tableName, null, null, true);
 
-      // TODO compactions flush tablets, needs to evaluate this behavior
+      // ELASTICITY_TODO compactions flush tablets, needs to evaluate this behavior
 
       // run a compaction that only compacts F files
       iterSetting = new IteratorSetting(100, TestFilter.class);
@@ -465,6 +464,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       config = new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true)
           .setSelector(new PluginConfig(FSelector.class.getName()));
       client.tableOperations().compact(tableName, config);
+      assertNoCompactionMetadata(tableName);
 
       try (Scanner scanner = client.createScanner(tableName)) {
         int count = 0;
@@ -515,6 +515,7 @@ public class CompactionIT extends AccumuloClusterHarness {
               .setConfigurer(new PluginConfig(CompressionConfigurer.class.getName(),
                   Map.of(CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE, "gz",
                       CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD, data.length + ""))));
+      assertNoCompactionMetadata(tableName);
 
       // after compacting with compression, expect small file
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
@@ -522,6 +523,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      assertNoCompactionMetadata(tableName);
 
       // after compacting without compression, expect big files again
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
@@ -563,6 +565,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
       assertTrue(sizes < data.length,
           "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
+
+      assertNoCompactionMetadata(tableName);
 
     }
   }
@@ -687,6 +691,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       var finalCount = countFiles(c);
       assertTrue(finalCount <= beforeCount);
+
+      assertNoCompactionMetadata(tableName);
     }
   }
 
@@ -709,44 +715,180 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().compact(tableName, config);
 
       assertEquals(Set.of("a", "b"), getRows(c, tableName));
+
+      assertNoCompactionMetadata(tableName);
     }
 
   }
 
   @Test
-  public void testConcurrent() throws Exception {
-    // two compactions without iterators or strategy should be able to run concurrently
-
+  public void testConcurrentWithIterators() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-
-      // write random data because its very unlikely it will compress
-      writeRandomValue(c, tableName, 1 << 16);
-      writeRandomValue(c, tableName, 1 << 16);
-
-      c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
-      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-
-      assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
-
-      writeRandomValue(c, tableName, 1 << 16);
-
-      IteratorSetting iterConfig = new IteratorSetting(30, SlowIterator.class);
-      SlowIterator.setSleepTime(iterConfig, 1000);
-
-      long t1 = System.currentTimeMillis();
-      c.tableOperations().compact(tableName,
-          new CompactionConfig().setWait(false).setIterators(java.util.Arrays.asList(iterConfig)));
-      try {
-        // this compaction should fail because previous one set iterators
-        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-        if (System.currentTimeMillis() - t1 < 2000) {
-          fail("Expected compaction to fail because another concurrent compaction set iterators");
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < MAX_DATA; i++) {
+          Mutation m = new Mutation(String.format("r:%04d", i));
+          m.put("", "", "" + i);
+          bw.addMutation(m);
         }
-      } catch (AccumuloException e) {}
+      }
+
+      TreeSet<Text> splits = new TreeSet<>();
+      for (int i = 10; i < MAX_DATA; i += 10) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      c.tableOperations().addSplits(tableName, splits);
+
+      // Start three concurrent compactions with different iterators that filter different data.
+      // Expect all to run on each tablet in some order.
+      for (int modulus : List.of(2, 3, 5)) {
+        IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
+        // make sure iterator options make it to compactor process
+        iterSetting.addOption("modulus", modulus + "");
+        CompactionConfig config =
+            new CompactionConfig().setIterators(List.of(iterSetting)).setWait(false);
+        c.tableOperations().compact(tableName, config);
+      }
+
+      // only expected to see numbers that are divisible by 2, 3, and 5 in the data after all
+      // compactions run
+      var expected = IntStream.range(0, MAX_DATA).filter(i -> i % (2 * 3 * 5) == 0)
+          .mapToObj(i -> String.format("r:%04d", i)).collect(toSet());
+
+      Supplier<Set<String>> actualSupplier = () -> {
+        try (var scanner = c.createScanner(tableName)) {
+          return scanner.stream().map(e -> e.getKey().getRowData().toString()).collect(toSet());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      };
+
+      // wait until the filtering done by all three compactions is seen
+      while (!expected.equals(actualSupplier.get())) {
+        Thread.sleep(250);
+      }
+
+      // eventually the compactions should clean up all of their metadata, wait for this to happen
+      while (countTablets(tableName,
+          tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
+              || tabletMetadata.getSelectedFiles() != null
+              || !tabletMetadata.getExternalCompactions().isEmpty())
+          > 0) {
+        Thread.sleep(250);
+      }
     }
+  }
+
+  @Test
+  public void testConcurrentSplit() throws Exception {
+    // test compaction and split running concurrently
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < MAX_DATA; i++) {
+          Mutation m = new Mutation(String.format("r:%04d", i));
+          m.put("", "", "" + i);
+          bw.addMutation(m);
+        }
+      }
+
+      TreeSet<Text> splits = new TreeSet<>();
+      for (int i = 100; i < MAX_DATA; i += 100) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      // add 10 splits to the table
+      c.tableOperations().addSplits(tableName, splits);
+
+      for (int modulus : List.of(2, 3)) {
+        IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
+        // make sure iterator options make it to compactor process
+        iterSetting.addOption("modulus", modulus + "");
+        CompactionConfig config =
+            new CompactionConfig().setIterators(List.of(iterSetting)).setWait(false);
+        c.tableOperations().compact(tableName, config);
+      }
+
+      splits = new TreeSet<>();
+      for (int i = 50; i < MAX_DATA; i += 50) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      // wait a bit for some tablets to have files selected, it possible the compaction have
+      // completed before this so do not wait long
+      Wait.waitFor(
+          () -> countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
+              > 0,
+          3000, 10);
+
+      // add 10 more splits to the table
+      c.tableOperations().addSplits(tableName, splits);
+
+      splits = new TreeSet<>();
+      for (int i = 10; i < MAX_DATA; i += 10) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      // wait a bit for some tablets to be compacted, it possible the compaction have completed
+      // before this so do not wait long
+      Wait.waitFor(
+          () -> countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
+              > 0,
+          3000, 10);
+
+      // add 80 more splits to the table
+      c.tableOperations().addSplits(tableName, splits);
+
+      assertEquals(99, c.tableOperations().listSplits(tableName).size());
+
+      // only expect to see numbers that are divisible by 2 and 3 in the data after all
+      // compactions run
+      var expected = IntStream.range(0, MAX_DATA).filter(i -> i % (2 * 3) == 0)
+          .mapToObj(i -> String.format("r:%04d", i)).collect(toSet());
+
+      Supplier<Set<String>> actualSupplier = () -> {
+        try (var scanner = c.createScanner(tableName)) {
+          return scanner.stream().map(e -> e.getKey().getRowData().toString()).collect(toSet());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      };
+
+      // wait until the filtering done by all three compactions is seen
+      while (!expected.equals(actualSupplier.get())) {
+        Thread.sleep(250);
+      }
+
+      // eventually the compactions should clean up all of their metadata, wait for this to happen
+      while (countTablets(tableName,
+          tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
+              || tabletMetadata.getSelectedFiles() != null
+              || !tabletMetadata.getExternalCompactions().isEmpty())
+          > 0) {
+        Thread.sleep(250);
+      }
+    }
+  }
+
+  private void assertNoCompactionMetadata(String tableName) {
+    var tableId = TableId.of(getServerContext().tableOperations().tableIdMap().get(tableName));
+    var tabletsMetadata = getServerContext().getAmple().readTablets().forTable(tableId).build();
+
+    int count = 0;
+
+    for (var tabletMetadata : tabletsMetadata) {
+      assertEquals(Set.of(), tabletMetadata.getCompacted());
+      assertNull(tabletMetadata.getSelectedFiles());
+      assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+      count++;
+    }
+
+    assertTrue(count > 0);
   }
 
   @Test
@@ -870,7 +1012,7 @@ public class CompactionIT extends AccumuloClusterHarness {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var files = tabletMeta.getFiles();
         log.debug("Current files {}",
-            files.stream().map(StoredTabletFile::getFileName).collect(Collectors.toList()));
+            files.stream().map(StoredTabletFile::getFileName).collect(toList()));
 
         if (files.size() == 1) {
           // Once only one file exists the tablet may still have not gotten the refresh message
@@ -878,7 +1020,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           // eventually see the tablet refresh its files.
           try (Scanner scanner = client.createScanner(tableName)) {
             var acutalData = scanner.stream().map(e -> Integer.parseInt(e.getValue().toString()))
-                .collect(Collectors.toSet());
+                .collect(toSet());
             return acutalData.equals(expectedData);
           }
         }

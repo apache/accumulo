@@ -87,7 +87,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -687,7 +686,9 @@ public class Tablet extends TabletBase {
   }
 
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
-    return CompactionConfigStorage.getCompactionID(getContext(), extent);
+    // ELASTICITY_TODO remove this code
+    throw new UnsupportedOperationException(
+        "This code no longer functions and needs to be removed");
   }
 
   private synchronized CommitSession finishPreparingMutations(long time) {

@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -89,6 +91,11 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
 
     @Override
+    public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+      return new HashMap<>();
+    }
+
+    @Override
     public Collection<MergeInfo> merges() {
       return Collections.singleton(mergeInfo);
     }
@@ -101,6 +108,11 @@ public class MergeStateIT extends ConfigurableMacBase {
     @Override
     public ManagerState getManagerState() {
       return ManagerState.NORMAL;
+    }
+
+    @Override
+    public Map<Long,Map<String,String>> getCompactionHints() {
+      return Map.of();
     }
 
     @Override

@@ -43,7 +43,11 @@ public class Constants {
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
+
+  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
+
+  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
   public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
@@ -69,6 +73,9 @@ public class Constants {
   public static final String ZTSERVERS = "/tservers";
 
   public static final String ZSSERVERS = "/sservers";
+
+  // tracks config for running compactions
+  public static final String ZCOMPACTIONS = "/compactions";
 
   public static final String ZCOMPACTORS = "/compactors";
 
@@ -124,4 +131,6 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+
+  public static final String DEFAULT_RESOURCE_GROUP_NAME = "default";
 }

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -265,6 +266,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteExternalCompaction(ExternalCompactionId ecid) {
     mutation.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical());
+    return getThis();
+  }
+
+  @Override
+  public T putCompacted(long fateTxId) {
+    mutation.put(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId), "");
+    return getThis();
+  }
+
+  @Override
+  public T deleteCompacted(long fateTxId) {
+    mutation.putDelete(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId));
     return getThis();
   }
 
