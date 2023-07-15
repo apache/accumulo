@@ -130,9 +130,9 @@ public class MetadataConstraints implements Constraint {
   }
 
   /*
-   * Validates the data file metadata is valid for a StoredDataFile.
+   * Validates the data file metadata is valid for a StoredTabletFile.
    */
-  private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
+  private static ArrayList<Short> validateDataFileMetadata(ArrayList<Short> violations,
       String metadata) {
     try {
       StoredTabletFile.validate(metadata);
@@ -216,8 +216,8 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
 
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
@@ -229,8 +229,8 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           /*
@@ -238,10 +238,11 @@ public class MetadataConstraints implements Constraint {
            * https://github.com/apache/accumulo/issues/3505 is done.
            *
            * That issue will reorganizes this class and make things more efficient so we are not
-           * looping over the same mutatoin more than once like in this case. The below check is
+           * looping over the same mutation more than once like in this case. The below check is
            * commented out for now because the violation check is already done when creating
            * StoredTabletFiles so it isn't needed here anymore violations =
-           * validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+           * validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(),
+           * UTF_8));
            */
 
           // splits, which also write the time reference, are allowed to write this reference even

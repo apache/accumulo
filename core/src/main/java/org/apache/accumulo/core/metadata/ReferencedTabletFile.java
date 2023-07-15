@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata;
 
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
+import static org.apache.accumulo.core.metadata.StoredTabletFile.requireRowRange;
 
 import java.net.URI;
 import java.util.Comparator;
@@ -165,7 +166,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * qualify an absolute path or create a new file.
    */
   public ReferencedTabletFile(Path metaPath, Range range) {
-    super(Objects.requireNonNull(metaPath), range);
+    super(Objects.requireNonNull(metaPath), requireRowRange(range));
     log.trace("Parsing TabletFile from {}", metaPath);
     parts = parsePath(metaPath);
   }

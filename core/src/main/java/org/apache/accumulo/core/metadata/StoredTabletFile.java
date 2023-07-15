@@ -33,6 +33,7 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 
 /**
@@ -161,12 +162,32 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new StoredTabletFile(metadataEntry);
   }
 
+  private static boolean isOnlyRowSet(Key key) {
+    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
+        && key.getColumnVisibilityData().length() == 0 && key.getTimestamp() == Long.MAX_VALUE;
+  }
+
+  static Range requireRowRange(Range range) {
+    if (!range.isInfiniteStartKey()) {
+      Preconditions.checkArgument(range.isStartKeyInclusive() && isOnlyRowSet(range.getStartKey()),
+          "Range is not a row range %s", range);
+    }
+
+    if (!range.isInfiniteStopKey()) {
+      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey()),
+          "Range is not a row range %s", range);
+    }
+
+    return range;
+  }
+
   public static StoredTabletFile of(final URI path, Range range) {
     return of(new Path(Objects.requireNonNull(path)), range);
   }
 
   public static StoredTabletFile of(final Path path, Range range) {
-    return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
+    return new StoredTabletFile(
+        new TabletFileCq(Objects.requireNonNull(path), requireRowRange(range)));
   }
 
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();

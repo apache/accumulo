@@ -24,10 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
 public class ReferencedTabletFileTest {
@@ -115,6 +117,27 @@ public class ReferencedTabletFileTest {
         new Range()).getTabletFile();
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
+  }
+
+  @Test
+  public void testNonRowRange() {
+    Path testPath = new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf");
+
+    // range where start key is not a row key
+    Range r1 = new Range(new Key("r1", "f1"), true, null, false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r1));
+
+    // range where end key is not a row key
+    Range r2 = new Range(null, true, new Key("r1", "f1"), false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r2));
+
+    // range where the key looks like a row, but the start key inclusivity is not whats expected
+    Range r3 = new Range(new Key("r1"), false, new Key("r2"), false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r3));
+
+    // range where the key looks like a row, but the end key inclusivity is not whats expected
+    Range r4 = new Range(new Key("r1"), true, new Key("r2"), true);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r4));
   }
 
 }
