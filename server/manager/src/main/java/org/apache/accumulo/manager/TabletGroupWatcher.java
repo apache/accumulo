@@ -775,11 +775,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     AccumuloClient client = manager.getContext();
 
+    KeyExtent stopExtent = KeyExtent.fromMetaRow(stop.toMetaRow());
+    KeyExtent previousKeyExtent = null;
+    KeyExtent lastRow = null;
+
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
-      scanner.setRange(scanRange);
+      // Update to set the range to include the highest tablet
+      scanner.setRange(
+          new Range(TabletsSection.encodeRow(range.tableId(), start), false, stopRow, true));
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
@@ -789,8 +795,67 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         Value value = entry.getValue();
+
+        final KeyExtent keyExtent = KeyExtent.fromMetaRow(key.getRow());
+
+        // Keep track of the last Key Extent seen so we can use it to fence
+        // of RFiles when merging the metadata
+        if (lastRow != null && !keyExtent.equals(lastRow)) {
+          previousKeyExtent = lastRow;
+        }
+
+        // Special case for now to handle the highest/stop tablet which is where files are
+        // merged to so we need to handle the deletes on update here as it won't be handled later
+        // TODO: Can this be re-written to not have a special edge case and make it simpler?
+        if (keyExtent.equals(stopExtent)) {
+          if (previousKeyExtent != null
+              && key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+
+            // Delete exiting metadata as we are now adding a range
+            m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+
+            // Fence off existing files by the end row of the previous tablet and current tablet
+            final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
+            // The end row should be inclusive for the current tablet and the previous end row
+            // should be exclusive for the start row
+            Range fenced = new Range(previousKeyExtent != null ? previousKeyExtent.endRow() : null,
+                false, keyExtent.endRow(), true);
+
+            // TODO If there is an existing range we likely need to clip the range with something
+            // like the following which is commented out for now. We also may need to handle
+            // disjoint ranges
+            // fenced = existing.hasRange() ? fenced.clip(existing.getRange()) : fenced;
+
+            m.put(key.getColumnFamily(),
+                StoredTabletFile.of(existing.getPath(), fenced).getMetadataText(), value);
+            fileCount++;
+          }
+          // For the highest tablet we only care about the DataFileColumnFamily
+          continue;
+        }
+
         if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
+          final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
+
+          // TODO: Do we want to check for overlap or stop/start keys to be more
+          // limited on when we add a range or just make it easy and add a range for all files here?
+
+          // TODO: Should we try and be smart and eventually collapse overlapping ranges to reduce
+          // the metadata? The fenced reader will already collapse ranges when reading.
+
+          // Fence off files by the previous tablet and current tablet that is being merged
+          // The end row should be inclusive for the current tablet and the previous end row should
+          // be exclusive for the start row.
+          Range fenced = new Range(previousKeyExtent != null ? previousKeyExtent.endRow() : null,
+              false, keyExtent.endRow(), true);
+
+          // TODO If there is an existing range we likely need to clip the range with something
+          // like the following which is commented out for now. We also may need to handle disjoint
+          // ranges
+          // fenced = existing.hasRange() ? fenced.clip(existing.getRange()) : fenced;
+
+          m.put(key.getColumnFamily(),
+              StoredTabletFile.of(existing.getPath(), fenced).getMetadataText(), value);
           fileCount++;
         } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
             && firstPrevRowValue == null) {
@@ -803,6 +868,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
           bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
         }
+
+        lastRow = keyExtent;
       }
 
       // read the logical time from the last tablet in the merge range, it is not included in

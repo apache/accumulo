@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -31,16 +34,30 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
+import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -99,6 +116,146 @@ public class MergeIT extends AccumuloClusterHarness {
           toStrings(c.tableOperations().listSplits(tableName)));
       merge.mergomatic(c, tableName, null, null, 100, true);
       assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
+    }
+  }
+
+  @Test
+  public void noChopMergeTest() throws Exception {
+    noChopMergeTest(false);
+  }
+
+  @Test
+  public void noChopMergeTestCompactTrue() throws Exception {
+    noChopMergeTest(true);
+  }
+
+  private void noChopMergeTest(boolean compact) throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      // First write 1000 rows to a file in the default tablet
+      ingest(c, 1000, 1, tableName);
+      c.tableOperations().flush(tableName, null, null, true);
+
+      System.out.println("\nMetadata after Ingest");
+      printAndVerifyFileMetadata(c, tableId, 1);
+
+      // Add splits so we end up with 4 tablets
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 250; i <= 750; i += 250) {
+        splits.add(new Text("row_" + String.format("%010d", i)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
+
+      System.out.println("Metadata after Split");
+      verify(c, 1000, 1, tableName);
+      printAndVerifyFileMetadata(c, tableId, 4);
+
+      // Go through and delete two blocks of rows, 101 - 200
+      // and also 301 - 400 so we can test that the data doesn't come
+      // back on merge
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        byte[] COL_PREFIX = "col_".getBytes(UTF_8);
+        Text colq = new Text(FastFormat.toZeroPaddedString(0, 7, 10, COL_PREFIX));
+
+        for (int i = 101; i <= 200; i++) {
+          Mutation m = new Mutation(new Text("row_" + String.format("%010d", i)));
+          m.putDelete(new Text("colf"), colq);
+          bw.addMutation(m);
+        }
+        for (int i = 301; i <= 400; i++) {
+          Mutation m = new Mutation(new Text("row_" + String.format("%010d", i)));
+          m.putDelete(new Text("colf"), colq);
+          bw.addMutation(m);
+        }
+      }
+
+      System.out.println("Metadata after deleting rows 101 - 200 and 301 - 400");
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setEndRow(splits.first()).setWait(true));
+      c.tableOperations().flush(tableName, null, null, true);
+      printAndVerifyFileMetadata(c, tableId, 5);
+
+      // Optionally compact before merge
+      if (compact) {
+        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      }
+      c.tableOperations().merge(tableName, null, null);
+      System.out.println("Metadata after Merge");
+      printAndVerifyFileMetadata(c, tableId, compact ? 4 : 5);
+
+      // Verify that the deleted rows can't be read after merge
+      verify(c, 100, 1, tableName);
+      verifyNoRows(c, 100, 101, tableName);
+      verify(c, 100, 201, tableName);
+      verifyNoRows(c, 100, 301, tableName);
+      verify(c, 600, 401, tableName);
+    }
+  }
+
+  public static void ingest(AccumuloClient accumuloClient, int rows, int offset, String tableName)
+      throws Exception {
+    IngestParams params = new IngestParams(accumuloClient.properties(), tableName, rows);
+    params.cols = 1;
+    params.dataSize = 10;
+    params.startRow = offset;
+    params.columnFamily = "colf";
+    params.createTable = true;
+    TestIngest.ingest(accumuloClient, params);
+  }
+
+  private static void verify(AccumuloClient accumuloClient, int rows, int offset, String tableName)
+      throws Exception {
+    VerifyParams params = new VerifyParams(accumuloClient.properties(), tableName, rows);
+    params.rows = rows;
+    params.dataSize = 10;
+    params.startRow = offset;
+    params.columnFamily = "colf";
+    params.cols = 1;
+    VerifyIngest.verifyIngest(accumuloClient, params);
+  }
+
+  private static void verifyNoRows(AccumuloClient accumuloClient, int rows, int offset,
+      String tableName) throws Exception {
+    try {
+      verify(accumuloClient, rows, offset, tableName);
+      fail("Should have failed");
+    } catch (AccumuloException e) {
+      assertTrue(e.getMessage().contains("Did not read expected number of rows. Saw 0"));
+    }
+  }
+
+  private static void printAndVerifyFileMetadata(AccumuloClient accumuloClient, TableId tableId)
+      throws TableNotFoundException {
+    printAndVerifyFileMetadata(accumuloClient, tableId, -1);
+  }
+
+  // TODO this is mostly a temporary method to help debug the tests. If we keep it
+  // it could be moved to a utility class
+  private static void printAndVerifyFileMetadata(AccumuloClient accumuloClient, TableId tableId,
+      int expectedFiles) throws TableNotFoundException {
+    try (Scanner mdScanner =
+        accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+
+      // Read each file referenced by that table
+      int i = 0;
+      for (Entry<Key,Value> entry : mdScanner) {
+        StoredTabletFile file =
+            new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
+        DataFileValue dfv = new DataFileValue(entry.getValue().toString());
+        System.out.println("Row: " + entry.getKey().getRow() + "; File Name: " + file.getFileName()
+            + "; Range: " + file.getRange() + "; Entries: " + dfv.getNumEntries() + ", Size: "
+            + dfv.getSize());
+        i++;
+      }
+      System.out.println();
+      if (expectedFiles >= 0) {
+        assertEquals(expectedFiles, i);
+      }
     }
   }
 
@@ -187,8 +344,18 @@ public class MergeIT extends AccumuloClusterHarness {
       }
     }
 
+    System.out.println("Before Merge");
+    client.tableOperations().flush(table, null, null, true);
+    printAndVerifyFileMetadata(client,
+        TableId.of(client.tableOperations().tableIdMap().get(table)));
+
     client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));
+
+    client.tableOperations().flush(table, null, null, true);
+    System.out.println("After Merge");
+    printAndVerifyFileMetadata(client,
+        TableId.of(client.tableOperations().tableIdMap().get(table)));
 
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 

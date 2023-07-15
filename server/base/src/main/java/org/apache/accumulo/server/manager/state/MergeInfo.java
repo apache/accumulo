@@ -82,16 +82,20 @@ public class MergeInfo implements Writable {
   }
 
   public boolean needsToBeChopped(KeyExtent otherExtent) {
+    // TODO Clean this up, for now just commenting out and returning false here
+    // was a simple/quick way to disable chop compactions
+
     // During a delete, the block after the merge will be stretched to cover the deleted area.
     // Therefore, it needs to be chopped
-    if (!otherExtent.tableId().equals(extent.tableId())) {
-      return false;
-    }
-    if (isDelete()) {
-      return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
-    } else {
-      return this.extent.overlaps(otherExtent);
-    }
+    // if (!otherExtent.tableId().equals(extent.tableId())) {
+    // return false;
+    // }
+    // if (isDelete()) {
+    // return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
+    // } else {
+    // return this.extent.overlaps(otherExtent);
+    // }
+    return false;
   }
 
   public boolean overlaps(KeyExtent otherExtent) {
