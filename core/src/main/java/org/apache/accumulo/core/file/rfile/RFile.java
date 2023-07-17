@@ -830,7 +830,7 @@ public class RFile {
     public void next() throws IOException {
       try {
         _next();
-      } catch (IOException ioe) {
+      } catch (IOException | RuntimeException ioe) {
         reset(true);
         throw ioe;
       }
@@ -913,7 +913,7 @@ public class RFile {
 
       try {
         _seek(range);
-      } catch (IOException ioe) {
+      } catch (IOException | RuntimeException ioe) {
         reset(true);
         throw ioe;
       }
