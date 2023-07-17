@@ -274,7 +274,7 @@ public interface InstanceOperations {
    * @param server server type and address
    * @since 3.0.0
    */
-  void ping(Server tserver) throws AccumuloException;
+  void ping(Server server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not

@@ -87,12 +87,15 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other)
+    if (this == other) {
       return true;
-    if (other == null)
+    }
+    if (other == null) {
       return false;
-    if (getClass() != other.getClass())
+    }
+    if (getClass() != other.getClass()) {
       return false;
+    }
     return 0 == compareTo((Server) other);
   }
 
