@@ -25,6 +25,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,10 +50,13 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -279,7 +283,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and un-encoded with no repeats or blank lines.
    */
   @Test
@@ -300,7 +304,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, unsorted and un-encoded with no repeats or blank lines.
    */
   @Test
@@ -321,7 +325,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
    */
   @Test
@@ -342,7 +346,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
    */
   @Test
@@ -363,7 +367,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
    */
   @Test
@@ -384,7 +388,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, unsorted and un-encoded with a blank line and repeats.
    */
   @Test
@@ -405,7 +409,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
    */
   @Test
@@ -426,12 +430,11 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits file will be empty.
    */
   @Test
-  public void testCreateTableWithEmptySplitFile()
-      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+  public void testCreateTableWithEmptySplitFile() throws IOException {
     String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       generateSplitsFile(splitsFile, 0, 0, false, false, false, false, false);
@@ -483,7 +486,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
    */
   @Test
@@ -504,7 +507,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, unsorted and encoded with no repeats or blank lines.
    */
   @Test
@@ -525,7 +528,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
    */
   @Test
@@ -546,7 +549,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
    */
   @Test
@@ -567,7 +570,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
    */
   @Test
@@ -588,7 +591,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, unsorted and encoded with a blank line and repeats.
    */
   @Test
@@ -609,7 +612,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   /**
    * Use shell to create a table with a supplied file containing splits.
-   *
+   * <p>
    * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
    */
   @Test
@@ -680,6 +683,192 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
         }
       }
     }
+  }
+
+  /**
+   * This test confirms the behaviour that when a table is created with the copy-configuration
+   * option that the properties that get set on the new table are the effective properties - that is
+   * the table properties include the system and namespace are copied into the table properties.
+   */
+  @Test
+  public void copyConfigOptionsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    String srcNS = "ns1"; // + names[0];
+
+    String srcTable = srcNS + ".src_table_" + names[1];
+    String destTable = srcNS + ".dest_table_" + names[1];
+
+    // define constants
+    final String sysPropName = "table.custom.my_sys_prop";
+    final String sysPropValue1 = "sys_value1";
+    final String sysPropValue2 = "sys_value2";
+    final String nsPropName = "table.custom.my_ns_prop";
+    final String nsPropValue1 = "ns_value1";
+    final String nsPropValue2 = "ns_value2";
+
+    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
+
+    ts.exec("createnamespace " + srcNS);
+    ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
+
+    ts.exec("createtable " + srcTable);
+    ts.exec("createtable -cc " + srcTable + " " + destTable);
+
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
+
+      // used to grab values directly from ZooKeeper to bypass hierarchy
+      PropStore propStore = getCluster().getServerContext().getPropStore();
+
+      TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
+
+      // the Zk node should have all effective properties copied from configuration
+      var vp1 = propStore.get(TablePropKey.of(getCluster().getServerContext(), destId));
+      assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
+      assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
+
+      // check getTableProperties also inherits the effective config
+      Map<String,String> tableEffective =
+          accumuloClient.tableOperations().getTableProperties(destTable);
+      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
+      assertEquals(nsPropValue1, tableEffective.get(nsPropName));
+
+      // changing the system and namespace props should leave the copied effective props unchanged
+      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
+      ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
+
+      // source will still inherit from sys and namespace (no prop values)
+      var vp2 = propStore
+          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
+      assertNull(vp2.asMap().get(sysPropName));
+      assertNull(vp2.asMap().get(nsPropName));
+
+      // dest (copied props) should remain local to the table, overriding sys and namespace
+      var vp3 = propStore
+          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+      assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
+      assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
+
+      // show change propagated in source table effective hierarchy
+      tableEffective = accumuloClient.tableOperations().getConfiguration(srcTable);
+
+      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
+      assertEquals(nsPropValue2, tableEffective.get(nsPropName));
+
+      // because effective config was copied, the change should not propagate to effective hierarchy
+      tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
+      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
+      assertEquals(nsPropValue1, tableEffective.get(nsPropName));
+    }
+  }
+
+  @Test
+  public void copyTablePropsOnlyOptionsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    String srcNS = "src_ns_" + names[0];
+
+    String srcTable = srcNS + ".src_table_" + names[1];
+    String destTable = srcNS + ".dest_table_" + names[1];
+
+    // define constants
+    final String sysPropName = "table.custom.my_sys_prop";
+    final String sysPropValue1 = "sys_value1";
+    final String sysPropValue2 = "sys_value2";
+    final String nsPropName = "table.custom.my_ns_prop";
+    final String nsPropValue1 = "ns_value1";
+    final String nsPropValue2 = "ns_value2";
+
+    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
+
+    ts.exec("createnamespace " + srcNS);
+    ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
+
+    ts.exec("createtable " + srcTable);
+    ts.exec("createtable --exclude-parent --copy-config " + srcTable + " " + destTable, true);
+
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
+
+      // only table unique values should be stored in Zk node for the table.
+      var vp1 = getCluster().getServerContext().getPropStore()
+          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+      assertNull(vp1.asMap().get(sysPropName));
+      assertNull(vp1.asMap().get(nsPropName));
+
+      // check props were inherited in effective props
+      Map<String,String> tableEffective =
+          accumuloClient.tableOperations().getConfiguration(destTable);
+      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
+      assertEquals(nsPropValue1, tableEffective.get(nsPropName));
+
+      // changing the system and namespace props should leave the effective props copied unchanged
+      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
+      ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
+
+      // source will still inherit from sys and namespace (no prop values)
+      var vp2 = getCluster().getServerContext().getPropStore()
+          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
+      assertNull(vp2.asMap().get(sysPropName));
+      assertNull(vp2.asMap().get(nsPropName));
+
+      // dest (copied props) should remain local to the table, overriding sys and namespace
+      var vp3 = getCluster().getServerContext().getPropStore()
+          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+      assertNull(vp3.asMap().get(sysPropName));
+      assertNull(vp3.asMap().get(nsPropName));
+
+      // because effective config was not copied, the changes should propagate to effective
+      // hierarchy
+      tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
+      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
+      assertEquals(nsPropValue2, tableEffective.get(nsPropName));
+    }
+  }
+
+  @Test
+  public void copyTablePropsInvalidOptsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+
+    ts.exec("createtable " + names[0]);
+    ts.exec("createtable " + names[1]);
+
+    // test --expect-parent requires-cc expect this fail
+    ts.exec("createtable --exclude-parent " + names[0] + "dest", false);
+  }
+
+  @Test
+  public void missingSrcCopyPropsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    // test command fail if src is not available
+    ts.exec("createtable --exclude-parent -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void missingSrcCopyConfigTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    /// test command fail if src is not available
+    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void destExistsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+
+    ts.exec("createtable " + names[0]);
+    ts.exec("createtable " + names[1]);
+
+    // expect to fail because target already exists
+    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void optionOrderingTest() throws Exception {
+    String[] names = getUniqueNames(3);
+
+    ts.exec("createtable " + names[0]);
+
+    ts.exec("createtable --exclude-parent --copy-config " + names[0] + " " + names[1], true);
+    ts.exec("createtable --copy-config " + names[0] + " --exclude-parent " + names[2], true);
   }
 
   private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {

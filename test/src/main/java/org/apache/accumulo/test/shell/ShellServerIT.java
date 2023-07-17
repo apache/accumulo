@@ -1051,7 +1051,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     // constraint
-    ts.exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
+    ts.exec("constraint -l -t " + MetadataTable.NAME, true, "MetadataConstraints=1", true);
     ts.exec("createtable " + table + " -evc");
 
     // Make sure the table is fully propagated through zoocache
@@ -1478,12 +1478,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("merge --all", true);
     ts.exec("getsplits", true, "z", false);
     ts.exec("deletetable -f " + table);
-    ts.exec("getsplits -t " + MetadataTable.NAME + "", true);
+    ts.exec("getsplits -t " + MetadataTable.NAME, true);
     assertEquals(2, ts.output.get().split("\n").length);
     ts.exec("getsplits -t accumulo.root", true);
     assertEquals(1, ts.output.get().split("\n").length);
-    ts.exec("merge --all -t " + MetadataTable.NAME + "");
-    ts.exec("getsplits -t " + MetadataTable.NAME + "", true);
+    ts.exec("merge --all -t " + MetadataTable.NAME);
+    ts.exec("getsplits -t " + MetadataTable.NAME, true);
     assertEquals(1, ts.output.get().split("\n").length);
   }
 
@@ -2257,5 +2257,4 @@ public class ShellServerIT extends SharedMiniClusterBase {
       System.setProperty("accumulo.properties", orgProps);
     }
   }
-
 }
