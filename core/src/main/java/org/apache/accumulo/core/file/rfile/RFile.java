@@ -831,7 +831,7 @@ public class RFile {
       try {
         _next();
       } catch (IOException ioe) {
-        reset();
+        reset(true);
         throw ioe;
       }
     }
@@ -914,18 +914,21 @@ public class RFile {
       try {
         _seek(range);
       } catch (IOException ioe) {
-        reset();
+        reset(true);
         throw ioe;
       }
     }
 
-    private void reset() {
+    private void reset(boolean exceptionThrown) {
       rk = null;
       hasTop = false;
       if (currBlock != null) {
         try {
           try {
             currBlock.close();
+            if (exceptionThrown) {
+              reader.close();
+            }
           } catch (IOException e) {
             log.warn("Failed to close block reader", e);
           }
@@ -955,7 +958,7 @@ public class RFile {
 
       if (range.afterEndKey(firstKey)) {
         // range is before first key in rfile, so there is nothing to do
-        reset();
+        reset(false);
         reseek = false;
       }
 
@@ -1017,7 +1020,7 @@ public class RFile {
       if (reseek) {
         iiter = index.lookup(startKey);
 
-        reset();
+        reset(false);
 
         if (iiter.hasNext()) {
 
