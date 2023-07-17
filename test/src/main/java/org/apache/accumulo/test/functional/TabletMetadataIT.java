@@ -53,6 +53,7 @@ public class TabletMetadataIT extends ConfigurableMacBase {
     cfg.setNumTservers(NUM_TSERVERS);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void getLiveTServersTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {

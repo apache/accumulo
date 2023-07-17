@@ -119,6 +119,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static final int COLS = 1;
   static final String COLF = "colf";
 
+  @SuppressWarnings("deprecation")
   @Test
   public void invalidInstanceName() {
     try (var client = Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())

@@ -104,6 +104,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ArrayList<Range> ranges = new ArrayList<>();
 
+      @SuppressWarnings("deprecation")
       HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
 
       ranges.add(r1);

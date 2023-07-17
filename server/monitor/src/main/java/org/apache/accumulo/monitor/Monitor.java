@@ -704,6 +704,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return coordinatorClient;
   }
 
+  @Deprecated
   private void fetchScans() {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
@@ -757,6 +758,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
+  @Deprecated
   private void fetchCompactions() {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {

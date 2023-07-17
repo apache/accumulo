@@ -112,6 +112,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressWarnings("deprecation")
   static void runAdminStopTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)
       throws InterruptedException, IOException {
     int x = cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")

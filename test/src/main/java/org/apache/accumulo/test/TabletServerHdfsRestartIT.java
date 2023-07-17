@@ -51,6 +51,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {

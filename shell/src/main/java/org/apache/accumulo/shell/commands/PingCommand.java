@@ -37,6 +37,7 @@ public class PingCommand extends Command {
     return "ping tablet servers";
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {

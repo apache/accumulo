@@ -51,6 +51,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {

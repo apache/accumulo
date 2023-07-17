@@ -32,6 +32,7 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,9 +50,15 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ManagerServer;
+import org.apache.accumulo.core.client.admin.servers.ScanServer;
+import org.apache.accumulo.core.client.admin.servers.Server;
+import org.apache.accumulo.core.client.admin.servers.ServerType;
+import org.apache.accumulo.core.client.admin.servers.TabletServer;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
@@ -59,7 +66,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
@@ -68,6 +74,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -207,16 +214,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated
   public List<String> getManagerLocations() {
     return context.getManagerLocations();
   }
 
   @Override
+  @Deprecated
   public Set<String> getScanServers() {
     return Set.copyOf(context.getScanServers().keySet());
   }
 
   @Override
+  @Deprecated
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
     String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
@@ -236,12 +246,60 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public Set<Server> getServers(ServerType type) {
+    Set<Server> results = new HashSet<>();
+    switch (type) {
+      case COMPACTOR:
+        throw new IllegalArgumentException(
+            "Use ExternalCompactionUtil.getCompactorAddrs instead as it will return the compactor grouping");
+      case MANAGER:
+        context.getManagerLocations().stream().map(l -> HostAndPort.fromString(l))
+            .forEach(hp -> results.add(new ManagerServer(hp.getHost(), hp.getPort())));
+        break;
+      case SCAN_SERVER:
+        context.getScanServers().keySet().stream().map(l -> HostAndPort.fromString(l))
+            .forEach(hp -> results.add(new ScanServer(hp.getHost(), hp.getPort())));
+        break;
+      case TABLET_SERVER:
+        ZooCache cache = context.getZooCache();
+        String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+        for (String candidate : cache.getChildren(path)) {
+          var children = cache.getChildren(path + "/" + candidate);
+          if (children != null && !children.isEmpty()) {
+            var copy = new ArrayList<>(children);
+            Collections.sort(copy);
+            var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
+            if (data != null && !"manager".equals(new String(data, UTF_8))) {
+              HostAndPort hp = HostAndPort.fromString(candidate);
+              results.add(new TabletServer(hp.getHost(), hp.getPort()));
+            }
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    return results;
+  }
+
+  @Override
+  @Deprecated
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
+    return getActiveScans(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort()));
+  }
+
+  @Override
+  public List<ActiveScan> getActiveScans(Server server)
+      throws AccumuloException, AccumuloSecurityException {
+    Objects.nonNull(server);
+    Preconditions.checkArgument(
+        server.getType() == ServerType.SCAN_SERVER || server.getType() == ServerType.TABLET_SERVER);
+    final var hp = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client client = null;
     try {
-      client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
+      client = getClient(ThriftClientTypes.TABLET_SCAN, hp, context);
 
       List<ActiveScan> as = new ArrayList<>();
       for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -271,25 +329,54 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
-    try {
-      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
+    return getActiveCompactions(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort()));
+  }
 
-      List<ActiveCompaction> as = new ArrayList<>();
-      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(Server server)
+      throws AccumuloException, AccumuloSecurityException {
+    Objects.nonNull(server);
+    Preconditions.checkArgument(
+        server.getType() == ServerType.TABLET_SERVER || server.getType() == ServerType.COMPACTOR);
+    final var hp = HostAndPort.fromParts(server.getHost(), server.getPort());
+    final List<ActiveCompaction> as = new ArrayList<>();
+    if (server.getType() == ServerType.TABLET_SERVER) {
+      Client client = null;
+      try {
+        client = getClient(ThriftClientTypes.TABLET_SERVER, hp, context);
+        for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
+          as.add(new ActiveCompactionImpl(context, tac, hp, CompactionHost.Type.TSERVER));
+        }
+        return as;
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (TException e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null) {
+          returnClient(client, context);
+        }
       }
-      return as;
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (TException e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
+    } else {
+      CompactorService.Client client = null;
+      try {
+        client = getClient(ThriftClientTypes.COMPACTOR, hp, context);
+        for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
+          as.add(new ActiveCompactionImpl(context, tac, hp, CompactionHost.Type.TSERVER));
+        }
+        return as;
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (TException e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null) {
+          returnClient(client, context);
+        }
       }
     }
   }
@@ -344,9 +431,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated
   public void ping(String tserver) throws AccumuloException {
-    try (
-        TTransport transport = createTransport(AddressUtil.parseAddress(tserver, false), context)) {
+    HostAndPort hp = HostAndPort.fromString(tserver);
+    ping(new TabletServer(hp.getHost(), hp.getPort()));
+  }
+
+  @Override
+  public void ping(Server server) throws AccumuloException {
+    Objects.nonNull(server);
+    Preconditions.checkArgument(server.getType() == ServerType.TABLET_SERVER);
+    try (TTransport transport =
+        createTransport(HostAndPort.fromParts(server.getHost(), server.getPort()), context)) {
       Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);
       client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (TException e) {

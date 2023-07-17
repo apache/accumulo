@@ -66,6 +66,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, NUM_SPLITS);
       log.info("Creating {} splits", splits.size());
       c.tableOperations().addSplits("unused", splits);
+      @SuppressWarnings("deprecation")
       List<String> tservers = c.instanceOperations().getTabletServers();
       TestIngest.IngestParams params = new TestIngest.IngestParams(getClientProperties());
       params.rows = 5000;

@@ -168,6 +168,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private Set<Long> getScanIds(AccumuloClient client)
       throws AccumuloSecurityException, InterruptedException, AccumuloException {
     // all scanner have reported at least 1 result, so check for unique scan ids.

@@ -41,6 +41,7 @@ class ActiveScanIterator implements Iterator<String> {
 
       final String tserver = tsIter.next();
       try {
+        @SuppressWarnings("deprecation")
         final List<ActiveScan> asl = instanceOps.getActiveScans(tserver);
 
         for (ActiveScan as : asl) {

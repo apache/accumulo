@@ -158,6 +158,11 @@ public class Gatherer {
     return request;
   }
 
+  @SuppressWarnings("deprecation")
+  private List<String> getTabletServers() {
+    return ctx.instanceOperations().getTabletServers();
+  }
+
   /**
    * @param fileSelector only returns files that match this predicate
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
@@ -203,7 +208,7 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.instanceOperations().getTabletServers();
+          tservers = getTabletServers();
           Collections.sort(tservers);
         }
 

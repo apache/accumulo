@@ -25,6 +25,8 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.Server;
+import org.apache.accumulo.core.client.admin.servers.ServerType;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -172,6 +174,7 @@ public interface InstanceOperations {
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
    */
+  @Deprecated
   List<String> getManagerLocations();
 
   /**
@@ -179,13 +182,23 @@ public interface InstanceOperations {
    *
    * @return A set of currently active scan servers.
    */
+  @Deprecated
   Set<String> getScanServers();
+
+  /**
+   * Returns the locations of the active scan servers
+   *
+   * @return A set of currently active scan servers.
+   * @since 3.0.0
+   */
+  Set<Server> getServers(ServerType type);
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
    */
+  @Deprecated
   List<String> getTabletServers();
 
   /**
@@ -195,7 +208,18 @@ public interface InstanceOperations {
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
    */
+  @Deprecated
   List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active scans on a tablet server.
+   *
+   * @param server server type and address
+   * @return A list of active scans on tablet server.
+   * @since 3.0.0
+   */
+  List<ActiveScan> getActiveScans(Server server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -209,7 +233,21 @@ public interface InstanceOperations {
    * @return the list of active compactions
    * @since 1.5.0
    */
+  @Deprecated
   List<ActiveCompaction> getActiveCompactions(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a tablet server. Using this method with
+   * {@link #getTabletServers()} will only show compactions running on tservers, leaving out any
+   * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
+   * of all compactions running on tservers and compactors.
+   *
+   * @param server server type and address
+   * @return the list of active compactions
+   * @since 3.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Server server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -227,7 +265,16 @@ public interface InstanceOperations {
    *        {@code <ip address>:<port>}
    * @since 1.5.0
    */
+  @Deprecated
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Throws an exception if server can not be contacted.
+   *
+   * @param server server type and address
+   * @since 3.0.0
+   */
+  void ping(Server tserver) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not

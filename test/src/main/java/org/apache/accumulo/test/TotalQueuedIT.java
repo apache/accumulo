@@ -125,6 +125,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {

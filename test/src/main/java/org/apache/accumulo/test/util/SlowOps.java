@@ -234,10 +234,12 @@ public class SlowOps {
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
     do {
+      @SuppressWarnings("deprecation")
       List<String> tservers = client.instanceOperations().getTabletServers();
       boolean tableFound = tservers.stream().flatMap(tserver -> {
         // get active compactions from each server
         try {
+          @SuppressWarnings("deprecation")
           List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(tserver);
           log.trace("tserver {}, running compactions {}", tserver, ac.size());
           return ac.stream();

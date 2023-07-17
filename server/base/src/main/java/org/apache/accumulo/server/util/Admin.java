@@ -402,6 +402,7 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  @Deprecated
   private static int ping(ClientContext context, List<String> args) {
 
     InstanceOperations io = context.instanceOperations();
@@ -486,6 +487,7 @@ public class Admin implements KeywordExecutable {
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
+  @Deprecated
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.getManagerLocations().isEmpty()) {

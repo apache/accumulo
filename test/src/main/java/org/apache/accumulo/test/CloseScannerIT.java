@@ -37,6 +37,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   static final int ROWS = 1000;
   static final int COLS = 1000;
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testManyScans() throws Exception {
 

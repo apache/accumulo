@@ -38,6 +38,7 @@ public class ListScansCommand extends Command {
         + " accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
