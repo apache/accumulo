@@ -803,8 +803,19 @@ public class Tablet extends TabletBase {
       activeScan.interrupt();
     }
 
+    long lastLogTime = System.nanoTime();
+
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
+
+      if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
+        for (ScanDataSource activeScan : activeScans) {
+          log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
+        }
+
+        lastLogTime = System.nanoTime();
+      }
+
       try {
         log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
             activeScans.size());

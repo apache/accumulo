@@ -136,9 +136,9 @@ public class MetadataConstraints implements Constraint {
   }
 
   /*
-   * Validates the data file metadata is valid for a StoredDataFile.
+   * Validates the data file metadata is valid for a StoredTabletFile.
    */
-  private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
+  private static ArrayList<Short> validateDataFileMetadata(ArrayList<Short> violations,
       String metadata) {
     try {
       StoredTabletFile.validate(metadata);
@@ -225,8 +225,8 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
 
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
@@ -238,8 +238,8 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
           TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
@@ -264,7 +264,7 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
-          violations = validateDataFilePath(violations,
+          violations = validateDataFileMetadata(violations,
               new String(columnUpdate.getColumnQualifier(), UTF_8));
 
           // splits, which also write the time reference, are allowed to write this reference even
