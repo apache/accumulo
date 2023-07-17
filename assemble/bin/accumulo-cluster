@@ -92,7 +92,7 @@ function parse_config {
     done
   fi
 
-  if [[ "$tservers_found" != "true" ]]; then
+  if [[ $tservers_found != "true" ]]; then
     echo "ERROR: There are no tablet servers configured, Accumulo requires at least 1 tablets server to host system tables"
     exit 1
   fi
