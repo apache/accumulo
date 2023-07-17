@@ -56,19 +56,19 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionUtil {
 
   private static class RunningCompactionFuture {
-    private final String queue;
+    private final String group;
     private final HostAndPort compactor;
     private final Future<TExternalCompactionJob> future;
 
-    public RunningCompactionFuture(String queue, HostAndPort compactor,
+    public RunningCompactionFuture(String group, HostAndPort compactor,
         Future<TExternalCompactionJob> future) {
-      this.queue = queue;
+      this.group = group;
       this.compactor = compactor;
       this.future = future;
     }
 
-    public String getQueue() {
-      return queue;
+    public String getGroup() {
+      return group;
     }
 
     public HostAndPort getCompactor() {
@@ -245,7 +245,7 @@ public class ExternalCompactionUtil {
         TExternalCompactionJob job = rcf.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
           var compactorAddress = getHostPortString(rcf.getCompactor());
-          results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
+          results.add(new RunningCompaction(job, compactorAddress, rcf.getGroup()));
         }
       } catch (InterruptedException | ExecutionException e) {
         throw new IllegalStateException(e);
@@ -284,9 +284,9 @@ public class ExternalCompactionUtil {
     return runningIds;
   }
 
-  public static int countCompactors(String queueName, ClientContext context) {
-    String queueRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + queueName;
-    List<String> children = context.getZooCache().getChildren(queueRoot);
+  public static int countCompactors(String groupName, ClientContext context) {
+    String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
+    List<String> children = context.getZooCache().getChildren(groupRoot);
     if (children == null) {
       return 0;
     }
@@ -294,7 +294,7 @@ public class ExternalCompactionUtil {
     int count = 0;
 
     for (String child : children) {
-      List<String> children2 = context.getZooCache().getChildren(queueRoot + "/" + child);
+      List<String> children2 = context.getZooCache().getChildren(groupRoot + "/" + child);
       if (children2 != null && !children2.isEmpty()) {
         count++;
       }

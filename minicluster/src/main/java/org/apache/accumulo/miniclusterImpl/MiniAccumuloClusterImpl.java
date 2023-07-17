@@ -626,7 +626,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     try {
       groups = getCompactionGroupNames();
       if (groups.isEmpty()) {
-        throw new IllegalStateException("No Compactor queues configured.");
+        throw new IllegalStateException("No Compactor groups configured.");
       }
       for (String name : groups) {
         config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
