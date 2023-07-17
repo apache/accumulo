@@ -99,7 +99,8 @@ public class ClusterConfigParser {
     } else if (value instanceof Number) {
       results.put(parent + key, value.toString());
     } else {
-      throw new IllegalStateException("Unhandled object type: " + value.getClass());
+      throw new IllegalStateException(
+          "Unhandled object type: " + ((value == null) ? "null" : value.getClass()));
     }
   }
 
