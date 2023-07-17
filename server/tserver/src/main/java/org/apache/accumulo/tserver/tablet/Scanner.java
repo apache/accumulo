@@ -137,7 +137,6 @@ public class Scanner {
       }
 
       sawException = true;
-      dataSource.close(true);
       throw ioe;
     } catch (RuntimeException re) {
       if (ShutdownUtil.wasCausedByHadoopShutdown(re)) {
@@ -148,19 +147,23 @@ public class Scanner {
       sawException = true;
       throw re;
     } finally {
-      // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
-      if (dataSource != null && !scanParams.isIsolated()) {
-        dataSource.close(false);
-      } else if (dataSource != null) {
-        dataSource.detachFileManager();
-      }
+      try {
+        // code in finally block because always want
+        // to return mapfiles, even when exception is thrown
+        if (dataSource != null) {
+          if (sawException || !scanParams.isIsolated()) {
+            dataSource.close(sawException);
+          } else {
+            dataSource.detachFileManager();
+          }
+        }
 
-      if (results != null && results.getResults() != null) {
-        tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
+        if (results != null && results.getResults() != null) {
+          tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
+        }
+      } finally {
+        scannerSemaphore.release();
       }
-
-      scannerSemaphore.release();
     }
   }
 
