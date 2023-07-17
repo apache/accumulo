@@ -244,27 +244,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
- * <td>activeMajCs</td>
- * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_RUNNING}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
- * <td>LongTaskTimer</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>queuedMajCs</td>
- * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_QUEUED}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
  * <td>activeMinCs</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_MINC_RUNNING}</td>
@@ -666,9 +645,6 @@ public interface MetricsProducer {
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
   String METRICS_TSERVER_MEM_ENTRIES = METRICS_TSERVER_PREFIX + "entries.mem";
-  String METRICS_TSERVER_MAJC_QUEUED = METRICS_TSERVER_PREFIX + "majc.queued";
-  String METRICS_TSERVER_MAJC_RUNNING = METRICS_TSERVER_PREFIX + "majc.running";
-  String METRICS_TSERVER_MAJC_STUCK = METRICS_TSERVER_PREFIX + "majc.stuck";
   String METRICS_TSERVER_MINC_QUEUED = METRICS_TSERVER_PREFIX + "minc.queued";
   String METRICS_TSERVER_MINC_RUNNING = METRICS_TSERVER_PREFIX + "minc.running";
   String METRICS_TSERVER_MINC_TOTAL = METRICS_TSERVER_PREFIX + "minc.total";

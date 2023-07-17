@@ -18,29 +18,22 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.clientImpl.UserCompactionUtils.isDefault;
 
 import java.util.Optional;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,16 +56,7 @@ public class CompactRange extends ManagerRepo {
 
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-
-    if (!compactionConfig.getIterators().isEmpty()
-        || !compactionConfig.getExecutionHints().isEmpty()
-        || !isDefault(compactionConfig.getConfigurer())
-        || !isDefault(compactionConfig.getSelector())) {
-      this.config = UserCompactionUtils.encode(compactionConfig);
-    } else {
-      log.debug(
-          "Using default compaction config. No user iterators or compaction config provided.");
-    }
+    this.config = CompactionConfigStorage.encodeConfig(compactionConfig, tableId);
 
     if (compactionConfig.getStartRow() != null && compactionConfig.getEndRow() != null
         && compactionConfig.getStartRow().compareTo(compactionConfig.getEndRow()) >= 0) {
@@ -95,89 +79,14 @@ public class CompactRange extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(final long tid, Manager env) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_ID;
-
-    ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
-    byte[] cid;
-    try {
-      cid = zoo.mutateExisting(zTablePath, currentValue -> {
-        String cvs = new String(currentValue, UTF_8);
-        String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]) + 1;
-
-        String txidString = FastFormat.toHexString(tid);
-
-        for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString)) {
-            continue; // skip self
-          }
-
-          log.debug("txidString : {}", txidString);
-          log.debug("tokens[{}] : {}", i, tokens[i]);
-
-          throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-              TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-              "Another compaction with iterators and/or a compaction strategy is running");
-        }
-
-        StringBuilder encodedIterators = new StringBuilder();
-
-        if (config != null) {
-          Hex hex = new Hex();
-          encodedIterators.append(",");
-          encodedIterators.append(txidString);
-          encodedIterators.append("=");
-          encodedIterators.append(new String(hex.encode(config), UTF_8));
-        }
-
-        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
-      });
-
-      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), namespaceId,
-          tableId, startRow, endRow);
-    } catch (NoNodeException nne) {
-      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
-    }
-
-  }
-
-  static void removeIterators(Manager environment, final long txid, TableId tableId)
-      throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
-        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
-
-    try {
-      zoo.mutateExisting(zTablePath, currentValue -> {
-        String cvs = new String(currentValue, UTF_8);
-        String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]);
-
-        String txidString = FastFormat.toHexString(txid);
-
-        StringBuilder encodedIterators = new StringBuilder();
-        for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString)) {
-            continue;
-          }
-          encodedIterators.append(",");
-          encodedIterators.append(tokens[i]);
-        }
-
-        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
-      });
-    } catch (NoNodeException ke) {
-      log.debug("Node for {} no longer exists.", tableId, ke);
-    }
+    CompactionConfigStorage.setConfig(env.getContext(), tid, config);
+    return new CompactionDriver(namespaceId, tableId, startRow, endRow);
   }
 
   @Override
   public void undo(long tid, Manager env) throws Exception {
     try {
-      removeIterators(env, tid, tableId);
+      CompactionConfigStorage.deleteConfig(env.getContext(), tid);
     } finally {
       Utils.unreserveNamespace(env, namespaceId, tid, false);
       Utils.unreserveTable(env, tableId, tid, false);

@@ -51,4 +51,10 @@ public interface CurrentState {
   }
 
   ManagerState getManagerState();
+
+  // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only
+  // retrieve information about compactions in that data level. Attempted this and a lot of
+  // refactoring was needed to get that small bit of information to this method. Would be best to
+  // address this after issue. May be best to attempt this after #3576.
+  Map<Long,Map<String,String>> getCompactionHints();
 }

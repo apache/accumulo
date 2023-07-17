@@ -37,7 +37,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -70,7 +69,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
@@ -364,17 +362,17 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<String,DataFileInfo> val = Map.of(path.getName(), new DataFileInfo(size));
       Map<KeyExtent,Map<String,DataFileInfo>> files = Map.of(extent, val);
 
-      client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
-          files.entrySet().stream().collect(
-              Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)),
-          false);
-
-      if (!expectFailure) {
-        while (!getLoaded(context, extent).contains(path)) {
-          Thread.sleep(100);
-        }
-      }
-
+      // ELASTICITY_TODO this used to call bulk import directly on tserver, need to look into the
+      // bigger picture of what this test was doing and how it can work w/ the new bulk import
+      throw new UnsupportedOperationException();
+      /*
+       * client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid,
+       * path.getParent().toString(), files.entrySet().stream().collect( Collectors.toMap(entry ->
+       * entry.getKey().toThrift(), Entry::getValue)), false);
+       *
+       * if (!expectFailure) { while (!getLoaded(context, extent).contains(path)) {
+       * Thread.sleep(100); } }
+       */
     } finally {
       ThriftUtil.returnClient((TServiceClient) client, context);
     }

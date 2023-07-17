@@ -43,7 +43,11 @@ public class Constants {
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
+
+  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
+
+  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
   public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
@@ -70,6 +74,9 @@ public class Constants {
 
   public static final String ZSSERVERS = "/sservers";
 
+  // tracks config for running compactions
+  public static final String ZCOMPACTIONS = "/compactions";
+
   public static final String ZCOMPACTORS = "/compactors";
 
   public static final String ZDEAD = "/dead";
@@ -79,6 +86,7 @@ public class Constants {
 
   public static final String ZPROBLEMS = "/problems";
 
+  // ELASTICITY_TODO remove
   public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
   public static final String ZFATE = "/fate";

@@ -83,7 +83,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
-  // ELASTICITY_TODO: Confirm still works as intended
+  // ELASTICITY_TODO: This functionality needs to be adpated to work on upgrade
 
   @Override
   protected Duration defaultTimeout() {

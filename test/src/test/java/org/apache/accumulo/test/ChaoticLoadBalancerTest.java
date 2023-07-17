@@ -85,7 +85,7 @@ public class ChaoticLoadBalancerTest {
         if (tabletId.getTable().equals(table)) {
           KeyExtent extent =
               new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats tstats = new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0);
+          TabletStats tstats = new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0.);
           result.add(new TabletStatisticsImpl(tstats));
         }
       }

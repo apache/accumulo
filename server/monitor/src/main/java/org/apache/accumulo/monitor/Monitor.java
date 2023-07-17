@@ -759,13 +759,16 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private void fetchCompactions() {
     ServerContext context = getContext();
+
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       Client tserver = null;
       try {
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
-        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
-        allCompactions.put(parsedServer, new CompactionStats(compacts));
+        // ELASTICITY_TODO tservers no longer have any compaction information, following code was
+        // commented out as the thrift calls no longer exists
+        // var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
+        // allCompactions.put(parsedServer, new CompactionStats(compacts));
         compactsFetchedNanos = System.nanoTime();
       } catch (Exception ex) {
         log.debug("Failed to get active compactions from {}", server, ex);

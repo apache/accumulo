@@ -425,6 +425,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
+    public Map<Long,Map<String,String>> getCompactionHints() {
+      return Map.of();
+    }
+
+    @Override
     public String toString() {
       return "tservers: " + tservers + " onlineTables: " + onlineTables;
     }
