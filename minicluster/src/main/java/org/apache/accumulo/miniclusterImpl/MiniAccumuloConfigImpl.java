@@ -178,6 +178,7 @@ public class MiniAccumuloConfigImpl {
 
       mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
+
       mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getDefaultValue());
 

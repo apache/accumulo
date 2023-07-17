@@ -51,7 +51,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -110,6 +109,7 @@ public class ManagerMetadataUtil {
     tablet.mutate();
   }
 
+  // ELASTICITY_TODO refactor this to be called in the upgrade code
   public static KeyExtent fixSplit(ServerContext context, TabletMetadata meta, ServiceLock lock)
       throws AccumuloException {
     log.info("Incomplete split {} attempting to fix", meta.getExtent());
@@ -192,37 +192,6 @@ public class ManagerMetadataUtil {
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
-  }
-
-  public static void replaceDatafiles(ServerContext context, KeyExtent extent,
-      Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles,
-      Optional<StoredTabletFile> path, Long compactionId, DataFileValue size, String address,
-      Location lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
-
-    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
-
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-
-    datafilesToDelete.forEach(tablet::deleteFile);
-    scanFiles.forEach(tablet::putScan);
-
-    if (path.isPresent()) {
-      tablet.putFile(path.orElseThrow(), size);
-    }
-
-    if (compactionId != null) {
-      tablet.putCompactionId(compactionId);
-    }
-
-    updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
-
-    if (ecid.isPresent()) {
-      tablet.deleteExternalCompaction(ecid.orElseThrow());
-    }
-
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-
-    tablet.mutate();
   }
 
   /**

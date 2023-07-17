@@ -50,6 +50,8 @@ import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -286,4 +288,13 @@ class ScanDataSource implements DataSource {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+        .append("isNull(memIters)", memIters == null)
+        .append("isNull(fileManager)", fileManager == null)
+        .append("fileReservationId", fileReservationId).append("interruptFlag", interruptFlag.get())
+        .append("expectedDeletionCount", expectedDeletionCount).append("scanParams", scanParams)
+        .toString();
+  }
 }

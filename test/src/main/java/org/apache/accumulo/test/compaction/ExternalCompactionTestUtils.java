@@ -79,14 +79,14 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionTestUtils {
 
   public static final int MAX_DATA = 1000;
-  public static final String QUEUE1 = "DCQ1";
-  public static final String QUEUE2 = "DCQ2";
-  public static final String QUEUE3 = "DCQ3";
-  public static final String QUEUE4 = "DCQ4";
-  public static final String QUEUE5 = "DCQ5";
-  public static final String QUEUE6 = "DCQ6";
-  public static final String QUEUE7 = "DCQ7";
-  public static final String QUEUE8 = "DCQ8";
+  public static final String GROUP1 = "DCQ1";
+  public static final String GROUP2 = "DCQ2";
+  public static final String GROUP3 = "DCQ3";
+  public static final String GROUP4 = "DCQ4";
+  public static final String GROUP5 = "DCQ5";
+  public static final String GROUP6 = "DCQ6";
+  public static final String GROUP7 = "DCQ7";
+  public static final String GROUP8 = "DCQ8";
 
   public static String row(int r) {
     return String.format("r:%04d", r);
@@ -194,35 +194,35 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
-        "[{'name':'all', 'type': 'external', 'queue': '" + QUEUE1 + "'}]");
+        "[{'name':'all', 'type': 'external', 'group': '" + GROUP1 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs2.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE2 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP2 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs3.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE3 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP3 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs4.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE4 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP4 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs5.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE5 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP5 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs6.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE6 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP6 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs7.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE7 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP7 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs8.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': '" + QUEUE8 + "'}]");
+        "[{'name':'all', 'type': 'external','group': '" + GROUP8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");

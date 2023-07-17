@@ -145,11 +145,11 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void listCompactorsByQueue(ServerContext context) {
-    var queueToCompactorsMap = ExternalCompactionUtil.getCompactorAddrs(context);
-    if (queueToCompactorsMap.isEmpty()) {
+    var groupToCompactorsMap = ExternalCompactionUtil.getCompactorAddrs(context);
+    if (groupToCompactorsMap.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
-      queueToCompactorsMap.forEach((q, compactors) -> System.out.println(q + ": " + compactors));
+      groupToCompactorsMap.forEach((q, compactors) -> System.out.println(q + ": " + compactors));
     }
   }
 
@@ -173,9 +173,9 @@ public class ECAdmin implements KeywordExecutable {
           var runningCompaction = new RunningCompaction(ec);
           var addr = runningCompaction.getCompactorAddress();
           var kind = runningCompaction.getJob().kind;
-          var queue = runningCompaction.getQueueName();
+          var group = runningCompaction.getGroupName();
           var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
-          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queue, ke.tableId());
+          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, group, ke.tableId());
           if (details) {
             var runningCompactionInfo = new RunningCompactionInfo(ec);
             var status = runningCompactionInfo.status;

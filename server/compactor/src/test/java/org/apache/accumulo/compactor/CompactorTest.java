@@ -175,7 +175,7 @@ public class CompactorTest {
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
       super(new ConfigOpts(),
-          new String[] {"-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=testQ"},
+          new String[] {"-o", Property.COMPACTOR_GROUP_NAME.getKey() + "=testQ"},
           context.getConfiguration());
       this.uuid = uuid;
       this.address = address;

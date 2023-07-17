@@ -163,6 +163,8 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOMPACTIONS, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
   }
 
   /**

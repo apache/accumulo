@@ -30,6 +30,7 @@ public class TabletStatsKeeper {
   private ActionStats split = new ActionStats();
 
   public enum Operation {
+    // TODO delete split
     MAJOR, SPLIT, MINOR
   }
 
@@ -88,7 +89,6 @@ public class TabletStatsKeeper {
 
   public void saveMajorMinorTimes(TabletStats t) {
     ActionStatsUpdator.update(minor, t.minors);
-    ActionStatsUpdator.update(major, t.majors);
   }
 
   private void resetTimes() {
@@ -105,11 +105,12 @@ public class TabletStatsKeeper {
     major.status++;
   }
 
+  // TODO remove
   void incrementStatusSplit() {
     split.status++;
   }
 
   public TabletStats getTabletStats() {
-    return new TabletStats(null, major, minor, split, 0, 0, 0, 0);
+    return new TabletStats(null, null, minor, split, 0, 0, 0);
   }
 }
