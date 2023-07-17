@@ -46,12 +46,6 @@
               <th title="The recent index cache hit rate." class="percent">Index Cache<br />Hit Rate&nbsp;</th>
               <th title="The recent data cache hit rate." class="percent">Data Cache<br />Hit Rate&nbsp;</th>
               <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval."class="big-num">OS&nbsp;Load&nbsp;</th>
-              <th title="Scans Running">Scans&nbsp;Running</th>
-              <th title="Scans Queued">Scans&nbsp;Queued</th>
-              <th title="Minor Running">Minor&nbsp;Running</th>
-              <th title="Minor Queued">Minor&nbsp;Queued</th>
-              <th title="Major Running">Major&nbsp;Running</th>
-              <th title="Major Queued">Major&nbsp;Queued</th>
             </tr>
           </thead>
           <tbody></tbody>

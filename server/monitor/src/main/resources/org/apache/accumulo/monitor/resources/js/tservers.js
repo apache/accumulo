@@ -167,16 +167,23 @@ $(document).ready(function () {
           return data;
         }
       },
+      // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
+      // instead of sorting them lexicographically by the string itself.
+      // Specifically: 'targets' column will use the values in the 'orderData' columns
+
+      // scan column will be sorted by number of running, then by number of queued
       {
         "targets": [8],
         "type": "numeric",
         "orderData": [14, 15]
       },
+      // minor compaction column will be sorted by number of running, then by number of queued
       {
         "targets": [9],
         "type": "numeric",
         "orderData": [16, 17]
       },
+      // major compaction column will be sorted by number of running, then by number of queued
       {
         "targets": [10],
         "type": "numeric",
@@ -233,22 +240,28 @@ $(document).ready(function () {
         "data": "osload"
       },
       {
-        "data": "scansRunning"
+        "data": "scansRunning",
+        "visible": false
       },
       {
-        "data": "scansQueued"
+        "data": "scansQueued",
+        "visible": false
       },
       {
-        "data": "minorRunning"
+        "data": "minorRunning",
+        "visible": false
       },
       {
-        "data": "minorQueued"
+        "data": "minorQueued",
+        "visible": false
       },
       {
-        "data": "majorRunning"
+        "data": "majorRunning",
+        "visible": false
       },
       {
-        "data": "majorQueued"
+        "data": "majorQueued",
+        "visible": false
       }
     ],
     "rowCallback": function (row, data, index) {
@@ -263,8 +276,6 @@ $(document).ready(function () {
       }
     }
   });
-
-  tserversTable.columns([14, 15, 16, 17, 18, 19]).visible(false);
 
   // Create a table for deadServers list
   deadTServersTable = $('#deadtservers').DataTable({

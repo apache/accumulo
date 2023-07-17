@@ -50,16 +50,23 @@
                   return data;
                 }
               },
+              // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
+              // instead of sorting them lexicographically by the string itself.
+              // Specifically: 'targets' column will use the values in the 'orderData' columns
+
+              // scan column will be sorted by number of running, then by number of queued
               {
                 "targets": [10],
                 "type": "numeric",
                 "orderData": [13, 14]
               },
+              // minor compaction column will be sorted by number of running, then by number of queued
               {
                 "targets": [11],
                 "type": "numeric",
                 "orderData": [15, 16]
               },
+              // major compaction column will be sorted by number of running, then by number of queued
               {
                 "targets": [12],
                 "type": "numeric",
@@ -89,16 +96,14 @@
               { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
               { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
               { "data": "majorCombo", "orderSequence": ["desc", "asc"] },
-              { "data": "runningScans", "orderSequence": ["desc", "asc"] },
-              { "data": "queuedScans", "orderSequence": ["desc", "asc"] },
-              { "data": "runningMinorCompactions", "orderSequence": ["desc", "asc"] },
-              { "data": "queuedMinorCompactions", "orderSequence": ["desc", "asc"] },
-              { "data": "runningMajorCompactions", "orderSequence": ["desc", "asc"] },
-              { "data": "queuedMajorCompactions", "orderSequence": ["desc", "asc"] }
+              { "data": "runningScans", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedScans", "orderSequence": ["desc", "asc"], "visible": false},
+              { "data": "runningMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "runningMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false }
             ]
           });
-
-            tableList.columns([13,14,15,16,17,18]).visible( false );
         });
 
         /**
@@ -114,7 +119,7 @@
       </script>
       <div class="row">
         <div class="col-xs-12">
-          <h3>Table OVERVIEW</h3>
+          <h3>Table Overview</h3>
         </div>
       </div>
       <div>
@@ -135,12 +140,6 @@
               <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
               <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
               <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th>
-              <th title="Running Scans.">Running Scans</th>
-              <th title="Queued Scans.">Queued Scans</th>
-              <th title="Running MinC.">Running MinC</th>
-              <th title="Queued MinC.">Queued MinC</th>
-              <th title="Running MajC.">Running MajC</th>
-              <th title="Queued MajC.">Queued MajC</th>
             </tr>
           </thead>
           <tbody></tbody>
