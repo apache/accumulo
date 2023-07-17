@@ -161,7 +161,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
-    return conf.get(Property.COMPACTOR_QUEUE_NAME);
+    return conf.get(Property.COMPACTOR_GROUP_NAME);
   }
 
   @Override
@@ -564,7 +564,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected long getWaitTimeBetweenCompactionChecks() {
-    // get the total number of compactors assigned to this queue
+    // get the total number of compactors assigned to this group
     int numCompactors =
         ExternalCompactionUtil.countCompactors(this.getResourceGroup(), getContext());
     // Aim for around 3 compactors checking in every second
@@ -621,7 +621,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         try {
           job = getNextJob(getNextId());
           if (!job.isSetExternalCompactionId()) {
-            LOG.trace("No external compactions in queue {}", this.getResourceGroup());
+            LOG.trace("No external compactions in group {}", this.getResourceGroup());
             UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
             continue;
           }

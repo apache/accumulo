@@ -141,7 +141,16 @@ function main() {
   fi
   service="$1"
 
-  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
+  # Find the group parameter if any
+  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
+  group="default"
+  for param in "$@"; do
+    if [[ $param =~ $GROUP_PATTERN ]]; then
+      group="${BASH_REMATCH[2]}"
+    fi
+  done
+
+  pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}-${group}.pid"
   case "$service" in
     gc | manager | monitor | tserver | compactor | sserver)
       if [[ -z $2 ]]; then

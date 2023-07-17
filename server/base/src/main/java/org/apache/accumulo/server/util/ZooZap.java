@@ -140,10 +140,10 @@ public class ZooZap implements KeywordExecutable {
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         try {
           if (zoo.exists(compactorsBasepath)) {
-            List<String> queues = zoo.getChildren(compactorsBasepath);
-            for (String queue : queues) {
-              message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
-              zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+            List<String> groups = zoo.getChildren(compactorsBasepath);
+            for (String group : groups) {
+              message("Deleting " + compactorsBasepath + "/" + group + " from zookeeper", opts);
+              zoo.recursiveDelete(compactorsBasepath + "/" + group, NodeMissingPolicy.SKIP);
             }
           }
         } catch (KeeperException | InterruptedException e) {

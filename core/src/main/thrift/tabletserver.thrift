@@ -123,8 +123,8 @@ enum TCompactionKind {
   USER
 }
 
-struct TCompactionQueueSummary {
-  1:string queue
+struct TCompactionGroupSummary {
+  1:string group
   2:i16 priority
 }
 
