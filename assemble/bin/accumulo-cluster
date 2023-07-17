@@ -92,17 +92,19 @@ function parse_config {
     done
   fi
 
-  if [[ $tservers_found != "true" ]]; then
+  if [[ "$tservers_found" != "true" ]]; then
     echo "ERROR: There are no tablet servers configured, Accumulo requires at least 1 tablets server to host system tables"
     exit 1
   fi
 
-  for group in $SSERVER_GROUPS; do
-    G="SSERVER_HOSTS_${group}"
-    if [[ -z ${!G} ]]; then
-      echo "WARN: scan server group $group configured, but no hosts configured for it"
-    fi
-  done
+  if [[ -n $SSERVER_GROUPS ]]; then
+    for group in $SSERVER_GROUPS; do
+      G="SSERVER_HOSTS_${group}"
+      if [[ -z ${!G} ]]; then
+        echo "WARN: scan server group $group configured, but no hosts configured for it"
+      fi
+    done
+  fi
 
   unset manager1
   manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
