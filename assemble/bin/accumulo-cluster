@@ -67,24 +67,40 @@ function parse_config {
     exit 1
   fi
 
-  for group in $COMPACTOR_GROUPS; do
-    Q="COMPACTOR_HOSTS_${group}"
-    if [[ -z ${!Q} ]]; then
-      echo "WARN: External compaction group $group configured, but no compactors configured for it"
-    fi
-  done
+  if [[ -z $COMPACTOR_GROUPS ]]; then
+    echo "WARN: No compactor groups configured"
+  else
+    for group in $COMPACTOR_GROUPS; do
+      Q="COMPACTOR_HOSTS_${group}"
+      if [[ -z ${!Q} ]]; then
+        echo "WARN: External compactor group $group configured, but no compactors configured for it"
+      fi
+    done
+  fi
 
-  for group in $TSERVER_GROUPS; do
-    G="TSERVER_HOSTS_${group}"
-    if [[ -z ${!G} ]]; then
-      echo "WARN: TabletServer group $group configured, but no hosts configured for it"
-    fi
-  done
+  tservers_found="false"
+  if [[ -z $TSERVER_GROUPS ]]; then
+    echo "WARN: No tablet server groups configured"
+  else
+    for group in $TSERVER_GROUPS; do
+      G="TSERVER_HOSTS_${group}"
+      if [[ -z ${!G} ]]; then
+        echo "WARN: tablet server group $group configured, but no hosts configured for it"
+      else
+        tservers_found="true"
+      fi
+    done
+  fi
+
+  if [[ $tservers_found != "true" ]]; then
+    echo "ERROR: There are no tablet servers configured, Accumulo requires at least 1 tablets server to host system tables"
+    exit 1
+  fi
 
   for group in $SSERVER_GROUPS; do
     G="SSERVER_HOSTS_${group}"
     if [[ -z ${!G} ]]; then
-      echo "WARN: ScanServer group $group configured, but no hosts configured for it"
+      echo "WARN: scan server group $group configured, but no hosts configured for it"
     fi
   done
 
