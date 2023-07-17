@@ -74,8 +74,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specified for 'external')</td>
  * </tr>
  * <tr>
- * <td>queue</td>
- * <td>name of the external compaction queue (required for 'external', cannot be specified for
+ * <td>group</td>
+ * <td>name of the external compaction group (required for 'external', cannot be specified for
  * 'internal')</td>
  * </tr>
  * </table>
@@ -95,7 +95,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * {@code
  * [{"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
  *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
- *  {"name: "large", "type": "external", "queue", "Queue1"}
+ *  {"name: "large", "type": "external", "group", "Queue1"}
  * ]}
  * </pre>
  *
@@ -116,7 +116,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     String name;
     String maxSize;
     Integer numThreads;
-    String queue;
+    String group;
 
     public String getType() {
       return type;
@@ -151,11 +151,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     public String getQueue() {
-      return queue;
+      return group;
     }
 
-    public void setQueue(String queue) {
-      this.queue = queue;
+    public void setGroup(String group) {
+      this.group = group;
     }
 
   }
@@ -205,8 +205,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
       switch (executorConfig.type) {
         case "internal":
-          Preconditions.checkArgument(null == executorConfig.queue,
-              "'queue' should not be specified for internal compactions");
+          Preconditions.checkArgument(null == executorConfig.group,
+              "'group' should not be specified for internal compactions");
           int numThreads = Objects.requireNonNull(executorConfig.numThreads,
               "'numThreads' must be specified for internal type");
           ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
@@ -214,9 +214,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         case "external":
           Preconditions.checkArgument(null == executorConfig.numThreads,
               "'numThreads' should not be specified for external compactions");
-          String queue = Objects.requireNonNull(executorConfig.queue,
-              "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(queue);
+          String group = Objects.requireNonNull(executorConfig.group,
+              "'group' must be specified for external type");
+          ceid = params.getExecutorManager().getExternalExecutor(group);
           break;
         default:
           throw new IllegalArgumentException("type must be 'internal' or 'external'");

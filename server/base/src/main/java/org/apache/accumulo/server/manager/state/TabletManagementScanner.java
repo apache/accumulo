@@ -86,6 +86,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       }
       int numThreads = Math.min(numLocations,
           context.getConfiguration().getCount(Property.MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS));
+      numThreads = Math.max(1, numThreads);
       mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, numThreads);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);

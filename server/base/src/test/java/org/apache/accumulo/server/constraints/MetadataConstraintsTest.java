@@ -27,10 +27,12 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -349,5 +351,24 @@ public class MetadataConstraintsTest {
             true, 42L).getMetadataValue()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
+  }
+
+  @Test
+  public void testCompacted() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    m = new Mutation(new Text("0;foo"));
+    m.put(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(45), "");
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    m = new Mutation(new Text("0;foo"));
+    m.put(CompactedColumnFamily.STR_NAME, "incorrect data", "");
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 13), violations.get(0));
   }
 }

@@ -52,9 +52,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -64,6 +67,7 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -75,6 +79,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.spi.balancer.TabletBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -86,6 +92,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HostAndPort;
 
@@ -123,6 +130,7 @@ public class TabletMetadata {
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
   private boolean operationIdAndCurrentLocationSet = false;
+  private Set<Long> compacted;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -153,7 +161,8 @@ public class TabletMetadata {
     HOSTING_GOAL,
     HOSTING_REQUESTED,
     OPID,
-    SELECTED
+    SELECTED,
+    COMPACTED
   }
 
   public static class Location {
@@ -289,6 +298,7 @@ public class TabletMetadata {
     return oldPrevEndRow;
   }
 
+  // ELASTICITY_TODO remove and handle in upgrade
   public boolean sawOldPrevEndRow() {
     ensureFetched(ColumnType.OLD_PREV_ROW);
     return sawOldPrevEndRow;
@@ -421,6 +431,11 @@ public class TabletMetadata {
   }
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers) {
+    return getTabletState(liveTServers, null, null);
+  }
+
+  public TabletState getTabletState(Set<TServerInstance> liveTServers, TabletBalancer balancer,
+      Map<String,Set<TabletServerId>> currentTServerGrouping) {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
@@ -435,8 +450,20 @@ public class TabletMetadata {
       return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (current != null) {
-      return liveTServers.contains(current.getServerInstance()) ? TabletState.HOSTED
-          : TabletState.ASSIGNED_TO_DEAD_SERVER;
+      if (liveTServers.contains(current.getServerInstance())) {
+        if (balancer != null) {
+          String resourceGroup = balancer.getResourceGroup(new TabletIdImpl(extent));
+          log.trace("Resource Group for extent {} is {}", extent, resourceGroup);
+          Set<TabletServerId> tservers = currentTServerGrouping.get(resourceGroup);
+          if (tservers == null
+              || !tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
+            return TabletState.ASSIGNED_TO_WRONG_GROUP;
+          }
+        }
+        return TabletState.HOSTED;
+      } else {
+        return TabletState.ASSIGNED_TO_DEAD_SERVER;
+      }
     } else if (getSuspend() != null) {
       return TabletState.SUSPENDED;
     } else {
@@ -447,6 +474,11 @@ public class TabletMetadata {
   public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
+  }
+
+  public Set<Long> getCompacted() {
+    ensureFetched(ColumnType.COMPACTED);
+    return compacted;
   }
 
   /**
@@ -481,6 +513,7 @@ public class TabletMetadata {
     final var extCompBuilder =
         ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
+    final var compactedBuilder = ImmutableSet.<Long>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -576,6 +609,9 @@ public class TabletMetadata {
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
           break;
+        case CompactedColumnFamily.STR_NAME:
+          compactedBuilder.add(FateTxId.fromString(qual));
+          break;
         case ChoppedColumnFamily.STR_NAME:
           te.chopped = true;
           break;
@@ -605,6 +641,7 @@ public class TabletMetadata {
     te.scans = scansBuilder.build();
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
+    te.compacted = compactedBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }

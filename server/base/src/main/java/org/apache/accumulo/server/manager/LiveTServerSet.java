@@ -45,14 +45,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
@@ -182,41 +180,6 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void chop(ServiceLock lock, KeyExtent extent) throws TException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.chop(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public void splitTablet(KeyExtent extent, Text splitPoint)
-        throws TException, ThriftSecurityException, NotServingTabletException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(),
-            ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public void compact(ServiceLock lock, String tableId, byte[] startRow, byte[] endRow)
-        throws TException {
-      TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
-      try {
-        client.compact(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
-            startRow == null ? null : ByteBuffer.wrap(startRow),
-            endRow == null ? null : ByteBuffer.wrap(endRow));
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
     public boolean isActive(long tid) throws TException {
       ClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.CLIENT, address, context);
@@ -232,20 +195,24 @@ public class LiveTServerSet implements Watcher {
   static class TServerInfo {
     TServerConnection connection;
     TServerInstance instance;
+    String resourceGroup;
 
-    TServerInfo(TServerInstance instance, TServerConnection connection) {
+    TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
       this.connection = connection;
       this.instance = instance;
+      this.resourceGroup = resourceGroup;
     }
   }
 
   // The set of active tservers with locks, indexed by their name in zookeeper
-  private Map<String,TServerInfo> current = new HashMap<>();
+  private final Map<String,TServerInfo> current = new HashMap<>();
   // as above, indexed by TServerInstance
-  private Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
+  private final Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
+  // as above, grouped by resource group name
+  private final Map<String,Set<TServerInstance>> currentGroups = new HashMap<>();
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
-  private Map<String,Long> locklessServers = new HashMap<>();
+  private final Map<String,Long> locklessServers = new HashMap<>();
 
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
@@ -314,6 +281,7 @@ public class LiveTServerSet implements Watcher {
         doomed.add(info.instance);
         current.remove(zPath);
         currentInstances.remove(info.instance);
+        currentGroups.get(info.resourceGroup).remove(info.instance);
       }
 
       Long firstSeen = locklessServers.get(zPath);
@@ -326,20 +294,26 @@ public class LiveTServerSet implements Watcher {
     } else {
       locklessServers.remove(zPath);
       HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+      String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 
       if (info == null) {
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo =
+            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.put(instance, tServerInfo);
+        currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo =
+            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.remove(info.instance);
+        currentGroups.getOrDefault(resourceGroup, new HashSet<>()).remove(instance);
         currentInstances.put(instance, tServerInfo);
+        currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
       }
     }
   }
@@ -391,6 +365,12 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized Set<TServerInstance> getCurrentServers() {
     return new HashSet<>(currentInstances.keySet());
+  }
+
+  public synchronized Map<String,Set<TServerInstance>> getCurrentServersGroups() {
+    Map<String,Set<TServerInstance>> copy = new HashMap<>();
+    currentGroups.forEach((k, v) -> copy.put(k, new HashSet<>(v)));
+    return copy;
   }
 
   public synchronized int size() {

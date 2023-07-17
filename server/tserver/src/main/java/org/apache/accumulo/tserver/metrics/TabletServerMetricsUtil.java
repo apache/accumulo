@@ -71,16 +71,6 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public int getMajorCompactions() {
-    var mgr = tserver.getCompactionManager();
-    return mgr == null ? 0 : mgr.getCompactionsRunning();
-  }
-
-  public int getMajorCompactionsQueued() {
-    var mgr = tserver.getCompactionManager();
-    return mgr == null ? 0 : mgr.getCompactionsQueued();
-  }
-
   public int getMinorCompactions() {
     int result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {

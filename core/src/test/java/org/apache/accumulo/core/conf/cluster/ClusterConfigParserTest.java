@@ -63,13 +63,13 @@ public class ClusterConfigParserTest {
     assertEquals("localhost1 localhost2", contents.get("monitor"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
-    assertTrue(contents.containsKey("tserver"));
-    assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver"));
-    assertFalse(contents.containsKey("compaction"));
-    assertFalse(contents.containsKey("compaction.compactor"));
-    assertFalse(contents.containsKey("compaction.compactor.queue"));
-    assertFalse(contents.containsKey("compaction.compactor.q1"));
-    assertFalse(contents.containsKey("compaction.compactor.q2"));
+    assertFalse(contents.containsKey("tserver"));
+    assertTrue(contents.containsKey("tserver.default"));
+    assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver.default"));
+    assertFalse(contents.containsKey("compactor"));
+    assertFalse(contents.containsKey("compactor.queue"));
+    assertFalse(contents.containsKey("compactor.q1"));
+    assertFalse(contents.containsKey("compactor.q2"));
     assertFalse(contents.containsKey("tservers_per_host"));
     assertFalse(contents.containsKey("sservers_per_host"));
   }
@@ -83,21 +83,18 @@ public class ClusterConfigParserTest {
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
 
-    assertEquals(11, contents.size());
+    assertEquals(13, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
-    assertTrue(contents.containsKey("tserver"));
-    assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver"));
-    assertFalse(contents.containsKey("compaction"));
-    assertFalse(contents.containsKey("compaction.compactor"));
-    assertTrue(contents.containsKey("compaction.compactor.q1"));
-    assertEquals("localhost1 localhost2", contents.get("compaction.compactor.q1"));
-    assertTrue(contents.containsKey("compaction.compactor.q2"));
-    assertEquals("localhost3 localhost4", contents.get("compaction.compactor.q2"));
+    assertFalse(contents.containsKey("compactor"));
+    assertTrue(contents.containsKey("compactor.q1"));
+    assertEquals("localhost1 localhost2", contents.get("compactor.q1"));
+    assertTrue(contents.containsKey("compactor.q2"));
+    assertEquals("localhost3 localhost4", contents.get("compactor.q2"));
     assertFalse(contents.containsKey("sserver"));
     assertTrue(contents.containsKey("sserver.default"));
     assertEquals("localhost1 localhost2", contents.get("sserver.default"));
@@ -105,6 +102,13 @@ public class ClusterConfigParserTest {
     assertEquals("hmvm1 hmvm2 hmvm3", contents.get("sserver.highmem"));
     assertTrue(contents.containsKey("sserver.cheap"));
     assertEquals("burstyvm1 burstyvm2", contents.get("sserver.cheap"));
+    assertFalse(contents.containsKey("tserver"));
+    assertTrue(contents.containsKey("tserver.default"));
+    assertEquals("localhost1 localhost2", contents.get("tserver.default"));
+    assertTrue(contents.containsKey("tserver.highmem"));
+    assertEquals("localhost3 localhost4", contents.get("tserver.highmem"));
+    assertTrue(contents.containsKey("tserver.cheap"));
+    assertEquals("localhost5 localhost6", contents.get("tserver.cheap"));
     assertTrue(contents.containsKey("tservers_per_host"));
     assertEquals("2", contents.get("tservers_per_host"));
     assertTrue(contents.containsKey("sservers_per_host"));
@@ -164,7 +168,8 @@ public class ClusterConfigParserTest {
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
-    expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
+    expected.put("TSERVER_GROUPS", "default");
+    expected.put("TSERVER_HOSTS_default", "localhost1 localhost2 localhost3 localhost4");
     expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=1}");
     expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
 
@@ -214,14 +219,17 @@ public class ClusterConfigParserTest {
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
-    expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
-    expected.put("COMPACTION_QUEUES", "q1 q2");
+    expected.put("COMPACTOR_GROUPS", "q1 q2");
     expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
     expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
-    expected.put("SSERVER_GROUPS", "default highmem cheap");
+    expected.put("SSERVER_GROUPS", "cheap default highmem");
+    expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
     expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
     expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
-    expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
+    expected.put("TSERVER_GROUPS", "cheap default highmem");
+    expected.put("TSERVER_HOSTS_cheap", "localhost5 localhost6");
+    expected.put("TSERVER_HOSTS_default", "localhost1 localhost2");
+    expected.put("TSERVER_HOSTS_highmem", "localhost3 localhost4");
     expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=2}");
     expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
 

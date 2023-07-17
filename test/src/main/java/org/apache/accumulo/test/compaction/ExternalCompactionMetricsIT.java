@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
@@ -141,8 +141,8 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
         sawDCQ2_10 |= match(qm, "DCQ2", "10");
       }
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       boolean sawDCQ1_0 = false;

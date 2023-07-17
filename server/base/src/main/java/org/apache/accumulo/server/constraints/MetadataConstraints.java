@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -101,7 +103,8 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME,
+              CompactedColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -133,9 +136,9 @@ public class MetadataConstraints implements Constraint {
   }
 
   /*
-   * Validates the data file metadata is valid for a StoredDataFile.
+   * Validates the data file metadata is valid for a StoredTabletFile.
    */
-  private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
+  private static ArrayList<Short> validateDataFileMetadata(ArrayList<Short> violations,
       String metadata) {
     try {
       StoredTabletFile.validate(metadata);
@@ -216,13 +219,14 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)) {
+          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          && !columnFamily.equals(CompactedColumnFamily.NAME)) {
         violations = addViolation(violations, 6);
       }
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
 
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
@@ -234,8 +238,8 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-        violations =
-            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+        violations = validateDataFileMetadata(violations,
+            new String(columnUpdate.getColumnQualifier(), UTF_8));
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
           TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
@@ -254,9 +258,13 @@ public class MetadataConstraints implements Constraint {
         } catch (RuntimeException e) {
           violations = addViolation(violations, 11);
         }
+      } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
+        if (!FateTxId.isFormatedTid(columnQualifier.toString())) {
+          violations = addViolation(violations, 13);
+        }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
-          violations = validateDataFilePath(violations,
+          violations = validateDataFileMetadata(violations,
               new String(columnUpdate.getColumnQualifier(), UTF_8));
 
           // splits, which also write the time reference, are allowed to write this reference even
@@ -391,6 +399,8 @@ public class MetadataConstraints implements Constraint {
         return "Malformed file selection value";
       case 12:
         return "Invalid data file metadata format";
+      case 13:
+        return "Invalid compacted column";
     }
     return null;
   }

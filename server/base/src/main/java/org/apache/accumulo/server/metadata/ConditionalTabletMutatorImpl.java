@@ -37,9 +37,11 @@ import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -211,7 +213,12 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
             stf -> TextUtil.getBytes(stf.getMetaUpdateDeleteText()), BulkFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
-
+        break;
+      case COMPACTED: {
+        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getCompacted(),
+            ftid -> FateTxId.formatTid(ftid).getBytes(UTF_8), CompactedColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
         break;
       default:
         throw new UnsupportedOperationException("Column type " + type + " is not supported.");
@@ -237,5 +244,4 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
   }
-
 }

@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -45,7 +44,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
@@ -74,13 +72,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -90,25 +85,18 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
-import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.compaction.CompactionInfo;
-import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -128,8 +116,6 @@ import org.apache.accumulo.tserver.tablet.PreparedMutations;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.hadoop.fs.FSError;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -146,7 +132,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
-  private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
   private final TabletServer server;
   protected final TransactionWatcher watcher;
   protected final ServerContext context;
@@ -164,48 +149,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
     log.debug("{} created", TabletClientHandler.class.getName());
-  }
-
-  // ELASTICITY_TODO remove this and all the code it calls in Tablet and the thrift methods
-  @Override
-  public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,DataFileInfo>> tabletImports, boolean setTime)
-      throws ThriftSecurityException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-      tabletImports.forEach((tke, fileMap) -> {
-        Map<ReferencedTabletFile,DataFileInfo> newFileMap = new HashMap<>();
-
-        for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
-          Path path = new Path(dir, mapping.getKey());
-          FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-          path = ns.makeQualified(path);
-          newFileMap.put(new ReferencedTabletFile(path), mapping.getValue());
-        }
-        var files = newFileMap.keySet().stream().map(ReferencedTabletFile::getNormalizedPathStr)
-            .collect(toList());
-        server.updateBulkImportState(files, BulkImportState.INITIAL);
-
-        Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-        if (importTablet != null) {
-          try {
-            server.updateBulkImportState(files, BulkImportState.PROCESSING);
-            importTablet.importDataFiles(tid, newFileMap, setTime);
-          } catch (IOException ioe) {
-            log.debug("files {} not imported to {}: {}", fileMap.keySet(),
-                KeyExtent.fromThrift(tke), ioe.getMessage());
-          } finally {
-            server.removeBulkImportState(files);
-          }
-        }
-      });
-    });
-
   }
 
   @Override
@@ -942,38 +885,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
-      ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
-
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
-    NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-
-    if (!security.canSplitTablet(credentials, tableId, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
-
-    Tablet tablet = server.getOnlineTablet(keyExtent);
-    if (tablet == null) {
-      throw new NotServingTabletException(tkeyExtent);
-    }
-
-    if (keyExtent.endRow() == null
-        || !keyExtent.endRow().equals(ByteBufferUtil.toText(splitPoint))) {
-      try {
-        if (server.splitTablet(tablet, ByteBufferUtil.toBytes(splitPoint)) == null) {
-          throw new NotServingTabletException(tkeyExtent);
-        }
-      } catch (IOException e) {
-        log.warn("Failed to split " + keyExtent, e);
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  @Override
   public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
     return server.getStats(server.sessionManager.getActiveScansPerTable());
   }
@@ -991,7 +902,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         stats.extent = ke.toThrift();
         stats.ingestRate = tablet.ingestRate();
         stats.queryRate = tablet.queryRate();
-        stats.splitCreationTime = tablet.getSplitCreationTime();
         stats.numEntries = tablet.getNumEntries();
         result.add(stats);
       }
@@ -1087,15 +997,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           all.addAll(onlineOverlapping);
 
           if (!all.isEmpty()) {
-
-            // ignore any tablets that have recently split, for error logging
-            for (KeyExtent e2 : onlineOverlapping) {
-              Tablet tablet = server.getOnlineTablet(e2);
-              if (System.currentTimeMillis() - tablet.getSplitCreationTime()
-                  < RECENTLY_SPLIT_MILLIES) {
-                all.remove(e2);
-              }
-            }
 
             // ignore self, for error logging
             all.remove(extent);
@@ -1239,137 +1140,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   @Override
   public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
     return server.statsKeeper.getTabletStats();
-  }
-
-  @Override
-  public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
-    try {
-      checkPermission(security, context, server, credentials, lock, "chop");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to chop extent", e);
-      throw new RuntimeException(e);
-    }
-
-    KeyExtent ke = KeyExtent.fromThrift(textent);
-
-    Tablet tablet = server.getOnlineTablet(ke);
-    if (tablet != null) {
-      tablet.chopFiles();
-    }
-  }
-
-  @Override
-  public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-      ByteBuffer startRow, ByteBuffer endRow) {
-    try {
-      checkPermission(security, context, server, credentials, lock, "compact");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to compact a table", e);
-      throw new RuntimeException(e);
-    }
-
-    KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
-        ByteBufferUtil.toText(startRow));
-
-    Pair<Long,CompactionConfig> compactionInfo = null;
-
-    for (Tablet tablet : server.getOnlineTablets().values()) {
-      if (ke.overlaps(tablet.getExtent())) {
-        // all for the same table id, so only need to read
-        // compaction id once
-        if (compactionInfo == null) {
-          try {
-            compactionInfo = tablet.getCompactionID();
-          } catch (NoNodeException e) {
-            log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
-            return;
-          }
-        }
-        tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
-      }
-    }
-  }
-
-  @Override
-  public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    try {
-      checkPermission(security, context, server, credentials, null, "getActiveCompactions");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to get active compactions", e);
-      throw e;
-    }
-
-    List<CompactionInfo> compactions = FileCompactor.getRunningCompactions();
-    List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
-
-    for (CompactionInfo compactionInfo : compactions) {
-      ret.add(compactionInfo.toThrift());
-    }
-
-    return ret;
-  }
-
-  @Override
-  public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    return server.getCompactionManager().getCompactionQueueSummaries();
-  }
-
-  @Override
-  public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, long priority, String compactor, String externalCompactionId)
-      throws ThriftSecurityException, TException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
-
-    var extCompaction = server.getCompactionManager().reserveExternalCompaction(queueName, priority,
-        compactor, eci);
-
-    if (extCompaction != null) {
-      return extCompaction.toThrift();
-    }
-
-    return new TExternalCompactionJob();
-  }
-
-  @Override
-  public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-      throws ThriftSecurityException, TException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    server.getCompactionManager().commitExternalCompaction(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets(), fileSize, entries);
-  }
-
-  @Override
-  public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    server.getCompactionManager().externalCompactionFailed(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets());
   }
 
   @Override
