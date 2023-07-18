@@ -127,6 +127,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -158,8 +159,12 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
       Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
+  private static final Weigher<Path,Integer> weigher = (path, count) -> {
+    return path.toUri().toString().length();
+  };
+
   private static final Cache<Path,Integer> CHECKED_TABLET_DIRS =
-      Caffeine.newBuilder().maximumSize(1000).build();
+      Caffeine.newBuilder().maximumWeight(10485760L).weigher(weigher).build();
 
   /* Map of group name to last time compactor called to get a compaction job */
   // ELASTICITY_TODO need to clean out groups that are no longer configured..
