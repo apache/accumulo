@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -115,7 +114,7 @@ public abstract class TabletBase {
 
   public abstract boolean isClosed();
 
-  public abstract SortedMap<StoredTabletFile,DataFileValue> getDatafiles();
+  public abstract Map<StoredTabletFile,DataFileValue> getDatafiles();
 
   public abstract void addToYieldMetric(int i);
 

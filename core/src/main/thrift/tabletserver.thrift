@@ -134,11 +134,6 @@ struct TCompactionStats{
   3:i64 fileSize;
 }
 
-struct TTabletRefresh {
-  1:data.TKeyExtent extent
-  2:list<string> scanEntries
-}
-
 service TabletServerClientService {
 
   oneway void flush(
@@ -235,7 +230,7 @@ service TabletServerClientService {
   list<data.TKeyExtent> refreshTablets(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:list<TTabletRefresh> tabletsToRefresh
+    3:list<data.TKeyExtent> tabletsToRefresh
   )
 }
 

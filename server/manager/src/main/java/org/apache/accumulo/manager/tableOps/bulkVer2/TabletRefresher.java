@@ -25,7 +25,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,20 +35,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
@@ -74,8 +69,7 @@ public class TabletRefresher {
 
     try (var tablets = context.getAmple().readTablets().forTable(tableId)
         .overlapping(startRow, endRow).checkConsistency()
-        .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.SCANS)
-        .build()) {
+        .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
 
       // Find all tablets that need to refresh their metadata. There may be some tablets that were
       // hosted after the tablet files were updated, it just results in an unneeded refresh
@@ -89,10 +83,8 @@ public class TabletRefresher {
 
       // avoid reading all tablets into memory and instead process batches of 1000 tablets at a time
       Iterators.partition(tabletIterator, 1000).forEachRemaining(batch -> {
-        var refreshesNeeded = batch.stream()
-            .collect(groupingBy(TabletMetadata::getLocation,
-                mapping(tabletMetadata -> createThriftRefresh(tabletMetadata.getExtent(),
-                    tabletMetadata.getScans()), toList())));
+        var refreshesNeeded = batch.stream().collect(groupingBy(TabletMetadata::getLocation,
+            mapping(tabletMetadata -> tabletMetadata.getExtent().toThrift(), toList())));
 
         refreshTablets(threadPool, FateTxId.formatTid(fateTxid), context, onlineTserversSupplier,
             refreshesNeeded);
@@ -106,7 +98,7 @@ public class TabletRefresher {
 
   public static void refreshTablets(ExecutorService threadPool, String logId, ServerContext context,
       Supplier<Set<TServerInstance>> onlineTserversSupplier,
-      Map<TabletMetadata.Location,List<TTabletRefresh>> refreshesNeeded) {
+      Map<TabletMetadata.Location,List<TKeyExtent>> refreshesNeeded) {
 
     // make a copy as it will be mutated in this method
     refreshesNeeded = new HashMap<>(refreshesNeeded);
@@ -117,27 +109,25 @@ public class TabletRefresher {
 
     while (!refreshesNeeded.isEmpty()) {
 
-      Map<TabletMetadata.Location,Future<List<TTabletRefresh>>> futures = new HashMap<>();
+      Map<TabletMetadata.Location,Future<List<TKeyExtent>>> futures = new HashMap<>();
 
-      for (Map.Entry<TabletMetadata.Location,List<TTabletRefresh>> entry : refreshesNeeded
-          .entrySet()) {
+      for (Map.Entry<TabletMetadata.Location,List<TKeyExtent>> entry : refreshesNeeded.entrySet()) {
 
         // Ask tablet server to reload the metadata for these tablets. The tablet server returns
         // the list of extents it was hosting but was unable to refresh (the tablets could be in
         // the process of loading). If it is not currently hosting the tablet it treats that as
         // refreshed and does not return anything for it.
-        Future<List<TTabletRefresh>> future = threadPool
+        Future<List<TKeyExtent>> future = threadPool
             .submit(() -> sendSyncRefreshRequest(context, logId, entry.getKey(), entry.getValue()));
 
         futures.put(entry.getKey(), future);
       }
 
-      for (Map.Entry<TabletMetadata.Location,Future<List<TTabletRefresh>>> entry : futures
-          .entrySet()) {
+      for (Map.Entry<TabletMetadata.Location,Future<List<TKeyExtent>>> entry : futures.entrySet()) {
         TabletMetadata.Location location = entry.getKey();
-        Future<List<TTabletRefresh>> future = entry.getValue();
+        Future<List<TKeyExtent>> future = entry.getValue();
 
-        List<TTabletRefresh> nonRefreshedExtents = null;
+        List<TKeyExtent> nonRefreshedExtents = null;
         try {
           nonRefreshedExtents = future.get();
         } catch (InterruptedException | ExecutionException e) {
@@ -171,8 +161,8 @@ public class TabletRefresher {
     }
   }
 
-  private static List<TTabletRefresh> sendSyncRefreshRequest(ServerContext context, String logId,
-      TabletMetadata.Location location, List<TTabletRefresh> refreshes) {
+  private static List<TKeyExtent> sendSyncRefreshRequest(ServerContext context, String logId,
+      TabletMetadata.Location location, List<TKeyExtent> refreshes) {
     TabletServerClientService.Client client = null;
     try {
       log.trace("{} sending refresh request to {} for {} extents", logId, location,
@@ -186,14 +176,7 @@ public class TabletRefresher {
       log.trace("{} refresh request to {} returned {} unrefreshed extents", logId, location,
           unrefreshed.size());
 
-      if (unrefreshed.isEmpty()) {
-        return List.of();
-      }
-
-      Map<TKeyExtent,TTabletRefresh> unrefreshedMap = new HashMap<>();
-      refreshes.forEach(ttr -> unrefreshedMap.put(ttr.getExtent(), ttr));
-      unrefreshedMap.keySet().retainAll(unrefreshed);
-      return List.copyOf(unrefreshedMap.values());
+      return unrefreshed;
     } catch (TException ex) {
       log.debug("rpc failed server: " + location + ", " + logId + " " + ex.getMessage(), ex);
 
@@ -205,11 +188,5 @@ public class TabletRefresher {
     } finally {
       ThriftUtil.returnClient(client, context);
     }
-  }
-
-  public static TTabletRefresh createThriftRefresh(KeyExtent extent,
-      Collection<StoredTabletFile> scanfiles) {
-    return new TTabletRefresh(extent.toThrift(),
-        scanfiles.stream().map(StoredTabletFile::getMetaUpdateDelete).collect(Collectors.toList()));
   }
 }

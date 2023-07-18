@@ -19,10 +19,6 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
@@ -32,8 +28,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,7 +40,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -96,7 +89,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -105,7 +97,6 @@ import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
 import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.MapCounter;
@@ -151,7 +142,6 @@ import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.MetadataUpdateCount;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
@@ -166,7 +156,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
-import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
 public class TabletServer extends AbstractServer implements TabletHostingServer {
@@ -683,54 +672,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       evaluateOnDemandTabletsForUnload();
     });
 
-    long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
-    // Periodically check that metadata of tablets matches what is held in memory
-    watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
-      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
-
-      Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
-
-      // gather updateCounts for each tablet before reading tablet metadata
-      onlineTabletsSnapshot.forEach((ke, tablet) -> {
-        updateCounts.put(ke, tablet.getUpdateCount());
-      });
-
-      Instant start = Instant.now();
-      Duration duration;
-      Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
-      try (Scope scope = mdScanSpan.makeCurrent()) {
-        List<KeyExtent> missingTablets = new ArrayList<>();
-        // gather metadata for all tablets readTablets()
-        try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
-            .forTablets(onlineTabletsSnapshot.keySet(), Optional.of(missingTablets::add))
-            .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-          duration = Duration.between(start, Instant.now());
-          log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
-              onlineTabletsSnapshot.keySet().size());
-
-          // for each tablet, compare its metadata to what is held in memory
-          for (var tabletMetadata : tabletsMetadata) {
-            KeyExtent extent = tabletMetadata.getExtent();
-            Tablet tablet = onlineTabletsSnapshot.get(extent);
-            MetadataUpdateCount counter = updateCounts.get(extent);
-            tablet.compareTabletInfo(counter, tabletMetadata);
-          }
-
-          for (var extent : missingTablets) {
-            Tablet tablet = onlineTabletsSnapshot.get(extent);
-            if (!tablet.isClosed()) {
-              log.error("Tablet {} is open but does not exist in metadata table.", extent);
-            }
-          }
-        }
-      } catch (Exception e) {
-        log.error("Unable to complete verification of tablet metadata", e);
-        TraceUtil.setException(mdScanSpan, e, true);
-      } finally {
-        mdScanSpan.end();
-      }
-    });
-
     HostAndPort managerHost;
     while (!serverStopRequested) {
       // send all of the pending messages
@@ -996,7 +937,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
+  public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryDirs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
