@@ -157,7 +157,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           DefaultCompactionPlanner.class.getName());
       cfg.setProperty(
           "tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner.opts.executors",
-          "[{'name':'all', 'type': 'external', 'queue': '" + QUEUE1 + "'}]");
+          "[{'name':'all', 'type': 'external', 'group': '" + QUEUE1 + "'}]");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
 
       // use raw local file system
