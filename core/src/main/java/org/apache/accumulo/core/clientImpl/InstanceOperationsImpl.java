@@ -293,7 +293,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveScan> getActiveScans(Server server)
       throws AccumuloException, AccumuloSecurityException {
-    Objects.nonNull(server);
+    @SuppressWarnings("unused")
+    var unused = Objects.nonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerType.SCAN_SERVER || server.getType() == ServerType.TABLET_SERVER);
     final var hp = HostAndPort.fromParts(server.getHost(), server.getPort());
@@ -339,7 +340,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(Server server)
       throws AccumuloException, AccumuloSecurityException {
-    Objects.nonNull(server);
+    @SuppressWarnings("unused")
+    var unused = Objects.nonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerType.TABLET_SERVER || server.getType() == ServerType.COMPACTOR);
     final var hp = HostAndPort.fromParts(server.getHost(), server.getPort());
@@ -439,7 +441,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public void ping(Server server) throws AccumuloException {
-    Objects.nonNull(server);
+    @SuppressWarnings("unused")
+    var unused = Objects.nonNull(server);
     Preconditions.checkArgument(server.getType() == ServerType.TABLET_SERVER);
     try (TTransport transport =
         createTransport(HostAndPort.fromParts(server.getHost(), server.getPort()), context)) {

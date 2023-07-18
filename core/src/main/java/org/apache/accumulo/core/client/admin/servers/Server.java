@@ -34,7 +34,7 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
     Preconditions.checkArgument(port > 0);
     this.type = Objects.requireNonNull(type);
     this.host = Objects.requireNonNull(host);
-    this.port = Objects.requireNonNull(port);
+    this.port = port;
   }
 
   public ServerType getType() {
