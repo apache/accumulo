@@ -369,11 +369,11 @@ public class ClientContext implements AccumuloClient {
     }
     Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
     if (maxLatency != null) {
-      batchWriterConfig.setMaxLatency(maxLatency, SECONDS);
+      batchWriterConfig.setMaxLatency(maxLatency, MILLISECONDS);
     }
     Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      batchWriterConfig.setTimeout(timeout, SECONDS);
+      batchWriterConfig.setTimeout(timeout, MILLISECONDS);
     }
     Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     if (maxThreads != null) {
@@ -433,7 +433,7 @@ public class ClientContext implements AccumuloClient {
 
     Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      conditionalWriterConfig.setTimeout(timeout, SECONDS);
+      conditionalWriterConfig.setTimeout(timeout, MILLISECONDS);
     }
     String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
     if (!durability.isEmpty()) {
