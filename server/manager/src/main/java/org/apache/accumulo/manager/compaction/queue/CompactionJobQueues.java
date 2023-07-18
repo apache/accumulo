@@ -76,6 +76,11 @@ public class CompactionJobQueues {
     return prioQ == null ? 0 : prioQ.getRejectedJobs();
   }
 
+  public long getLowestPriority(CompactionExecutorId executorId) {
+    var prioQ = priorityQueues.get(executorId);
+    return prioQ == null ? 0 : prioQ.getLowestPriority();
+  }
+
   public long getQueueCount() {
     return priorityQueues.mappingCount();
   }

@@ -34,7 +34,7 @@ public class MetricsUtilTest {
   public void testLabelFormatting() {
     Map.of("camelCase", "camel.case", "camelCamelCamelCase", "camel.camel.camel.case", "snake_case",
         "snake.case", "normal.label", "normal.label", "space separated", "space.separated",
-        "Capital", "capital").forEach((label, correctFormat) -> {
+        "Capital", "capital", "hyphen-ated", "hyphen.ated").forEach((label, correctFormat) -> {
           log.info("Testing Label: {}", label);
           String output = MetricsUtil.formatString(label);
           assertTrue(output.contentEquals(correctFormat));

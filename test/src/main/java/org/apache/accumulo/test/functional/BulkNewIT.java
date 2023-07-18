@@ -37,15 +37,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -68,17 +65,13 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
-import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
-import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -91,14 +84,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class BulkNewIT extends SharedMiniClusterBase {
-
-  public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -107,16 +96,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    sink = new TestStatsDSink();
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
-    if (sink != null) {
-      sink.close();
-    }
   }
 
   private static class Callback implements MiniClusterConfigurationCallback {
@@ -126,18 +111,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
-      // Tell the server processes to use a StatsDMeterRegistry that will be configured
-      // to push all metrics to the sink we started.
-      cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
-      cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
-          TestStatsDRegistryFactory.class.getName());
-      Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
-          TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
-      cfg.setSystemProperties(sysProps);
     }
   }
 
-  private static TestStatsDSink sink;
   private String tableName;
   private AccumuloConfiguration aconf;
   private FileSystem fs;
@@ -532,26 +508,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testManyFiles() throws Exception {
-
-    // Metrics collector Thread
-    final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
-    final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
-
-    Thread thread = Threads.createThread("metric-tailer", () -> {
-      while (!shutdownTailer.get()) {
-        List<String> statsDMetrics = sink.getLines();
-        for (String s : statsDMetrics) {
-          if (shutdownTailer.get()) {
-            break;
-          }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
-            queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
-          }
-        }
-      }
-    });
-    thread.start();
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
@@ -570,11 +526,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
-    }
-
-    // Only records the metrics to the log for now. Need to guarantee that the values are correct.
-    while (!queueMetrics.isEmpty()) {
-      log.debug("Metric found: {}", queueMetrics.take());
     }
   }
 

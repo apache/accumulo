@@ -123,6 +123,7 @@ public class CompactionJobPriorityQueue {
     Preconditions
         .checkArgument(jobs.stream().allMatch(job -> job.getExecutor().equals(executorId)));
 
+    // Commenting out this call causes rejected.jobs to report correctly.
     removePreviousSubmissions(tabletMetadata.getExtent());
 
     List<CjpqKey> newEntries = new ArrayList<>(jobs.size());
@@ -155,6 +156,10 @@ public class CompactionJobPriorityQueue {
 
   public long getQueuedJobs() {
     return tabletJobs.size();
+  }
+
+  public long getLowestPriority() {
+    return jobQueue.lastKey().job.getPriority();
   }
 
   public synchronized CompactionJobQueues.MetaJob poll() {

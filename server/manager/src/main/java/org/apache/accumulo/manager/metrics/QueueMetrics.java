@@ -50,12 +50,11 @@ public class QueueMetrics implements MetricsProducer {
   }
 
   public void update() {
-    if (meterRegistry != null) {
-      queueCount = meterRegistry.gauge(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, new AtomicLong(0));
-    }
-    if (queueCount != null) {
-      queueCount.set(compactionJobQueues.getQueueCount());
-    }
+
+    Gauge
+        .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, compactionJobQueues,
+            CompactionJobQueues::getQueueCount)
+        .description("Number of current Queues").tags(getCommonTags()).register(meterRegistry);
 
     for (CompactionExecutorId ceid : compactionJobQueues.getQueueIds()) {
       // Normalize the queueId to match metrics tag naming convention.
@@ -84,6 +83,12 @@ public class QueueMetrics implements MetricsProducer {
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, ceid,
               compactionJobQueues::getRejectedJobs)
           .description("Count of rejected jobs")
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+
+      Gauge
+          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY, ceid,
+              compactionJobQueues::getLowestPriority)
+          .description("Lowest priority queued job")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
     }
   }

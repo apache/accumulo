@@ -50,6 +50,7 @@ public class MetricsUtil {
 
   private static JvmGcMetrics gc;
   private static List<Tag> commonTags;
+  private static Pattern camelCasePattern = Pattern.compile("[a-z][A-Z][a-z]");
 
   public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
       final HostAndPort address) throws ClassNotFoundException, InstantiationException,
@@ -133,9 +134,10 @@ public class MetricsUtil {
     name = name.replace(" ", ".");
     // Handle snake_case notation
     name = name.replace("_", ".");
+    // Handle Hyphens
+    name = name.replace("-", ".");
 
     // Handle camelCase notation
-    Pattern camelCasePattern = Pattern.compile("[a-z][A-Z][a-z]");
     Matcher matcher = camelCasePattern.matcher(name);
     StringBuilder output = new StringBuilder(name);
     int insertCount = 0;
