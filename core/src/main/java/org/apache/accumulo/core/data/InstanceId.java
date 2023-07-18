@@ -21,8 +21,10 @@ package org.apache.accumulo.core.data;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
+
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A strongly typed representation of an Accumulo instance ID. The constructor for this class will
@@ -35,7 +37,11 @@ public class InstanceId extends AbstractId<InstanceId> {
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of InstanceId objects in the JVM at any given moment
   // WeakReferences are used because we don't need them to stick around any longer than they need to
-  static final Cache<String,InstanceId> cache = Caffeine.newBuilder().weakValues().build();
+  //
+  // Note: When used by client code, users will need to call ClientContext.setMeterRegistry() to
+  // enable Cache metrics
+  static final Cache<String,InstanceId> cache = Caches.getInstance().getCache(CacheName.INSTANCE_ID,
+      (caffeine) -> caffeine.weakValues(), (caffeine) -> caffeine.build());
 
   private InstanceId(String canonical) {
     super(canonical);

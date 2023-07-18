@@ -42,13 +42,14 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class CompactionJobGenerator {
 
@@ -65,7 +66,8 @@ public class CompactionJobGenerator {
     serviceIds = servicesConfig.getPlanners().keySet().stream().map(CompactionServiceId::of)
         .collect(Collectors.toUnmodifiableSet());
 
-    dispatchers = Caffeine.newBuilder().maximumSize(10).build();
+    dispatchers = Caches.getInstance().getCache(CacheName.COMPACTION_DISPATCHERS,
+        (caffeine) -> caffeine.maximumSize(10), (caffeine) -> caffeine.build());
     this.env = env;
     if (executionHints.isEmpty()) {
       this.allExecutionHints = executionHints;

@@ -65,6 +65,7 @@ import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -80,7 +81,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 
@@ -356,8 +356,9 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileLenCache =
-        Caffeine.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+    fileLenCache = context.getCaches().getCache(CacheName.TSRM_FILE_LENGTHS,
+        (caffeine) -> caffeine.maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)),
+        (caffeine) -> caffeine.build());
 
     fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 

@@ -109,7 +109,7 @@ public class MetricsUtil {
   public static void initializeProducers(MetricsProducer... producer) {
     for (MetricsProducer p : producer) {
       p.registerMetrics(Metrics.globalRegistry);
-      LOG.info("Metric producer {} initialize", p.getClass().getSimpleName());
+      LOG.info("Metric producer {} initialized", p.getClass().getSimpleName());
     }
   }
 

@@ -38,13 +38,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.codec.digest.Crypt;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -63,9 +64,11 @@ class ZKSecurityTool {
     return cryptHash.getBytes(UTF_8);
   }
 
-  private static final Cache<Text,String> CRYPT_PASSWORD_CACHE =
-      Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
-          .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64).build();
+  private static final Cache<Text,
+      String> CRYPT_PASSWORD_CACHE = Caches.getInstance().getCache(CacheName.CRYPT_PASSWORDS,
+          (caffeine) -> caffeine.scheduler(Scheduler.systemScheduler())
+              .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64),
+          (caffeine) -> caffeine.build());
 
   // This uses a cache to avoid repeated expensive calls to Crypt.crypt for recent inputs
   public static boolean checkCryptPass(final byte[] password, final byte[] cryptHashInZkToTest) {

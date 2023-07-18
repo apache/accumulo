@@ -77,6 +77,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
@@ -94,7 +95,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
@@ -109,8 +109,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
     Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
-    this.recentHostingRequest = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES)
-        .maximumWeight(TEN_MB).weigher(weigher).build();
+    this.recentHostingRequest =
+        this.manager.getContext().getCaches().getCache(CacheName.HOSTING_REQUEST_CACHE,
+            (caffeine) -> caffeine.expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB),
+            (caffeine) -> caffeine.weigher(weigher).build());
   }
 
   @Override

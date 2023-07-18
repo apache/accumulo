@@ -22,6 +22,8 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
@@ -31,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -52,17 +53,18 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
-    var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
-        .evictionListener(this::evictionNotifier);
-    if (runTasksInline) {
-      builder.executor(Runnable::run);
-    } else {
-      builder.executor(executor);
-    }
-    if (ticker != null) {
-      builder.ticker(ticker);
-    }
-    cache = builder.build(cacheLoader);
+    cache = Caches.getInstance().getLoadingCache(CacheName.PROP_CACHE, (caffeine) -> {
+      caffeine.expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS);
+      if (runTasksInline) {
+        caffeine.executor(Runnable::run);
+      } else {
+        caffeine.executor(executor);
+      }
+      if (ticker != null) {
+        caffeine.ticker(ticker);
+      }
+      return caffeine;
+    }, (caffeine) -> caffeine.evictionListener(this::evictionNotifier).build(cacheLoader));
   }
 
   public PropStoreMetrics getMetrics() {

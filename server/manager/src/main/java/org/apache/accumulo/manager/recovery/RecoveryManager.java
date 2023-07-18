@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -54,7 +55,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class RecoveryManager {
 
@@ -70,9 +70,11 @@ public class RecoveryManager {
 
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
-    existenceCache =
-        Caffeine.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+    existenceCache = this.manager.getContext().getCaches().getCache(
+        CacheName.RECOVERY_MANAGER_PATH_CACHE,
+        (caffeine) -> caffeine.expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()),
+        (caffeine) -> caffeine.build());
 
     executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
         "Walog sort starter", false);

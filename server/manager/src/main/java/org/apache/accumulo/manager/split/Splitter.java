@@ -31,6 +31,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.util.FileUtil;
@@ -38,7 +39,6 @@ import org.apache.accumulo.server.util.FileUtil.FileInfo;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.hash.HashCode;
@@ -114,21 +114,24 @@ public class Splitter {
       }
     };
 
-    splitFileCache = Caffeine.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES)
-        .maximumWeight(10_000_000L).weigher(weigher).build(loader);
+    splitFileCache = context.getCaches().getLoadingCache(CacheName.SPLITTER_FILES,
+        (caffeine) -> caffeine.expireAfterAccess(10, TimeUnit.MINUTES).maximumWeight(10_000_000L),
+        (caffeine) -> caffeine.weigher(weigher).build(loader));
 
     Weigher<KeyExtent,KeyExtent> weigher2 = (keyExtent, keyExtent2) -> weigh(keyExtent);
 
     // Tracks splits starting, but not forever in case something in the code does not remove it.
-    splitsStarting = Caffeine.newBuilder().expireAfterAccess(3, TimeUnit.HOURS)
-        .maximumWeight(10_000_000L).weigher(weigher2).build();
+    splitsStarting = context.getCaches().getCache(CacheName.SPLITTER_STARTING,
+        (caffeine) -> caffeine.expireAfterAccess(3, TimeUnit.HOURS).maximumWeight(10_000_000L),
+        (caffeine) -> caffeine.weigher(weigher2).build());
 
     Weigher<KeyExtent,HashCode> weigher3 = (keyExtent, hc) -> {
       return weigh(keyExtent) + hc.bits() / 8;
     };
 
-    unsplittable = Caffeine.newBuilder().expireAfterAccess(24, TimeUnit.HOURS)
-        .maximumWeight(10_000_000L).weigher(weigher3).build();
+    unsplittable = context.getCaches().getCache(CacheName.SPLITTER_UNSPLITTABLE,
+        (caffeine) -> caffeine.expireAfterAccess(24, TimeUnit.HOURS).maximumWeight(10_000_000L),
+        (caffeine) -> caffeine.weigher(weigher3).build());
   }
 
   public synchronized void start() {}

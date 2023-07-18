@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -46,6 +47,7 @@ public class SplitterTest {
     replay(threadPools);
     ServerContext context = createNiceMock(ServerContext.class);
     expect(context.threadPools()).andReturn(threadPools).anyTimes();
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     replay(context);
 
     var splitter = new Splitter(context);

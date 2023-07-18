@@ -100,6 +100,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
@@ -121,7 +122,6 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -151,9 +151,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
    */
   private final Map<Ample.DataLevel,CountDownLatch> refreshLatches;
 
-  private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
-      Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
   /* Map of group name to last time compactor called to get a compaction job */
   // ELASTICITY_TODO need to clean out groups that are no longer configured..
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
@@ -167,6 +164,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
+  private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
@@ -183,6 +181,10 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
     this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
 
+    completed = ctx.getCaches().getCache(CacheName.COMPACTIONS_COMPLETED,
+        (caffeine) -> caffeine.maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES),
+        (caffeine) -> caffeine.build());
+
     CacheLoader<Long,CompactionConfig> loader =
         txid -> CompactionConfigStorage.getConfig(ctx, txid);
 
@@ -190,8 +192,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // when a compaction is canceled it is deleted which is why there is a time limit. It does not
     // hurt to let a job that was canceled start, it will be canceled later. Caching this immutable
     // config will help avoid reading the same data over and over.
-    compactionConfigCache =
-        Caffeine.newBuilder().expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
+    compactionConfigCache = ctx.getCaches().getLoadingCache(CacheName.COMPACTION_CONFIGS,
+        (caffeine) -> caffeine.expireAfterWrite(30, SECONDS).maximumSize(100),
+        (caffeine) -> caffeine.build(loader));
 
     // At this point the manager does not have its lock so no actions should be taken yet
   }
@@ -1077,7 +1080,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
-      COMPLETED.put(ecid, rc);
+      completed.put(ecid, rc);
     }
   }
 
@@ -1157,7 +1160,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final TExternalCompactionList result = new TExternalCompactionList();
-    COMPLETED.asMap().forEach((ecid, rc) -> {
+    completed.asMap().forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setGroupName(rc.getGroupName());
       trc.setCompactor(rc.getCompactorAddress());

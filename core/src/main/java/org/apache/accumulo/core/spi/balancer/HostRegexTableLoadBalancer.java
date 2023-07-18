@@ -54,12 +54,13 @@ import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -320,8 +321,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        Caffeine.newBuilder().expireAfterAccess(1, HOURS).build(key -> balancerEnvironment
-            .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
+        Caches.getInstance().getLoadingCache(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX,
+            (caffeine) -> caffeine.expireAfterAccess(1, HOURS),
+            (caffeine) -> caffeine.build(key -> balancerEnvironment.getConfiguration(key)
+                .getDerived(HostRegexTableLoadBalancer::getRegexes)));
 
     LOG.info("{}", this);
   }

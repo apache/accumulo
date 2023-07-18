@@ -26,6 +26,8 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,7 +36,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 /**
@@ -76,8 +77,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
-      choiceCache = Caffeine.newBuilder().expireAfterWrite(computationCacheDuration, MILLISECONDS)
-          .build(key -> new WeightedRandomCollection(key, env));
+      choiceCache = Caches.getInstance().getLoadingCache(CacheName.SPACE_AWARE_VOLUME_CHOICE,
+          (caffeine) -> caffeine.expireAfterWrite(computationCacheDuration, MILLISECONDS),
+          (caffeine) -> caffeine.build(key -> new WeightedRandomCollection(key, env)));
     }
 
     return choiceCache;
