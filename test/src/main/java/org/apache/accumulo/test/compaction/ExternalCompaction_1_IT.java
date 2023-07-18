@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP5;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE3;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE4;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE5;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE6;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
@@ -77,8 +77,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -91,8 +89,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     }
   }
-
-  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   @BeforeAll
   public static void beforeTests() throws Exception {
@@ -163,18 +159,18 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
-      compact(client, table1, 2, QUEUE1, true);
+      compact(client, table1, 2, GROUP1, true);
       verify(client, table1, 2);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       client.tableOperations().addSplits(table2, splits);
 
-      compact(client, table2, 3, QUEUE2, true);
+      compact(client, table2, 3, GROUP2, true);
       verify(client, table2, 3);
 
     }
@@ -195,11 +191,11 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // to handle this.
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE3, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP3, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
           ExternalDoNothingCompactor.class);
 
-      compact(client, table1, 2, QUEUE3, false);
+      compact(client, table1, 2, GROUP3, false);
       TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
@@ -243,10 +239,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
 
       // ELASTICITY_TODO there is already one compactor started by mini based on config
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE4, 2);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP4, 2);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
-      compact(client, table1, 3, QUEUE4, true);
+      compact(client, table1, 3, GROUP4, true);
 
       verify(client, table1, 3);
     }
@@ -256,7 +252,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
 
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE5, 1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP5, 1);
     getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
     try (AccumuloClient client =
@@ -332,9 +328,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs6");
       writeData(client, table1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE6, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP6, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
-      compact(client, table1, 2, QUEUE6, true);
+      compact(client, table1, 2, GROUP6, true);
       verify(client, table1, 2);
 
       IteratorSetting setting = new IteratorSetting(50, "delete", ExtDevNull.class);
@@ -372,14 +368,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE8, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP8, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       createTable(client, tableName, "cs8");
 
       writeData(client, tableName);
       // This should create an A file
-      compact(client, tableName, 17, QUEUE8, true);
+      compact(client, tableName, 17, GROUP8, true);
       verify(client, tableName, 17);
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
@@ -396,7 +392,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // run a compaction that only compacts F files
       IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
       // make sure iterator options make it to compactor process
-      iterSetting.addOption("expectedQ", QUEUE8);
+      iterSetting.addOption("expectedQ", GROUP8);
       // compact F file w/ different modulus and user pmodulus option for partial compaction
       iterSetting.addOption("pmodulus", 19 + "");
       CompactionConfig config = new CompactionConfig().setIterators(List.of(iterSetting))

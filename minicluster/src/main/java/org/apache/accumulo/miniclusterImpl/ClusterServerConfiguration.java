@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.Constants;
 
 public class ClusterServerConfiguration {
 
@@ -48,23 +48,23 @@ public class ClusterServerConfiguration {
    */
   public ClusterServerConfiguration(int numCompactors, int numSServers, int numTServers) {
     compactors = new HashMap<>();
-    compactors.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numCompactors);
+    compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
     sservers = new HashMap<>();
-    sservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numSServers);
+    sservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numSServers);
     tservers = new HashMap<>();
-    tservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numTServers);
+    tservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numTServers);
   }
 
   public void setNumDefaultCompactors(int numCompactors) {
-    compactors.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numCompactors);
+    compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
   }
 
   public void setNumDefaultScanServers(int numSServers) {
-    sservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numSServers);
+    sservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numSServers);
   }
 
   public void setNumDefaultTabletServers(int numTServers) {
-    tservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numTServers);
+    tservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numTServers);
   }
 
   public void addCompactorResourceGroup(String resourceGroupName, int numCompactors) {
@@ -95,7 +95,17 @@ public class ClusterServerConfiguration {
     Iterator<String> iter = compactors.keySet().iterator();
     while (iter.hasNext()) {
       String resourceGroup = iter.next();
-      if (!resourceGroup.equals(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME)) {
+      if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
+        iter.remove();
+      }
+    }
+  }
+
+  public void clearTServerResourceGroups() {
+    Iterator<String> iter = tservers.keySet().iterator();
+    while (iter.hasNext()) {
+      String resourceGroup = iter.next();
+      if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
         iter.remove();
       }
     }

@@ -223,7 +223,7 @@ public class SessionManager {
     return session;
   }
 
-  private void cleanup(Session session) {
+  static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
     if (!session.cleanup()) {
       var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
           .incrementBy(25, MILLISECONDS).maxWait(5, SECONDS).backOffFactor(1.5)
@@ -245,6 +245,10 @@ public class SessionManager {
 
       retry.logCompletion(log, "Cleaned up session or deferred cleanup " + session);
     }
+  }
+
+  private void cleanup(Session session) {
+    cleanup(deferredCleanupQueue, session);
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {

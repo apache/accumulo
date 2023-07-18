@@ -46,13 +46,6 @@ public class OnlineTablets {
     snapshot = ImmutableSortedMap.copyOf(onlineTablets);
   }
 
-  public synchronized void split(KeyExtent oldTablet, Tablet newTablet1, Tablet newTablet2) {
-    onlineTablets.remove(oldTablet);
-    onlineTablets.put(newTablet1.getExtent(), newTablet1);
-    onlineTablets.put(newTablet2.getExtent(), newTablet2);
-    snapshot = ImmutableSortedMap.copyOf(onlineTablets);
-  }
-
   SortedMap<KeyExtent,Tablet> snapshot() {
     return snapshot;
   }

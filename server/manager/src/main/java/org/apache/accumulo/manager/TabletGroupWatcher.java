@@ -37,6 +37,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -82,7 +84,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
@@ -180,11 +182,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
     // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
+    private final Map<String,Set<TServerInstance>> currentTServerGrouping;
 
-    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
+    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers,
+        Map<String,Set<TServerInstance>> grouping) {
       var destinationsMod = new TreeMap<>(curTServers);
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
+      this.currentTServerGrouping = grouping;
     }
 
     public void reset() {
@@ -223,7 +228,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         // Get the current status for the current list of tservers
-        SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
+        final SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
         for (TServerInstance entry : manager.tserverSet.getCurrentServers()) {
           currentTServers.put(entry, manager.tserverStatus.get(entry));
         }
@@ -236,14 +241,23 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
 
-        TabletLists tLists = new TabletLists(manager, currentTServers);
+        final Map<String,Set<TServerInstance>> currentTServerGrouping =
+            manager.tserverSet.getCurrentServersGroups();
+
+        TabletLists tLists = new TabletLists(manager, currentTServers, currentTServerGrouping);
 
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
         stats.begin();
 
-        CompactionJobGenerator compactionGenerator =
-            new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+        CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
+            new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
+
+        final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
+        manager.tServerResourceGroups().forEach((k, v) -> {
+          resourceGroups.put(k,
+              v.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+        });
 
         // Walk through the tablets in our store, and work tablets
         // towards their goal
@@ -289,7 +303,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          final TabletState state = tm.getTabletState(currentTServers.keySet());
+          TabletState state =
+              tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -310,6 +325,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
+          } else if (state == TabletState.ASSIGNED_TO_WRONG_GROUP) {
+            goal = TabletGoalState.UNASSIGNED;
           }
           if (Manager.log.isTraceEnabled()) {
             Manager.log.trace(
@@ -366,7 +383,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             } else {
               LOG.debug("{} is not splittable.", tm.getExtent());
             }
-            // ELASITICITY_TODO: remove below
+            // ELASITICITY_TODO: See #3605. Merge is non-functional. Left this commented out code to
+            // show where merge used to make a call to split a tablet.
             // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
           }
 
@@ -410,6 +428,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   tLists.assigned.add(new Assignment(tm.getExtent(),
                       future != null ? future.getServerInstance() : null, tm.getLast()));
                   break;
+                default:
+                  break;
               }
             } else {
               switch (state) {
@@ -424,6 +444,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 case ASSIGNED_TO_DEAD_SERVER:
                   unassignDeadTablet(tLists, tm, wals);
                   break;
+                case ASSIGNED_TO_WRONG_GROUP:
                 case HOSTED:
                   TServerConnection client =
                       manager.tserverSet.getConnection(location.getServerInstance());
@@ -642,7 +663,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return result;
   }
 
-  // ELASITICITY_TODO: Remove
   private void sendSplitRequest(MergeInfo info, TabletState state, TabletMetadata tm) {
     // Already split?
     if (!info.getState().equals(MergeState.SPLITTING)) {
@@ -677,17 +697,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
         try {
-          TServerConnection conn;
-          conn = manager.tserverSet.getConnection(tm.getLocation().getServerInstance());
-          if (conn != null) {
-            Manager.log.info("Asking {} to split {} at {}", tm.getLocation(), tm.getExtent(),
-                splitPoint);
-            conn.splitTablet(tm.getExtent(), splitPoint);
-          } else {
-            Manager.log.warn("Not connected to server {}", tm.getLocation());
-          }
-        } catch (NotServingTabletException e) {
-          Manager.log.debug("Error asking tablet server to split a tablet: ", e);
+          // ELASTICITY_TODO this used to send a split req to tserver, what should it do now? Issues
+          // #3605 was opened about this.
+          throw new UnsupportedOperationException();
         } catch (Exception e) {
           Manager.log.warn("Error asking tablet server to split a tablet: ", e);
         }
@@ -714,18 +726,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     // Tablet ranges intersect
     if (info.needsToBeChopped(tm.getExtent())) {
-      TServerConnection conn;
-      try {
-        conn = manager.tserverSet.getConnection(tm.getLocation().getServerInstance());
-        if (conn != null) {
-          Manager.log.info("Asking {} to chop {}", tm.getLocation(), tm.getExtent());
-          conn.chop(manager.managerLock, tm.getExtent());
-        } else {
-          Manager.log.warn("Could not connect to server {}", tm.getLocation());
-        }
-      } catch (TException e) {
-        Manager.log.warn("Communications error asking tablet server to chop a tablet");
-      }
+      throw new UnsupportedOperationException("The tablet server can no longer chop tablets");
     }
   }
 
@@ -1064,7 +1065,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<KeyExtent,UnassignedTablet> unassigned) {
     if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, tLists.currentTServerGrouping, unassigned,
+          assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {

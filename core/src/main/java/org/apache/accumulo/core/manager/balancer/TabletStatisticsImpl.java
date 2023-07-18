@@ -47,7 +47,8 @@ public class TabletStatisticsImpl implements TabletStatistics {
 
   @Override
   public long getSplitCreationTime() {
-    return thriftStats.getSplitCreationTime();
+    // ELASTICITY_TODO look into what needs to be done to remove this from SPI
+    return 0;
   }
 
   @Override

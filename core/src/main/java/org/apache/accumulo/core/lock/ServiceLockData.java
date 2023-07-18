@@ -58,19 +58,10 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
    */
   public static class ServiceDescriptor {
 
-    /**
-     * The group name that will be used when one is not specified.
-     */
-    public static final String DEFAULT_GROUP_NAME = "default";
-
     private final UUID uuid;
     private final ThriftService service;
     private final String address;
     private final String group;
-
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address) {
-      this(uuid, service, address, DEFAULT_GROUP_NAME);
-    }
 
     public ServiceDescriptor(UUID uuid, ThriftService service, String address, String group) {
       this.uuid = requireNonNull(uuid);
@@ -155,11 +146,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public ServiceLockData(UUID uuid, String address, ThriftService service, String group) {
     this(new ServiceDescriptors(new HashSet<>(
         Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
-  }
-
-  public ServiceLockData(UUID uuid, String address, ThriftService service) {
-    this(new ServiceDescriptors(
-        new HashSet<>(Collections.singleton(new ServiceDescriptor(uuid, service, address)))));
   }
 
   public String getAddressString(ThriftService service) {

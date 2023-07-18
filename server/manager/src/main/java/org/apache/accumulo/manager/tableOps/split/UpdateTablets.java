@@ -96,7 +96,7 @@ public class UpdateTablets extends ManagerRepo {
     // Only update the original tablet after successfully creating the new tablets, this is
     // important for failure cases where this operation partially runs a then runs again.
 
-    updateExistingTablet(manager, tabletMetadata, opid, newTablets, newTabletsFiles);
+    updateExistingTablet(tid, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
 
     return new DeleteOperationIds(splitInfo);
   }
@@ -180,7 +180,12 @@ public class UpdateTablets extends ManagerRepo {
         mutator.putTime(tabletMetadata.getTime());
         tabletMetadata.getFlushId().ifPresent(mutator::putFlushId);
         mutator.putPrevEndRow(newExtent.prevEndRow());
-        tabletMetadata.getCompactId().ifPresent(mutator::putCompactionId);
+        tabletMetadata.getCompacted().forEach(mutator::putCompacted);
+
+        tabletMetadata.getCompacted()
+            .forEach(ctid -> log.debug("{} copying compacted marker to new child tablet {}",
+                FateTxId.formatTid(tid), FateTxId.formatTid(ctid)));
+
         mutator.putHostingGoal(tabletMetadata.getHostingGoal());
 
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
@@ -201,7 +206,7 @@ public class UpdateTablets extends ManagerRepo {
     }
   }
 
-  private void updateExistingTablet(Manager manager, TabletMetadata tabletMetadata,
+  private void updateExistingTablet(long tid, Manager manager, TabletMetadata tabletMetadata,
       TabletOperationId opid, SortedSet<KeyExtent> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
@@ -221,11 +226,26 @@ public class UpdateTablets extends ManagerRepo {
         }
       });
 
+      // remove any external compaction entries that are present
+      tabletMetadata.getExternalCompactions().keySet().forEach(mutator::deleteExternalCompaction);
+
+      tabletMetadata.getExternalCompactions().keySet()
+          .forEach(ecid -> log.debug("{} deleting external compaction entry for split {}",
+              FateTxId.formatTid(tid), ecid));
+
+      // remove any selected file entries that are present, the compaction operation will need to
+      // reselect files
+      if (tabletMetadata.getSelectedFiles() != null) {
+        mutator.deleteSelectedFiles();
+        log.debug("{} deleting selected files {} because of split", FateTxId.formatTid(tid),
+            FateTxId.formatTid(tabletMetadata.getSelectedFiles().getFateTxId()));
+      }
+
       mutator.submit(tm -> false);
 
       var result = tabletsMutator.process().get(splitInfo.getOriginal());
 
-      if (result.getStatus() == Status.REJECTED) {
+      if (result.getStatus() != Status.ACCEPTED) {
         // Can not use Ample's built in code for checking rejected because we are changing the prev
         // end row and Ample would try to read the old tablet, so must check it manually.
 
@@ -234,11 +254,9 @@ public class UpdateTablets extends ManagerRepo {
         if (tabletMeta == null || !tabletMeta.getOperationId().equals(opid)) {
           throw new IllegalStateException("Failed to update existing tablet in split "
               + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent());
+        } else {
+          // ELASTICITY_TODO
         }
-      } else if (result.getStatus() != Status.ACCEPTED) {
-        // maybe this step is being run again and the update was already made
-        throw new IllegalStateException("Failed to update existing tablet in split "
-            + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent());
       }
     }
   }

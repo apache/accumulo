@@ -83,7 +83,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
-  // ELASTICITY_TODO: Confirm still works as intended
+  // ELASTICITY_TODO: This functionality needs to be adpated to work on upgrade
 
   @Override
   protected Duration defaultTimeout() {
@@ -117,7 +117,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         System.exit(-1);
       }
     }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
-        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME));
+        Constants.DEFAULT_RESOURCE_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

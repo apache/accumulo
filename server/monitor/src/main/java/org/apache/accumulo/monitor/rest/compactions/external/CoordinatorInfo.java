@@ -33,9 +33,9 @@ public class CoordinatorInfo {
 
   public CoordinatorInfo(Optional<HostAndPort> serverOpt, ExternalCompactionInfo ecInfo) {
     server = serverOpt.map(HostAndPort::toString).orElse("none");
-    var queueToCompactors = ecInfo.getCompactors();
-    numQueues = queueToCompactors.size();
-    numCompactors = queueToCompactors.values().stream().mapToInt(List::size).sum();
+    var groupToCompactors = ecInfo.getCompactors();
+    numQueues = groupToCompactors.size();
+    numCompactors = groupToCompactors.values().stream().mapToInt(List::size).sum();
     lastContact = System.currentTimeMillis() - ecInfo.getFetchedTimeMillis();
   }
 }

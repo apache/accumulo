@@ -21,43 +21,29 @@ package org.apache.accumulo.tserver.tablet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.tablets.TabletNameGenerator;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.context.Scope;
 
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
@@ -65,9 +51,6 @@ class DatafileManager {
   private final Map<StoredTabletFile,DataFileValue> datafileSizes =
       Collections.synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
-
-  // ensure we only have one reader/writer of our bulk file notes at a time
-  private final Object bulkFileImportLock = new Object();
 
   // This must be incremented before and after datafileSizes and metadata table updates. These
   // counts allow detection of overlapping operations w/o placing a lock around metadata table
@@ -174,119 +157,6 @@ class DatafileManager {
       MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
     }
-  }
-
-  private TreeSet<StoredTabletFile> waitForScansToFinish(Set<StoredTabletFile> pathsToWaitFor) {
-    long maxWait = 10000L;
-    long startTime = System.currentTimeMillis();
-    TreeSet<StoredTabletFile> inUse = new TreeSet<>();
-
-    Span span = TraceUtil.startSpan(this.getClass(), "waitForScans");
-    try (Scope scope = span.makeCurrent()) {
-      synchronized (tablet) {
-        for (StoredTabletFile path : pathsToWaitFor) {
-          while (fileScanReferenceCounts.get(path) > 0
-              && System.currentTimeMillis() - startTime < maxWait) {
-            try {
-              tablet.wait(100);
-            } catch (InterruptedException e) {
-              log.warn("{}", e.getMessage(), e);
-            }
-          }
-        }
-
-        for (StoredTabletFile path : pathsToWaitFor) {
-          if (fileScanReferenceCounts.get(path) > 0) {
-            inUse.add(path);
-          }
-        }
-      }
-    } catch (Exception e) {
-      TraceUtil.setException(span, e, true);
-      throw e;
-    } finally {
-      span.end();
-    }
-    return inUse;
-  }
-
-  public Collection<StoredTabletFile> importDataFiles(long tid,
-      Map<ReferencedTabletFile,DataFileValue> paths, boolean setTime) throws IOException {
-
-    String bulkDir = null;
-    // once tablet files are inserted into the metadata they will become StoredTabletFiles
-    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(paths.size());
-
-    for (ReferencedTabletFile tpath : paths.keySet()) {
-      boolean inTheRightDirectory = false;
-      Path parent = tpath.getPath().getParent().getParent();
-      for (String tablesDir : tablet.getContext().getTablesDirs()) {
-        if (parent.equals(new Path(tablesDir, tablet.getExtent().tableId().canonical()))) {
-          inTheRightDirectory = true;
-          break;
-        }
-      }
-      if (!inTheRightDirectory) {
-        throw new IOException("Data file " + tpath + " not in table dirs");
-      }
-
-      if (bulkDir == null) {
-        bulkDir = tpath.getTabletDir();
-      } else if (!bulkDir.equals(tpath.getTabletDir())) {
-        throw new IllegalArgumentException("bulk files in different dirs " + bulkDir + " " + tpath);
-      }
-
-    }
-
-    if (tablet.getExtent().isMeta()) {
-      throw new IllegalArgumentException("Can not import files to a metadata tablet");
-    }
-    // increment start count before metadata update AND updating in memory map of files
-    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    // do not place any code here between above stmt and try{}finally
-    try {
-      synchronized (bulkFileImportLock) {
-
-        if (!paths.isEmpty()) {
-          long bulkTime = Long.MIN_VALUE;
-          if (setTime) {
-            for (DataFileValue dfv : paths.values()) {
-              long nextTime = tablet.getAndUpdateTime();
-              if (nextTime < bulkTime) {
-                throw new IllegalStateException(
-                    "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
-              }
-              bulkTime = nextTime;
-              dfv.setTime(bulkTime);
-            }
-          }
-
-          newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
-        }
-      }
-
-      synchronized (tablet) {
-        for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
-          if (datafileSizes.containsKey(tpath.getKey())) {
-            log.error("Adding file that is already in set {}", tpath.getKey());
-          }
-          datafileSizes.put(tpath.getKey(), tpath.getValue());
-        }
-
-        tablet.getTabletResources().importedDataFiles();
-
-        tablet.computeNumEntries();
-      }
-
-      for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
-        TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
-      }
-    } finally {
-      // increment finish count after metadata update AND updating in memory map of files
-      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
-    }
-
-    return newFiles.keySet();
   }
 
   /**
@@ -396,116 +266,11 @@ class DatafileManager {
     return newFile;
   }
 
-  Optional<StoredTabletFile> bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
-      ReferencedTabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
-      DataFileValue dfv, Optional<ExternalCompactionId> ecid) throws IOException {
-    final KeyExtent extent = tablet.getExtent();
-    VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
-    long t1, t2;
-
-    ReferencedTabletFile newDatafile = TabletNameGenerator.computeCompactionFileDest(tmpDatafile);
-
-    if (vm.exists(newDatafile.getPath())) {
-      log.error("Target data file already exist " + newDatafile, new Exception());
-      throw new IllegalStateException("Target data file already exist " + newDatafile);
-    }
-
-    if (dfv.getNumEntries() == 0) {
-      vm.deleteRecursively(tmpDatafile.getPath());
-    } else {
-      // rename before putting in metadata table, so files in metadata table should
-      // always exist
-      rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
-    }
-
-    Location lastLocation = null;
-    Optional<StoredTabletFile> newFile;
-
-    if (dfv.getNumEntries() > 0) {
-      // calling insert to get the new file before inserting into the metadata
-      newFile = Optional.of(newDatafile.insert());
-    } else {
-      newFile = Optional.empty();
-    }
-    Long compactionIdToWrite = null;
-
-    // increment start count before metadata update AND updating in memory map of files
-    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    // do not place any code here between above stmt and try{}finally
-    try {
-
-      synchronized (tablet) {
-        t1 = System.currentTimeMillis();
-
-        Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
-            "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
-            datafileSizes.keySet());
-        if (newFile.isPresent()) {
-          Preconditions.checkState(!datafileSizes.containsKey(newFile.orElseThrow()),
-              "New compaction file %s already exist in tablet files %s", newFile,
-              datafileSizes.keySet());
-        }
-
-        tablet.incrementDataSourceDeletions();
-
-        datafileSizes.keySet().removeAll(oldDatafiles);
-
-        if (newFile.isPresent()) {
-          datafileSizes.put(newFile.orElseThrow(), dfv);
-          // could be used by a follow on compaction in a multipass compaction
-        }
-
-        tablet.computeNumEntries();
-
-        lastLocation = tablet.resetLastLocation();
-
-        if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
-          compactionIdToWrite = compactionId;
-        }
-
-        t2 = System.currentTimeMillis();
-      }
-
-      // known consistency issue between minor and major compactions - see ACCUMULO-18
-      Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-      if (!filesInUseByScans.isEmpty()) {
-        log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-      }
-      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-          filesInUseByScans, newFile, compactionIdToWrite, dfv,
-          tablet.getTabletServer().getClientAddressString(), lastLocation,
-          tablet.getTabletServer().getLock(), ecid);
-      tablet.setLastCompactionID(compactionIdToWrite);
-      removeFilesAfterScan(filesInUseByScans);
-
-    } finally {
-      // increment finish count after metadata update AND updating in memory map of files
-      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
-    }
-
-    if (log.isTraceEnabled()) {
-      log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
-    }
-
-    return newFile;
-  }
-
   public SortedMap<StoredTabletFile,DataFileValue> getDatafileSizes() {
     synchronized (tablet) {
       TreeMap<StoredTabletFile,DataFileValue> copy = new TreeMap<>(datafileSizes);
       return Collections.unmodifiableSortedMap(copy);
     }
-  }
-
-  public Set<StoredTabletFile> getFiles() {
-    synchronized (tablet) {
-      HashSet<StoredTabletFile> files = new HashSet<>(datafileSizes.keySet());
-      return Collections.unmodifiableSet(files);
-    }
-  }
-
-  public int getNumFiles() {
-    return datafileSizes.size();
   }
 
   public MetadataUpdateCount getUpdateCount() {

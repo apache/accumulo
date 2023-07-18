@@ -23,11 +23,11 @@ public class CompactorInfo {
   // Variable names become JSON keys
   public final long lastContact;
   public final String server;
-  public final String queueName;
+  public final String groupName;
 
-  public CompactorInfo(long fetchedTimeMillis, String queue, String hostAndPort) {
+  public CompactorInfo(long fetchedTimeMillis, String group, String hostAndPort) {
     lastContact = System.currentTimeMillis() - fetchedTimeMillis;
-    queueName = queue;
+    groupName = group;
     server = hostAndPort;
   }
 }
