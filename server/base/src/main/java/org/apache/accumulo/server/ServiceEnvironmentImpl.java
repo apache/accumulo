@@ -19,8 +19,7 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -29,14 +28,20 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   private final ServerContext context;
   private final Configuration conf;
-  private final Map<TableId,Configuration> tableConfigs = new ConcurrentHashMap<>();
+  private final Cache<TableId,Configuration> tableConfigs;
 
   public ServiceEnvironmentImpl(ServerContext context) {
     this.context = context;
+    // For a long-lived instance of this object, avoid keeping references around to tables that may
+    // have been deleted.
+    this.tableConfigs = Caffeine.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
     this.conf = new ConfigurationImpl(this.context.getConfiguration());
   }
 
@@ -47,7 +52,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public Configuration getConfiguration(TableId tableId) {
-    return tableConfigs.computeIfAbsent(tableId,
+    return tableConfigs.get(tableId,
         tid -> new ConfigurationImpl(context.getTableConfiguration(tid)));
   }
 
