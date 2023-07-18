@@ -537,7 +537,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case IMMEDIATE:
         ZooReader zooReader = ctx.getZooReader();
         try {
-          byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
+          var path = zkRoot + RootTable.ZROOT_TABLET;
+          // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
+          // zookeeper
+          zooReader.sync(path);
+          byte[] bytes = zooReader.getData(path);
           return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new RuntimeException(e);
