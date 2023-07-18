@@ -42,6 +42,14 @@ public class CompactionJobQueues {
   private final ConcurrentHashMap<CompactionExecutorId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
+  // Setting a stopgap global queue size variable.
+  // See GitHub Accumulo issue #3635
+  private int queueSize;
+
+  public CompactionJobQueues(int queueSize) {
+    this.queueSize = queueSize;
+  }
+
   public void add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     if (jobs.size() == 1) {
       var executorId = jobs.iterator().next().getExecutor();
@@ -136,12 +144,12 @@ public class CompactionJobQueues {
 
     // TODO make max size configurable
     var pq = priorityQueues.computeIfAbsent(executorId,
-        eid -> new CompactionJobPriorityQueue(eid, 10000));
+        eid -> new CompactionJobPriorityQueue(eid, queueSize));
     while (!pq.add(tabletMetadata, jobs)) {
       // This loop handles race condition where poll() closes empty priority queues. The queue could
       // be closed after its obtained from the map and before add is called.
       pq = priorityQueues.computeIfAbsent(executorId,
-          eid -> new CompactionJobPriorityQueue(eid, 10000));
+          eid -> new CompactionJobPriorityQueue(eid, queueSize));
     }
   }
 }

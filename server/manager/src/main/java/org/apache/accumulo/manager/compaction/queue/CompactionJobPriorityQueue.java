@@ -95,8 +95,8 @@ public class CompactionJobPriorityQueue {
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
   private final int maxSize;
-  private AtomicLong rejectedJobs;
-  private AtomicLong dequeuedJobs;
+  private final AtomicLong rejectedJobs;
+  private final AtomicLong dequeuedJobs;
 
   // This map tracks what jobs a tablet currently has in the queue. Its used to efficiently remove
   // jobs in the queue when new jobs are queued for a tablet.
