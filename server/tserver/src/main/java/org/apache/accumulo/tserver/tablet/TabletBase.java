@@ -201,19 +201,20 @@ public abstract class TabletBase {
 
     Tablet.LookupResult result = null;
 
+    boolean sawException = false;
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
       this.server.getScanMetrics().incrementLookupCount(1);
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
-    } catch (IOException ioe) {
-      dataSource.close(true);
-      throw ioe;
+    } catch (IOException | RuntimeException e) {
+      sawException = true;
+      throw e;
     } finally {
       // code in finally block because always want
       // to return mapfiles, even when exception is thrown
-      dataSource.close(false);
+      dataSource.close(sawException);
 
       synchronized (this) {
         queryResultCount.addAndGet(results.size());
