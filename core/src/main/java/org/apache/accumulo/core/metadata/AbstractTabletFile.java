@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
@@ -39,12 +40,7 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
 
   protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
-    this.range = Objects.requireNonNull(range);
-    // Ensure consistency by requiring ranges use true/false for inclusivity
-    // for start and end keys
-    Preconditions.checkArgument(
-        !hasRange() || (range.isStartKeyInclusive() && !range.isEndKeyInclusive()),
-        "The Range for a TabletFile must be startKeyInclusive=true and endKeyInclusive=false");
+    this.range = requireRowRange(range);
   }
 
   @Override
@@ -60,6 +56,25 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   @Override
   public boolean hasRange() {
     return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
+  }
+
+  static Range requireRowRange(Range range) {
+    if (!range.isInfiniteStartKey()) {
+      Preconditions.checkArgument(range.isStartKeyInclusive() && isOnlyRowSet(range.getStartKey()),
+          "Range is not a row range %s", range);
+    }
+
+    if (!range.isInfiniteStopKey()) {
+      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey()),
+          "Range is not a row range %s", range);
+    }
+
+    return range;
+  }
+
+  private static boolean isOnlyRowSet(Key key) {
+    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
+        && key.getColumnVisibilityData().length() == 0 && key.getTimestamp() == Long.MAX_VALUE;
   }
 
 }
