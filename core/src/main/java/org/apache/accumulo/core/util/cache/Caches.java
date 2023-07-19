@@ -24,6 +24,8 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -60,6 +62,7 @@ public class Caches implements MetricsProducer {
     TINYLFU_BLOCK_CACHE;
   }
 
+  private static final Logger LOG = LoggerFactory.getLogger(Caches.class);
   private static final Supplier<Caches> CACHES = memoize(() -> new Caches());
 
   public static Caches getInstance() {
@@ -75,22 +78,26 @@ public class Caches implements MetricsProducer {
     this.registry = registry;
   }
 
-  private void setupMicrometerMetrics(Caffeine<Object,Object> cacheBuilder, String name) {
+  private boolean setupMicrometerMetrics(Caffeine<Object,Object> cacheBuilder, String name) {
     if (registry != null) {
       try {
         cacheBuilder.recordStats(
             () -> new CaffeineStatsCounter(registry, name, MetricsUtil.getCommonTags()));
+        return true;
       } catch (IllegalStateException e) {
         // recordStats was already called by the cacheBuilder.
       }
     }
+    return false;
   }
 
   public Caffeine<Object,Object> createNewBuilder(CacheName name, boolean emitMetricsIfEnabled) {
     Caffeine<Object,Object> cacheBuilder = Caffeine.newBuilder();
+    boolean metricsConfigured = false;
     if (emitMetricsIfEnabled) {
-      setupMicrometerMetrics(cacheBuilder, name.name());
+      metricsConfigured = setupMicrometerMetrics(cacheBuilder, name.name());
     }
+    LOG.debug("Caffeine builder created for {}, metrics enabled: {}", name, metricsConfigured);
     return cacheBuilder;
   }
 
