@@ -332,16 +332,17 @@ public class Tablet extends TabletBase {
 
     ScanDataSource dataSource = createDataSource(scanParams, false, iFlag);
 
+    boolean sawException = false;
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException ioe) {
-      dataSource.close(true);
-      throw ioe;
+    } catch (IOException | RuntimeException e) {
+      sawException = true;
+      throw e;
     } finally {
       // code in finally block because always want
       // to return data files, even when exception is thrown
-      dataSource.close(false);
+      dataSource.close(sawException);
     }
   }
 

@@ -30,7 +30,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,6 +115,8 @@ import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -123,6 +127,7 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -166,6 +171,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
+  private final Cache<Path,Integer> checked_tablet_dir_cache;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
       SecurityOperation security, CompactionJobQueues jobQueues) {
@@ -181,9 +187,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
     this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
 
-    completed = ctx.getCaches().getCache(CacheName.COMPACTIONS_COMPLETED,
-        (caffeine) -> caffeine.maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES),
-        (caffeine) -> caffeine.build());
+    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED,
+        true).maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     CacheLoader<Long,CompactionConfig> loader =
         txid -> CompactionConfigStorage.getConfig(ctx, txid);
@@ -192,9 +197,15 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // when a compaction is canceled it is deleted which is why there is a time limit. It does not
     // hurt to let a job that was canceled start, it will be canceled later. Caching this immutable
     // config will help avoid reading the same data over and over.
-    compactionConfigCache = ctx.getCaches().getLoadingCache(CacheName.COMPACTION_CONFIGS,
-        (caffeine) -> caffeine.expireAfterWrite(30, SECONDS).maximumSize(100),
-        (caffeine) -> caffeine.build(loader));
+    compactionConfigCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_CONFIGS,
+        true).expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
+
+    Weigher<Path,Integer> weigher = (path, count) -> {
+      return path.toUri().toString().length();
+    };
+
+    checked_tablet_dir_cache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE,
+        true).maximumWeight(10485760L).weigher(weigher).build();
 
     // At this point the manager does not have its lock so no actions should be taken yet
   }
@@ -481,6 +492,28 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     return true;
   }
 
+  private void checkTabletDir(KeyExtent extent, Path path) {
+    try {
+      if (checked_tablet_dir_cache.getIfPresent(path) == null) {
+        FileStatus[] files = null;
+        try {
+          files = ctx.getVolumeManager().listStatus(path);
+        } catch (FileNotFoundException ex) {
+          // ignored
+        }
+
+        if (files == null) {
+          LOG.debug("Tablet {} had no dir, creating {}", extent, path);
+
+          ctx.getVolumeManager().mkdirs(path);
+        }
+        checked_tablet_dir_cache.put(path, 1);
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
   private ExternalCompactionMetadata createExternalCompactionMetadata(CompactionJob job,
       Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress) {
     boolean propDels;
@@ -505,12 +538,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         throw new IllegalArgumentException();
     }
 
-    // ELASTICITY_TODO need to create dir if it does not exists.. look at tablet code, it has cache,
-    // but its unbounded in size which is ok for a single tablet... in the manager we need a cache
-    // of dirs that were created that is bounded in size
-    Consumer<String> directorCreator = dirName -> {};
+    Consumer<String> directoryCreator = dir -> checkTabletDir(tablet.getExtent(), new Path(dir));
     ReferencedTabletFile newFile =
-        TabletNameGenerator.getNextDataFilenameForMajc(propDels, ctx, tablet, directorCreator);
+        TabletNameGenerator.getNextDataFilenameForMajc(propDels, ctx, tablet, directoryCreator);
 
     return new ExternalCompactionMetadata(jobFiles, newFile, compactorAddress, job.getKind(),
         job.getPriority(), job.getExecutor(), propDels, fateTxId);
