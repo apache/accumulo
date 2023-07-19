@@ -20,8 +20,8 @@ package org.apache.accumulo.core.client.admin.servers;
 
 public class CompactorServer extends Server {
 
-  public CompactorServer(String host, int port) {
-    super(ServerType.COMPACTOR, host, port);
+  public CompactorServer(String host, int port, String resourceGroup) {
+    super(ServerType.COMPACTOR, host, port, resourceGroup);
   }
 
 }

@@ -28,12 +28,14 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
   private final ServerType type;
   private final String host;
   private final int port;
+  private final String resourceGroup;
 
-  protected Server(ServerType type, String host, int port) {
+  protected Server(ServerType type, String host, int port, String resourceGroup) {
     super();
     Preconditions.checkArgument(port > 0);
     this.type = Objects.requireNonNull(type);
     this.host = Objects.requireNonNull(host);
+    this.resourceGroup = Objects.requireNonNull(resourceGroup);
     this.port = port;
   }
 
@@ -49,22 +51,26 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
     return port;
   }
 
+  public String getResourceGroup() {
+    return resourceGroup;
+  }
+
   @Override
   public int compare(Server first, Server second) {
+    if (first == null || second == null) {
+      throw new NullPointerException();
+    }
     if (first == second) {
       return 0;
-    }
-    if (first != null && second == null) {
-      return 1;
-    }
-    if (first == null && second != null) {
-      return -1;
     }
     int result = first.getHost().compareTo(second.getHost());
     if (result == 0) {
       result = Integer.compare(first.getPort(), second.getPort());
       if (result == 0) {
         result = first.getType().compareTo(second.getType());
+        if (result == 0) {
+          result = first.getResourceGroup().compareTo(second.getResourceGroup());
+        }
       }
     }
     return result;
@@ -79,9 +85,10 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((host == null) ? 0 : host.hashCode());
+    result = prime * result + host.hashCode();
     result = prime * result + port;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + type.hashCode();
+    result = prime * result + resourceGroup.hashCode();
     return result;
   }
 
@@ -101,7 +108,8 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
 
   @Override
   public String toString() {
-    return "Server [type=" + type + ", host=" + host + ", port=" + port + "]";
+    return "Server [type=" + type + ", host=" + host + ", port=" + port + ", resourceGroup="
+        + resourceGroup + "]";
   }
 
   public String toHostPortString() {

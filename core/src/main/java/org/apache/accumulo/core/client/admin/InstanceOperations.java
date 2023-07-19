@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -173,32 +174,35 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
+   * @deprecated see {@link #getServers(ServerType)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   List<String> getManagerLocations();
 
   /**
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @deprecated see {@link #getServers(ServerType)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   Set<String> getScanServers();
 
   /**
-   * Returns the locations of the active scan servers
+   * Returns the servers of a given type
    *
-   * @return A set of currently active scan servers.
+   * @return collection of servers of the supplied type
    * @since 3.0.0
    */
-  Set<Server> getServers(ServerType type);
+  Collection<Server> getServers(ServerType type);
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
+   * @deprecated see {@link #getServers(ServerType)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   List<String> getTabletServers();
 
   /**
@@ -207,8 +211,9 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
+   * @deprecated see {@link #getActiveScans(Server)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
@@ -216,10 +221,12 @@ public interface InstanceOperations {
    * List the active scans on a tablet server.
    *
    * @param server server type and address
-   * @return A list of active scans on tablet server.
+   * @return A collection of active scans on tablet server.
    * @since 3.0.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
+   *         SCAN_SERVER
    */
-  List<ActiveScan> getActiveScans(Server server)
+  Collection<ActiveScan> getActiveScans(Server server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -232,8 +239,9 @@ public interface InstanceOperations {
    *        {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
+   * @deprecated see {@link #getActiveCompactions(Server)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
@@ -244,10 +252,11 @@ public interface InstanceOperations {
    * of all compactions running on tservers and compactors.
    *
    * @param server server type and address
-   * @return the list of active compactions
+   * @return collection of active compactions
    * @since 3.0.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or COMPACTOR
    */
-  List<ActiveCompaction> getActiveCompactions(Server server)
+  Collection<ActiveCompaction> getActiveCompactions(Server server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -264,8 +273,9 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @since 1.5.0
+   * @deprecated see {@link #ping(Server)}
    */
-  @Deprecated
+  @Deprecated(since = "3.0.0")
   void ping(String tserver) throws AccumuloException;
 
   /**
@@ -273,6 +283,7 @@ public interface InstanceOperations {
    *
    * @param server server type and address
    * @since 3.0.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER
    */
   void ping(Server server) throws AccumuloException;
 

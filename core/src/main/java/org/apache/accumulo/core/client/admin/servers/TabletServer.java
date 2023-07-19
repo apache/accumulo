@@ -20,8 +20,8 @@ package org.apache.accumulo.core.client.admin.servers;
 
 public class TabletServer extends Server {
 
-  public TabletServer(String host, int port) {
-    super(ServerType.TABLET_SERVER, host, port);
+  public TabletServer(String host, int port, String resourceGroup) {
+    super(ServerType.TABLET_SERVER, host, port, resourceGroup);
   }
 
 }

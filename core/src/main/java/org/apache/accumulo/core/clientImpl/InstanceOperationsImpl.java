@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.CompactorServer;
 import org.apache.accumulo.core.client.admin.servers.ManagerServer;
 import org.apache.accumulo.core.client.admin.servers.ScanServer;
 import org.apache.accumulo.core.client.admin.servers.Server;
@@ -62,6 +64,11 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
@@ -250,29 +257,34 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Set<Server> results = new HashSet<>();
     switch (type) {
       case COMPACTOR:
-        throw new IllegalArgumentException(
-            "Use ExternalCompactionUtil.getCompactorAddrs instead as it will return the compactor grouping");
+        ExternalCompactionUtil.getCompactorAddrs(context).forEach((group, servers) -> {
+          servers
+              .forEach(hp -> results.add(new CompactorServer(hp.getHost(), hp.getPort(), group)));
+        });
+        break;
       case MANAGER:
         context.getManagerLocations().stream().map(l -> HostAndPort.fromString(l))
-            .forEach(hp -> results.add(new ManagerServer(hp.getHost(), hp.getPort())));
+            .forEach(hp -> results.add(new ManagerServer(hp.getHost(), hp.getPort(),
+                ServiceDescriptor.DEFAULT_GROUP_NAME)));
         break;
       case SCAN_SERVER:
-        context.getScanServers().keySet().stream().map(l -> HostAndPort.fromString(l))
-            .forEach(hp -> results.add(new ScanServer(hp.getHost(), hp.getPort())));
+        context.getScanServers().forEach((server, uuidAndGroup) -> {
+          HostAndPort hp = HostAndPort.fromString(server);
+          results.add(new ScanServer(hp.getHost(), hp.getPort(), uuidAndGroup.getSecond()));
+        });
         break;
       case TABLET_SERVER:
         ZooCache cache = context.getZooCache();
         String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-        for (String candidate : cache.getChildren(path)) {
-          var children = cache.getChildren(path + "/" + candidate);
-          if (children != null && !children.isEmpty()) {
-            var copy = new ArrayList<>(children);
-            Collections.sort(copy);
-            var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-            if (data != null && !"manager".equals(new String(data, UTF_8))) {
-              HostAndPort hp = HostAndPort.fromString(candidate);
-              results.add(new TabletServer(hp.getHost(), hp.getPort()));
-            }
+        var addrs = cache.getChildren(path);
+        for (String addr : addrs) {
+          HostAndPort hp = HostAndPort.fromString(addr);
+          final var zLockPath = ServiceLock.path(path + "/" + addr);
+          ZcStat stat = new ZcStat();
+          Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockPath, stat);
+          if (sld.isPresent()) {
+            String group = sld.orElseThrow().getGroup(ThriftService.TABLET_SCAN);
+            results.add(new TabletServer(hp.getHost(), hp.getPort(), group));
           }
         }
         break;
@@ -287,7 +299,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    return getActiveScans(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort()));
+    return getActiveScans(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort(),
+        ServiceDescriptor.DEFAULT_GROUP_NAME));
   }
 
   @Override
@@ -334,7 +347,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    return getActiveCompactions(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort()));
+    return getActiveCompactions(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort(),
+        ServiceDescriptor.DEFAULT_GROUP_NAME));
   }
 
   @Override
@@ -436,7 +450,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated
   public void ping(String tserver) throws AccumuloException {
     HostAndPort hp = HostAndPort.fromString(tserver);
-    ping(new TabletServer(hp.getHost(), hp.getPort()));
+    ping(new TabletServer(hp.getHost(), hp.getPort(), ServiceDescriptor.DEFAULT_GROUP_NAME));
   }
 
   @Override
