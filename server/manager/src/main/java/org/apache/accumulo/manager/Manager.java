@@ -1166,8 +1166,6 @@ public class Manager extends AbstractServer
     final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
-    // This constructor change is a stopgap.
-    // See GitHub Accumulo issue #3635
     this.compactionJobQueues = new CompactionJobQueues(
         getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
 

@@ -264,7 +264,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "cjpq")) {
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
             queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
           }
         }

@@ -374,8 +374,6 @@ public enum Property {
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
-  // This property is a stopgap. See GitHub Accumulo issue #3635.
-  @Experimental
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
       "10000", PropertyType.COUNT, "The max size of the priority queue", "4.0"),
   // properties that are specific to scan server behavior
