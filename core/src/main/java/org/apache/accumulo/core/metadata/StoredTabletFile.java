@@ -33,7 +33,6 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 
 /**
@@ -151,7 +150,11 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * Validates that the provided metadata string for the StoredTabletFile is valid.
    */
   public static void validate(String metadataEntry) {
+    final TabletFileCq tabletFileCq = deserialize(metadataEntry);
+    // Validate the path
     ReferencedTabletFile.parsePath(deserialize(metadataEntry).path);
+    // Validate the range
+    requireRowRange(tabletFileCq.range);
   }
 
   public static StoredTabletFile of(final Text metadataEntry) {
@@ -162,32 +165,12 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new StoredTabletFile(metadataEntry);
   }
 
-  private static boolean isOnlyRowSet(Key key) {
-    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
-        && key.getColumnVisibilityData().length() == 0 && key.getTimestamp() == Long.MAX_VALUE;
-  }
-
-  static Range requireRowRange(Range range) {
-    if (!range.isInfiniteStartKey()) {
-      Preconditions.checkArgument(range.isStartKeyInclusive() && isOnlyRowSet(range.getStartKey()),
-          "Range is not a row range %s", range);
-    }
-
-    if (!range.isInfiniteStopKey()) {
-      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey()),
-          "Range is not a row range %s", range);
-    }
-
-    return range;
-  }
-
   public static StoredTabletFile of(final URI path, Range range) {
     return of(new Path(Objects.requireNonNull(path)), range);
   }
 
   public static StoredTabletFile of(final Path path, Range range) {
-    return new StoredTabletFile(
-        new TabletFileCq(Objects.requireNonNull(path), requireRowRange(range)));
+    return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
   }
 
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
@@ -215,14 +198,9 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static String serialize(String path, Range range) {
+    requireRowRange(range);
     final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
     metadata.path = Objects.requireNonNull(path);
-
-    // TODO - Add validation on start/end rows exclusive/inclusive in a Range if not null?
-    // If we can guarantee start is exlusive and end is inclusive then we don't need to encode
-    // those boolean values or store them.
-    // Should we validate and enforce this when we serialize here or even earlier when we crate the
-    // TabletFile object with a range?
     metadata.startRow = encodeRow(range.getStartKey());
     metadata.endRow = encodeRow(range.getEndKey());
 

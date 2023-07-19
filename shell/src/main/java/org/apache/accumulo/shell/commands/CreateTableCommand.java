@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -53,7 +54,10 @@ import org.apache.hadoop.io.Text;
 
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
+  // copies configuration (property hierarchy: system, namespace, table) into table properties
   private Option createTableOptCopyConfig;
+  // copies properties from target table, (omits system and namespace properties in configuration)
+  private Option createTableOptExcludeParentProps;
   private Option createTableOptSplit;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
@@ -69,7 +73,7 @@ public class CreateTableCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, IOException {
+      TableNotFoundException, IOException, NamespaceNotFoundException {
 
     final String tableName = cl.getArgs()[0];
     var ntc = new NewTableConfiguration();
@@ -97,6 +101,13 @@ public class CreateTableCommand extends Command {
           new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
+    // allow only copy config or copy properties,
+    if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())
+        && !cl.hasOption(createTableOptCopyConfig.getOpt())) {
+      throw new IllegalArgumentException(createTableOptExcludeParentProps.getLongOpt()
+          + " only valid when using " + createTableOptCopyConfig.getLongOpt());
+    }
+
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
@@ -109,7 +120,8 @@ public class CreateTableCommand extends Command {
       timeType = TimeType.LOGICAL;
     }
 
-    Map<String,String> props = ShellUtil.parseMapOpt(cl, createTableOptInitProp);
+    Map<String,String> initProperties =
+        new HashMap<>(ShellUtil.parseMapOpt(cl, createTableOptInitProp));
 
     // Set iterator if supplied
     if (cl.hasOption(createTableOptIteratorProps.getOpt())) {
@@ -126,30 +138,43 @@ public class CreateTableCommand extends Command {
       ntc.createOffline();
     }
 
-    // create table.
-    shellState.getAccumuloClient().tableOperations().create(tableName,
-        ntc.setTimeType(timeType).setProperties(props));
-
-    shellState.setTableName(tableName); // switch shell to new table context
-
-    if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
-      shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
-          properties -> initialProps.forEach(properties::remove));
-    }
-
-    // Copy options if flag was set
+    // Copy configuration options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
-        final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
-            .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-
-        shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
-            properties -> configuration.entrySet().stream()
-                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
+      String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
+      if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
+        // copy properties, excludes parent properties in configuration
+        Map<String,String> tableProps =
+            shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
+        tableProps.entrySet().stream()
+            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
+      } else {
+        // copy configuration (include parent properties)
+        final Map<String,String> configuration =
+            shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
+        configuration.entrySet().stream()
+            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       }
     }
+
+    // if no defaults selected, remove, even if copied from configuration or properties
+    if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
+      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+      initialProps.forEach(initProperties::remove);
+    }
+
+    // Load custom formatter if set
+    if (cl.hasOption(createTableOptFormatter.getOpt())) {
+      final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
+      initProperties.put(Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
+    }
+
+    // create table.
+    shellState.getAccumuloClient().tableOperations().create(tableName,
+        ntc.setTimeType(timeType).setProperties(initProperties));
+
+    shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableOptEVC.getOpt())) {
       try {
@@ -161,13 +186,6 @@ public class CreateTableCommand extends Command {
       }
     }
 
-    // Load custom formatter if set
-    if (cl.hasOption(createTableOptFormatter.getOpt())) {
-      final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
-
-      shellState.getAccumuloClient().tableOperations().setProperty(tableName,
-          Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
-    }
     return 0;
   }
 
@@ -292,7 +310,9 @@ public class CreateTableCommand extends Command {
     final Options o = new Options();
 
     createTableOptCopyConfig =
-        new Option("cc", "copy-config", true, "table to copy configuration from");
+        new Option("cc", "copy-config", true, "table to copy effective configuration from");
+    createTableOptExcludeParentProps = new Option(null, "exclude-parent", false,
+        "exclude parent(s) properties when copying configuration");
     createTableOptCopySplits =
         new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
@@ -343,6 +363,7 @@ public class CreateTableCommand extends Command {
     o.addOptionGroup(timeGroup);
     o.addOption(createTableOptSplit);
     o.addOption(createTableOptCopyConfig);
+    o.addOption(createTableOptExcludeParentProps);
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
