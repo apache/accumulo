@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -54,7 +55,7 @@ public class DefaultOnDemandTabletUnloaderTest {
 
     TableId tid = TableId.of("42");
     ServerContext context = createMock(ServerContext.class);
-    TableConfiguration tconf = createMock(TableConfiguration.class);
+    TableConfiguration tconf = createNiceMock(TableConfiguration.class);
     expect(context.getConfiguration()).andReturn(tconf);
     expect(context.getTableConfiguration(tid)).andReturn(tconf);
     expect(tconf.get(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD))
