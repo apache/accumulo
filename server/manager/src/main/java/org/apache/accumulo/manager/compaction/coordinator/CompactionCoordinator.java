@@ -187,8 +187,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
     this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
 
-    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED,
-        true).maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
+    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
+        .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     CacheLoader<Long,CompactionConfig> loader =
         txid -> CompactionConfigStorage.getConfig(ctx, txid);
@@ -197,15 +197,16 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // when a compaction is canceled it is deleted which is why there is a time limit. It does not
     // hurt to let a job that was canceled start, it will be canceled later. Caching this immutable
     // config will help avoid reading the same data over and over.
-    compactionConfigCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_CONFIGS,
-        true).expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
+    compactionConfigCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_CONFIGS, true)
+        .expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
 
     Weigher<Path,Integer> weigher = (path, count) -> {
       return path.toUri().toString().length();
     };
 
-    checked_tablet_dir_cache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE,
-        true).maximumWeight(10485760L).weigher(weigher).build();
+    checked_tablet_dir_cache =
+        ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
+            .maximumWeight(10485760L).weigher(weigher).build();
 
     // At this point the manager does not have its lock so no actions should be taken yet
   }

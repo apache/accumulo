@@ -77,9 +77,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
-      choiceCache = Caches.getInstance().getLoadingCache(CacheName.SPACE_AWARE_VOLUME_CHOICE,
-          (caffeine) -> caffeine.expireAfterWrite(computationCacheDuration, MILLISECONDS),
-          (caffeine) -> caffeine.build(key -> new WeightedRandomCollection(key, env)));
+      choiceCache = Caches.getInstance().createNewBuilder(CacheName.SPACE_AWARE_VOLUME_CHOICE, true)
+          .expireAfterWrite(computationCacheDuration, MILLISECONDS)
+          .build(key -> new WeightedRandomCollection(key, env));
     }
 
     return choiceCache;

@@ -109,10 +109,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
     Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
-    this.recentHostingRequest =
-        this.manager.getContext().getCaches().getCache(CacheName.HOSTING_REQUEST_CACHE,
-            (caffeine) -> caffeine.expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB),
-            (caffeine) -> caffeine.weigher(weigher).build());
+    this.recentHostingRequest = this.manager.getContext().getCaches()
+        .createNewBuilder(CacheName.HOSTING_REQUEST_CACHE, true)
+        .expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB).weigher(weigher).build();
   }
 
   @Override

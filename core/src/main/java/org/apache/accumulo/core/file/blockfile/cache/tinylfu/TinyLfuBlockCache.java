@@ -66,14 +66,12 @@ public final class TinyLfuBlockCache implements BlockCache {
       .createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", true);
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
-    cache = Caches.getInstance().getCache(CacheName.TINYLFU_BLOCK_CACHE,
-        (caffeine) -> caffeine
-            .initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize(type) / conf.getBlockSize()))
-            .recordStats(),
-        (caffeine) -> caffeine.weigher((String blockName, Block block) -> {
+    cache = Caches.getInstance().createNewBuilder(CacheName.TINYLFU_BLOCK_CACHE, false)
+        .initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize(type) / conf.getBlockSize()))
+        .recordStats().weigher((String blockName, Block block) -> {
           int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
           return keyWeight + block.weight();
-        }).maximumWeight(conf.getMaxSize(type)).build());
+        }).maximumWeight(conf.getMaxSize(type)).build();
     policy = cache.policy().eviction().orElseThrow();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
     ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,

@@ -356,9 +356,8 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileLenCache = context.getCaches().getCache(CacheName.TSRM_FILE_LENGTHS,
-        (caffeine) -> caffeine.maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)),
-        (caffeine) -> caffeine.build());
+    fileLenCache = context.getCaches().createNewBuilder(CacheName.TSRM_FILE_LENGTHS, true)
+        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 

@@ -229,10 +229,9 @@ public class ScanServer extends AbstractServer
             "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
       }
       tabletMetadataCache =
-          context.getCaches().getLoadingCache(CacheName.SCAN_SERVER_TABLET_METADATA,
-              (caffeine) -> caffeine.expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-                  .scheduler(Scheduler.systemScheduler()),
-              (caffeine) -> caffeine.build(tabletMetadataLoader));
+          context.getCaches().createNewBuilder(CacheName.SCAN_SERVER_TABLET_METADATA, true)
+              .expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
+              .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());

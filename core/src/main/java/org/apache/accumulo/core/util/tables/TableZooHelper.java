@@ -48,8 +48,9 @@ public class TableZooHelper implements AutoCloseable {
 
   public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);
-    instanceToMapCache = this.context.getCaches().getCache(CacheName.TABLE_ZOO_HELPER_CACHE,
-        (caffeine) -> caffeine.expireAfterAccess(10, MINUTES), (caffeine) -> caffeine.build());
+    instanceToMapCache =
+        this.context.getCaches().createNewBuilder(CacheName.TABLE_ZOO_HELPER_CACHE, true)
+            .expireAfterAccess(10, MINUTES).build();
   }
 
   /**

@@ -186,10 +186,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private Key workKey = new Key();
 
   @VisibleForTesting
-  static final Cache<String,
-      Boolean> loggedMsgCache = Caches.getInstance().getCache(CacheName.COMBINER_LOGGED_MSGS,
-          (caffeine) -> caffeine.expireAfterWrite(1, HOURS).maximumSize(10000),
-          (caffeine) -> caffeine.build());
+  static final Cache<String,Boolean> loggedMsgCache =
+      Caches.getInstance().createNewBuilder(CacheName.COMBINER_LOGGED_MSGS, true)
+          .expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly

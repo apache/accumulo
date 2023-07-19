@@ -26,9 +26,9 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
@@ -40,7 +40,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     this.context = context;
     // For a long-lived instance of this object, avoid keeping references around to tables that may
     // have been deleted.
-    this.tableConfigs = Caffeine.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+    this.tableConfigs =
+        context.getCaches().createNewBuilder(CacheName.SERVICE_ENVIRONMENT_TABLE_CONFIGS, true)
+            .expireAfterAccess(10, TimeUnit.MINUTES).build();
     this.conf = new ConfigurationImpl(this.context.getConfiguration());
   }
 

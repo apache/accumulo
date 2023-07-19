@@ -70,11 +70,10 @@ public class RecoveryManager {
 
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
-    existenceCache = this.manager.getContext().getCaches().getCache(
-        CacheName.RECOVERY_MANAGER_PATH_CACHE,
-        (caffeine) -> caffeine.expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()),
-        (caffeine) -> caffeine.build());
+    existenceCache = this.manager.getContext().getCaches()
+        .createNewBuilder(CacheName.RECOVERY_MANAGER_PATH_CACHE, true)
+        .expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+        .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
         "Walog sort starter", false);

@@ -20,15 +20,12 @@ package org.apache.accumulo.core.util.cache;
 
 import static com.google.common.base.Suppliers.memoize;
 
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.cache.CaffeineStatsCounter;
@@ -41,6 +38,7 @@ public class Caches implements MetricsProducer {
     COMBINER_LOGGED_MSGS,
     COMPACTIONS_COMPLETED,
     COMPACTION_CONFIGS,
+    COMPACTION_DIR_CACHE,
     COMPACTION_DISPATCHERS,
     COMPRESSION_ALGORITHM,
     CRYPT_PASSWORDS,
@@ -51,6 +49,7 @@ public class Caches implements MetricsProducer {
     PROP_CACHE,
     RECOVERY_MANAGER_PATH_CACHE,
     SCAN_SERVER_TABLET_METADATA,
+    SERVICE_ENVIRONMENT_TABLE_CONFIGS,
     SPACE_AWARE_VOLUME_CHOICE,
     SPLITTER_FILES,
     SPLITTER_STARTING,
@@ -76,7 +75,7 @@ public class Caches implements MetricsProducer {
     this.registry = registry;
   }
 
-  private void emitMicrometerMetrics(Caffeine<Object,Object> cacheBuilder, String name) {
+  private void setupMicrometerMetrics(Caffeine<Object,Object> cacheBuilder, String name) {
     if (registry != null) {
       try {
         cacheBuilder.recordStats(
@@ -87,20 +86,12 @@ public class Caches implements MetricsProducer {
     }
   }
 
-  public <K,V> Cache<K,V> getCache(CacheName name,
-      Function<Caffeine<Object,Object>,Caffeine<Object,Object>> builderOptions,
-      Function<Caffeine<Object,Object>,Cache<K,V>> buildMethod) {
-    Caffeine<Object,Object> cacheBuilder = builderOptions.apply(Caffeine.newBuilder());
-    emitMicrometerMetrics(cacheBuilder, name.name());
-    return buildMethod.apply(cacheBuilder);
-  }
-
-  public <K,V> LoadingCache<K,V> getLoadingCache(CacheName name,
-      Function<Caffeine<Object,Object>,Caffeine<Object,Object>> builderOptions,
-      Function<Caffeine<Object,Object>,LoadingCache<K,V>> buildMethod) {
-    Caffeine<Object,Object> cacheBuilder = builderOptions.apply(Caffeine.newBuilder());
-    emitMicrometerMetrics(cacheBuilder, name.name());
-    return buildMethod.apply(cacheBuilder);
+  public Caffeine<Object,Object> createNewBuilder(CacheName name, boolean emitMetricsIfEnabled) {
+    Caffeine<Object,Object> cacheBuilder = Caffeine.newBuilder();
+    if (emitMetricsIfEnabled) {
+      setupMicrometerMetrics(cacheBuilder, name.name());
+    }
+    return cacheBuilder;
   }
 
 }

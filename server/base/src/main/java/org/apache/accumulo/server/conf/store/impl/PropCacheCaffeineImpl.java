@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -53,18 +54,18 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
-    cache = Caches.getInstance().getLoadingCache(CacheName.PROP_CACHE, (caffeine) -> {
-      caffeine.expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS);
-      if (runTasksInline) {
-        caffeine.executor(Runnable::run);
-      } else {
-        caffeine.executor(executor);
-      }
-      if (ticker != null) {
-        caffeine.ticker(ticker);
-      }
-      return caffeine;
-    }, (caffeine) -> caffeine.evictionListener(this::evictionNotifier).build(cacheLoader));
+    Caffeine<Object,Object> caffeine =
+        Caches.getInstance().createNewBuilder(CacheName.PROP_CACHE, true)
+            .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS);
+    if (runTasksInline) {
+      caffeine.executor(Runnable::run);
+    } else {
+      caffeine.executor(executor);
+    }
+    if (ticker != null) {
+      caffeine.ticker(ticker);
+    }
+    cache = caffeine.evictionListener(this::evictionNotifier).build(cacheLoader);
   }
 
   public PropStoreMetrics getMetrics() {

@@ -114,24 +114,22 @@ public class Splitter {
       }
     };
 
-    splitFileCache = context.getCaches().getLoadingCache(CacheName.SPLITTER_FILES,
-        (caffeine) -> caffeine.expireAfterAccess(10, TimeUnit.MINUTES).maximumWeight(10_000_000L),
-        (caffeine) -> caffeine.weigher(weigher).build(loader));
+    splitFileCache = context.getCaches().createNewBuilder(CacheName.SPLITTER_FILES, true)
+        .expireAfterAccess(10, TimeUnit.MINUTES).maximumWeight(10_000_000L).weigher(weigher)
+        .build(loader);
 
     Weigher<KeyExtent,KeyExtent> weigher2 = (keyExtent, keyExtent2) -> weigh(keyExtent);
 
     // Tracks splits starting, but not forever in case something in the code does not remove it.
-    splitsStarting = context.getCaches().getCache(CacheName.SPLITTER_STARTING,
-        (caffeine) -> caffeine.expireAfterAccess(3, TimeUnit.HOURS).maximumWeight(10_000_000L),
-        (caffeine) -> caffeine.weigher(weigher2).build());
+    splitsStarting = context.getCaches().createNewBuilder(CacheName.SPLITTER_STARTING, true)
+        .expireAfterAccess(3, TimeUnit.HOURS).maximumWeight(10_000_000L).weigher(weigher2).build();
 
     Weigher<KeyExtent,HashCode> weigher3 = (keyExtent, hc) -> {
       return weigh(keyExtent) + hc.bits() / 8;
     };
 
-    unsplittable = context.getCaches().getCache(CacheName.SPLITTER_UNSPLITTABLE,
-        (caffeine) -> caffeine.expireAfterAccess(24, TimeUnit.HOURS).maximumWeight(10_000_000L),
-        (caffeine) -> caffeine.weigher(weigher3).build());
+    unsplittable = context.getCaches().createNewBuilder(CacheName.SPLITTER_UNSPLITTABLE, true)
+        .expireAfterAccess(24, TimeUnit.HOURS).maximumWeight(10_000_000L).weigher(weigher3).build();
   }
 
   public synchronized void start() {}

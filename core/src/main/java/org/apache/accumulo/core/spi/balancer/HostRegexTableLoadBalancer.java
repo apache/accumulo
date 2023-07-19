@@ -321,10 +321,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        Caches.getInstance().getLoadingCache(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX,
-            (caffeine) -> caffeine.expireAfterAccess(1, HOURS),
-            (caffeine) -> caffeine.build(key -> balancerEnvironment.getConfiguration(key)
-                .getDerived(HostRegexTableLoadBalancer::getRegexes)));
+        Caches.getInstance().createNewBuilder(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX, true)
+            .expireAfterAccess(1, HOURS).build(key -> balancerEnvironment.getConfiguration(key)
+                .getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }
