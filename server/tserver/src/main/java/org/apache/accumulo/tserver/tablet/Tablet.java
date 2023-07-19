@@ -1324,7 +1324,7 @@ public class Tablet extends TabletBase {
 
   // The purpose of this lock is to prevent race conditions between concurrent refresh RPC calls and
   // between minor compactions and refresh calls.
-  private Lock refreshLock = new ReentrantLock();
+  private final Lock refreshLock = new ReentrantLock();
 
   void bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
       ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
