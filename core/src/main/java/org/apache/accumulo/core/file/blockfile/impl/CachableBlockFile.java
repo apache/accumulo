@@ -480,7 +480,7 @@ public class CachableBlockFile {
 
       closed = true;
 
-      BCFile.Reader reader = bcfr.get();
+      BCFile.Reader reader = bcfr.getAndSet(null);
       if (reader != null) {
         reader.close();
       }
