@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -188,6 +189,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             new Condition(SELECTED_COLUMN.getColumnFamily(), SELECTED_COLUMN.getColumnQualifier());
         if (tabletMetadata.getSelectedFiles() != null) {
+          c.setIterators(new IteratorSetting(INITIAL_ITERATOR_PRIO, SortedFilesIterator.class));
           c = c.setValue(
               Objects.requireNonNull(tabletMetadata.getSelectedFiles().getMetadataValue()));
         }
