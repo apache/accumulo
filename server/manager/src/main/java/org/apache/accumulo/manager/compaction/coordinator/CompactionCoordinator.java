@@ -159,11 +159,11 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
       Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
-  private static final Weigher<Path,Integer> weigher = (path, count) -> {
+  private final Weigher<Path,Integer> weigher = (path, count) -> {
     return path.toUri().toString().length();
   };
 
-  private static final Cache<Path,Integer> CHECKED_TABLET_DIRS =
+  private final Cache<Path,Integer> checked_tablet_dir_cache =
       Caffeine.newBuilder().maximumWeight(10485760L).weigher(weigher).build();
 
   /* Map of group name to last time compactor called to get a compaction job */
@@ -492,7 +492,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   private void checkTabletDir(KeyExtent extent, Path path) {
     try {
-      if (CHECKED_TABLET_DIRS.getIfPresent(path) == null) {
+      if (checked_tablet_dir_cache.getIfPresent(path) == null) {
         FileStatus[] files = null;
         try {
           files = ctx.getVolumeManager().listStatus(path);
@@ -505,7 +505,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
           ctx.getVolumeManager().mkdirs(path);
         }
-        CHECKED_TABLET_DIRS.put(path, 1);
+        checked_tablet_dir_cache.put(path, 1);
       }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
