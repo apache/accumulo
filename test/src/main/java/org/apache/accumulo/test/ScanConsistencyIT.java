@@ -55,6 +55,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This test verifies that scans will always see data written before the scan started even when
  * there are concurrent scans, writes, and table operations running.
@@ -64,6 +66,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
 
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random is ok for testing")
   @Test
   public void testConcurrentScanConsistency() throws Exception {
     final String table = this.getUniqueNames(1)[0];
@@ -316,6 +320,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       this.tctx = testContext;
     }
 
+    @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+        justification = "predictable random is ok for testing")
     @Override
     public ScanStats call() throws Exception {
       ScanStats allStats = new ScanStats();
@@ -329,11 +335,11 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           // 1 in 10 chance of doing a full table scan
           range = new Range();
         } else {
-          long start = Math.abs(random.nextLong());
-          long end = Math.abs(random.nextLong());
+          long start = nextLongAbs(random);
+          long end = nextLongAbs(random);
 
           while (end <= start) {
-            end = Math.abs(random.nextLong());
+            end = nextLongAbs(random);
           }
 
           range = new Range(String.format("%016x", start), String.format("%016x", end));
@@ -360,6 +366,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       this.tctx = testContext;
     }
 
+    @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+        justification = "predictable random is ok for testing")
     @Override
     public WriteStats call() throws Exception {
       WriteStats stats = new WriteStats();
@@ -407,7 +415,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       int cols = random.nextInt(100) + 1;
 
       // the generation counter ensures the row is unique
-      String row = String.format("%016x:%016x", Math.abs(random.nextLong()),
+      String row = String.format("%016x:%016x", nextLongAbs(random),
           tctx.generationCounter.getAndIncrement());
 
       Mutation m = new Mutation(row);
@@ -427,6 +435,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       this.tctx = testContext;
     }
 
+    @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+        justification = "predictable random is ok for testing")
     @Override
     public String call() throws Exception {
       int numFlushes = 0;
@@ -455,7 +465,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           TreeSet<Text> splits = new TreeSet<>();
 
           for (int i = 0; i < splitsToAdd; i++) {
-            splits.add(new Text(String.format("%016x", Math.abs(random.nextLong()))));
+            splits.add(new Text(String.format("%016x", nextLongAbs(random))));
           }
 
           tctx.client.tableOperations().addSplits(tctx.table, splits);
@@ -471,5 +481,12 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       return String.format("Flushes:%,d Compactions:%,d Splits added:%,d", numFlushes,
           numCompactions, numSplits);
     }
+  }
+
+  /**
+   * @return absolute value of a random long
+   */
+  private static long nextLongAbs(Random r) {
+    return random.nextLong() & 0x7fffffffffffffffL;
   }
 }
