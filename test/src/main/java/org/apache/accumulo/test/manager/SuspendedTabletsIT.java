@@ -103,7 +103,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Start with 1 tserver, we'll increase that later
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // config custom balancer to keep all metadata on one server
-    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "1ms");
+    @SuppressWarnings("deprecation")
+    String p = HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY;
+    cfg.setProperty(p, "1ms");
     cfg.setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
         HostAndPortRegexTableLoadBalancer.class.getName());
   }
@@ -125,8 +127,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
       HostAndPort metadataServer = HostAndPort.fromString(tservers.get(0));
       log.info("Configuring balancer to assign all metadata tablets to {}", metadataServer);
-      iops.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME,
-          metadataServer.toString());
+      @SuppressWarnings("deprecation")
+      String p = HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX;
+      iops.setProperty(p + MetadataTable.NAME, metadataServer.toString());
 
       // Wait for the balancer to assign all metadata tablets to the chosen server.
       ClientContext ctx = (ClientContext) client;
@@ -351,6 +354,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    * multiple tablet servers are running on the same host and one wishes to make pools from the
    * tablet servers on that host.
    */
+  @SuppressWarnings("deprecation")
   public static class HostAndPortRegexTableLoadBalancer extends HostRegexTableLoadBalancer {
     private static final Logger LOG =
         LoggerFactory.getLogger(HostAndPortRegexTableLoadBalancer.class.getName());
