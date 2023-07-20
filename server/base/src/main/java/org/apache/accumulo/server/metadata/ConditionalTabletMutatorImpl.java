@@ -189,6 +189,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             new Condition(SELECTED_COLUMN.getColumnFamily(), SELECTED_COLUMN.getColumnQualifier());
         if (tabletMetadata.getSelectedFiles() != null) {
+          // ensure the SelectedFiles metadata value is re-encoded in case it was manually edited
           c.setIterators(new IteratorSetting(INITIAL_ITERATOR_PRIO, SortedFilesIterator.class));
           c = c.setValue(
               Objects.requireNonNull(tabletMetadata.getSelectedFiles().getMetadataValue()));

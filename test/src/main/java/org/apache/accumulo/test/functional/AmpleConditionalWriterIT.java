@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -59,7 +61,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -428,20 +429,23 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(selectedFiles, context.getAmple().readTablet(e1).getSelectedFiles(),
           "Selected files should match those that were written");
 
-      Text row = e1.toMetaRow();
-      Text selectedColumnFamily =
-          MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN.getColumnFamily();
-      Text selectedColumnQualifier =
-          MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN.getColumnQualifier();
+      final Text row = e1.toMetaRow();
+      final Text selectedColumnFamily = SELECTED_COLUMN.getColumnFamily();
+      final Text selectedColumnQualifier = SELECTED_COLUMN.getColumnQualifier();
 
-      String actualMetadataValue;
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
-        scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
-        scanner.setRange(new Range(row));
+      Supplier<String> selectedMetadataValue = () -> {
+        try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+          scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
+          scanner.setRange(new Range(row));
 
-        actualMetadataValue = scanner.stream().map(Map.Entry::getValue).map(Value::get)
-            .map(entry -> new String(entry, UTF_8)).collect(onlyElement());
-      }
+          return scanner.stream().map(Map.Entry::getValue).map(Value::get)
+              .map(entry -> new String(entry, UTF_8)).collect(onlyElement());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      };
+
+      String actualMetadataValue = selectedMetadataValue.get();
       final String expectedMetadata = selectedFiles.getMetadataValue();
       assertEquals(expectedMetadata, actualMetadataValue,
           "Value should be equal to metadata of SelectedFiles object that was written");
@@ -470,16 +474,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       }
 
       // verify the metadata has been changed
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
-        scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
-        scanner.setRange(new Range(row));
-
-        String actualMetadata = scanner.stream().map(Map.Entry::getValue).map(Value::get)
-            .map(entry -> new String(entry, UTF_8)).collect(onlyElement());
-
-        assertEquals(newJson, actualMetadata,
-            "Value should be equal to the new json we manually wrote above");
-      }
+      actualMetadataValue = selectedMetadataValue.get();
+      assertEquals(newJson, actualMetadataValue,
+          "Value should be equal to the new json we manually wrote above");
 
       // submit a mutation with the condition that the selected files match what was originally
       // written
