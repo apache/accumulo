@@ -31,16 +31,19 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class ManagerMetrics implements MetricsProducer {
 
   private final FateMetrics fateMetrics;
+  private final QueueMetrics queueMetrics;
 
   public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
     requireNonNull(conf, "Manager must not be null");
     fateMetrics = new FateMetrics(manager.getContext(),
         conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
+    queueMetrics = new QueueMetrics(manager.getCompactionQueues());
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.registerMetrics(registry);
+    queueMetrics.registerMetrics(registry);
   }
 }
