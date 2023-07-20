@@ -153,11 +153,11 @@ public class CompactionJobPriorityQueue {
     return dequeuedJobs.get();
   }
 
-  public long getQueuedJobs() {
-    return tabletJobs.size();
+  public synchronized long getQueuedJobs() {
+    return jobQueue.size();
   }
 
-  public long getLowestPriority() {
+  public synchronized long getLowestPriority() {
     return jobQueue.lastKey().job.getPriority();
   }
 
