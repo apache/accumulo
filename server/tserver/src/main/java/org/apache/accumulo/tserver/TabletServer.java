@@ -88,7 +88,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -136,20 +135,14 @@ import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
-import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.managermessage.ManagerMessage;
-import org.apache.accumulo.tserver.managermessage.SplitReportMessage;
-import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -157,14 +150,11 @@ import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
-import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.MetadataUpdateCount;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -174,7 +164,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
@@ -193,7 +182,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerUpdateMetrics updateMetrics;
   TabletServerScanMetrics scanMetrics;
   TabletServerMinCMetrics mincMetrics;
-  CompactionExecutorsMetrics ceMetrics;
   PausedCompactionMetrics pausedMetrics;
 
   @Override
@@ -397,8 +385,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private ClientServiceHandler clientHandler;
   private TabletClientHandler thriftClientHandler;
   private ThriftScanClientHandler scanClientHandler;
-  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-  private CompactionManager compactionManager;
 
   String getLockID() {
     return lockID;
@@ -409,19 +395,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     serverStopRequested = true;
   }
 
-  private class SplitRunner implements Runnable {
-    private final Tablet tablet;
-
-    public SplitRunner(Tablet tablet) {
-      this.tablet = tablet;
-    }
-
-    @Override
-    public void run() {
-      splitTablet(tablet);
-    }
-  }
-
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
     return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
@@ -429,10 +402,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public Session getSession(long sessionId) {
     return sessionManager.getSession(sessionId);
-  }
-
-  public void executeSplit(Tablet tablet) {
-    resourceManager.executeSplit(tablet.getExtent(), new SplitRunner(tablet));
   }
 
   private class MajorCompactor implements Runnable {
@@ -445,6 +414,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     public void run() {
       while (true) {
         try {
+          // TODO this property is misnamed, opened #3606
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
@@ -456,16 +426,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
           // bail early now if we're shutting down
           for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
-
             Tablet tablet = entry.getValue();
-
-            // if we need to split AND compact, we need a good way
-            // to decide what to do
-            if (tablet.needsSplit(tablet.getSplitComputations())) {
-              executeSplit(tablet);
-              continue;
-            }
-
             tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
           }
         } catch (Exception t) {
@@ -474,62 +435,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     }
-  }
-
-  private void splitTablet(Tablet tablet) {
-    try {
-      splitTablet(tablet, null);
-    } catch (IOException e) {
-      statsKeeper.updateTime(Operation.SPLIT, 0, true);
-      log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
-    } catch (Exception e) {
-      statsKeeper.updateTime(Operation.SPLIT, 0, true);
-      log.error("Unknown error on split:", e);
-    }
-  }
-
-  TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
-    long t1 = System.currentTimeMillis();
-
-    TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
-    if (tabletInfo == null) {
-      return null;
-    }
-
-    log.info("Starting split: {}", tablet.getExtent());
-    statsKeeper.incrementStatusSplit();
-    long start = System.currentTimeMillis();
-
-    Tablet[] newTablets = new Tablet[2];
-
-    Entry<KeyExtent,TabletData> first = tabletInfo.firstEntry();
-    TabletResourceManager newTrm0 = resourceManager.createTabletResourceManager(first.getKey(),
-        getTableConfiguration(first.getKey()));
-    newTablets[0] = new Tablet(TabletServer.this, first.getKey(), newTrm0, first.getValue());
-
-    Entry<KeyExtent,TabletData> last = tabletInfo.lastEntry();
-    TabletResourceManager newTrm1 = resourceManager.createTabletResourceManager(last.getKey(),
-        getTableConfiguration(last.getKey()));
-    newTablets[1] = new Tablet(TabletServer.this, last.getKey(), newTrm1, last.getValue());
-
-    // roll tablet stats over into tablet server's statsKeeper object as
-    // historical data
-    statsKeeper.saveMajorMinorTimes(tablet.getTabletStats());
-
-    // lose the reference to the old tablet and open two new ones
-    onlineTablets.split(tablet.getExtent(), newTablets[0], newTablets[1]);
-
-    // tell the manager
-    enqueueManagerMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
-        new Text("/" + newTablets[0].getDirName()), newTablets[1].getExtent(),
-        new Text("/" + newTablets[1].getDirName())));
-
-    statsKeeper.updateTime(Operation.SPLIT, start, false);
-    long t2 = System.currentTimeMillis();
-    log.info("Tablet split: {} size0 {} size1 {} time {}ms", tablet.getExtent(),
-        newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(), (t2 - t1));
-
-    return tabletInfo;
   }
 
   // add a message for the main thread to send back to the manager
@@ -732,21 +637,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       updateMetrics = new TabletServerUpdateMetrics();
       scanMetrics = new TabletServerScanMetrics();
       mincMetrics = new TabletServerMinCMetrics();
-      ceMetrics = new CompactionExecutorsMetrics();
       pausedMetrics = new PausedCompactionMetrics();
       MetricsUtil.initializeProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-          ceMetrics, pausedMetrics);
+          pausedMetrics);
 
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-
-    this.compactionManager = new CompactionManager(() -> Iterators
-        .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
-        getContext(), ceMetrics);
-    compactionManager.start();
 
     announceExistence();
 
@@ -831,11 +730,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         mdScanSpan.end();
       }
     });
-
-    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
-    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
-        CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
@@ -1026,15 +920,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       if (tablet.isMinorCompactionQueued()) {
         table.minors.queued++;
       }
-
-      if (tablet.isMajorCompactionRunning()) {
-        table.majors.running++;
-      }
-
-      if (tablet.isMajorCompactionQueued()) {
-        table.majors.queued++;
-      }
-
     });
 
     scanCounts.forEach((tableId, mapCounter) -> {
@@ -1083,9 +968,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.logSorts = logSorter.getLogSorts();
     result.flushs = flushCounter.get();
     result.syncs = syncCounter.get();
-    result.bulkImports = new ArrayList<>();
-    result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
-    result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
     result.version = getVersion();
     result.responseTime = System.currentTimeMillis() - start;
     return result;
@@ -1207,10 +1089,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return resourceManager.holdTime();
   }
 
-  public SecurityOperation getSecurityOperation() {
-    return security;
-  }
-
   // avoid unnecessary redundant markings to meta
   final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs =
       new ConcurrentHashMap<>();
@@ -1306,18 +1184,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
       walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
-  }
-
-  public void updateBulkImportState(List<String> files, BulkImportState state) {
-    bulkImportStatus.updateBulkImportStatus(files, state);
-  }
-
-  public void removeBulkImportState(List<String> files) {
-    bulkImportStatus.removeBulkImportStatus(files);
-  }
-
-  public CompactionManager getCompactionManager() {
-    return compactionManager;
   }
 
   @Override

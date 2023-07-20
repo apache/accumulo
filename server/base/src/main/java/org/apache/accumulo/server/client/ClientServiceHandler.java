@@ -53,7 +53,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -64,7 +63,6 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
@@ -76,7 +74,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
-  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
     this.context = context;
@@ -553,9 +550,4 @@ public class ClientServiceHandler implements ClientService.Iface {
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
   }
-
-  public List<BulkImportStatus> getBulkLoadStatus() {
-    return bulkImportStatus.getBulkLoadStatus();
-  }
-
 }

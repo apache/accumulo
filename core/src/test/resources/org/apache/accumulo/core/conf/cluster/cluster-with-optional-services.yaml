@@ -29,31 +29,35 @@ gc:
   - localhost
 
 tserver:
-  - localhost1
-  - localhost2
-  - localhost3
-  - localhost4
-
-sserver:
-  - default:
+  default:
     - localhost1
     - localhost2
-  - highmem:
+  highmem:
+    - localhost3
+    - localhost4
+  cheap:
+    - localhost5
+    - localhost6
+
+sserver:
+  default:
+    - localhost1
+    - localhost2
+  highmem:
     - hmvm1
     - hmvm2
     - hmvm3
-  - cheap:
+  cheap:
     - burstyvm1
     - burstyvm2
 
-compaction:
-  compactor:
-    - q1:
-        - localhost1
-        - localhost2
-    - q2:
-        - localhost3
-        - localhost4
+compactor:
+  q1:
+    - localhost1
+    - localhost2
+  q2:
+    - localhost3
+    - localhost4
 
 tservers_per_host: 2
 sservers_per_host: 1

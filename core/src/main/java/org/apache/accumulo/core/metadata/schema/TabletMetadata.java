@@ -298,6 +298,7 @@ public class TabletMetadata {
     return oldPrevEndRow;
   }
 
+  // ELASTICITY_TODO remove and handle in upgrade
   public boolean sawOldPrevEndRow() {
     ensureFetched(ColumnType.OLD_PREV_ROW);
     return sawOldPrevEndRow;

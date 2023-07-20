@@ -39,13 +39,23 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
-  private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
+  private static final String COMPACTOR_PREFIX = "compactor.";
+  private static final String GC_KEY = "gc";
+  private static final String MANAGER_KEY = "manager";
+  private static final String MONITOR_KEY = "monitor";
+  private static final String SSERVER_PREFIX = "sserver.";
+  private static final String SSERVERS_PER_HOST_KEY = "sservers_per_host";
+  private static final String TSERVER_PREFIX = "tserver.";
+  private static final String TSERVERS_PER_HOST_KEY = "tservers_per_host";
+
+  private static final String[] UNGROUPED_SECTIONS =
+      new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
 
   private static final Set<String> VALID_CONFIG_KEYS =
-      Set.of("manager", "monitor", "gc", "tserver", "tservers_per_host", "sservers_per_host");
+      Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY, SSERVERS_PER_HOST_KEY, TSERVERS_PER_HOST_KEY);
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of("compaction.compactor.", "sserver.");
+      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -89,7 +99,8 @@ public class ClusterConfigParser {
     } else if (value instanceof Number) {
       results.put(parent + key, value.toString());
     } else {
-      throw new IllegalStateException("Unhandled object type: " + value.getClass());
+      throw new IllegalStateException(
+          "Unhandled object type: " + ((value == null) ? "null" : value.getClass()));
     }
   }
 
@@ -101,40 +112,48 @@ public class ClusterConfigParser {
           throw new IllegalArgumentException("Unknown configuration section : " + section);
         });
 
-    for (String section : SECTIONS) {
+    for (String section : UNGROUPED_SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
       } else {
-        if (section.equals("manager") || section.equals("tserver")) {
-          throw new IllegalStateException("Required configuration section is missing: " + section);
+        if (section.equals(MANAGER_KEY)) {
+          throw new IllegalStateException("Manager is required in the configuration");
         }
         System.err.println("WARN: " + section + " is missing");
       }
     }
 
-    String compactorPrefix = "compaction.compactor.";
-    Set<String> compactorQueues =
-        config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
-            .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
+    List<String> compactorGroups =
+        config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX))
+            .map(k -> k.substring(COMPACTOR_PREFIX.length())).sorted().collect(Collectors.toList());
 
-    if (!compactorQueues.isEmpty()) {
-      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
-          compactorQueues.stream().collect(Collectors.joining(" ")));
-      for (String queue : compactorQueues) {
-        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
-            config.get("compaction.compactor." + queue));
+    if (!compactorGroups.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
+          compactorGroups.stream().collect(Collectors.joining(" ")));
+      for (String group : compactorGroups) {
+        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
+            config.get(COMPACTOR_PREFIX + group));
       }
     }
 
-    String sserverPrefix = "sserver.";
-    Set<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(sserverPrefix))
-        .map(k -> k.substring(sserverPrefix.length())).collect(Collectors.toSet());
+    List<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX))
+        .map(k -> k.substring(SSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
 
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
-          config.get(sserverPrefix + ssg)));
+          config.get(SSERVER_PREFIX + ssg)));
+    }
+
+    List<String> tserverGroups = config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX))
+        .map(k -> k.substring(TSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
+
+    if (!tserverGroups.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
+          tserverGroups.stream().collect(Collectors.joining(" ")));
+      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg,
+          config.get(TSERVER_PREFIX + tsg)));
     }
 
     String numTservers = config.getOrDefault("tservers_per_host", "1");

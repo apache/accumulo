@@ -622,14 +622,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       executor = Executors.newSingleThreadExecutor();
     }
 
-    Set<String> queues;
+    Set<String> groups;
     try {
-      queues = getCompactionQueueNames();
-      if (queues.isEmpty()) {
-        throw new IllegalStateException("No Compactor queues configured.");
+      groups = getCompactionGroupNames();
+      if (groups.isEmpty()) {
+        throw new IllegalStateException("No Compactor groups configured.");
       }
-      for (String name : queues) {
-        config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
+      for (String name : groups) {
+        // Allow user override
+        if (!config.getClusterServerConfiguration().getCompactorConfiguration().containsKey(name)) {
+          config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
+        }
       }
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
@@ -648,9 +651,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         v.stream().map((pr) -> pr.getProcess().pid()).collect(Collectors.toList())));
   }
 
-  private Set<String> getCompactionQueueNames() throws ClassNotFoundException {
+  private Set<String> getCompactionGroupNames() throws ClassNotFoundException {
 
-    Set<String> queueNames = new HashSet<>();
+    Set<String> groupNames = new HashSet<>();
     AccumuloConfiguration aconf = new ConfigurationCopy(config.getSiteConfig());
     CompactionServicesConfig csc = new CompactionServicesConfig(aconf);
     ServiceEnvironment senv = new ServiceEnvironmentImpl(getServerContext());
@@ -667,9 +670,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         initParams.getRequestedExternalExecutors().forEach(ceid -> {
           String id = ceid.canonical();
           if (id.startsWith("e.")) {
-            queueNames.add(id.substring(2));
+            groupNames.add(id.substring(2));
           } else {
-            queueNames.add(id);
+            groupNames.add(id);
           }
         });
       } catch (IllegalArgumentException | SecurityException | ReflectiveOperationException e) {
@@ -677,8 +680,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             "Error creating instance of " + plannerClass + " with no-arg constructor", e);
       }
     }
-
-    return queueNames;
+    return groupNames;
   }
 
   // wait up to 10 seconds for the process to start

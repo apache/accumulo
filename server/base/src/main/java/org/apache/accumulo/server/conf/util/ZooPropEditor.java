@@ -57,6 +57,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class ZooPropEditor implements KeywordExecutable {
 
@@ -80,6 +82,8 @@ public class ZooPropEditor implements KeywordExecutable {
         + " Prefer using the shell if it is available";
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "System.exit() used to set command error status on exit")
   @Override
   public void execute(String[] args) throws Exception {
     ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
@@ -107,6 +111,10 @@ public class ZooPropEditor implements KeywordExecutable {
         default:
           throw new IllegalArgumentException("Invalid operation requested");
       }
+    } catch (Exception ex) {
+      LOG.error("{} command failed", keyword(), ex);
+      // hard fail - set exit status
+      System.exit(-1);
     }
   }
 
@@ -118,9 +126,27 @@ public class ZooPropEditor implements KeywordExecutable {
       throw new IllegalArgumentException(
           "Invalid set property format. Requires name=value, received " + opts.setOpt);
     }
-    String[] tokens = opts.setOpt.split("=");
-    Map<String,String> propValue = Map.of(tokens[0].trim(), tokens[1].trim());
-    PropUtil.setProperties(context, propKey, propValue);
+    String targetName = "'invalid'";
+    try {
+      targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+
+      Map<String,String> prev = context.getPropStore().get(propKey).asMap();
+      String[] tokens = opts.setOpt.split("=");
+      String propName = tokens[0].trim();
+      String propVal = tokens[1].trim();
+      Map<String,String> propMap = Map.of(propName, propVal);
+      PropUtil.setProperties(context, propKey, propMap);
+
+      if (prev.containsKey(propName)) {
+        LOG.info("{}: modified {} from {} to {}", targetName, propName, prev.get(propName),
+            propVal);
+      } else {
+        LOG.info("{}: set {}={}", targetName, propName, propVal);
+      }
+    } catch (Exception ex) {
+      throw new IllegalStateException(
+          "Failed to set property for " + targetName + " (id: " + propKey.getId() + ")", ex);
+    }
   }
 
   private void deleteProperty(final ServerContext context, final PropStoreKey<?> propKey,
@@ -137,6 +163,8 @@ public class ZooPropEditor implements KeywordExecutable {
       return;
     }
     PropUtil.removeProperties(context, propKey, List.of(p));
+    String targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+    LOG.info("{}: deleted {}", targetName, p);
   }
 
   private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,

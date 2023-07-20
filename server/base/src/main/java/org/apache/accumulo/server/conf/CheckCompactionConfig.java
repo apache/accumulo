@@ -123,7 +123,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
       initParams.getRequestedExternalExecutors()
           .forEach(execId -> log.info(
-              "Compaction service '{}' requested with external execution queue '{}'", serviceId,
+              "Compaction service '{}' requested with external execution group '{}'", serviceId,
               execId));
 
     }

@@ -48,7 +48,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@link #METRICS_LOW_MEMORY}</td>
- * <td>Guage</td>
+ * <td>Gauge</td>
  * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
  * <tr>
@@ -56,6 +56,48 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
  * <td>LongTaskTimer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUES}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED}</td>
+ * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
@@ -240,27 +282,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>entriesInMem</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_MEM_ENTRIES}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>activeMajCs</td>
- * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_RUNNING}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
- * <td>LongTaskTimer</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>queuedMajCs</td>
- * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_QUEUED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -618,6 +639,17 @@ public interface MetricsProducer {
   String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUES = METRICS_COMPACTOR_PREFIX + "queue.count";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH = METRICS_COMPACTOR_PREFIX + "queue.length";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED =
+      METRICS_COMPACTOR_PREFIX + "queue.jobs.dequeued";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED =
+      METRICS_COMPACTOR_PREFIX + "queue.jobs.queued";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED =
+      METRICS_COMPACTOR_PREFIX + "queue.jobs.rejected";
+
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY =
+      METRICS_COMPACTOR_PREFIX + "queue.jobs.priority";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";
@@ -666,9 +698,6 @@ public interface MetricsProducer {
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
   String METRICS_TSERVER_MEM_ENTRIES = METRICS_TSERVER_PREFIX + "entries.mem";
-  String METRICS_TSERVER_MAJC_QUEUED = METRICS_TSERVER_PREFIX + "majc.queued";
-  String METRICS_TSERVER_MAJC_RUNNING = METRICS_TSERVER_PREFIX + "majc.running";
-  String METRICS_TSERVER_MAJC_STUCK = METRICS_TSERVER_PREFIX + "majc.stuck";
   String METRICS_TSERVER_MINC_QUEUED = METRICS_TSERVER_PREFIX + "minc.queued";
   String METRICS_TSERVER_MINC_RUNNING = METRICS_TSERVER_PREFIX + "minc.running";
   String METRICS_TSERVER_MINC_TOTAL = METRICS_TSERVER_PREFIX + "minc.total";

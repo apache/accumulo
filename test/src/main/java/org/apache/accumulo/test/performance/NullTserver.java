@@ -30,7 +30,6 @@ import java.util.Map;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -62,15 +61,11 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -118,10 +113,6 @@ public class NullTserver {
     }
 
     @Override
-    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-        Map<TKeyExtent,Map<String,DataFileInfo>> fileMap, boolean setTime) {}
-
-    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override
@@ -135,12 +126,6 @@ public class NullTserver {
     @Override
     public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout) {
       return null;
-    }
-
-    @Override
-    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
-        ByteBuffer splitPoint) {
-
     }
 
     @Override
@@ -201,16 +186,7 @@ public class NullTserver {
     }
 
     @Override
-    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {}
-
-    @Override
     public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {
-
-    }
-
-    @Override
-    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-        ByteBuffer startRow, ByteBuffer endRow) {
 
     }
 
@@ -218,11 +194,6 @@ public class NullTserver {
     public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
         ByteBuffer startRow, ByteBuffer endRow) {
 
-    }
-
-    @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) {
-      return new ArrayList<>();
     }
 
     @Override
@@ -274,28 +245,6 @@ public class NullTserver {
     public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) {
       return null;
     }
-
-    @Override
-    public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
-        TCredentials credentials) throws ThriftSecurityException, TException {
-      return null;
-    }
-
-    @Override
-    public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-        String queueName, long priority, String compactor, String externalCompactionId)
-        throws ThriftSecurityException, TException {
-      return null;
-    }
-
-    @Override
-    public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-        throws ThriftSecurityException, TException {}
-
-    @Override
-    public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent) throws TException {}
 
     @Override
     public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,

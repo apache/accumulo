@@ -45,14 +45,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
@@ -176,41 +174,6 @@ public class LiveTServerSet implements Watcher {
       try {
         client.flush(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             tableId.canonical(), startRow == null ? null : ByteBuffer.wrap(startRow),
-            endRow == null ? null : ByteBuffer.wrap(endRow));
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public void chop(ServiceLock lock, KeyExtent extent) throws TException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.chop(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public void splitTablet(KeyExtent extent, Text splitPoint)
-        throws TException, ThriftSecurityException, NotServingTabletException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(),
-            ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public void compact(ServiceLock lock, String tableId, byte[] startRow, byte[] endRow)
-        throws TException {
-      TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
-      try {
-        client.compact(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
-            startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
         ThriftUtil.returnClient(client, context);

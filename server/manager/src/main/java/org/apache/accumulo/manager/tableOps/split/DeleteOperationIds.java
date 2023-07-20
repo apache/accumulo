@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -65,6 +66,8 @@ public class DeleteOperationIds extends ManagerRepo {
             "Failed to delete operation ids " + splitInfo.getOriginal() + " " + results.values()
                 .stream().map(Ample.ConditionalResult::getStatus).collect(Collectors.toSet()));
       }
+
+      TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits());
     }
 
     return null;

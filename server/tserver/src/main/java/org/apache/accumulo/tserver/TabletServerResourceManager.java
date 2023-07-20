@@ -94,8 +94,6 @@ public class TabletServerResourceManager {
   private static final Logger log = LoggerFactory.getLogger(TabletServerResourceManager.class);
 
   private final ThreadPoolExecutor minorCompactionThreadPool;
-  private final ThreadPoolExecutor splitThreadPool;
-  private final ThreadPoolExecutor defaultSplitThreadPool;
   private final ThreadPoolExecutor defaultMigrationPool;
   private final ThreadPoolExecutor migrationPool;
   private final ThreadPoolExecutor assignmentPool;
@@ -303,12 +301,6 @@ public class TabletServerResourceManager {
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", minorCompactionThreadPool);
-
-    splitThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, 1, 1, TimeUnit.SECONDS,
-        "splitter", true);
-
-    defaultSplitThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, 1, 60,
-        TimeUnit.SECONDS, "md splitter", true);
 
     defaultMigrationPool = ThreadPools.getServerThreadPools().createThreadPool(0, 1, 60,
         TimeUnit.SECONDS, "metadata tablet migration", true);
@@ -658,11 +650,6 @@ public class TabletServerResourceManager {
     }
 
     // BEGIN methods that Tablets call to manage their set of open data files
-
-    public void importedDataFiles() {
-      lastReportedCommitTime = System.currentTimeMillis();
-    }
-
     public synchronized ScanFileManager newScanFileManager(ScanDispatch scanDispatch) {
       if (closed) {
         throw new IllegalStateException("closed");
@@ -740,22 +727,6 @@ public class TabletServerResourceManager {
           closed = true;
         }
       }
-    }
-
-    public TabletServerResourceManager getTabletServerResourceManager() {
-      return TabletServerResourceManager.this;
-    }
-  }
-
-  public void executeSplit(KeyExtent tablet, Runnable splitTask) {
-    if (tablet.isMeta()) {
-      if (tablet.isRootTablet()) {
-        log.warn("Saw request to split root tablet, ignoring");
-        return;
-      }
-      defaultSplitThreadPool.execute(splitTask);
-    } else {
-      splitThreadPool.execute(splitTask);
     }
   }
 

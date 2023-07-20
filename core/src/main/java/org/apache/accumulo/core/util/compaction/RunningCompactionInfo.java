@@ -54,7 +54,7 @@ public class RunningCompactionInfo {
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
     server = ec.getCompactor();
-    queueName = ec.getQueueName();
+    queueName = ec.getGroupName();
     ecid = job.getExternalCompactionId();
     kind = job.getKind().name();
     tableId = KeyExtent.fromThrift(job.getExtent()).tableId().canonical();

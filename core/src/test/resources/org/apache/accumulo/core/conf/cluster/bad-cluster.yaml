@@ -29,10 +29,11 @@ gc:
   - localhost
 
 tserver:
-  - localhost1
-  - localhost2
-  - localhost3
-  - localhost4
+  default:
+    - localhost1
+    - localhost2
+    - localhost3
+    - localhost4
 
 # The following section name is not valid and should cause an error.
 vserver:

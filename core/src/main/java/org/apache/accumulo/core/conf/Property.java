@@ -373,6 +373,9 @@ public enum Property {
       "1.10.0"),
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
+
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      "10000", PropertyType.COUNT, "The max size of the priority queue", "4.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -564,6 +567,7 @@ public enum Property {
       "2.1.0"),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server", "1.3.5"),
+  // ELASTICITY_TODO look into removing this prop, may need to deprecate in 3.0
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction.", "1.3.5"),
   TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
@@ -581,7 +585,7 @@ public enum Property {
       "The maximum number of files a compaction will open", "2.1.0"),
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
-      "[{'name':'all','type':'external','queue':'accumulo_meta'}]".replaceAll("'", "\""),
+      "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
       "2.1.0"),
@@ -598,7 +602,7 @@ public enum Property {
       "The maximum number of files a compaction will open", "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
-      "[{'name':'all','type':'external','queue':'accumulo_meta'}]".replaceAll("'", "\""),
+      "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
       "2.1.0"),
@@ -615,7 +619,7 @@ public enum Property {
       "The maximum number of files a compaction will open", "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
-      ("[{'name':'small','type':'external','maxSize':'128M','queue':'user-small'}, {'name':'large','type':'external','queue':'user-large'}]")
+      ("[{'name':'small','type':'external','maxSize':'128M','group':'user_small'}, {'name':'large','type':'external','group':'user_large'}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
@@ -719,6 +723,7 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
+  // ELASTICITY_TODO reconsider this prop and its impl now that compactions never happen on tservers
   TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
       PropertyType.LAST_LOCATION_MODE,
       "Describes how the system will record the 'last' location for tablets, which can be used for"
@@ -735,7 +740,7 @@ public enum Property {
       "4.0.0"),
   TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
-          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TABLE_ASSIGNMENT_GROUP)",
+          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer)",
       "4.0.0"),
 
   // accumulo garbage collector properties
@@ -1107,8 +1112,8 @@ public enum Property {
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
-  COMPACTOR_QUEUE_NAME("compactor.queue", Constants.DEFAULT_RESOURCE_GROUP_NAME,
-      PropertyType.STRING, "The queue for which this Compactor will perform compactions", "3.0.0"),
+  COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
+      PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,

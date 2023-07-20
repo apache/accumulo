@@ -49,24 +49,7 @@ service TabletManagementClientService {
     7:i64 requestTime
   )
 
-  void splitTablet(
-    4:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.TKeyExtent extent
-    3:binary splitPoint
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:tabletserver.NotServingTabletException nste
-  )
-
   oneway void flushTablet(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string lock
-    4:data.TKeyExtent extent
-  )
-
-  oneway void chop(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
