@@ -2073,8 +2073,8 @@ public class Tablet extends TabletBase {
 
       return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
           newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
-          tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
-          lastLocation, flushId);
+          tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
+          flushId);
     }
 
   }
