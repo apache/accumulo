@@ -36,13 +36,11 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
@@ -127,14 +125,11 @@ public class ListTabletsCommandTest {
     CommandLine cli = parser.parse(opts, args);
 
     TabletInformation[] tabletInformation = new TabletInformation[3];
-    tabletInformation[0] = new TabletInformation(tableName,
-        new KeyExtent(TableId.of(tableId.canonical()), new Text("d"), null), 1, 0, 1154, 8104,
+    tabletInformation[0] = new TabletInformation(tableName, tableId, "d", null, 1, 0, 1154, 8104,
         "UNASSIGNED", "None", "t-dir1", TabletHostingGoal.ONDEMAND);
-    tabletInformation[1] = new TabletInformation(tableName,
-        new KeyExtent(TableId.of(tableId.canonical()), new Text("k"), new Text("e")), 2, 1, 1243,
-        13204, "HOSTED", "localhost:1234", "t-dir2", TabletHostingGoal.ALWAYS);
-    tabletInformation[2] = new TabletInformation(tableName,
-        new KeyExtent(TableId.of(tableId.canonical()), null, new Text("l")), 3, 2, 3223, 81204,
+    tabletInformation[1] = new TabletInformation(tableName, tableId, "k", "e", 2, 1, 1243, 13204,
+        "HOSTED", "localhost:1234", "t-dir2", TabletHostingGoal.ALWAYS);
+    tabletInformation[2] = new TabletInformation(tableName, tableId, null, "l", 3, 2, 3223, 81204,
         "UNASSIGNED", "None", "t-dir3", TabletHostingGoal.NEVER);
 
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();

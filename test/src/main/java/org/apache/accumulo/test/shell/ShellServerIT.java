@@ -48,7 +48,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedSet;
 import java.util.regex.Pattern;
 
@@ -2330,22 +2329,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private void insertData(String table, int numEntries, int rowLen) throws IOException {
     for (var i = 0; i < numEntries; i++) {
-      String row = getData(rowLen);
+      String alphabet = "abcdefghijklmnopqrstuvwxyz";
+      String row = String.valueOf(alphabet.charAt(i % 26)) + i;
       var cf = "cf" + i;
       var cq = "cq" + i;
       var data = "asdfqwerty";
       ts.exec("insert -t " + table + " " + row + " " + cf + " " + cq + " " + data, true);
     }
-  }
-
-  public String getData(int len) {
-    String alphabet = "abcdefghijklmnopqrstuvwxyz";
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < len; i++) {
-      char c = alphabet.charAt(new Random().nextInt(alphabet.length()));
-      sb.append(c);
-    }
-    return sb.toString();
   }
 
   private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)

@@ -2211,8 +2211,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformation(tableName, tm.getExtent(), tm.getFilesMap().size(),
-            tm.getLogs().size(), numEntries[0], size[0],
+        .map(tm -> new TabletInformation(tableName, tm.getExtent().tableId(),
+            tm.getExtent().endRow() == null ? "+INF" : tm.getExtent().endRow().toString(),
+            tm.getExtent().prevEndRow() == null ? "-INF" : tm.getExtent().prevEndRow().toString(),
+            tm.getFilesMap().size(), tm.getLogs().size(), numEntries[0], size[0],
             tm.getTabletState(liveTserverSet).toString(),
             tm.getLocation() == null ? "None"
                 : tm.getLocation().getType() + ":" + tm.getLocation().getHostPort(),

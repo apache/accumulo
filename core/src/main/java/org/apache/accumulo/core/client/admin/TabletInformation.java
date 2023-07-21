@@ -21,13 +21,13 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.NumUtil;
-import org.apache.hadoop.io.Text;
 
 public class TabletInformation {
 
   private final String tableName;
+  private final String endRow;
+  private final String prevEndRow;
   private final int numFiles;
   private final int numWalLogs;
   private final long numEntries;
@@ -36,15 +36,15 @@ public class TabletInformation {
   private final String location;
   private final String dir;
   private final TableId tableId;
-  private final KeyExtent tablet;
   private final TabletHostingGoal goal;
 
-  public TabletInformation(String tableName, KeyExtent tablet, int numFiles, int numWalLogs,
-      long numEntries, long size, String status, String location, String dir,
-      TabletHostingGoal goal) {
+  public TabletInformation(String tableName, TableId tableId, String endRow, String prevEndRow,
+      int numFiles, int numWalLogs, long numEntries, long size, String status, String location,
+      String dir, TabletHostingGoal goal) {
     this.tableName = tableName;
-    this.tableId = tablet.tableId();
-    this.tablet = tablet;
+    this.tableId = tableId;
+    this.endRow = endRow;
+    this.prevEndRow = prevEndRow;
     this.numFiles = numFiles;
     this.numWalLogs = numWalLogs;
     this.numEntries = numEntries;
@@ -56,29 +56,15 @@ public class TabletInformation {
   }
 
   public String getEndRow() {
-    Text t = this.tablet.endRow();
-    if (t == null) {
-      return "+INF";
-    } else {
-      return t.toString();
-    }
+    return Objects.requireNonNullElse(this.endRow, "+INF");
   }
 
   public String getStartRow() {
-    Text t = tablet.prevEndRow();
-    if (t == null) {
-      return "-INF";
-    } else {
-      return t.toString();
-    }
+    return Objects.requireNonNullElse(this.prevEndRow, "-INF");
   }
 
   public String getTableId() {
-    return this.tablet.tableId().canonical();
-  }
-
-  public KeyExtent getExtent() {
-    return this.tablet;
+    return tableId.canonical();
   }
 
   public String getTablet() {
@@ -140,7 +126,7 @@ public class TabletInformation {
     return "TabletInformation{tableName='" + tableName + '\'' + ", numFiles=" + numFiles
         + ", numWalLogs=" + numWalLogs + ", numEntries=" + numEntries + ", size=" + size
         + ", status='" + status + '\'' + ", location='" + location + '\'' + ", dir='" + dir + '\''
-        + ", tableId=" + tableId + ", tablet=" + tablet + ", goal=" + goal + '}';
+        + ", tableId=" + tableId + ", tablet=" + getTablet() + ", goal=" + goal + '}';
   }
 
   public static final String header =
@@ -159,15 +145,15 @@ public class TabletInformation {
     TabletInformation that = (TabletInformation) o;
     return numFiles == that.numFiles && numWalLogs == that.numWalLogs
         && numEntries == that.numEntries && size == that.size
-        && Objects.equals(tableName, that.tableName) && Objects.equals(status, that.status)
+        && Objects.equals(tableName, that.tableName) && Objects.equals(endRow, that.endRow)
+        && Objects.equals(prevEndRow, that.prevEndRow) && Objects.equals(status, that.status)
         && Objects.equals(location, that.location) && Objects.equals(dir, that.dir)
-        && Objects.equals(tableId, that.tableId) && Objects.equals(tablet, that.tablet)
-        && goal == that.goal;
+        && Objects.equals(tableId, that.tableId) && goal == that.goal;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(tableName, numFiles, numWalLogs, numEntries, size, status, location, dir,
-        tableId, tablet, goal);
+    return Objects.hash(tableName, endRow, prevEndRow, numFiles, numWalLogs, numEntries, size,
+        status, location, dir, tableId, goal);
   }
 }
