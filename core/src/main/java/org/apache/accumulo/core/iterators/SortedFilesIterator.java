@@ -38,12 +38,12 @@ public class SortedFilesIterator extends WrappingIterator {
 
   @Override
   public Value getTopValue() {
-    if (sortedValue == null) {
+    if (SELECTED_COLUMN.hasColumns(getTopKey())) {
       Value unsortedValue = super.getTopValue();
-      SelectedFiles selectedFiles = SelectedFiles.from(new String(unsortedValue.get()));
-      sortedValue = new Value(selectedFiles.getMetadataValue().getBytes(UTF_8));
+      SelectedFiles selectedFiles = SelectedFiles.from(new String(unsortedValue.get(), UTF_8));
+      return new Value(selectedFiles.getMetadataValue().getBytes(UTF_8));
     }
-    return sortedValue;
+    return super.getTopValue();
   }
 
   @Override
