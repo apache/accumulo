@@ -19,12 +19,8 @@
 package org.apache.accumulo.core.iterators;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 
-import java.io.IOException;
-import java.util.Collection;
-
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 
@@ -34,11 +30,10 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
  */
 public class SortedFilesIterator extends WrappingIterator {
 
-  private Value sortedValue = null;
-
   @Override
   public Value getTopValue() {
-    if (SELECTED_COLUMN.hasColumns(getTopKey())) {
+    // only re-sort the value if the current top key has the expected column
+    if (SELECTED_COLUMN.hasColumns(super.getTopKey())) {
       Value unsortedValue = super.getTopValue();
       SelectedFiles selectedFiles = SelectedFiles.from(new String(unsortedValue.get(), UTF_8));
       return new Value(selectedFiles.getMetadataValue().getBytes(UTF_8));
@@ -46,16 +41,4 @@ public class SortedFilesIterator extends WrappingIterator {
     return super.getTopValue();
   }
 
-  @Override
-  public void next() throws IOException {
-    super.next();
-    sortedValue = null;
-  }
-
-  @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    super.seek(range, columnFamilies, inclusive);
-    sortedValue = null;
-  }
 }

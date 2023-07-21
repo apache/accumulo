@@ -478,20 +478,24 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(newJson, actualMetadataValue,
           "Value should be equal to the new json we manually wrote above");
 
-      // submit a mutation with the condition that the selected files match what was originally
-      // written
       TabletMetadata tm1 =
           TabletMetadata.builder(e1).putSelectedFiles(selectedFiles).build(SELECTED);
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, SELECTED).deleteFile(stf1)
+      StoredTabletFile stf4 = new StoredTabletFile(pathPrefix + "F0000073.rf");
+      // submit a mutation with the condition that the selected files match what was originally
+      // written
+      DataFileValue dfv = new DataFileValue(100, 100);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, SELECTED).putFile(stf4, dfv)
           .submit(tm -> false);
 
       mutationStatus = ctmi.process().get(e1).getStatus();
 
       // with a SortedFilesIterator attached to the Condition for SELECTED, the metadata should be
       // re-ordered and once again match what was originally written meaning the conditional
-      // mutation should have been accepted
+      // mutation should have been accepted and the file added should be present
       assertEquals(Status.ACCEPTED, mutationStatus);
+      assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles(),
+          "Expected to see the file that was added by the mutation");
     }
   }
 
