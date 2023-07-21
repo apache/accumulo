@@ -434,7 +434,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         return 0;
       }
 
-      Path bulkDir = new Path(tctx.tmpDir + "/" + "bulkimport_" + nextLongAbs(random));
+      Path bulkDir = new Path(tctx.tmpDir + "/bulkimport_" + nextLongAbs(random));
 
       List<Key> keys = mutations.stream().flatMap(ScanConsistencyIT::toKeys).sorted()
           .collect(Collectors.toList());
