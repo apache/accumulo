@@ -572,36 +572,19 @@ public enum Property {
       "Time a tablet server will sleep between checking which tablets need compaction.", "1.3.5"),
   TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services.", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
+  TSERV_COMPACTION_SERVICE_SYSTEM_PLANNER("tserver.compaction.major.service.system.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
-      PropertyType.BYTES,
+      "Compaction planner for system tablets service", "2.1.0"),
+  TSERV_COMPACTION_SERVICE_SYSTEM_RATE_LIMIT("tserver.compaction.major.service.system.rate.limit",
+      "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions in this compaction service, or 0B for unlimited.",
       "2.1.0"),
-  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
-      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
+  TSERV_COMPACTION_SERVICE_SYSTEM_MAX_OPEN(
+      "tserver.compaction.major.service.system.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
-      "tserver.compaction.major.service.root.planner.opts.executors",
-      "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
-      PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
-      "2.1.0"),
-  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
-      PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
-      "2.1.0"),
-  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
-      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
-      "tserver.compaction.major.service.meta.planner.opts.executors",
+  TSERV_COMPACTION_SERVICE_SYSTEM_EXECUTORS(
+      "tserver.compaction.major.service.system.planner.opts.executors",
       "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",

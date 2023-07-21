@@ -50,7 +50,7 @@ class InitialConfiguration {
     this.siteConf = siteConf;
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "system");
 
     initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
     initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
@@ -89,7 +89,7 @@ class InitialConfiguration {
 
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "system");
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name

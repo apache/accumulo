@@ -168,15 +168,10 @@ public class MiniAccumuloConfigImpl {
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
-      mergeProp(Property.TSERV_COMPACTION_SERVICE_ROOT_PLANNER.getKey(),
-          Property.TSERV_COMPACTION_SERVICE_ROOT_PLANNER.getDefaultValue());
-      mergeProp(Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getKey(),
-          Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getDefaultValue());
-
-      mergeProp(Property.TSERV_COMPACTION_SERVICE_META_PLANNER.getKey(),
-          Property.TSERV_COMPACTION_SERVICE_META_PLANNER.getDefaultValue());
-      mergeProp(Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS.getKey(),
-          Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS.getDefaultValue());
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_SYSTEM_PLANNER.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_SYSTEM_PLANNER.getDefaultValue());
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_SYSTEM_EXECUTORS.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_SYSTEM_EXECUTORS.getDefaultValue());
 
       mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
