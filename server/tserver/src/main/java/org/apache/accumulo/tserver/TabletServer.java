@@ -231,6 +231,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private DistributedWorkQueue bulkFailedCopyQ;
 
   private String lockID;
+  private long lockSessionId = -1;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
 
@@ -670,6 +671,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID()
               .serialize(getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/");
+          lockSessionId = tabletServerLock.getSessionId();
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -927,9 +929,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (address == null) {
       return null;
     }
+    if (lockSessionId == -1) {
+      return null;
+    }
 
     try {
-      return new TServerInstance(address, tabletServerLock.getSessionId());
+      return new TServerInstance(address, lockSessionId);
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
