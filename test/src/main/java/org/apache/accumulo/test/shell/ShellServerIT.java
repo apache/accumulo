@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.regex.Pattern;
 
@@ -2257,6 +2258,94 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f3");
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+  }
+
+  // This test serves to verify the listtablets command as well as the getTabletInformation api,
+  // which is used by listtablets.
+  @Test
+  public void testListTablets() throws IOException, InterruptedException {
+
+    final var tables = getUniqueNames(2);
+    final String table1 = tables[0];
+    final String table2 = tables[1];
+
+    ts.exec("createtable " + table1, true);
+    ts.exec("addsplits g n u", true);
+    ts.exec("setgoal -g always -r g", true);
+    ts.exec("setgoal -g always -r u", true);
+    insertData(table1, 1000, 3);
+    ts.exec("compact -w -t " + table1);
+    ts.exec("scan -t " + table1);
+
+    ts.exec("createtable " + table2, true);
+    ts.exec("addsplits f m t", true);
+    ts.exec("setgoal -g always -r n", true);
+    insertData(table2, 500, 5);
+    ts.exec("compact -t " + table2);
+    ts.exec("scan -t " + table1);
+    ts.exec("setgoal -r g -t " + table2 + " -g NEVER");
+
+    // give tablet time to become unassigned
+    for (var i = 0; i < 15; i++) {
+      Thread.sleep(1000);
+      String goal = ts.exec("listtablets -t " + table2, true, "m                    NEVER");
+      if (goal.contains("UNASSIGNED None")) {
+        break;
+      }
+    }
+
+    String results = ts.exec("listtablets -np -p ShellServerIT_testListTablets.", true);
+    assertTrue(results.contains("TABLE: ShellServerIT_testListTablets0"));
+    assertTrue(results.contains("TABLE: ShellServerIT_testListTablets1"));
+    assertTrue(results.contains("1     -INF                 g                    ALWAYS"));
+    assertTrue(results.contains("1     g                    n                    ONDEMAND"));
+    assertTrue(results.contains("1     n                    u                    ALWAYS"));
+    assertTrue(results.contains("1     u                    +INF                 ONDEMAND"));
+    assertTrue(results.contains("2     -INF                 f                    ONDEMAND"));
+    assertTrue(results.contains("2     f                    m                    NEVER"));
+    assertTrue(results.contains("2     m                    t                    ALWAYS"));
+    assertTrue(results.contains("2     t                    +INF                 ONDEMAND"));
+
+    // verify the sum of the tablets sizes, number of entries, and dir name match the data in a
+    // metadata scan
+    String metadata = ts.exec("scan -np -t accumulo.metadata -b 1 -c loc,file");
+    for (String line : metadata.split("\n")) {
+      String[] tokens = line.split("\\s+");
+      if (tokens[1].startsWith("loc")) {
+        String loc = tokens[3];
+        assertTrue(results.contains(loc));
+      }
+      if (tokens[1].startsWith("file")) {
+        String[] parts = tokens[1].split("/");
+        String dir = parts[parts.length - 2];
+        assertTrue(results.contains(dir));
+        String[] sizes = tokens[3].split(",");
+        String size = String.format("%,d", Integer.parseInt(sizes[0]));
+        String entries = String.format("%,d", Integer.parseInt(sizes[1]));
+        assertTrue(results.contains(size));
+        assertTrue(results.contains(entries));
+      }
+    }
+  }
+
+  private void insertData(String table, int numEntries, int rowLen) throws IOException {
+    for (var i = 0; i < numEntries; i++) {
+      String row = getData(rowLen);
+      var cf = "cf" + i;
+      var cq = "cq" + i;
+      var data = "asdfqwerty";
+      ts.exec("insert -t " + table + " " + row + " " + cf + " " + cq + " " + data, true);
+    }
+  }
+
+  public String getData(int len) {
+    String alphabet = "abcdefghijklmnopqrstuvwxyz";
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < len; i++) {
+      char c = alphabet.charAt(new Random().nextInt(alphabet.length()));
+      sb.append(c);
+    }
+    return sb.toString();
   }
 
   private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)

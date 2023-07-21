@@ -1034,4 +1034,9 @@ public interface TableOperations {
     throw new UnsupportedOperationException();
   }
 
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
 }
