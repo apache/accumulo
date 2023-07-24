@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
@@ -26,20 +29,32 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -380,6 +395,129 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
     assertNull(context.getAmple().readTablet(e1).getSelectedFiles());
+  }
+
+  /**
+   * Verifies that if selected files have been manually changed in the metadata, the files will be
+   * re-ordered before being read
+   */
+  @Test
+  public void testSelectedFilesReordering() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      String pathPrefix = "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/";
+      StoredTabletFile stf1 = new StoredTabletFile(pathPrefix + "F0000070.rf");
+      StoredTabletFile stf2 = new StoredTabletFile(pathPrefix + "F0000071.rf");
+      StoredTabletFile stf3 = new StoredTabletFile(pathPrefix + "F0000072.rf");
+
+      final Set<StoredTabletFile> storedTabletFiles = Set.of(stf1, stf2, stf3);
+      final boolean initiallySelectedAll = true;
+      final long fateTxId = 2L;
+      final SelectedFiles selectedFiles =
+          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateTxId);
+
+      ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+
+      // write the SelectedFiles to the keyextent
+      ctmi.mutateTablet(e1).requireAbsentOperation().putSelectedFiles(selectedFiles)
+          .submit(tm -> false);
+
+      // verify we can read the selected files
+      Status mutationStatus = ctmi.process().get(e1).getStatus();
+      assertEquals(Status.ACCEPTED, mutationStatus, "Failed to put selected files to tablet");
+      assertEquals(selectedFiles, context.getAmple().readTablet(e1).getSelectedFiles(),
+          "Selected files should match those that were written");
+
+      final Text row = e1.toMetaRow();
+      final Text selectedColumnFamily = SELECTED_COLUMN.getColumnFamily();
+      final Text selectedColumnQualifier = SELECTED_COLUMN.getColumnQualifier();
+
+      Supplier<String> selectedMetadataValue = () -> {
+        try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+          scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
+          scanner.setRange(new Range(row));
+
+          return scanner.stream().map(Map.Entry::getValue).map(Value::get)
+              .map(entry -> new String(entry, UTF_8)).collect(onlyElement());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      };
+
+      String actualMetadataValue = selectedMetadataValue.get();
+      final String expectedMetadata = selectedFiles.getMetadataValue();
+      assertEquals(expectedMetadata, actualMetadataValue,
+          "Value should be equal to metadata of SelectedFiles object that was written");
+
+      // get the string value of the paths
+      List<String> filesPathList = storedTabletFiles.stream().map(StoredTabletFile::toString)
+          .sorted().collect(Collectors.toList());
+
+      // verify we have the format of the json correct
+      String newJson = createSelectedFilesJson(fateTxId, initiallySelectedAll, filesPathList);
+      assertEquals(actualMetadataValue, newJson,
+          "Test json should be identical to actual metadata at this point");
+
+      // reverse the order of the files and create a new json
+      Collections.reverse(filesPathList);
+      newJson = createSelectedFilesJson(fateTxId, initiallySelectedAll, filesPathList);
+      assertNotEquals(actualMetadataValue, newJson,
+          "Test json should have reverse file order of actual metadata");
+
+      // write the json with reverse file order
+      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        Mutation mutation = new Mutation(row);
+        mutation.put(selectedColumnFamily, selectedColumnQualifier,
+            new Value(newJson.getBytes(UTF_8)));
+        bw.addMutation(mutation);
+      }
+
+      // verify the metadata has been changed
+      actualMetadataValue = selectedMetadataValue.get();
+      assertEquals(newJson, actualMetadataValue,
+          "Value should be equal to the new json we manually wrote above");
+
+      TabletMetadata tm1 =
+          TabletMetadata.builder(e1).putSelectedFiles(selectedFiles).build(SELECTED);
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      StoredTabletFile stf4 = new StoredTabletFile(pathPrefix + "F0000073.rf");
+      // submit a mutation with the condition that the selected files match what was originally
+      // written
+      DataFileValue dfv = new DataFileValue(100, 100);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, SELECTED).putFile(stf4, dfv)
+          .submit(tm -> false);
+
+      mutationStatus = ctmi.process().get(e1).getStatus();
+
+      // with a SortedFilesIterator attached to the Condition for SELECTED, the metadata should be
+      // re-ordered and once again match what was originally written meaning the conditional
+      // mutation should have been accepted and the file added should be present
+      assertEquals(Status.ACCEPTED, mutationStatus);
+      assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles(),
+          "Expected to see the file that was added by the mutation");
+    }
+  }
+
+  /**
+   * Creates a json suitable to create a SelectedFiles object from. The given parameters will be
+   * inserted into the returned json String. Example of returned json String:
+   *
+   * <pre>
+   * {
+   *   "txid": "FATE[123456]",
+   *   "selAll": true,
+   *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
+   * }
+   * </pre>
+   */
+  public static String createSelectedFilesJson(Long txid, boolean selAll,
+      Collection<String> paths) {
+    String filesJsonArray =
+        paths.stream().map(path -> "'" + path + "'").collect(Collectors.joining(","));
+    String formattedTxid = FateTxId.formatTid(Long.parseLong(Long.toString(txid), 16));
+    return ("{'txid':'" + formattedTxid + "','selAll':" + selAll + ",'files':[" + filesJsonArray
+        + "]}").replace('\'', '\"');
   }
 
   @Test

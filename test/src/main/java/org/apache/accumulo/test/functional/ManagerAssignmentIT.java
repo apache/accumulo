@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -459,7 +460,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+          SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.tableOperations().create(tableName);
 
@@ -477,25 +479,22 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       final CountDownLatch latch = new CountDownLatch(10);
 
-      Runnable task = new Runnable() {
-        @Override
-        public void run() {
-          while (true) {
-            try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
-              // TODO maybe do not close scanner? The following limit was placed on the stream to
-              // avoid reading all the data possibly leaving a scan session active on the tserver
-              int count = 0;
-              for (Entry<Key,Value> e : scanner) {
-                count++;
-                // let the test thread know that this thread has read some data
-                if (count == 1_000) {
-                  latch.countDown();
-                }
+      Runnable task = () -> {
+        while (true) {
+          try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
+            // TODO maybe do not close scanner? The following limit was placed on the stream to
+            // avoid reading all the data possibly leaving a scan session active on the tserver
+            int count = 0;
+            for (Entry<Key,Value> e : scanner) {
+              count++;
+              // let the test thread know that this thread has read some data
+              if (count == 1_000) {
+                latch.countDown();
               }
-            } catch (Exception e) {
-              e.printStackTrace();
-              break;
             }
+          } catch (Exception e) {
+            e.printStackTrace();
+            break;
           }
         }
       };
@@ -514,29 +513,28 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       Locations locs = client.tableOperations().locate(tableName,
           Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
-          .forEach(location -> {
-            HostAndPort address = HostAndPort.fromString(location);
-            String addressWithSession = address.toString();
-            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-                + Constants.ZTSERVERS + "/" + address.toString());
-            long sessionId =
-                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-            if (sessionId != 0) {
-              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
-            }
+      locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
+        HostAndPort address = HostAndPort.fromString(location);
+        String addressWithSession = address.toString();
+        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+            + Constants.ZTSERVERS + "/" + address);
+        long sessionId =
+            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+        if (sessionId != 0) {
+          addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
+        }
 
-            final String finalAddress = addressWithSession;
-            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
-            try {
-              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
-            } catch (AccumuloException | AccumuloSecurityException e) {
-              fail("Error shutting down TabletServer", e);
-            }
+        final String finalAddress = addressWithSession;
+        System.out.println("Attempting to shutdown TabletServer at: " + address);
+        try {
+          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          fail("Error shutting down TabletServer", e);
+        }
 
-          });
+      });
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 
@@ -552,7 +550,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+          SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.instanceOperations().waitForBalance();
 
@@ -562,29 +561,28 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       Locations locs = client.tableOperations().locate(RootTable.NAME,
           Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
-          .forEach(location -> {
-            HostAndPort address = HostAndPort.fromString(location);
-            String addressWithSession = address.toString();
-            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-                + Constants.ZTSERVERS + "/" + address.toString());
-            long sessionId =
-                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-            if (sessionId != 0) {
-              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
-            }
+      locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
+        HostAndPort address = HostAndPort.fromString(location);
+        String addressWithSession = address.toString();
+        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+            + Constants.ZTSERVERS + "/" + address);
+        long sessionId =
+            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+        if (sessionId != 0) {
+          addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
+        }
 
-            final String finalAddress = addressWithSession;
-            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
-            try {
-              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
-            } catch (AccumuloException | AccumuloSecurityException e) {
-              fail("Error shutting down TabletServer", e);
-            }
+        final String finalAddress = addressWithSession;
+        System.out.println("Attempting to shutdown TabletServer at: " + address);
+        try {
+          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          fail("Error shutting down TabletServer", e);
+        }
 
-          });
+      });
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 

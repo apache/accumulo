@@ -323,16 +323,17 @@ public class Tablet extends TabletBase {
 
     ScanDataSource dataSource = createDataSource(scanParams, false, iFlag);
 
+    boolean sawException = false;
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException ioe) {
-      dataSource.close(true);
-      throw ioe;
+    } catch (IOException | RuntimeException e) {
+      sawException = true;
+      throw e;
     } finally {
       // code in finally block because always want
       // to return data files, even when exception is thrown
-      dataSource.close(false);
+      dataSource.close(sawException);
     }
   }
 
@@ -1259,7 +1260,7 @@ public class Tablet extends TabletBase {
 
     return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
         newDatafile, dfv, tabletTime.getMetadataTime(maxCommittedTime),
-        tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation,
+        tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
         flushId);
   }
 

@@ -1166,7 +1166,8 @@ public class Manager extends AbstractServer
     final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
-    this.compactionJobQueues = new CompactionJobQueues();
+    this.compactionJobQueues = new CompactionJobQueues(
+        getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
