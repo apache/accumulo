@@ -98,7 +98,7 @@ public class Caches implements MetricsProducer {
     if (emitMetricsIfEnabled) {
       metricsConfigured = setupMicrometerMetrics(cacheBuilder, name.name());
     }
-    LOG.debug("Caffeine builder created for {}, metrics enabled: {}", name, metricsConfigured);
+    LOG.trace("Caffeine builder created for {}, metrics enabled: {}", name, metricsConfigured);
     return cacheBuilder;
   }
 
