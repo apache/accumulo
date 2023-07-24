@@ -406,13 +406,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
     var executorService =
         context.threadPools().createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
-      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
-      servers.forEach(s -> executorService.submit(() -> getActiveCompactions(s)));
+      List<Future<Stream<ActiveCompaction>>> futures = new ArrayList<>();
+      servers.forEach(s -> futures.add(executorService.submit(() -> getActiveCompactions(s))));
 
       List<ActiveCompaction> ret = new ArrayList<>();
-      for (Future<List<ActiveCompaction>> future : futures) {
+      for (Future<Stream<ActiveCompaction>> future : futures) {
         try {
-          ret.addAll(future.get());
+          future.get().forEach(ret::add);
         } catch (InterruptedException | ExecutionException e) {
           if (e.getCause() instanceof ThriftSecurityException) {
             ThriftSecurityException tse = (ThriftSecurityException) e.getCause();

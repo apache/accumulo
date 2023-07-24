@@ -176,7 +176,7 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
-   * @deprecated see {@link #getServers(ServerType)}
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
   @Deprecated(since = "3.1.0")
   List<String> getManagerLocations();
@@ -185,7 +185,7 @@ public interface InstanceOperations {
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
-   * @deprecated see {@link #getServers(ServerType)}
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
   @Deprecated(since = "3.1.0")
   Set<String> getScanServers();
@@ -202,7 +202,7 @@ public interface InstanceOperations {
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
-   * @deprecated see {@link #getServers(ServerType)}
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
   @Deprecated(since = "3.1.0")
   List<String> getTabletServers();
@@ -213,7 +213,7 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
-   * @deprecated see {@link #getActiveScans(Server)}
+   * @deprecated see {@link #getActiveScans(ServerId)}
    */
   @Deprecated(since = "3.1.0")
   List<ActiveScan> getActiveScans(String tserver)
@@ -241,7 +241,7 @@ public interface InstanceOperations {
    *        {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
-   * @deprecated see {@link #getActiveCompactions(Server)}
+   * @deprecated see {@link #getActiveCompactions(ServerId)}
    */
   @Deprecated(since = "3.1.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
@@ -275,7 +275,7 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @since 1.5.0
-   * @deprecated see {@link #ping(Server)}
+   * @deprecated see {@link #ping(ServerId)}
    */
   @Deprecated(since = "3.1.0")
   void ping(String tserver) throws AccumuloException;
