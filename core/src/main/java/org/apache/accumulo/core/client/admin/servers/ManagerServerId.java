@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.client.admin.servers;
 
-public class ScanServer extends Server {
+public class ManagerServerId extends ServerId<ManagerServerId> {
 
-  public ScanServer(String host, int port, String resourceGroup) {
-    super(ServerType.SCAN_SERVER, host, port, resourceGroup);
+  public ManagerServerId(String host, int port) {
+    super(ServerType.MANAGER, host, port);
   }
 
 }

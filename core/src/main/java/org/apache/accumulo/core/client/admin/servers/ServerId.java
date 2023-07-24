@@ -18,24 +18,21 @@
  */
 package org.apache.accumulo.core.client.admin.servers;
 
-import java.util.Comparator;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-public abstract class Server implements Comparator<Server>, Comparable<Server> {
+public abstract class ServerId<T extends ServerId<?>> implements Comparable<T> {
 
   private final ServerType type;
   private final String host;
   private final int port;
-  private final String resourceGroup;
 
-  protected Server(ServerType type, String host, int port, String resourceGroup) {
+  protected ServerId(ServerType type, String host, int port) {
     super();
     Preconditions.checkArgument(port > 0);
     this.type = Objects.requireNonNull(type);
     this.host = Objects.requireNonNull(host);
-    this.resourceGroup = Objects.requireNonNull(resourceGroup);
     this.port = port;
   }
 
@@ -51,34 +48,19 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
     return port;
   }
 
-  public String getResourceGroup() {
-    return resourceGroup;
-  }
-
   @Override
-  public int compare(Server first, Server second) {
-    if (first == null || second == null) {
-      throw new NullPointerException();
-    }
-    if (first == second) {
+  public int compareTo(T other) {
+    if (this == other) {
       return 0;
     }
-    int result = first.getHost().compareTo(second.getHost());
+    int result = this.getHost().compareTo(other.getHost());
     if (result == 0) {
-      result = Integer.compare(first.getPort(), second.getPort());
+      result = Integer.compare(this.getPort(), other.getPort());
       if (result == 0) {
-        result = first.getType().compareTo(second.getType());
-        if (result == 0) {
-          result = first.getResourceGroup().compareTo(second.getResourceGroup());
-        }
+        result = this.getType().compareTo(other.getType());
       }
     }
     return result;
-  }
-
-  @Override
-  public int compareTo(Server other) {
-    return compare(this, other);
   }
 
   @Override
@@ -88,28 +70,28 @@ public abstract class Server implements Comparator<Server>, Comparable<Server> {
     result = prime * result + host.hashCode();
     result = prime * result + port;
     result = prime * result + type.hashCode();
-    result = prime * result + resourceGroup.hashCode();
     return result;
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (this == other) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (other == null) {
+    if (obj == null) {
       return false;
     }
-    if (getClass() != other.getClass()) {
+    if (getClass() != obj.getClass()) {
       return false;
     }
-    return 0 == compareTo((Server) other);
+    @SuppressWarnings("unchecked")
+    T other = (T) obj;
+    return 0 == compareTo(other);
   }
 
   @Override
   public String toString() {
-    return "Server [type=" + type + ", host=" + host + ", port=" + port + ", resourceGroup="
-        + resourceGroup + "]";
+    return "Server [type=" + type + ", host=" + host + ", port=" + port + "]";
   }
 
   public String toHostPortString() {

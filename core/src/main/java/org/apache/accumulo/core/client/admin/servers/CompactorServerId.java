@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.client.admin.servers;
 
-public class TabletServer extends Server {
+public class CompactorServerId extends ServerId<CompactorServerId> {
 
-  public TabletServer(String host, int port, String resourceGroup) {
-    super(ServerType.TABLET_SERVER, host, port, resourceGroup);
+  public CompactorServerId(String host, int port) {
+    super(ServerType.COMPACTOR, host, port);
   }
 
 }

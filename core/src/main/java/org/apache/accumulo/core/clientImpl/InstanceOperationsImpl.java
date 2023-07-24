@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
@@ -32,16 +31,19 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -51,12 +53,12 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.servers.CompactorServer;
-import org.apache.accumulo.core.client.admin.servers.ManagerServer;
-import org.apache.accumulo.core.client.admin.servers.ScanServer;
-import org.apache.accumulo.core.client.admin.servers.Server;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+import org.apache.accumulo.core.client.admin.servers.ManagerServerId;
+import org.apache.accumulo.core.client.admin.servers.ScanServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerType;
-import org.apache.accumulo.core.client.admin.servers.TabletServer;
+import org.apache.accumulo.core.client.admin.servers.TabletServerId;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -67,7 +69,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -253,45 +254,47 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Set<Server> getServers(ServerType type) {
-    Set<Server> results = new HashSet<>();
-    switch (type) {
-      case COMPACTOR:
-        ExternalCompactionUtil.getCompactorAddrs(context).forEach((group, servers) -> {
-          servers
-              .forEach(hp -> results.add(new CompactorServer(hp.getHost(), hp.getPort(), group)));
-        });
-        break;
-      case MANAGER:
-        context.getManagerLocations().stream().map(l -> HostAndPort.fromString(l))
-            .forEach(hp -> results.add(new ManagerServer(hp.getHost(), hp.getPort(),
-                ServiceDescriptor.DEFAULT_GROUP_NAME)));
-        break;
-      case SCAN_SERVER:
-        context.getScanServers().forEach((server, uuidAndGroup) -> {
-          HostAndPort hp = HostAndPort.fromString(server);
-          results.add(new ScanServer(hp.getHost(), hp.getPort(), uuidAndGroup.getSecond()));
-        });
-        break;
-      case TABLET_SERVER:
-        ZooCache cache = context.getZooCache();
-        String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-        var addrs = cache.getChildren(path);
-        for (String addr : addrs) {
-          HostAndPort hp = HostAndPort.fromString(addr);
-          final var zLockPath = ServiceLock.path(path + "/" + addr);
-          ZcStat stat = new ZcStat();
-          Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockPath, stat);
-          if (sld.isPresent()) {
-            String group = sld.orElseThrow().getGroup(ThriftService.TABLET_SCAN);
-            results.add(new TabletServer(hp.getHost(), hp.getPort(), group));
+  public Stream<ServerId<?>> getServers(EnumSet<ServerType> types, Predicate<ServerId<?>> test) {
+    Set<ServerId<?>> results = new HashSet<>();
+    for (ServerType type : types) {
+      switch (type) {
+        case COMPACTOR:
+          ExternalCompactionUtil.getCompactorAddrs(context).forEach((group, servers) -> {
+            servers.forEach(hp -> results.add(new CompactorServerId(hp.getHost(), hp.getPort())));
+          });
+          break;
+        case MANAGER:
+          context.getManagerLocations().stream().map(l -> HostAndPort.fromString(l))
+              .forEach(hp -> results.add(new ManagerServerId(hp.getHost(), hp.getPort())));
+          break;
+        case SCAN_SERVER:
+          context.getScanServers().forEach((server, uuidAndGroup) -> {
+            HostAndPort hp = HostAndPort.fromString(server);
+            results.add(new ScanServerId(hp.getHost(), hp.getPort()));
+          });
+          break;
+        case TABLET_SERVER:
+          ZooCache cache = context.getZooCache();
+          String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+          var addrs = cache.getChildren(path);
+          for (String addr : addrs) {
+            HostAndPort hp = HostAndPort.fromString(addr);
+            final var zLockPath = ServiceLock.path(path + "/" + addr);
+            ZcStat stat = new ZcStat();
+            Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockPath, stat);
+            if (sld.isPresent()) {
+              String group = sld.orElseThrow().getGroup(ThriftService.TABLET_SCAN);
+              if (group != null && !group.isEmpty()) {
+                results.add(new TabletServerId(hp.getHost(), hp.getPort()));
+              }
+            }
           }
-        }
-        break;
-      default:
-        break;
+          break;
+        default:
+          break;
+      }
     }
-    return results;
+    return results.stream().filter(test);
   }
 
   @Override
@@ -299,12 +302,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    return getActiveScans(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort(),
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+    return getActiveScans(new TabletServerId(parsedTserver.getHost(), parsedTserver.getPort()))
+        .collect(Collectors.toList());
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(Server server)
+  public Stream<ActiveScan> getActiveScans(ServerId<?> server)
       throws AccumuloException, AccumuloSecurityException {
     @SuppressWarnings("unused")
     var unused = Objects.nonNull(server);
@@ -314,16 +317,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
     TabletScanClientService.Client client = null;
     try {
       client = getClient(ThriftClientTypes.TABLET_SCAN, hp, context);
-
-      List<ActiveScan> as = new ArrayList<>();
-      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+      return client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds()).stream().map((as) -> {
         try {
-          as.add(new ActiveScanImpl(context, activeScan));
+          return new ActiveScanImpl(context, as);
         } catch (TableNotFoundException e) {
-          throw new AccumuloException(e);
+          throw new RuntimeException("Table not found", e);
         }
-      }
-      return as;
+      });
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
@@ -347,27 +347,25 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    return getActiveCompactions(new TabletServer(parsedTserver.getHost(), parsedTserver.getPort(),
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+    return getActiveCompactions(
+        new TabletServerId(parsedTserver.getHost(), parsedTserver.getPort()))
+        .collect(Collectors.toList());
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(Server server)
+  public Stream<ActiveCompaction> getActiveCompactions(ServerId<?> server)
       throws AccumuloException, AccumuloSecurityException {
     @SuppressWarnings("unused")
     var unused = Objects.nonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerType.TABLET_SERVER || server.getType() == ServerType.COMPACTOR);
     final var hp = HostAndPort.fromParts(server.getHost(), server.getPort());
-    final List<ActiveCompaction> as = new ArrayList<>();
     if (server.getType() == ServerType.TABLET_SERVER) {
       Client client = null;
       try {
         client = getClient(ThriftClientTypes.TABLET_SERVER, hp, context);
-        for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-          as.add(new ActiveCompactionImpl(context, tac, hp, CompactionHost.Type.TSERVER));
-        }
-        return as;
+        return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds()).stream()
+            .map((ac) -> new ActiveCompactionImpl(context, ac, hp, CompactionHost.Type.TSERVER));
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
@@ -381,10 +379,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       CompactorService.Client client = null;
       try {
         client = getClient(ThriftClientTypes.COMPACTOR, hp, context);
-        for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-          as.add(new ActiveCompactionImpl(context, tac, hp, CompactionHost.Type.TSERVER));
-        }
-        return as;
+        return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds()).stream()
+            .map((ac) -> new ActiveCompactionImpl(context, ac, hp, CompactionHost.Type.COMPACTOR));
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
@@ -401,30 +397,17 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
-    Map<String,List<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
-    List<String> tservers = getTabletServers();
+    List<ServerId<?>> servers =
+        getServers(EnumSet.of(ServerType.COMPACTOR, ServerType.TABLET_SERVER), (s) -> {
+          return true;
+        }).collect(Collectors.toList());
 
-    int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
+    int numThreads = Math.max(4, Math.min(servers.size() / 10, 256));
     var executorService =
         context.threadPools().createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
-
-      for (String tserver : tservers) {
-        futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
-      }
-
-      compactors.values().forEach(compactorList -> {
-        for (HostAndPort compactorAddr : compactorList) {
-          Callable<List<ActiveCompaction>> task =
-              () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
-                  .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
-                      CompactionHost.Type.COMPACTOR))
-                  .collect(toList());
-
-          futures.add(executorService.submit(task));
-        }
-      });
+      servers.forEach(s -> executorService.submit(() -> getActiveCompactions(s)));
 
       List<ActiveCompaction> ret = new ArrayList<>();
       for (Future<List<ActiveCompaction>> future : futures) {
@@ -450,11 +433,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated
   public void ping(String tserver) throws AccumuloException {
     HostAndPort hp = HostAndPort.fromString(tserver);
-    ping(new TabletServer(hp.getHost(), hp.getPort(), ServiceDescriptor.DEFAULT_GROUP_NAME));
+    ping(new TabletServerId(hp.getHost(), hp.getPort()));
   }
 
   @Override
-  public void ping(Server server) throws AccumuloException {
+  public void ping(ServerId<?> server) throws AccumuloException {
     @SuppressWarnings("unused")
     var unused = Objects.nonNull(server);
     Preconditions.checkArgument(server.getType() == ServerType.TABLET_SERVER);
