@@ -111,26 +111,21 @@ public class ClientContextTest {
     // If the value of BATCH_WRITE_LATENCY_MAX or BATCH_WRITER_TIMEOUT_MAX, is set to zero,
     // Long.MAX_VALUE is returned. Effectively, this will cause data to be held in memory
     // indefinitely for BATCH_WRITE_LATENCY_MAX and for no timeout, for BATCH_WRITER_TIMEOUT_MAX.
-    // Due to this behavior, the test compares the return values differently. If a value of
-    // 0 is used, compare the return value using TimeUnit.MILLISECONDS, otherwise the value
-    // should be converted to seconds in order to match the value set in ClientProperty.
+
     long expectedLatency = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.BATCH_WRITER_LATENCY_MAX.getDefaultValue());
-    if (expectedLatency == 0) {
-      expectedLatency = Long.MAX_VALUE;
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(MILLISECONDS));
-    } else {
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(SECONDS));
-    }
+
+    // default latency should be 120000 ms
+    assertEquals(120000L, expectedLatency);
+    assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(MILLISECONDS));
 
     long expectedTimeout = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (expectedTimeout == 0) {
       expectedTimeout = Long.MAX_VALUE;
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(MILLISECONDS));
-    } else {
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(SECONDS));
     }
+    assertEquals(expectedTimeout, Long.MAX_VALUE);
+    assertEquals(expectedTimeout, batchWriterConfig.getTimeout(MILLISECONDS));
 
     int expectedThreads =
         Integer.parseInt(ClientProperty.BATCH_WRITER_THREADS_MAX.getDefaultValue());
@@ -147,7 +142,7 @@ public class ClientContextTest {
 
     // set properties to non-default values
     props.setProperty(ClientProperty.BATCH_WRITER_MEMORY_MAX.getKey(), "10M");
-    props.setProperty(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "0");
+    props.setProperty(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "40");
     props.setProperty(ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getKey(), "15");
     props.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "12");
     props.setProperty(ClientProperty.BATCH_WRITER_DURABILITY.getKey(), Durability.FLUSH.name());
@@ -159,10 +154,11 @@ public class ClientContextTest {
         .getMemoryAsBytes(ClientProperty.BATCH_WRITER_MEMORY_MAX.getValue(props));
     assertEquals(expectedMemory, batchWriterConfig.getMaxMemory());
 
-    assertEquals(Long.MAX_VALUE, batchWriterConfig.getMaxLatency(MILLISECONDS));
+    assertEquals(40, batchWriterConfig.getMaxLatency(SECONDS));
+    assertEquals(40000, batchWriterConfig.getMaxLatency(MILLISECONDS));
 
-    // getTimeout returns time in milliseconds, therefore the 15 becomes 15000.
-    assertEquals(15000, batchWriterConfig.getTimeout(SECONDS));
+    assertEquals(15, batchWriterConfig.getTimeout(SECONDS));
+    assertEquals(15000, batchWriterConfig.getTimeout(MILLISECONDS));
 
     long expectedThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     assertEquals(expectedThreads, batchWriterConfig.getMaxWriteThreads());
@@ -180,17 +176,14 @@ public class ClientContextTest {
     assertNotNull(conditionalWriterConfig);
 
     // If the value of CONDITIONAL_WRITER_TIMEOUT_MAX is set to zero, Long.MAX_VALUE is returned.
-    // Effectively, this indicates there is no timeout for CONDITIONAL_WRITER_TIMEOUT_MAX. Due to
-    // this behavior, the test compares the return values differently. If a value of 0 is used,
-    // compare the return value using TimeUnit.MILLISECONDS, otherwise the value should be
-    // converted to seconds in order to match the value set in ClientProperty.
+    // Effectively, this indicates there is no timeout for CONDITIONAL_WRITER_TIMEOUT_MAX
     long expectedTimeout = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (expectedTimeout == 0) {
-      assertEquals(Long.MAX_VALUE, conditionalWriterConfig.getTimeout(MILLISECONDS));
-    } else {
-      assertEquals(expectedTimeout, conditionalWriterConfig.getTimeout(SECONDS));
+      expectedTimeout = Long.MAX_VALUE;
     }
+    assertEquals(expectedTimeout, Long.MAX_VALUE);
+    assertEquals(expectedTimeout, conditionalWriterConfig.getTimeout(MILLISECONDS));
 
     int expectedThreads =
         Integer.parseInt(ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getDefaultValue());
@@ -215,8 +208,8 @@ public class ClientContextTest {
         ClientContext.getConditionalWriterConfig(props);
     assertNotNull(conditionalWriterConfig);
 
-    // getTimeout returns time in milliseconds, therefore the 17 becomes 17000.
-    assertEquals(17000, conditionalWriterConfig.getTimeout(SECONDS));
+    assertEquals(17, conditionalWriterConfig.getTimeout(SECONDS));
+    assertEquals(17000, conditionalWriterConfig.getTimeout(MILLISECONDS));
 
     long expectedThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
     assertEquals(expectedThreads, conditionalWriterConfig.getMaxWriteThreads());
