@@ -370,7 +370,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
     Cache<String,Long> fileLenCache =
-        ctx.getCaches().createNewBuilder(CacheName.BULK_IMPORT_FILE_LENGTHS, true).build();
+        ctx.getCaches().createNewBuilder(CacheName.BULK_IMPORT_FILE_LENGTHS, false).build();
 
     fileLenCache.putAll(absFileLens);
 

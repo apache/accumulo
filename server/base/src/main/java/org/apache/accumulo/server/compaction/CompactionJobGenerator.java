@@ -66,7 +66,7 @@ public class CompactionJobGenerator {
     serviceIds = servicesConfig.getPlanners().keySet().stream().map(CompactionServiceId::of)
         .collect(Collectors.toUnmodifiableSet());
 
-    dispatchers = Caches.getInstance().createNewBuilder(CacheName.COMPACTION_DISPATCHERS, true)
+    dispatchers = Caches.getInstance().createNewBuilder(CacheName.COMPACTION_DISPATCHERS, false)
         .maximumSize(10).build();
     this.env = env;
     if (executionHints.isEmpty()) {

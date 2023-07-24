@@ -83,6 +83,7 @@ public class Caches implements MetricsProducer {
       try {
         cacheBuilder.recordStats(
             () -> new CaffeineStatsCounter(registry, name, MetricsUtil.getCommonTags()));
+        LOG.trace("Metrics enabled for {} cache.", name);
         return true;
       } catch (IllegalStateException e) {
         // recordStats was already called by the cacheBuilder.
