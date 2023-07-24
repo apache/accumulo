@@ -105,7 +105,7 @@ public class DataFileValue {
 
   @Override
   public String toString() {
-    return size + " " + numEntries + " " + time;
+    return size + " " + numEntries;
   }
 
   public void setTime(long time) {
