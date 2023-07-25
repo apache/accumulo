@@ -28,7 +28,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
@@ -83,6 +85,7 @@ import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
@@ -105,6 +108,19 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
       cfg.setProperty(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
     });
+  }
+
+  @BeforeEach
+  public void before() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      if (client.instanceOperations().getTabletServers().size() == 0) {
+        // There are a couple of tests in this class that kill tservers without
+        // clearing the list of processes for them. Calling stopAllServers in this
+        // case should clear out the list of processes. Then start the tablet servers.
+        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      }
+    }
   }
 
   @Test
@@ -296,7 +312,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           .getInstance((ClientContext) c, TableId.of(tableId)).getTabletHostingRequestCount();
       assertTrue(hostingRequestCount > 0);
 
-      // Run another scan, all tablets should be loaded
+      // Run another scan, the t tablet should get loaded
+      // all others should be loaded.
       try (Scanner s = c.createScanner(tableName)) {
         s.setRange(new Range("a", "t"));
         assertEquals(20, Iterables.size(s));
@@ -304,8 +321,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       stats = getTabletStats(c, tableId);
       assertEquals(3, stats.size());
-      // No more tablets should have been brought online
-      assertEquals(hostingRequestCount, ClientTabletCache
+      // Add 1 for the t tablet
+      assertEquals(hostingRequestCount + 1, ClientTabletCache
           .getInstance((ClientContext) c, TableId.of(tableId)).getTabletHostingRequestCount());
 
     }
@@ -464,6 +481,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.tableOperations().create(tableName);
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
       // wait for everything to be hosted and balanced
       client.instanceOperations().waitForBalance();
@@ -510,10 +528,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
       // could potentially send a kill -9 to the process. Shut the tablet
       // servers down in a more graceful way.
-
-      Locations locs = client.tableOperations().locate(tableName,
-          Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
+      final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+      ClientTabletCache.getInstance((ClientContext) client, tid).binRanges((ClientContext) client,
+          Collections.singletonList(TabletsSection.getRange()), binnedRanges);
+      binnedRanges.keySet().forEach((location) -> {
         HostAndPort address = HostAndPort.fromString(location);
         String addressWithSession = address.toString();
         var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
