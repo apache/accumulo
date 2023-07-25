@@ -44,7 +44,7 @@ public class CreateNamespaceCommand extends Command {
       TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
       NamespaceNotFoundException {
 
-    // validate that copy config and copy properties options are mutually exclusive.
+    // exclude parent properties only valid with copy config
     if (cl.hasOption(createNamesapceOptExcludeParentProps.getLongOpt())
         && !cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
       throw new IllegalArgumentException(createNamesapceOptExcludeParentProps.getLongOpt()
@@ -102,8 +102,8 @@ public class CreateNamespaceCommand extends Command {
         new Option("cc", "copy-config", true, "namespace to copy configuration from");
     createNamespaceOptCopyConfig.setArgName("namespace");
 
-    createNamesapceOptExcludeParentProps = new Option(null, "exclude-parent", false,
-        "exclude parent(s) properties when copying configuration");
+    createNamesapceOptExcludeParentProps = new Option(null, "exclude-parent-properties", false,
+        "exclude properties from its parent(s) when copying configuration");
 
     o.addOption(createNamespaceOptCopyConfig);
     o.addOption(createNamesapceOptExcludeParentProps);
