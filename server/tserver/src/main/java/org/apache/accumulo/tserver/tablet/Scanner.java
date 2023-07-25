@@ -35,6 +35,8 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class Scanner {
   private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
@@ -55,6 +57,8 @@ public class Scanner {
 
   private final AtomicBoolean interruptFlag;
 
+  private boolean readInProgress = false;
+
   Scanner(TabletBase tablet, Range range, ScanParameters scanParams, AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     this.range = range;
@@ -73,6 +77,10 @@ public class Scanner {
 
       try {
         lock.lockInterruptibly();
+        Preconditions.checkState(!readInProgress);
+        // Simple check to ensure the same thread never calls this method recursively. This code
+        // would not handle that well.
+        readInProgress = true;
       } catch (InterruptedException e) {
         sawException = true;
       }
@@ -162,6 +170,7 @@ public class Scanner {
           tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
         }
       } finally {
+        readInProgress = false;
         lock.unlock();
       }
     }
