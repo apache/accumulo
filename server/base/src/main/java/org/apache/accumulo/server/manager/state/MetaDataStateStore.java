@@ -66,7 +66,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   @Override
-  public boolean knownTabletStateChange(TabletManagement tablet) {
+  public boolean addTabletStateChange(TabletManagement tablet) {
     return this.knownStateChanges.offer(tablet);
   }
 

@@ -654,7 +654,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     manager.mustBeOnline(tableId);
 
     log.info("Tablet hosting requested for: {} ", extents);
-    List<KeyExtent> success = new ArrayList<>();
+    final List<KeyExtent> success = new ArrayList<>();
     final Ample ample = manager.getContext().getAmple();
     try (var mutator = ample.conditionallyMutateTablets()) {
       extents.forEach(e -> {
@@ -683,15 +683,17 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       });
     }
 
+    // Register the successful extent updates with the appropriate TabletStateStore.
+    // This will bump these tablets to the head of the line and the TabletGroupWatcher
+    // will process these updates before the ones returned from scanning the underlying
+    // table.
     if (!success.isEmpty()) {
-      final Set<ManagementAction> actions = new HashSet<>();
-      actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-
-      manager.getContext().getAmple().readTablets().forTablets(success, Optional.empty())
+      final Set<ManagementAction> actions = Set.of(ManagementAction.NEEDS_LOCATION_UPDATE);
+      ample.readTablets().forTablets(success, Optional.empty())
           .fetch(TabletManagement.CONFIGURED_COLUMNS.toArray(new ColumnType[] {})).build()
           .forEach(tm -> {
             manager.getTabletStateStore(DataLevel.of(tm.getTableId()))
-                .knownTabletStateChange(new TabletManagement(actions, tm));
+                .addTabletStateChange(new TabletManagement(actions, tm));
           });
     }
 

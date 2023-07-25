@@ -59,7 +59,7 @@ public interface TabletStateStore extends Iterable<TabletManagement> {
    * @param tablet TabletMetadata and Action that needs to be performed on it.
    * @return true if tablet modification accepted for processing, false otherwise.
    */
-  boolean knownTabletStateChange(TabletManagement tablet);
+  boolean addTabletStateChange(TabletManagement tablet);
 
   /**
    * Store the assigned locations in the data store.
