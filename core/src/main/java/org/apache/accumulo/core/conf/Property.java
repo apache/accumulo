@@ -1098,6 +1098,8 @@ public enum Property {
   @Experimental
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers", "2.1.0"),
+  COMPACTOR_JOB_WAIT_TIME("compactor.wait.time.job", "1s", PropertyType.TIMEDURATION,
+      "The amount of time to wait between checks for the next compaction job", "4.0.0"),
   @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),

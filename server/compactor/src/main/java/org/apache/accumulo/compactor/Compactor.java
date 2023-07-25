@@ -426,8 +426,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
   protected TExternalCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
+    final long checkWaitTime = getConfiguration().getTimeInMillis(Property.COMPACTOR_JOB_WAIT_TIME);
     RetryableThriftCall<TExternalCompactionJob> nextJobThriftCall =
-        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 0, () -> {
+        new RetryableThriftCall<>(checkWaitTime, checkWaitTime, 0, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
