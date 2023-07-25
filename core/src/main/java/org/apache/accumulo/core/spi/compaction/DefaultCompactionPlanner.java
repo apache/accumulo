@@ -189,6 +189,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   public void init(InitParameters params) {
     ExecutorConfig[] execConfigs =
         GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+    CompactionServiceId serviceId = params.getServiceId();
 
     List<Executor> tmpExec = new ArrayList<>();
 
@@ -216,7 +217,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
               "'numThreads' should not be specified for external compactions");
           String group = Objects.requireNonNull(executorConfig.group,
               "'group' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(group);
+
+          ceid =
+              params.getExecutorManager().getExternalExecutor(serviceId.canonical() + "." + group);
           break;
         default:
           throw new IllegalArgumentException("type must be 'internal' or 'external'");
@@ -326,6 +329,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       // determine which executor to use based on the size of the files
       var ceid = getExecutor(group);
 
+      // Section to add the service information.
       return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group).build();
     }
   }

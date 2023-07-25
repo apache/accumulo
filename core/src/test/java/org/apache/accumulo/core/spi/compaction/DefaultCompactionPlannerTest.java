@@ -353,6 +353,11 @@ public class DefaultCompactionPlannerTest {
       }
 
       @Override
+      public CompactionServiceId getServiceId() {
+        return CompactionServiceId.of("cs1");
+      }
+
+      @Override
       public Map<String,String> getOptions() {
         return Map.of("executors", executors, "maxOpen", "15");
       }
@@ -511,6 +516,11 @@ public class DefaultCompactionPlannerTest {
       @Override
       public ServiceEnvironment getServiceEnvironment() {
         return senv;
+      }
+
+      @Override
+      public CompactionServiceId getServiceId() {
+        return CompactionServiceId.of("cs1");
       }
 
       @Override

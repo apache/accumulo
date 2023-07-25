@@ -59,6 +59,11 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
   }
 
   @Override
+  public CompactionServiceId getServiceId() {
+    return serviceId;
+  }
+
+  @Override
   public String getFullyQualifiedOption(String key) {
     return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + serviceId + ".opts." + key;
   }

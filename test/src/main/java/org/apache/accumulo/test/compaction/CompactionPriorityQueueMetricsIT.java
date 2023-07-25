@@ -97,8 +97,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   private String rootPath;
 
   public static final String QUEUE1 = "METRICSQ1";
-  public static final String QUEUE1_METRIC_LABEL = "e." + MetricsUtil.formatString(QUEUE1);
   public static final String QUEUE1_SERVICE = "Q1";
+  public static final String QUEUE1_METRIC_LABEL =
+      "e." + MetricsUtil.formatString(QUEUE1_SERVICE + "." + QUEUE1);
   public static final int QUEUE1_SIZE = 6;
 
   @BeforeEach
@@ -160,7 +161,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           "[{'name':'all', 'type': 'external', 'group': '" + QUEUE1 + "'}]");
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
-      cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1_SERVICE + "." + QUEUE1,
+          0);
 
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -369,7 +371,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     assertEquals(QUEUE1_SIZE, queueSize);
 
     // Start Compactors
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getConfig().getClusterServerConfiguration()
+        .addCompactorResourceGroup(QUEUE1_SERVICE + "." + QUEUE1, 1);
     getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
     boolean emptyQueue = false;

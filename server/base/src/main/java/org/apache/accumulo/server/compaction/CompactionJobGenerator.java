@@ -151,7 +151,7 @@ public class CompactionJobGenerator {
       CompactionKind kind, TabletMetadata tablet, Map<String,String> executionHints) {
 
     CompactionPlanner planner =
-        planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), serviceId));
+        planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), sid));
 
     // selecting indicator
     // selected files
