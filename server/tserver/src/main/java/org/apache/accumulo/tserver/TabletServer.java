@@ -217,7 +217,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
-  HostAndPort clientAddress;
+  volatile HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
@@ -229,6 +229,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private DistributedWorkQueue bulkFailedCopyQ;
 
   private String lockID;
+  private volatile long lockSessionId = -1;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
 
@@ -588,9 +589,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID()
               .serialize(getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/");
+          lockSessionId = tabletServerLock.getSessionId();
+          log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
+              getTabletSession());
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -843,9 +846,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (address == null) {
       return null;
     }
+    if (lockSessionId == -1) {
+      return null;
+    }
 
     try {
-      return new TServerInstance(address, tabletServerLock.getSessionId());
+      return new TServerInstance(address, lockSessionId);
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
@@ -1087,10 +1093,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public double getHoldTimeMillis() {
     return resourceManager.holdTime();
-  }
-
-  public SecurityOperation getSecurityOperation() {
-    return security;
   }
 
   // avoid unnecessary redundant markings to meta

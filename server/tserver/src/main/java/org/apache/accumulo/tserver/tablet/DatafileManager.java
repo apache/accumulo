@@ -52,9 +52,6 @@ class DatafileManager {
       Collections.synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
 
-  // ensure we only have one reader/writer of our bulk file notes at a time
-  private final Object bulkFileImportLock = new Object();
-
   // This must be incremented before and after datafileSizes and metadata table updates. These
   // counts allow detection of overlapping operations w/o placing a lock around metadata table
   // updates and datafileSizes updates. There is a periodic metadata consistency check that runs in
@@ -274,17 +271,6 @@ class DatafileManager {
       TreeMap<StoredTabletFile,DataFileValue> copy = new TreeMap<>(datafileSizes);
       return Collections.unmodifiableSortedMap(copy);
     }
-  }
-
-  public Set<StoredTabletFile> getFiles() {
-    synchronized (tablet) {
-      HashSet<StoredTabletFile> files = new HashSet<>(datafileSizes.keySet());
-      return Collections.unmodifiableSet(files);
-    }
-  }
-
-  public int getNumFiles() {
-    return datafileSizes.size();
   }
 
   public MetadataUpdateCount getUpdateCount() {

@@ -289,6 +289,9 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC",
       "1.7.3"),
+  GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
+      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer",
+      "4.0.0"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
       "Enables metrics functionality using Micrometer", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
@@ -373,6 +376,9 @@ public enum Property {
       "1.10.0"),
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
+
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      "10000", PropertyType.COUNT, "The max size of the priority queue", "4.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,

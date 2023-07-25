@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
 import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -55,10 +57,12 @@ public class DefaultOnDemandTabletUnloaderTest {
     TableId tid = TableId.of("42");
     ServerContext context = createMock(ServerContext.class);
     TableConfiguration tconf = createMock(TableConfiguration.class);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(tconf);
     expect(context.getTableConfiguration(tid)).andReturn(tconf);
     expect(tconf.get(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD))
         .andReturn(inactivityTimeSeconds);
+    expect(tconf.newDeriver(anyObject())).andReturn(Map::of).anyTimes();
     Map<KeyExtent,AtomicLong> online = new HashMap<>();
     // add an extent whose last access time is less than the currentTime - inactivityTime
     final KeyExtent activeExtent = new KeyExtent(tid, new Text("m"), new Text("a"));

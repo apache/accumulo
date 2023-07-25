@@ -22,6 +22,8 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
@@ -52,17 +54,18 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
-    var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
-        .evictionListener(this::evictionNotifier);
+    Caffeine<Object,Object> caffeine =
+        Caches.getInstance().createNewBuilder(CacheName.PROP_CACHE, true)
+            .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS);
     if (runTasksInline) {
-      builder.executor(Runnable::run);
+      caffeine.executor(Runnable::run);
     } else {
-      builder.executor(executor);
+      caffeine.executor(executor);
     }
     if (ticker != null) {
-      builder.ticker(ticker);
+      caffeine.ticker(ticker);
     }
-    cache = builder.build(cacheLoader);
+    cache = caffeine.evictionListener(this::evictionNotifier).build(cacheLoader);
   }
 
   public PropStoreMetrics getMetrics() {

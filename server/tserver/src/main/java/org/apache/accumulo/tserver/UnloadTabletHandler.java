@@ -33,7 +33,6 @@ import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,8 +112,7 @@ class UnloadTabletHandler implements Runnable {
     }
 
     try {
-      TServerInstance instance =
-          new TServerInstance(server.clientAddress, server.getLock().getSessionId());
+      TServerInstance instance = server.getTabletSession();
       // ELASTICITY_TODO: Modify Tablet to keep a reference to TableMetadata so that we
       // can avoid building a tablet metadata that may not have needed information, for example may
       // need the last location
@@ -130,10 +128,6 @@ class UnloadTabletHandler implements Runnable {
       }
     } catch (DistributedStoreException ex) {
       log.warn("Unable to update storage", ex);
-    } catch (KeeperException e) {
-      log.warn("Unable determine our zookeeper session information", e);
-    } catch (InterruptedException e) {
-      log.warn("Interrupted while getting our zookeeper session information", e);
     }
 
     // tell the manager how it went

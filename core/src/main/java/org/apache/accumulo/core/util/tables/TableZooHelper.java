@@ -35,20 +35,22 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class TableZooHelper implements AutoCloseable {
 
   private final ClientContext context;
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
-  private final Cache<TableZooHelper,TableMap> instanceToMapCache =
-      Caffeine.newBuilder().expireAfterAccess(10, MINUTES).build();
+  private final Cache<TableZooHelper,TableMap> instanceToMapCache;
 
   public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);
+    instanceToMapCache =
+        this.context.getCaches().createNewBuilder(CacheName.TABLE_ZOO_HELPER_CACHE, true)
+            .expireAfterAccess(10, MINUTES).build();
   }
 
   /**

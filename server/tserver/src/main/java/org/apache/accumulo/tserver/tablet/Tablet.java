@@ -75,7 +75,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.compaction.CompactionStats;
-import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -333,16 +332,17 @@ public class Tablet extends TabletBase {
 
     ScanDataSource dataSource = createDataSource(scanParams, false, iFlag);
 
+    boolean sawException = false;
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException ioe) {
-      dataSource.close(true);
-      throw ioe;
+    } catch (IOException | RuntimeException e) {
+      sawException = true;
+      throw e;
     } finally {
       // code in finally block because always want
       // to return data files, even when exception is thrown
-      dataSource.close(false);
+      dataSource.close(sawException);
     }
   }
 
@@ -995,22 +995,6 @@ public class Tablet extends TabletBase {
     }
   }
 
-  /**
-   * Returns an int representing the total block size of the files served by this tablet.
-   *
-   * @return size
-   */
-  // this is the size of just the files
-  public long estimateTabletSize() {
-    long size = 0L;
-
-    for (DataFileValue sz : getDatafileManager().getDatafileSizes().values()) {
-      size += sz.getSize();
-    }
-
-    return size;
-  }
-
   synchronized void computeNumEntries() {
     Collection<DataFileValue> vals = getDatafileManager().getDatafileSizes().values();
 
@@ -1103,18 +1087,6 @@ public class Tablet extends TabletBase {
 
   public long totalIngestBytes() {
     return this.ingestBytes;
-  }
-
-  public long totalQueryResultsBytes() {
-    return this.queryResultBytes.get();
-  }
-
-  public long totalScannedCount() {
-    return this.scannedCount.get();
-  }
-
-  public long totalLookupCount() {
-    return this.lookupCount.get();
   }
 
   public synchronized void updateRates(long now) {
@@ -1343,15 +1315,6 @@ public class Tablet extends TabletBase {
     getTabletResources().updateMemoryUsageStats(this, size, mincSize);
   }
 
-  public void updateTimer(Operation operation, long queued, long start, long count,
-      boolean failed) {
-    timer.updateTime(operation, queued, start, count, failed);
-  }
-
-  public void incrementStatusMajor() {
-    timer.incrementStatusMajor();
-  }
-
   TabletServer getTabletServer() {
     return tabletServer;
   }
@@ -1369,8 +1332,8 @@ public class Tablet extends TabletBase {
 
       return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
           newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
-          tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
-          lastLocation, flushId);
+          tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
+          flushId);
     }
 
   }
@@ -1383,10 +1346,6 @@ public class Tablet extends TabletBase {
   @Override
   public TabletServerScanMetrics getScanMetrics() {
     return getTabletServer().getScanMetrics();
-  }
-
-  public PausedCompactionMetrics getPausedCompactionMetrics() {
-    return getTabletServer().getPausedCompactionMetrics();
   }
 
   DatafileManager getDatafileManager() {
@@ -1421,22 +1380,12 @@ public class Tablet extends TabletBase {
     getTabletMemory().returnIterators(iters);
   }
 
-  public long getAndUpdateTime() {
-    return tabletTime.getAndUpdateTime();
-  }
-
   public void flushComplete(long flushId) {
     lastLocation = null;
     dataSourceDeletions.incrementAndGet();
     tabletMemory.finishedMinC();
     lastFlushID.set(flushId);
     computeNumEntries();
-  }
-
-  public Location resetLastLocation() {
-    Location result = lastLocation;
-    lastLocation = null;
-    return result;
   }
 
   public void minorCompactionWaitingToStart() {
@@ -1453,10 +1402,6 @@ public class Tablet extends TabletBase {
 
   public TabletStats getTabletStats() {
     return timer.getTabletStats();
-  }
-
-  public String getDirName() {
-    return dirName;
   }
 
   public boolean isOnDemand() {
