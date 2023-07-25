@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -297,6 +298,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         fetchedCols.add(colToFetch);
 
         switch (colToFetch) {
+          case CHOPPED:
+            families.add(ChoppedColumnFamily.NAME);
+            break;
           case CLONED:
             families.add(ClonedColumnFamily.NAME);
             break;

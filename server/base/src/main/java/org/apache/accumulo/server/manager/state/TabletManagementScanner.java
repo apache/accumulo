@@ -136,14 +136,19 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
     }
     if (!knownTabletModifications.isEmpty()) {
-      return knownTabletModifications.poll();
+      TabletManagement tm = knownTabletModifications.poll();
+      log.trace("Returning known tablet modification, extent: {}, hostingGoal: {}, actions: {}",
+          tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getHostingGoal(),
+          tm.getActions());
+      return tm;
     }
     Entry<Key,Value> e = iter.next();
     try {
-      TabletManagement tmi = TabletManagementIterator.decode(e);
-      log.trace("Returning metadata tablet, extent: {}, hostingGoal: {}",
-          tmi.getTabletMetadata().getExtent(), tmi.getTabletMetadata().getHostingGoal());
-      return tmi;
+      TabletManagement tm = TabletManagementIterator.decode(e);
+      log.trace("Returning metadata tablet, extent: {}, hostingGoal: {}, actions: {}",
+          tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getHostingGoal(),
+          tm.getActions());
+      return tm;
     } catch (IOException e1) {
       throw new RuntimeException("Error creating TabletMetadata object", e1);
     }
