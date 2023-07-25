@@ -311,12 +311,12 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
-      ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
+      ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 10);
 
       Ample ample = ((ClientContext) client).getAmple();
       TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
       TabletMetadata tm = tms.iterator().next();
-      assertEquals(1000, tm.getFiles().size());
+      assertEquals(100, tm.getFiles().size());
 
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
       setting.addOption(ErrorThrowingIterator.TIMES, "3");
