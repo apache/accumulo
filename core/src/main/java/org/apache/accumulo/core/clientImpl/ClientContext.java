@@ -101,6 +101,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -109,6 +110,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
+
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC
@@ -153,6 +156,8 @@ public class ClientContext implements AccumuloClient {
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
+  private MeterRegistry micrometer;
+  private Caches caches;
 
   private void ensureOpen() {
     if (closed) {
@@ -1102,6 +1107,29 @@ public class ClientContext implements AccumuloClient {
       thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
     }
     return thriftTransportPool;
+  }
+
+  public MeterRegistry getMeterRegistry() {
+    ensureOpen();
+    return micrometer;
+  }
+
+  public void setMeterRegistry(MeterRegistry micrometer) {
+    ensureOpen();
+    this.micrometer = micrometer;
+    getCaches();
+  }
+
+  public synchronized Caches getCaches() {
+    ensureOpen();
+    if (caches == null) {
+      caches = Caches.getInstance();
+      if (micrometer != null
+          && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
+        caches.registerMetrics(micrometer);
+      }
+    }
+    return caches;
   }
 
 }

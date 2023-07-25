@@ -77,6 +77,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "1s");
+    cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
 
     // Tell the server processes to use a StatsDMeterRegistry that will be configured
     // to push all metrics to the sink we started.
@@ -94,12 +95,13 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
 
     Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
-        METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM,
-        METRICS_SCAN_RETURN_FOR_MEM, METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED);
+        METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM, METRICS_SCAN_RETURN_FOR_MEM,
+        METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED, METRICS_MAJC_QUEUED, METRICS_MAJC_RUNNING);
     Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
         METRICS_PROPSTORE_EVICTION_COUNT, METRICS_PROPSTORE_REFRESH_COUNT,
         METRICS_PROPSTORE_REFRESH_LOAD_COUNT, METRICS_PROPSTORE_ZK_ERROR_COUNT,
-        METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND, METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM);
+        METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND, METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM,
+        METRICS_COMPACTOR_MAJC_STUCK);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     flakyMetrics.forEach(expectedMetricNames::remove); // might not see these
