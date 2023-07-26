@@ -391,7 +391,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
             var jobs = compactionGenerator.generateJobs(tm,
                 TabletManagementIterator.determineCompactionKinds(actions));
-            LOG.debug("{} may need compacting.", tm.getExtent());
+            LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
             manager.getCompactionQueues().add(tm, jobs);
           }
 
