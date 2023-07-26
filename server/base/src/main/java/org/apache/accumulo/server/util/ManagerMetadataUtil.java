@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
@@ -60,7 +57,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,21 +175,11 @@ public class ManagerMetadataUtil {
     }
   }
 
-  private static TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
-    while (true) {
-      try {
-        return new TServerInstance(address, zooLock.getSessionId());
-      } catch (KeeperException | InterruptedException e) {
-        log.error("{}", e.getMessage(), e);
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-  }
-
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles,
-      Optional<StoredTabletFile> path, Long compactionId, DataFileValue size, String address,
-      Location lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
+      Optional<StoredTabletFile> path, Long compactionId, DataFileValue size,
+      TServerInstance tServerInstance, Location lastLocation, ServiceLock zooLock,
+      Optional<ExternalCompactionId> ecid) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -210,7 +196,7 @@ public class ManagerMetadataUtil {
       tablet.putCompactionId(compactionId);
     }
 
-    updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
+    updateLastForCompactionMode(context, tablet, lastLocation, tServerInstance);
 
     if (ecid.isPresent()) {
       tablet.deleteExternalCompaction(ecid.orElseThrow());
@@ -226,8 +212,8 @@ public class ManagerMetadataUtil {
    */
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
       KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
-      String address, ServiceLock zooLock, Set<String> unusedWalLogs, Location lastLocation,
-      long flushId) {
+      TServerInstance tServerInstance, ServiceLock zooLock, Set<String> unusedWalLogs,
+      Location lastLocation, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
@@ -239,7 +225,7 @@ public class ManagerMetadataUtil {
       tablet.putTime(time);
       newFile = Optional.of(newDatafile.insert());
 
-      updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
+      updateLastForCompactionMode(context, tablet, lastLocation, tServerInstance);
     }
     tablet.putFlushId(flushId);
 
@@ -279,15 +265,14 @@ public class ManagerMetadataUtil {
    * @param context The server context
    * @param tabletMutator The mutator being built
    * @param lastLocation The last location
-   * @param address The server address
-   * @param zooLock The zookeeper lock
+   * @param tServerInstance The server address
    */
   public static void updateLastForCompactionMode(ClientContext context, TabletMutator tabletMutator,
-      Location lastLocation, String address, ServiceLock zooLock) {
+      Location lastLocation, TServerInstance tServerInstance) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      Location newLocation = Location.last(getTServerInstance(address, zooLock));
+      Location newLocation = Location.last(tServerInstance);
       updateLocation(tabletMutator, lastLocation, newLocation);
     }
   }
