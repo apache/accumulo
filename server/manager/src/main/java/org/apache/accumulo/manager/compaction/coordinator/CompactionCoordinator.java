@@ -1062,13 +1062,13 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       compactions.forEach((ecid, extent) -> {
         try {
           ctx.requireNotDeleted(extent.tableId());
+          tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
+          .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
+          .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
         } catch (TableDeletedException e) {
           LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",
               extent.tableId());
         }
-        tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-            .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
-            .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
       });
 
       tabletsMutator.process().forEach((extent, result) -> {
