@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -187,6 +186,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     public CompactableFile create(long size) {
       try {
+        count++;
         return CompactableFile.create(
             new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
             0);
@@ -281,10 +281,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     // This set represents future files that will be produced by running compactions. If the optimal
     // set of files to compact is computed and contains one of these files, then its optimal to wait
     // for this compaction to finish.
-    Set<CompactableFile> expectedFiles =
-        params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
-            .map(job -> getExpected(job.getFiles(), fakeFileGenerator)).collect(Collectors.toSet());
-    // TODO test that user compaction does not wait on system compaction
+    Set<CompactableFile> expectedFiles = new HashSet<>();
+    params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
+        .map(job -> getExpected(job.getFiles(), fakeFileGenerator))
+        .forEach(compactableFile -> Preconditions.checkState(expectedFiles.add(compactableFile)));
+    Preconditions.checkState(Collections.disjoint(expectedFiles, filesCopy));
     filesCopy.addAll(expectedFiles);
 
     List<Collection<CompactableFile>> compactionJobs = new ArrayList<>();
@@ -308,8 +309,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       // planned compaction job. Then if future iterations of this loop will include that file then
       // they will not compact.
       var expectedFile = getExpected(filesToCompact, fakeFileGenerator);
-      expectedFiles.add(expectedFile);
-      filesCopy.add(expectedFile);
+      Preconditions.checkState(expectedFiles.add(expectedFile));
+      Preconditions.checkState(filesCopy.add(expectedFile));
 
       compactionJobs.add(filesToCompact);
 
@@ -335,7 +336,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       var candidatesCopy = new HashSet<>(params.getCandidates());
 
       candidatesCopy.removeAll(group);
-      candidatesCopy.add(getExpected(group, fakeFileGenerator));
+      Preconditions.checkState(candidatesCopy.add(getExpected(group, fakeFileGenerator)));
 
       if (findDataFilesToCompact(candidatesCopy, params.getRatio(), maxFilesToCompact,
           maxSizeToCompact).isEmpty()) {
