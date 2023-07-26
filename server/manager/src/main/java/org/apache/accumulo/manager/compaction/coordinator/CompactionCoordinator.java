@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -1059,6 +1060,12 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((ecid, extent) -> {
+        try {
+          ctx.requireNotDeleted(extent.tableId());
+        } catch (TableDeletedException e) {
+          LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",
+              extent.tableId());
+        }
         tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
             .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
             .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
@@ -32,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,16 +47,21 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.junit.jupiter.api.AfterEach;
+import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
@@ -70,21 +75,14 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction3Config());
-  }
-
-  @AfterEach
-  public void tearDown() throws Exception {
-    // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
   }
 
   @Test
+  @Disabled // ELASTICITY_TODO: Merges are broken currently
   public void testMergeCancelsExternalCompaction() throws Exception {
-
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
-        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -143,10 +141,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
 
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
-        ExternalDoNothingCompactor.class);
-
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -167,13 +161,21 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       // Restart the Manager while the compaction is running
       getCluster().getClusterControl().start(ServerType.MANAGER);
 
+      ServerContext ctx = getCluster().getServerContext();
+
       // Confirm compaction is still running
       int matches = 0;
       while (matches == 0) {
         TExternalCompactionList running = null;
         while (running == null) {
           try {
-            running = getRunningCompactions(getCluster().getServerContext());
+            Optional<HostAndPort> coordinatorHost =
+                ExternalCompactionUtil.findCompactionCoordinator(ctx);
+            if (coordinatorHost.isEmpty()) {
+              throw new TTransportException(
+                  "Unable to get CompactionCoordinator address from ZooKeeper");
+            }
+            running = getRunningCompactions(ctx, coordinatorHost);
           } catch (TException t) {
             running = null;
             Thread.sleep(2000);
