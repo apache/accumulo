@@ -45,5 +45,21 @@ public class ConfigurationImplTest {
 
     assertNull(confImp.getCustom("p1"));
     assertNull(confImp.getTableCustom("p3"));
+
+    // ensure changes to custom props are seen
+    conf.set("general.custom.p4", "v5");
+    conf.set("table.custom.p2", "v6");
+    conf.set("table.custom.p5", "v7");
+
+    assertEquals(Map.of("p3", "v3", "p4", "v5"), confImp.getCustom());
+    assertEquals(Map.of("p1", "v1", "p2", "v6", "p5", "v7"), confImp.getTableCustom());
+
+    assertEquals("v3", confImp.getCustom("p3"));
+    assertEquals("v5", confImp.getCustom("p4"));
+    assertEquals("v1", confImp.getTableCustom("p1"));
+    assertEquals("v6", confImp.getTableCustom("p2"));
+
+    assertNull(confImp.getCustom("p5"));
+    assertNull(confImp.getTableCustom("p4"));
   }
 }
