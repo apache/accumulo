@@ -43,8 +43,6 @@ public interface CompactionPlanner {
   public interface InitParameters {
     ServiceEnvironment getServiceEnvironment();
 
-    CompactionServiceId getServiceId();
-
     /**
      * @return The configured options. For example if the system properties
      *         {@code tserver.compaction.major.service.s1.planner.opts.p1=abc} and
