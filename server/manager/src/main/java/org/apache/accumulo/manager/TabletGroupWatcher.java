@@ -818,8 +818,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
             // The end row should be inclusive for the current tablet and the previous end row
             // should be exclusive for the start row
-            Range fenced = new Range(previousKeyExtent != null ? previousKeyExtent.endRow() : null,
-                false, keyExtent.endRow(), true);
+            Range fenced = new Range(previousKeyExtent.endRow(), false, keyExtent.endRow(), true);
 
             // TODO If there is an existing range we likely need to clip the range with something
             // like the following which is commented out for now. We also may need to handle
