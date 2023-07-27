@@ -114,7 +114,7 @@ public class ZooPropEditor implements KeywordExecutable {
     } catch (Exception ex) {
       LOG.error("{} command failed", keyword(), ex);
       // hard fail - set exit status
-      System.exit(-1);
+      System.exit(1);
     }
   }
 
