@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
@@ -157,8 +156,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       log.debug(tableOpsTask.get());
 
-      var stats1 = scanData(testContext, new Range(), false);
-      var stats2 = scanData(testContext, new Range(), true);
+      var stats1 = scanData(testContext, random, new Range(), false);
+      var stats2 = scanData(testContext, random, new Range(), true);
+      var stats3 = batchScanData(testContext, new Range());
       log.debug(
           String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
       assertTrue(stats1.verified > 0);
@@ -166,6 +166,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       assertEquals(stats1.scanned, stats1.verified);
       assertEquals(stats2.scanned, stats1.scanned);
       assertEquals(stats2.verified, stats1.verified);
+      assertEquals(stats3.scanned, stats1.scanned);
+      assertEquals(stats3.verified, stats1.verified);
     } finally {
       executor.shutdownNow();
     }
@@ -325,16 +327,17 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     }
   }
 
-  private static ScanStats scan(ScannerBase scanner, Set<Key> expected) {
+  private static ScanStats scan(Stream<Map.Entry<Key,Value>> scanner, Set<Key> expected) {
     ScanStats stats = new ScanStats();
-    for (Map.Entry<Key,Value> entry : scanner) {
+
+    scanner.forEach(entry -> {
       stats.scanned++;
       Key key = entry.getKey();
       key.setTimestamp(0);
       if (expected.remove(key)) {
         stats.verified++;
       }
-    }
+    });
 
     assertTrue(expected.isEmpty());
     return stats;
@@ -346,23 +349,37 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         BatchScanner scanner = tctx.client.createBatchScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
       scanner.setRanges(List.of(range));
-      return scan(scanner, expected);
+      return scan(scanner.stream(), expected);
     }
   }
 
-  private static ScanStats scanData(TestContext tctx, Range range, boolean scanIsolated)
-      throws Exception {
+  private static ScanStats scanData(TestContext tctx, Random random, Range range,
+      boolean scanIsolated) throws Exception {
     try (ExpectedScanData expectedScanData = tctx.dataTracker.beginScan();
-        Scanner scanner = tctx.client.createScanner(tctx.table)) {
+        Scanner baseScanner = tctx.client.createScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
-      scanner.setRange(range);
 
-      Scanner s = scanner;
+      Scanner scanner = baseScanner;
       if (scanIsolated) {
-        s = new IsolatedScanner(scanner);
+        scanner = new IsolatedScanner(baseScanner);
       }
 
-      return scan(s, expected);
+      Stream<Map.Entry<Key,Value>> scanStream;
+
+      if (!range.isInfiniteStopKey() && random.nextBoolean()) {
+        // Simulate the case where not all data in the range is read.
+        var openEndedRange =
+            new Range(range.getStartKey(), range.isStartKeyInclusive(), null, true);
+        scanner.setRange(openEndedRange);
+        // Create a stream that only reads the data in the original range, possibly leaving data
+        // unread on the scanner.
+        scanStream = scanner.stream().takeWhile(entry -> range.contains(entry.getKey()));
+      } else {
+        scanner.setRange(range);
+        scanStream = scanner.stream();
+      }
+
+      return scan(scanStream, expected);
     }
   }
 
@@ -401,9 +418,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
         int scanChance = random.nextInt(3);
         if (scanChance == 0) {
-          allStats.add(scanData(tctx, range, false));
+          allStats.add(scanData(tctx, random, range, false));
         } else if (scanChance == 1) {
-          allStats.add(scanData(tctx, range, true));
+          allStats.add(scanData(tctx, random, range, true));
         } else {
           allStats.add(batchScanData(tctx, range));
         }
@@ -661,7 +678,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
   /**
    * @return absolute value of a random long
    */
-  private static long nextLongAbs(Random r) {
+  private static long nextLongAbs(Random random) {
     return random.nextLong() & 0x7fffffffffffffffL;
   }
 
