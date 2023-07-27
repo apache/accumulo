@@ -20,6 +20,8 @@ package org.apache.accumulo.test.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -54,6 +57,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -281,6 +285,14 @@ public class ExternalCompactionTestUtils {
     return ecids;
   }
 
+  public static long countTablets(ServerContext ctx, String tableName,
+      Predicate<TabletMetadata> tabletTest) {
+    var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      return tabletsMetadata.stream().filter(tabletTest).count();
+    }
+  }
+
   public static void waitForRunningCompactions(ServerContext ctx, TableId tid,
       Set<ExternalCompactionId> idsToWaitFor) throws Exception {
 
@@ -349,5 +361,21 @@ public class ExternalCompactionTestUtils {
       assertEquals(expectedState, ExternalCompactionTestUtils.getLastState(tec));
     }
 
+  }
+
+  public static void assertNoCompactionMetadata(ServerContext ctx, String tableName) {
+    var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build();
+
+    int count = 0;
+
+    for (var tabletMetadata : tabletsMetadata) {
+      assertEquals(Set.of(), tabletMetadata.getCompacted());
+      assertNull(tabletMetadata.getSelectedFiles());
+      assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+      count++;
+    }
+
+    assertTrue(count > 0);
   }
 }
