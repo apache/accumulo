@@ -44,7 +44,7 @@ public class CreateNamespaceCommand extends Command {
       TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
       NamespaceNotFoundException {
 
-    // exclude parent properties only valid with copy config
+    // exclude parent properties; only valid with copy config
     if (cl.hasOption(createNamesapceOptExcludeParentProps.getLongOpt())
         && !cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
       throw new IllegalArgumentException(createNamesapceOptExcludeParentProps.getLongOpt()

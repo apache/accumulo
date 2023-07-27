@@ -101,7 +101,7 @@ public class CreateTableCommand extends Command {
           new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
-    // exclude parent properties only valid with copy config
+    // exclude parent properties; only valid with copy config
     if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())
         && !cl.hasOption(createTableOptCopyConfig.getOpt())) {
       throw new IllegalArgumentException(createTableOptExcludeParentProps.getLongOpt()
