@@ -49,50 +49,62 @@ public class TabletInformationImpl implements TabletInformation {
     this.tabletState = tabletState;
   }
 
+  @Override
   public Text getEndRow() {
     return tabletMetadata.getEndRow();
   }
 
+  @Override
   public Text getStartRow() {
     return tabletMetadata.getPrevEndRow();
   }
 
+  @Override
   public TableId getTableId() {
     return tabletMetadata.getTableId();
   }
 
+  @Override
   public TabletId getTabletId() {
     return new TabletIdImpl(tabletMetadata.getExtent());
   }
 
+  @Override
   public int getNumFiles() {
     return tabletMetadata.getFilesMap().size();
   }
 
+  @Override
   public int getNumWalLogs() {
     return tabletMetadata.getLogs().size();
   }
 
+  @Override
   public long getEstimatedEntries() {
     return this.estimatedEntries;
   }
 
+  @Override
   public long getEstimatedSize() {
     return estimatedSize;
   }
 
+  @Override
   public String getTabletState() {
     return tabletState;
   }
 
+  @Override
   public Optional<Location> getLocation() {
     return Optional.ofNullable(tabletMetadata.getLocation());
   }
 
+  @Override
   public String getTabletDir() {
     return tabletMetadata.getDirName();
   }
 
+  @Override
   public TabletHostingGoal getHostingGoal() {
     return tabletMetadata.getHostingGoal();
   }
