@@ -182,8 +182,9 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
-    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5ms");
-    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "10ms");
+    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
+    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
+    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -313,6 +314,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
+      // In addition to testing errors in compactions, this test also exercises creating lots of
+      // files to compact. The following will create 1000 files to compact. When changing this test
+      // try to keep both or create a new test for lots of files to compact.
       ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
 
       Ample ample = ((ClientContext) client).getAmple();
@@ -325,12 +329,13 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
+      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES, ColumnType.ECOMP).build();
       tm = tms.iterator().next();
       assertEquals(1, tm.getFiles().size());
+      // ensure the failed compactions did not leave anything in the metadata table
+      assertEquals(0, tm.getExternalCompactions().size());
 
       ReadWriteIT.verify(client, MAX_DATA, 1, 1, 0, table1);
-
     }
   }
 

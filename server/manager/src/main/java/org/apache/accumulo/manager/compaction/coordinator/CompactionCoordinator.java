@@ -90,7 +90,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -119,8 +118,6 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -432,21 +429,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     return result;
 
-  }
-
-  /**
-   * Return the Thrift client for the TServer
-   *
-   * @param tserver tserver instance
-   * @return thrift client
-   * @throws TTransportException thrift error
-   */
-  protected TabletServerClientService.Client getTabletServerConnection(TServerInstance tserver)
-      throws TTransportException {
-    LiveTServerSet.TServerConnection connection = tserverSet.getConnection(tserver);
-    TTransport transport =
-        this.ctx.getTransportPool().getTransport(connection.getAddress(), 0, this.ctx);
-    return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 
   // ELASTICITY_TODO unit test this code

@@ -180,6 +180,22 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
   }
 
+  private static class FakeFileGenerator {
+
+    private int count = 0;
+
+    public CompactableFile create(long size) {
+      try {
+        count++;
+        return CompactableFile.create(
+            new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
+            0);
+      } catch (URISyntaxException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+  }
+
   private List<Executor> executors;
   private int maxFilesToCompact;
 
@@ -258,76 +274,93 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     Set<CompactableFile> filesCopy = new HashSet<>(params.getCandidates());
 
+    FakeFileGenerator fakeFileGenerator = new FakeFileGenerator();
+
     long maxSizeToCompact = getMaxSizeToCompact(params.getKind());
 
-    Collection<CompactableFile> group;
-    if (params.getRunningCompactions().isEmpty()) {
-      group =
+    // This set represents future files that will be produced by running compactions. If the optimal
+    // set of files to compact is computed and contains one of these files, then its optimal to wait
+    // for this compaction to finish.
+    Set<CompactableFile> expectedFiles = new HashSet<>();
+    params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
+        .map(job -> getExpected(job.getFiles(), fakeFileGenerator))
+        .forEach(compactableFile -> Preconditions.checkState(expectedFiles.add(compactableFile)));
+    Preconditions.checkState(Collections.disjoint(expectedFiles, filesCopy));
+    filesCopy.addAll(expectedFiles);
+
+    List<Collection<CompactableFile>> compactionJobs = new ArrayList<>();
+
+    while (true) {
+      var filesToCompact =
           findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
-
-      if (!group.isEmpty() && group.size() < params.getCandidates().size()
-          && params.getCandidates().size() <= maxFilesToCompact
-          && (params.getKind() == CompactionKind.USER
-              || params.getKind() == CompactionKind.SELECTOR)) {
-        // USER and SELECTOR compactions must eventually compact all files. When a subset of files
-        // that meets the compaction ratio is selected, look ahead and see if the next compaction
-        // would also meet the compaction ratio. If not then compact everything to avoid doing
-        // more than logarithmic work across multiple comapctions.
-
-        filesCopy.removeAll(group);
-        filesCopy.add(getExpected(group, 0));
-
-        if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
-            maxSizeToCompact).isEmpty()) {
-          // The next possible compaction does not meet the compaction ratio, so compact
-          // everything.
-          group = Set.copyOf(params.getCandidates());
-        }
-
+      if (!Collections.disjoint(filesToCompact, expectedFiles)) {
+        // the optimal set of files to compact includes the output of a running compaction, so lets
+        // wait for that running compaction to finish.
+        break;
       }
 
-    } else if (params.getKind() == CompactionKind.SYSTEM) {
-      // This code determines if once the files compacting finish would they be included in a
-      // compaction with the files smaller than them? If so, then wait for the running compaction
-      // to complete.
-
-      // The set of files running compactions may produce
-      var expectedFiles = getExpected(params.getRunningCompactions());
-
-      if (!Collections.disjoint(filesCopy, expectedFiles)) {
-        throw new AssertionError();
+      if (filesToCompact.isEmpty()) {
+        break;
       }
 
-      filesCopy.addAll(expectedFiles);
+      filesCopy.removeAll(filesToCompact);
 
-      group =
-          findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
+      // A compaction job will be created for these files, so lets add an expected file for that
+      // planned compaction job. Then if future iterations of this loop will include that file then
+      // they will not compact.
+      var expectedFile = getExpected(filesToCompact, fakeFileGenerator);
+      Preconditions.checkState(expectedFiles.add(expectedFile));
+      Preconditions.checkState(filesCopy.add(expectedFile));
 
-      if (!Collections.disjoint(group, expectedFiles)) {
-        // file produced by running compaction will eventually compact with existing files, so
-        // wait.
-        group = Set.of();
+      compactionJobs.add(filesToCompact);
+
+      if (filesToCompact.size() < maxFilesToCompact) {
+        // Only continue looking for more compaction jobs when a set of files is found equals
+        // maxFilesToCompact in size. When the files found is less than the max size its an
+        // indication that the compaction ratio was no longer met and therefore it would be
+        // suboptimal to look for more jobs because the smallest optimal set was found.
+        break;
       }
-    } else {
-      group = Set.of();
     }
 
-    if (group.isEmpty()
+    if (compactionJobs.size() == 1
+        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
+        && compactionJobs.get(0).size() < params.getCandidates().size()
+        && compactionJobs.get(0).size() <= maxFilesToCompact) {
+      // USER and SELECTOR compactions must eventually compact all files. When a subset of files
+      // that meets the compaction ratio is selected, look ahead and see if the next compaction
+      // would also meet the compaction ratio. If not then compact everything to avoid doing
+      // more than logarithmic work across multiple comapctions.
+
+      var group = compactionJobs.get(0);
+      var candidatesCopy = new HashSet<>(params.getCandidates());
+
+      candidatesCopy.removeAll(group);
+      Preconditions.checkState(candidatesCopy.add(getExpected(group, fakeFileGenerator)));
+
+      if (findDataFilesToCompact(candidatesCopy, params.getRatio(), maxFilesToCompact,
+          maxSizeToCompact).isEmpty()) {
+        // The next possible compaction does not meet the compaction ratio, so compact
+        // everything.
+        compactionJobs.set(0, Set.copyOf(params.getCandidates()));
+      }
+    }
+
+    if (compactionJobs.isEmpty()
         && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
             || params.getKind() == CompactionKind.CHOP)
         && params.getRunningCompactions().stream()
             .noneMatch(job -> job.getKind() == params.getKind())) {
-      group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
+      // These kinds of compaction require files to compact even if none of the files meet the
+      // compaction ratio. No files were found using the compaction ratio and no compactions are
+      // running, so force a compaction.
+      compactionJobs = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
     }
 
-    if (group.isEmpty()) {
-      return params.createPlanBuilder().build();
-    } else {
-      // determine which executor to use based on the size of the files
-      var ceid = getExecutor(group);
-
-      return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group).build();
-    }
+    var builder = params.createPlanBuilder();
+    compactionJobs.forEach(jobFiles -> builder.addJob(createPriority(params, jobFiles),
+        getExecutor(jobFiles), jobFiles));
+    return builder.build();
   }
 
   private static short createPriority(PlanningParameters params,
@@ -346,51 +379,42 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return Long.MAX_VALUE;
   }
 
-  private CompactableFile getExpected(Collection<CompactableFile> files, int count) {
+  private CompactableFile getExpected(Collection<CompactableFile> files,
+      FakeFileGenerator fakeFileGenerator) {
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
-    try {
-      return CompactableFile.create(
-          new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
-          0);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException(e);
-    }
+    return fakeFileGenerator.create(size);
   }
 
-  /**
-   * @return the expected files sizes for sets of compacting files.
-   */
-  private Set<CompactableFile> getExpected(Collection<CompactionJob> compacting) {
-
-    Set<CompactableFile> expected = new HashSet<>();
-
-    int count = 0;
-
-    for (CompactionJob job : compacting) {
-      count++;
-      expected.add(getExpected(job.getFiles(), count));
-    }
-
-    return expected;
-  }
-
-  private static Collection<CompactableFile>
+  private static List<Collection<CompactableFile>>
       findMaximalRequiredSetToCompact(Collection<CompactableFile> files, int maxFilesToCompact) {
 
     if (files.size() <= maxFilesToCompact) {
-      return files;
+      return List.of(files);
     }
 
     List<CompactableFile> sortedFiles = sortByFileSize(files);
 
-    int numToCompact = maxFilesToCompact;
+    // compute the number of full compaction jobs with full files that could run and then subtract
+    // 1. The 1 is subtracted because the last job is a special case.
+    int batches = sortedFiles.size() / maxFilesToCompact - 1;
 
-    if (sortedFiles.size() > maxFilesToCompact && sortedFiles.size() < 2 * maxFilesToCompact) {
-      // on the second to last compaction pass, compact the minimum amount of files possible
-      numToCompact = sortedFiles.size() - maxFilesToCompact + 1;
+    if (batches > 0) {
+      ArrayList<Collection<CompactableFile>> jobs = new ArrayList<>();
+      for (int i = 0; i < batches; i++) {
+        jobs.add(sortedFiles.subList(i * maxFilesToCompact, (i + 1) * maxFilesToCompact));
+      }
+      return jobs;
+    } else {
+      int numToCompact = maxFilesToCompact;
+
+      if (sortedFiles.size() > maxFilesToCompact && sortedFiles.size() < 2 * maxFilesToCompact) {
+        // On the second to last compaction pass, compact the minimum amount of files possible. This
+        // is done to avoid unnecessarily compacting the largest files more than once.
+        numToCompact = sortedFiles.size() - maxFilesToCompact + 1;
+      }
+
+      return List.of(sortedFiles.subList(0, numToCompact));
     }
-
-    return sortedFiles.subList(0, numToCompact);
   }
 
   static Collection<CompactableFile> findDataFilesToCompact(Set<CompactableFile> files,
