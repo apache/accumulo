@@ -784,7 +784,8 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
 
     ts.exec("createtable " + srcTable);
-    ts.exec("createtable --exclude-parent --copy-config " + srcTable + " " + destTable, true);
+    ts.exec("createtable --exclude-parent-properties --copy-config " + srcTable + " " + destTable,
+        true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
