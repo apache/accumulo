@@ -22,7 +22,6 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GR
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP5;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
@@ -74,7 +73,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -93,13 +91,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction1Config());
-  }
-
-  @AfterEach
-  public void tearDown() throws Exception {
-    // The ExternalDoNothingCompactor needs to be restarted between tests
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   public static class TestFilter extends Filter {
@@ -159,10 +150,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
-
       compact(client, table1, 2, GROUP1, true);
       verify(client, table1, 2);
 
@@ -186,12 +173,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       verify(client, table1, 1);
 
-      // ELASTICITY_TODO the compactors started by mini inspecting the config were interfering with
-      // starting the ExternalDoNothingCompactor, so killed all compactors. This is not the best way
-      // to handle this.
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP3, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
           ExternalDoNothingCompactor.class);
 
@@ -224,6 +206,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      // Restart the regular compactors
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
     }
 
   }
@@ -238,10 +224,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       writeData(client, table1);
 
-      // ELASTICITY_TODO there is already one compactor started by mini based on config
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP4, 2);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
-
       compact(client, table1, 3, GROUP4, true);
 
       verify(client, table1, 3);
@@ -251,9 +233,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
-
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP5, 1);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -328,8 +307,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs6");
       writeData(client, table1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP6, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
       compact(client, table1, 2, GROUP6, true);
       verify(client, table1, 2);
 
@@ -367,9 +344,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(1)[0];
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP8, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       createTable(client, tableName, "cs8");
 

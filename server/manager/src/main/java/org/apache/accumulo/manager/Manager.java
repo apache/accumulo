@@ -1362,8 +1362,8 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
-        ThriftService.COORDINATOR}) {
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
+        ThriftService.FATE}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
@@ -1593,11 +1593,8 @@ public class Manager extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
-        ThriftService.COORDINATOR}) {
-      descriptors.addService(
-          new ServiceDescriptor(zooLockUUID, svc, managerClientAddress, this.getResourceGroup()));
-    }
+    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
+        managerClientAddress, this.getResourceGroup()));
 
     ServiceLockData sld = new ServiceLockData(descriptors);
     while (true) {
