@@ -228,7 +228,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         LOG.debug("mfiles2 {}",
             mfiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
         return mfiles2.size() == 1 && !mfiles2.equals(mfiles1);
-      });
+      }, 60_000);
 
       Wait.waitFor(() -> {
         var rootFiles2 =
@@ -236,7 +236,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         LOG.debug("rootFiles2 {}",
             rootFiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
         return rootFiles2.size() == 1 && !rootFiles2.equals(rootFiles1);
-      });
+      }, 60_000);
 
       var entries = c.createScanner(tableNames[1]).stream()
           .map(e -> e.getKey().getRow() + ":" + e.getKey().getColumnFamily() + ":"

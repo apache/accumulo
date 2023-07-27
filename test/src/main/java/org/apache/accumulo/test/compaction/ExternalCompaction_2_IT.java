@@ -169,11 +169,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           tm -> tm.getSelectedFiles() != null || !tm.getCompacted().isEmpty()) > 0) {
         Thread.sleep(1000);
       }
-      //
-      // // We need to cancel the compaction or delete the table here because we initiate a user
-      // // compaction above in the test. Even though the external compaction was cancelled
-      // // because we split the table, FaTE will continue to queue up a compaction
-      // client.tableOperations().cancelCompaction(table1);
     }
   }
 

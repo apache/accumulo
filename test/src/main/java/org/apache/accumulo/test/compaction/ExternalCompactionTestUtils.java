@@ -231,8 +231,11 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
+    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
+    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
     cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
+    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
