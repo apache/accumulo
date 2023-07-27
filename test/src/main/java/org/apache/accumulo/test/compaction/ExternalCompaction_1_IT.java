@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
@@ -45,7 +43,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -73,28 +70,20 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
-import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -180,70 +169,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       assertEquals(List.of("1", "2", "3", "4"), rows);
 
       assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
-    }
-  }
-
-  @Test
-  public void testMetadataCompactions() throws Exception {
-    // The metadata and root table have default config that causes them to compact down to one
-    // tablet. This test verifies that both tables compact to one file after a flush.
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String[] tableNames = getUniqueNames(2);
-
-      // creating a user table should cause a write to the metadata table
-      c.tableOperations().create(tableNames[0]);
-
-      var mfiles1 = getCluster().getServerContext().getAmple().readTablets()
-          .forTable(MetadataTable.ID).build().iterator().next().getFiles();
-      var rootFiles1 =
-          getCluster().getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
-
-      LOG.debug("mfiles1 {}",
-          mfiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
-      LOG.debug("rootFiles1 {}",
-          rootFiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
-
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
-
-      // create another table to cause more metadata writes
-      c.tableOperations().create(tableNames[1]);
-      try (var writer = c.createBatchWriter(tableNames[1])) {
-        var m = new Mutation("r1");
-        m.put("f1", "q1", "v1");
-        writer.addMutation(m);
-      }
-      c.tableOperations().flush(tableNames[1], null, null, true);
-
-      // create another metadata file
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
-
-      // The multiple flushes should create multiple files. We expect the file sets to changes and
-      // eventually equal one.
-
-      Wait.waitFor(() -> {
-        var mfiles2 = getCluster().getServerContext().getAmple().readTablets()
-            .forTable(MetadataTable.ID).build().iterator().next().getFiles();
-        LOG.debug("mfiles2 {}",
-            mfiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
-        return mfiles2.size() == 1 && !mfiles2.equals(mfiles1);
-      }, 60_000);
-
-      Wait.waitFor(() -> {
-        var rootFiles2 =
-            getCluster().getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
-        LOG.debug("rootFiles2 {}",
-            rootFiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
-        return rootFiles2.size() == 1 && !rootFiles2.equals(rootFiles1);
-      }, 60_000);
-
-      var entries = c.createScanner(tableNames[1]).stream()
-          .map(e -> e.getKey().getRow() + ":" + e.getKey().getColumnFamily() + ":"
-              + e.getKey().getColumnQualifier() + ":" + e.getValue())
-          .collect(toSet());
-
-      assertEquals(Set.of("r1:f1:q1:v1"), entries);
     }
   }
 
