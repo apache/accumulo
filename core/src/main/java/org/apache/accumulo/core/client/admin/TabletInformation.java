@@ -18,142 +18,74 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.util.NumUtil;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.hadoop.io.Text;
 
-public class TabletInformation {
+public interface TabletInformation {
 
-  private final String tableName;
-  private final String endRow;
-  private final String prevEndRow;
-  private final int numFiles;
-  private final int numWalLogs;
-  private final long numEntries;
-  private final long size;
-  private final String status;
-  private final String location;
-  private final String dir;
-  private final TableId tableId;
-  private final TabletHostingGoal goal;
+  /**
+   * @return the TableId of the table containing this tablet.
+   */
+  TableId getTableId();
 
-  public TabletInformation(String tableName, TableId tableId, String endRow, String prevEndRow,
-      int numFiles, int numWalLogs, long numEntries, long size, String status, String location,
-      String dir, TabletHostingGoal goal) {
-    this.tableName = tableName;
-    this.tableId = tableId;
-    this.endRow = endRow;
-    this.prevEndRow = prevEndRow;
-    this.numFiles = numFiles;
-    this.numWalLogs = numWalLogs;
-    this.numEntries = numEntries;
-    this.size = size;
-    this.status = status;
-    this.location = location;
-    this.dir = dir;
-    this.goal = goal;
-  }
+  /**
+   * @return the TabletId for this tablet.
+   */
+  TabletId getTabletId();
 
-  public String getEndRow() {
-    return Objects.requireNonNullElse(this.endRow, "+INF");
-  }
+  /**
+   * @return the tablet end row.
+   */
+  Text getEndRow();
 
-  public String getStartRow() {
-    return Objects.requireNonNullElse(this.prevEndRow, "-INF");
-  }
+  /**
+   * @return the previous end row.
+   */
+  Text getStartRow();
 
-  public String getTableId() {
-    return tableId.canonical();
-  }
+  /**
+   * @return the number of files in the tablet directory.
+   */
+  int getNumFiles();
 
-  public String getTablet() {
-    return getStartRow() + " " + getEndRow();
-  }
+  /**
+   * @return the number of write-ahead logs associated with the tablet.
+   */
+  int getNumWalLogs();
 
-  public String getTableName() {
-    return this.tableName;
-  }
+  /**
+   * @return an estimated number of entries in the tablet.
+   */
+  long getEstimatedEntries();
 
-  public int getNumFiles() {
-    return this.numFiles;
-  }
+  /**
+   * @return an estimated size of the tablet data on disk, which is likely the compressed size of
+   *         the data.
+   */
+  long getEstimatedSize();
 
-  public int getNumWalLogs() {
-    return this.numWalLogs;
-  }
+  /**
+   * @return the tablet hosting state.
+   */
+  String getTabletState();
 
-  public long getNumEntries() {
-    return this.numEntries;
-  }
+  /**
+   * @return the Location of the tablet.
+   */
+  Optional<Location> getLocation();
 
-  public String getNumEntries(final boolean humanReadable) {
-    if (humanReadable) {
-      return NumUtil.bigNumberForQuantity(numEntries);
-    }
-    return String.format("%,d", numEntries);
-  }
+  /**
+   * @return the directory name of the tablet.
+   */
+  String getTabletDir();
 
-  public long getSize() {
-    return this.size;
-  }
+  /**
+   * @return the tablet hosting goal.
+   */
+  TabletHostingGoal getHostingGoal();
 
-  public String getSize(final boolean humanReadable) {
-    if (humanReadable) {
-      return NumUtil.bigNumberForSize(size);
-    }
-    return String.format("%,d", size);
-  }
-
-  public String getStatus() {
-    return this.status;
-  }
-
-  public String getLocation() {
-    return this.location;
-  }
-
-  public String getTabletDir() {
-    return this.dir;
-  }
-
-  public TabletHostingGoal getHostingGoal() {
-    return this.goal;
-  }
-
-  @Override
-  public String toString() {
-    return "TabletInformation{tableName='" + tableName + '\'' + ", numFiles=" + numFiles
-        + ", numWalLogs=" + numWalLogs + ", numEntries=" + numEntries + ", size=" + size
-        + ", status='" + status + '\'' + ", location='" + location + '\'' + ", dir='" + dir + '\''
-        + ", tableId=" + tableId + ", tablet=" + getTablet() + ", goal=" + goal + '}';
-  }
-
-  public static final String header =
-      String.format("%-4s %-15s %-5s %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", "NUM",
-          "TABLET_DIR", "FILES", "WALS", "ENTRIES", "SIZE", "STATUS", "LOCATION", "ID",
-          "START (Exclusive)", "END", "GOAL");
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    TabletInformation that = (TabletInformation) o;
-    return numFiles == that.numFiles && numWalLogs == that.numWalLogs
-        && numEntries == that.numEntries && size == that.size
-        && Objects.equals(tableName, that.tableName) && Objects.equals(endRow, that.endRow)
-        && Objects.equals(prevEndRow, that.prevEndRow) && Objects.equals(status, that.status)
-        && Objects.equals(location, that.location) && Objects.equals(dir, that.dir)
-        && Objects.equals(tableId, that.tableId) && goal == that.goal;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(tableName, endRow, prevEndRow, numFiles, numWalLogs, numEntries, size,
-        status, location, dir, tableId, goal);
-  }
 }

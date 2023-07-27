@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,11 +31,12 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.Namespaces;
+import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellOptions;
@@ -59,6 +62,11 @@ public class ListTabletsCommand extends Command {
   private Option optNamespace;
   private Option disablePaginationOpt;
 
+  static final String header =
+      String.format("%-4s %-15s %-5s %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", "NUM",
+          "TABLET_DIR", "FILES", "WALS", "ENTRIES", "SIZE", "STATUS", "LOCATION", "ID",
+          "START (Exclusive)", "END", "GOAL");
+
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     final Set<TableInfo> tableInfoSet = populateTables(cl, shellState);
@@ -66,23 +74,28 @@ public class ListTabletsCommand extends Command {
       log.warn("No tables found that match your criteria");
       return 0;
     }
+
     boolean humanReadable = cl.hasOption(optHumanReadable.getOpt());
 
     List<String> lines = new LinkedList<>();
-    lines.add(TabletInformation.header);
+    lines.add(header);
     for (TableInfo tableInfo : tableInfoSet) {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      List<TabletInformation> tabletsList = shellState.getContext().tableOperations()
+      List<TabletInformationImpl> tabletsList = shellState.getContext().tableOperations()
           .getTabletInformation(name, new Range()).collect(Collectors.toList());
       for (int i = 0; i < tabletsList.size(); i++) {
-        TabletInformation tabletInfo = tabletsList.get(i);
+        TabletInformationImpl tabletInfo = tabletsList.get(i);
         lines.add(String.format("%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s",
             i + 1, tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
-            tabletInfo.getNumEntries(humanReadable), tabletInfo.getSize(humanReadable),
-            tabletInfo.getStatus(), tabletInfo.getLocation(), tabletInfo.getTableId(),
-            tabletInfo.getStartRow(), tabletInfo.getEndRow(), tabletInfo.getHostingGoal()));
+            getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
+            getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
+            tabletInfo.getTabletState(), getLocation(tabletInfo.getLocation().orElse(null)),
+            tabletInfo.getTableId(),
+            tabletInfo.getStartRow() == null ? "-INF" : tabletInfo.getStartRow().toString(),
+            tabletInfo.getEndRow() == null ? "+INF" : tabletInfo.getEndRow().toString(),
+            tabletInfo.getHostingGoal()));
       }
     }
 
@@ -92,6 +105,27 @@ public class ListTabletsCommand extends Command {
 
     printResults(cl, shellState, lines);
     return 0;
+  }
+
+  private String getLocation(Location location) {
+    if (location == null) {
+      return "None";
+    }
+    return location.getType() + ":" + location.getHostPort();
+  }
+
+  private String getEstimatedSize(long size, boolean humanReadable) {
+    if (humanReadable) {
+      return NumUtil.bigNumberForQuantity(size);
+    }
+    return String.format("%,d", size);
+  }
+
+  private String getEstimatedEntries(long numEntries, boolean humanReadable) {
+    if (humanReadable) {
+      return NumUtil.bigNumberForQuantity(numEntries);
+    }
+    return String.format("%,d", numEntries);
   }
 
   @VisibleForTesting

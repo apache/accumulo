@@ -101,7 +101,6 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -142,7 +141,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -2182,8 +2180,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
-      throws TableNotFoundException {
+  public Stream<TabletInformationImpl> getTabletInformation(final String tableName,
+      final Range range) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
@@ -2195,30 +2193,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
             .checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
-    long[] numEntries = new long[1];
-    long[] size = new long[1];
+    liveTserverSet.forEach(p -> log.info(">>>> {}", p.getHostAndPort()));
+
     return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
         throw new RuntimeException("Bug in ample or this code.");
       }
-      numEntries[0] = 0;
-      size[0] = 0;
-      for (DataFileValue dfv : tm.getFilesMap().values()) {
-        numEntries[0] = dfv.getNumEntries();
-        size[0] += dfv.getSize();
-      }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformation(tableName, tm.getExtent().tableId(),
-            tm.getExtent().endRow() == null ? "+INF" : tm.getExtent().endRow().toString(),
-            tm.getExtent().prevEndRow() == null ? "-INF" : tm.getExtent().prevEndRow().toString(),
-            tm.getFilesMap().size(), tm.getLogs().size(), numEntries[0], size[0],
-            tm.getTabletState(liveTserverSet).toString(),
-            tm.getLocation() == null ? "None"
-                : tm.getLocation().getType() + ":" + tm.getLocation().getHostPort(),
-            tm.getDirName(), tm.getHostingGoal()))
+        .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
         .onClose(tabletsMetadata::close);
   }
 
