@@ -314,6 +314,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
+      // In addition to testing errors in compactions, this test also exercises creating lots of
+      // files to compact. The following will create 1000 files to compact. When changing this test
+      // try to keep both or create a new test for lots of files to compact.
       ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
 
       Ample ample = ((ClientContext) client).getAmple();
