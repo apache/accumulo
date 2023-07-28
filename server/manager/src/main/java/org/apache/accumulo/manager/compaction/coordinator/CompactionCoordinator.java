@@ -98,7 +98,6 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -239,7 +238,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           tablets.stream().forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
         }
 
-        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TTabletRefresh>>();
+        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TKeyExtent>>();
 
         refreshEntries.forEach(refreshEntry -> {
           var tm = tabletsMeta.get(refreshEntry.getExtent());
@@ -249,7 +248,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
               && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
             KeyExtent extent = tm.getExtent();
             Collection<StoredTabletFile> scanfiles = tm.getScans();
-            var ttr = TabletRefresher.createThriftRefresh(extent, scanfiles);
+            var ttr = extent.toThrift();
             tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
           }
         });
@@ -779,7 +778,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
 
     if (ecm.getKind() != CompactionKind.USER) {
-      refreshTablet(tabletMeta, ecm.getJobFiles());
+      refreshTablet(tabletMeta);
     }
 
     // if a refresh entry was written, it can be removed after the tablet was refreshed
@@ -811,11 +810,10 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
   }
 
-  private void refreshTablet(TabletMetadata metadata, Collection<StoredTabletFile> scanfiles) {
+  private void refreshTablet(TabletMetadata metadata) {
     var location = metadata.getLocation();
     if (location != null) {
       KeyExtent extent = metadata.getExtent();
-      TTabletRefresh tTabletRefresh = TabletRefresher.createThriftRefresh(extent, scanfiles);
 
       // there is a single tserver and single tablet, do not need a thread pool. The direct executor
       // will run everything in the current thread
@@ -823,7 +821,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       try {
         TabletRefresher.refreshTablets(executorService,
             "compaction:" + metadata.getExtent().toString(), ctx, tserverSet::getCurrentServers,
-            Map.of(metadata.getLocation(), List.of(tTabletRefresh)));
+            Map.of(metadata.getLocation(), List.of(extent.toThrift())));
       } finally {
         executorService.shutdownNow();
       }

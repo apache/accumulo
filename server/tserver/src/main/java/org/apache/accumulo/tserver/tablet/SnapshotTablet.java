@@ -67,7 +67,7 @@ public class SnapshotTablet extends TabletBase {
   }
 
   @Override
-  public SortedMap<StoredTabletFile,DataFileValue> getDatafiles() {
+  public Map<StoredTabletFile,DataFileValue> getDatafiles() {
     return files;
   }
 

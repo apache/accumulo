@@ -33,11 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,8 +75,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.compaction.CompactionStats;
-import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -118,19 +117,17 @@ public class Tablet extends TabletBase {
 
   private final TabletServer tabletServer;
   private final TabletResourceManager tabletResources;
-  private final DatafileManager datafileManager;
-  private final String dirName;
-
+  private final ScanfileManager scanfileManager;
   private final TabletMemory tabletMemory;
 
   private final TabletTime tabletTime;
-  private final Object timeLock = new Object();
-  private long persistedTime;
 
   private Location lastLocation = null;
   private final Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
+
+  private volatile TabletMetadata latestMetadata;
 
   @Override
   public long getDataSourceDeletions() {
@@ -144,8 +141,6 @@ public class Tablet extends TabletBase {
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
-
-  private final AtomicLong lastFlushID = new AtomicLong(-1);
 
   enum CompactionState {
     WAITING_TO_START, IN_PROGRESS
@@ -183,9 +178,6 @@ public class Tablet extends TabletBase {
 
   private final int logId;
 
-  // TODO: User can change this, how does it get updated?
-  private final TabletHostingGoal goal;
-
   public int getLogId() {
     return logId;
   }
@@ -198,8 +190,8 @@ public class Tablet extends TabletBase {
   }
 
   ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
-    return TabletNameGenerator.getNextDataFilename(prefix, context, extent, dirName,
-        dir -> checkTabletDir(new Path(dir)));
+    return TabletNameGenerator.getNextDataFilename(prefix, context, extent,
+        getMetadata().getDirName(), dir -> checkTabletDir(new Path(dir)));
   }
 
   private void checkTabletDir(Path path) {
@@ -225,34 +217,26 @@ public class Tablet extends TabletBase {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletData data)
+      final TabletResourceManager trm, TabletMetadata metadata)
       throws IOException, IllegalArgumentException {
 
     super(tabletServer, extent);
 
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
-    this.lastLocation = data.getLastLocation();
-    this.lastFlushID.set(data.getFlushID());
-    this.tabletTime = TabletTime.getInstance(data.getTime());
-    this.persistedTime = tabletTime.getTime();
+    this.latestMetadata = metadata;
+
+    // TODO look into this.. also last could be null
+    this.lastLocation = metadata.getLast();
+
+    this.tabletTime = TabletTime.getInstance(metadata.getTime());
     this.logId = tabletServer.createLogId();
-    this.goal = data.getHostingGoal();
-
-    // translate any volume changes
-    TabletFiles tabletPaths =
-        new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
-    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
-        extent, tabletPaths);
-
-    this.dirName = data.getDirectoryName();
-
-    final List<LogEntry> logEntries = tabletPaths.logEntries;
-    final SortedMap<StoredTabletFile,DataFileValue> datafiles = tabletPaths.datafiles;
 
     constraintChecker = tableConfiguration.newDeriver(ConstraintChecker::new);
 
     tabletMemory = new TabletMemory(this);
+
+    var logEntries = new ArrayList<>(metadata.getLogs());
 
     // don't bother examining WALs for recovery if Table is being deleted
     if (!logEntries.isEmpty() && !isBeingDeleted()) {
@@ -263,7 +247,7 @@ public class Tablet extends TabletBase {
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
         Set<String> absPaths = new HashSet<>();
-        for (StoredTabletFile ref : datafiles.keySet()) {
+        for (StoredTabletFile ref : metadata.getFiles()) {
           absPaths.add(ref.getNormalizedPathStr());
         }
 
@@ -288,8 +272,11 @@ public class Tablet extends TabletBase {
 
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
+          // ELASTICITY_TODO use conditional mutation for update
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
+          // intentionally not rereading metadata here because walogs are only used in the
+          // constructor
           logEntries.clear();
         }
 
@@ -316,11 +303,15 @@ public class Tablet extends TabletBase {
 
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
-    datafileManager = new DatafileManager(this, datafiles);
+    scanfileManager = new ScanfileManager(this);
 
     computeNumEntries();
 
-    getDatafileManager().removeFilesAfterScan(data.getScanFiles());
+    getScanfileManager().removeFilesAfterScan(metadata.getScans());
+  }
+
+  public TabletMetadata getMetadata() {
+    return latestMetadata;
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
@@ -375,7 +366,7 @@ public class Tablet extends TabletBase {
 
       Span span2 = TraceUtil.startSpan(this.getClass(), "minorCompact::bringOnline");
       try (Scope scope = span2.makeCurrent()) {
-        getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
+        bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
       } catch (Exception e) {
@@ -433,7 +424,7 @@ public class Tablet extends TabletBase {
           return;
         }
 
-        if (lastFlushID.get() >= tableFlushID) {
+        if (getMetadata().getFlushId().orElse(-1) >= tableFlushID) {
           return;
         }
 
@@ -443,7 +434,6 @@ public class Tablet extends TabletBase {
         }
 
         if (getTabletMemory().getMemTable().getNumEntries() == 0) {
-          lastFlushID.set(tableFlushID);
           updatingFlushID = true;
           updateMetadata = true;
         } else {
@@ -452,10 +442,21 @@ public class Tablet extends TabletBase {
       }
 
       if (updateMetadata) {
-        // if multiple threads were allowed to update this outside of a sync block, then it would be
-        // a race condition
-        MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, context,
-            getTabletServer().getLock());
+        refreshLock.lock();
+        try {
+          // if multiple threads were allowed to update this outside of a sync block, then it would
+          // be
+          // a race condition
+          // ELASTICITY_TODO use conditional mutations
+          MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, context,
+              getTabletServer().getLock());
+          // It is important the the refresh lock is held for the update above and the refresh below
+          // to avoid race conditions.
+          refreshMetadata(RefreshPurpose.FLUSH_ID_UPDATE);
+        } finally {
+          refreshLock.unlock();
+        }
+
       } else if (initiateMinor) {
         initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
       }
@@ -901,21 +902,6 @@ public class Tablet extends TabletBase {
         log.error(msg);
         throw new RuntimeException(msg);
       }
-
-      tabletMeta.getFlushId().ifPresent(flushId -> {
-        if (flushId != lastFlushID.get()) {
-          String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
-              + flushId + " != " + lastFlushID;
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
-      });
-
-      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-        String msg = "Data files in " + extent + " differ from in-memory data "
-            + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-        log.error(msg);
-      }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -931,72 +917,8 @@ public class Tablet extends TabletBase {
     }
   }
 
-  private boolean loggedErrorForTabletComparison = false;
-
-  /**
-   * Checks that tablet metadata from the metadata table matches what this tablet has in memory. The
-   * caller of this method must acquire the updateCounter parameter before acquiring the
-   * tabletMetadata.
-   *
-   * @param updateCounter used to check for conucurrent updates in which case this check is a no-op.
-   *        See {@link #getUpdateCount()}
-   * @param tabletMetadata the metadata for this tablet that was acquired from the metadata table.
-   */
-  public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
-      TabletMetadata tabletMetadata) {
-
-    // verify the given counter is for this tablet, if this check fail it indicates a bug in the
-    // calling code
-    Preconditions.checkArgument(updateCounter.getExtent().equals(getExtent()),
-        "Counter had unexpected extent %s != %s", updateCounter.getExtent(), getExtent());
-
-    // verify the given tablet metadata is for this tablet, if this check fail it indicates a bug in
-    // the calling code
-    Preconditions.checkArgument(tabletMetadata.getExtent().equals(getExtent()),
-        "Tablet metadata had unexpected extent %s != %s", tabletMetadata.getExtent(), getExtent());
-
-    // All of the log messages in this method have the AMCC acronym which means Accumulo Metadata
-    // Consistency Check. AMCC was added to the log messages to make grep/search for all log
-    // message from this method easy to find.
-
-    if (isClosed() || isClosing()) {
-      log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
-      return;
-    }
-
-    var dataFileSizes = getDatafileManager().getDatafileSizes();
-
-    if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
-      // The counters are modified outside of locks before and after tablet metadata operations and
-      // data file updates so, it's very important to acquire the 2nd counts after doing the
-      // equality check above. If the counts are the same (as the ones acquired before reading
-      // metadata table) after the equality check above then we know the tablet did not do any
-      // metadata updates while we were reading metadata and then comparing.
-      var latestCount = this.getUpdateCount();
-      if (updateCounter.overlapsUpdate() || !updateCounter.equals(latestCount)) {
-        log.trace(
-            "AMCC Tablet {} may have been updating its metadata while it was being read for "
-                + "check, so skipping check {} {}",
-            tabletMetadata.getExtent(), updateCounter, latestCount);
-      } else {
-        log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
-            tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
-        loggedErrorForTabletComparison = true;
-      }
-    } else {
-      if (loggedErrorForTabletComparison) {
-        log.info("AMCC Tablet {} files in memory are now same as in metadata table {}",
-            tabletMetadata.getExtent(), updateCounter);
-        loggedErrorForTabletComparison = false;
-      } else {
-        log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
-            tabletMetadata.getExtent(), updateCounter);
-      }
-    }
-  }
-
   synchronized void computeNumEntries() {
-    Collection<DataFileValue> vals = getDatafileManager().getDatafileSizes().values();
+    Collection<DataFileValue> vals = getDatafiles().values();
 
     long numEntries = 0;
 
@@ -1048,8 +970,8 @@ public class Tablet extends TabletBase {
   }
 
   @Override
-  public SortedMap<StoredTabletFile,DataFileValue> getDatafiles() {
-    return getDatafileManager().getDatafileSizes();
+  public Map<StoredTabletFile,DataFileValue> getDatafiles() {
+    return getMetadata().getFilesMap();
   }
 
   @Override
@@ -1325,17 +1247,21 @@ public class Tablet extends TabletBase {
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
       ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
       long flushId) {
-    synchronized (timeLock) {
-      if (maxCommittedTime > persistedTime) {
-        persistedTime = maxCommittedTime;
-      }
 
-      return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
-          newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
-          tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
-          flushId);
-    }
+    // expect time to only move forward from what was recently seen in metadata table
+    Preconditions.checkArgument(maxCommittedTime >= getMetadata().getTime().getTime());
 
+    // ELASTICITY_TODO use conditional mutation, can check time and location
+
+    // ELASTICITY_TODO minor compaction will need something like the bulk import loaded column
+    // to avoid : partial write, compact of file in partial write, and then another write of the
+    // file
+    // leading to the file being added twice.
+
+    return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
+        newDatafile, dfv, tabletTime.getMetadataTime(maxCommittedTime),
+        tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
+        flushId);
   }
 
   @Override
@@ -1348,22 +1274,18 @@ public class Tablet extends TabletBase {
     return getTabletServer().getScanMetrics();
   }
 
-  DatafileManager getDatafileManager() {
-    return datafileManager;
+  ScanfileManager getScanfileManager() {
+    return scanfileManager;
   }
 
   @Override
   public Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
-    return getDatafileManager().reserveFilesForScan();
+    return getScanfileManager().reserveFilesForScan();
   }
 
   @Override
   public void returnFilesForScan(long scanId) {
-    getDatafileManager().returnFilesForScan(scanId);
-  }
-
-  public MetadataUpdateCount getUpdateCount() {
-    return getDatafileManager().getUpdateCount();
+    getScanfileManager().returnFilesForScan(scanId);
   }
 
   TabletMemory getTabletMemory() {
@@ -1378,14 +1300,6 @@ public class Tablet extends TabletBase {
   @Override
   public void returnMemIterators(List<InMemoryMap.MemoryIterator> iters) {
     getTabletMemory().returnIterators(iters);
-  }
-
-  public void flushComplete(long flushId) {
-    lastLocation = null;
-    dataSourceDeletions.incrementAndGet();
-    tabletMemory.finishedMinC();
-    lastFlushID.set(flushId);
-    computeNumEntries();
   }
 
   public void minorCompactionWaitingToStart() {
@@ -1405,48 +1319,143 @@ public class Tablet extends TabletBase {
   }
 
   public boolean isOnDemand() {
-    return goal == TabletHostingGoal.ONDEMAND;
+    // TODO a change in the hosting goal could refresh online tablets
+    return getMetadata().getHostingGoal() == TabletHostingGoal.ONDEMAND;
   }
 
-  public void refresh(List<StoredTabletFile> scanEntries) {
-    if (isClosing() || isClosed()) {
-      // TODO this is just a best effort could close after this check, its a race condition.
-      // Intentionally not being handled ATM.
-      return;
+  // The purpose of this lock is to prevent race conditions between concurrent refresh RPC calls and
+  // between minor compactions and refresh calls.
+  private final Lock refreshLock = new ReentrantLock();
+
+  void bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
+      ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
+      long flushId) {
+    Optional<StoredTabletFile> newFile;
+    // rename before putting in metadata table, so files in metadata table should
+    // always exist
+    boolean attemptedRename = false;
+    VolumeManager vm = getTabletServer().getContext().getVolumeManager();
+    do {
+      try {
+        if (dfv.getNumEntries() == 0) {
+          log.debug("No data entries so delete temporary file {}", tmpDatafile);
+          vm.deleteRecursively(tmpDatafile.getPath());
+        } else {
+          if (!attemptedRename && vm.exists(newDatafile.getPath())) {
+            log.warn("Target data file already exist {}", newDatafile);
+            throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
+          }
+          // the following checks for spurious rename failures that succeeded but gave an IoE
+          if (attemptedRename && vm.exists(newDatafile.getPath())
+              && !vm.exists(tmpDatafile.getPath())) {
+            // seems like previous rename succeeded, so break
+            break;
+          }
+          attemptedRename = true;
+          ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+        }
+        break;
+      } catch (IOException ioe) {
+        log.warn("Tablet " + getExtent() + " failed to rename " + newDatafile
+            + " after MinC, will retry in 60 secs...", ioe);
+        sleepUninterruptibly(1, TimeUnit.MINUTES);
+      }
+    } while (true);
+
+    // The refresh lock must be held for the metadata write that adds the new file to the tablet.
+    // This prevents a concurrent refresh operation from pulling in the new tablet file before the
+    // in memory map reference related to the file is deactivated. Scans should use one of the in
+    // memory map or the new file, never both.
+    refreshLock.lock();
+    try {
+      Set<String> unusedWalLogs = beginClearingUnusedLogs();
+      try {
+        // the order of writing to metadata and walog is important in the face of machine/process
+        // failures need to write to metadata before writing to walog, when things are done in the
+        // reverse order data could be lost... the minor compaction start event should be written
+        // before the following metadata write is made
+
+        newFile = updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
+            unusedWalLogs, flushId);
+      } finally {
+        finishClearingUnusedLogs();
+      }
+
+      // Without the refresh lock, if a refresh happened here it could make the new file written to
+      // the metadata table above available for scans while the in memory map from which the file
+      // was produced is still available for scans
+
+      do {
+        try {
+          // the purpose of making this update use the new commit session, instead of the old one
+          // passed in, is because the new one will reference the logs used by current memory...
+          getTabletServer().minorCompactionFinished(getTabletMemory().getCommitSession(),
+              commitSession.getWALogSeq() + 2);
+          break;
+        } catch (IOException e) {
+          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
+        }
+      } while (true);
+
+      refreshMetadata(RefreshPurpose.MINC_COMPLETION);
+    } finally {
+      refreshLock.unlock();
+    }
+    TabletLogger.flushed(getExtent(), newFile);
+
+    long splitSize = getTableConfiguration().getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+    if (dfv.getSize() > splitSize) {
+      log.debug(String.format("Minor Compaction wrote out file larger than split threshold."
+          + " split threshold = %,d  file size = %,d", splitSize, dfv.getSize()));
+    }
+  }
+
+  public enum RefreshPurpose {
+    MINC_COMPLETION, REFRESH_RPC, FLUSH_ID_UPDATE
+  }
+
+  public void refreshMetadata(RefreshPurpose refreshPurpose) {
+    refreshLock.lock();
+    try {
+
+      // do not want to hold tablet lock while doing metadata read as this could negatively impact
+      // scans
+      TabletMetadata tabletMetadata = getContext().getAmple().readTablet(getExtent());
+
+      synchronized (this) {
+        latestMetadata = tabletMetadata;
+
+        if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {
+          // Atomically replace the in memory map with the new file. Before this synch block a scan
+          // starting would see the in memory map. After this synch block it should see the file in
+          // the tabletMetadata. Scans sync on the tablet also, so they can not be in this code
+          // block at the same time.
+
+          lastLocation = null;
+          tabletMemory.finishedMinC();
+
+          // the files and in memory map changed, incrementing this will cause scans to switch data
+          // sources
+          dataSourceDeletions.incrementAndGet();
+
+          // important to call this after updating latestMetadata and tabletMemory
+          computeNumEntries();
+        } else if (!latestMetadata.getFilesMap().equals(tabletMetadata.getFilesMap())) {
+
+          // the files changed, incrementing this will cause scans to switch data sources
+          dataSourceDeletions.incrementAndGet();
+
+          // important to call this after updating latestMetadata
+          computeNumEntries();
+        }
+      }
+    } finally {
+      refreshLock.unlock();
     }
 
-    // ELASTICITY_TODO instead of reading the tablet metadata in this method, could just invalidate
-    // it forcing next scan to read it.
-
-    // ELASTICITY_TODO this entire method is a hack at the moment with race conditions. Want to
-    // move towards the tablet just using a cached TabletMetadata object and have a central orderly
-    // thread safe way to update it within the tablet in response to external refresh request and
-    // internal events like minor compactions. Would probably be easiest to implement this after
-    // removing bulk import, split, and compactions from the tablet server. For now just leave it
-    // as a hack instead of trying to make it work correctly with the current tablet code.
-    TabletMetadata tabletMetadata =
-        getContext().getAmple().readTablet(getExtent(), ColumnType.FILES);
-
-    // TODO this could have race conditions with minor compactions. Intentionally
-    // not being handled ATM.
-    getDatafileManager().setFilesHack(tabletMetadata.getFilesMap());
-
-    // ELASTICITY_TODO this was in the code that brought a major compaction online. Adding it here
-    // w/o looking into the larger context too much.
-    dataSourceDeletions.incrementAndGet();
-
-    // ELASTICITY_TODO this was in the code that brought a major compaction online. Adding it here
-    // w/o looking into the larger context too much.
-    computeNumEntries();
-
-    if (!scanEntries.isEmpty()) {
-      // ELASTICITY_TODO this is a temporary hack. Should not always remove scan entries added by a
-      // compaction, need to check and see if they are actually in use by a scan. If in use need to
-      // add to a set to remove later. Also should use a conditional mutation to update, did not
-      // bother using conditional mutation as this is temporary.
-      var tabletMutator = getContext().getAmple().mutateTablet(extent);
-      scanEntries.forEach(tabletMutator::deleteScan);
-      tabletMutator.mutate();
+    if (refreshPurpose == RefreshPurpose.REFRESH_RPC) {
+      scanfileManager.removeFilesAfterScan(getMetadata().getScans());
     }
   }
 }

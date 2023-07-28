@@ -53,7 +53,7 @@ public class TabletServerClientService {
 
     public org.apache.accumulo.core.dataImpl.thrift.TSummaries contiuneGetSummaries(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessionId) throws NoSuchScanIDException, org.apache.thrift.TException;
 
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh) throws org.apache.thrift.TException;
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh) throws org.apache.thrift.TException;
 
   }
 
@@ -83,7 +83,7 @@ public class TabletServerClientService {
 
     public void contiuneGetSummaries(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessionId, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TSummaries> resultHandler) throws org.apache.thrift.TException;
 
-    public void refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
+    public void refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -415,13 +415,13 @@ public class TabletServerClientService {
     }
 
     @Override
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh) throws org.apache.thrift.TException
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh) throws org.apache.thrift.TException
     {
       send_refreshTablets(tinfo, credentials, tabletsToRefresh);
       return recv_refreshTablets();
     }
 
-    public void send_refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh) throws org.apache.thrift.TException
+    public void send_refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh) throws org.apache.thrift.TException
     {
       refreshTablets_args args = new refreshTablets_args();
       args.setTinfo(tinfo);
@@ -959,7 +959,7 @@ public class TabletServerClientService {
     }
 
     @Override
-    public void refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException {
+    public void refreshTablets(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       refreshTablets_call method_call = new refreshTablets_call(tinfo, credentials, tabletsToRefresh, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -969,8 +969,8 @@ public class TabletServerClientService {
     public static class refreshTablets_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private java.util.List<TTabletRefresh> tabletsToRefresh;
-      public refreshTablets_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TTabletRefresh> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh;
+      public refreshTablets_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -5213,14 +5213,14 @@ public class TabletServerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list80 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<TabletStats>(_list80.size);
-                  @org.apache.thrift.annotation.Nullable TabletStats _elem81;
-                  for (int _i82 = 0; _i82 < _list80.size; ++_i82)
+                  org.apache.thrift.protocol.TList _list72 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<TabletStats>(_list72.size);
+                  @org.apache.thrift.annotation.Nullable TabletStats _elem73;
+                  for (int _i74 = 0; _i74 < _list72.size; ++_i74)
                   {
-                    _elem81 = new TabletStats();
-                    _elem81.read(iprot);
-                    struct.success.add(_elem81);
+                    _elem73 = new TabletStats();
+                    _elem73.read(iprot);
+                    struct.success.add(_elem73);
                   }
                   iprot.readListEnd();
                 }
@@ -5258,9 +5258,9 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (TabletStats _iter83 : struct.success)
+            for (TabletStats _iter75 : struct.success)
             {
-              _iter83.write(oprot);
+              _iter75.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -5300,9 +5300,9 @@ public class TabletServerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (TabletStats _iter84 : struct.success)
+            for (TabletStats _iter76 : struct.success)
             {
-              _iter84.write(oprot);
+              _iter76.write(oprot);
             }
           }
         }
@@ -5317,14 +5317,14 @@ public class TabletServerClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list85 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<TabletStats>(_list85.size);
-            @org.apache.thrift.annotation.Nullable TabletStats _elem86;
-            for (int _i87 = 0; _i87 < _list85.size; ++_i87)
+            org.apache.thrift.protocol.TList _list77 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.success = new java.util.ArrayList<TabletStats>(_list77.size);
+            @org.apache.thrift.annotation.Nullable TabletStats _elem78;
+            for (int _i79 = 0; _i79 < _list77.size; ++_i79)
             {
-              _elem86 = new TabletStats();
-              _elem86.read(iprot);
-              struct.success.add(_elem86);
+              _elem78 = new TabletStats();
+              _elem78.read(iprot);
+              struct.success.add(_elem78);
             }
           }
           struct.setSuccessIsSet(true);
@@ -8419,13 +8419,13 @@ public class TabletServerClientService {
             case 3: // FILENAMES
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list88 = iprot.readListBegin();
-                  struct.filenames = new java.util.ArrayList<java.lang.String>(_list88.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem89;
-                  for (int _i90 = 0; _i90 < _list88.size; ++_i90)
+                  org.apache.thrift.protocol.TList _list80 = iprot.readListBegin();
+                  struct.filenames = new java.util.ArrayList<java.lang.String>(_list80.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem81;
+                  for (int _i82 = 0; _i82 < _list80.size; ++_i82)
                   {
-                    _elem89 = iprot.readString();
-                    struct.filenames.add(_elem89);
+                    _elem81 = iprot.readString();
+                    struct.filenames.add(_elem81);
                   }
                   iprot.readListEnd();
                 }
@@ -8464,9 +8464,9 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(FILENAMES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.filenames.size()));
-            for (java.lang.String _iter91 : struct.filenames)
+            for (java.lang.String _iter83 : struct.filenames)
             {
-              oprot.writeString(_iter91);
+              oprot.writeString(_iter83);
             }
             oprot.writeListEnd();
           }
@@ -8510,9 +8510,9 @@ public class TabletServerClientService {
         if (struct.isSetFilenames()) {
           {
             oprot.writeI32(struct.filenames.size());
-            for (java.lang.String _iter92 : struct.filenames)
+            for (java.lang.String _iter84 : struct.filenames)
             {
-              oprot.writeString(_iter92);
+              oprot.writeString(_iter84);
             }
           }
         }
@@ -8534,13 +8534,13 @@ public class TabletServerClientService {
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TList _list93 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.filenames = new java.util.ArrayList<java.lang.String>(_list93.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem94;
-            for (int _i95 = 0; _i95 < _list93.size; ++_i95)
+            org.apache.thrift.protocol.TList _list85 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.filenames = new java.util.ArrayList<java.lang.String>(_list85.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem86;
+            for (int _i87 = 0; _i87 < _list85.size; ++_i87)
             {
-              _elem94 = iprot.readString();
-              struct.filenames.add(_elem94);
+              _elem86 = iprot.readString();
+              struct.filenames.add(_elem86);
             }
           }
           struct.setFilenamesIsSet(true);
@@ -9373,13 +9373,13 @@ public class TabletServerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list96 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list96.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem97;
-                  for (int _i98 = 0; _i98 < _list96.size; ++_i98)
+                  org.apache.thrift.protocol.TList _list88 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list88.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem89;
+                  for (int _i90 = 0; _i90 < _list88.size; ++_i90)
                   {
-                    _elem97 = iprot.readString();
-                    struct.success.add(_elem97);
+                    _elem89 = iprot.readString();
+                    struct.success.add(_elem89);
                   }
                   iprot.readListEnd();
                 }
@@ -9408,9 +9408,9 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter99 : struct.success)
+            for (java.lang.String _iter91 : struct.success)
             {
-              oprot.writeString(_iter99);
+              oprot.writeString(_iter91);
             }
             oprot.writeListEnd();
           }
@@ -9442,9 +9442,9 @@ public class TabletServerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter100 : struct.success)
+            for (java.lang.String _iter92 : struct.success)
             {
-              oprot.writeString(_iter100);
+              oprot.writeString(_iter92);
             }
           }
         }
@@ -9456,13 +9456,13 @@ public class TabletServerClientService {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list101 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.lang.String>(_list101.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem102;
-            for (int _i103 = 0; _i103 < _list101.size; ++_i103)
+            org.apache.thrift.protocol.TList _list93 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.lang.String>(_list93.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem94;
+            for (int _i95 = 0; _i95 < _list93.size; ++_i95)
             {
-              _elem102 = iprot.readString();
-              struct.success.add(_elem102);
+              _elem94 = iprot.readString();
+              struct.success.add(_elem94);
             }
           }
           struct.setSuccessIsSet(true);
@@ -12586,26 +12586,26 @@ public class TabletServerClientService {
             case 4: // FILES
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map104 = iprot.readMapBegin();
-                  struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>>(2*_map104.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key105;
-                  @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange> _val106;
-                  for (int _i107 = 0; _i107 < _map104.size; ++_i107)
+                  org.apache.thrift.protocol.TMap _map96 = iprot.readMapBegin();
+                  struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>>(2*_map96.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key97;
+                  @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange> _val98;
+                  for (int _i99 = 0; _i99 < _map96.size; ++_i99)
                   {
-                    _key105 = iprot.readString();
+                    _key97 = iprot.readString();
                     {
-                      org.apache.thrift.protocol.TList _list108 = iprot.readListBegin();
-                      _val106 = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TRowRange>(_list108.size);
-                      @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRowRange _elem109;
-                      for (int _i110 = 0; _i110 < _list108.size; ++_i110)
+                      org.apache.thrift.protocol.TList _list100 = iprot.readListBegin();
+                      _val98 = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TRowRange>(_list100.size);
+                      @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRowRange _elem101;
+                      for (int _i102 = 0; _i102 < _list100.size; ++_i102)
                       {
-                        _elem109 = new org.apache.accumulo.core.dataImpl.thrift.TRowRange();
-                        _elem109.read(iprot);
-                        _val106.add(_elem109);
+                        _elem101 = new org.apache.accumulo.core.dataImpl.thrift.TRowRange();
+                        _elem101.read(iprot);
+                        _val98.add(_elem101);
                       }
                       iprot.readListEnd();
                     }
-                    struct.files.put(_key105, _val106);
+                    struct.files.put(_key97, _val98);
                   }
                   iprot.readMapEnd();
                 }
@@ -12649,14 +12649,14 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(FILES_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.files.size()));
-            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>> _iter111 : struct.files.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>> _iter103 : struct.files.entrySet())
             {
-              oprot.writeString(_iter111.getKey());
+              oprot.writeString(_iter103.getKey());
               {
-                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter111.getValue().size()));
-                for (org.apache.accumulo.core.dataImpl.thrift.TRowRange _iter112 : _iter111.getValue())
+                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter103.getValue().size()));
+                for (org.apache.accumulo.core.dataImpl.thrift.TRowRange _iter104 : _iter103.getValue())
                 {
-                  _iter112.write(oprot);
+                  _iter104.write(oprot);
                 }
                 oprot.writeListEnd();
               }
@@ -12709,14 +12709,14 @@ public class TabletServerClientService {
         if (struct.isSetFiles()) {
           {
             oprot.writeI32(struct.files.size());
-            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>> _iter113 : struct.files.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>> _iter105 : struct.files.entrySet())
             {
-              oprot.writeString(_iter113.getKey());
+              oprot.writeString(_iter105.getKey());
               {
-                oprot.writeI32(_iter113.getValue().size());
-                for (org.apache.accumulo.core.dataImpl.thrift.TRowRange _iter114 : _iter113.getValue())
+                oprot.writeI32(_iter105.getValue().size());
+                for (org.apache.accumulo.core.dataImpl.thrift.TRowRange _iter106 : _iter105.getValue())
                 {
-                  _iter114.write(oprot);
+                  _iter106.write(oprot);
                 }
               }
             }
@@ -12745,25 +12745,25 @@ public class TabletServerClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TMap _map115 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST); 
-            struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>>(2*_map115.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key116;
-            @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange> _val117;
-            for (int _i118 = 0; _i118 < _map115.size; ++_i118)
+            org.apache.thrift.protocol.TMap _map107 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST); 
+            struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange>>(2*_map107.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key108;
+            @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRowRange> _val109;
+            for (int _i110 = 0; _i110 < _map107.size; ++_i110)
             {
-              _key116 = iprot.readString();
+              _key108 = iprot.readString();
               {
-                org.apache.thrift.protocol.TList _list119 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-                _val117 = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TRowRange>(_list119.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRowRange _elem120;
-                for (int _i121 = 0; _i121 < _list119.size; ++_i121)
+                org.apache.thrift.protocol.TList _list111 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+                _val109 = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TRowRange>(_list111.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRowRange _elem112;
+                for (int _i113 = 0; _i113 < _list111.size; ++_i113)
                 {
-                  _elem120 = new org.apache.accumulo.core.dataImpl.thrift.TRowRange();
-                  _elem120.read(iprot);
-                  _val117.add(_elem120);
+                  _elem112 = new org.apache.accumulo.core.dataImpl.thrift.TRowRange();
+                  _elem112.read(iprot);
+                  _val109.add(_elem112);
                 }
               }
-              struct.files.put(_key116, _val117);
+              struct.files.put(_key108, _val109);
             }
           }
           struct.setFilesIsSet(true);
@@ -14253,7 +14253,7 @@ public class TabletServerClientService {
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<TTabletRefresh> tabletsToRefresh; // required
+    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -14333,7 +14333,7 @@ public class TabletServerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TABLETS_TO_REFRESH, new org.apache.thrift.meta_data.FieldMetaData("tabletsToRefresh", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TTabletRefresh.class))));
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class))));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(refreshTablets_args.class, metaDataMap);
     }
@@ -14344,7 +14344,7 @@ public class TabletServerClientService {
     public refreshTablets_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.util.List<TTabletRefresh> tabletsToRefresh)
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh)
     {
       this();
       this.tinfo = tinfo;
@@ -14363,9 +14363,9 @@ public class TabletServerClientService {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
       if (other.isSetTabletsToRefresh()) {
-        java.util.List<TTabletRefresh> __this__tabletsToRefresh = new java.util.ArrayList<TTabletRefresh>(other.tabletsToRefresh.size());
-        for (TTabletRefresh other_element : other.tabletsToRefresh) {
-          __this__tabletsToRefresh.add(new TTabletRefresh(other_element));
+        java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> __this__tabletsToRefresh = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(other.tabletsToRefresh.size());
+        for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent other_element : other.tabletsToRefresh) {
+          __this__tabletsToRefresh.add(new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other_element));
         }
         this.tabletsToRefresh = __this__tabletsToRefresh;
       }
@@ -14438,23 +14438,23 @@ public class TabletServerClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<TTabletRefresh> getTabletsToRefreshIterator() {
+    public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getTabletsToRefreshIterator() {
       return (this.tabletsToRefresh == null) ? null : this.tabletsToRefresh.iterator();
     }
 
-    public void addToTabletsToRefresh(TTabletRefresh elem) {
+    public void addToTabletsToRefresh(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent elem) {
       if (this.tabletsToRefresh == null) {
-        this.tabletsToRefresh = new java.util.ArrayList<TTabletRefresh>();
+        this.tabletsToRefresh = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>();
       }
       this.tabletsToRefresh.add(elem);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.List<TTabletRefresh> getTabletsToRefresh() {
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getTabletsToRefresh() {
       return this.tabletsToRefresh;
     }
 
-    public refreshTablets_args setTabletsToRefresh(@org.apache.thrift.annotation.Nullable java.util.List<TTabletRefresh> tabletsToRefresh) {
+    public refreshTablets_args setTabletsToRefresh(@org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> tabletsToRefresh) {
       this.tabletsToRefresh = tabletsToRefresh;
       return this;
     }
@@ -14497,7 +14497,7 @@ public class TabletServerClientService {
         if (value == null) {
           unsetTabletsToRefresh();
         } else {
-          setTabletsToRefresh((java.util.List<TTabletRefresh>)value);
+          setTabletsToRefresh((java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>)value);
         }
         break;
 
@@ -14758,14 +14758,14 @@ public class TabletServerClientService {
             case 3: // TABLETS_TO_REFRESH
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list122 = iprot.readListBegin();
-                  struct.tabletsToRefresh = new java.util.ArrayList<TTabletRefresh>(_list122.size);
-                  @org.apache.thrift.annotation.Nullable TTabletRefresh _elem123;
-                  for (int _i124 = 0; _i124 < _list122.size; ++_i124)
+                  org.apache.thrift.protocol.TList _list114 = iprot.readListBegin();
+                  struct.tabletsToRefresh = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list114.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem115;
+                  for (int _i116 = 0; _i116 < _list114.size; ++_i116)
                   {
-                    _elem123 = new TTabletRefresh();
-                    _elem123.read(iprot);
-                    struct.tabletsToRefresh.add(_elem123);
+                    _elem115 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem115.read(iprot);
+                    struct.tabletsToRefresh.add(_elem115);
                   }
                   iprot.readListEnd();
                 }
@@ -14804,9 +14804,9 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(TABLETS_TO_REFRESH_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.tabletsToRefresh.size()));
-            for (TTabletRefresh _iter125 : struct.tabletsToRefresh)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter117 : struct.tabletsToRefresh)
             {
-              _iter125.write(oprot);
+              _iter117.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -14850,9 +14850,9 @@ public class TabletServerClientService {
         if (struct.isSetTabletsToRefresh()) {
           {
             oprot.writeI32(struct.tabletsToRefresh.size());
-            for (TTabletRefresh _iter126 : struct.tabletsToRefresh)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter118 : struct.tabletsToRefresh)
             {
-              _iter126.write(oprot);
+              _iter118.write(oprot);
             }
           }
         }
@@ -14874,14 +14874,14 @@ public class TabletServerClientService {
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TList _list127 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.tabletsToRefresh = new java.util.ArrayList<TTabletRefresh>(_list127.size);
-            @org.apache.thrift.annotation.Nullable TTabletRefresh _elem128;
-            for (int _i129 = 0; _i129 < _list127.size; ++_i129)
+            org.apache.thrift.protocol.TList _list119 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.tabletsToRefresh = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list119.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem120;
+            for (int _i121 = 0; _i121 < _list119.size; ++_i121)
             {
-              _elem128 = new TTabletRefresh();
-              _elem128.read(iprot);
-              struct.tabletsToRefresh.add(_elem128);
+              _elem120 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem120.read(iprot);
+              struct.tabletsToRefresh.add(_elem120);
             }
           }
           struct.setTabletsToRefreshIsSet(true);
@@ -15223,14 +15223,14 @@ public class TabletServerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list130 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list130.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem131;
-                  for (int _i132 = 0; _i132 < _list130.size; ++_i132)
+                  org.apache.thrift.protocol.TList _list122 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list122.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem123;
+                  for (int _i124 = 0; _i124 < _list122.size; ++_i124)
                   {
-                    _elem131 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _elem131.read(iprot);
-                    struct.success.add(_elem131);
+                    _elem123 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem123.read(iprot);
+                    struct.success.add(_elem123);
                   }
                   iprot.readListEnd();
                 }
@@ -15259,9 +15259,9 @@ public class TabletServerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter133 : struct.success)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter125 : struct.success)
             {
-              _iter133.write(oprot);
+              _iter125.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -15293,9 +15293,9 @@ public class TabletServerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter134 : struct.success)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter126 : struct.success)
             {
-              _iter134.write(oprot);
+              _iter126.write(oprot);
             }
           }
         }
@@ -15307,14 +15307,14 @@ public class TabletServerClientService {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list135 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list135.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem136;
-            for (int _i137 = 0; _i137 < _list135.size; ++_i137)
+            org.apache.thrift.protocol.TList _list127 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list127.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem128;
+            for (int _i129 = 0; _i129 < _list127.size; ++_i129)
             {
-              _elem136 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _elem136.read(iprot);
-              struct.success.add(_elem136);
+              _elem128 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem128.read(iprot);
+              struct.success.add(_elem128);
             }
           }
           struct.setSuccessIsSet(true);
