@@ -90,7 +90,10 @@ import com.google.common.collect.Multimap;
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
  * @since 2.1.0
+ * @deprecated See {@link TableLoadBalancer} as it provides similar functionality using server
+ *             process resource group parameters.
  */
+@Deprecated(since = "4.0.0")
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
