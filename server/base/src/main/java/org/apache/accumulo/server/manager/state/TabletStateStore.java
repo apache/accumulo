@@ -53,6 +53,15 @@ public interface TabletStateStore extends Iterable<TabletManagement> {
   ClosableIterator<TabletManagement> iterator();
 
   /**
+   * Notify this TabletStateStore that a Tablet needs to be returned by the iterator() method so
+   * that the TabletGroupWatcher can perform the associated action on this Tablet.
+   *
+   * @param tablet TabletMetadata and Action that needs to be performed on it.
+   * @return true if tablet modification accepted for processing, false otherwise.
+   */
+  boolean addTabletStateChange(TabletManagement tablet);
+
+  /**
    * Store the assigned locations in the data store.
    */
   void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
