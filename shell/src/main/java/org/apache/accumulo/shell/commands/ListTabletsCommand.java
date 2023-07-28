@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,7 +89,7 @@ public class ListTabletsCommand extends Command {
             i + 1, tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
             getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
             getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
-            tabletInfo.getTabletState(), getLocation(tabletInfo.getLocation().orElse(null)),
+            tabletInfo.getTabletState(), tabletInfo.getLocation().orElse("None"),
             tabletInfo.getTabletId().getTable(),
             tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
                 : tabletInfo.getTabletId().getPrevEndRow().toString(),
@@ -107,13 +105,6 @@ public class ListTabletsCommand extends Command {
 
     printResults(cl, shellState, lines);
     return 0;
-  }
-
-  private String getLocation(Location location) {
-    if (location == null) {
-      return "None";
-    }
-    return location.getType() + ":" + location.getHostPort();
   }
 
   private String getEstimatedSize(long size, boolean humanReadable) {

@@ -60,9 +60,9 @@ public interface TabletInformation {
   String getTabletState();
 
   /**
-   * @return the Location of the tablet.
+   * @return the Location of the tablet as a String.
    */
-  Optional<Location> getLocation();
+  Optional<String> getLocation();
 
   /**
    * @return the directory name of the tablet.
