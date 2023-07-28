@@ -23,13 +23,11 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.hadoop.io.Text;
 
 public class TabletInformationImpl implements TabletInformation {
 
@@ -47,21 +45,6 @@ public class TabletInformationImpl implements TabletInformation {
       estimatedSize += dfv.getSize();
     }
     this.tabletState = tabletState;
-  }
-
-  @Override
-  public Text getEndRow() {
-    return tabletMetadata.getEndRow();
-  }
-
-  @Override
-  public Text getStartRow() {
-    return tabletMetadata.getPrevEndRow();
-  }
-
-  @Override
-  public TableId getTableId() {
-    return tabletMetadata.getTableId();
   }
 
   @Override

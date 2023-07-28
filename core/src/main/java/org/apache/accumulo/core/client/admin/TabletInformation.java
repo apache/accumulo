@@ -20,32 +20,18 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.Optional;
 
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.hadoop.io.Text;
 
+/**
+ * @since 4.0.0
+ */
 public interface TabletInformation {
-
-  /**
-   * @return the TableId of the table containing this tablet.
-   */
-  TableId getTableId();
 
   /**
    * @return the TabletId for this tablet.
    */
   TabletId getTabletId();
-
-  /**
-   * @return the tablet end row.
-   */
-  Text getEndRow();
-
-  /**
-   * @return the previous end row.
-   */
-  Text getStartRow();
 
   /**
    * @return the number of files in the tablet directory.

@@ -92,9 +92,11 @@ public class ListTabletsCommand extends Command {
             getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
             getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
             tabletInfo.getTabletState(), getLocation(tabletInfo.getLocation().orElse(null)),
-            tabletInfo.getTableId(),
-            tabletInfo.getStartRow() == null ? "-INF" : tabletInfo.getStartRow().toString(),
-            tabletInfo.getEndRow() == null ? "+INF" : tabletInfo.getEndRow().toString(),
+            tabletInfo.getTabletId().getTable(),
+            tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
+                : tabletInfo.getTabletId().getPrevEndRow().toString(),
+            tabletInfo.getTabletId().getEndRow() == null ? "+INF"
+                : tabletInfo.getTabletId().getEndRow().toString(),
             tabletInfo.getHostingGoal()));
       }
     }

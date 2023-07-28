@@ -2193,7 +2193,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
             .checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
-    liveTserverSet.forEach(p -> log.info(">>>> {}", p.getHostAndPort()));
 
     return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
