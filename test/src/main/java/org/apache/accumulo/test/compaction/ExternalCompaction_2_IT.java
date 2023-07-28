@@ -31,6 +31,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.ro
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -141,7 +143,16 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       createTable(client, table1, "cs3");
       TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
-      compact(client, table1, 2, GROUP3, false);
+
+      AtomicReference<Throwable> error = new AtomicReference<>();
+      Thread t = new Thread(() -> {
+        try {
+          compact(client, table1, 2, GROUP3, true);
+        } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+          error.set(e);
+        }
+      });
+      t.start();
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
@@ -160,6 +171,11 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       }
 
       client.tableOperations().cancelCompaction(table1);
+
+      t.join();
+      Throwable e = error.get();
+      assertNotNull(e);
+      assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.CANCELLED);
