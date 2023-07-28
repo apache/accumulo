@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -135,13 +134,52 @@ public interface TabletBalancer {
   long balance(BalanceParameters params);
 
   /**
-   * Get the ResourceGroup name for this tablet
+   * Provides access to information related to a tablet that is currently assigned to a tablet
+   * server.
    *
-   * @param tabletId id of tablet
-   * @return resource group name
    * @since 4.0.0
    */
-  default String getResourceGroup(TabletId tabletId) {
-    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+  interface CurrentAssignment {
+    TabletId getTablet();
+
+    TabletServerId getTabletServer();
+
+    String getResourceGroup();
+  }
+
+  /**
+   * <p>
+   * The manager periodically scans all tablets looking for tablets that are assigned to dead tablet
+   * servers or unassigned. During the scan this method is also called for tablets that are
+   * currently assigned to a live tserver to see if they should be unassigned and reassigned. If
+   * this method returns true the tablet will be unloaded from the tablet sever and then later the
+   * tablet will be passed to {@link #getAssignments(AssignmentParameters)}.
+   * </p>
+   *
+   * <p>
+   * One example use case for this method is a balancer that partitions tablet servers into groups.
+   * If the balancers config is changed such that a table that was assigned to tablet server group A
+   * should now be assigned to tablet server B, then this method can return true for the tablets in
+   * that table assigned to tablet server group A. After those tablets are unloaded and passed to
+   * the {@link #getAssignments(AssignmentParameters)} method it can reassign them to tablet server
+   * group B.
+   * </p>
+   *
+   * <p>
+   * Accumulo may instantiate this plugin in different processes and call this method. When the
+   * manager looks for tablets that needs reassignment it currently uses an Accumulo iterator to
+   * scan the metadata table and filter tablets. That iterator may run on multiple tablets servers
+   * and call this plugin. Keep this in mind when implementing this plugin and considering keeping
+   * state between calls to this method.
+   * </p>
+   *
+   * <p>
+   * This new method may be used instead of or in addition to {@link #balance(BalanceParameters)}
+   * </p>
+   *
+   * @since 4.0.0
+   */
+  default boolean needsReassignment(CurrentAssignment currentAssignment) {
+    return false;
   }
 }

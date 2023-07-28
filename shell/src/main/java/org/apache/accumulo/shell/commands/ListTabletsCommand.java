@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -252,7 +253,7 @@ public class ListTabletsCommand extends Command {
         factory.numWalLogs(md.getLogs().size());
         factory.dir(md.getDirName());
         factory.location(md.getLocation());
-        factory.status(md.getTabletState(liveTserverSet).toString());
+        factory.status(TabletState.compute(md, liveTserverSet).toString());
         results.add(factory.build());
       }
     }

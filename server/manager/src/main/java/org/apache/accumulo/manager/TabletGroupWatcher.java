@@ -37,7 +37,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -253,10 +252,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
             new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
 
-        final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
-        manager.tServerResourceGroups().forEach((k, v) -> {
-          resourceGroups.put(k,
-              v.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+        final Map<TabletServerId,String> resourceGroups = new HashMap<>();
+        manager.tServerResourceGroups().forEach((group, tservers) -> {
+          tservers.stream().map(TabletServerIdImpl::new)
+              .forEach(tabletServerId -> resourceGroups.put(tabletServerId, group));
         });
 
         // Walk through the tablets in our store, and work tablets
@@ -303,8 +302,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          TabletState state =
-              tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
+          TabletState state = TabletState.compute(tm, currentTServers.keySet(),
+              manager.tabletBalancer, resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -325,7 +324,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
-          } else if (state == TabletState.ASSIGNED_TO_WRONG_GROUP) {
+          } else if (state == TabletState.NEEDS_REASSIGNMENT) {
             goal = TabletGoalState.UNASSIGNED;
           }
           if (Manager.log.isTraceEnabled()) {
@@ -444,7 +443,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 case ASSIGNED_TO_DEAD_SERVER:
                   unassignDeadTablet(tLists, tm, wals);
                   break;
-                case ASSIGNED_TO_WRONG_GROUP:
+                case NEEDS_REASSIGNMENT:
                 case HOSTED:
                   TServerConnection client =
                       manager.tserverSet.getConnection(location.getServerInstance());
