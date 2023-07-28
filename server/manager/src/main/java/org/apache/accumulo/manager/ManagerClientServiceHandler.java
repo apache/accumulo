@@ -66,7 +66,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
-import org.apache.accumulo.core.manager.thrift.TabletSplit;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -346,29 +345,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     fate.delete(tid);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
-  }
-
-  @Override
-  public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
-      TabletSplit split) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
-    if (manager.migrations.remove(oldTablet) != null) {
-      Manager.log.info("Canceled migration of {}", split.oldTablet);
-    }
-    for (TServerInstance instance : manager.tserverSet.getCurrentServers()) {
-      if (serverName.equals(instance.getHostPort())) {
-        manager.nextEvent.event("%s reported split %s, %s", serverName,
-            KeyExtent.fromThrift(split.newTablets.get(0)),
-            KeyExtent.fromThrift(split.newTablets.get(1)));
-        return;
-      }
-    }
-    Manager.log.warn("Got a split from a server we don't recognize: {}", serverName);
   }
 
   @Override
