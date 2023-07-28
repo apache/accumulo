@@ -77,6 +77,7 @@ public class TabletInformationImpl implements TabletInformation {
     return tabletState;
   }
 
+  @Override
   public Optional<String> getLocation() {
     Location location = tabletMetadata.getLocation();
     return location == null ? Optional.empty()
