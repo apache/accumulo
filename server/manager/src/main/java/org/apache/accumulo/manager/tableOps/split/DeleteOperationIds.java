@@ -67,6 +67,10 @@ public class DeleteOperationIds extends ManagerRepo {
                 .stream().map(Ample.ConditionalResult::getStatus).collect(Collectors.toSet()));
       }
 
+      // Get the tablets hosted ASAP if necessary.
+      manager.getEventCoordinator().event(splitInfo.getOriginal(), "Added %d splits to %s",
+          splitInfo.getSplits().size(), splitInfo.getOriginal());
+
       TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits());
     }
 

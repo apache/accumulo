@@ -23,10 +23,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
@@ -34,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  */
-public interface TabletStateStore extends Iterable<TabletManagement> {
+public interface TabletStateStore extends ClosableIterable<TabletManagement> {
 
   /**
    * Get the level for this state store
@@ -47,19 +49,17 @@ public interface TabletStateStore extends Iterable<TabletManagement> {
   String name();
 
   /**
-   * Scan the information about the tablets covered by this store
+   * Scan the information about the tablets covered by this store that have end row in the specified
+   * ranges.
    */
-  @Override
-  ClosableIterator<TabletManagement> iterator();
+  ClosableIterator<TabletManagement> iterator(List<Range> ranges);
 
   /**
-   * Notify this TabletStateStore that a Tablet needs to be returned by the iterator() method so
-   * that the TabletGroupWatcher can perform the associated action on this Tablet.
-   *
-   * @param tablet TabletMetadata and Action that needs to be performed on it.
-   * @return true if tablet modification accepted for processing, false otherwise.
+   * Scan the information about all tablets covered by this store..
    */
-  boolean addTabletStateChange(TabletManagement tablet);
+  default ClosableIterator<TabletManagement> iterator() {
+    return iterator(List.of(MetadataSchema.TabletsSection.getRange()));
+  }
 
   /**
    * Store the assigned locations in the data store.

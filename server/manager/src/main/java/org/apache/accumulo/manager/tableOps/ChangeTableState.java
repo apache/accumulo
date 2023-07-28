@@ -62,7 +62,7 @@ public class ChangeTableState extends ManagerRepo {
     Utils.unreserveNamespace(env, namespaceId, tid, false);
     Utils.unreserveTable(env, tableId, tid, true);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
-    env.getEventCoordinator().event("Set table state of %s to %s", tableId, ts);
+    env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
   }
 

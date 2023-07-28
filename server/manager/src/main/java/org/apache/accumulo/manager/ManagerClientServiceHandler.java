@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -59,8 +58,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -73,10 +70,8 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
@@ -307,9 +302,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
     if (stopTabletServers) {
       manager.setManagerGoalState(ManagerGoalState.CLEAN_STOP);
-      EventCoordinator.Listener eventListener = manager.nextEvent.getListener();
+      EventCoordinator.Tracker eventTracker = manager.nextEvent.getTracker();
       do {
-        eventListener.waitForEvents(Manager.ONE_SECOND);
+        eventTracker.waitForEvents(Manager.ONE_SECOND);
       } while (manager.tserverSet.size() > 0);
     }
     manager.setManagerState(ManagerState.STOP);
@@ -386,10 +381,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         Manager.log.error("{} reports assignment failed for tablet {}", serverName, tablet);
         break;
       case LOADED:
-        manager.nextEvent.event("tablet %s was loaded on %s", tablet, serverName);
+        manager.nextEvent.event(tablet, "tablet %s was loaded on %s", tablet, serverName);
         break;
       case UNLOADED:
-        manager.nextEvent.event("tablet %s was unloaded from %s", tablet, serverName);
+        manager.nextEvent.event(tablet, "tablet %s was unloaded from %s", tablet, serverName);
         break;
       case UNLOAD_ERROR:
         Manager.log.error("{} reports unload failed for tablet {}", serverName, tablet);
@@ -401,6 +396,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
         break;
       case CHOPPED:
+        // not changing this to pass the tablet because it will be removed
         manager.nextEvent.event("tablet %s chopped", tablet);
         break;
     }
@@ -683,23 +679,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       });
     }
 
-    // Register the successful extent updates with the appropriate TabletStateStore.
-    // This will bump these tablets to the head of the line and the TabletGroupWatcher
-    // will process these updates before the ones returned from scanning the underlying
-    // table.
-    if (!success.isEmpty()) {
-      final Set<ManagementAction> actions = Set.of(ManagementAction.NEEDS_LOCATION_UPDATE);
-      ample.readTablets().forTablets(success, Optional.empty())
-          .fetch(TabletManagement.CONFIGURED_COLUMNS.toArray(new ColumnType[] {})).build()
-          .forEach(tm -> {
-            manager.getTabletStateStore(DataLevel.of(tm.getTableId()))
-                .addTabletStateChange(new TabletManagement(actions, tm));
-          });
-    }
-
-    // this will kick the tablet group watcher into action
-    manager.getEventCoordinator().event("Tablet hosting requested tableId:%s extents:%d", tableId,
-        extents.size());
+    manager.getEventCoordinator().event(success, "Tablet hosting requested for %d tablets in %s",
+        success.size(), tableId);
   }
 
   protected TableId getTableId(ClientContext context, String tableName)

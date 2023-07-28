@@ -23,6 +23,7 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,12 +32,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -100,6 +107,7 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.state.Assignment;
+import org.apache.accumulo.server.manager.state.ClosableIterable;
 import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.MergeInfo;
@@ -115,6 +123,8 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
@@ -142,12 +152,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private final TabletGroupWatcher dependentWatcher;
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
+  private final EventHandler eventHandler;
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
+    this.eventHandler = new EventHandler(manager::stillManager, store::iterator);
+    manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -200,23 +213,309 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  static class EventHandler implements EventCoordinator.Listener {
+
+    // Setting this to true to start with because its not know what happended before this object was
+    // created, so just start off with full scan.
+    private boolean needsFullScan = true;
+
+    private final BlockingQueue<Range> rangesToProcess;
+
+    private final BlockingQueue<TabletManagement> processedRanges;
+
+    private final BooleanSupplier keepRunningSupplier;
+
+    private final Function<List<Range>,ClosableIterator<TabletManagement>> store;
+
+    class RangeProccessor implements Runnable {
+      @Override
+      public void run() {
+        try {
+          while (keepRunningSupplier.getAsBoolean()) {
+            var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
+            if (range == null) {
+              // check to see if still the manager
+              continue;
+            }
+
+            ArrayList<Range> ranges = new ArrayList<>();
+            ranges.add(range);
+
+            rangesToProcess.drainTo(ranges);
+
+            try (var iter = store.apply(ranges)) {
+              while (iter.hasNext()) {
+                if (processedRanges.offer(iter.next())) {
+                  rangesProcessed();
+                } else {
+                  setNeedsFullScan();
+                }
+                processed.incrementAndGet();
+              }
+            } catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    EventHandler(BooleanSupplier keepRunningSupplier,
+        Function<List<Range>,ClosableIterator<TabletManagement>> store) {
+      rangesToProcess = new ArrayBlockingQueue<>(3000);
+      // some ranges may expand to multiple tablets so make this queue larger
+      processedRanges = new ArrayBlockingQueue<>(12000);
+
+      this.keepRunningSupplier = keepRunningSupplier;
+      this.store = store;
+
+      // TODO how to create thread?? use utils and name it
+      new Thread(new RangeProccessor()).start();
+    }
+
+    private synchronized void setNeedsFullScan() {
+      needsFullScan = true;
+      notifyAll();
+    }
+
+    public synchronized void clearNeedsFullScan() {
+      needsFullScan = false;
+    }
+
+    private synchronized void rangesProcessed() {
+      notifyAll();
+    }
+
+    private AtomicLong queued = new AtomicLong(0);
+    private AtomicLong processed = new AtomicLong(0);
+
+    @VisibleForTesting
+    boolean isAllDataProcessed() {
+      // This method does not consider exceptions in the background processing thread and there is
+      // only suitable for testing. Would need to be made more robust if used for non testing
+      // purposed.
+      return queued.get() == processed.get();
+    }
+
+    @Override
+    public void process(EventCoordinator.Event event) {
+
+      switch (event.getScope()) {
+        case ALL:
+        case DATA_LEVEL:
+          setNeedsFullScan();
+          break;
+        case TABLE:
+        case TABLE_RANGE:
+          if (!rangesToProcess.offer(event.getExtent().toMetaRange())) {
+            setNeedsFullScan();
+          } else {
+            queued.incrementAndGet();
+          }
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled scope " + event.getScope());
+      }
+    }
+
+    synchronized void waitForEvents(long millis) {
+      if (!needsFullScan && processedRanges.isEmpty()) {
+        try {
+          wait(millis);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    synchronized boolean needsFullScan() {
+      return needsFullScan;
+    }
+
+    ClosableIterator<TabletManagement> eventIterator() {
+      // This iterator assumes its the only thing consuming from the queue. If its not the only
+      // thing consuming from the queue then there is race condition between next() and hasNext().
+      // To avoid this race condition would require buffering, however buffering is undesirable
+      // because not all data is always read from this iterator. Buffering was intentionally avoided
+      // and its expected that only one instance of this iterator will exists at a time.
+      return new ClosableIterator<>() {
+        public boolean hasNext() {
+          return !processedRanges.isEmpty();
+        }
+
+        public TabletManagement next() {
+          var next = processedRanges.poll();
+          if (next == null) {
+            throw new NoSuchElementException();
+          }
+          return next;
+        }
+
+        public void close() throws IOException {
+          // nothing to do
+        }
+      };
+    }
+  }
+
+  static class TabletManagmentIterator implements ClosableIterator<TabletManagement> {
+
+    private final Iterator<TabletManagement> eventIterator;
+    private final ClosableIterator<TabletManagement> fullScanIterator;
+
+    private int eventsConsumed = 0;
+
+    private final int maxConsecutiveEvents;
+
+    TabletManagmentIterator(ClosableIterator<TabletManagement> fullScanIterator,
+        Iterator<TabletManagement> eventIterator, int maxConsecutiveEvents) {
+      this.eventIterator = eventIterator;
+      this.fullScanIterator = fullScanIterator;
+      this.maxConsecutiveEvents = maxConsecutiveEvents;
+    }
+
+    @Override
+    public boolean hasNext() {
+      // Not checking eventIterator here on purpose because once the full scan iterator is done do
+      // not want to continue as this could prevent another full scan from starting if needed. Once
+      // the full scan is finished, if there are still events to process then a new scan will be
+      // started.
+      return fullScanIterator.hasNext();
+    }
+
+    @Override
+    public TabletManagement next() {
+      // the purpose of the events consumed counter is to prevent starvation of the fullScanIterator
+      if (eventIterator.hasNext() && eventsConsumed < maxConsecutiveEvents) {
+        eventsConsumed++;
+        return eventIterator.next();
+      }
+
+      eventsConsumed = 0;
+      return fullScanIterator.next();
+    }
+
+    @Override
+    public void close() throws IOException {
+      fullScanIterator.close();
+    }
+  }
+
+  static class IteratorManager {
+
+    private final DataLevel level;
+    long timeLastFullScanCompleted = 0;
+    boolean isFullScanActive;
+
+    private final EventHandler eventHandler;
+    private final ClosableIterable<TabletManagement> store;
+
+    ClosableIterator<TabletManagement> iterator = null;
+
+    IteratorManager(EventHandler eventHandler, ClosableIterable<TabletManagement> store,
+        DataLevel level) {
+      this.eventHandler = eventHandler;
+      this.store = store;
+      this.level = level;
+    }
+
+    private boolean isFullScanNeeded(long waitTimeBetweenScans) {
+      return getCurrentTime() - timeLastFullScanCompleted > waitTimeBetweenScans;
+    }
+
+    Iterator<TabletManagement> beginScan(long waitTimeBetweenScans) {
+      Preconditions.checkState(iterator == null);
+
+      boolean timeElapsed = isFullScanNeeded(waitTimeBetweenScans);
+
+      if (timeElapsed || eventHandler.needsFullScan()) {
+        LOG.debug("Starting full scan of {} because timeElapsed:{} fullScanEvent:{}", level,
+            timeElapsed, eventHandler.needsFullScan());
+
+        isFullScanActive = true;
+        // Clear this before starting the full scan because its important to know if its set
+        // during the scan.
+        eventHandler.clearNeedsFullScan();
+
+        // create an iterator over all tablets that will also process new events that arrive
+        // during the scan of everything
+        iterator = new TabletManagmentIterator(store.iterator(), eventHandler.eventIterator(), 2);
+      } else {
+        LOG.debug("Starting partial scan of {}", level);
+        // A full scan is not needed so just iterate over the events.
+        var eventIterator = eventHandler.eventIterator();
+
+        iterator = new ClosableIterator<TabletManagement>() {
+          @Override
+          public void close() throws IOException {
+            eventIterator.close();
+          }
+
+          @Override
+          public boolean hasNext() {
+            // Only scan just events as long as a full table scan is not needed. If a full table
+            // scan is needed then stop the event only scan so the full scan can start.
+            return eventIterator.hasNext() && !eventHandler.needsFullScan()
+                && !isFullScanNeeded(waitTimeBetweenScans);
+          }
+
+          @Override
+          public TabletManagement next() {
+            return eventIterator.next();
+          }
+        };
+
+        isFullScanActive = false;
+      }
+
+      return iterator;
+    }
+
+    void endScan() throws IOException {
+      if (isFullScanActive) {
+        timeLastFullScanCompleted = getCurrentTime();
+        isFullScanActive = false;
+      }
+
+      iterator.close();
+      iterator = null;
+    }
+
+    void cleanup() throws IOException {
+      isFullScanActive = false;
+      if (iterator != null) {
+        iterator.close();
+        iterator = null;
+      }
+    }
+
+    long getCurrentTime() {
+      return System.currentTimeMillis();
+    }
+  }
+
   @Override
   public void run() {
     int[] oldCounts = new int[TabletState.values().length];
-    EventCoordinator.Listener eventListener = this.manager.nextEvent.getListener();
 
     WalStateManager wals = new WalStateManager(manager.getContext());
+
+    IteratorManager iterMgr = new IteratorManager(eventHandler, store, store.getLevel());
 
     while (manager.stillManager()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      // ELASTICITY_TODO above sleep in the case when not doing a full scan to make manager more
+      // responsive
 
       final long waitTimeBetweenScans = manager.getConfiguration()
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
       int totalUnloaded = 0;
       int unloaded = 0;
-      ClosableIterator<TabletManagement> iter = null;
+
       try {
         Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
         Map<TableId,MergeStats> currentMerges = new HashMap<>();
@@ -233,7 +532,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         if (currentTServers.isEmpty()) {
-          eventListener.waitForEvents(waitTimeBetweenScans);
+          eventHandler.waitForEvents(waitTimeBetweenScans);
           synchronized (this) {
             lastScanServers = Collections.emptySortedSet();
           }
@@ -258,9 +557,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               .forEach(tabletServerId -> resourceGroups.put(tabletServerId, group));
         });
 
-        // Walk through the tablets in our store, and work tablets
-        // towards their goal
-        iter = store.iterator();
+        Iterator<TabletManagement> iter = iterMgr.beginScan(waitTimeBetweenScans);
+
         while (iter.hasNext()) {
           final TabletManagement mti = iter.next();
           if (mti == null) {
@@ -293,7 +591,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             flushChanges(tLists, wals);
             tLists.reset();
             unloaded = 0;
-            eventListener.waitForEvents(waitTimeBetweenScans);
+            eventHandler.waitForEvents(waitTimeBetweenScans);
           }
           final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
@@ -464,6 +762,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           }
         }
 
+        iterMgr.endScan();
+
         // ELASTICITY_TODO: Add handling for other actions
 
         flushChanges(tLists, wals);
@@ -476,15 +776,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         for (TabletState state : TabletState.values()) {
           int i = state.ordinal();
           if (counts[i] > 0 && counts[i] != oldCounts[i]) {
-            manager.nextEvent.event("[%s]: %d tablets are %s", store.name(), counts[i],
-                state.name());
+            manager.nextEvent.event(store.getLevel(), "[%s]: %d tablets are %s", store.name(),
+                counts[i], state.name());
           }
         }
         Manager.log.debug(String.format("[%s]: scan time %.2f seconds", store.name(),
             stats.getScanTime() / 1000.));
         oldCounts = counts;
         if (totalUnloaded > 0) {
-          manager.nextEvent.event("[%s]: %d tablets unloaded", store.name(), totalUnloaded);
+          manager.nextEvent.event(store.getLevel(), "[%s]: %d tablets unloaded", store.name(),
+              totalUnloaded);
         }
 
         updateMergeState(mergeStatsCache);
@@ -495,9 +796,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         if (manager.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Manager.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
               waitTimeBetweenScans / 1000.));
-          eventListener.waitForEvents(waitTimeBetweenScans);
+          eventHandler.waitForEvents(waitTimeBetweenScans);
         } else {
-          Manager.log.info("Detected change in current tserver set, re-running state machine.");
+          // Create an event at the store level, this will force the next scan to be a full scan
+          manager.nextEvent.event(store.getLevel(), "Set of tablet servers changed");
         }
       } catch (Exception ex) {
         Manager.log.error("Error processing table state for store " + store.name(), ex);
@@ -507,12 +809,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
         }
       } finally {
-        if (iter != null) {
-          try {
-            iter.close();
-          } catch (IOException ex) {
-            Manager.log.warn("Error closing TabletLocationState iterator: " + ex, ex);
-          }
+        try {
+          iterMgr.cleanup();
+        } catch (IOException ex) {
+          Manager.log.warn("Error closing TabletLocationState iterator: " + ex, ex);
         }
       }
     }
@@ -1048,7 +1348,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         store.unassign(deadTablets, deadLogs);
       }
       markDeadServerLogsAsClosed(wals, deadLogs);
-      manager.nextEvent.event(
+      manager.nextEvent.event(store.getLevel(),
           "Marked %d tablets as suspended because they don't have current servers",
           deadTablets.size());
     }

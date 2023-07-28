@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -56,6 +57,7 @@ import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -239,10 +241,11 @@ class CompactionDriver extends ManagerRepo {
               result.getExtent()));
 
       if (selected > 0) {
-        // selected files for some tablets, send a notification to get the tablet group watcher to
-        // scan for tablets to compact
-        manager.getEventCoordinator().event("%s selected files for compaction for %d tablets",
-            FateTxId.formatTid(tid), selected);
+        // ELASTICITY_TODO pass tablets is there are a few, otherwise pass more narrow range
+        manager.getEventCoordinator().event(
+            new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
+                startRow == null ? null : new Text(startRow)),
+            "%s selected files for compaction for %d tablets", FateTxId.formatTid(tid), selected);
       }
 
       return total - complete;

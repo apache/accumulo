@@ -20,15 +20,12 @@ package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
 import java.lang.ref.Cleaner.Cleanable;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -60,11 +57,10 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
   private final BatchScanner mdScanner;
   private final Iterator<Entry<Key,Value>> iter;
   private final AtomicBoolean closed = new AtomicBoolean(false);
-  private final Queue<TabletManagement> knownTabletModifications;
 
   // This constructor is called from TabletStateStore implementations
-  public TabletManagementScanner(ClientContext context, Range range, CurrentState state,
-      String tableName, Queue<TabletManagement> knownTabletModifications) {
+  public TabletManagementScanner(ClientContext context, List<Range> ranges, CurrentState state,
+      String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
@@ -95,14 +91,13 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     }
     cleanable = CleanerUtil.unclosed(this, TabletManagementScanner.class, closed, log, mdScanner);
     TabletManagementIterator.configureScanner(mdScanner, state);
-    mdScanner.setRanges(Collections.singletonList(range));
+    mdScanner.setRanges(ranges);
     iter = mdScanner.iterator();
-    this.knownTabletModifications = knownTabletModifications;
   }
 
   // This constructor is called from utilities and tests
   public TabletManagementScanner(ClientContext context, Range range, String tableName) {
-    this(context, range, null, tableName, new ArrayBlockingQueue<>(1_000));
+    this(context, List.of(range), null, tableName);
   }
 
   @Override
@@ -120,9 +115,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     if (closed.get()) {
       return false;
     }
-    if (!knownTabletModifications.isEmpty()) {
-      return true;
-    }
+
     boolean result = iter.hasNext();
     if (!result) {
       close();
@@ -135,13 +128,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     if (closed.get()) {
       throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
     }
-    if (!knownTabletModifications.isEmpty()) {
-      TabletManagement tm = knownTabletModifications.poll();
-      log.trace("Returning known tablet modification, extent: {}, hostingGoal: {}, actions: {}",
-          tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getHostingGoal(),
-          tm.getActions());
-      return tm;
-    }
+
     Entry<Key,Value> e = iter.next();
     try {
       TabletManagement tm = TabletManagementIterator.decode(e);

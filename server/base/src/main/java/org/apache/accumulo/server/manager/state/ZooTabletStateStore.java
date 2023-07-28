@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -59,7 +60,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator() {
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
 
     return new ClosableIterator<>() {
       boolean finished = false;
@@ -95,13 +96,6 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       @Override
       public void close() {}
     };
-  }
-
-  @Override
-  public boolean addTabletStateChange(TabletManagement tablet) {
-    // This method does nothing, this TabletStateStore always returns
-    // the TabletManagement object for the Root Tablet.
-    return true;
   }
 
   private static void validateAssignments(Collection<Assignment> assignments) {
