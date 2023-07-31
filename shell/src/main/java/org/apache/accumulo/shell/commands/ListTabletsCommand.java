@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -81,10 +82,10 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      List<TabletInformationImpl> tabletsList = shellState.getContext().tableOperations()
-          .getTabletInformation(name, new Range()).collect(Collectors.toList());
+      List<TabletInformation> tabletsList = shellState.getContext().tableOperations()
+          .getTabletInformation(name, new Range()); //.collect(Collectors.toList());
       for (int i = 0; i < tabletsList.size(); i++) {
-        TabletInformationImpl tabletInfo = tabletsList.get(i);
+        TabletInformation tabletInfo = tabletsList.get(i);
         lines.add(String.format("%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s",
             i + 1, tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
             getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),

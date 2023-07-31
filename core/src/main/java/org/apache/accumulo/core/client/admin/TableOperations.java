@@ -1039,8 +1039,12 @@ public interface TableOperations {
    * @return a stream of tablets information for tablets that fall in the specified range
    * @since 4.0.0
    */
-  default Stream<TabletInformationImpl> getTabletInformation(final String tableName,
-      final Range range) throws TableNotFoundException {
+  default List<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  default TabletInformation testTabletInfo() {
     throw new UnsupportedOperationException();
   }
 

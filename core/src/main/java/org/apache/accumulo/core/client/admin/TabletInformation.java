@@ -21,7 +21,6 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Optional;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 
 /**
  * @since 4.0.0

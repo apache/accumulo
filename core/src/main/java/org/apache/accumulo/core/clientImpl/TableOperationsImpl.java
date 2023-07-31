@@ -101,6 +101,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -2180,8 +2181,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformationImpl> getTabletInformation(final String tableName,
-      final Range range) throws TableNotFoundException {
+//  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+  public List<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
@@ -2202,8 +2204,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
-        .onClose(tabletsMetadata::close);
+        .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString())).collect(Collectors.toList());
+//        .onClose(tabletsMetadata::close);
+
+  }
+
+  public TabletInformation testTabletInfo() {
+    return new TabletInformationImpl(new TabletMetadata(), "status");
   }
 
 }
