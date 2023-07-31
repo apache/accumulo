@@ -282,6 +282,9 @@ class DatafileManager {
       for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
+    } catch (Exception e) {
+      log.error("Failure adding bulk import files {} {}", tablet.getExtent(), paths.keySet(), e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
@@ -416,6 +419,9 @@ class DatafileManager {
 
         t2 = System.currentTimeMillis();
       }
+    } catch (Exception e) {
+      log.error("Failure adding minor compacted file {} {}", tablet.getExtent(), newDatafile, e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
@@ -518,6 +524,10 @@ class DatafileManager {
       tablet.setLastCompactionID(compactionIdToWrite);
       removeFilesAfterScan(filesInUseByScans);
 
+    } catch (Exception e) {
+      log.error("Failure adding updating files after major compaction {} {} {}", tablet.getExtent(),
+          newFile, oldDatafiles, e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
