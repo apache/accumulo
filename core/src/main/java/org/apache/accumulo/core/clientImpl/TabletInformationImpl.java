@@ -95,25 +95,6 @@ public class TabletInformationImpl implements TabletInformation {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    TabletInformationImpl that = (TabletInformationImpl) o;
-    return estimatedSize == that.estimatedSize && estimatedEntries == that.estimatedEntries
-        && Objects.equals(tabletMetadata, that.tabletMetadata)
-        && Objects.equals(tabletState, that.tabletState);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(tabletMetadata, estimatedSize, estimatedEntries, tabletState);
-  }
-
-  @Override
   public String toString() {
     return "TabletInformationImpl{tabletMetadata=" + tabletMetadata + ", estimatedSize="
         + estimatedSize + ", estimatedEntries=" + estimatedEntries + ", tabletState='" + tabletState
