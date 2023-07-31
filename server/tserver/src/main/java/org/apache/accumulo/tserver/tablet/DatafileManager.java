@@ -534,7 +534,7 @@ class DatafileManager {
       // Any exception in this code is prone to leaving the persisted tablet metadata and the
       // tablets in memory data structs out of sync. Log the extent and exact files involved as this
       // may be useful for debugging.
-      log.error("Failure adding updating files after major compaction {} {} {}", tablet.getExtent(),
+      log.error("Failure updating files after major compaction {} {} {}", tablet.getExtent(),
           newFile, oldDatafiles, e);
       throw e;
     } finally {
