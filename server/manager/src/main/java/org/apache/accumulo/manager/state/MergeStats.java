@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.state;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -240,10 +242,13 @@ public class MergeStats {
           return false;
         }
 
-        if (tm.getTabletState(manager.onlineTabletServers()) != TabletState.UNASSIGNED
-            && tm.getTabletState(manager.onlineTabletServers()) != TabletState.SUSPENDED) {
-          log.debug("failing consistency: assigned or hosted {}", tm);
-          return false;
+        Set<TServerInstance> liveTServers1 = manager.onlineTabletServers();
+        if (TabletState.compute(tm, liveTServers1) != TabletState.UNASSIGNED) {
+          Set<TServerInstance> liveTServers = manager.onlineTabletServers();
+          if (TabletState.compute(tm, liveTServers) != TabletState.SUSPENDED) {
+            log.debug("failing consistency: assigned or hosted {}", tm);
+            return false;
+          }
         }
 
       } else if (!tm.getExtent().isPreviousExtent(prevExtent)) {
@@ -253,8 +258,9 @@ public class MergeStats {
 
       prevExtent = tm.getExtent();
 
-      verify.update(tm.getExtent(), tm.getTabletState(manager.onlineTabletServers()),
-          tm.hasChopped(), !tm.getLogs().isEmpty());
+      Set<TServerInstance> liveTServers = manager.onlineTabletServers();
+      verify.update(tm.getExtent(), TabletState.compute(tm, liveTServers), tm.hasChopped(),
+          !tm.getLogs().isEmpty());
       // stop when we've seen the tablet just beyond our range
       if (tm.getExtent().prevEndRow() != null && extent.endRow() != null
           && tm.getExtent().prevEndRow().compareTo(extent.endRow()) > 0) {

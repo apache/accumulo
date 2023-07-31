@@ -44,7 +44,6 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,9 +159,8 @@ class AssignmentHandler implements Runnable {
 
       TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
-      TabletData data = new TabletData(tabletMetadata);
 
-      tablet = new Tablet(server, extent, trm, data);
+      tablet = new Tablet(server, extent, trm, tabletMetadata);
       // If a minor compaction starts after a tablet opens, this indicates a log recovery
       // occurred. This recovered data must be minor compacted.
       // There are three reasons to wait for this minor compaction to finish before placing the

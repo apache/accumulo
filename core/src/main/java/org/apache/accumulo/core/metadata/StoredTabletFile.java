@@ -124,5 +124,4 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   public static StoredTabletFile of(final String metadataEntry) {
     return new StoredTabletFile(metadataEntry);
   }
-
 }

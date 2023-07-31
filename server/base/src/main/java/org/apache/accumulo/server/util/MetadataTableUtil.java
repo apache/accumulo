@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -411,7 +412,7 @@ public class MetadataTableUtil {
   }
 
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final List<LogEntry> entries, ServiceLock zooLock) {
+      final Collection<LogEntry> entries, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     entries.forEach(tablet::deleteWal);
     tablet.putZooLock(context.getZooKeeperRoot(), zooLock);

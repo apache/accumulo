@@ -148,7 +148,7 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
     ts.exec("config -s " + sysPropName + "=" + sysPropVal1);
     ts.exec("config -s " + nsPropName + "=" + nsPropVal1 + " -ns " + srcNs);
 
-    ts.exec("createnamespace --exclude-parent -cc " + srcNs + " " + destNs, true);
+    ts.exec("createnamespace --exclude-parent-properties -cc " + srcNs + " " + destNs, true);
 
     ts.exec("config -s " + sysPropName + "=" + sysPropVal2);
 
@@ -187,7 +187,7 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
     ts.exec("createnamespace " + names[1]);
 
     // test --exclude-parent requires -cc option - expect this fail
-    ts.exec("createnamespace --exlcude-parent " + names[0] + " " + names[1], false);
+    ts.exec("createnamespace --exclude-parent-properties " + names[0] + " " + names[1], false);
   }
 
   @Test

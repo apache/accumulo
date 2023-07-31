@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Note that in versions prior to 4.0 this class would pass all known TabletServers to the Table
  * load balancers. In version 4.0 this changed with the introduction of the
- * {@link TABLE_ASSIGNMENT_GROUP_PROPERTY} table property. If defined, this balancer passes the
+ * {@value #TABLE_ASSIGNMENT_GROUP_PROPERTY} table property. If defined, this balancer passes the
  * TabletServers that have the corresponding {@link Property#TSERV_GROUP_NAME} property to the Table
  * load balancer.
  *
@@ -189,6 +189,22 @@ public class TableLoadBalancer implements TabletBalancer {
   }
 
   @Override
+  public boolean needsReassignment(CurrentAssignment currentAssignment) {
+    var tableId = currentAssignment.getTablet().getTable();
+    String value = environment.getConfiguration(tableId).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    String expectedGroup = (value == null || StringUtils.isEmpty(value))
+        ? Constants.DEFAULT_RESOURCE_GROUP_NAME : value;
+
+    if (!expectedGroup.equals(currentAssignment.getResourceGroup())) {
+      // The tablet is not in the expected resource group, so it needs to be reassigned
+      return true;
+    }
+
+    // defer to the per table balancer
+    return getBalancerForTable(tableId).needsReassignment(currentAssignment);
+  }
+
+  @Override
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
@@ -212,13 +228,4 @@ public class TableLoadBalancer implements TabletBalancer {
     }
     return minBalanceTime;
   }
-
-  @Override
-  public String getResourceGroup(TabletId tabletId) {
-    String value =
-        environment.getConfiguration(tabletId.getTable()).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
-    return (value == null || StringUtils.isEmpty(value)) ? Constants.DEFAULT_RESOURCE_GROUP_NAME
-        : value;
-  }
-
 }

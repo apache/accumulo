@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -92,7 +93,9 @@ public class ListOnlineOnDemandTablets {
 
     while (scanner.hasNext() && !System.out.checkError()) {
       final TabletManagement mti = scanner.next();
-      TabletState state = mti.getTabletMetadata().getTabletState(tservers.getCurrentServers());
+      TabletMetadata tabletMetadata = mti.getTabletMetadata();
+      Set<TServerInstance> liveTServers = tservers.getCurrentServers();
+      TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state == TabletState.HOSTED
           && mti.getTabletMetadata().getHostingGoal() == TabletHostingGoal.ONDEMAND) {
         System.out.println(

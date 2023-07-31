@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.PluginEnvironment;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -566,4 +567,26 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         .collect(Collectors.joining(", ", "[", "]"));
   }
 
+  @Override
+  public boolean needsReassignment(CurrentAssignment currentAssignment) {
+    String tableName;
+    try {
+      tableName = environment.getTableName(currentAssignment.getTablet().getTable());
+    } catch (TableNotFoundException e) {
+      LOG.trace("Table name not found for {}, assuming table was deleted",
+          currentAssignment.getTablet().getTable(), e);
+      // if the table was deleted, then other parts of Accumulo can sort that out
+      return false;
+    }
+
+    var hostPools = getPoolNamesForHost(currentAssignment.getTabletServer());
+    var poolForTable = getPoolNameForTable(tableName);
+
+    if (!hostPools.contains(poolForTable)) {
+      return true;
+    }
+
+    return getBalancerForTable(currentAssignment.getTablet().getTable())
+        .needsReassignment(currentAssignment);
+  }
 }

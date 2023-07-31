@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -184,17 +183,15 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
-  private static Map<String,Set<TabletServerId>>
-      parseTServerResourceGroups(Map<String,String> options) {
-    Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
+  private static Map<TabletServerId,String> parseTServerResourceGroups(Map<String,String> options) {
+    Map<TabletServerId,String> resourceGroups = new HashMap<>();
     String groups = options.get(RESOURCE_GROUPS);
     if (groups != null) {
       for (String groupName : groups.split(",")) {
         String groupServers = options.get(TSERVER_GROUP_PREFIX + groupName);
         if (groupServers != null) {
           Set<TServerInstance> servers = parseServers(groupServers);
-          resourceGroups.put(groupName,
-              servers.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+          servers.forEach(server -> resourceGroups.put(new TabletServerIdImpl(server), groupName));
         }
       }
     }
@@ -295,7 +292,7 @@ public class TabletManagementIterator extends SkippingIterator {
     final boolean shouldBeOnline =
         onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
 
-    TabletState state = tm.getTabletState(current, balancer, tserverResourceGroups);
+    TabletState state = TabletState.compute(tm, current, balancer, tserverResourceGroups);
     if (LOG.isDebugEnabled()) {
       LOG.debug("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
           tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
@@ -312,7 +309,7 @@ public class TabletManagementIterator extends SkippingIterator {
         }
         break;
       case ASSIGNED_TO_DEAD_SERVER:
-      case ASSIGNED_TO_WRONG_GROUP:
+      case NEEDS_REASSIGNMENT:
         return true;
       case SUSPENDED:
       case UNASSIGNED:
@@ -369,7 +366,7 @@ public class TabletManagementIterator extends SkippingIterator {
 
   private final Set<TServerInstance> current = new HashSet<>();
   private final Set<TableId> onlineTables = new HashSet<>();
-  private final Map<String,Set<TabletServerId>> tserverResourceGroups = new HashMap<>();
+  private final Map<TabletServerId,String> tserverResourceGroups = new HashMap<>();
   private final Map<TableId,MergeInfo> merges = new HashMap<>();
   private final Set<KeyExtent> migrations = new HashSet<>();
   private ManagerState managerState = ManagerState.NORMAL;

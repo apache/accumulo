@@ -52,18 +52,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -79,8 +76,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.spi.balancer.TabletBalancer;
-import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -428,47 +423,6 @@ public class TabletMetadata {
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
-  }
-
-  public TabletState getTabletState(Set<TServerInstance> liveTServers) {
-    return getTabletState(liveTServers, null, null);
-  }
-
-  public TabletState getTabletState(Set<TServerInstance> liveTServers, TabletBalancer balancer,
-      Map<String,Set<TabletServerId>> currentTServerGrouping) {
-    ensureFetched(ColumnType.LOCATION);
-    ensureFetched(ColumnType.LAST);
-    ensureFetched(ColumnType.SUSPEND);
-    Location current = null;
-    Location future = null;
-    if (hasCurrent()) {
-      current = location;
-    } else {
-      future = location;
-    }
-    if (future != null) {
-      return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
-          : TabletState.ASSIGNED_TO_DEAD_SERVER;
-    } else if (current != null) {
-      if (liveTServers.contains(current.getServerInstance())) {
-        if (balancer != null) {
-          String resourceGroup = balancer.getResourceGroup(new TabletIdImpl(extent));
-          log.trace("Resource Group for extent {} is {}", extent, resourceGroup);
-          Set<TabletServerId> tservers = currentTServerGrouping.get(resourceGroup);
-          if (tservers == null
-              || !tservers.contains(new TabletServerIdImpl(current.getServerInstance()))) {
-            return TabletState.ASSIGNED_TO_WRONG_GROUP;
-          }
-        }
-        return TabletState.HOSTED;
-      } else {
-        return TabletState.ASSIGNED_TO_DEAD_SERVER;
-      }
-    } else if (getSuspend() != null) {
-      return TabletState.SUSPENDED;
-    } else {
-      return TabletState.UNASSIGNED;
-    }
   }
 
   public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {

@@ -158,14 +158,14 @@ public class TabletLogger {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 
-  public static void recovering(KeyExtent extent, List<LogEntry> logEntries) {
+  public static void recovering(KeyExtent extent, Collection<LogEntry> logEntries) {
     if (recoveryLog.isDebugEnabled()) {
       List<String> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
       recoveryLog.debug("For {} recovering data from walogs: {}", extent, logIds);
     }
   }
 
-  public static void recovered(KeyExtent extent, List<LogEntry> logEntries, long numMutation,
+  public static void recovered(KeyExtent extent, Collection<LogEntry> logEntries, long numMutation,
       long numEntries) {
     recoveryLog.info("For {} recovered {} mutations creating {} entries from {} walogs", extent,
         numMutation, numEntries, logEntries.size());

@@ -127,6 +127,8 @@ public class VolumeUtil {
     }
   }
 
+  // ELASTICITY_TODO this method is no longer called because volume replacement needs to move from
+  // the tablet server to the manager. See #3625
   /**
    * This method does two things. First, it switches any volumes a tablet is using that are
    * configured in instance.volumes.replacements. Second, if a tablet dir is no longer configured

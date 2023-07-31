@@ -103,7 +103,7 @@ public class CreateTableCommand extends Command {
           new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
-    // allow only copy config or copy properties,
+    // exclude parent properties; only valid with copy config
     if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())
         && !cl.hasOption(createTableOptCopyConfig.getOpt())) {
       throw new IllegalArgumentException(createTableOptExcludeParentProps.getLongOpt()
@@ -331,8 +331,8 @@ public class CreateTableCommand extends Command {
 
     createTableOptCopyConfig =
         new Option("cc", "copy-config", true, "table to copy effective configuration from");
-    createTableOptExcludeParentProps = new Option(null, "exclude-parent", false,
-        "exclude parent(s) properties when copying configuration");
+    createTableOptExcludeParentProps = new Option(null, "exclude-parent-properties", false,
+        "exclude properties from its parent(s) when copying configuration");
     createTableOptCopySplits =
         new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
