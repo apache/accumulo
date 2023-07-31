@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
