@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -1039,8 +1038,8 @@ public interface TableOperations {
    * @return a stream of tablets information for tablets that fall in the specified range
    * @since 4.0.0
    */
-  default Stream<TabletInformationImpl> getTabletInformation(final String tableName,
-      final Range range) throws TableNotFoundException {
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 

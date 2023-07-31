@@ -101,6 +101,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -2180,8 +2181,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformationImpl> getTabletInformation(final String tableName,
-      final Range range) throws TableNotFoundException {
+  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
@@ -2194,7 +2195,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
-    return tabletsMetadata.stream().peek(tm -> {
+    List<TabletInformation> tableInfoList = tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
@@ -2203,7 +2204,20 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
-        .onClose(tabletsMetadata::close);
+        .collect(Collectors.toList());
+
+    return tableInfoList.stream().onClose(tabletsMetadata::close);
+
+    // return tabletsMetadata.stream().peek(tm -> {
+    // if (scanRangeStart != null && tm.getEndRow() != null
+    // && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+    // log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
+    // throw new RuntimeException("Bug in ample or this code.");
+    // }
+    // }).takeWhile(tm -> tm.getPrevEndRow() == null
+    // || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
+    // .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
+    // .onClose(tabletsMetadata::close);
   }
 
 }
