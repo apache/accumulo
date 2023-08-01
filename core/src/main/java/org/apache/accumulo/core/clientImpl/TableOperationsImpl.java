@@ -2195,7 +2195,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
-    List<TabletInformation> tableInfoList = tabletsMetadata.stream().peek(tm -> {
+    return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
@@ -2203,21 +2203,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
-        .collect(Collectors.toList());
-
-    return tableInfoList.stream().onClose(tabletsMetadata::close);
-
-    // return tabletsMetadata.stream().peek(tm -> {
-    // if (scanRangeStart != null && tm.getEndRow() != null
-    // && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-    // log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
-    // throw new RuntimeException("Bug in ample or this code.");
-    // }
-    // }).takeWhile(tm -> tm.getPrevEndRow() == null
-    // || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-    // .map(tm -> new TabletInformationImpl(tm, tm.getTabletState(liveTserverSet).toString()))
-    // .onClose(tabletsMetadata::close);
+        .map(tm -> (TabletInformation) new TabletInformationImpl(tm,
+            tm.getTabletState(liveTserverSet).toString()))
+        .onClose(tabletsMetadata::close);
   }
 
 }
