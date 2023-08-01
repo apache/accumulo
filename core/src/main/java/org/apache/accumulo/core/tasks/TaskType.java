@@ -18,27 +18,6 @@
  */
 package org.apache.accumulo.core.tasks;
 
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.thrift.TException;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-public class CompactionTask extends Task implements ThriftSerialization<TExternalCompactionJob> {
-
-  public CompactionTask() {
-    this.setType(TaskType.COMPACTION);
-  }
-
-  @JsonIgnore
-  public void setCompactionJob(TExternalCompactionJob job) throws TException {
-    this.setSerializedThriftObject(this.serialize(job));
-  }
-
-  @JsonIgnore
-  public TExternalCompactionJob getCompactionJob() throws TException {
-    TExternalCompactionJob job = new TExternalCompactionJob();
-    this.deserialize(job, this.getSerializedThriftObject());
-    return job;
-  }
-
+public enum TaskType {
+  COMPACTION;
 }
