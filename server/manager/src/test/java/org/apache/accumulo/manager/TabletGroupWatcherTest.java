@@ -49,7 +49,6 @@ import org.apache.accumulo.server.manager.state.ClosableIterable;
 import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -168,13 +167,13 @@ public class TabletGroupWatcherTest {
 
     Function<TabletManagement,KeyExtent> toExtent = tm -> tm.getTabletMetadata().getExtent();
 
-    Assertions.assertEquals(expected.stream().map(toExtent).collect(toList()),
+    assertEquals(expected.stream().map(toExtent).collect(toList()),
         seen.stream().map(toExtent).collect(toList()));
 
     Function<TabletManagement,TabletManagement.ManagementAction> toAction =
         tm -> tm.getActions().stream().collect(MoreCollectors.onlyElement());
 
-    Assertions.assertEquals(expected.stream().map(toAction).collect(toList()),
+    assertEquals(expected.stream().map(toAction).collect(toList()),
         seen.stream().map(toAction).collect(toList()));
 
   }

@@ -128,6 +128,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   public static class BadLocationStateException extends Exception {
@@ -284,6 +286,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       needsFullScan = false;
     }
 
+    @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+        justification = "wakes thread waiting for data that was just enqueued")
     private synchronized void rangesProcessed() {
       notifyAll();
     }
