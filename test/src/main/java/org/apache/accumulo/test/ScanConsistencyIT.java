@@ -445,13 +445,16 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       this.tctx = testContext;
     }
 
+    @SuppressWarnings("deprecation")
     private long bulkImport(Random random, Collection<Mutation> mutations) throws Exception {
 
       if (mutations.isEmpty()) {
         return 0;
       }
 
-      Path bulkDir = new Path(tctx.tmpDir + "/bulkimport_" + nextLongAbs(random));
+      String name = "/bulkimport_" + nextLongAbs(random);
+      Path bulkDir = new Path(tctx.tmpDir + name);
+      Path failDir = new Path(tctx.tmpDir + name + "_failures");
 
       List<Key> keys = mutations.stream().flatMap(ScanConsistencyIT::toKeys).sorted()
           .collect(Collectors.toList());
@@ -467,10 +470,22 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           }
         }
 
-        tctx.client.tableOperations().importDirectory(bulkDir.toString()).to(tctx.table)
-            .tableTime(true).load();
+        if (random.nextBoolean()) {
+          // use bulk import v1
+          tctx.fileSystem.mkdirs(failDir);
+          tctx.client.tableOperations().importDirectory(tctx.table, bulkDir.toString(),
+              failDir.toString(), true);
+          assertEquals(0, tctx.fileSystem.listStatus(failDir).length,
+              "Failure dir was not empty " + failDir);
+        } else {
+          // use bulk import v2
+          tctx.client.tableOperations().importDirectory(bulkDir.toString()).to(tctx.table)
+              .tableTime(true).load();
+        }
+
       } finally {
         tctx.fileSystem.delete(bulkDir, true);
+        tctx.fileSystem.delete(failDir, true);
       }
 
       return keys.size();
