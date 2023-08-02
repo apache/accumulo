@@ -60,12 +60,12 @@ public class TableInformation {
   // running scans with queued in parenthesis
   public String scansCombo;
 
-  private int queuedMajorCompactions;
-  private int runningMajorCompactions;
-  private int queuedMinorCompactions;
-  private int runningMinorCompactions;
-  private int queuedScans;
-  private int runningScans;
+  public int queuedMajorCompactions;
+  public int runningMajorCompactions;
+  public int queuedMinorCompactions;
+  public int runningMinorCompactions;
+  public int queuedScans;
+  public int runningScans;
 
   public double entriesRead;
   public double entriesReturned;
