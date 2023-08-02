@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
@@ -118,19 +119,14 @@ public class AccumuloITBase extends WithTestNames {
   Timeout timeout = Timeout.from(() -> {
     assertFalse(defaultTimeout().isZero(), "defaultTimeout should not return 0");
 
-    int timeoutFactor = 0;
-    try {
-      String timeoutString = System.getProperty("timeout.factor");
-      if (timeoutString != null && !timeoutString.isEmpty()) {
-        timeoutFactor = Integer.parseInt(timeoutString);
-      }
-    } catch (NumberFormatException exception) {
-      log.warn("Could not parse timeout.factor, defaulting to no timeout.");
-    }
+    int timeoutFactor = Wait.getTimeoutFactor(e -> {
+      log.warn("Could not parse timeout.factor, defaulting to 24 hours.");
+      return 0;
+    });
 
-    // if the user sets a timeout factor of 0, apply a very long timeout (effectively no timeout)
+    // if the user sets a timeout factor of 0, apply a very long timeout
     if (timeoutFactor == 0) {
-      return Duration.ofDays(5);
+      return Duration.ofDays(1);
     }
 
     return defaultTimeout().multipliedBy(timeoutFactor);
