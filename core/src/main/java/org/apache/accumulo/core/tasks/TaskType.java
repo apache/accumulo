@@ -19,5 +19,14 @@
 package org.apache.accumulo.core.tasks;
 
 public enum TaskType {
-  COMPACTION;
+  COMPACTION(CompactionTask.class), COMPACTION_STATUS(CompactionTaskStatus.class);
+  
+  private Class<? extends Task> typeClass;
+  
+  TaskType(Class<? extends Task> task) {
+    this.typeClass = task;
+  }
+  
+  
+  
 }

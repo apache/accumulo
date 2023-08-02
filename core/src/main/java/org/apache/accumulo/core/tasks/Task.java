@@ -26,7 +26,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
 @JsonTypeInfo(use = Id.CLASS, include = As.PROPERTY)
-@JsonSubTypes({@JsonSubTypes.Type(value = CompactionTask.class, name = "CompactionTask")})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = CompactionTask.class, name = "CompactionTask"),
+  @JsonSubTypes.Type(value = CompactionTaskStatus.class, name = "CompactionTaskStatus"),
+})
 public abstract class Task {
 
   private String taskId;

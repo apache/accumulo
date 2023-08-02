@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -99,6 +100,15 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
+import org.apache.accumulo.core.tasks.CompactionTask;
+import org.apache.accumulo.core.tasks.CompactionTaskStatus;
+import org.apache.accumulo.core.tasks.Task;
+import org.apache.accumulo.core.tasks.TaskDeSer;
+import org.apache.accumulo.core.tasks.TaskType;
+import org.apache.accumulo.core.tasks.thrift.TaskList;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
+import org.apache.accumulo.core.tasks.thrift.TaskObject;
+import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -121,6 +131,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -131,7 +142,7 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class CompactionCoordinator implements CompactionCoordinatorService.Iface, Runnable {
+public class CompactionCoordinator implements CompactionCoordinatorService.Iface, TaskManager.Iface, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -1273,4 +1284,218 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
   }
 
+  @Override
+  public TaskObject getTask(TInfo tinfo, TCredentials credentials, TaskRunnerInfo taskRunner,
+      String taskID) throws TException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void taskStatus(TInfo tinfo, TCredentials credentials, long timestamp,
+      TaskObject taskUpdateObject) throws TException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  /**
+   * Compactors calls this method when they have finished a compaction. This method does the
+   * following.
+   *
+   * <ol>
+   * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
+   * things changed while the compaction was running and it can no longer commit.</li>
+   * <li>If the compaction can commit then a ~refresh entry may be written to the metadata table.
+   * This is done before attempting to commit to cover the case of process failure after commit. If
+   * the manager dies after commit then when it restarts it will see the ~refresh entry and refresh
+   * that tablet. The ~refresh entry is only written when its a system compaction on a tablet with a
+   * location.</li>
+   * <li>Commit the compaction using a conditional mutation. If the tablets files or location
+   * changed since reading the tablets metadata, then conditional mutation will fail. When this
+   * happens it will reread the metadata and go back to step 1 conceptually. When committing a
+   * compaction the compacted files are removed and scan entries are added to the tablet in case the
+   * files are in use, this prevents GC from deleting the files between updating tablet metadata and
+   * refreshing the tablet. The scan entries are only added when a tablet has a location.</li>
+   * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
+   * will cause the tablet to start using the newly compacted files for future scans. Also the
+   * tablet can delete the scan entries if there are no active scans using them.</li>
+   * <li>If a ~refresh entry was written, delete it since the refresh was successful.</li>
+   * </ol>
+   *
+   * <p>
+   * User compactions will be refreshed as part of the fate operation. The user compaction fate
+   * operation will see the compaction was committed after this code updates the tablet metadata,
+   * however if it were to rely on this code to do the refresh it would not be able to know when the
+   * refresh was actually done. Therefore, user compactions will refresh as part of the fate
+   * operation so that it's known to be done before the fate operation returns. Since the fate
+   * operation will do it, there is no need to do it here for user compactions.
+   * </p>
+   *
+   * <p>
+   * The ~refresh entries serve a similar purpose to FATE operations, it ensures that code executes
+   * even when a process dies. FATE was intentionally not used for compaction commit because FATE
+   * stores its data in zookeeper. The refresh entry is stored in the metadata table, which is much
+   * more scalable than zookeeper. The number of system compactions of small files could be large
+   * and this would be a large number of writes to zookeeper. Zookeeper scales somewhat with reads,
+   * but not with writes.
+   * </p>
+   *
+   * <p>
+   * Issue #3559 was opened to explore the possibility of making compaction commit a fate operation
+   * which would remove the need for the ~refresh section.
+   * </p>
+   *
+   * @param tinfo trace info
+   * @param credentials tcredentials object
+   * @param task object
+   * @throws ThriftSecurityException when permission error
+   */
+  @Override
+  public void taskCompleted(TInfo tinfo, TCredentials credentials, TaskObject task)
+      throws TException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    Task to;
+    try {
+      to = TaskDeSer.deserialize(task);
+    } catch (ClassNotFoundException | IOException e) {
+      LOG.error("Error deserializing compaction task", e);
+      throw new TException("Error deserializing compaction task", e);      
+    }
+    Preconditions.checkState(to.getType() == TaskType.COMPACTION);
+    CompactionTask ct = (CompactionTask) to;
+    TExternalCompactionJob job = ct.getCompactionJob();
+    String externalCompactionId = job.getExternalCompactionId();
+
+    var extent = KeyExtent.fromThrift(job.getExtent());
+    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+        extent);
+    final var ecid = ExternalCompactionId.of(externalCompactionId);
+
+    var tabletMeta =
+        ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
+
+    if (!canCommitCompaction(ecid, tabletMeta)) {
+      return;
+    }
+
+    ExternalCompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
+
+    // ELASTICITY_TODO this code does not handle race conditions or faults. Need to ensure refresh
+    // happens in the case of manager process death between commit and refresh.
+    ReferencedTabletFile newDatafile =
+        TabletNameGenerator.computeCompactionFileDest(ecm.getCompactTmpName());
+
+    Optional<ReferencedTabletFile> optionalNewFile;
+    try {
+      optionalNewFile = renameOrDeleteFile(stats, ecm, newDatafile);
+    } catch (IOException e) {
+      LOG.warn("Can not commit complete compaction {} because unable to delete or rename {} ", ecid,
+          ecm.getCompactTmpName(), e);
+      compactionFailed(Map.of(ecid, extent));
+      return;
+    }
+
+    RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
+
+    try {
+      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
+    } catch (RuntimeException e) {
+      LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
+      compactionFailed(Map.of(ecid, extent));
+    }
+
+    if (ecm.getKind() != CompactionKind.USER) {
+      refreshTablet(tabletMeta);
+    }
+
+    // if a refresh entry was written, it can be removed after the tablet was refreshed
+    refreshWriter.deleteRefresh();
+
+    // It's possible that RUNNING might not have an entry for this ecid in the case
+    // of a coordinator restart when the Coordinator can't find the TServer for the
+    // corresponding external compaction.
+    recordCompletion(ecid);
+  }
+
+  @Override
+  public void taskFailed(TInfo tinfo, TCredentials credentials, TaskObject task) throws TException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    Task to;
+    try {
+      to = TaskDeSer.deserialize(task);
+    } catch (ClassNotFoundException | IOException e) {
+      LOG.error("Error deserializing compaction task", e);
+      throw new TException("Error deserializing compaction task", e);      
+    }
+    Preconditions.checkState(to.getType() == TaskType.COMPACTION);
+    CompactionTask ct = (CompactionTask) to;
+    TExternalCompactionJob job = ct.getCompactionJob();
+    
+    LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
+    final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
+    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
+
+    // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
+    // currently cleans up tmp files on tablet load. With tablets never loading possibly but still
+    // compacting dying compactors may still leave tmp files behind.
+  }
+
+  @Override
+  public TaskList getCompletedTasks(TInfo tinfo, TCredentials credentials) throws TException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    final TaskList result = new TaskList();
+    for (Entry<ExternalCompactionId, RunningCompaction> entry : completed.asMap().entrySet()) {
+      ExternalCompactionId ecid = entry.getKey();
+      RunningCompaction rc = entry.getValue();
+      TExternalCompaction trc = new TExternalCompaction();
+      trc.setGroupName(rc.getGroupName());
+      trc.setCompactor(rc.getCompactorAddress());
+      trc.setJob(rc.getJob());
+      trc.setUpdates(rc.getUpdates());
+      
+      CompactionTaskStatus status = new CompactionTaskStatus();
+      status.setTaskId(ecid.canonical());
+      status.setCompactionStatus(trc);
+      
+      try {
+        result.addToTasks(TaskDeSer.serialize(status));
+      } catch (JsonProcessingException e) {
+        LOG.error("Error serializing compaction status", e);
+        throw new TException("Error serializing compaction status", e);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId) throws TException {
+    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
+    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+    try {
+      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
+      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+    } catch (TableNotFoundException e) {
+      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
+          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+    }
+
+    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
+  }
+  
 }
