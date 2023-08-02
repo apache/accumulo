@@ -430,6 +430,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
+  /**
+   * @param prop Property to check
+   * @return true if the given property has explicitly been set by a user, false otherwise
+   */
   public abstract boolean isPropertySet(Property prop);
 
   // deprecation property warning could get spammy in tserver so only warn once

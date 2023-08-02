@@ -53,6 +53,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -177,7 +178,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
     testPropertyIsSetImpl(namespaceConfiguration, shouldBeSet, shouldNotBeSet);
   }
-
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN"},
+          justification = "path provided by test")
   @Test
   public void siteConfiguration() throws IOException {
 
