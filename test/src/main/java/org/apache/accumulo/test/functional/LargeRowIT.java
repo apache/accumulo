@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -44,6 +43,7 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -84,15 +84,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void getTimeoutFactor() throws Exception {
-    try {
-      timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
-    } catch (NumberFormatException e) {
-      log.warn("Could not parse property value for 'timeout.factor' as integer: {}",
-          System.getProperty("timeout.factor"));
-    }
-
-    assertTrue(timeoutFactor >= 1,
-        "org.apache.accumulo.Timeout factor must be greater than or equal to 1");
+    timeoutFactor = Wait.getTimeoutFactor(e -> 1); // default to 1
 
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];
