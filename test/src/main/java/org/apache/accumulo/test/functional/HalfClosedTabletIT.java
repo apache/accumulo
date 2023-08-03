@@ -1,0 +1,199 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.test.functional;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.AccumuloServerException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Sets;
+
+// This IT tests the cases seen in https://github.com/apache/accumulo/issues/3674
+// where a failing minor compaction causes a Tablet.initiateClose to leave the
+// Tablet in a half-closed state. The half-closed Tablet cannot be unloaded and
+// the TabletServer cannot be shutdown normally. Because the minor compaction has
+// been failing the Tablet needs to be recovered when it's ultimately re-assigned.
+public class HalfClosedTabletIT extends SharedMiniClusterBase {
+
+  public static class HalfClosedTabletITConfiguration implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      cfg.setNumTservers(1);
+    }
+
+  }
+
+  @BeforeAll
+  public static void startup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new HalfClosedTabletITConfiguration());
+  }
+
+  @AfterAll
+  public static void shutdown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @Test
+  public void testSplitWithInvalidContext() throws Exception {
+
+    // In this scenario the table has been mis-configured with an invalid context name.
+    // The minor compaction task is failing because classes like the volume chooser or
+    // user iterators cannot be loaded. The user calls Tablet.split which calls initiateClose.
+    // This test ensures that the Tablet can still be unloaded normally by taking if offline
+    // after the split call with an invalid context. The context property is removed after the
+    // split call below to get the minor compaction task to succeed on a subsequent run. Because
+    // the minor compaction task backs off when retrying, this could take some time.
+
+    String tableName = getUniqueNames(1)[0];
+
+    try (final var client = Accumulo.newClient().from(getClientProps()).build()) {
+      final var tops = client.tableOperations();
+      tops.create(tableName);
+      TableId tableId = TableId.of(tops.tableIdMap().get(tableName));
+      try (final var bw = client.createBatchWriter(tableName)) {
+        final var m1 = new Mutation("a");
+        final var m2 = new Mutation("b");
+        m1.put(new Text("cf"), new Text(), new Value());
+        m2.put(new Text("cf"), new Text(), new Value());
+        bw.addMutation(m1);
+        bw.addMutation(m2);
+      }
+
+      tops.setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid");
+
+      Thread.sleep(500);
+
+      // This should fail to split, but not leave the tablets in a state where they can't
+      // be unloaded
+      assertThrows(AccumuloServerException.class,
+          () -> tops.addSplits(tableName, Sets.newTreeSet(List.of(new Text("b")))));
+
+      tops.removeProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+
+      // offline the table which will unload the tablets. If the context property is not
+      // removed above, then this test will fail because the tablets will not be able to be
+      // unloaded
+      tops.offline(tableName);
+
+      Wait.waitFor(() -> countHostedTablets(client, tableId).count() == 0L, 340_000);
+    }
+  }
+
+  @Test
+  public void testBadIterator() throws Exception {
+
+    // In this scenario the table is using an iterator for minc that is throwing an exeption.
+    // This test ensures that the Tablet can still be unloaded normally by taking if offline
+    // after the bad iterator has been removed from the minc configuration.
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = getUniqueNames(1)[0];
+      final var tops = c.tableOperations();
+
+      tops.create(tableName);
+      final var tid = TableId.of(tops.tableIdMap().get(tableName));
+
+      IteratorSetting is = new IteratorSetting(30, BadIterator.class);
+      c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
+
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation(new Text("r1"));
+        m.put("acf", tableName, "1");
+        bw.addMutation(m);
+      }
+
+      c.tableOperations().flush(tableName, null, null, false);
+
+      UtilWaitThread.sleepUninterruptibly(30, TimeUnit.SECONDS);
+
+      // minc should fail, so there should be no files
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+
+      // tell the server to take the table offline
+      tops.offline(tableName);
+
+      try {
+        // We are expecting this to fail, the table should not be taken offline
+        // because the bad iterator will prevent the minc from completing.
+        Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 340_000);
+        fail("Zero hosted tablets for table.");
+      } catch (IllegalStateException e) {}
+
+      // minc should fail, so there should be no files
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+
+      // remove the bad iterator. The failing minc task is in a backoff retry loop
+      // and should pick up this change on the next try
+      c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),
+          EnumSet.of(IteratorScope.minc));
+
+      // Minc should have completed successfully
+      Wait.waitFor(() -> tabletHasExpectedRFiles(c, tableName, 1, 1, 1, 1), 340_000);
+
+      // Taking the table offline should succeed normally
+      tops.offline(tableName);
+      Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 340_000);
+    }
+  }
+
+  private boolean tabletHasExpectedRFiles(AccumuloClient c, String tableName, int minTablets,
+      int maxTablets, int minRFiles, int maxRFiles) {
+    try {
+      FunctionalTestUtils.checkRFiles(c, tableName, minTablets, maxTablets, minRFiles, maxRFiles);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private Stream<TabletMetadata> countHostedTablets(AccumuloClient c, TableId tid) {
+    return ((ClientContext) c).getAmple().readTablets().forTable(tid).fetch(ColumnType.LOCATION)
+        .build().stream();
+  }
+}

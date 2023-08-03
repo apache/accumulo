@@ -90,6 +90,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -190,6 +191,7 @@ public class Tablet extends TabletBase {
   private CompactableImpl compactable;
 
   private volatile CompactionState minorCompactionState = null;
+  private volatile boolean lastMinCSuccessful = true;
 
   private final Deriver<ConstraintChecker> constraintChecker;
 
@@ -901,6 +903,47 @@ public class Tablet extends TabletBase {
   void initiateClose(boolean saveState) {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
 
+    // Check to see if last or current minc is failing. If so, then thrown
+    // an exception before closing the compactable and leaving the tablet
+    // in a half-closed state. Don't throw IllegalStateException because
+    // calling code will just continue to retry.
+    if (saveState) {
+      if (!isLastMinCSuccessful()) {
+        if (isMinorCompactionRunning()) {
+          // Then current minor compaction is retrying and failure is being
+          // reported.
+          String msg = "Aborting close on " + extent
+              + " because last minor compaction was not successful. Check the server log.";
+          log.warn(msg);
+          throw new RuntimeException(msg);
+        } else {
+          // We don't know when the last minc occurred. Kick one off now.
+          if (!initiateMinorCompaction(MinorCompactionReason.CLOSE)) {
+            String msg = "Unable to initiate minc for close on " + extent
+                + ". Tablet might be closed or deleting.";
+            log.warn(msg);
+            throw new RuntimeException(msg);
+          }
+          // Not calling getTabletMemory().waitForMinC(); as it will wait
+          // indefinitely for a successful minor compaction. It's possible
+          // that won't happen. We just want to know if the current minc
+          // fails.
+          while (isMinorCompactionRunning()) {
+            UtilWaitThread.sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+          }
+          // We don't want to initiate the close process on the tablet if the last minor compaction
+          // failed. Let the user resolve whatever the issue may be so that we get a successful
+          // minor compaction on the tablet before closing it.
+          if (!isLastMinCSuccessful()) {
+            String msg = "Aborting close on " + extent
+                + " because last minor compaction was not successful. Check the server log.";
+            log.warn(msg);
+            throw new RuntimeException(msg);
+          }
+        }
+      }
+    }
+
     MinorCompactionTask mct = null;
     synchronized (this) {
       if (isClosed() || isClosing()) {
@@ -1559,6 +1602,9 @@ public class Tablet extends TabletBase {
     } catch (IllegalStateException ise) {
       log.debug("File {} not splitting : {}", extent, ise.getMessage());
       return null;
+    } catch (RuntimeException re) {
+      log.debug("File {} not splitting : {}", extent, re.getMessage());
+      throw re;
     }
 
     // obtain this info outside of synch block since it will involve opening
@@ -2153,8 +2199,17 @@ public class Tablet extends TabletBase {
     minorCompactionState = CompactionState.IN_PROGRESS;
   }
 
-  public void minorCompactionComplete() {
+  public void minorCompactionFailure() {
+    lastMinCSuccessful = false;
+  }
+
+  public void minorCompactionComplete(boolean successful) {
+    lastMinCSuccessful = successful;
     minorCompactionState = null;
+  }
+
+  public boolean isLastMinCSuccessful() {
+    return lastMinCSuccessful;
   }
 
   public TabletStats getTabletStats() {
