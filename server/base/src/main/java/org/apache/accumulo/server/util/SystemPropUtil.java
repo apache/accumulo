@@ -36,17 +36,19 @@ public class SystemPropUtil {
 
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws IllegalArgumentException {
-    context.getPropStore().putAll(SystemPropKey.of(context),
-        Map.of(validateSystemProperty(property, value), value));
+    final SystemPropKey key = SystemPropKey.of(context);
+    context.getPropStore().putAll(key, Map.of(validateSystemProperty(key, property, value), value));
   }
 
   public static void modifyProperties(ServerContext context, long version,
       Map<String,String> properties) throws IllegalArgumentException {
+    final SystemPropKey key = SystemPropKey.of(context);
     final Map<String,
-        String> checkedProperties = properties.entrySet().stream().collect(
-            Collectors.toMap(entry -> validateSystemProperty(entry.getKey(), entry.getValue()),
+        String> checkedProperties = properties.entrySet().stream()
+            .collect(Collectors.toMap(
+                entry -> validateSystemProperty(key, entry.getKey(), entry.getValue()),
                 Map.Entry::getValue));
-    context.getPropStore().replaceAll(SystemPropKey.of(context), version, checkedProperties);
+    context.getPropStore().replaceAll(key, version, checkedProperties);
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {
@@ -64,8 +66,8 @@ public class SystemPropUtil {
     context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
   }
 
-  private static String validateSystemProperty(String property, final String value)
-      throws IllegalArgumentException {
+  private static String validateSystemProperty(SystemPropKey key, String property,
+      final String value) throws IllegalArgumentException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
     final var original = property;
@@ -84,6 +86,9 @@ public class SystemPropUtil {
           "Property " + property + " with value: " + value + " is not valid");
       log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
+    }
+    if (Property.isValidTablePropertyKey(property)) {
+      PropUtil.validateProperties(key, Map.of(property, value));
     }
 
     // Find the property taking prefix into account
