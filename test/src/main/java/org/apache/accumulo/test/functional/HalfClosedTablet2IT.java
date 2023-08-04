@@ -67,7 +67,7 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
 
     // In this scenario an invalid context causes the VolumeChooser impl to not
     // be loaded, which causes the MinorCompactionTask to fail to create an
-    // output file. This failure causes the minor compaction thread to die.
+    // output file. This failure previously caused the minor compaction thread to die.
 
     String tableName = getUniqueNames(1)[0];
     try (final var client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -85,14 +85,16 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
         bw.addMutation(m2);
       }
 
-      tops.setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid");
+      HalfClosedTabletIT.setInvalidClassLoaderContextPropertyWithoutValidation(
+          getCluster().getServerContext(), tableId);
 
       tops.flush(tableName);
 
       // minc should fail until invalid context is removed, so there should be no files
       FunctionalTestUtils.checkRFiles(client, tableName, 1, 1, 0, 0);
 
-      tops.removeProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+      HalfClosedTabletIT.removeInvalidClassLoaderContextPropertyWithoutValidation(
+          getCluster().getServerContext(), tableId);
 
       // Minc should have completed successfully
       Wait.waitFor(() -> HalfClosedTabletIT.tabletHasExpectedRFiles(client, tableName, 1, 1, 1, 1),

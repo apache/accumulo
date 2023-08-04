@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -43,6 +44,8 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -104,7 +107,8 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
         bw.addMutation(m2);
       }
 
-      tops.setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid");
+      setInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
+          tableId);
 
       Thread.sleep(500);
 
@@ -113,7 +117,8 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       assertThrows(AccumuloServerException.class,
           () -> tops.addSplits(tableName, Sets.newTreeSet(List.of(new Text("b")))));
 
-      tops.removeProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+      removeInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
+          tableId);
 
       // offline the table which will unload the tablets. If the context property is not
       // removed above, then this test will fail because the tablets will not be able to be
@@ -127,7 +132,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
   @Test
   public void testBadIterator() throws Exception {
 
-    // In this scenario the table is using an iterator for minc that is throwing an exeption.
+    // In this scenario the table is using an iterator for minc that is throwing an exception.
     // This test ensures that the Tablet can still be unloaded normally by taking if offline
     // after the bad iterator has been removed from the minc configuration.
 
@@ -180,6 +185,20 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       tops.offline(tableName);
       Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 340_000);
     }
+  }
+
+  public static void setInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
+      TableId tableId) {
+    TablePropKey key = TablePropKey.of(context, tableId);
+    context.getPropStore().putAll(key,
+        Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
+  }
+
+  public static void removeInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
+      TableId tableId) {
+    TablePropKey key = TablePropKey.of(context, tableId);
+    context.getPropStore().removeProperties(key,
+        List.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey()));
   }
 
   public static boolean tabletHasExpectedRFiles(AccumuloClient c, String tableName, int minTablets,
