@@ -919,13 +919,6 @@ public class Tablet extends TabletBase {
           // We don't know when the last minc occurred. Kick one off now. It's possible
           // that a minc will not be initiated (if there is no data in the table for example)
           if (initiateMinorCompaction(MinorCompactionReason.CLOSE)) {
-            // Not calling getTabletMemory().waitForMinC(); as it will wait
-            // indefinitely for a successful minor compaction. It's possible
-            // that won't happen. We just want to know if the current minc
-            // fails.
-            // while (isMinorCompactionQueued() || isMinorCompactionRunning()) {
-            // UtilWaitThread.sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
-            // }
             getTabletMemory().waitForMinC();
           }
         }
