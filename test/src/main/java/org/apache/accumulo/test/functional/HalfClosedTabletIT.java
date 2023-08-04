@@ -161,7 +161,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       try {
         // We are expecting this to fail, the table should not be taken offline
         // because the bad iterator will prevent the minc from completing.
-        Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 340_000);
+        Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 120_000);
         fail("Zero hosted tablets for table.");
       } catch (IllegalStateException e) {}
 
@@ -182,7 +182,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
     }
   }
 
-  private boolean tabletHasExpectedRFiles(AccumuloClient c, String tableName, int minTablets,
+  public static boolean tabletHasExpectedRFiles(AccumuloClient c, String tableName, int minTablets,
       int maxTablets, int minRFiles, int maxRFiles) {
     try {
       FunctionalTestUtils.checkRFiles(c, tableName, minTablets, maxTablets, minRFiles, maxRFiles);
@@ -192,7 +192,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
     }
   }
 
-  private Stream<TabletMetadata> countHostedTablets(AccumuloClient c, TableId tid) {
+  public static Stream<TabletMetadata> countHostedTablets(AccumuloClient c, TableId tid) {
     return ((ClientContext) c).getAmple().readTablets().forTable(tid).fetch(ColumnType.LOCATION)
         .build().stream();
   }
