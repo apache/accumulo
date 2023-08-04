@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -121,15 +123,6 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void noChopMergeTest() throws Exception {
-    noChopMergeTest(false);
-  }
-
-  @Test
-  public void noChopMergeTestCompactTrue() throws Exception {
-    noChopMergeTest(true);
-  }
-
-  private void noChopMergeTest(boolean compact) throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -172,19 +165,210 @@ public class MergeIT extends AccumuloClusterHarness {
         }
       }
 
-      System.out.println("Metadata after deleting rows 101 - 200 and 301 - 400");
-      c.tableOperations().compact(tableName,
-          new CompactionConfig().setEndRow(splits.first()).setWait(true));
       c.tableOperations().flush(tableName, null, null, true);
-      printAndVerifyFileMetadata(c, tableId, 5);
 
-      // Optionally compact before merge
-      if (compact) {
-        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      }
+      // compact the first 2 tablets so the new files with the deletes are gone
+      // so we can test that the data does not come back when the 3rd tablet is
+      // merged back with the other tablets as it still contains the original file
+      c.tableOperations().compact(tableName, new CompactionConfig().setStartRow(null)
+          .setEndRow(List.copyOf(splits).get(1)).setWait(true));
+      System.out.println("Metadata after deleting rows 101 - 200 and 301 - 400");
+      printAndVerifyFileMetadata(c, tableId, 4);
+
+      // Merge and print results
       c.tableOperations().merge(tableName, null, null);
       System.out.println("Metadata after Merge");
-      printAndVerifyFileMetadata(c, tableId, compact ? 4 : 5);
+      printAndVerifyFileMetadata(c, tableId, 4);
+
+      // Verify that the deleted rows can't be read after merge
+      verify(c, 100, 1, tableName);
+      verifyNoRows(c, 100, 101, tableName);
+      verify(c, 100, 201, tableName);
+      verifyNoRows(c, 100, 301, tableName);
+      verify(c, 600, 401, tableName);
+    }
+  }
+
+  @Test
+  public void noChopMergeDeleteAcrossTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      // disable compactions
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
+      final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      // First write 1000 rows to a file in the default tablet
+      ingest(c, 1000, 1, tableName);
+      c.tableOperations().flush(tableName, null, null, true);
+
+      System.out.println("\nMetadata after Ingest");
+      printAndVerifyFileMetadata(c, tableId, 1);
+
+      // Add splits so we end up with 10 tablets
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 100; i <= 900; i += 100) {
+        splits.add(new Text("row_" + String.format("%010d", i)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
+
+      System.out.println("Metadata after Split");
+      verify(c, 1000, 1, tableName);
+      printAndVerifyFileMetadata(c, tableId, 10);
+
+      // Go through and delete three blocks of rows
+      // 151 - 250, 451 - 550, 751 - 850
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        byte[] COL_PREFIX = "col_".getBytes(UTF_8);
+        Text colq = new Text(FastFormat.toZeroPaddedString(0, 7, 10, COL_PREFIX));
+
+        for (int j = 0; j <= 2; j++) {
+          for (int i = 151; i <= 250; i++) {
+            Mutation m = new Mutation(new Text("row_" + String.format("%010d", i + (j * 300))));
+            m.putDelete(new Text("colf"), colq);
+            bw.addMutation(m);
+          }
+        }
+      }
+
+      c.tableOperations().flush(tableName, null, null, true);
+
+      System.out.println("Metadata after deleting rows 151 - 250, 451 - 550, 751 - 850");
+      // compact some of the tablets with deletes so we can test that the data does not come back
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setStartRow(new Text("row_" + String.format("%010d", 150)))
+              .setEndRow(new Text("row_" + String.format("%010d", 250))).setWait(true));
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setStartRow(new Text("row_" + String.format("%010d", 750)))
+              .setEndRow(new Text("row_" + String.format("%010d", 850))).setWait(true));
+      // Should be 16 files (10 for the original splits plus 2 extra files per deletion range across
+      // tablets)
+      printAndVerifyFileMetadata(c, tableId, 12);
+
+      c.tableOperations().merge(tableName, null, null);
+      System.out.println("Metadata after Merge");
+      printAndVerifyFileMetadata(c, tableId, 12);
+
+      // Verify that the deleted rows can't be read after merge
+      verify(c, 150, 1, tableName);
+      verifyNoRows(c, 100, 151, tableName);
+      verify(c, 200, 251, tableName);
+      verifyNoRows(c, 100, 451, tableName);
+      verify(c, 200, 551, tableName);
+      verifyNoRows(c, 100, 751, tableName);
+      verify(c, 150, 851, tableName);
+    }
+  }
+
+  // Multiple splits/deletes/merges to show ranges work and carry forward
+  // Testing that we can split -> delete, merge, split -> delete, merge
+  // with deletions across boundaries
+  @Test
+  public void noChopMergeDeleteAcrossTabletsMultiple() throws Exception {
+    // Run initial test to populate table and merge which adds ranges to files
+    noChopMergeDeleteAcrossTablets();
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      System.out.println("\nMetadata after initial test run");
+      printAndVerifyFileMetadata(c, tableId, -1);
+
+      // Add splits so we end up with 10 tablets
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 100; i <= 900; i += 100) {
+        splits.add(new Text("row_" + String.format("%010d", i)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
+
+      System.out.println("Metadata after Split for second time");
+      // Verify that the deleted rows can't be read after merge
+      verify(c, 150, 1, tableName);
+      verifyNoRows(c, 100, 151, tableName);
+      verify(c, 200, 251, tableName);
+      verifyNoRows(c, 100, 451, tableName);
+      verify(c, 200, 551, tableName);
+      verifyNoRows(c, 100, 751, tableName);
+      verify(c, 150, 851, tableName);
+      printAndVerifyFileMetadata(c, tableId, -1);
+
+      c.tableOperations().flush(tableName, null, null, true);
+
+      // Go through and also delete 651 - 700
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        byte[] COL_PREFIX = "col_".getBytes(UTF_8);
+        Text colq = new Text(FastFormat.toZeroPaddedString(0, 7, 10, COL_PREFIX));
+
+        for (int i = 651; i <= 700; i++) {
+          Mutation m = new Mutation(new Text("row_" + String.format("%010d", i)));
+          m.putDelete(new Text("colf"), colq);
+          bw.addMutation(m);
+        }
+      }
+
+      c.tableOperations().flush(tableName, null, null, true);
+
+      System.out.println("Metadata after deleting rows 151 - 250, 451 - 550, 651 - 700, 751 - 850");
+      // compact some of the tablets with deletes so we can test that the data does not come back
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setStartRow(new Text("row_" + String.format("%010d", 150)))
+              .setEndRow(new Text("row_" + String.format("%010d", 700))).setWait(true));
+
+      // Re-merge a second time after deleting more rows
+      c.tableOperations().merge(tableName, null, null);
+      System.out.println("Metadata after second Merge");
+      printAndVerifyFileMetadata(c, tableId, -1);
+
+      // Verify that the deleted rows can't be read after merge
+      verify(c, 150, 1, tableName);
+      verifyNoRows(c, 100, 151, tableName);
+      verify(c, 200, 251, tableName);
+      verifyNoRows(c, 100, 451, tableName);
+      verify(c, 100, 551, tableName);
+      verifyNoRows(c, 50, 651, tableName);
+      verify(c, 50, 701, tableName);
+      verifyNoRows(c, 100, 751, tableName);
+      verify(c, 150, 851, tableName);
+    }
+  }
+
+  // Tests that after we merge and fence files, we can split and then
+  // merge a second time the same table which shows splits/merges work
+  // for files that already have ranges
+  @Test
+  public void noChopMergeTestMultipleMerges() throws Exception {
+    // Do initial merge which will fence off files
+    noChopMergeTest();
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      System.out.println("\nMetadata after initial no chop merge test");
+      printAndVerifyFileMetadata(c, tableId, 4);
+
+      // Add splits so we end up with 4 tablets
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 250; i <= 750; i += 250) {
+        splits.add(new Text("row_" + String.format("%010d", i)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
+
+      System.out.println("Metadata after Split");
+      // Verify after splitting for the second time
+      verify(c, 100, 1, tableName);
+      verifyNoRows(c, 100, 101, tableName);
+      verify(c, 100, 201, tableName);
+      verifyNoRows(c, 100, 301, tableName);
+      verify(c, 600, 401, tableName);
+      printAndVerifyFileMetadata(c, tableId, -1);
+
+      // Re-Merge and print results. This tests merging with files
+      // that already have a range
+      c.tableOperations().merge(tableName, null, null);
+      System.out.println("Metadata after Merge");
+      printAndVerifyFileMetadata(c, tableId, -1);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 100, 1, tableName);

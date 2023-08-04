@@ -104,6 +104,7 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -779,6 +780,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     KeyExtent previousKeyExtent = null;
     KeyExtent lastRow = null;
 
+    Set<String> movedMetadataEntries = new HashSet<>();
+    Set<String> possibleMetadataDeletes = new HashSet<>();
+
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
@@ -811,22 +815,33 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (previousKeyExtent != null
               && key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
 
-            // Delete exiting metadata as we are now adding a range
-            m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-
             // Fence off existing files by the end row of the previous tablet and current tablet
             final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
             // The end row should be inclusive for the current tablet and the previous end row
             // should be exclusive for the start row
             Range fenced = new Range(previousKeyExtent.endRow(), false, keyExtent.endRow(), true);
 
-            // TODO If there is an existing range we likely need to clip the range with something
-            // like the following which is commented out for now. We also may need to handle
-            // disjoint ranges
-            // fenced = existing.hasRange() ? fenced.clip(existing.getRange()) : fenced;
+            // Clip range if exists
+            fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
 
-            m.put(key.getColumnFamily(),
-                StoredTabletFile.of(existing.getPath(), fenced).getMetadataText(), value);
+            // If null the range is disjoint with the new tablet range so need to handle
+            if (fenced == null) {
+              // If the file is part of movedMetadataEntries then don't do anything as the same/file
+              // range was part of another tablet that is being merged and we need to keep it
+              // If not then we can just go ahead and mark it for possible deletion
+              if (!movedMetadataEntries.contains(existing.getMetadata())) {
+                possibleMetadataDeletes.add(existing.getMetadata());
+              }
+            } else {
+              StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+              if (!existing.equals(newFile)) {
+                // Delete exiting metadata as we are changing the range
+                m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+                m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
+                movedMetadataEntries.add(newFile.getMetadata());
+              }
+            }
+
             fileCount++;
           }
           // For the highest tablet we only care about the DataFileColumnFamily
@@ -848,13 +863,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           Range fenced = new Range(previousKeyExtent != null ? previousKeyExtent.endRow() : null,
               false, keyExtent.endRow(), true);
 
-          // TODO If there is an existing range we likely need to clip the range with something
-          // like the following which is commented out for now. We also may need to handle disjoint
-          // ranges
-          // fenced = existing.hasRange() ? fenced.clip(existing.getRange()) : fenced;
+          // Clip range with the tablet range if the range already exists
+          fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
 
-          m.put(key.getColumnFamily(),
-              StoredTabletFile.of(existing.getPath(), fenced).getMetadataText(), value);
+          // If null then don't need to forward as it is disjoint and doesn't fall in the current
+          // range
+          if (fenced != null) {
+            StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+            m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
+            movedMetadataEntries.add(newFile.getMetadata());
+          }
           fileCount++;
         } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
             && firstPrevRowValue == null) {
@@ -870,6 +888,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         lastRow = keyExtent;
       }
+
+      // Process deletes for any files that are not part of movedMetadataEntries
+      Sets.difference(possibleMetadataDeletes, movedMetadataEntries).forEach(delete -> {
+        Manager.log.debug("Deleting file {}", delete);
+        m.putDelete(DataFileColumnFamily.NAME, new Text(delete));
+      });
 
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
