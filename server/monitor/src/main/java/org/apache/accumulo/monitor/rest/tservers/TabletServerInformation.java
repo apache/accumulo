@@ -64,17 +64,17 @@ public class TabletServerInformation {
   // New variables
 
   public String ip;
-  private Integer scansRunning;
-  private Integer scansQueued;
+  public Integer scansRunning;
+  public Integer scansQueued;
   // combo string with running value and number queued in parenthesis
   public String minorCombo;
   public String majorCombo;
   public String scansCombo;
-  private Integer minorRunning;
-  private Integer minorQueued;
+  public Integer minorRunning;
+  public Integer minorQueued;
 
-  private Integer majorRunning;
-  private Integer majorQueued;
+  public Integer majorRunning;
+  public Integer majorQueued;
 
   private CompactionsList scansCompacting; // if scans is removed, change scansCompacting to scans
   private CompactionsList major;
