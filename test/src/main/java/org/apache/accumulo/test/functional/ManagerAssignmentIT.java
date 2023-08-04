@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,11 +39,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -142,25 +140,21 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
       final CountDownLatch latch = new CountDownLatch(10);
 
-      Runnable task = new Runnable() {
-        @Override
-        public void run() {
-          while (true) {
-            try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
-              // TODO maybe do not close scanner? The following limit was placed on the stream to
-              // avoid reading all the data possibly leaving a scan session active on the tserver
-              int count = 0;
-              for (Entry<Key,Value> e : scanner) {
-                count++;
-                // let the test thread know that this thread has read some data
-                if (count == 1_000) {
-                  latch.countDown();
-                }
+      Runnable task = () -> {
+        while (true) {
+          try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
+            // TODO maybe do not close scanner? The following limit was placed on the stream to
+            // avoid reading all the data possibly leaving a scan session active on the tserver
+            AtomicInteger count = new AtomicInteger(0);
+            scanner.forEach(e -> {
+              // let the test thread know that this thread has read some data
+              if (count.incrementAndGet() == 1_000) {
+                latch.countDown();
               }
-            } catch (Exception e) {
-              e.printStackTrace();
-              break;
-            }
+            });
+          } catch (Exception e) {
+            e.printStackTrace();
+            break;
           }
         }
       };
@@ -218,7 +212,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
 
       client.instanceOperations().waitForBalance();
 
