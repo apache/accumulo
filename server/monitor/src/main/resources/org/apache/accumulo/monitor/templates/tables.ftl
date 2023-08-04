@@ -49,6 +49,28 @@
                   if (type === 'display') data = timeDuration(data);
                   return data;
                 }
+              },
+              // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
+              // instead of sorting them lexicographically by the string itself.
+              // Specifically: 'targets' column will use the values in the 'orderData' columns
+
+              // scan column will be sorted by number of running, then by number of queued
+              {
+                "targets": [10],
+                "type": "numeric",
+                "orderData": [13, 14]
+              },
+              // minor compaction column will be sorted by number of running, then by number of queued
+              {
+                "targets": [11],
+                "type": "numeric",
+                "orderData": [15, 16]
+              },
+              // major compaction column will be sorted by number of running, then by number of queued
+              {
+                "targets": [12],
+                "type": "numeric",
+                "orderData": [17, 18]
               }
             ],
             "columns": [
@@ -73,7 +95,13 @@
               { "data": "holdTime", "orderSequence": ["desc", "asc"] },
               { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
               { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
-              { "data": "majorCombo", "orderSequence": ["desc", "asc"] }
+              { "data": "majorCombo", "orderSequence": ["desc", "asc"] },
+              { "data": "runningScans", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedScans", "orderSequence": ["desc", "asc"], "visible": false},
+              { "data": "runningMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "runningMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "queuedMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false }
             ]
           });
         });

@@ -18,12 +18,38 @@
  */
 package org.apache.accumulo.test.util;
 
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.util.function.ToIntFunction;
 
 public class Wait {
 
-  public static final long MAX_WAIT_MILLIS = TimeUnit.SECONDS.toMillis(30);
+  public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(30);
   public static final long SLEEP_MILLIS = 1000;
+
+  /**
+   * Get the user-specified timeout.factor value from the system properties. The parsed value must
+   * be a valid integer greater-than-or-equal-to 1. On a parse error, including parsing values less
+   * than 1, the caller can handle the error and substitute in a different value, which could be any
+   * integer (even less than 1).
+   *
+   * @param onError allows parse exceptions to be detected and the value replaced with a substitute
+   * @return the parsed value or the value from the onError function, if an error occurred
+   */
+  public static int getTimeoutFactor(ToIntFunction<NumberFormatException> onError) {
+    String timeoutString = System.getProperty("timeout.factor");
+    try {
+      int factor = Integer.parseInt(timeoutString);
+      if (factor < 1) {
+        throw new NumberFormatException("timeout.factor must be at least 1");
+      }
+      return factor;
+    } catch (NumberFormatException e) {
+      return onError.applyAsInt(e);
+    }
+
+  }
 
   public interface Condition {
     boolean isSatisfied() throws Exception;
@@ -33,7 +59,7 @@ public class Wait {
    * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
    * default wait period of 30 seconds and a retry period of 1 second.
    *
-   * @param condition when condition evaluates ture, return from wait
+   * @param condition when condition evaluates true, return from wait
    */
   public static void waitFor(Condition condition) {
     waitFor(condition, MAX_WAIT_MILLIS);
@@ -43,7 +69,7 @@ public class Wait {
    * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
    * wait duration with a default retry period of 1 second.
    *
-   * @param condition when condition evaluates ture, return from wait
+   * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
    */
   public static void waitFor(final Condition condition, final long duration) {
@@ -54,7 +80,7 @@ public class Wait {
    * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
    * wait period.
    *
-   * @param condition when condition evaluates ture, return from wait
+   * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
    * @param sleepMillis time to sleep between condition checks
    */
@@ -67,7 +93,7 @@ public class Wait {
    * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
    * wait period.
    *
-   * @param condition when condition evaluates ture, return from wait
+   * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
    * @param sleepMillis time to sleep between condition checks
    * @param failMessage optional message to include in IllegalStateException if condition not met
@@ -76,12 +102,16 @@ public class Wait {
   public static void waitFor(final Condition condition, final long duration, final long sleepMillis,
       final String failMessage) {
 
-    final long expiry = System.currentTimeMillis() + duration;
+    final int timeoutFactor = getTimeoutFactor(e -> 1); // default to factor of 1
+    final long scaledDurationNanos = MILLISECONDS.toNanos(duration) * timeoutFactor;
+    final long scaledSleepMillis = sleepMillis * timeoutFactor;
+
+    final long startNanos = System.nanoTime();
     boolean success;
     try {
       success = condition.isSatisfied();
-      while (!success && System.currentTimeMillis() < expiry) {
-        TimeUnit.MILLISECONDS.sleep(sleepMillis);
+      while (!success && System.nanoTime() - startNanos < scaledDurationNanos) {
+        MILLISECONDS.sleep(scaledSleepMillis);
         success = condition.isSatisfied();
       }
     } catch (InterruptedException ex) {
