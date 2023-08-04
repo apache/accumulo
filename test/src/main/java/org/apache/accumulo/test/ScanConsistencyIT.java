@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,7 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +76,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This test verifies that scans will always see data written before the scan started even when
  * there are concurrent scans, writes, and table operations running.
  */
-@Tag(SUNNY_DAY)
 public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
@@ -356,13 +353,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
   private static ScanStats scanData(TestContext tctx, Random random, Range range,
       boolean scanIsolated) throws Exception {
     try (ExpectedScanData expectedScanData = tctx.dataTracker.beginScan();
-        Scanner baseScanner = tctx.client.createScanner(tctx.table)) {
+        Scanner scanner = scanIsolated ? new IsolatedScanner(tctx.client.createScanner(tctx.table))
+            : tctx.client.createScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
-
-      Scanner scanner = baseScanner;
-      if (scanIsolated) {
-        scanner = new IsolatedScanner(baseScanner);
-      }
 
       Stream<Map.Entry<Key,Value>> scanStream;
 
