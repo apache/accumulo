@@ -25,7 +25,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -38,8 +37,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -125,7 +124,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // unloaded
       tops.offline(tableName);
 
-      Wait.waitFor(() -> countHostedTablets(client, tableId).count() == 0L, 340_000);
+      Wait.waitFor(() -> countHostedTablets(client, tableId) == 0L, 340_000);
     }
   }
 
@@ -166,7 +165,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       try {
         // We are expecting this to fail, the table should not be taken offline
         // because the bad iterator will prevent the minc from completing.
-        Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 120_000);
+        Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 120_000);
         fail("Zero hosted tablets for table.");
       } catch (IllegalStateException e) {}
 
@@ -183,7 +182,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
       // Taking the table offline should succeed normally
       tops.offline(tableName);
-      Wait.waitFor(() -> countHostedTablets(c, tid).count() == 0L, 340_000);
+      Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 340_000);
     }
   }
 
@@ -211,8 +210,10 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
     }
   }
 
-  public static Stream<TabletMetadata> countHostedTablets(AccumuloClient c, TableId tid) {
-    return ((ClientContext) c).getAmple().readTablets().forTable(tid).fetch(ColumnType.LOCATION)
-        .build().stream();
+  public static long countHostedTablets(AccumuloClient c, TableId tid) {
+    try (TabletsMetadata tm = ((ClientContext) c).getAmple().readTablets().forTable(tid)
+        .fetch(ColumnType.LOCATION).build()) {
+      return tm.stream().count();
+    }
   }
 }

@@ -183,7 +183,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
       log.error(
           "Null returned for compaction dispatcher for table: {}. Did not return default value, check server log.",
           tableId);
-      return newDispatcher;
+      return null;
     }
 
     Map<String,String> opts =
