@@ -37,6 +37,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+//This IT tests the cases seen in https://github.com/apache/accumulo/issues/3674
+//where a failing minor compaction causes a Tablet.initiateClose to leave the
+//Tablet in a half-closed state. The half-closed Tablet cannot be unloaded and
+//the TabletServer cannot be shutdown normally. Because the minor compaction has
+//been failing the Tablet needs to be recovered when it's ultimately re-assigned.
+//The test in this class sets up a VolumeChooser configuration on MiniAccumuloCluster
+//to test a specific code path that caused the minor compaction thread to die.
 public class HalfClosedTablet2IT extends SharedMiniClusterBase {
 
   public static class HalfClosedTablet2ITConfiguration implements MiniClusterConfigurationCallback {
