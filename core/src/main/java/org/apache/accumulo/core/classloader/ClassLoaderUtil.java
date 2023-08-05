@@ -82,6 +82,14 @@ public class ClassLoaderUtil {
     }
   }
 
+  public static boolean isValidContext(String context) {
+    if (context != null && !context.isEmpty()) {
+      return FACTORY.isValid(context);
+    } else {
+      return false;
+    }
+  }
+
   public static <U> Class<? extends U> loadClass(String context, String className,
       Class<U> extension) throws ClassNotFoundException {
     return getClassLoader(context).loadClass(className).asSubclass(extension);

@@ -65,4 +65,15 @@ public interface ContextClassLoaderFactory {
    * @return the class loader for the given contextName
    */
   ClassLoader getClassLoader(String contextName);
+
+  /**
+   * Validate that the contextName is supported by the ContextClassLoaderFactory implementation
+   *
+   * @param contextName the name of the context that represents a class loader that is managed by
+   *        this factory (can be null)
+   * @return true if valid, false otherwise
+   */
+  default boolean isValid(String contextName) {
+    return false;
+  }
 }
