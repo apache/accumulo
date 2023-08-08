@@ -43,6 +43,9 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
   @Override
   public ClassLoader getClassLoader(String contextName) {
+    if (contextName == null || contextName.isEmpty()) {
+      throw new IllegalArgumentException("contextName must have a value");
+    }
     // The context name is the classpath.
     try {
       URL[] urls = parseURLsFromContextName(contextName);
@@ -54,6 +57,9 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
   @Override
   public boolean isValid(String contextName) {
+    if (contextName == null || contextName.isEmpty()) {
+      return false;
+    }
     try {
       parseURLsFromContextName(contextName);
       return true;

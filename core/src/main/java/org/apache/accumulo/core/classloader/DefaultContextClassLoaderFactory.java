@@ -96,6 +96,9 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   @SuppressWarnings("deprecation")
   @Override
   public ClassLoader getClassLoader(String contextName) {
+    if (contextName == null || contextName.isEmpty()) {
+      throw new IllegalArgumentException("contextName must have a value");
+    }
     return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
         .getContextClassLoader(contextName);
   }
@@ -103,6 +106,9 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   @SuppressWarnings("deprecation")
   @Override
   public boolean isValid(String contextName) {
+    if (contextName == null || contextName.isEmpty()) {
+      return false;
+    }
     try {
       return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getContextManager()
           .isKnownContext(contextName);
