@@ -66,6 +66,7 @@ public final class PropUtil {
         throw new IllegalArgumentException(exceptionMessage + propStoreKey + " name: "
             + prop.getKey() + ", value: " + prop.getValue());
       } else if (prop.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
+          && !Property.TABLE_CLASSLOADER_CONTEXT.getDefaultValue().equals(prop.getValue())
           && !ClassLoaderUtil.isValidContext(prop.getValue())) {
         throw new IllegalArgumentException(
             "Unable to resolve classloader for context: " + prop.getValue());
