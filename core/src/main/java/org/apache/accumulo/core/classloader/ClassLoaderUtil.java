@@ -75,23 +75,14 @@ public class ClassLoaderUtil {
 
   @SuppressWarnings("deprecation")
   public static ClassLoader getClassLoader(String context) {
-    if (FACTORY == null) {
-      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
-    }
-    ClassLoader cl;
     try {
-      cl = FACTORY.getClassLoader(context);
-      return (cl == null)
-          ? org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader() : cl;
+      return FACTORY.getClassLoader(context);
     } catch (RuntimeException e) {
       return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
     }
   }
 
   public static boolean isValidContext(String context) {
-    if (FACTORY == null) {
-      return false;
-    }
     try {
       return FACTORY.isValid(context);
     } catch (RuntimeException e) {
