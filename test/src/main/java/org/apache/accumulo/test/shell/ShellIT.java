@@ -543,9 +543,9 @@ public class ShellIT extends SharedMiniClusterBase {
           Shell.log.debug("Property Type: " + propertyType + " has no defined test case");
           invalidValue = "foo";
       }
-      
+
       String setCommand;
-      if(property.isDeprecated()){
+      if (property.isDeprecated()) {
         setCommand = "config --force -s ";
       } else {
         setCommand = "config -s ";
