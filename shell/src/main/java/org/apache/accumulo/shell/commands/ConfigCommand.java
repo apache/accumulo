@@ -128,7 +128,7 @@ public class ConfigCommand extends Command {
 
       // check for deprecation
       var theProp = Property.getPropertyByKey(property);
-      if (theProp.isDeprecated()) {
+      if (theProp != null && theProp.isDeprecated()) {
         if (!forceSet(shellState, cl,
             "Trying to set deprecated property `" + property + "` continue")) {
           throw new BadArgumentException(
