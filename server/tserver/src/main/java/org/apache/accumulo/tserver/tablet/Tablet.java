@@ -190,7 +190,6 @@ public class Tablet extends TabletBase {
   private CompactableImpl compactable;
 
   private volatile CompactionState minorCompactionState = null;
-  private volatile boolean lastMinCSuccessful = true;
 
   private final Deriver<ConstraintChecker> constraintChecker;
 
@@ -901,39 +900,6 @@ public class Tablet extends TabletBase {
 
   void initiateClose(boolean saveState) {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
-
-    // Check to see if last or current minc is failing. If so, then throw
-    // an exception before closing the compactable and leaving the tablet
-    // in a half-closed state. Don't throw IllegalStateException because
-    // calling code will just continue to retry.
-    if (saveState) {
-      if (!isLastMinCSuccessful()) {
-        if (isMinorCompactionRunning()) {
-          // Then current minor compaction is retrying and failure is being
-          // reported.
-          String msg = "Aborting close on " + extent
-              + " because last minor compaction was not successful. Check the server log.";
-          log.warn(msg);
-          throw new RuntimeException(msg);
-        } else {
-          // We don't know when the last minc occurred. Kick one off now. It's possible
-          // that a minc will not be initiated (if there is no data in the table for example)
-          if (initiateMinorCompaction(MinorCompactionReason.CLOSE)) {
-            getTabletMemory().waitForMinC();
-          }
-        }
-      }
-      // We don't want to initiate the close process on the tablet if the last minor compaction
-      // failed. Let the user resolve whatever the issue may be so that we get a successful
-      // minor compaction on the tablet before closing it.
-      if (!isLastMinCSuccessful()) {
-        String msg = "Aborting close on " + extent
-            + " because last minor compaction was not successful. Check the server log.";
-        log.warn(msg);
-        throw new RuntimeException(msg);
-      }
-
-    }
 
     MinorCompactionTask mct = null;
     synchronized (this) {
@@ -2190,17 +2156,8 @@ public class Tablet extends TabletBase {
     minorCompactionState = CompactionState.IN_PROGRESS;
   }
 
-  public void minorCompactionFailure() {
-    lastMinCSuccessful = false;
-  }
-
-  public void minorCompactionComplete(boolean successful) {
-    lastMinCSuccessful = successful;
+  public void minorCompactionComplete() {
     minorCompactionState = null;
-  }
-
-  public boolean isLastMinCSuccessful() {
-    return lastMinCSuccessful;
   }
 
   public TabletStats getTabletStats() {

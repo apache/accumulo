@@ -50,7 +50,6 @@ public class MinorCompactor extends FileCompactor {
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
-  private final Tablet tablet;
   private final TabletServer tabletServer;
   private final MinorCompactionReason mincReason;
 
@@ -59,7 +58,6 @@ public class MinorCompactor extends FileCompactor {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
         tableConfig.getCryptoService());
-    this.tablet = tablet;
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }
@@ -133,7 +131,6 @@ public class MinorCompactor extends FileCompactor {
           throw new IllegalStateException(e);
         }
 
-        this.tablet.minorCompactionFailure();
         int sleep = sleepTime + random.nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);

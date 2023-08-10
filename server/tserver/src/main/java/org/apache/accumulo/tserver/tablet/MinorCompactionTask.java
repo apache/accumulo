@@ -131,11 +131,11 @@ class MinorCompactionTask implements Runnable {
       if (tablet.needsSplit(tablet.getSplitComputations())) {
         tablet.getTabletServer().executeSplit(tablet);
       }
-      tablet.minorCompactionComplete(true);
     } catch (Exception e) {
       log.error("Unknown error during minor compaction for extent: {}", tablet.getExtent(), e);
-      tablet.minorCompactionComplete(false);
       throw e;
+    } finally {
+      tablet.minorCompactionComplete();
     }
   }
 }
