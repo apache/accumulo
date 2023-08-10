@@ -142,6 +142,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -2204,7 +2205,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> (TabletInformation) new TabletInformationImpl(tm,
-            tm.getTabletState(liveTserverSet).toString()))
+            TabletState.compute(tm, liveTserverSet).toString()))
         .onClose(tabletsMetadata::close);
   }
 
