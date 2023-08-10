@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.EnumSet;
@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -109,15 +108,26 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       setInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
           tableId);
 
-      Thread.sleep(500);
+      // Need to wait for TabletServer to pickup configuration change
+      Thread.sleep(3000);
 
-      // This should fail to split, but not leave the tablets in a state where they can't
-      // be unloaded
-      assertThrows(AccumuloServerException.class,
-          () -> tops.addSplits(tableName, Sets.newTreeSet(List.of(new Text("b")))));
+      Thread configFixer = new Thread(() -> {
+        UtilWaitThread.sleep(3000);
+        removeInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
+            tableId);
+      });
 
-      removeInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
-          tableId);
+      long t1 = System.nanoTime();
+      configFixer.start();
+
+      // The split will probably start running w/ bad config that will cause it to get stuck.
+      // However once the config is fixed by the background thread it should continue.
+      tops.addSplits(tableName, Sets.newTreeSet(List.of(new Text("b"))));
+
+      long t2 = System.nanoTime();
+      // expect that split took at least 3 seconds because that is the time it takes to fix the
+      // config
+      assertTrue(TimeUnit.NANOSECONDS.toMillis(t2 - t1) >= 3000);
 
       // offline the table which will unload the tablets. If the context property is not
       // removed above, then this test will fail because the tablets will not be able to be
