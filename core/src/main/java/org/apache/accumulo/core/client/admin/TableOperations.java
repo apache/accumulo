@@ -1035,7 +1035,8 @@ public interface TableOperations {
   }
 
   /**
-   * @return a stream of tablets information for tablets that fall in the specified range.  The stream may be backed by a scanner, so its best to close the stream.
+   * @return a stream of tablets information for tablets that fall in the specified range.  The 
+             stream may be backed by a scanner, so its best to close the stream.
    * @since 4.0.0
    */
   default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
