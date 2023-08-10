@@ -1263,4 +1263,20 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return exit;
   }
 
+  /**
+   * Prompt user for yes/no using the shell prompt.
+   *
+   * @param prompt the string printed to user, with (yes|no)? appended as the prompt.
+   * @return true if user enters y | yes.
+   */
+  public boolean yorn(final String prompt) {
+    getWriter().flush();
+    String line;
+    try {
+      line = getReader().readLine(prompt + " (yes|no)? ");
+    } catch (EndOfFileException ignored) {
+      line = null;
+    }
+    return line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+  }
 }

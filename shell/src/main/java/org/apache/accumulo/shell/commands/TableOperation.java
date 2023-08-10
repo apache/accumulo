@@ -73,24 +73,12 @@ public abstract class TableOperation extends Command {
       Shell.log.warn("No tables found that match your criteria");
     }
 
-    boolean more = true;
-    // flush the tables
+    // do op if forced or user answers prompt with yes
     for (String tableName : tableSet) {
-      if (!more) {
-        break;
-      }
       if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
       }
-      boolean operate = true;
-      if (!force) {
-        shellState.getWriter().flush();
-        String line =
-            shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
-        more = line != null;
-        operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-      }
-      if (operate) {
+      if (force || shellState.yorn(getName() + " { " + tableName + " }")) {
         doTableOp(shellState, tableName);
       }
     }

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -117,7 +118,8 @@ public class ConfigCommand extends Command {
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
       // set property on table
-      String property = cl.getOptionValue(setOpt.getOpt()), value = null;
+      String property = cl.getOptionValue(setOpt.getOpt());
+      String value;
       if (!property.contains("=")) {
         throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand,
             fullCommand.indexOf(property));
@@ -129,8 +131,7 @@ public class ConfigCommand extends Command {
       // check for deprecation
       var theProp = Property.getPropertyByKey(property);
       if (theProp != null && theProp.isDeprecated()) {
-        if (!forceSet(shellState, cl,
-            "Trying to set deprecated property `" + property + "` continue")) {
+        if (!shellState.yorn("Trying to set deprecated property `" + property + "` continue")) {
           throw new BadArgumentException(
               "Tried to set deprecated property and force not specified.", fullCommand,
               fullCommand.indexOf(property));
@@ -209,8 +210,8 @@ public class ConfigCommand extends Command {
         String n = Namespaces.getNamespaceName(shellState.getContext(),
             shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
         try {
-          shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
-              .forEach(namespaceConfig::put);
+          namespaceConfig
+              .putAll(shellState.getAccumuloClient().namespaceOperations().getConfiguration(n));
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() == PERMISSION_DENIED) {
             Shell.log.warn(
@@ -313,7 +314,7 @@ public class ConfigCommand extends Command {
                 siteVal == null ? "" : siteVal);
             printed = true;
           }
-          if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
+          if (!siteConfig.containsKey(key) || !Objects.equals(siteVal, sysVal)) {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
           }
@@ -326,7 +327,7 @@ public class ConfigCommand extends Command {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
-          if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
+          if (!systemConfig.containsKey(key) || !Objects.equals(sysVal, nspVal)) {
             printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
             printed = true;
           }
@@ -450,17 +451,4 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
-  /**
-   * Determine is force is set as an option or user enters (y | yes) on the shell prompt.
-   *
-   * @return true if force is set as opt or y | yes entered at command line.
-   */
-  private boolean forceSet(final Shell shellState, final CommandLine cl, final String prompt) {
-    if (cl.hasOption(forceOpt)) {
-      return true;
-    }
-    shellState.getWriter().flush();
-    String line = shellState.getReader().readLine(prompt + " (yes|no)? ");
-    return line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-  }
 }

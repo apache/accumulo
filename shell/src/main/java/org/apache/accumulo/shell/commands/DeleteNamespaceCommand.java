@@ -38,17 +38,14 @@ public class DeleteNamespaceCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
     boolean force = false;
-    boolean operate = true;
     if (cl.hasOption(forceOpt.getOpt())) {
       force = true;
     }
     String namespace = cl.getArgs()[0];
 
+    boolean operate = true;
     if (!force) {
-      shellState.getWriter().flush();
-      String line =
-          shellState.getReader().readLine(getName() + " { " + namespace + " } (yes|no)? ");
-      operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      operate = shellState.yorn(getName() + " { " + namespace + " }");
     }
     if (operate) {
       doTableOp(shellState, namespace, force);
