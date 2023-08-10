@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -126,7 +127,9 @@ public class FindOfflineTablets {
 
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletManagement mti = scanner.next();
-      TabletState state = mti.getTabletMetadata().getTabletState(tservers.getCurrentServers());
+      TabletMetadata tabletMetadata = mti.getTabletMetadata();
+      Set<TServerInstance> liveTServers = tservers.getCurrentServers();
+      TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state != null && state != TabletState.HOSTED
           && context.getTableManager().getTableState(mti.getTabletMetadata().getTableId())
               != TableState.OFFLINE) {

@@ -20,6 +20,8 @@ package org.apache.accumulo.test.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -54,6 +57,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -227,19 +231,17 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
+    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
+    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
     cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
+    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  public static TExternalCompactionList getRunningCompactions(ClientContext context)
-      throws TException {
-    Optional<HostAndPort> coordinatorHost =
-        ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
+  public static TExternalCompactionList getRunningCompactions(ClientContext context,
+      Optional<HostAndPort> coordinatorHost) throws TException {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
@@ -251,13 +253,8 @@ public class ExternalCompactionTestUtils {
     }
   }
 
-  private static TExternalCompactionList getCompletedCompactions(ClientContext context)
-      throws Exception {
-    Optional<HostAndPort> coordinatorHost =
-        ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
+  private static TExternalCompactionList getCompletedCompactions(ClientContext context,
+      Optional<HostAndPort> coordinatorHost) throws Exception {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
@@ -291,6 +288,14 @@ public class ExternalCompactionTestUtils {
     return ecids;
   }
 
+  public static long countTablets(ServerContext ctx, String tableName,
+      Predicate<TabletMetadata> tabletTest) {
+    var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      return tabletsMetadata.stream().filter(tabletTest).count();
+    }
+  }
+
   public static void waitForRunningCompactions(ServerContext ctx, TableId tid,
       Set<ExternalCompactionId> idsToWaitFor) throws Exception {
 
@@ -309,8 +314,13 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
+    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    if (coordinatorHost.isEmpty()) {
+      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    }
     while (matches == 0) {
-      TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+      TExternalCompactionList running =
+          ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
       if (running.getCompactions() != null) {
         for (ExternalCompactionId ecid : ecids) {
           TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
@@ -329,21 +339,24 @@ public class ExternalCompactionTestUtils {
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
       TCompactionState expectedState) throws Exception {
+    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    if (coordinatorHost.isEmpty()) {
+      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    }
+
     // The running compaction should be removed
-    TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
-    while (running.getCompactions() != null) {
-      running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
-      if (running.getCompactions() == null) {
-        UtilWaitThread.sleep(250);
-      }
+    TExternalCompactionList running =
+        ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+    while (running.getCompactions() != null && running.getCompactions().keySet().stream()
+        .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
+      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
     }
     // The compaction should be in the completed list with the expected state
-    TExternalCompactionList completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
+    TExternalCompactionList completed =
+        ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
     while (completed.getCompactions() == null) {
-      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
-      if (completed.getCompactions() == null) {
-        UtilWaitThread.sleep(50);
-      }
+      UtilWaitThread.sleep(50);
+      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
     }
     for (ExternalCompactionId e : ecids) {
       TExternalCompaction tec = completed.getCompactions().get(e.canonical());
@@ -351,5 +364,21 @@ public class ExternalCompactionTestUtils {
       assertEquals(expectedState, ExternalCompactionTestUtils.getLastState(tec));
     }
 
+  }
+
+  public static void assertNoCompactionMetadata(ServerContext ctx, String tableName) {
+    var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build();
+
+    int count = 0;
+
+    for (var tabletMetadata : tabletsMetadata) {
+      assertEquals(Set.of(), tabletMetadata.getCompacted());
+      assertNull(tabletMetadata.getSelectedFiles());
+      assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+      count++;
+    }
+
+    assertTrue(count > 0);
   }
 }

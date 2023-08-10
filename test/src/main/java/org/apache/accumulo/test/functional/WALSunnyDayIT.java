@@ -62,6 +62,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -241,7 +242,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       return wals;
     }
 
-    int waitLonger = getWaitFactor();
+    int waitLonger = Wait.getTimeoutFactor(e -> 1); // default to 1
     for (int i = 1; i <= TIMES_TO_COUNT; i++) {
       Thread.sleep(i * PAUSE_BETWEEN_COUNTS * waitLonger);
       wals = _getWals(c);
@@ -253,18 +254,6 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     fail(
         "Unable to get the correct number of WALs, expected " + expectedCount + " but got " + wals);
     return new HashMap<>();
-  }
-
-  private int getWaitFactor() {
-    int waitLonger = 1;
-    String timeoutString = System.getProperty("timeout.factor");
-    if (timeoutString != null && !timeoutString.isEmpty()) {
-      int timeout = Integer.parseInt(timeoutString);
-      if (timeout > 1) {
-        waitLonger = timeout;
-      }
-    }
-    return waitLonger;
   }
 
   static Map<String,WalState> _getWals(ServerContext c) throws Exception {

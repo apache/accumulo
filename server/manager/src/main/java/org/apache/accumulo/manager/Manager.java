@@ -238,6 +238,10 @@ public class Manager extends AbstractServer
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
+  private final TabletStateStore rootTabletStore;
+  private final TabletStateStore metadataTabletStore;
+  private final TabletStateStore userTabletStore;
+
   @Override
   public synchronized ManagerState getManagerState() {
     return state;
@@ -456,6 +460,10 @@ public class Manager extends AbstractServer
     this.security = context.getSecurityOperation();
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
+
+    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context, this);
+    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this);
+    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context, this);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -750,7 +758,8 @@ public class Manager extends AbstractServer
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tm.getTabletState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
+              Set<TServerInstance> liveTServers = tserverSet.getCurrentServers();
+              if (TabletState.compute(tm, liveTServers).equals(TabletState.HOSTED)) {
                 if (tm.hasChopped()) {
                   return TabletGoalState.UNASSIGNED;
                 }
@@ -1269,8 +1278,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1278,8 +1286,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this), watchers.get(0)) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1290,8 +1297,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context), watchers.get(1)) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
@@ -1362,8 +1368,8 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
-        ThriftService.COORDINATOR}) {
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
+        ThriftService.FATE}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
@@ -1593,11 +1599,8 @@ public class Manager extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
-        ThriftService.COORDINATOR}) {
-      descriptors.addService(
-          new ServiceDescriptor(zooLockUUID, svc, managerClientAddress, this.getResourceGroup()));
-    }
+    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
+        managerClientAddress, this.getResourceGroup()));
 
     ServiceLockData sld = new ServiceLockData(descriptors);
     while (true) {
@@ -1906,6 +1909,19 @@ public class Manager extends AbstractServer
                 (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
+  }
+
+  public TabletStateStore getTabletStateStore(DataLevel level) {
+    switch (level) {
+      case METADATA:
+        return this.metadataTabletStore;
+      case ROOT:
+        return this.rootTabletStore;
+      case USER:
+        return this.userTabletStore;
+      default:
+        throw new IllegalStateException("Unhandled DataLevel value: " + level);
+    }
   }
 
 }

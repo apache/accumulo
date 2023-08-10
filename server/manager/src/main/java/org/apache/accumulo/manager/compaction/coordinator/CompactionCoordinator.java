@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -89,7 +90,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -98,10 +98,10 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
@@ -117,15 +117,12 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
@@ -156,16 +153,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
    */
   private final Map<Ample.DataLevel,CountDownLatch> refreshLatches;
 
-  private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
-      Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
-  private final Weigher<Path,Integer> weigher = (path, count) -> {
-    return path.toUri().toString().length();
-  };
-
-  private final Cache<Path,Integer> checked_tablet_dir_cache =
-      Caffeine.newBuilder().maximumWeight(10485760L).weigher(weigher).build();
-
   /* Map of group name to last time compactor called to get a compaction job */
   // ELASTICITY_TODO need to clean out groups that are no longer configured..
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
@@ -179,7 +166,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
+  private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
+  private final Cache<Path,Integer> checked_tablet_dir_cache;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
       SecurityOperation security, CompactionJobQueues jobQueues) {
@@ -195,6 +184,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
     this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
 
+    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
+        .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
+
     CacheLoader<Long,CompactionConfig> loader =
         txid -> CompactionConfigStorage.getConfig(ctx, txid);
 
@@ -202,8 +194,16 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // when a compaction is canceled it is deleted which is why there is a time limit. It does not
     // hurt to let a job that was canceled start, it will be canceled later. Caching this immutable
     // config will help avoid reading the same data over and over.
-    compactionConfigCache =
-        Caffeine.newBuilder().expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
+    compactionConfigCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_CONFIGS, true)
+        .expireAfterWrite(30, SECONDS).maximumSize(100).build(loader);
+
+    Weigher<Path,Integer> weigher = (path, count) -> {
+      return path.toUri().toString().length();
+    };
+
+    checked_tablet_dir_cache =
+        ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
+            .maximumWeight(10485760L).weigher(weigher).build();
 
     // At this point the manager does not have its lock so no actions should be taken yet
   }
@@ -238,7 +238,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           tablets.stream().forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
         }
 
-        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TTabletRefresh>>();
+        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TKeyExtent>>();
 
         refreshEntries.forEach(refreshEntry -> {
           var tm = tabletsMeta.get(refreshEntry.getExtent());
@@ -248,7 +248,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
               && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
             KeyExtent extent = tm.getExtent();
             Collection<StoredTabletFile> scanfiles = tm.getScans();
-            var ttr = TabletRefresher.createThriftRefresh(extent, scanfiles);
+            var ttr = extent.toThrift();
             tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
           }
         });
@@ -428,21 +428,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     return result;
 
-  }
-
-  /**
-   * Return the Thrift client for the TServer
-   *
-   * @param tserver tserver instance
-   * @return thrift client
-   * @throws TTransportException thrift error
-   */
-  protected TabletServerClientService.Client getTabletServerConnection(TServerInstance tserver)
-      throws TTransportException {
-    LiveTServerSet.TServerConnection connection = tserverSet.getConnection(tserver);
-    TTransport transport =
-        this.ctx.getTransportPool().getTransport(connection.getAddress(), 0, this.ctx);
-    return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 
   // ELASTICITY_TODO unit test this code
@@ -793,7 +778,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
 
     if (ecm.getKind() != CompactionKind.USER) {
-      refreshTablet(tabletMeta, ecm.getJobFiles());
+      refreshTablet(tabletMeta);
     }
 
     // if a refresh entry was written, it can be removed after the tablet was refreshed
@@ -825,11 +810,10 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
   }
 
-  private void refreshTablet(TabletMetadata metadata, Collection<StoredTabletFile> scanfiles) {
+  private void refreshTablet(TabletMetadata metadata) {
     var location = metadata.getLocation();
     if (location != null) {
       KeyExtent extent = metadata.getExtent();
-      TTabletRefresh tTabletRefresh = TabletRefresher.createThriftRefresh(extent, scanfiles);
 
       // there is a single tserver and single tablet, do not need a thread pool. The direct executor
       // will run everything in the current thread
@@ -837,7 +821,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       try {
         TabletRefresher.refreshTablets(executorService,
             "compaction:" + metadata.getExtent().toString(), ctx, tserverSet::getCurrentServers,
-            Map.of(metadata.getLocation(), List.of(tTabletRefresh)));
+            Map.of(metadata.getLocation(), List.of(extent.toThrift())));
       } finally {
         executorService.shutdownNow();
       }
@@ -1056,9 +1040,15 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((ecid, extent) -> {
-        tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-            .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
-            .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+        try {
+          ctx.requireNotDeleted(extent.tableId());
+          tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
+              .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
+              .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+        } catch (TableDeletedException e) {
+          LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",
+              extent.tableId());
+        }
       });
 
       tabletsMutator.process().forEach((extent, result) -> {
@@ -1108,7 +1098,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
-      COMPLETED.put(ecid, rc);
+      completed.put(ecid, rc);
     }
   }
 
@@ -1188,7 +1178,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final TExternalCompactionList result = new TExternalCompactionList();
-    COMPLETED.asMap().forEach((ecid, rc) -> {
+    completed.asMap().forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setGroupName(rc.getGroupName());
       trc.setCompactor(rc.getCompactorAddress());

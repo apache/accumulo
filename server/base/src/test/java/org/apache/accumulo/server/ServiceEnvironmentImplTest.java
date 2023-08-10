@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.junit.jupiter.api.Test;
 
 public class ServiceEnvironmentImplTest {
@@ -44,6 +45,7 @@ public class ServiceEnvironmentImplTest {
     expect(acfg.newDeriver(anyObject())).andReturn(Map::of).anyTimes();
     expect(acfg.getAllPropertiesWithPrefix(Property.RPC_PREFIX)).andReturn(expectedPropertyMap);
     expect(context.getConfiguration()).andReturn(acfg);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     replay(context, acfg);
 
     var serviceEnvironment = new ServiceEnvironmentImpl(context);
@@ -66,6 +68,7 @@ public class ServiceEnvironmentImplTest {
     expect(acfg.newDeriver(anyObject())).andReturn(Map::of).anyTimes();
     expect(acfg.spliterator()).andReturn(expectedPropertyMap.entrySet().spliterator());
     expect(context.getConfiguration()).andReturn(acfg);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     replay(context, acfg);
 
     var serviceEnvironment = new ServiceEnvironmentImpl(context);

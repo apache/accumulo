@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,13 +28,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -55,7 +58,6 @@ import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -82,6 +84,7 @@ import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
@@ -104,6 +107,19 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
       cfg.setProperty(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
     });
+  }
+
+  @BeforeEach
+  public void before() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      if (client.instanceOperations().getTabletServers().size() == 0) {
+        // There are a couple of tests in this class that kill tservers without
+        // clearing the list of processes for them. Calling stopAllServers in this
+        // case should clear out the list of processes. Then start the tablet servers.
+        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      }
+    }
   }
 
   @Test
@@ -295,7 +311,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           .getInstance((ClientContext) c, TableId.of(tableId)).getTabletHostingRequestCount();
       assertTrue(hostingRequestCount > 0);
 
-      // Run another scan, all tablets should be loaded
+      // Run another scan, the t tablet should get loaded
+      // all others should be loaded.
       try (Scanner s = c.createScanner(tableName)) {
         s.setRange(new Range("a", "t"));
         assertEquals(20, Iterables.size(s));
@@ -303,8 +320,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       stats = getTabletStats(c, tableId);
       assertEquals(3, stats.size());
-      // No more tablets should have been brought online
-      assertEquals(hostingRequestCount, ClientTabletCache
+      // Add 1 for the t tablet
+      assertEquals(hostingRequestCount + 1, ClientTabletCache
           .getInstance((ClientContext) c, TableId.of(tableId)).getTabletHostingRequestCount());
 
     }
@@ -459,9 +476,11 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+          SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.tableOperations().create(tableName);
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
       // wait for everything to be hosted and balanced
       client.instanceOperations().waitForBalance();
@@ -477,25 +496,21 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       final CountDownLatch latch = new CountDownLatch(10);
 
-      Runnable task = new Runnable() {
-        @Override
-        public void run() {
-          while (true) {
-            try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
-              // TODO maybe do not close scanner? The following limit was placed on the stream to
-              // avoid reading all the data possibly leaving a scan session active on the tserver
-              int count = 0;
-              for (Entry<Key,Value> e : scanner) {
-                count++;
-                // let the test thread know that this thread has read some data
-                if (count == 1_000) {
-                  latch.countDown();
-                }
+      Runnable task = () -> {
+        while (true) {
+          try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
+            // TODO maybe do not close scanner? The following limit was placed on the stream to
+            // avoid reading all the data possibly leaving a scan session active on the tserver
+            AtomicInteger count = new AtomicInteger(0);
+            scanner.forEach(e -> {
+              // let the test thread know that this thread has read some data
+              if (count.incrementAndGet() == 1_000) {
+                latch.countDown();
               }
-            } catch (Exception e) {
-              e.printStackTrace();
-              break;
-            }
+            });
+          } catch (Exception e) {
+            e.printStackTrace();
+            break;
           }
         }
       };
@@ -511,32 +526,31 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
       // could potentially send a kill -9 to the process. Shut the tablet
       // servers down in a more graceful way.
+      final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+      ClientTabletCache.getInstance((ClientContext) client, tid).binRanges((ClientContext) client,
+          Collections.singletonList(TabletsSection.getRange()), binnedRanges);
+      binnedRanges.keySet().forEach((location) -> {
+        HostAndPort address = HostAndPort.fromString(location);
+        String addressWithSession = address.toString();
+        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+            + Constants.ZTSERVERS + "/" + address);
+        long sessionId =
+            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+        if (sessionId != 0) {
+          addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
+        }
 
-      Locations locs = client.tableOperations().locate(tableName,
-          Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
-          .forEach(location -> {
-            HostAndPort address = HostAndPort.fromString(location);
-            String addressWithSession = address.toString();
-            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-                + Constants.ZTSERVERS + "/" + address.toString());
-            long sessionId =
-                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-            if (sessionId != 0) {
-              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
-            }
+        final String finalAddress = addressWithSession;
+        System.out.println("Attempting to shutdown TabletServer at: " + address);
+        try {
+          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          fail("Error shutting down TabletServer", e);
+        }
 
-            final String finalAddress = addressWithSession;
-            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
-            try {
-              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
-            } catch (AccumuloException | AccumuloSecurityException e) {
-              fail("Error shutting down TabletServer", e);
-            }
-
-          });
+      });
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 
@@ -552,7 +566,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+          SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.instanceOperations().waitForBalance();
 
@@ -562,29 +577,28 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       Locations locs = client.tableOperations().locate(RootTable.NAME,
           Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
-          .forEach(location -> {
-            HostAndPort address = HostAndPort.fromString(location);
-            String addressWithSession = address.toString();
-            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-                + Constants.ZTSERVERS + "/" + address.toString());
-            long sessionId =
-                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-            if (sessionId != 0) {
-              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
-            }
+      locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
+        HostAndPort address = HostAndPort.fromString(location);
+        String addressWithSession = address.toString();
+        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+            + Constants.ZTSERVERS + "/" + address);
+        long sessionId =
+            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+        if (sessionId != 0) {
+          addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
+        }
 
-            final String finalAddress = addressWithSession;
-            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
-            try {
-              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
-            } catch (AccumuloException | AccumuloSecurityException e) {
-              fail("Error shutting down TabletServer", e);
-            }
+        final String finalAddress = addressWithSession;
+        System.out.println("Attempting to shutdown TabletServer at: " + address);
+        try {
+          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          fail("Error shutting down TabletServer", e);
+        }
 
-          });
+      });
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 

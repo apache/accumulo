@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,10 +28,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -239,6 +242,149 @@ public class DefaultCompactionPlannerTest {
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
 
+  @Test
+  public void testMultipleCompactions() {
+    // This test validates that when a tablet has many files that multiple compaction jobs can be
+    // issued at the same time.
+    for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
+      var planner = createPlanner(false);
+      var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
+      // simulate 10 larger files, these should not compact at the same time as the smaller files.
+      // Its more optimal to wait for all of the smaller files to compact and them compact the
+      // output of compacting the smaller files with the larger files.
+      IntStream.range(990, 1000).mapToObj(i -> createCF("C" + i, 20000)).forEach(all::add);
+      var params = createPlanningParams(all, all, Set.of(), 2, kind);
+      var plan = planner.makePlan(params);
+
+      // There are 990 smaller files to compact. Should produce 66 jobs of 15 smaller files each.
+      assertEquals(66, plan.getJobs().size());
+      Set<CompactableFile> filesSeen = new HashSet<>();
+      plan.getJobs().forEach(job -> {
+        assertEquals(15, job.getFiles().size());
+        assertEquals(kind, job.getKind());
+        assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+        // ensure the files across all of the jobs are disjoint
+        job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
+      });
+
+      // Ensure all of the smaller files are scheduled for compaction. Should not see any of the
+      // larger files.
+      assertEquals(IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()),
+          filesSeen);
+    }
+  }
+
+  @Test
+  public void testMultipleCompactionsAndLargeCompactionRatio() {
+    var planner = createPlanner(false);
+    var all = IntStream.range(0, 65).mapToObj(i -> createCF("F" + i, i + 1)).collect(toSet());
+    // This compaction ratio would not cause a system compaction, how a user compaction must compact
+    // all of the files so it should generate some compactions.
+    var params = createPlanningParams(all, all, Set.of(), 100, CompactionKind.USER);
+    var plan = planner.makePlan(params);
+
+    assertEquals(3, plan.getJobs().size());
+
+    var iterator = plan.getJobs().iterator();
+    var job1 = iterator.next();
+    var job2 = iterator.next();
+    var job3 = iterator.next();
+    assertTrue(Collections.disjoint(job1.getFiles(), job2.getFiles()));
+    assertTrue(Collections.disjoint(job1.getFiles(), job3.getFiles()));
+    assertTrue(Collections.disjoint(job2.getFiles(), job3.getFiles()));
+
+    for (var job : plan.getJobs()) {
+      assertEquals(15, job.getFiles().size());
+      assertEquals(CompactionKind.USER, job.getKind());
+      assertTrue(all.containsAll(job.getFiles()));
+      // Should select three sets of files that are from the smallest 45 files.
+      assertTrue(job.getFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum()
+          <= IntStream.range(1, 46).sum());
+    }
+  }
+
+  @Test
+  public void testMultipleCompactionsAndRunningCompactions() {
+    // This test validates that when a tablet has many files that multiple compaction jobs can be
+    // issued at the same time even if there are running compaction as long everything meets the
+    // compaction ratio.
+    for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
+      var planner = createPlanner(false);
+      var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
+      // simulate 10 larger files, these should not compact at the same time as the smaller files.
+      // Its more optimal to wait for all of the smaller files to compact and them compact the
+      // output of compacting the smaller files with the larger files.
+      IntStream.range(990, 1000).mapToObj(i -> createCF("C" + i, 20000)).forEach(all::add);
+      // 30 files are compacting, so they will not be in the candidate set.
+      var candidates =
+          IntStream.range(30, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
+      // create two jobs covering the first 30 files
+      var job1 = createJob(kind, all,
+          IntStream.range(0, 15).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()));
+      var job2 = createJob(kind, all,
+          IntStream.range(15, 30).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()));
+      var params = createPlanningParams(all, candidates, Set.of(job1, job2), 2, kind);
+      var plan = planner.makePlan(params);
+
+      // There are 990 smaller files to compact. Should produce 66 jobs of 15 smaller files each.
+      assertEquals(64, plan.getJobs().size());
+      Set<CompactableFile> filesSeen = new HashSet<>();
+      plan.getJobs().forEach(job -> {
+        assertEquals(15, job.getFiles().size());
+        assertEquals(kind, job.getKind());
+        assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+        // ensure the files across all of the jobs are disjoint
+        job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
+      });
+
+      // Ensure all of the smaller files are scheduled for compaction. Should not see any of the
+      // larger files.
+      assertEquals(IntStream.range(30, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()),
+          filesSeen);
+    }
+  }
+
+  @Test
+  public void testUserCompactionDoesNotWaitOnSystemCompaction() {
+    // this test ensure user compactions do not wait on system compactions to complete
+    var planner = createPlanner(true);
+    var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "3M", "F5", "3M", "F6", "3M",
+        "F7", "20M");
+    var candidates = createCFs("F4", "3M", "F5", "3M", "F6", "3M", "F7", "20M");
+    var compacting = Set
+        .of(createJob(CompactionKind.SYSTEM, all, createCFs("F1", "1M", "F2", "1M", "F3", "1M")));
+    var params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+    // The planning of the system compaction should find its most optimal to wait on the running
+    // system compaction and emit zero jobs.
+    assertEquals(0, plan.getJobs().size());
+
+    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    plan = planner.makePlan(params);
+    // The planning of user compaction should not take the running system compaction into
+    // consideration and should create a compaction job.
+    assertEquals(1, plan.getJobs().size());
+    assertEquals(createCFs("F4", "3M", "F5", "3M", "F6", "3M", "F7", "20M"),
+        getOnlyElement(plan.getJobs()).getFiles());
+
+    // Reverse the situation and turn the running compaction into a user compaction
+    compacting =
+        Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "1M", "F2", "1M", "F3", "1M")));
+    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+    // The planning of a system compaction should not take the running user compaction into account
+    // and should emit a job
+    assertEquals(1, plan.getJobs().size());
+    assertEquals(createCFs("F4", "3M", "F5", "3M", "F6", "3M"),
+        getOnlyElement(plan.getJobs()).getFiles());
+
+    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    plan = planner.makePlan(params);
+    // The planning of the user compaction should decide the most optimal thing to do is to wait on
+    // the running user compaction and should not emit any jobs.
+    assertEquals(0, plan.getJobs().size());
+  }
+
   /**
    * Tests internal type executor with no numThreads set throws error
    */
@@ -393,15 +539,22 @@ public class DefaultCompactionPlannerTest {
         .getJobs().iterator().next();
   }
 
-  private static Set<CompactableFile> createCFs(String... namesSizePairs)
-      throws URISyntaxException {
+  private static CompactableFile createCF(String name, long size) {
+    try {
+      return CompactableFile
+          .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0);
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Set<CompactableFile> createCFs(String... namesSizePairs) {
     Set<CompactableFile> files = new HashSet<>();
 
     for (int i = 0; i < namesSizePairs.length; i += 2) {
       String name = namesSizePairs[i];
       long size = ConfigurationTypeHelper.getFixedMemoryAsBytes(namesSizePairs[i + 1]);
-      files.add(CompactableFile
-          .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0));
+      files.add(createCF(name, size));
     }
 
     return files;
@@ -425,9 +578,9 @@ public class DefaultCompactionPlannerTest {
       double ratio, int maxFiles, long maxSize) {
     var result = DefaultCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
     var expectedNames = expected.stream().map(CompactableFile::getUri).map(URI::getPath)
-        .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(Collectors.toSet());
+        .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(toSet());
     var resultNames = result.stream().map(CompactableFile::getUri).map(URI::getPath)
-        .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(Collectors.toSet());
+        .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(toSet());
     assertEquals(expectedNames, resultNames);
   }
 

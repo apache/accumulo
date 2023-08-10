@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.PluginEnvironment;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -54,12 +55,13 @@ import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -89,7 +91,10 @@ import com.google.common.collect.Multimap;
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
  * @since 2.1.0
+ * @deprecated See {@link TableLoadBalancer} as it provides similar functionality using server
+ *             process resource group parameters.
  */
+@Deprecated(since = "4.0.0")
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
@@ -320,8 +325,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        Caffeine.newBuilder().expireAfterAccess(1, HOURS).build(key -> balancerEnvironment
-            .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
+        Caches.getInstance().createNewBuilder(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX, true)
+            .expireAfterAccess(1, HOURS).build(key -> balancerEnvironment.getConfiguration(key)
+                .getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }
@@ -561,4 +567,26 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         .collect(Collectors.joining(", ", "[", "]"));
   }
 
+  @Override
+  public boolean needsReassignment(CurrentAssignment currentAssignment) {
+    String tableName;
+    try {
+      tableName = environment.getTableName(currentAssignment.getTablet().getTable());
+    } catch (TableNotFoundException e) {
+      LOG.trace("Table name not found for {}, assuming table was deleted",
+          currentAssignment.getTablet().getTable(), e);
+      // if the table was deleted, then other parts of Accumulo can sort that out
+      return false;
+    }
+
+    var hostPools = getPoolNamesForHost(currentAssignment.getTabletServer());
+    var poolForTable = getPoolNameForTable(tableName);
+
+    if (!hostPools.contains(poolForTable)) {
+      return true;
+    }
+
+    return getBalancerForTable(currentAssignment.getTablet().getTable())
+        .needsReassignment(currentAssignment);
+  }
 }

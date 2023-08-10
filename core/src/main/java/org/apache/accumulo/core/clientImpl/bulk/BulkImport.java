@@ -77,6 +77,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
@@ -87,7 +88,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
@@ -362,13 +362,15 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileLens;
   }
 
-  private static Cache<String,Long> getPopulatedFileLenCache(Path dir, List<FileStatus> statuses) {
+  private static Cache<String,Long> getPopulatedFileLenCache(ClientContext ctx, Path dir,
+      List<FileStatus> statuses) {
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
     Map<String,Long> absFileLens = new HashMap<>();
     fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
-    Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
+    Cache<String,Long> fileLenCache =
+        ctx.getCaches().createNewBuilder(CacheName.BULK_IMPORT_FILE_LENGTHS, false).build();
 
     fileLenCache.putAll(absFileLens);
 
@@ -523,7 +525,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     // we know all of the file lens, so construct a cache and populate it in order to avoid later
     // trips to the namenode
-    Cache<String,Long> fileLensCache = getPopulatedFileLenCache(dirPath, files);
+    Cache<String,Long> fileLensCache = getPopulatedFileLenCache(context, dirPath, files);
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 

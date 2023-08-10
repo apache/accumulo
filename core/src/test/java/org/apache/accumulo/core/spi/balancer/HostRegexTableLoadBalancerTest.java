@@ -58,6 +58,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
   public void init(Map<String,String> tableProperties) {

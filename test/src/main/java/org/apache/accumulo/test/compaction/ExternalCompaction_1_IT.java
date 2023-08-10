@@ -22,10 +22,10 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GR
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP5;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.assertNoCompactionMetadata;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
@@ -33,9 +33,11 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.ve
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -48,6 +50,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -72,15 +75,14 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
 
-// ELASTICITY_TODO now that there are only external compactions, could merge some of these ITs that are redundant w/ CompactionIT
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
@@ -93,13 +95,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction1Config());
-  }
-
-  @AfterEach
-  public void tearDown() throws Exception {
-    // The ExternalDoNothingCompactor needs to be restarted between tests
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   public static class TestFilter extends Filter {
@@ -145,6 +140,39 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testBadSelector() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      NewTableConfiguration tc = new NewTableConfiguration();
+      // Ensure compactions don't kick off
+      tc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "10.0"));
+      c.tableOperations().create(tableName, tc);
+      // Create multiple RFiles
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 4; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          // flush often to create multiple files to compact
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+      }
+
+      CompactionConfig config = new CompactionConfig()
+          .setSelector(new PluginConfig(ErrorThrowingSelector.class.getName(), Map.of()))
+          .setWait(true);
+      assertThrows(AccumuloException.class, () -> c.tableOperations().compact(tableName, config));
+
+      List<String> rows = new ArrayList<>();
+      c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
+      assertEquals(List.of("1", "2", "3", "4"), rows);
+
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
+    }
+  }
+
+  @Test
   public void testExternalCompaction() throws Exception {
     String[] names = this.getUniqueNames(2);
     try (AccumuloClient client =
@@ -158,10 +186,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       writeData(client, table1);
       writeData(client, table2);
-
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       compact(client, table1, 2, GROUP1, true);
       verify(client, table1, 2);
@@ -186,12 +210,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       verify(client, table1, 1);
 
-      // ELASTICITY_TODO the compactors started by mini inspecting the config were interfering with
-      // starting the ExternalDoNothingCompactor, so killed all compactors. This is not the best way
-      // to handle this.
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP3, 1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
           ExternalDoNothingCompactor.class);
 
@@ -224,6 +243,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      // Restart the regular compactors
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
     }
 
   }
@@ -238,10 +261,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       writeData(client, table1);
 
-      // ELASTICITY_TODO there is already one compactor started by mini based on config
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP4, 2);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
-
       compact(client, table1, 3, GROUP4, true);
 
       verify(client, table1, 3);
@@ -251,9 +270,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
-
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP5, 1);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -285,6 +301,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
               .setConfigurer(new PluginConfig(CompressionConfigurer.class.getName(),
                   Map.of(CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE, "gz",
                       CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD, data.length + ""))));
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
 
       // after compacting with compression, expect small file
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
@@ -292,11 +309,65 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
 
       // after compacting without compression, expect big files again
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
       assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
           "Unexpected files sizes : " + sizes);
+
+      // We need to cancel the compaction or delete the table here because we initiate a user
+      // compaction above in the test. Even though the external compaction was cancelled
+      // because we split the table, FaTE will continue to queue up a compaction
+      client.tableOperations().cancelCompaction(tableName);
+    }
+  }
+
+  @Test
+  public void testConfigurerSetOnTable() throws Exception {
+    String tableName = this.getUniqueNames(1)[0];
+
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      byte[] data = new byte[100000];
+
+      Map<String,String> props = Map.of("table.compaction.dispatcher",
+          SimpleCompactionDispatcher.class.getName(), "table.compaction.dispatcher.opts.service",
+          "cs5", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+          Property.TABLE_COMPACTION_CONFIGURER.getKey(), CompressionConfigurer.class.getName(),
+          Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey()
+              + CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE,
+          "gz", Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey()
+              + CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD,
+          "" + data.length);
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
+      client.tableOperations().create(tableName, ntc);
+
+      Arrays.fill(data, (byte) 65);
+      try (var writer = client.createBatchWriter(tableName)) {
+        for (int row = 0; row < 10; row++) {
+          Mutation m = new Mutation(row + "");
+          m.at().family("big").qualifier("stuff").put(data);
+          writer.addMutation(m);
+        }
+      }
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // without compression, expect file to be large
+      long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
+
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
+
+      // after compacting with compression, expect small file
+      sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue(sizes < data.length,
+          "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
+
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
@@ -328,8 +399,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs6");
       writeData(client, table1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP6, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
       compact(client, table1, 2, GROUP6, true);
       verify(client, table1, 2);
 
@@ -340,6 +409,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       try (Scanner s = client.createScanner(table1)) {
         assertFalse(s.iterator().hasNext());
       }
+
+      assertNoCompactionMetadata(getCluster().getServerContext(), table1);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
@@ -368,9 +439,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP8, 1);
-      getCluster().getClusterControl().start(ServerType.COMPACTOR);
-
       createTable(client, tableName, "cs8");
 
       writeData(client, tableName);
@@ -398,6 +466,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       CompactionConfig config = new CompactionConfig().setIterators(List.of(iterSetting))
           .setWait(true).setSelector(new PluginConfig(FSelector.class.getName()));
       client.tableOperations().compact(tableName, config);
+      assertNoCompactionMetadata(getCluster().getServerContext(), tableName);
 
       try (Scanner scanner = client.createScanner(tableName)) {
         int count = 0;

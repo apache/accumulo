@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -58,25 +59,29 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
-import org.apache.accumulo.core.manager.thrift.TabletSplit;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
@@ -94,7 +99,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
@@ -109,8 +113,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
     Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
-    this.recentHostingRequest = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES)
-        .maximumWeight(TEN_MB).weigher(weigher).build();
+    this.recentHostingRequest = this.manager.getContext().getCaches()
+        .createNewBuilder(CacheName.HOSTING_REQUEST_CACHE, true)
+        .expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB).weigher(weigher).build();
   }
 
   @Override
@@ -340,29 +345,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     fate.delete(tid);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
-  }
-
-  @Override
-  public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
-      TabletSplit split) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
-    if (manager.migrations.remove(oldTablet) != null) {
-      Manager.log.info("Canceled migration of {}", split.oldTablet);
-    }
-    for (TServerInstance instance : manager.tserverSet.getCurrentServers()) {
-      if (serverName.equals(instance.getHostPort())) {
-        manager.nextEvent.event("%s reported split %s, %s", serverName,
-            KeyExtent.fromThrift(split.newTablets.get(0)),
-            KeyExtent.fromThrift(split.newTablets.get(1)));
-        return;
-      }
-    }
-    Manager.log.warn("Got a split from a server we don't recognize: {}", serverName);
   }
 
   @Override
@@ -648,6 +630,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     manager.mustBeOnline(tableId);
 
     log.info("Tablet hosting requested for: {} ", extents);
+    final List<KeyExtent> success = new ArrayList<>();
     final Ample ample = manager.getContext().getAmple();
     try (var mutator = ample.conditionallyMutateTablets()) {
       extents.forEach(e -> {
@@ -665,14 +648,29 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       mutator.process().forEach((extent, result) -> {
         if (result.getStatus() == Status.ACCEPTED) {
           // cache this success for a bit
+          success.add(extent);
           recentHostingRequest.put(extent, System.currentTimeMillis());
         } else {
           if (log.isTraceEnabled()) {
-            // only read the metdata if the logging is enabled
+            // only read the metadata if the logging is enabled
             log.trace("Failed to set hosting request {}", result.readMetadata());
           }
         }
       });
+    }
+
+    // Register the successful extent updates with the appropriate TabletStateStore.
+    // This will bump these tablets to the head of the line and the TabletGroupWatcher
+    // will process these updates before the ones returned from scanning the underlying
+    // table.
+    if (!success.isEmpty()) {
+      final Set<ManagementAction> actions = Set.of(ManagementAction.NEEDS_LOCATION_UPDATE);
+      ample.readTablets().forTablets(success, Optional.empty())
+          .fetch(TabletManagement.CONFIGURED_COLUMNS.toArray(new ColumnType[] {})).build()
+          .forEach(tm -> {
+            manager.getTabletStateStore(DataLevel.of(tm.getTableId()))
+                .addTabletStateChange(new TabletManagement(actions, tm));
+          });
     }
 
     // this will kick the tablet group watcher into action

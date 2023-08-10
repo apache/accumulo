@@ -35,6 +35,7 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -277,8 +278,8 @@ public class GarbageCollectWriteAheadLogs {
     for (TabletManagement mti : store) {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
-      if (mti.getTabletMetadata().getTabletState(liveServers)
-          == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+      TabletMetadata tabletMetadata = mti.getTabletMetadata();
+      if (TabletState.compute(tabletMetadata, liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
         Set<UUID> idsToIgnore =
             candidates.remove(mti.getTabletMetadata().getLocation().getServerInstance());
         if (idsToIgnore != null) {

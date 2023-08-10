@@ -113,6 +113,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     if (processMetrics != null) {
       processMetrics.registerMetrics(registry);
     }
+    getContext().setMeterRegistry(registry);
   }
 
   public String getHostname() {

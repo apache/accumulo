@@ -87,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
@@ -116,7 +117,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
@@ -229,7 +229,8 @@ public class ScanServer extends AbstractServer
             "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
       }
       tabletMetadataCache =
-          Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
+          context.getCaches().createNewBuilder(CacheName.SCAN_SERVER_TABLET_METADATA, true)
+              .expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
               .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
     }
 

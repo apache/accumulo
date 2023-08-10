@@ -63,9 +63,9 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       }
       c.tableOperations().list();
       String zooKeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
-      // base number of watchers 110 to 125, and 15 to 20 per table in a single-node instance.
-      final long MIN = 150L;
-      final long MAX = 250L;
+      // base number of watchers 90 to 125, and 15 to 25 per table in a single-node instance.
+      final long MIN = 135L;
+      final long MAX = 200L;
       long total = 0;
       final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
       for (int i = 0; i < 5; i++) {
@@ -79,11 +79,13 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
           if (total > MIN && total < MAX) {
             break;
           }
-          log.debug("Expected number of watchers to be contained in ({}, {}), but"
-              + " actually was {}. Sleeping and retrying", MIN, MAX, total);
+          log.debug("Expected number of watchers to be contained in ({}, {}), currently have {}"
+              + ". Sleeping and retrying", MIN, MAX, total);
           Thread.sleep(5000);
         }
       }
+      log.info("Number of watchers to be expected in range: ({}, {}), currently have {}", MIN, MAX,
+          total);
 
       assertTrue(total > MIN && total < MAX, "Expected number of watchers to be contained in ("
           + MIN + ", " + MAX + "), but actually was " + total);

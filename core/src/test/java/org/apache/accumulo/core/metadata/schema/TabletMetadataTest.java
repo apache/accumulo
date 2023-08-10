@@ -238,7 +238,7 @@ public class TabletMetadataTest {
 
     TabletMetadata tm =
         TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
-    TabletState state = tm.getTabletState(tservers);
+    TabletState state = TabletState.compute(tm, tservers);
 
     assertEquals(TabletState.ASSIGNED, state);
     assertEquals(ser1, tm.getLocation().getServerInstance());
@@ -254,7 +254,7 @@ public class TabletMetadataTest {
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
-    assertEquals(TabletState.HOSTED, tm.getTabletState(tservers));
+    assertEquals(TabletState.HOSTED, TabletState.compute(tm, tservers));
     assertEquals(ser2, tm.getLocation().getServerInstance());
     assertEquals(ser2.getSession(), tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
@@ -268,7 +268,7 @@ public class TabletMetadataTest {
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
-    assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tm.getTabletState(tservers));
+    assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, TabletState.compute(tm, tservers));
     assertEquals(deadSer, tm.getLocation().getServerInstance());
     assertEquals(deadSer.getSession(), tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
@@ -280,7 +280,7 @@ public class TabletMetadataTest {
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
-    assertEquals(TabletState.UNASSIGNED, tm.getTabletState(tservers));
+    assertEquals(TabletState.UNASSIGNED, TabletState.compute(tm, tservers));
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
 
@@ -293,7 +293,7 @@ public class TabletMetadataTest {
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
-    assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
+    assertEquals(TabletState.SUSPENDED, TabletState.compute(tm, tservers));
     assertEquals(1000L, tm.getSuspend().suspensionTime);
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
