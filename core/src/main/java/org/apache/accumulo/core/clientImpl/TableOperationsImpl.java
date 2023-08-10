@@ -94,7 +94,6 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
-import org.apache.accumulo.core.client.admin.HostingGoalForTablet;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -2155,30 +2154,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // should not happen
       throw new AssertionError(e);
     }
-  }
-
-  @Override
-  public Stream<HostingGoalForTablet> getTabletHostingGoal(final String tableName,
-      final Range range) throws TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
-    TableId tableId = context.getTableId(tableName);
-
-    TabletsMetadata tabletsMetadata =
-        context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(HOSTING_GOAL, PREV_ROW).checkConsistency().build();
-
-    return tabletsMetadata.stream().peek(tm -> {
-      if (scanRangeStart != null && tm.getEndRow() != null
-          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
-        throw new RuntimeException("Bug in ample or this code.");
-      }
-    }).takeWhile(tm -> tm.getPrevEndRow() == null
-        || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new HostingGoalForTablet(new TabletIdImpl(tm.getExtent()), tm.getHostingGoal()))
-        .onClose(tabletsMetadata::close);
   }
 
   @Override

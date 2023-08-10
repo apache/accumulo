@@ -1012,6 +1012,8 @@ public interface TableOperations {
    * start and end Keys and the inclusivity parameters are used when determining the range of
    * affected tablets. The other portions of the start and end Keys are not used.
    *
+   * To retrieve the TabletHostingGoal use the {@Link #getTabletInformation(String, Range)} method.
+   *
    * @param tableName table name
    * @param range tablet range
    * @param goal hosting goal
@@ -1023,20 +1025,8 @@ public interface TableOperations {
   }
 
   /**
-   * Retrieve the hosting goal for a range of tablets in the specified table.
-   *
-   * @param tableName table name
-   * @param range tablet range
-   * @since 4.0.0
-   */
-  default Stream<HostingGoalForTablet> getTabletHostingGoal(final String tableName,
-      final Range range) throws TableNotFoundException {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * @return a stream of tablets information for tablets that fall in the specified range. The
-   *         stream may be backed by a scanner, so its best to close the stream.
+   * @return a stream of tablet information for tablets that fall in the specified range. The stream
+   *         may be backed by a scanner, so it's best to close the stream.
    * @since 4.0.0
    */
   default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)

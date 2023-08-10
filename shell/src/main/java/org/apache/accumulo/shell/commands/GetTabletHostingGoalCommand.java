@@ -21,7 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.admin.HostingGoalForTablet;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -48,11 +48,11 @@ public class GetTabletHostingGoalCommand extends TableOperation {
 
   @Override
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
-    List<HostingGoalForTablet> tabletHostingGoal = shellState.getAccumuloClient().tableOperations()
-        .getTabletHostingGoal(tableName, range).collect(Collectors.toList());
+    List<TabletInformation> tabletInformationList = shellState.getAccumuloClient().tableOperations()
+        .getTabletInformation(tableName, range).collect(Collectors.toList());
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    HOSTING GOAL");
-    tabletHostingGoal.forEach(p -> shellState.getWriter()
+    tabletInformationList.forEach(p -> shellState.getWriter()
         .println(String.format("%-10s   %s", p.getTabletId(), p.getHostingGoal())));
   }
 
