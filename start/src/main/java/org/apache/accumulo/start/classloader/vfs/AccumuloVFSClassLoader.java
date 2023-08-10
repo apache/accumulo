@@ -424,7 +424,7 @@ public class AccumuloVFSClassLoader {
     }
   }
 
-  private static synchronized ContextManager getContextManager() throws IOException {
+  public static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
       contextManager = new ContextManager(generateVfs(), AccumuloVFSClassLoader::getClassLoader);
