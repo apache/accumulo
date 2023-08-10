@@ -1012,8 +1012,6 @@ public interface TableOperations {
    * start and end Keys and the inclusivity parameters are used when determining the range of
    * affected tablets. The other portions of the start and end Keys are not used.
    *
-   * To retrieve the TabletHostingGoal use the {@Link #getTabletInformation(String, Range)} method.
-   *
    * @param tableName table name
    * @param range tablet range
    * @param goal hosting goal
