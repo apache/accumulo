@@ -26,10 +26,16 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
@@ -95,6 +101,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -134,6 +141,8 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -696,7 +705,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE,
@@ -846,7 +855,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     TableId tableId = context.getTableId(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
+    List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
     try {
@@ -1176,7 +1185,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TableId tableId = context.getTableId(tableName);
     ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
-    // its possible that the cache could contain complete, but old information about a tables
+    // it's possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
 
@@ -1420,7 +1429,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return;
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
+    List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
     try {
@@ -1477,7 +1486,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (diskUsages == null) {
       Pair<String,Client> pair = null;
       try {
-        // this operation may us a lot of memory... its likely that connections to tabletservers
+        // this operation may us a lot of memory... it's likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
         pair = ThriftClientTypes.CLIENT.getTabletServerConnection(context, false);
@@ -2086,7 +2095,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public TimeType getTimeType(final String tableName) throws TableNotFoundException {
     TableId tableId = context.getTableId(tableName);
     Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
-        .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+        .fetch(TIME).checkConsistency().build().stream().findFirst();
+
     TabletMetadata timeData =
         tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();
@@ -2162,7 +2172,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        log.debug(">>>> tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
+        log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
         throw new RuntimeException("Bug in ample or this code.");
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
@@ -2170,4 +2180,33 @@ public class TableOperationsImpl extends TableOperationsHelper {
         .map(tm -> new HostingGoalForTablet(new TabletIdImpl(tm.getExtent()), tm.getHostingGoal()))
         .onClose(tabletsMetadata::close);
   }
+
+  @Override
+  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+    TableId tableId = context.getTableId(tableName);
+
+    TabletsMetadata tabletsMetadata =
+        context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
+            .fetch(HOSTING_GOAL, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
+            .checkConsistency().build();
+
+    Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
+
+    return tabletsMetadata.stream().peek(tm -> {
+      if (scanRangeStart != null && tm.getEndRow() != null
+          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+        log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
+        throw new RuntimeException("Bug in ample or this code.");
+      }
+    }).takeWhile(tm -> tm.getPrevEndRow() == null
+        || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
+        .map(tm -> (TabletInformation) new TabletInformationImpl(tm,
+            TabletState.compute(tm, liveTserverSet).toString()))
+        .onClose(tabletsMetadata::close);
+  }
+
 }
