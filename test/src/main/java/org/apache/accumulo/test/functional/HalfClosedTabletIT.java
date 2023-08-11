@@ -222,12 +222,10 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // tell the server to take the table offline
       tops.offline(tableName);
 
-      try {
-        // We are expecting this to fail, the table should not be taken offline
-        // because the bad iterator will prevent the minc from completing.
-        Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 120_000);
-        fail("Zero hosted tablets for table.");
-      } catch (IllegalStateException e) {}
+      // The offine operation should not be able to complete because the tablet can not minor compact, give the offline operation a bit of time to attempt to complete even though it should never be able to complete.
+      UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
+
+      assertTrue(countHostedTablets(c, tid) > 0);
 
       // minc should fail, so there should be no files
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
