@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -28,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -115,8 +116,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
       Thread configFixer = new Thread(() -> {
         UtilWaitThread.sleep(3000);
-        removeInvalidClassLoaderContextPropertyWithoutValidation(getCluster().getServerContext(),
-            tableId);
+        removeInvalidClassLoaderContextProperty(client, tableName);
       });
 
       long t1 = System.nanoTime();
@@ -222,7 +222,9 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // tell the server to take the table offline
       tops.offline(tableName);
 
-      // The offine operation should not be able to complete because the tablet can not minor compact, give the offline operation a bit of time to attempt to complete even though it should never be able to complete.
+      // The offine operation should not be able to complete because the tablet can not minor
+      // compact, give the offline operation a bit of time to attempt to complete even though it
+      // should never be able to complete.
       UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
 
       assertTrue(countHostedTablets(c, tid) > 0);
@@ -238,7 +240,8 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // Minc should have completed successfully
       Wait.waitFor(() -> tabletHasExpectedRFiles(c, tableName, 1, 1, 1, 1), 340_000);
 
-      // The previous operation to offline the table should be able to succeed after the minor compaction completed
+      // The previous operation to offline the table should be able to succeed after the minor
+      // compaction completed
       Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 340_000);
     }
   }
@@ -253,7 +256,8 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
   public static void removeInvalidClassLoaderContextProperty(AccumuloClient client,
       String tableName) {
     try {
-      client.tableOperations().removeProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+      client.tableOperations().removeProperty(tableName,
+          Property.TABLE_CLASSLOADER_CONTEXT.getKey());
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }

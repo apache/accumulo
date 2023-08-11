@@ -101,8 +101,7 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
       // minc should fail until invalid context is removed, so there should be no files
       FunctionalTestUtils.checkRFiles(client, tableName, 1, 1, 0, 0);
 
-      HalfClosedTabletIT.removeInvalidClassLoaderContextPropertyWithoutValidation(
-          getCluster().getServerContext(), tableId);
+      HalfClosedTabletIT.removeInvalidClassLoaderContextProperty(client, tableName);
 
       // Minc should have completed successfully
       Wait.waitFor(() -> HalfClosedTabletIT.tabletHasExpectedRFiles(client, tableName, 1, 1, 1, 1),
