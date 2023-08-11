@@ -50,7 +50,6 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
@@ -2258,28 +2257,4 @@ public class ShellServerIT extends SharedMiniClusterBase {
       System.setProperty("accumulo.properties", orgProps);
     }
   }
-
-  @Test
-  public void failOnInvalidClassloaderContestTest() throws Exception {
-
-    final String[] names = getUniqueNames(3);
-    final String table1 = names[0];
-    final String namespace1 = names[1];
-    final String table2 = namespace1 + "." + names[2];
-
-    ts.exec("createtable " + table1, true);
-    ts.exec("createnamespace " + namespace1, true);
-    ts.exec("createtable " + table2, true);
-
-    ts.exec("config -s table.class.loader.context=invalid", false,
-        AccumuloException.class.getName(), true);
-    ts.exec("config -s table.class.loader.context=invalid -ns " + namespace1, false,
-        AccumuloException.class.getName(), true);
-    ts.exec("config -s table.class.loader.context=invalid -t " + table1, false,
-        AccumuloException.class.getName(), true);
-    ts.exec("config -s table.class.loader.context=invalid -t " + table2, false,
-        AccumuloException.class.getName(), true);
-
-  }
-
 }

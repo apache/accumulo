@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.spi.common;
 
-import org.slf4j.LoggerFactory;
-
 /**
  * The ContextClassLoaderFactory provides a mechanism for various Accumulo components to use a
  * custom ClassLoader for specific contexts, such as loading table iterators. This factory is
@@ -67,28 +65,4 @@ public interface ContextClassLoaderFactory {
    * @return the class loader for the given contextName
    */
   ClassLoader getClassLoader(String contextName);
-
-  /**
-   * Validate that the contextName is supported by the ContextClassLoaderFactory implementation
-   *
-   * @param contextName the name of the context that represents a class loader that is managed by
-   *        this factory (can be null)
-   * @return true if valid, false otherwise
-   * @since 2.1.2
-   */
-  default boolean isValid(String contextName) {
-    try {
-      ClassLoader cl = getClassLoader(contextName);
-      if (cl == null) {
-        LoggerFactory.getLogger(ContextClassLoaderFactory.class)
-            .info("Null ClassLoader returned for context: {}", contextName);
-        return false;
-      }
-      return true;
-    } catch (RuntimeException e) {
-      LoggerFactory.getLogger(ContextClassLoaderFactory.class).info(
-          "Error thrown getting ClassLoader for context: {}, msg: {}", contextName, e.getMessage());
-      return false;
-    }
-  }
 }

@@ -21,52 +21,26 @@ package org.apache.accumulo.core.classloader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // test implementation
 public class URLClassLoaderFactory implements ContextClassLoaderFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(URLClassLoaderFactory.class);
   private static final String COMMA = ",";
-
-  private URL[] parseURLsFromContextName(String contextName) throws MalformedURLException {
-    String[] parts = contextName.split(COMMA);
-    URL[] urls = new URL[parts.length];
-    for (int i = 0; i < parts.length; i++) {
-      urls[i] = new URL(parts[i]);
-    }
-    return urls;
-  }
 
   @Override
   public ClassLoader getClassLoader(String contextName) {
-    if (contextName == null || contextName.isEmpty()) {
-      throw new IllegalArgumentException("contextName must have a value");
-    }
     // The context name is the classpath.
-    try {
-      URL[] urls = parseURLsFromContextName(contextName);
-      return URLClassLoader.newInstance(urls);
-    } catch (MalformedURLException e) {
-      throw new IllegalArgumentException("Error creating URL from contextName: " + contextName, e);
-    }
-  }
-
-  @Override
-  public boolean isValid(String contextName) {
-    if (contextName == null || contextName.isEmpty()) {
-      return false;
-    }
-    try {
-      parseURLsFromContextName(contextName);
-      return true;
-    } catch (MalformedURLException e) {
-      LOG.error("Error creating URL from contextName: " + contextName, e);
-      return false;
-    }
+    URL[] urls = Stream.of(contextName.split(COMMA)).map(p -> {
+      try {
+        return new URL(p);
+      } catch (MalformedURLException e) {
+        throw new IllegalArgumentException("Error creating URL from classpath segment: " + p, e);
+      }
+    }).toArray(URL[]::new);
+    return URLClassLoader.newInstance(urls);
   }
 
 }

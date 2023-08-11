@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -39,7 +38,7 @@ public final class PropUtil {
    */
   public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
       final Map<String,String> properties) throws IllegalArgumentException {
-    PropUtil.validateProperties(propStoreKey, properties);
+    PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().putAll(propStoreKey, properties);
   }
 
@@ -51,12 +50,13 @@ public final class PropUtil {
   public static void replaceProperties(final ServerContext context,
       final PropStoreKey<?> propStoreKey, final long version, final Map<String,String> properties)
       throws IllegalArgumentException {
-    PropUtil.validateProperties(propStoreKey, properties);
+    PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
-  protected static void validateProperties(final PropStoreKey<?> propStoreKey,
-      final Map<String,String> properties) throws IllegalArgumentException {
+  protected static void validateProperties(final ServerContext context,
+      final PropStoreKey<?> propStoreKey, final Map<String,String> properties)
+      throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
         String exceptionMessage = "Invalid property for : ";
@@ -65,11 +65,6 @@ public final class PropUtil {
         }
         throw new IllegalArgumentException(exceptionMessage + propStoreKey + " name: "
             + prop.getKey() + ", value: " + prop.getValue());
-      } else if (prop.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
-          && !Property.TABLE_CLASSLOADER_CONTEXT.getDefaultValue().equals(prop.getValue())
-          && !ClassLoaderUtil.isValidContext(prop.getValue())) {
-        throw new IllegalArgumentException(
-            "Unable to resolve classloader for context: " + prop.getValue());
       }
     }
   }
