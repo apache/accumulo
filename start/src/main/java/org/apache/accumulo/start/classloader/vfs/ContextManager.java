@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Deprecated
-public class ContextManager {
+class ContextManager {
 
   private static final Logger log = LoggerFactory.getLogger(ContextManager.class);
 
@@ -156,14 +156,6 @@ public class ContextManager {
       throw new IllegalStateException("Context manager config already set");
     }
     this.config = config;
-  }
-
-  public boolean isKnownContext(String contextName) {
-    ContextConfig cconfig = config.getContextConfig(contextName);
-    if (cconfig == null) {
-      return false;
-    }
-    return true;
   }
 
   public ClassLoader getClassLoader(String contextName) throws FileSystemException {

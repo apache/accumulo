@@ -543,10 +543,22 @@ public class ShellIT extends SharedMiniClusterBase {
           Shell.log.debug("Property Type: " + propertyType + " has no defined test case");
           invalidValue = "foo";
       }
-      String setCommand = "config -s ";
-      if (Property.isValidTablePropertyKey(property.getKey())) {
-        setCommand = "config -t " + testTable + " -s ";
+
+      String setCommand;
+      if (property.isDeprecated()) {
+        setCommand = "config --force -s ";
+      } else {
+        setCommand = "config -s ";
       }
+
+      if (Property.isValidTablePropertyKey(property.getKey())) {
+        if (property.isDeprecated()) {
+          setCommand = "config --force -t " + testTable + " -s ";
+        } else {
+          setCommand = "config -t " + testTable + " -s ";
+        }
+      }
+
       Shell.log.debug("Testing Property {} with Type {}", property.getKey(), propertyType);
       Shell.log.debug("Invalid property value of \"{}\"", invalidValue);
       exec(setCommand + property.getKey() + "=" + invalidValue, false,
