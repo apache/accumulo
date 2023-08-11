@@ -61,7 +61,9 @@ public interface ContextClassLoaderFactory {
    * fails to be constructed.
    *
    * @param context the name of the context that represents a class loader that is managed by this
-   *        factory (can be null)
+   *        factory. Currently, Accumulo will only call this method for non-null and non-empty
+   *        context. For empty or null context, Accumulo will use the system classloader without
+   *        consulting this plugin.
    * @return the class loader for the given context
    */
   ClassLoader getClassLoader(String context);

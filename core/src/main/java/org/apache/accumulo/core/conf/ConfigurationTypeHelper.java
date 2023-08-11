@@ -173,7 +173,7 @@ public class ConfigurationTypeHelper {
     try {
       instance = getClassInstance(context, clazzName, base);
     } catch (RuntimeException | ReflectiveOperationException e) {
-      log.warn("Failed to load class {} in classloader context {}", clazzName, context, e);
+      log.error("Failed to load class {} in classloader context {}", clazzName, context, e);
     }
 
     if (instance == null && defaultInstance != null) {
