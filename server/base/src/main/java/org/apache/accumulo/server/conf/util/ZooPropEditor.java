@@ -57,8 +57,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 @AutoService(KeywordExecutable.class)
 public class ZooPropEditor implements KeywordExecutable {
 
@@ -82,8 +80,6 @@ public class ZooPropEditor implements KeywordExecutable {
         + " Prefer using the shell if it is available";
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "System.exit() used to set command error status on exit")
   @Override
   public void execute(String[] args) throws Exception {
     ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
@@ -111,10 +107,6 @@ public class ZooPropEditor implements KeywordExecutable {
         default:
           throw new IllegalArgumentException("Invalid operation requested");
       }
-    } catch (Exception ex) {
-      LOG.error("{} command failed", keyword(), ex);
-      // hard fail - set exit status
-      System.exit(-1);
     }
   }
 

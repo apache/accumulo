@@ -31,12 +31,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -58,7 +58,6 @@ import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -502,14 +501,13 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
             // TODO maybe do not close scanner? The following limit was placed on the stream to
             // avoid reading all the data possibly leaving a scan session active on the tserver
-            int count = 0;
-            for (Entry<Key,Value> e : scanner) {
-              count++;
+            AtomicInteger count = new AtomicInteger(0);
+            scanner.forEach(e -> {
               // let the test thread know that this thread has read some data
-              if (count == 1_000) {
+              if (count.incrementAndGet() == 1_000) {
                 latch.countDown();
               }
-            }
+            });
           } catch (Exception e) {
             e.printStackTrace();
             break;

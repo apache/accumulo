@@ -54,6 +54,7 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -2259,6 +2260,85 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
   }
 
+  // This test serves to verify the listtablets command as well as the getTabletInformation api,
+  // which is used by listtablets.
+  @Test
+  public void testListTablets() throws IOException, InterruptedException {
+
+    final var tables = getUniqueNames(2);
+    final String table1 = tables[0];
+    final String table2 = tables[1];
+
+    ts.exec("createtable " + table1, true);
+    ts.exec("addsplits g n u", true);
+    ts.exec("setgoal -g always -r g", true);
+    ts.exec("setgoal -g always -r u", true);
+    insertData(table1, 1000, 3);
+    ts.exec("compact -w -t " + table1);
+    ts.exec("scan -t " + table1);
+
+    ts.exec("createtable " + table2, true);
+    ts.exec("addsplits f m t", true);
+    ts.exec("setgoal -g always -r n", true);
+    insertData(table2, 500, 5);
+    ts.exec("compact -t " + table2);
+    ts.exec("scan -t " + table1);
+    ts.exec("setgoal -r g -t " + table2 + " -g NEVER");
+
+    // give tablet time to become unassigned
+    for (var i = 0; i < 15; i++) {
+      Thread.sleep(1000);
+      String goal = ts.exec("listtablets -t " + table2, true, "m                    NEVER");
+      if (goal.contains("UNASSIGNED None")) {
+        break;
+      }
+    }
+
+    String results = ts.exec("listtablets -np -p ShellServerIT_testListTablets.", true);
+    assertTrue(results.contains("TABLE: ShellServerIT_testListTablets0"));
+    assertTrue(results.contains("TABLE: ShellServerIT_testListTablets1"));
+    assertTrue(results.contains("1     -INF                 g                    ALWAYS"));
+    assertTrue(results.contains("1     g                    n                    ONDEMAND"));
+    assertTrue(results.contains("1     n                    u                    ALWAYS"));
+    assertTrue(results.contains("1     u                    +INF                 ONDEMAND"));
+    assertTrue(results.contains("2     -INF                 f                    ONDEMAND"));
+    assertTrue(results.contains("2     f                    m                    NEVER"));
+    assertTrue(results.contains("2     m                    t                    ALWAYS"));
+    assertTrue(results.contains("2     t                    +INF                 ONDEMAND"));
+
+    // verify the sum of the tablets sizes, number of entries, and dir name match the data in a
+    // metadata scan
+    String metadata = ts.exec("scan -np -t accumulo.metadata -b 1 -c loc,file");
+    for (String line : metadata.split("\n")) {
+      String[] tokens = line.split("\\s+");
+      if (tokens[1].startsWith("loc")) {
+        String loc = tokens[3];
+        assertTrue(results.contains(loc));
+      }
+      if (tokens[1].startsWith("file")) {
+        String[] parts = tokens[1].split("/");
+        String dir = parts[parts.length - 2];
+        assertTrue(results.contains(dir));
+        String[] sizes = tokens[3].split(",");
+        String size = String.format("%,d", Integer.parseInt(sizes[0]));
+        String entries = String.format("%,d", Integer.parseInt(sizes[1]));
+        assertTrue(results.contains(size));
+        assertTrue(results.contains(entries));
+      }
+    }
+  }
+
+  private void insertData(String table, int numEntries, int rowLen) throws IOException {
+    for (var i = 0; i < numEntries; i++) {
+      String alphabet = "abcdefghijklmnopqrstuvwxyz";
+      String row = String.valueOf(alphabet.charAt(i % 26)) + i;
+      var cf = "cf" + i;
+      var cq = "cq" + i;
+      var data = "asdfqwerty";
+      ts.exec("insert -t " + table + " " + row + " " + cf + " " + cq + " " + data, true);
+    }
+  }
+
   private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)
       throws IOException {
     String fullSplitsFile = System.getProperty("user.dir") + "/target/" + splitsFile;
@@ -2269,6 +2349,84 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     }
     return path;
+  }
+
+  @Test
+  public void testFateCommandWithSlowCompaction() throws Exception {
+    final String table = getUniqueNames(1)[0];
+
+    String orgProps = System.getProperty("accumulo.properties");
+
+    System.setProperty("accumulo.properties",
+        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
+    // compact
+    ts.exec("createtable " + table);
+
+    // setup SlowIterator to sleep for 10 seconds
+    ts.exec("config -t " + table
+        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
+    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
+
+    // make two files
+    ts.exec("insert a1 b c v_a1");
+    ts.exec("insert a2 b c v_a2");
+    ts.exec("flush -w");
+    ts.exec("insert x1 b c v_x1");
+    ts.exec("insert x2 b c v_x2");
+    ts.exec("flush -w");
+
+    // no transactions running
+    ts.exec("fate -print", true, "0 transactions", true);
+
+    // merge two files into one
+    ts.exec("compact -t " + table);
+    Thread.sleep(1_000);
+    // start 2nd transaction
+    ts.exec("compact -t " + table);
+    Thread.sleep(3_000);
+
+    // 2 compactions should be running so parse the output to get one of the transaction ids
+    log.info("Calling fate print for table = {}", table);
+    String result = ts.exec("fate -print", true, "txid:", true);
+    String[] resultParts = result.split("txid: ");
+    String[] parts = resultParts[1].split(" ");
+    String txid = parts[0];
+    // test filters
+    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
+    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
+    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
+    ts.exec("fate -print -t NEW", true, "0 transactions", true);
+    ts.exec("fate -print 1234", true, "0 transactions", true);
+    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
+
+    ts.exec("deletetable -f " + table);
+
+    if (orgProps != null) {
+      System.setProperty("accumulo.properties", orgProps);
+    }
+  }
+
+  @Test
+  public void failOnInvalidClassloaderContestTest() throws Exception {
+
+    final String[] names = getUniqueNames(3);
+    final String table1 = names[0];
+    final String namespace1 = names[1];
+    final String table2 = namespace1 + "." + names[2];
+
+    ts.exec("createtable " + table1, true);
+    ts.exec("createnamespace " + namespace1, true);
+    ts.exec("createtable " + table2, true);
+
+    ts.exec("config -s table.class.loader.context=invalid", false,
+        AccumuloException.class.getName(), true);
+    ts.exec("config -s table.class.loader.context=invalid -ns " + namespace1, false,
+        AccumuloException.class.getName(), true);
+    ts.exec("config -s table.class.loader.context=invalid -t " + table1, false,
+        AccumuloException.class.getName(), true);
+    ts.exec("config -s table.class.loader.context=invalid -t " + table2, false,
+        AccumuloException.class.getName(), true);
+
   }
 
 }

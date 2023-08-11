@@ -401,14 +401,6 @@ service ManagerClientService {
     1:client.ThriftNotActiveServiceException tnase
   )
 
-  // tablet server reporting
-  oneway void reportSplitExtent(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string serverName
-    4:TabletSplit split
-  )
-
   oneway void reportTabletStatus(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
