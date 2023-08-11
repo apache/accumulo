@@ -164,7 +164,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
       setting.addOption(ErrorThrowingIterator.TIMES, "3");
       c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
-      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true).setFlush(true));
 
       // Taking the table offline should succeed normally
       tops.offline(tableName);
