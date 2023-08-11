@@ -912,7 +912,7 @@ public class Tablet extends TabletBase {
         }
         mct = createMinorCompactionTask(getFlushID(), MinorCompactionReason.CLOSE);
       } catch (NoNodeException e) {
-        throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
+        throw new IllegalStateException("Exception on " + extent + " during prep for MinC", e);
       }
     }
 
@@ -956,6 +956,8 @@ public class Tablet extends TabletBase {
         getTabletMemory().waitForMinC();
       }
 
+      // This check is intentionally done later in the method because the check and change of the
+      // closeState variable need to be atomic, so both are done in the same sync block.
       if (isClosed() || isClosing()) {
         String msg = "Tablet " + getExtent() + " already " + closeState;
         throw new IllegalStateException(msg);
