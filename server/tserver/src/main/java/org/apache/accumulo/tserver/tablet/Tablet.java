@@ -902,7 +902,62 @@ public class Tablet extends TabletBase {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
 
     MinorCompactionTask mct = null;
+    if (saveState) {
+      try {
+        synchronized (this) {
+          // Wait for any running minor compaction before trying to start another. This is done for
+          // the case where the current in memory map has a lot of data. So wait for the running
+          // minor compaction and then start compacting the current in memory map before closing.
+          getTabletMemory().waitForMinC();
+        }
+        mct = createMinorCompactionTask(getFlushID(), MinorCompactionReason.CLOSE);
+      } catch (NoNodeException e) {
+        throw new IllegalStateException("Exception on " + extent + " during prep for MinC", e);
+      }
+    }
+
+    if (mct != null) {
+      // Do an initial minor compaction that flushes any data in memory before marking that tablet
+      // as closed. Another minor compaction will be done once the tablet is marked as closed. There
+      // are two goals for this initial minor compaction.
+      //
+      // 1. Make the 2nd minor compaction that occurs after closing faster because it has less
+      // data. That is important because after the tablet is closed it can not be read or written
+      // to, so hopefully the 2nd compaction has little if any data because of this minor compaction
+      // that occurred before close.
+      //
+      // 2. Its possible a minor compaction may hang because of bad config or DFS problems. Taking
+      // this action before close can be less disruptive if it does hang. Also in the case where
+      // there is a bug that causes minor compaction to fail it will leave the tablet in a bad
+      // state. If that happens here before starting to close then it could leave the tablet in a
+      // more usable state than a failure that happens after the tablet starts to close.
+      //
+      // If 'mct' was null it means either a minor compaction was running, there was no data to
+      // minor compact, or the flush id was updating. In the case of flush id was updating, ideally
+      // this code would wait for flush id updates and then minor compact if needed, but that can
+      // not be done without setting the close state to closing to prevent flush id updates from
+      // starting. So if there is a flush id update going on it could cause no minor compaction
+      // here. There will still be a minor compaction after close.
+      //
+      // Its important to run the following minor compaction outside of any sync blocks as this
+      // could needlessly block scans. The resources needed for the minor compaction have already
+      // been reserved in a sync block.
+      mct.run();
+    }
+
     synchronized (this) {
+
+      if (saveState) {
+        // Wait for any running minc to finish before we start shutting things down in the tablet.
+        // It is possible that this function was unable to initiate a minor compaction above and
+        // something else did because of race conditions (because everything above happens before
+        // marking anything closed so normal actions could still start minor compactions). If
+        // something did start lets wait on it before marking things closed.
+        getTabletMemory().waitForMinC();
+      }
+
+      // This check is intentionally done later in the method because the check and change of the
+      // closeState variable need to be atomic, so both are done in the same sync block.
       if (isClosed() || isClosing()) {
         String msg = "Tablet " + getExtent() + " already " + closeState;
         throw new IllegalStateException(msg);
@@ -933,27 +988,7 @@ public class Tablet extends TabletBase {
       // calling this.wait() releases the lock, ensure things are as expected when the lock is
       // obtained again
       Preconditions.checkState(closeState == CloseState.CLOSING);
-
-      if (!saveState || getTabletMemory().getMemTable().getNumEntries() == 0) {
-        return;
-      }
-
-      getTabletMemory().waitForMinC();
-
-      // calling this.wait() in waitForMinC() releases the lock, ensure things are as expected when
-      // the lock is obtained again
-      Preconditions.checkState(closeState == CloseState.CLOSING);
-
-      try {
-        mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
-      } catch (NoNodeException e) {
-        throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
-      }
     }
-
-    // do minor compaction outside of synch block so that tablet can be read and written to while
-    // compaction runs
-    mct.run();
   }
 
   private boolean closeCompleting = false;
