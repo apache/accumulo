@@ -98,5 +98,4 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
     return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
         .getContextClassLoader(contextName);
   }
-
 }

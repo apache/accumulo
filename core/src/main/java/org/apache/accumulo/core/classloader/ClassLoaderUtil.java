@@ -82,6 +82,25 @@ public class ClassLoaderUtil {
     }
   }
 
+  public static boolean isValidContext(String context) {
+    if (context != null && !context.isEmpty()) {
+      try {
+        var loader = FACTORY.getClassLoader(context);
+        if (loader == null) {
+          LOG.debug("Context {} resulted in a null classloader from {}.", context,
+              FACTORY.getClass().getName());
+          return false;
+        }
+        return true;
+      } catch (RuntimeException e) {
+        LOG.debug("Context {} is not valid.", context, e);
+        return false;
+      }
+    } else {
+      return true;
+    }
+  }
+
   public static <U> Class<? extends U> loadClass(String context, String className,
       Class<U> extension) throws ClassNotFoundException {
     return getClassLoader(context).loadClass(className).asSubclass(extension);
