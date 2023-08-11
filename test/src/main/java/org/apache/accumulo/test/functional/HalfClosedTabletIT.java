@@ -253,11 +253,13 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
   }
 
-  public static void removeInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
-      TableId tableId) {
-    TablePropKey key = TablePropKey.of(context, tableId);
-    context.getPropStore().removeProperties(key,
-        List.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey()));
+  public static void removeInvalidClassLoaderContextProperty(AccumuloClient client,
+      String tableName) {
+    try {
+      client.tableOperations().removeProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey());
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static boolean tabletHasExpectedRFiles(AccumuloClient c, String tableName, int minTablets,
