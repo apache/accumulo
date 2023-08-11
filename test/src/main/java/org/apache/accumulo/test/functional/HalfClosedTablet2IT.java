@@ -93,6 +93,9 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
       HalfClosedTabletIT.setInvalidClassLoaderContextPropertyWithoutValidation(
           getCluster().getServerContext(), tableId);
 
+      // Need to wait for TabletServer to pickup configuration change
+      Thread.sleep(3000);
+
       tops.flush(tableName);
 
       // minc should fail until invalid context is removed, so there should be no files

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -58,6 +59,7 @@ import com.google.common.collect.Sets;
 // Tablet in a half-closed state. The half-closed Tablet cannot be unloaded and
 // the TabletServer cannot be shutdown normally. Because the minor compaction has
 // been failing the Tablet needs to be recovered when it's ultimately re-assigned.
+//
 public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
   public static class HalfClosedTabletITConfiguration implements MiniClusterConfigurationCallback {
@@ -139,7 +141,55 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testBadIterator() throws Exception {
+  public void testIteratorThrowingTransientError() throws Exception {
+
+    // In this scenario a minc iterator throws an error some number of time, then
+    // succeeds. We want to verify that the minc is being retried and the tablet
+    // can be closed.
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = getUniqueNames(1)[0];
+      final var tops = c.tableOperations();
+
+      tops.create(tableName);
+      final var tid = TableId.of(tops.tableIdMap().get(tableName));
+
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation(new Text("r1"));
+        m.put("acf", tableName, "1");
+        bw.addMutation(m);
+      }
+
+      IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
+      setting.addOption(ErrorThrowingIterator.TIMES, "3");
+      c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      // Taking the table offline should succeed normally
+      tops.offline(tableName);
+
+      // Minc should have completed successfully
+      Wait.waitFor(() -> tabletHasExpectedRFiles(c, tableName, 1, 1, 1, 1), 340_000);
+
+      Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 340_000);
+
+    }
+  }
+
+  // Note that these tests can talk several minutes each because by the time the test
+  // code changes the configuration, the minc has failed so many times that the minc
+  // is waiting for a few minutes before trying again. For example, I saw this backoff
+  // timing:
+  //
+  // DEBUG: MinC failed sleeping 169 ms before retrying
+  // DEBUG: MinC failed sleeping 601 ms before retrying
+  // DEBUG: MinC failed sleeping 2004 ms before retrying
+  // DEBUG: MinC failed sleeping 11891 ms before retrying
+  // DEBUG: MinC failed sleeping 43156 ms before retrying
+  // DEBUG: MinC failed sleeping 179779 ms before retrying
+  @Test
+  public void testBadIteratorOnStack() throws Exception {
 
     // In this scenario the table is using an iterator for minc that is throwing an exception.
     // This test ensures that the Tablet can still be unloaded normally by taking if offline
