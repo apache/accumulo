@@ -1594,6 +1594,9 @@ public class Tablet extends TabletBase {
     } catch (IllegalStateException ise) {
       log.debug("File {} not splitting : {}", extent, ise.getMessage());
       return null;
+    } catch (RuntimeException re) {
+      log.debug("File {} not splitting : {}", extent, re.getMessage());
+      throw re;
     }
 
     // obtain this info outside of synch block since it will involve opening

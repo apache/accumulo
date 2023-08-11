@@ -1009,6 +1009,9 @@ public class TabletClientHandler implements TabletClientService.Iface {
       } catch (IOException e) {
         log.warn("Failed to split " + keyExtent, e);
         throw new RuntimeException(e);
+      } catch (RuntimeException re) {
+        log.warn("Failed to split " + keyExtent, re);
+        throw re;
       }
     }
   }
