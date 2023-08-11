@@ -174,7 +174,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         scanner.forEach((k, v) -> {
           var qual = k.getColumnQualifierData().toString();
           assertTrue(qual.contains("//tables//"));
-          filesBeforeMerge.add(qual);
+          filesBeforeMerge.add(StoredTabletFile.of(qual).getMetadataPath());
         });
       }
 
@@ -188,7 +188,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         scanner.forEach((k, v) -> {
           // should only see the default tablet
           assertTrue(k.getRow().toString().endsWith("<"));
-          filesAfterMerge.add(k.getColumnQualifierData().toString());
+          filesAfterMerge.add(StoredTabletFile.of(k.getColumnQualifier()).getMetadataPath());
         });
       }
 
