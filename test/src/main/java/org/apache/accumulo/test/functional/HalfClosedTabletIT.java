@@ -238,8 +238,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // Minc should have completed successfully
       Wait.waitFor(() -> tabletHasExpectedRFiles(c, tableName, 1, 1, 1, 1), 340_000);
 
-      // Taking the table offline should succeed normally
-      tops.offline(tableName);
+      // The previous operation to offline the table should be able to succeed after the minor compaction completed
       Wait.waitFor(() -> countHostedTablets(c, tid) == 0L, 340_000);
     }
   }
