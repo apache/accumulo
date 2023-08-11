@@ -214,7 +214,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
       c.tableOperations().flush(tableName, null, null, false);
 
-      UtilWaitThread.sleepUninterruptibly(30, TimeUnit.SECONDS);
+      UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
 
       // minc should fail, so there should be no files
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
