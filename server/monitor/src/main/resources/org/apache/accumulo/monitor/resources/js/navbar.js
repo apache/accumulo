@@ -44,20 +44,34 @@ const COLOR_CLASS = {
 function updateElementStatus(elementId, status) {
   const $element = $(`#${elementId}`);
 
+  // Remove existing status classes
+  $element.removeClass(Object.values(COLOR_CLASS).join(' '));
+
   switch (status) {
   case SERVER_STATUS.ERROR:
-    $element.removeClass(COLOR_CLASS.NORMAL).removeClass(COLOR_CLASS.WARNING).addClass(COLOR_CLASS.ERROR);
+    $element.addClass(COLOR_CLASS.ERROR);
     break;
   case SERVER_STATUS.WARN:
-    $element.removeClass(COLOR_CLASS.NORMAL).removeClass(COLOR_CLASS.ERROR).addClass(COLOR_CLASS.WARNING);
+    $element.addClass(COLOR_CLASS.WARNING);
     break;
   case SERVER_STATUS.OK:
-    $element.removeClass(COLOR_CLASS.ERROR).removeClass(COLOR_CLASS.WARNING).addClass(COLOR_CLASS.NORMAL);
+    $element.addClass(COLOR_CLASS.NORMAL);
     break;
   default:
     console.error('Unrecognized status: ' + status);
   }
 }
+
+function updateIconDisplay(isSpecialIcon) {
+  if (isSpecialIcon) {
+    $('#managerStatusDot').hide();
+    $('#managerStatusCone').show();
+  } else {
+    $('#managerStatusDot').show();
+    $('#managerStatusCone').hide();
+  }
+}
+
 
 /**
  * Updates the notifications of the servers dropdown notification as well as the individual server notifications.
@@ -74,13 +88,19 @@ function updateServerNotifications(statusData) {
     const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
     const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
 
+    // Show cone icon when the manager state is not normal, otherwise show dot icon
+    updateIconDisplay(isSafeMode || isCleanStop);
+
     // setting manager status notification
     if (statusData.managerStatus === SERVER_STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', SERVER_STATUS.ERROR);
+      updateElementStatus('managerStatusCone', SERVER_STATUS.ERROR);
+      updateElementStatus('managerStatusDot', SERVER_STATUS.ERROR);
     } else if (statusData.managerStatus === SERVER_STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', SERVER_STATUS.WARN);
+      updateElementStatus('managerStatusCone', SERVER_STATUS.WARN);
+      updateElementStatus('managerStatusDot', SERVER_STATUS.WARN);
     } else if (statusData.managerStatus === SERVER_STATUS.OK) {
-      updateElementStatus('managerStatusNotification', SERVER_STATUS.OK);
+      updateElementStatus('managerStatusCone', SERVER_STATUS.OK);
+      updateElementStatus('managerStatusDot', SERVER_STATUS.OK);
     } else {
       console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
     }

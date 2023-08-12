@@ -335,6 +335,13 @@ pre.logevent {
   border-radius: 1em;
 }
 
+.icon-cone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+}
 
 
 .smalltext {
