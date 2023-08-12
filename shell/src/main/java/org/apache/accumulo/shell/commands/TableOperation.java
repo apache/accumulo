@@ -78,7 +78,7 @@ public abstract class TableOperation extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
       }
-      if (force || shellState.yorn(getName() + " { " + tableName + " }")) {
+      if (force || shellState.confirm(getName() + " { " + tableName + " }")) {
         doTableOp(shellState, tableName);
       }
     }

@@ -57,7 +57,7 @@ public class DropUserCommandTest {
 
     // Force option was not provided
     EasyMock.expect(cli.hasOption("f")).andReturn(false);
-    EasyMock.expect(shellState.yorn("dropuser { user }")).andReturn(true);
+    EasyMock.expect(shellState.confirm("dropuser { user }")).andReturn(true);
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     EasyMock.expect(client.securityOperations()).andReturn(secOps);

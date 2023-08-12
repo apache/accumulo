@@ -1269,7 +1269,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * @param prompt the string printed to user, with (yes|no)? appended as the prompt.
    * @return true if user enters y | yes.
    */
-  public boolean yorn(final String prompt) {
+  public boolean confirm(final String prompt) {
     getWriter().flush();
     String line;
     try {

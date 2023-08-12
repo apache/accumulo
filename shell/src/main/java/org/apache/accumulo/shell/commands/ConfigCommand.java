@@ -79,6 +79,8 @@ public class ConfigCommand extends Command {
       NamespaceNotFoundException {
     reader = shellState.getReader();
 
+    Boolean force = cl.hasOption(forceOpt);
+
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
@@ -131,7 +133,8 @@ public class ConfigCommand extends Command {
       // check for deprecation
       var theProp = Property.getPropertyByKey(property);
       if (theProp != null && theProp.isDeprecated()) {
-        if (!shellState.yorn("Trying to set deprecated property `" + property + "` continue")) {
+        if (!force && !shellState
+            .confirm("Trying to set deprecated property `" + property + "` continue")) {
           throw new BadArgumentException(
               "Tried to set deprecated property and force not specified.", fullCommand,
               fullCommand.indexOf(property));

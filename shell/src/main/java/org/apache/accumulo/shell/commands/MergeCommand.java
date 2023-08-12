@@ -53,7 +53,9 @@ public class MergeCommand extends Command {
       size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
-      if (!shellState.yorn("Merge the entire table { " + tableName + " } into one tablet")) {
+      if (!shellState
+          .confirm(" Warning!!! Are you REALLY sure you want to merge the entire table { "
+              + tableName + " } into one tablet?!?!?!")) {
         return 0;
       }
     }

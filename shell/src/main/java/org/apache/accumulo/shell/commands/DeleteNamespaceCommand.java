@@ -37,17 +37,10 @@ public class DeleteNamespaceCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    boolean force = false;
-    if (cl.hasOption(forceOpt.getOpt())) {
-      force = true;
-    }
+    boolean force = cl.hasOption(forceOpt);
     String namespace = cl.getArgs()[0];
 
-    boolean operate = true;
-    if (!force) {
-      operate = shellState.yorn(getName() + " { " + namespace + " }");
-    }
-    if (operate) {
+    if (force || shellState.confirm(getName() + " { " + namespace + " }")) {
       doTableOp(shellState, namespace, force);
     }
     return 0;

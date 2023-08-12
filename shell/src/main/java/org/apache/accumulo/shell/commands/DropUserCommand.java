@@ -48,16 +48,11 @@ public class DropUserCommand extends Command {
 
   private void doDropUser(final Shell shellState, final String user, final boolean force)
       throws AccumuloException, AccumuloSecurityException {
-    boolean operate = true;
 
-    if (!force) {
-      operate = shellState.yorn(getName() + " { " + user + " }");
-    }
-    if (operate) {
+    if (force || shellState.confirm(getName() + " { " + user + " }")) {
       shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
       Shell.log.debug("Deleted user {}", user);
     }
-
   }
 
   @Override
