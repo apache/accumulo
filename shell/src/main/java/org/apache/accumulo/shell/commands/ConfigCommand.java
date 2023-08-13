@@ -52,8 +52,8 @@ import org.jline.reader.LineReader;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, filterOpt, filterWithValuesOpt, disablePaginationOpt,
-      outputFileOpt, namespaceOpt;
+  private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
+      disablePaginationOpt, outputFileOpt, namespaceOpt;
 
   private int COL1 = 10, COL2 = 7;
   private LineReader reader;
@@ -126,6 +126,16 @@ public class ConfigCommand extends Command {
       property = pair[0];
       value = pair[1];
 
+      // check for deprecation
+      var theProp = Property.getPropertyByKey(property);
+      if (theProp != null && theProp.isDeprecated()) {
+        if (!forceSet(shellState, cl,
+            "Trying to set deprecated property `" + property + "` continue")) {
+          throw new BadArgumentException(
+              "Tried to set deprecated property and force not specified.", fullCommand,
+              fullCommand.indexOf(property));
+        }
+      }
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
           throw new BadArgumentException("Invalid per-table property.", fullCommand,
@@ -398,6 +408,8 @@ public class ConfigCommand extends Command {
         "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
+    forceOpt = new Option("force", "force", false,
+        "used with set to set a deprecated property without asking");
     filterOpt = new Option("f", "filter", true,
         "show only properties that contain this string in their name.");
     filterWithValuesOpt = new Option("fv", "filter-with-values", true,
@@ -428,6 +440,7 @@ public class ConfigCommand extends Command {
     o.addOptionGroup(og);
     o.addOption(disablePaginationOpt);
     o.addOption(outputFileOpt);
+    o.addOption(forceOpt);
 
     return o;
   }
@@ -435,5 +448,19 @@ public class ConfigCommand extends Command {
   @Override
   public int numArgs() {
     return 0;
+  }
+
+  /**
+   * Determine is force is set as an option or user enters (y | yes) on the shell prompt.
+   *
+   * @return true if force is set as opt or y | yes entered at command line.
+   */
+  private boolean forceSet(final Shell shellState, final CommandLine cl, final String prompt) {
+    if (cl.hasOption(forceOpt)) {
+      return true;
+    }
+    shellState.getWriter().flush();
+    String line = shellState.getReader().readLine(prompt + " (yes|no)? ");
+    return line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
   }
 }

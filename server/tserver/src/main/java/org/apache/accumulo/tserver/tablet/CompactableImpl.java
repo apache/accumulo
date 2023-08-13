@@ -1461,6 +1461,13 @@ public class CompactableImpl implements Compactable {
     try {
       var dispatcher = tablet.getTableConfiguration().getCompactionDispatcher();
 
+      if (dispatcher == null) {
+        log.error(
+            "Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
+            getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE);
+        return CompactionServicesConfig.DEFAULT_SERVICE;
+      }
+
       Map<String,String> tmpHints = Map.of();
 
       if (kind == CompactionKind.USER) {

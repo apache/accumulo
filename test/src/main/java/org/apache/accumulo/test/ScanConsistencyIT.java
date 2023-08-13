@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,7 +47,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
@@ -64,7 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +76,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This test verifies that scans will always see data written before the scan started even when
  * there are concurrent scans, writes, and table operations running.
  */
-@Tag(SUNNY_DAY)
 public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
@@ -157,8 +153,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       log.debug(tableOpsTask.get());
 
-      var stats1 = scanData(testContext, new Range(), false);
-      var stats2 = scanData(testContext, new Range(), true);
+      var stats1 = scanData(testContext, random, new Range(), false);
+      var stats2 = scanData(testContext, random, new Range(), true);
+      var stats3 = batchScanData(testContext, new Range());
       log.debug(
           String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
       assertTrue(stats1.verified > 0);
@@ -166,6 +163,8 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       assertEquals(stats1.scanned, stats1.verified);
       assertEquals(stats2.scanned, stats1.scanned);
       assertEquals(stats2.verified, stats1.verified);
+      assertEquals(stats3.scanned, stats1.scanned);
+      assertEquals(stats3.verified, stats1.verified);
     } finally {
       executor.shutdownNow();
     }
@@ -325,16 +324,17 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     }
   }
 
-  private static ScanStats scan(ScannerBase scanner, Set<Key> expected) {
+  private static ScanStats scan(Stream<Map.Entry<Key,Value>> scanner, Set<Key> expected) {
     ScanStats stats = new ScanStats();
-    for (Map.Entry<Key,Value> entry : scanner) {
+
+    scanner.forEach(entry -> {
       stats.scanned++;
       Key key = entry.getKey();
       key.setTimestamp(0);
       if (expected.remove(key)) {
         stats.verified++;
       }
-    }
+    });
 
     assertTrue(expected.isEmpty());
     return stats;
@@ -346,23 +346,33 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         BatchScanner scanner = tctx.client.createBatchScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
       scanner.setRanges(List.of(range));
-      return scan(scanner, expected);
+      return scan(scanner.stream(), expected);
     }
   }
 
-  private static ScanStats scanData(TestContext tctx, Range range, boolean scanIsolated)
-      throws Exception {
+  private static ScanStats scanData(TestContext tctx, Random random, Range range,
+      boolean scanIsolated) throws Exception {
     try (ExpectedScanData expectedScanData = tctx.dataTracker.beginScan();
-        Scanner scanner = tctx.client.createScanner(tctx.table)) {
+        Scanner scanner = scanIsolated ? new IsolatedScanner(tctx.client.createScanner(tctx.table))
+            : tctx.client.createScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
-      scanner.setRange(range);
 
-      Scanner s = scanner;
-      if (scanIsolated) {
-        s = new IsolatedScanner(scanner);
+      Stream<Map.Entry<Key,Value>> scanStream;
+
+      if (!range.isInfiniteStopKey() && random.nextBoolean()) {
+        // Simulate the case where not all data in the range is read.
+        var openEndedRange =
+            new Range(range.getStartKey(), range.isStartKeyInclusive(), null, true);
+        scanner.setRange(openEndedRange);
+        // Create a stream that only reads the data in the original range, possibly leaving data
+        // unread on the scanner.
+        scanStream = scanner.stream().takeWhile(entry -> range.contains(entry.getKey()));
+      } else {
+        scanner.setRange(range);
+        scanStream = scanner.stream();
       }
 
-      return scan(s, expected);
+      return scan(scanStream, expected);
     }
   }
 
@@ -401,9 +411,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
         int scanChance = random.nextInt(3);
         if (scanChance == 0) {
-          allStats.add(scanData(tctx, range, false));
+          allStats.add(scanData(tctx, random, range, false));
         } else if (scanChance == 1) {
-          allStats.add(scanData(tctx, range, true));
+          allStats.add(scanData(tctx, random, range, true));
         } else {
           allStats.add(batchScanData(tctx, range));
         }
