@@ -178,6 +178,14 @@ public class TableConfiguration extends ZooBasedConfiguration {
     CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
 
+    if (newDispatcher == null) {
+      // return early to prevent NPE
+      log.error(
+          "Null returned for compaction dispatcher for table: {}. Did not return default value, check server log.",
+          tableId);
+      return null;
+    }
+
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
 
