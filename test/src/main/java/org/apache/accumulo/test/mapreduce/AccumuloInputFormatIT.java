@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -190,7 +191,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       client.tableOperations().online(table);
       splits = inputFormat.getSplits(job);
       for (InputSplit split : splits) {
-        assert (split instanceof org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit);
+        assertTrue(split instanceof org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit);
       }
 
       // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job,
