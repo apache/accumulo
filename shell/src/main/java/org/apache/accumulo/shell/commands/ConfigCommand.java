@@ -79,7 +79,7 @@ public class ConfigCommand extends Command {
       NamespaceNotFoundException {
     reader = shellState.getReader();
 
-    Boolean force = cl.hasOption(forceOpt);
+    boolean force = cl.hasOption(forceOpt);
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
