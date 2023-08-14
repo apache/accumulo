@@ -378,8 +378,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>scan</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_SCAN}</td>
- * <td>Gauge</td>
+ * <td>{@link #METRICS_SCAN_TIMES}</td>
+ * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
@@ -605,8 +605,8 @@ public interface MetricsProducer {
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
-  String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";
-  String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress";
+  String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress.by.type";
+  String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress";
   String METRICS_FATE_OPS_ACTIVITY = METRICS_FATE_PREFIX + "ops.activity";
   String METRICS_FATE_ERRORS = METRICS_FATE_PREFIX + "errors";
   String METRICS_FATE_TX = METRICS_FATE_PREFIX + "tx";
@@ -637,16 +637,17 @@ public interface MetricsProducer {
   String METRICS_MINC_RUNNING = METRICS_MINC_PREFIX + "running";
   String METRICS_MINC_PAUSED = METRICS_MINC_PREFIX + "paused";
 
-  String METRICS_SCAN = "accumulo.tserver.scans";
-  String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
-  String METRICS_SCAN_RESULTS = METRICS_SCAN + ".result";
-  String METRICS_SCAN_YIELDS = METRICS_SCAN + ".yields";
-  String METRICS_SCAN_START = METRICS_SCAN + ".start";
-  String METRICS_SCAN_CONTINUE = METRICS_SCAN + ".continue";
-  String METRICS_SCAN_CLOSE = METRICS_SCAN + ".close";
-  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN + ".busy_timeout";
-  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN + ".paused.for.memory";
-  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN + ".return.early.for.memory";
+  String METRICS_SCAN_PREFIX = "accumulo.tserver.scans.";
+  String METRICS_SCAN_TIMES = METRICS_SCAN_PREFIX + "times";
+  String METRICS_SCAN_OPEN_FILES = METRICS_SCAN_PREFIX + "files.open";
+  String METRICS_SCAN_RESULTS = METRICS_SCAN_PREFIX + "result";
+  String METRICS_SCAN_YIELDS = METRICS_SCAN_PREFIX + "yields";
+  String METRICS_SCAN_START = METRICS_SCAN_PREFIX + "start";
+  String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
+  String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
+  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN_PREFIX + "busy.timeout";
+  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + ".paused.for.memory";
+  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + ".return.early.for.memory";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
@@ -708,7 +709,7 @@ public interface MetricsProducer {
 
           fields.put((String) f.get(MetricsProducer.class), f.getName());
         } catch (IllegalArgumentException | IllegalAccessException e) {
-          // this shouldn't happen, but lets log it anyway
+          // this shouldn't happen, but let's log it anyway
           LOG.error("Error getting metric value for field: " + f.getName());
         }
       }
