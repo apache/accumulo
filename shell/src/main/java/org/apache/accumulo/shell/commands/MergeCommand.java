@@ -55,7 +55,8 @@ public class MergeCommand extends Command {
     if (startRow == null && endRow == null && size < 0 && !all) {
       if (!shellState
           .confirm(" Warning!!! Are you REALLY sure you want to merge the entire table { "
-              + tableName + " } into one tablet?!?!?!")) {
+              + tableName + " } into one tablet?!?!?!")
+          .filter(y -> y).isPresent()) {
         return 0;
       }
     }

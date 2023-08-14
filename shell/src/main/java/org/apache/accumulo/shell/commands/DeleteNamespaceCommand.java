@@ -40,7 +40,8 @@ public class DeleteNamespaceCommand extends Command {
     boolean force = cl.hasOption(forceOpt);
     String namespace = cl.getArgs()[0];
 
-    if (force || shellState.confirm(getName() + " { " + namespace + " }")) {
+    if (force
+        || shellState.confirm(getName() + " { " + namespace + " }").filter(y -> y).isPresent()) {
       doTableOp(shellState, namespace, force);
     }
     return 0;

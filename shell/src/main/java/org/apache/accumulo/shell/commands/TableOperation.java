@@ -20,6 +20,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -78,7 +79,16 @@ public abstract class TableOperation extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
       }
-      if (force || shellState.confirm(getName() + " { " + tableName + " }")) {
+      if (!force) {
+        Optional<Boolean> confirmed = shellState.confirm(getName() + " { " + tableName + " }");
+        if (confirmed.isEmpty()) {
+          break;
+        }
+
+        if (confirmed.filter(y -> y).isPresent()) {
+          doTableOp(shellState, tableName);
+        }
+      } else {
         doTableOp(shellState, tableName);
       }
     }

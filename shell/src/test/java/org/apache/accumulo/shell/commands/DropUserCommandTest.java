@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.shell.Shell;
@@ -57,7 +59,7 @@ public class DropUserCommandTest {
 
     // Force option was not provided
     EasyMock.expect(cli.hasOption("f")).andReturn(false);
-    EasyMock.expect(shellState.confirm("dropuser { user }")).andReturn(true);
+    EasyMock.expect(shellState.confirm("dropuser { user }")).andReturn(Optional.of(true));
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     EasyMock.expect(client.securityOperations()).andReturn(secOps);
