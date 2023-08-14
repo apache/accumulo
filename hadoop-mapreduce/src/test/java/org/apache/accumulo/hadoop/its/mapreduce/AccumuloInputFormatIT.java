@@ -205,7 +205,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     // Check we are getting back correct type pf split
     splits = inputFormat.getSplits(job);
     for (InputSplit split : splits) {
-      assert (split instanceof BatchInputSplit);
+      assertTrue(split instanceof BatchInputSplit);
     }
 
     // We should split along the tablet lines
