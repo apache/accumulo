@@ -84,13 +84,11 @@ public abstract class TableOperation extends Command {
         if (confirmed.isEmpty()) {
           break;
         }
-
-        if (confirmed.filter(y -> y).isPresent()) {
-          doTableOp(shellState, tableName);
+        if (!confirmed.orElseThrow()) {
+          continue;
         }
-      } else {
-        doTableOp(shellState, tableName);
       }
+      doTableOp(shellState, tableName);
     }
 
     return 0;

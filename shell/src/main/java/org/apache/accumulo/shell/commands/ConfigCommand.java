@@ -135,7 +135,7 @@ public class ConfigCommand extends Command {
       if (theProp != null && theProp.isDeprecated()) {
         if (!force
             && !shellState.confirm("Trying to set deprecated property `" + property + "` continue")
-                .filter(y -> y).isPresent()) {
+                .orElse(false)) {
           throw new BadArgumentException(
               "Tried to set deprecated property and force not specified.", fullCommand,
               fullCommand.indexOf(property));

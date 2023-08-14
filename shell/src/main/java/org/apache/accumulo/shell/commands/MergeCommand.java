@@ -56,7 +56,7 @@ public class MergeCommand extends Command {
       if (!shellState
           .confirm(" Warning!!! Are you REALLY sure you want to merge the entire table { "
               + tableName + " } into one tablet?!?!?!")
-          .filter(y -> y).isPresent()) {
+          .orElse(false)) {
         return 0;
       }
     }
