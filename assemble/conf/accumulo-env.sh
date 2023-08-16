@@ -142,5 +142,10 @@ esac
 # Variables that are optional. Uncomment to set
 ###############################################
 
-## Specifies command that will be placed before calls to Java in accumulo script
-# export ACCUMULO_JAVA_PREFIX=""
+## ACCUMULO_JAVA_PREFIX can be used to specify commands to prepend to the "java"
+## command when it is executed. This can be declared as either a scalar or an
+## array variable. The following use of declare to check if it's already set is
+## not strictly necessary, but ensures that if you set it in the calling
+## environment, that will override what is set here, rather than some mangled
+## merged result. You can set the variable any way you like.
+#declare -p 'ACCUMULO_JAVA_PREFIX' &>/dev/null || ACCUMULO_JAVA_PREFIX=''
