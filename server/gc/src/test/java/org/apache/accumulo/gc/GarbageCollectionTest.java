@@ -17,6 +17,7 @@
 package org.apache.accumulo.gc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -102,14 +103,14 @@ public class GarbageCollectionTest {
       return key;
     }
 
-    public Value addFileReference(String tableId, String endRow, String file) {
+    public void addFileReference(String tableId, String endRow, String file) {
       Key key = newFileReferenceKey(tableId, endRow, file);
       Value val = new Value(new DataFileValue(0, 0).encode());
-      return references.put(key, val);
+      references.put(key, val);
     }
 
-    public Value removeFileReference(String tableId, String endRow, String file) {
-      return references.remove(newFileReferenceKey(tableId, endRow, file));
+    public void removeFileReference(String tableId, String endRow, String file) {
+      references.remove(newFileReferenceKey(tableId, endRow, file));
     }
 
     Key newDirReferenceKey(String tableId, String endRow) {
@@ -123,14 +124,34 @@ public class GarbageCollectionTest {
       return key;
     }
 
-    public Value addDirReference(String tableId, String endRow, String dir) {
+    public void addDirReference(String tableId, String endRow, String dir) {
       Key key = newDirReferenceKey(tableId, endRow);
       Value val = new Value(dir.getBytes());
-      return references.put(key, val);
+      references.put(key, val);
     }
 
-    public Value removeDirReference(String tableId, String endRow) {
-      return references.remove(newDirReferenceKey(tableId, endRow));
+    public Key newPrevRowKey(String tableId, String endRow) {
+      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null)
+          .getMetadataEntry().toString();
+      String cf = MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily()
+          .toString();
+      String cq = MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
+          .getColumnQualifier().toString();
+      return new Key(row, cf, cq);
+    }
+
+    public void addPrevRowReference(String tableId, String endRow) {
+      Key key = newPrevRowKey(tableId, endRow);
+      Value val = new Value();
+      references.put(key, val);
+    }
+
+    public void removeDirReference(String tableId, String endRow) {
+      references.remove(newDirReferenceKey(tableId, endRow));
+    }
+
+    public void removePrevRowReference(String tableId, String endRow) {
+      references.remove(newPrevRowKey(tableId, endRow));
     }
 
     @Override
@@ -166,6 +187,11 @@ public class GarbageCollectionTest {
     gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
     gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0//F002.rf");
     gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+
+    gce.addDirReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0");
+    gce.addPrevRowReference("4", null);
+    gce.addDirReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0");
+    gce.addPrevRowReference("5", null);
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -208,8 +234,16 @@ public class GarbageCollectionTest {
     gce.addFileReference("4", null, "/t0/F000.rf");
     gce.addFileReference("4", null, "/t0/F001.rf");
     gce.addFileReference("4", null, "/t0/F002.rf");
+    gce.addDirReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0");
+    gce.addPrevRowReference("4", null);
+
     gce.addFileReference("5", null, "../4/t0/F000.rf");
+    gce.addDirReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0");
+    gce.addPrevRowReference("5", null);
+
     gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.addDirReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t0");
+    gce.addPrevRowReference("6", null);
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -309,18 +343,37 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/d/t-0");
 
     gce.addDirReference("4", null, "/t-0");
-    gce.addDirReference("5", null, "/t-0");
+    gce.addPrevRowReference("4", null);
+    gce.addDirReference("5", null, "hdfs://foo.com:6000/accumulo/tables/5/t-0");
+    gce.addPrevRowReference("5", null);
     gce.addDirReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/t-0");
+    gce.addPrevRowReference("6", null);
     gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addPrevRowReference("7", null);
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
+    gce.addDirReference("8", "m", "/t-0");
+    gce.addPrevRowReference("8", "m");
+
     gce.addFileReference("9", "m", "/t-0/F00.rf");
+    gce.addDirReference("9", "m", "/t-0");
+    gce.addPrevRowReference("9", "m");
 
     gce.addFileReference("a", "m", "hdfs://foo.com:6000/accumulo/tables/a/t-0/F00.rf");
+    gce.addDirReference("a", "m", "hdfs://foo.com:6000/accumulo/tables/a/t-0");
+    gce.addPrevRowReference("a", "m");
+
     gce.addFileReference("b", "m", "hdfs://foo.com:6000/accumulo/tables/b/t-0/F00.rf");
+    gce.addDirReference("b", "m", "hdfs://foo.com:6000/accumulo/tables/b/t-0");
+    gce.addPrevRowReference("b", "m");
 
     gce.addFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.addDirReference("e", "m", "hdfs://foo.com:6000/accumulo/tables/c/t-0");
+    gce.addPrevRowReference("e", "m");
+
     gce.addFileReference("f", "m", "../d/t-0/F00.rf");
+    gce.addDirReference("f", "m", "hdfs://foo.com:6000/accumulo/tables/d/t-0");
+    gce.addPrevRowReference("f", "m");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -330,24 +383,49 @@ public class GarbageCollectionTest {
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
+    gce.removePrevRowReference("5", null);
+
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5/t-0");
 
     gce.removeDirReference("4", null);
+    gce.removePrevRowReference("4", null);
+
     gca.collect(gce);
     assertRemoved(gce, "/4/t-0");
 
     gce.removeDirReference("6", null);
+    gce.removePrevRowReference("6", null);
     gce.removeDirReference("7", null);
+    gce.removePrevRowReference("7", null);
+
     gca.collect(gce);
     assertRemoved(gce, "/6/t-0", "hdfs://foo:6000/accumulo/tables/7/t-0/");
 
     gce.removeFileReference("8", "m", "/t-0/F00.rf");
+    gce.removeDirReference("8", "m");
+    gce.removePrevRowReference("8", "m");
+
     gce.removeFileReference("9", "m", "/t-0/F00.rf");
+    gce.removeDirReference("9", "m");
+    gce.removePrevRowReference("9", "m");
+
     gce.removeFileReference("a", "m", "hdfs://foo.com:6000/accumulo/tables/a/t-0/F00.rf");
+    gce.removeDirReference("a", "m");
+    gce.removePrevRowReference("a", "m");
+
     gce.removeFileReference("b", "m", "hdfs://foo.com:6000/accumulo/tables/b/t-0/F00.rf");
+    gce.removeDirReference("b", "m");
+    gce.removePrevRowReference("b", "m");
+
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.removeDirReference("e", "m");
+    gce.removePrevRowReference("e", "m");
+
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
+    gce.removeDirReference("f", "m");
+    gce.removePrevRowReference("f", "m");
+
     gca.collect(gce);
     assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/accumulo/tables/9/t-0", "/a/t-0",
         "hdfs://foo:6000/accumulo/tables/b/t-0", "/c/t-0", "hdfs://foo:6000/accumulo/tables/d/t-0");
@@ -373,18 +451,37 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo:6000/user/foo/tables/d/t-0");
 
     gce.addDirReference("4", null, "/t-0");
+    gce.addPrevRowReference("4", null);
     gce.addDirReference("5", null, "/t-0");
+    gce.addPrevRowReference("5", null);
     gce.addDirReference("6", null, "hdfs://foo.com:6000/user/foo/tables/6/t-0");
+    gce.addPrevRowReference("6", null);
     gce.addDirReference("7", null, "hdfs://foo.com:6000/user/foo/tables/7/t-0");
+    gce.addPrevRowReference("7", null);
 
     gce.addFileReference("8", "m", "/t-0/F00.rf");
+    gce.addDirReference("8", "m", "hdfs://foo.com:6000/user/foo/tables/8/t-0");
+    gce.addPrevRowReference("8", "m");
+
     gce.addFileReference("9", "m", "/t-0/F00.rf");
+    gce.addDirReference("9", "m", "hdfs://foo.com:6000/user/foo/tables/9/t-0");
+    gce.addPrevRowReference("9", "m");
 
     gce.addFileReference("a", "m", "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+    gce.addDirReference("a", "m", "hdfs://foo.com:6000/user/foo/tables/a/t-0");
+    gce.addPrevRowReference("a", "m");
+
     gce.addFileReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf");
+    gce.addDirReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0");
+    gce.addPrevRowReference("b", "m");
 
     gce.addFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.addDirReference("e", "m", "hdfs://foo.com:6000/user/foo/tables/c/t-0");
+    gce.addPrevRowReference("e", "m");
+
     gce.addFileReference("f", "m", "../d/t-0/F00.rf");
+    gce.addDirReference("f", "m", "hdfs://foo.com:6000/user/foo/tables/d/t-0");
+    gce.addPrevRowReference("f", "m");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -394,24 +491,48 @@ public class GarbageCollectionTest {
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
+    gce.removePrevRowReference("5", null);
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/user/foo/tables/5/t-0");
 
     gce.removeDirReference("4", null);
+    gce.removePrevRowReference("4", null);
     gca.collect(gce);
     assertRemoved(gce, "/4/t-0");
 
     gce.removeDirReference("6", null);
+    gce.removePrevRowReference("6", null);
+
     gce.removeDirReference("7", null);
+    gce.removePrevRowReference("7", null);
+
     gca.collect(gce);
     assertRemoved(gce, "/6/t-0", "hdfs://foo:6000/user/foo/tables/7/t-0/");
 
     gce.removeFileReference("8", "m", "/t-0/F00.rf");
+    gce.removeDirReference("8", "m");
+    gce.removePrevRowReference("8", "m");
+
     gce.removeFileReference("9", "m", "/t-0/F00.rf");
+    gce.removeDirReference("9", "m");
+    gce.removePrevRowReference("9", "m");
+
     gce.removeFileReference("a", "m", "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+    gce.removeDirReference("a", "m");
+    gce.removePrevRowReference("a", "m");
+
     gce.removeFileReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf");
+    gce.removeDirReference("b", "m");
+    gce.removePrevRowReference("b", "m");
+
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.removeDirReference("e", "m");
+    gce.removePrevRowReference("e", "m");
+
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
+    gce.removeDirReference("f", "m");
+    gce.removePrevRowReference("f", "m");
+
     gca.collect(gce);
     assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/user/foo/tables/9/t-0", "/a/t-0",
         "hdfs://foo:6000/user/foo/tables/b/t-0", "/c/t-0", "hdfs://foo:6000/user/foo/tables/d/t-0");
@@ -498,6 +619,7 @@ public class GarbageCollectionTest {
     TestGCE gce = new TestGCE();
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "/default_tablet");
+    gce.addPrevRowReference("1636", null);
     gca.collect(gce);
     assertRemoved(gce);
 
@@ -515,6 +637,7 @@ public class GarbageCollectionTest {
     gce = new TestGCE();
     gce.addFileReference("1636", null, "../9/default_tablet/someFile");
     gce.addDirReference("1636", null, "/default_tablet");
+    gce.addPrevRowReference("1636", null);
     gce.candidates.add("/9/default_tablet/someFile");
     gca.collect(gce);
     assertRemoved(gce);
@@ -554,6 +677,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/7/t-0/");
 
     gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
+    gce.addPrevRowReference("7", null);
 
     gca.collect(gce);
 
@@ -643,5 +767,48 @@ public class GarbageCollectionTest {
     // We need to replicate that one file still, should not delete it.
     assertEquals(1, gce.deletes.size());
     assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+  }
+
+  /**
+   * Minimal test to show that dir and prevRow are required for valid scan
+   */
+  @Test
+  public void testDirAndPrevRow() throws Exception {
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet");
+    gce.addDirReference("1636", null, "/default_tablet");
+    gce.addPrevRowReference("1636", null);
+    gca.collect(gce);
+  }
+
+  /**
+   * Show that IllegalState is thrown when no dir entry present in metadata scan.
+   */
+  @Test
+  public void testNoDir() {
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet");
+    gce.addPrevRowReference("1636", null);
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
+
+  /**
+   * Show that IllegalState is thrown when no prev row present in metadata scan.
+   */
+  @Test
+  public void testNoPrevRow() {
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet");
+    gce.addDirReference("1636", null, "/default_tablet");
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
   }
 }

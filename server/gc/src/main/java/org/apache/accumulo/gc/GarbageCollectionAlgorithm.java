@@ -172,10 +172,28 @@ public class GarbageCollectionAlgorithm {
 
     }
 
+    MetadataReadTracker readTracker = null;
+    Text nextRowCandidate;
+
     Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
     while (iter.hasNext()) {
       Entry<Key,Value> entry = iter.next();
       Key key = entry.getKey();
+      nextRowCandidate = key.getRow();
+      // check that dir entry was read for the row. If not, the metadata information may not be
+      // complete. Abort the gc cycle.
+      if (readTracker == null) {
+        readTracker = new MetadataReadTracker(nextRowCandidate);
+      } else {
+        if (readTracker.isNewRow(nextRowCandidate)) {
+          if (readTracker.missingExpected()) {
+            throw new IllegalStateException(
+                "May not have fully read metadata for row, aborting this run. Validation results: "
+                    + readTracker);
+          }
+          readTracker = new MetadataReadTracker(nextRowCandidate);
+        }
+      }
       Text cft = key.getColumnFamily();
 
       if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
@@ -201,6 +219,7 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: " + reference);
 
       } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+        readTracker.sawDir();
         String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
         String dir = entry.getValue().toString();
         if (!dir.contains(":")) {
@@ -211,13 +230,21 @@ public class GarbageCollectionAlgorithm {
 
         dir = makeRelative(dir, 2);
 
-        if (candidateMap.remove(dir) != null)
+        if (candidateMap.remove(dir) != null) {
           log.debug("Candidate was still in use: " + dir);
+        }
+      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+        readTracker.sawPrevRow();
       } else
         throw new RuntimeException(
             "Scanner over metadata table returned unexpected column : " + entry.getKey());
     }
-
+    // process last row to check metadata read included the dir entry.
+    if (readTracker != null && readTracker.missingExpected()) {
+      throw new IllegalStateException(
+          "May not have fully read metadata for row, aborting this run. Validation results: "
+              + readTracker);
+    }
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
   }
@@ -341,6 +368,48 @@ public class GarbageCollectionAlgorithm {
       gce.incrementInUseStat(origSize - candidateMap.size());
 
       deleteConfirmed(gce, candidateMap);
+    }
+  }
+
+  /**
+   * Track metadata rows read to help validate that gc scan has complete information to make a
+   * decision on deleting files
+   */
+  private static class MetadataReadTracker {
+    private boolean hasDir = false;
+    private boolean hasPrevRow = false;
+    private final Text row;
+
+    public MetadataReadTracker(final Text row) {
+      this.row = row;
+    }
+
+    public boolean isNewRow(final Text candidate) {
+      return !row.equals(candidate);
+    }
+
+    public void sawDir() {
+      hasDir = true;
+    }
+
+    public void sawPrevRow() {
+      hasPrevRow = true;
+    }
+
+    /**
+     * Validate that expected metadata entries have been read. The check is inverted, return false
+     * when complete, true if incomplete
+     *
+     * @return true if either dir or prev row are missing
+     */
+    public boolean missingExpected() {
+      return !hasDir || !hasPrevRow;
+    }
+
+    @Override
+    public String toString() {
+      return "MetadataReadCheck{row=" + row + ", hasDir=" + hasDir + ", hasPrevRow=" + hasPrevRow
+          + '}';
     }
   }
 }
