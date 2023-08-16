@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.format;
 
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -30,7 +31,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
-import org.jline.reader.EndOfFileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,25 +78,22 @@ public class DeleterFormatter extends DefaultFormatter {
     Key key = next.getKey();
     Mutation m = new Mutation(key.getRow());
     String entryStr = formatEntry(next, isDoTimestamps());
-    boolean delete = force;
-    String line;
+    Optional<Boolean> confirmed = Optional.empty();
+    String action = "SKIPPED";
     if (!force) {
-      try {
-        shellState.getWriter().flush();
-        String prompt = "Delete { " + entryStr + " } ? ";
-        line = shellState.getReader().readLine(prompt);
-      } catch (EndOfFileException ignored) {
-        // Reached the end of file. Line is null to keep old functionality.
-        line = null;
+      confirmed = shellState.confirm("Delete { " + entryStr + " } ? ");
+      if (confirmed.isEmpty()) {
+        more = false;
+      } else {
+        more = true;
       }
-      more = line != null;
-      delete = more && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
-    if (delete) {
+    if (force || confirmed.filter(y -> y).isPresent()) {
       m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
           new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
       try {
         writer.addMutation(m);
+        action = "DELETED";
       } catch (MutationsRejectedException e) {
         log.error(e.toString());
         if (Shell.log.isTraceEnabled()) {
@@ -106,8 +103,7 @@ public class DeleterFormatter extends DefaultFormatter {
         }
       }
     }
-    shellState.getWriter()
-        .print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
+    shellState.getWriter().print(String.format("[%s] %s%n", action, entryStr));
 
     return null;
   }

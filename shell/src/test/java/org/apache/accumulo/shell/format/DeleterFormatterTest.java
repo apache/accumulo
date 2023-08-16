@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -104,14 +105,13 @@ public class DeleterFormatterTest {
     expect(shellState.getReader()).andReturn(reader).anyTimes();
     expect(shellState.getWriter()).andReturn(pw).anyTimes();
 
-    replay(writer, exceptionWriter, shellState);
-
     data = new TreeMap<>();
     data.put(new Key("r", "cf", "cq"), new Value("value"));
   }
 
   @Test
   public void testEmpty() {
+    replay(writer, exceptionWriter, shellState);
     formatter = new DeleterFormatter(writer, Collections.<Key,Value>emptyMap().entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
     assertFalse(formatter.hasNext());
@@ -119,6 +119,7 @@ public class DeleterFormatterTest {
 
   @Test
   public void testSingle() throws IOException {
+    replay(writer, exceptionWriter, shellState);
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
@@ -130,6 +131,11 @@ public class DeleterFormatterTest {
 
   @Test
   public void testNo() throws IOException {
+    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+        .andReturn(Optional.of(false));
+    expectLastCall().once();
+    replay(writer, exceptionWriter, shellState);
+
     input.set("no\n");
     data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
@@ -145,6 +151,11 @@ public class DeleterFormatterTest {
 
   @Test
   public void testNoConfirmation() throws IOException {
+    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+        .andReturn(Optional.empty());
+    expectLastCall().once();
+    replay(writer, exceptionWriter, shellState);
+
     input.set("");
     data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
@@ -160,6 +171,15 @@ public class DeleterFormatterTest {
 
   @Test
   public void testYes() throws IOException {
+    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+        .andReturn(Optional.of(true));
+    expectLastCall().once();
+
+    expect(shellState.confirm("Delete { z : [] 9223372036854775807\tv2 } ? "))
+        .andReturn(Optional.of(true));
+    expectLastCall().once();
+    replay(writer, exceptionWriter, shellState);
+
     input.set("y\nyes\n");
     data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
@@ -176,6 +196,7 @@ public class DeleterFormatterTest {
 
   @Test
   public void testMutationException() {
+    replay(writer, exceptionWriter, shellState);
     formatter = new DeleterFormatter(exceptionWriter, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
