@@ -18,15 +18,25 @@
  */
 package org.apache.accumulo.core.tasks;
 
-public enum TaskType {
-  COMPACTION(CompactionTask.class), COMPACTION_STATUS(CompactionTaskStatus.class);
-  
-  private Class<? extends Task> typeClass;
-  
-  TaskType(Class<? extends Task> task) {
-    this.typeClass = task;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
+
+public enum TaskMessageType {
+
+  COMPACTION_TASK(CompactionTask.class),
+  COMPACTION_TASK_FAILED(CompactionTask.class),
+  COMPACTION_TASK_COMPLETED(CompactionTaskCompleted.class),
+  COMPACTION_TASK_STATUS(CompactionTaskStatus.class);
+
+  private Class<? extends TaskMessage> taskClass;
+
+  TaskMessageType(Class<? extends TaskMessage> taskClass) {
+    this.taskClass = taskClass;
   }
-  
-  
-  
+
+  public Class<? extends TaskMessage> getTaskClass() {
+    return this.taskClass;
+  }
+
 }

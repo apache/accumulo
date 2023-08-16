@@ -16,29 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.tasks;
+package org.apache.accumulo.core.util.json;
 
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.thrift.TException;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-public class CompactionTask extends Task implements ThriftSerialization<TExternalCompactionJob> {
-
-  public CompactionTask() {
-    this.setType(TaskType.COMPACTION);
-  }
-
-  @JsonIgnore
-  public void setCompactionJob(TExternalCompactionJob job) throws TException {
-    this.setSerializedThriftObject(this.serialize(job));
-  }
-
-  @JsonIgnore
-  public TExternalCompactionJob getCompactionJob() throws TException {
-    TExternalCompactionJob job = new TExternalCompactionJob();
-    this.deserialize(job, this.getSerializedThriftObject());
-    return job;
-  }
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.TYPE})
+public @interface GsonIgnore {
 
 }

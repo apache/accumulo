@@ -28,20 +28,15 @@ struct TaskRunnerInfo {
  3:string resourceGroup
 }
 
-struct TaskObject {
+struct Task {
   1:string taskManager
-  2:string taskID
-  3:string objectType
-  4:binary cborEncodedObject
-}
-
-struct TaskList {
-  1:list<TaskObject> tasks
+  2:string messageType
+  3:string message
 }
 
 service TaskManager {
 
-  TaskObject getTask(
+  Task getTask(
     1:client.TInfo tinfo
     2:security.TCredentials credentials  
     3:TaskRunnerInfo taskRunner
@@ -52,26 +47,21 @@ service TaskManager {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 timestamp
-    4:TaskObject taskUpdateObject
+    4:Task taskUpdateObject
   )
 
   void taskCompleted(
     1:client.TInfo tinfo
     2:security.TCredentials credentials  
-    3:TaskObject task  
+    3:Task task  
   )
 
   void taskFailed(
     1:client.TInfo tinfo
     2:security.TCredentials credentials  
-    3:TaskObject task  
+    3:Task task  
   )
   
-  TaskList getCompletedTasks(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-  )
-
   void cancelTask(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -82,7 +72,7 @@ service TaskManager {
 
 service TaskRunner {
 
-  TaskObject getRunningTask(
+  Task getRunningTask(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (

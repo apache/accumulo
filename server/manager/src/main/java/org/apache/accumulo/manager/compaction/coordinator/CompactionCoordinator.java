@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -100,14 +99,11 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.tasks.CompactionTask;
-import org.apache.accumulo.core.tasks.CompactionTaskStatus;
-import org.apache.accumulo.core.tasks.Task;
-import org.apache.accumulo.core.tasks.TaskDeSer;
-import org.apache.accumulo.core.tasks.TaskType;
-import org.apache.accumulo.core.tasks.thrift.TaskList;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskManager;
-import org.apache.accumulo.core.tasks.thrift.TaskObject;
 import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -131,7 +127,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -142,7 +137,8 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class CompactionCoordinator implements CompactionCoordinatorService.Iface, TaskManager.Iface, Runnable {
+public class CompactionCoordinator
+    implements CompactionCoordinatorService.Iface, TaskManager.Iface, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -1285,7 +1281,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   @Override
-  public TaskObject getTask(TInfo tinfo, TCredentials credentials, TaskRunnerInfo taskRunner,
+  public Task getTask(TInfo tinfo, TCredentials credentials, TaskRunnerInfo taskRunner,
       String taskID) throws TException {
     // TODO Auto-generated method stub
     return null;
@@ -1293,9 +1289,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   @Override
   public void taskStatus(TInfo tinfo, TCredentials credentials, long timestamp,
-      TaskObject taskUpdateObject) throws TException {
+      Task taskUpdateObject) throws TException {
     // TODO Auto-generated method stub
-    
+
   }
 
   /**
@@ -1351,25 +1347,19 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
    * @throws ThriftSecurityException when permission error
    */
   @Override
-  public void taskCompleted(TInfo tinfo, TCredentials credentials, TaskObject task)
-      throws TException {
+  public void taskCompleted(TInfo tinfo, TCredentials credentials, Task task) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-
-    Task to;
-    try {
-      to = TaskDeSer.deserialize(task);
-    } catch (ClassNotFoundException | IOException e) {
-      LOG.error("Error deserializing compaction task", e);
-      throw new TException("Error deserializing compaction task", e);      
-    }
-    Preconditions.checkState(to.getType() == TaskType.COMPACTION);
-    CompactionTask ct = (CompactionTask) to;
-    TExternalCompactionJob job = ct.getCompactionJob();
-    String externalCompactionId = job.getExternalCompactionId();
+    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+        .equals(TaskMessageType.COMPACTION_TASK_COMPLETED));
+    CompactionTaskCompleted compactionTask =
+        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+    final TExternalCompactionJob job = compactionTask.getCompactionJob();
+    final String externalCompactionId = job.getExternalCompactionId();
+    final TCompactionStats stats = compactionTask.getCompactionStats();
 
     var extent = KeyExtent.fromThrift(job.getExtent());
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
@@ -1423,23 +1413,18 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   @Override
-  public void taskFailed(TInfo tinfo, TCredentials credentials, TaskObject task) throws TException {
+  public void taskFailed(TInfo tinfo, TCredentials credentials, Task task) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    Task to;
-    try {
-      to = TaskDeSer.deserialize(task);
-    } catch (ClassNotFoundException | IOException e) {
-      LOG.error("Error deserializing compaction task", e);
-      throw new TException("Error deserializing compaction task", e);      
-    }
-    Preconditions.checkState(to.getType() == TaskType.COMPACTION);
-    CompactionTask ct = (CompactionTask) to;
-    TExternalCompactionJob job = ct.getCompactionJob();
-    
+    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+        .equals(TaskMessageType.COMPACTION_TASK_FAILED));
+    final CompactionTaskCompleted compactionTask =
+        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+    final TExternalCompactionJob job = compactionTask.getCompactionJob();
+
     LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
     final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
@@ -1450,38 +1435,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   @Override
-  public TaskList getCompletedTasks(TInfo tinfo, TCredentials credentials) throws TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    final TaskList result = new TaskList();
-    for (Entry<ExternalCompactionId, RunningCompaction> entry : completed.asMap().entrySet()) {
-      ExternalCompactionId ecid = entry.getKey();
-      RunningCompaction rc = entry.getValue();
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroupName());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setJob(rc.getJob());
-      trc.setUpdates(rc.getUpdates());
-      
-      CompactionTaskStatus status = new CompactionTaskStatus();
-      status.setTaskId(ecid.canonical());
-      status.setCompactionStatus(trc);
-      
-      try {
-        result.addToTasks(TaskDeSer.serialize(status));
-      } catch (JsonProcessingException e) {
-        LOG.error("Error serializing compaction status", e);
-        throw new TException("Error serializing compaction status", e);
-      }
-    }
-    return result;
-  }
-
-  @Override
-  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId) throws TException {
+  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {
@@ -1497,5 +1452,5 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
   }
-  
+
 }

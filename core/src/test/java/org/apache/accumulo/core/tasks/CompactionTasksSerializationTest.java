@@ -21,7 +21,6 @@ package org.apache.accumulo.core.tasks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,14 +34,15 @@ import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tasks.thrift.TaskObject;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class CompactionTaskSerializationTest {
+public class CompactionTasksSerializationTest {
 
   @Test
-  public void testSerDeser() throws Exception {
+  public void testCompactionTask() throws Exception {
 
     TExternalCompactionJob job = new TExternalCompactionJob();
 
@@ -69,14 +69,16 @@ public class CompactionTaskSerializationTest {
     task.setTaskId(UUID.randomUUID().toString());
     task.setCompactionJob(job);
 
-    TaskObject to = TaskDeSer.serialize(task);
+    Task to = task.toThriftTask();
+    assertEquals(TaskMessageType.COMPACTION_TASK.name(), to.getMessageType());
+    System.out.println(to.getMessage());
 
-    assertEquals(to.getTaskID(), task.getTaskId());
-    assertEquals(to.getObjectType(), task.getClass().getName());
-    System.out.println(Arrays.toString(to.getCborEncodedObject()));
+    CompactionTask task2 = (CompactionTask) TaskMessage.fromThriftTask(to);
 
-    CompactionTask task2 = TaskDeSer.deserialize(to);
-    assertEquals(task, task2);
+    assertEquals(task.getTaskId(), task2.getTaskId());
+    assertEquals(task.getFateTxId(), task2.getFateTxId());
+    assertEquals(task.getMessageType(), task2.getMessageType());
+    assertEquals(task.getCompactionJob(), task2.getCompactionJob());
   }
 
 }

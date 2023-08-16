@@ -86,9 +86,8 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tasks.CompactionTask;
-import org.apache.accumulo.core.tasks.TaskDeSer;
-import org.apache.accumulo.core.tasks.thrift.TaskObject;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskRunner;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
@@ -117,14 +116,14 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface, TaskRunner.Iface {
+public class Compactor extends AbstractServer
+    implements MetricsProducer, CompactorService.Iface, TaskRunner.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
@@ -882,7 +881,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public TaskObject getRunningTask(TInfo tinfo, TCredentials credentials)
+  public Task getRunningTask(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -907,12 +906,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       task.setTaskId(job.getExternalCompactionId());
       task.setCompactionJob(job);
     }
-    try {
-      return TaskDeSer.serialize(task);
-    } catch (JsonProcessingException e) {
-      LOG.error("Error serializing compaction task", e);
-      throw new TException("Error serializing compaction task", e);
-    }
+    return task.toThriftTask();
   }
 
   @Override
@@ -937,7 +931,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId) throws TException {
+  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
     TableId tableId = JOB_HOLDER.getTableId();
     try {
       NamespaceId nsId = getContext().getNamespaceId(tableId);
@@ -952,6 +947,5 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     cancel(externalCompactionId);
   }
-  
-  
+
 }

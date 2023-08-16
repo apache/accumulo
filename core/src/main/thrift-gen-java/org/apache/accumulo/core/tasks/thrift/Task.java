@@ -25,28 +25,25 @@
 package org.apache.accumulo.core.tasks.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObject._Fields>, java.io.Serializable, Cloneable, Comparable<TaskObject> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TaskObject");
+public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.io.Serializable, Cloneable, Comparable<Task> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Task");
 
   private static final org.apache.thrift.protocol.TField TASK_MANAGER_FIELD_DESC = new org.apache.thrift.protocol.TField("taskManager", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField TASK_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("taskID", org.apache.thrift.protocol.TType.STRING, (short)2);
-  private static final org.apache.thrift.protocol.TField OBJECT_TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("objectType", org.apache.thrift.protocol.TType.STRING, (short)3);
-  private static final org.apache.thrift.protocol.TField CBOR_ENCODED_OBJECT_FIELD_DESC = new org.apache.thrift.protocol.TField("cborEncodedObject", org.apache.thrift.protocol.TType.STRING, (short)4);
+  private static final org.apache.thrift.protocol.TField MESSAGE_TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("messageType", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)3);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TaskObjectStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TaskObjectTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TaskStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TaskTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.lang.String taskManager; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String taskID; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String objectType; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cborEncodedObject; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String messageType; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String message; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TASK_MANAGER((short)1, "taskManager"),
-    TASK_ID((short)2, "taskID"),
-    OBJECT_TYPE((short)3, "objectType"),
-    CBOR_ENCODED_OBJECT((short)4, "cborEncodedObject");
+    MESSAGE_TYPE((short)2, "messageType"),
+    MESSAGE((short)3, "message");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -64,12 +61,10 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
       switch(fieldId) {
         case 1: // TASK_MANAGER
           return TASK_MANAGER;
-        case 2: // TASK_ID
-          return TASK_ID;
-        case 3: // OBJECT_TYPE
-          return OBJECT_TYPE;
-        case 4: // CBOR_ENCODED_OBJECT
-          return CBOR_ENCODED_OBJECT;
+        case 2: // MESSAGE_TYPE
+          return MESSAGE_TYPE;
+        case 3: // MESSAGE
+          return MESSAGE;
         default:
           return null;
       }
@@ -118,61 +113,53 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.TASK_MANAGER, new org.apache.thrift.meta_data.FieldMetaData("taskManager", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.TASK_ID, new org.apache.thrift.meta_data.FieldMetaData("taskID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MESSAGE_TYPE, new org.apache.thrift.meta_data.FieldMetaData("messageType", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.OBJECT_TYPE, new org.apache.thrift.meta_data.FieldMetaData("objectType", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MESSAGE, new org.apache.thrift.meta_data.FieldMetaData("message", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.CBOR_ENCODED_OBJECT, new org.apache.thrift.meta_data.FieldMetaData("cborEncodedObject", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TaskObject.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(Task.class, metaDataMap);
   }
 
-  public TaskObject() {
+  public Task() {
   }
 
-  public TaskObject(
+  public Task(
     java.lang.String taskManager,
-    java.lang.String taskID,
-    java.lang.String objectType,
-    java.nio.ByteBuffer cborEncodedObject)
+    java.lang.String messageType,
+    java.lang.String message)
   {
     this();
     this.taskManager = taskManager;
-    this.taskID = taskID;
-    this.objectType = objectType;
-    this.cborEncodedObject = org.apache.thrift.TBaseHelper.copyBinary(cborEncodedObject);
+    this.messageType = messageType;
+    this.message = message;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TaskObject(TaskObject other) {
+  public Task(Task other) {
     if (other.isSetTaskManager()) {
       this.taskManager = other.taskManager;
     }
-    if (other.isSetTaskID()) {
-      this.taskID = other.taskID;
+    if (other.isSetMessageType()) {
+      this.messageType = other.messageType;
     }
-    if (other.isSetObjectType()) {
-      this.objectType = other.objectType;
-    }
-    if (other.isSetCborEncodedObject()) {
-      this.cborEncodedObject = org.apache.thrift.TBaseHelper.copyBinary(other.cborEncodedObject);
+    if (other.isSetMessage()) {
+      this.message = other.message;
     }
   }
 
   @Override
-  public TaskObject deepCopy() {
-    return new TaskObject(this);
+  public Task deepCopy() {
+    return new Task(this);
   }
 
   @Override
   public void clear() {
     this.taskManager = null;
-    this.taskID = null;
-    this.objectType = null;
-    this.cborEncodedObject = null;
+    this.messageType = null;
+    this.message = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -180,7 +167,7 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     return this.taskManager;
   }
 
-  public TaskObject setTaskManager(@org.apache.thrift.annotation.Nullable java.lang.String taskManager) {
+  public Task setTaskManager(@org.apache.thrift.annotation.Nullable java.lang.String taskManager) {
     this.taskManager = taskManager;
     return this;
   }
@@ -201,86 +188,52 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getTaskID() {
-    return this.taskID;
+  public java.lang.String getMessageType() {
+    return this.messageType;
   }
 
-  public TaskObject setTaskID(@org.apache.thrift.annotation.Nullable java.lang.String taskID) {
-    this.taskID = taskID;
+  public Task setMessageType(@org.apache.thrift.annotation.Nullable java.lang.String messageType) {
+    this.messageType = messageType;
     return this;
   }
 
-  public void unsetTaskID() {
-    this.taskID = null;
+  public void unsetMessageType() {
+    this.messageType = null;
   }
 
-  /** Returns true if field taskID is set (has been assigned a value) and false otherwise */
-  public boolean isSetTaskID() {
-    return this.taskID != null;
+  /** Returns true if field messageType is set (has been assigned a value) and false otherwise */
+  public boolean isSetMessageType() {
+    return this.messageType != null;
   }
 
-  public void setTaskIDIsSet(boolean value) {
+  public void setMessageTypeIsSet(boolean value) {
     if (!value) {
-      this.taskID = null;
+      this.messageType = null;
     }
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getObjectType() {
-    return this.objectType;
+  public java.lang.String getMessage() {
+    return this.message;
   }
 
-  public TaskObject setObjectType(@org.apache.thrift.annotation.Nullable java.lang.String objectType) {
-    this.objectType = objectType;
+  public Task setMessage(@org.apache.thrift.annotation.Nullable java.lang.String message) {
+    this.message = message;
     return this;
   }
 
-  public void unsetObjectType() {
-    this.objectType = null;
+  public void unsetMessage() {
+    this.message = null;
   }
 
-  /** Returns true if field objectType is set (has been assigned a value) and false otherwise */
-  public boolean isSetObjectType() {
-    return this.objectType != null;
+  /** Returns true if field message is set (has been assigned a value) and false otherwise */
+  public boolean isSetMessage() {
+    return this.message != null;
   }
 
-  public void setObjectTypeIsSet(boolean value) {
+  public void setMessageIsSet(boolean value) {
     if (!value) {
-      this.objectType = null;
-    }
-  }
-
-  public byte[] getCborEncodedObject() {
-    setCborEncodedObject(org.apache.thrift.TBaseHelper.rightSize(cborEncodedObject));
-    return cborEncodedObject == null ? null : cborEncodedObject.array();
-  }
-
-  public java.nio.ByteBuffer bufferForCborEncodedObject() {
-    return org.apache.thrift.TBaseHelper.copyBinary(cborEncodedObject);
-  }
-
-  public TaskObject setCborEncodedObject(byte[] cborEncodedObject) {
-    this.cborEncodedObject = cborEncodedObject == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cborEncodedObject.clone());
-    return this;
-  }
-
-  public TaskObject setCborEncodedObject(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cborEncodedObject) {
-    this.cborEncodedObject = org.apache.thrift.TBaseHelper.copyBinary(cborEncodedObject);
-    return this;
-  }
-
-  public void unsetCborEncodedObject() {
-    this.cborEncodedObject = null;
-  }
-
-  /** Returns true if field cborEncodedObject is set (has been assigned a value) and false otherwise */
-  public boolean isSetCborEncodedObject() {
-    return this.cborEncodedObject != null;
-  }
-
-  public void setCborEncodedObjectIsSet(boolean value) {
-    if (!value) {
-      this.cborEncodedObject = null;
+      this.message = null;
     }
   }
 
@@ -295,31 +248,19 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
       }
       break;
 
-    case TASK_ID:
+    case MESSAGE_TYPE:
       if (value == null) {
-        unsetTaskID();
+        unsetMessageType();
       } else {
-        setTaskID((java.lang.String)value);
+        setMessageType((java.lang.String)value);
       }
       break;
 
-    case OBJECT_TYPE:
+    case MESSAGE:
       if (value == null) {
-        unsetObjectType();
+        unsetMessage();
       } else {
-        setObjectType((java.lang.String)value);
-      }
-      break;
-
-    case CBOR_ENCODED_OBJECT:
-      if (value == null) {
-        unsetCborEncodedObject();
-      } else {
-        if (value instanceof byte[]) {
-          setCborEncodedObject((byte[])value);
-        } else {
-          setCborEncodedObject((java.nio.ByteBuffer)value);
-        }
+        setMessage((java.lang.String)value);
       }
       break;
 
@@ -333,14 +274,11 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     case TASK_MANAGER:
       return getTaskManager();
 
-    case TASK_ID:
-      return getTaskID();
+    case MESSAGE_TYPE:
+      return getMessageType();
 
-    case OBJECT_TYPE:
-      return getObjectType();
-
-    case CBOR_ENCODED_OBJECT:
-      return getCborEncodedObject();
+    case MESSAGE:
+      return getMessage();
 
     }
     throw new java.lang.IllegalStateException();
@@ -356,24 +294,22 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     switch (field) {
     case TASK_MANAGER:
       return isSetTaskManager();
-    case TASK_ID:
-      return isSetTaskID();
-    case OBJECT_TYPE:
-      return isSetObjectType();
-    case CBOR_ENCODED_OBJECT:
-      return isSetCborEncodedObject();
+    case MESSAGE_TYPE:
+      return isSetMessageType();
+    case MESSAGE:
+      return isSetMessage();
     }
     throw new java.lang.IllegalStateException();
   }
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof TaskObject)
-      return this.equals((TaskObject)that);
+    if (that instanceof Task)
+      return this.equals((Task)that);
     return false;
   }
 
-  public boolean equals(TaskObject that) {
+  public boolean equals(Task that) {
     if (that == null)
       return false;
     if (this == that)
@@ -388,30 +324,21 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
         return false;
     }
 
-    boolean this_present_taskID = true && this.isSetTaskID();
-    boolean that_present_taskID = true && that.isSetTaskID();
-    if (this_present_taskID || that_present_taskID) {
-      if (!(this_present_taskID && that_present_taskID))
+    boolean this_present_messageType = true && this.isSetMessageType();
+    boolean that_present_messageType = true && that.isSetMessageType();
+    if (this_present_messageType || that_present_messageType) {
+      if (!(this_present_messageType && that_present_messageType))
         return false;
-      if (!this.taskID.equals(that.taskID))
-        return false;
-    }
-
-    boolean this_present_objectType = true && this.isSetObjectType();
-    boolean that_present_objectType = true && that.isSetObjectType();
-    if (this_present_objectType || that_present_objectType) {
-      if (!(this_present_objectType && that_present_objectType))
-        return false;
-      if (!this.objectType.equals(that.objectType))
+      if (!this.messageType.equals(that.messageType))
         return false;
     }
 
-    boolean this_present_cborEncodedObject = true && this.isSetCborEncodedObject();
-    boolean that_present_cborEncodedObject = true && that.isSetCborEncodedObject();
-    if (this_present_cborEncodedObject || that_present_cborEncodedObject) {
-      if (!(this_present_cborEncodedObject && that_present_cborEncodedObject))
+    boolean this_present_message = true && this.isSetMessage();
+    boolean that_present_message = true && that.isSetMessage();
+    if (this_present_message || that_present_message) {
+      if (!(this_present_message && that_present_message))
         return false;
-      if (!this.cborEncodedObject.equals(that.cborEncodedObject))
+      if (!this.message.equals(that.message))
         return false;
     }
 
@@ -426,23 +353,19 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     if (isSetTaskManager())
       hashCode = hashCode * 8191 + taskManager.hashCode();
 
-    hashCode = hashCode * 8191 + ((isSetTaskID()) ? 131071 : 524287);
-    if (isSetTaskID())
-      hashCode = hashCode * 8191 + taskID.hashCode();
+    hashCode = hashCode * 8191 + ((isSetMessageType()) ? 131071 : 524287);
+    if (isSetMessageType())
+      hashCode = hashCode * 8191 + messageType.hashCode();
 
-    hashCode = hashCode * 8191 + ((isSetObjectType()) ? 131071 : 524287);
-    if (isSetObjectType())
-      hashCode = hashCode * 8191 + objectType.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetCborEncodedObject()) ? 131071 : 524287);
-    if (isSetCborEncodedObject())
-      hashCode = hashCode * 8191 + cborEncodedObject.hashCode();
+    hashCode = hashCode * 8191 + ((isSetMessage()) ? 131071 : 524287);
+    if (isSetMessage())
+      hashCode = hashCode * 8191 + message.hashCode();
 
     return hashCode;
   }
 
   @Override
-  public int compareTo(TaskObject other) {
+  public int compareTo(Task other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
@@ -459,32 +382,22 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetTaskID(), other.isSetTaskID());
+    lastComparison = java.lang.Boolean.compare(isSetMessageType(), other.isSetMessageType());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTaskID()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.taskID, other.taskID);
+    if (isSetMessageType()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.messageType, other.messageType);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetObjectType(), other.isSetObjectType());
+    lastComparison = java.lang.Boolean.compare(isSetMessage(), other.isSetMessage());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetObjectType()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.objectType, other.objectType);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetCborEncodedObject(), other.isSetCborEncodedObject());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetCborEncodedObject()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.cborEncodedObject, other.cborEncodedObject);
+    if (isSetMessage()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.message, other.message);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -510,7 +423,7 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("TaskObject(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("Task(");
     boolean first = true;
 
     sb.append("taskManager:");
@@ -521,27 +434,19 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("taskID:");
-    if (this.taskID == null) {
+    sb.append("messageType:");
+    if (this.messageType == null) {
       sb.append("null");
     } else {
-      sb.append(this.taskID);
+      sb.append(this.messageType);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("objectType:");
-    if (this.objectType == null) {
+    sb.append("message:");
+    if (this.message == null) {
       sb.append("null");
     } else {
-      sb.append(this.objectType);
-    }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("cborEncodedObject:");
-    if (this.cborEncodedObject == null) {
-      sb.append("null");
-    } else {
-      org.apache.thrift.TBaseHelper.toString(this.cborEncodedObject, sb);
+      sb.append(this.message);
     }
     first = false;
     sb.append(")");
@@ -569,17 +474,17 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     }
   }
 
-  private static class TaskObjectStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class TaskStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TaskObjectStandardScheme getScheme() {
-      return new TaskObjectStandardScheme();
+    public TaskStandardScheme getScheme() {
+      return new TaskStandardScheme();
     }
   }
 
-  private static class TaskObjectStandardScheme extends org.apache.thrift.scheme.StandardScheme<TaskObject> {
+  private static class TaskStandardScheme extends org.apache.thrift.scheme.StandardScheme<Task> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, TaskObject struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, Task struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -597,26 +502,18 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // TASK_ID
+          case 2: // MESSAGE_TYPE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.taskID = iprot.readString();
-              struct.setTaskIDIsSet(true);
+              struct.messageType = iprot.readString();
+              struct.setMessageTypeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // OBJECT_TYPE
+          case 3: // MESSAGE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.objectType = iprot.readString();
-              struct.setObjectTypeIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 4: // CBOR_ENCODED_OBJECT
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.cborEncodedObject = iprot.readBinary();
-              struct.setCborEncodedObjectIsSet(true);
+              struct.message = iprot.readString();
+              struct.setMessageIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -633,7 +530,7 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, TaskObject struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, Task struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -642,19 +539,14 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
         oprot.writeString(struct.taskManager);
         oprot.writeFieldEnd();
       }
-      if (struct.taskID != null) {
-        oprot.writeFieldBegin(TASK_ID_FIELD_DESC);
-        oprot.writeString(struct.taskID);
+      if (struct.messageType != null) {
+        oprot.writeFieldBegin(MESSAGE_TYPE_FIELD_DESC);
+        oprot.writeString(struct.messageType);
         oprot.writeFieldEnd();
       }
-      if (struct.objectType != null) {
-        oprot.writeFieldBegin(OBJECT_TYPE_FIELD_DESC);
-        oprot.writeString(struct.objectType);
-        oprot.writeFieldEnd();
-      }
-      if (struct.cborEncodedObject != null) {
-        oprot.writeFieldBegin(CBOR_ENCODED_OBJECT_FIELD_DESC);
-        oprot.writeBinary(struct.cborEncodedObject);
+      if (struct.message != null) {
+        oprot.writeFieldBegin(MESSAGE_FIELD_DESC);
+        oprot.writeString(struct.message);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -663,65 +555,55 @@ public class TaskObject implements org.apache.thrift.TBase<TaskObject, TaskObjec
 
   }
 
-  private static class TaskObjectTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class TaskTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TaskObjectTupleScheme getScheme() {
-      return new TaskObjectTupleScheme();
+    public TaskTupleScheme getScheme() {
+      return new TaskTupleScheme();
     }
   }
 
-  private static class TaskObjectTupleScheme extends org.apache.thrift.scheme.TupleScheme<TaskObject> {
+  private static class TaskTupleScheme extends org.apache.thrift.scheme.TupleScheme<Task> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, TaskObject struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, Task struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
       if (struct.isSetTaskManager()) {
         optionals.set(0);
       }
-      if (struct.isSetTaskID()) {
+      if (struct.isSetMessageType()) {
         optionals.set(1);
       }
-      if (struct.isSetObjectType()) {
+      if (struct.isSetMessage()) {
         optionals.set(2);
       }
-      if (struct.isSetCborEncodedObject()) {
-        optionals.set(3);
-      }
-      oprot.writeBitSet(optionals, 4);
+      oprot.writeBitSet(optionals, 3);
       if (struct.isSetTaskManager()) {
         oprot.writeString(struct.taskManager);
       }
-      if (struct.isSetTaskID()) {
-        oprot.writeString(struct.taskID);
+      if (struct.isSetMessageType()) {
+        oprot.writeString(struct.messageType);
       }
-      if (struct.isSetObjectType()) {
-        oprot.writeString(struct.objectType);
-      }
-      if (struct.isSetCborEncodedObject()) {
-        oprot.writeBinary(struct.cborEncodedObject);
+      if (struct.isSetMessage()) {
+        oprot.writeString(struct.message);
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, TaskObject struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, Task struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(4);
+      java.util.BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         struct.taskManager = iprot.readString();
         struct.setTaskManagerIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.taskID = iprot.readString();
-        struct.setTaskIDIsSet(true);
+        struct.messageType = iprot.readString();
+        struct.setMessageTypeIsSet(true);
       }
       if (incoming.get(2)) {
-        struct.objectType = iprot.readString();
-        struct.setObjectTypeIsSet(true);
-      }
-      if (incoming.get(3)) {
-        struct.cborEncodedObject = iprot.readBinary();
-        struct.setCborEncodedObjectIsSet(true);
+        struct.message = iprot.readString();
+        struct.setMessageIsSet(true);
       }
     }
   }

@@ -29,7 +29,7 @@ public class TaskRunner {
 
   public interface Iface {
 
-    public TaskObject getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public Task getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public java.lang.String getRunningTaskId(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -39,7 +39,7 @@ public class TaskRunner {
 
   public interface AsyncIface {
 
-    public void getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TaskObject> resultHandler) throws org.apache.thrift.TException;
+    public void getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Task> resultHandler) throws org.apache.thrift.TException;
 
     public void getRunningTaskId(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
 
@@ -70,7 +70,7 @@ public class TaskRunner {
     }
 
     @Override
-    public TaskObject getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public Task getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getRunningTask(tinfo, credentials);
       return recv_getRunningTask();
@@ -84,7 +84,7 @@ public class TaskRunner {
       sendBase("getRunningTask", args);
     }
 
-    public TaskObject recv_getRunningTask() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public Task recv_getRunningTask() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getRunningTask_result result = new getRunningTask_result();
       receiveBase(result, "getRunningTask");
@@ -168,17 +168,17 @@ public class TaskRunner {
     }
 
     @Override
-    public void getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TaskObject> resultHandler) throws org.apache.thrift.TException {
+    public void getRunningTask(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Task> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getRunningTask_call method_call = new getRunningTask_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getRunningTask_call extends org.apache.thrift.async.TAsyncMethodCall<TaskObject> {
+    public static class getRunningTask_call extends org.apache.thrift.async.TAsyncMethodCall<Task> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getRunningTask_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TaskObject> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getRunningTask_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Task> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -195,7 +195,7 @@ public class TaskRunner {
       }
 
       @Override
-      public TaskObject getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public Task getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -415,7 +415,7 @@ public class TaskRunner {
       return processMap;
     }
 
-    public static class getRunningTask<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getRunningTask_args, TaskObject> {
+    public static class getRunningTask<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getRunningTask_args, Task> {
       public getRunningTask() {
         super("getRunningTask");
       }
@@ -426,11 +426,11 @@ public class TaskRunner {
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<TaskObject> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<Task> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<TaskObject>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<Task>() { 
           @Override
-          public void onComplete(TaskObject o) {
+          public void onComplete(Task o) {
             getRunningTask_result result = new getRunningTask_result();
             result.success = o;
             try {
@@ -481,7 +481,7 @@ public class TaskRunner {
       }
 
       @Override
-      public void start(I iface, getRunningTask_args args, org.apache.thrift.async.AsyncMethodCallback<TaskObject> resultHandler) throws org.apache.thrift.TException {
+      public void start(I iface, getRunningTask_args args, org.apache.thrift.async.AsyncMethodCallback<Task> resultHandler) throws org.apache.thrift.TException {
         iface.getRunningTask(args.tinfo, args.credentials,resultHandler);
       }
     }
@@ -1129,7 +1129,7 @@ public class TaskRunner {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getRunningTask_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getRunningTask_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable TaskObject success; // required
+    public @org.apache.thrift.annotation.Nullable Task success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -1202,7 +1202,7 @@ public class TaskRunner {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TaskObject.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Task.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -1213,7 +1213,7 @@ public class TaskRunner {
     }
 
     public getRunningTask_result(
-      TaskObject success,
+      Task success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -1226,7 +1226,7 @@ public class TaskRunner {
      */
     public getRunningTask_result(getRunningTask_result other) {
       if (other.isSetSuccess()) {
-        this.success = new TaskObject(other.success);
+        this.success = new Task(other.success);
       }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
@@ -1245,11 +1245,11 @@ public class TaskRunner {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public TaskObject getSuccess() {
+    public Task getSuccess() {
       return this.success;
     }
 
-    public getRunningTask_result setSuccess(@org.apache.thrift.annotation.Nullable TaskObject success) {
+    public getRunningTask_result setSuccess(@org.apache.thrift.annotation.Nullable Task success) {
       this.success = success;
       return this;
     }
@@ -1301,7 +1301,7 @@ public class TaskRunner {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((TaskObject)value);
+          setSuccess((Task)value);
         }
         break;
 
@@ -1511,7 +1511,7 @@ public class TaskRunner {
           switch (schemeField.id) {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new TaskObject();
+                struct.success = new Task();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
@@ -1592,7 +1592,7 @@ public class TaskRunner {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.success = new TaskObject();
+          struct.success = new Task();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
