@@ -57,6 +57,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     return level;
   }
 
+  @Override
   public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
     return new TabletManagementScanner(context, ranges, state, targetTableName);
   }
