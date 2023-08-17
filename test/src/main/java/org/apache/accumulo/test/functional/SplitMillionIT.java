@@ -86,7 +86,6 @@ public class SplitMillionIT extends AccumuloClusterHarness {
 
         long t2 = System.currentTimeMillis();
 
-        // TODO the batch writer takes a while to bring an ondemand tablet online
         try (var writer = c.createBatchWriter(tableName)) {
           Mutation m = new Mutation(row);
           m.put("c", "x", "200");
