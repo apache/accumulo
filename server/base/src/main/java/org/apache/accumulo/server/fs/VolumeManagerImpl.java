@@ -395,8 +395,8 @@ public class VolumeManagerImpl implements VolumeManager {
     if (!volumeHdfsConfigOverrides.isEmpty()) {
       final Configuration volumeConfig = new Configuration(hadoopConf);
 
-      conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
-          .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
+      volumeHdfsConfigOverrides.entrySet().stream()
+          .filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
             String key = e.getKey().substring(filesystemURI.length() + 1);
             String value = e.getValue();
             log.info("Overriding property {} for volume {}", key, value, filesystemURI);
