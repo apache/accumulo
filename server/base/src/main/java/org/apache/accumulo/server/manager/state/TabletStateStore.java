@@ -57,6 +57,7 @@ public interface TabletStateStore extends ClosableIterable<TabletManagement> {
   /**
    * Scan the information about all tablets covered by this store..
    */
+  @Override
   default ClosableIterator<TabletManagement> iterator() {
     return iterator(List.of(MetadataSchema.TabletsSection.getRange()));
   }
