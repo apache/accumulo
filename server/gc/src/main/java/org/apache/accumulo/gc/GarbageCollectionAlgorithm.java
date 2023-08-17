@@ -24,10 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -172,28 +174,17 @@ public class GarbageCollectionAlgorithm {
 
     }
 
-    MetadataReadTracker readTracker = null;
-    Text nextRowCandidate;
+    MetadataReadTracker readTracker = new MetadataReadTracker();
 
     Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
     while (iter.hasNext()) {
       Entry<Key,Value> entry = iter.next();
       Key key = entry.getKey();
-      nextRowCandidate = key.getRow();
+
       // check that dir entry was read for the row. If not, the metadata information may not be
       // complete. Abort the gc cycle.
-      if (readTracker == null) {
-        readTracker = new MetadataReadTracker(nextRowCandidate);
-      } else {
-        if (readTracker.isNewRow(nextRowCandidate)) {
-          if (readTracker.missingExpected()) {
-            throw new IllegalStateException(
-                "May not have fully read metadata for row, aborting this run. Validation results: "
-                    + readTracker);
-          }
-          readTracker = new MetadataReadTracker(nextRowCandidate);
-        }
-      }
+      readTracker.sawRow(key.getRow());
+
       Text cft = key.getColumnFamily();
 
       if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
@@ -240,11 +231,8 @@ public class GarbageCollectionAlgorithm {
             "Scanner over metadata table returned unexpected column : " + entry.getKey());
     }
     // process last row to check metadata read included the dir entry.
-    if (readTracker != null && readTracker.missingExpected()) {
-      throw new IllegalStateException(
-          "May not have fully read metadata for row, aborting this run. Validation results: "
-              + readTracker);
-    }
+    readTracker.sawLastRow();
+
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
   }
@@ -378,32 +366,47 @@ public class GarbageCollectionAlgorithm {
   private static class MetadataReadTracker {
     private boolean hasDir = false;
     private boolean hasPrevRow = false;
-    private final Text row;
+    private Text row;
 
-    public MetadataReadTracker(final Text row) {
-      this.row = row;
+    private boolean closed = false;
+
+    public MetadataReadTracker() {
+      this.row = null;
     }
 
-    public boolean isNewRow(final Text candidate) {
-      return !row.equals(candidate);
+    private void checkRow(){
+      Preconditions.checkState(hasDir && hasPrevRow, "May not have fully read metadata for row, aborting this run. Validation results: %s", this);
+    }
+
+    public void sawRow(final Text candidate) {
+      Preconditions.checkState(!closed);
+      Objects.requireNonNull(candidate);
+      if(row == null) {
+        row = candidate;
+      } else if(!row.equals(candidate)) {
+        checkRow();
+        hasPrevRow = false;
+        hasDir = false;
+        row = candidate;
+      }
     }
 
     public void sawDir() {
+      Preconditions.checkState(!closed);
       hasDir = true;
     }
 
     public void sawPrevRow() {
+      Preconditions.checkState(!closed);
       hasPrevRow = true;
     }
 
-    /**
-     * Validate that expected metadata entries have been read. The check is inverted, return false
-     * when complete, true if incomplete
-     *
-     * @return true if either dir or prev row are missing
-     */
-    public boolean missingExpected() {
-      return !hasDir || !hasPrevRow;
+    public void sawLastRow(){
+      Preconditions.checkState(!closed);
+      if(row != null){
+        checkRow();
+      }
+      closed = true;
     }
 
     @Override
