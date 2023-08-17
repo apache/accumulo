@@ -40,7 +40,7 @@ public class DeleterFormatter extends DefaultFormatter {
   private BatchWriter writer;
   private Shell shellState;
   private boolean force;
-  private boolean more;
+  private boolean stop;
 
   public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner,
       FormatterConfig config, Shell shellState, boolean force) {
@@ -48,25 +48,25 @@ public class DeleterFormatter extends DefaultFormatter {
     this.writer = writer;
     this.shellState = shellState;
     this.force = force;
-    this.more = true;
+    this.stop = false;
   }
 
   @Override
   public boolean hasNext() {
-    if (!getScannerIterator().hasNext() || !more) {
-      try {
-        writer.close();
-      } catch (MutationsRejectedException e) {
-        log.error(e.toString());
-        if (Shell.log.isTraceEnabled()) {
-          for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
-            log.trace(cvs.toString());
-          }
+    if (getScannerIterator().hasNext() && !stop) {
+      return true;
+    }
+    try {
+      writer.close();
+    } catch (MutationsRejectedException e) {
+      log.error(e.toString());
+      if (Shell.log.isTraceEnabled()) {
+        for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
+          log.trace(cvs.toString());
         }
       }
-      return false;
     }
-    return true;
+    return false;
   }
 
   /**
@@ -75,20 +75,13 @@ public class DeleterFormatter extends DefaultFormatter {
   @Override
   public String next() {
     Entry<Key,Value> next = getScannerIterator().next();
-    Key key = next.getKey();
-    Mutation m = new Mutation(key.getRow());
     String entryStr = formatEntry(next, isDoTimestamps());
-    Optional<Boolean> confirmed = Optional.empty();
+    var confirm = force ? Optional.of(true) : shellState.confirm("Delete { " + entryStr + " } ? ");
+    stop = confirm.isEmpty();
     String action = "SKIPPED";
-    if (!force) {
-      confirmed = shellState.confirm("Delete { " + entryStr + " } ? ");
-      if (confirmed.isEmpty()) {
-        more = false;
-      } else {
-        more = true;
-      }
-    }
-    if (force || confirmed.filter(y -> y).isPresent()) {
+    if (confirm.orElse(false)) {
+      Key key = next.getKey();
+      Mutation m = new Mutation(key.getRow());
       m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
           new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
       try {
@@ -104,7 +97,6 @@ public class DeleterFormatter extends DefaultFormatter {
       }
     }
     shellState.getWriter().print(String.format("[%s] %s%n", action, entryStr));
-
     return null;
   }
 }

@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,14 +52,16 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class DeleterFormatterTest {
+  // default timestamp
+  private static final long TIMESTAMP = Long.MAX_VALUE;
   DeleterFormatter formatter;
   Map<Key,Value> data;
   BatchWriter writer;
-  BatchWriter exceptionWriter;
   Shell shellState;
   LineReader reader;
   Terminal terminal;
@@ -82,19 +85,11 @@ public class DeleterFormatterTest {
   }
 
   @BeforeEach
-  public void setUp() throws IOException, MutationsRejectedException {
+  public void setUp() throws IOException {
     input = new SettableInputStream();
     baos = new ByteArrayOutputStream();
 
-    MutationsRejectedException mre = createMock(MutationsRejectedException.class);
-
     writer = createNiceMock(BatchWriter.class);
-    exceptionWriter = createNiceMock(BatchWriter.class);
-    exceptionWriter.close();
-    expectLastCall().andThrow(mre);
-    exceptionWriter.addMutation(anyObject(Mutation.class));
-    expectLastCall().andThrow(mre);
-
     shellState = createNiceMock(Shell.class);
 
     terminal = new DumbTerminal(input, baos);
@@ -109,9 +104,14 @@ public class DeleterFormatterTest {
     data.put(new Key("r", "cf", "cq"), new Value("value"));
   }
 
+  @AfterEach
+  public void verifyCommonMocks() {
+    verify(writer, shellState);
+  }
+
   @Test
   public void testEmpty() {
-    replay(writer, exceptionWriter, shellState);
+    replay(writer, shellState);
     formatter = new DeleterFormatter(writer, Collections.<Key,Value>emptyMap().entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
     assertFalse(formatter.hasNext());
@@ -119,22 +119,22 @@ public class DeleterFormatterTest {
 
   @Test
   public void testSingle() throws IOException {
-    replay(writer, exceptionWriter, shellState);
+    replay(writer, shellState);
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
 
-    verify("[DELETED]", " r ", "cf", "cq", "value");
+    verifyOut("[DELETED]", " r ", "cf", "cq", "value");
   }
 
   @Test
   public void testNo() throws IOException {
-    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+    expect(shellState.confirm("Delete { r cf:cq [] " + TIMESTAMP + "\tvalue } ? "))
         .andReturn(Optional.of(false));
     expectLastCall().once();
-    replay(writer, exceptionWriter, shellState);
+    replay(writer, shellState);
 
     input.set("no\n");
     data.put(new Key("z"), new Value("v2"));
@@ -144,17 +144,17 @@ public class DeleterFormatterTest {
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
 
-    verify("[SKIPPED]", " r ", "cf", "cq", "value");
+    verifyOut("[SKIPPED]", " r ", "cf", "cq", "value");
 
     assertTrue(formatter.hasNext());
   }
 
   @Test
   public void testNoConfirmation() throws IOException {
-    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+    expect(shellState.confirm("Delete { r cf:cq [] " + TIMESTAMP + "\tvalue } ? "))
         .andReturn(Optional.empty());
     expectLastCall().once();
-    replay(writer, exceptionWriter, shellState);
+    replay(writer, shellState);
 
     input.set("");
     data.put(new Key("z"), new Value("v2"));
@@ -164,21 +164,21 @@ public class DeleterFormatterTest {
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
 
-    verify("[SKIPPED]", " r ", "cf", "cq", "value");
+    verifyOut("[SKIPPED]", " r ", "cf", "cq", "value");
 
     assertFalse(formatter.hasNext());
   }
 
   @Test
   public void testYes() throws IOException {
-    expect(shellState.confirm("Delete { r cf:cq [] 9223372036854775807\tvalue } ? "))
+    expect(shellState.confirm("Delete { r cf:cq [] " + TIMESTAMP + "\tvalue } ? "))
         .andReturn(Optional.of(true));
     expectLastCall().once();
 
-    expect(shellState.confirm("Delete { z : [] 9223372036854775807\tv2 } ? "))
+    expect(shellState.confirm("Delete { z : [] " + TIMESTAMP + "\tv2 } ? "))
         .andReturn(Optional.of(true));
     expectLastCall().once();
-    replay(writer, exceptionWriter, shellState);
+    replay(writer, shellState);
 
     input.set("y\nyes\n");
     data.put(new Key("z"), new Value("v2"));
@@ -187,30 +187,38 @@ public class DeleterFormatterTest {
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
-    verify("[DELETED]", " r ", "cf", "cq", "value");
+    verifyOut("[DELETED]", " r ", "cf", "cq", "value");
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
-    verify("[DELETED]", " z ", "v2");
+    verifyOut("[DELETED]", " z ", "v2");
   }
 
   @Test
-  public void testMutationException() {
-    replay(writer, exceptionWriter, shellState);
+  public void testMutationException() throws MutationsRejectedException {
+    MutationsRejectedException mre = createMock(MutationsRejectedException.class);
+    BatchWriter exceptionWriter = createNiceMock(BatchWriter.class);
+    exceptionWriter.close();
+    expectLastCall().andThrow(mre);
+    exceptionWriter.addMutation(anyObject(Mutation.class));
+    expectLastCall().andThrow(mre);
+    replay(mre, writer, exceptionWriter, shellState);
     formatter = new DeleterFormatter(exceptionWriter, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
     assertFalse(formatter.hasNext());
+    verify(mre, exceptionWriter);
   }
 
-  private void verify(String... chunks) throws IOException {
+  private void verifyOut(String... chunks) throws IOException {
     reader.getTerminal().writer().flush();
 
     String output = baos.toString();
     for (String chunk : chunks) {
-      assertTrue(output.contains(chunk));
+      assertTrue(output.contains(chunk), "Output is missing chunk: " + chunk);
     }
   }
+
 }
