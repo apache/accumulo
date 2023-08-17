@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -388,20 +389,22 @@ public class VolumeManagerImpl implements VolumeManager {
       final Configuration hadoopConf, final String filesystemURI) {
 
     Map<String,String> volumeHdfsConfigOverrides =
-        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX);
+        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+            .stream().filter(e -> e.getKey().startsWith(filesystemURI + "."))
+            .collect(Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue));
 
     // Calling new Configuration(Configuration) will synchronize on the constructor parameter
     // and can cause issues if many threads call this method concurrently.
     if (!volumeHdfsConfigOverrides.isEmpty()) {
+
       final Configuration volumeConfig = new Configuration(hadoopConf);
 
-      volumeHdfsConfigOverrides.entrySet().stream()
-          .filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
-            String key = e.getKey().substring(filesystemURI.length() + 1);
-            String value = e.getValue();
-            log.info("Overriding property {} for volume {}", key, value, filesystemURI);
-            volumeConfig.set(key, value);
-          });
+      volumeHdfsConfigOverrides.entrySet().forEach(e -> {
+        String key = e.getKey().substring(filesystemURI.length() + 1);
+        String value = e.getValue();
+        log.info("Overriding property {}={} for volume {}", key, value, filesystemURI);
+        volumeConfig.set(key, value);
+      });
 
       return volumeConfig;
     }
