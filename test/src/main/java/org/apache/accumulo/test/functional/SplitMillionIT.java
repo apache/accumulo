@@ -108,7 +108,7 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       long t1 = System.currentTimeMillis();
       long count = c.tableOperations().getTabletInformation(tableName, new Range()).count();
       long t2 = System.currentTimeMillis();
-      Assertions.assertEquals(1_000_000, count);
+      assertEquals(1_000_000, count);
       log.info("Time to scan all tablets : {}ms", t2 - t1);
 
       t1 = System.currentTimeMillis();
