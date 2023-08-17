@@ -387,17 +387,25 @@ public class VolumeManagerImpl implements VolumeManager {
   private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
       final Configuration hadoopConf, final String filesystemURI) {
 
-    final Configuration volumeConfig = new Configuration(hadoopConf);
+    Map<String,String> volumeHdfsConfigOverrides =
+        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX);
 
-    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
-        .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
-          String key = e.getKey().substring(filesystemURI.length() + 1);
-          String value = e.getValue();
-          log.info("Overriding property {} for volume {}", key, value, filesystemURI);
-          volumeConfig.set(key, value);
-        });
+    // Calling new Configuration(Configuration) will synchronize on the constructor parameter
+    // and can cause issues if many threads call this method concurrently.
+    if (!volumeHdfsConfigOverrides.isEmpty()) {
+      final Configuration volumeConfig = new Configuration(hadoopConf);
 
-    return volumeConfig;
+      conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+          .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
+            String key = e.getKey().substring(filesystemURI.length() + 1);
+            String value = e.getValue();
+            log.info("Overriding property {} for volume {}", key, value, filesystemURI);
+            volumeConfig.set(key, value);
+          });
+
+      return volumeConfig;
+    }
+    return hadoopConf;
   }
 
   protected static Stream<Entry<String,String>>
