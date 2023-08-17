@@ -390,22 +390,18 @@ public class VolumeManagerImpl implements VolumeManager {
 
     Map<String,String> volumeHdfsConfigOverrides =
         conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
-            .stream().filter(e -> e.getKey().startsWith(filesystemURI + "."))
-            .collect(Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue));
+            .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).collect(
+                Collectors.toUnmodifiableMap(e -> e.getKey().substring(filesystemURI.length() + 1),
+                    Entry::getValue));
 
     // Calling new Configuration(Configuration) will synchronize on the constructor parameter
     // and can cause issues if many threads call this method concurrently.
     if (!volumeHdfsConfigOverrides.isEmpty()) {
-
       final Configuration volumeConfig = new Configuration(hadoopConf);
-
-      volumeHdfsConfigOverrides.entrySet().forEach(e -> {
-        String key = e.getKey().substring(filesystemURI.length() + 1);
-        String value = e.getValue();
-        log.info("Overriding property {}={} for volume {}", key, value, filesystemURI);
-        volumeConfig.set(key, value);
+      volumeHdfsConfigOverrides.forEach((k, v) -> {
+        log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
+        volumeConfig.set(k, v);
       });
-
       return volumeConfig;
     }
     return hadoopConf;
