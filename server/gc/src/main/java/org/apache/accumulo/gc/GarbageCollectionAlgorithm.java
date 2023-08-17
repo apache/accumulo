@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -49,6 +48,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
@@ -374,16 +374,18 @@ public class GarbageCollectionAlgorithm {
       this.row = null;
     }
 
-    private void checkRow(){
-      Preconditions.checkState(hasDir && hasPrevRow, "May not have fully read metadata for row, aborting this run. Validation results: %s", this);
+    private void checkRow() {
+      Preconditions.checkState(hasDir && hasPrevRow,
+          "May not have fully read metadata for row, aborting this run. Validation results: %s",
+          this);
     }
 
     public void sawRow(final Text candidate) {
       Preconditions.checkState(!closed);
       Objects.requireNonNull(candidate);
-      if(row == null) {
+      if (row == null) {
         row = candidate;
-      } else if(!row.equals(candidate)) {
+      } else if (!row.equals(candidate)) {
         checkRow();
         hasPrevRow = false;
         hasDir = false;
@@ -401,9 +403,9 @@ public class GarbageCollectionAlgorithm {
       hasPrevRow = true;
     }
 
-    public void sawLastRow(){
+    public void sawLastRow() {
       Preconditions.checkState(!closed);
-      if(row != null){
+      if (row != null) {
         checkRow();
       }
       closed = true;
