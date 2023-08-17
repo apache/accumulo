@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -1229,4 +1230,24 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return exit;
   }
 
+  /**
+   * Prompt user for yes/no using the shell prompt.
+   *
+   * @param prompt the string printed to user, with (yes|no)? appended as the prompt.
+   * @return true if user enters y | yes, false or null.
+   */
+  public Optional<Boolean> confirm(final String prompt) {
+    getWriter().flush();
+    String line;
+    Optional<Boolean> confirmed = Optional.empty();
+    try {
+      line = getReader().readLine(prompt + " (yes|no)? ");
+    } catch (EndOfFileException ignored) {
+      line = null;
+    }
+    if (line != null) {
+      confirmed = Optional.of(line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+    }
+    return confirmed;
+  }
 }
