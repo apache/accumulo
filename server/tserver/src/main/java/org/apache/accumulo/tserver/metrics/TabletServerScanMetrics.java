@@ -129,7 +129,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
         .description("Number of files open for scans").register(registry);
-    scans = Timer.builder(METRICS_SCAN).description("Scans").register(registry);
+    scans = Timer.builder(METRICS_SCAN_TIMES).description("Scans").register(registry);
     resultsPerScan = DistributionSummary.builder(METRICS_SCAN_RESULTS)
         .description("Results per scan").register(registry);
     yields =
