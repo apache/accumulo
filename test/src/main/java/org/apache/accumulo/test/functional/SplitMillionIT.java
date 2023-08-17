@@ -37,8 +37,12 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class SplitMillionIT extends AccumuloClusterHarness {
 
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random is ok for testing")
   @Test
   public void testOneMillionTablets() throws Exception {
     Logger log = LoggerFactory.getLogger(SplitIT.class);
