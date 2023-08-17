@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -54,13 +55,8 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator() {
-    return wrapped.iterator();
-  }
-
-  @Override
-  public boolean addTabletStateChange(TabletManagement tablet) {
-    return this.wrapped.addTabletStateChange(tablet);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
+    return wrapped.iterator(ranges);
   }
 
   @Override

@@ -63,7 +63,7 @@ class FinishImportTable extends ManagerRepo {
       Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
     }
 
-    env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
+    env.getEventCoordinator().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);
 
     LoggerFactory.getLogger(FinishImportTable.class)
         .debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);

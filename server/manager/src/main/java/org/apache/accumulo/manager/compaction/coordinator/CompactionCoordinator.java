@@ -106,6 +106,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 import org.apache.accumulo.server.ServerContext;
@@ -161,6 +162,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private final LiveTServerSet tserverSet;
   private final SecurityOperation security;
   private final CompactionJobQueues jobQueues;
+  private final EventCoordinator eventCoordinator;
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
@@ -171,12 +173,14 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private final Cache<Path,Integer> checked_tablet_dir_cache;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
-      SecurityOperation security, CompactionJobQueues jobQueues) {
+      SecurityOperation security, CompactionJobQueues jobQueues,
+      EventCoordinator eventCoordinator) {
     this.ctx = ctx;
     this.tserverSet = tservers;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
     this.jobQueues = jobQueues;
+    this.eventCoordinator = eventCoordinator;
 
     var refreshLatches = new EnumMap<Ample.DataLevel,CountDownLatch>(Ample.DataLevel.class);
     refreshLatches.put(Ample.DataLevel.ROOT, new CountDownLatch(1));
@@ -788,6 +792,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
     recordCompletion(ecid);
+
+    // This will causes the tablet to be reexamined to see if it needs any more compactions.
+    eventCoordinator.event(extent, "Compaction completed %s", extent);
   }
 
   private Optional<ReferencedTabletFile> renameOrDeleteFile(TCompactionStats stats,

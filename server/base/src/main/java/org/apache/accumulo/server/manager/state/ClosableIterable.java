@@ -18,27 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.util.List;
-
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-
-class RootTabletStateStore extends MetaDataStateStore {
-
-  RootTabletStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    super(level, context, state, RootTable.NAME);
-  }
-
+public interface ClosableIterable<T> extends Iterable<T> {
   @Override
-  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
-    return new TabletManagementScanner(context, ranges, state, RootTable.NAME);
-  }
-
-  @Override
-  public String name() {
-    return "Metadata Tablets";
-  }
+  ClosableIterator<T> iterator();
 }
