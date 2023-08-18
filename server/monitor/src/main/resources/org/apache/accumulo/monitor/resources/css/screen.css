@@ -254,7 +254,6 @@ pre.logevent {
 }
 
 .error, .error a {
-  color: #ffffff;
   background-color: #d9534f;
 }
 
@@ -276,6 +275,28 @@ pre.logevent {
 
 .normal-inv, .normal-inv a {
   color: #5cb85c;
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  width: 1em;
+  height: 1em;
+  background-color: transparent;
+}
+
+.status-icon.normal svg {
+  fill: #5cb85c;
+}
+
+.status-icon.error svg {
+  fill: #d9534f;
+}
+
+.status-icon.warning svg {
+  fill: #f0ad4e;
 }
 
 .highlight {
@@ -323,26 +344,6 @@ pre.logevent {
 .label-danger[href]:focus {
   background-color: #c9302c;
 }
-
-.icon-dot {
-  display: inline-block;
-  min-width: 1em;
-  height: 1em;
-  padding: 3px 7px;
-  vertical-align: middle;
-  white-space: nowrap;
-  text-align: center;
-  border-radius: 1em;
-}
-
-.icon-cone {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1em;
-  height: 1em;
-}
-
 
 .smalltext {
   font-size: 0.8em;

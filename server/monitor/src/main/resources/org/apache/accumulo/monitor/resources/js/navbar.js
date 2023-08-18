@@ -93,14 +93,11 @@ function updateServerNotifications(statusData) {
 
     // setting manager status notification
     if (statusData.managerStatus === SERVER_STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusCone', SERVER_STATUS.ERROR);
-      updateElementStatus('managerStatusDot', SERVER_STATUS.ERROR);
+      updateElementStatus('managerStatusIcon', SERVER_STATUS.ERROR);
     } else if (statusData.managerStatus === SERVER_STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusCone', SERVER_STATUS.WARN);
-      updateElementStatus('managerStatusDot', SERVER_STATUS.WARN);
+      updateElementStatus('managerStatusIcon', SERVER_STATUS.WARN);
     } else if (statusData.managerStatus === SERVER_STATUS.OK) {
-      updateElementStatus('managerStatusCone', SERVER_STATUS.OK);
-      updateElementStatus('managerStatusDot', SERVER_STATUS.OK);
+      updateElementStatus('managerStatusIcon', SERVER_STATUS.OK);
     } else {
       console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
     }
