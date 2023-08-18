@@ -770,11 +770,10 @@ public class GarbageCollectionTest {
   }
 
   /**
-   * Minimal test to show that dir and prevRow are required for valid scan
+   * Minimal test to show that dir and prevRow are required for valid scan (go path)
    */
   @Test
   public void testDirAndPrevRow() throws Exception {
-
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -785,11 +784,10 @@ public class GarbageCollectionTest {
   }
 
   /**
-   * Show that IllegalState is thrown when no dir entry present in metadata scan.
+   * Show that IllegalState is thrown when no dir entry present in metadata scan in last row seen.
    */
   @Test
-  public void testNoDir() {
-
+  public void testNoDirAsLastRow() {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -799,16 +797,51 @@ public class GarbageCollectionTest {
   }
 
   /**
-   * Show that IllegalState is thrown when no prev row present in metadata scan.
+   * Show that IllegalState is thrown when no dir entry present in metadata scan.
    */
   @Test
-  public void testNoPrevRow() {
+  public void testNoDir() {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet/f1");
+    gce.addPrevRowReference("1636", "a");
+
+    gce.candidates.add("/1636/t1/f2");
+    gce.addDirReference("1636", null, "/t1");
+    gce.addPrevRowReference("1636", null);
+
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
+
+  /**
+   * Show that IllegalState is thrown when no prev row present in metadata scan in last row seen.
+   */
+  @Test
+  public void testNoPrevRowAsLastRow() {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "/default_tablet");
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
+
+  /**
+   * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
+   */
+  @Test
+  public void testPrevRow() {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet/f1");
+    gce.addDirReference("1636", "a", "/default_tablet");
+
+    gce.candidates.add("/1636/t1/f2");
+    gce.addDirReference("1636", null, "/t1");
+    gce.addPrevRowReference("1636", null);
+
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
   }
 }
