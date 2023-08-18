@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -140,6 +142,36 @@ public class VolumeManagerImplTest {
     Entry<String,String> e = properties.get(0);
     assertEquals(vol2 + "." + THREADPOOL_SIZE_KEY, e.getKey());
     assertEquals("20", e.getValue());
+  }
+
+  @Test
+  public void testGetVolumeManagerConfiguration() throws Exception {
+
+    final ConfigurationCopy accumuloConf =
+        new ConfigurationCopy(DefaultConfiguration.getInstance());
+    final Configuration hadoopConf = new Configuration();
+    final String fileSystem = "file://127.0.0.1/vol1/";
+
+    final Configuration volumeConfig =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf, fileSystem);
+    assertTrue(volumeConfig == hadoopConf);
+
+    accumuloConf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + fileSystem + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "true");
+
+    final Configuration volumeConfig2 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf, fileSystem);
+    assertTrue(volumeConfig2 != hadoopConf);
+    assertTrue(volumeConfig != volumeConfig2);
+    assertTrue(!volumeConfig.equals(volumeConfig2));
+    assertTrue(volumeConfig2.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS).equals("true"));
+
+    final Configuration volumeConfig3 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, volumeConfig2, fileSystem);
+    assertTrue(volumeConfig3.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS).equals("true"));
+    assertTrue(volumeConfig3.equals(volumeConfig2));
+    assertTrue(volumeConfig3 == volumeConfig2);
+
   }
 
   @Test

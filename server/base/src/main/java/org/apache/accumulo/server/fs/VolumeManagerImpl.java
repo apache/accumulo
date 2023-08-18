@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +68,8 @@ import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -75,6 +78,29 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final Logger log = LoggerFactory.getLogger(VolumeManagerImpl.class);
 
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<>();
+
+  private static class ConfigurationOverride {
+    private final Configuration hadoopConfigWithOverrides;
+    private final Map<String,String> volumeOverrides;
+
+    public ConfigurationOverride(Configuration hadoopConfigWithOverrides,
+        Map<String,String> volumeOverrides) {
+      super();
+      this.hadoopConfigWithOverrides = hadoopConfigWithOverrides;
+      this.volumeOverrides = volumeOverrides;
+    }
+
+    public Configuration getHadoopConfigWithOverrides() {
+      return hadoopConfigWithOverrides;
+    }
+
+    public Map<String,String> getVolumeOverrides() {
+      return volumeOverrides;
+    }
+  }
+
+  private static final Cache<String,ConfigurationOverride> HDFS_CONFIGS_FOR_VOLUME =
+      Caffeine.newBuilder().expireAfterWrite(6, TimeUnit.HOURS).build();
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
@@ -385,7 +411,7 @@ public class VolumeManagerImpl implements VolumeManager {
    * @param filesystemURI Volume Filesystem URI
    * @return Hadoop Configuration with custom overrides for this FileSystem
    */
-  private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
+  protected static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
       final Configuration hadoopConf, final String filesystemURI) {
 
     Map<String,String> volumeHdfsConfigOverrides =
@@ -394,17 +420,52 @@ public class VolumeManagerImpl implements VolumeManager {
                 Collectors.toUnmodifiableMap(e -> e.getKey().substring(filesystemURI.length() + 1),
                     Entry::getValue));
 
-    // Calling new Configuration(Configuration) will synchronize on the constructor parameter
-    // and can cause issues if many threads call this method concurrently.
-    if (!volumeHdfsConfigOverrides.isEmpty()) {
-      final Configuration volumeConfig = new Configuration(hadoopConf);
-      volumeHdfsConfigOverrides.forEach((k, v) -> {
-        log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
-        volumeConfig.set(k, v);
-      });
-      return volumeConfig;
+    if (volumeHdfsConfigOverrides.isEmpty()) {
+      // There are no overrides in the AccumuloConfiguration for this volume, return the Hadoop
+      // Configuration input parameter.
+      return hadoopConf;
+    } else {
+      while (true) {
+
+        // Get the ConfigurationOverride object from the Cache. If no object exists, then create
+        // one - it's comprised of the volume overrides map from above and a Hadoop Configuration
+        // object with the overrides applied.
+        final AtomicBoolean createdNew = new AtomicBoolean(false);
+        ConfigurationOverride cachedVolumeConfig =
+            HDFS_CONFIGS_FOR_VOLUME.get(filesystemURI, (fs) -> {
+              createdNew.set(true);
+              log.debug("Caching a new configuration for volume: {} with overrides: {}",
+                  filesystemURI, volumeHdfsConfigOverrides);
+              Configuration volumeConfig = new Configuration(hadoopConf);
+              volumeHdfsConfigOverrides.forEach((k, v) -> {
+                log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
+                volumeConfig.set(k, v);
+              });
+              return new ConfigurationOverride(volumeConfig, volumeHdfsConfigOverrides);
+            });
+
+        if (createdNew.get()) {
+          // return the Hadoop Configuration that we just created with the overrides for this volume
+          return cachedVolumeConfig.getHadoopConfigWithOverrides();
+        } else {
+          // We are using an older version of the Configuration, ensure that the instance volume
+          // overrides did not change. If they did, invalidate the cache and try again.
+          if (volumeHdfsConfigOverrides.equals(cachedVolumeConfig.getVolumeOverrides())) {
+            // return the cached config, properties are the same
+            log.debug(
+                "Volume override properties are the same for volume: {}, returning cached configuration",
+                filesystemURI);
+            return cachedVolumeConfig.getHadoopConfigWithOverrides();
+          } else {
+            log.debug(
+                "Cached volume override properties are not the same for volume: {}, invalidating cache and retrying",
+                filesystemURI);
+            HDFS_CONFIGS_FOR_VOLUME.invalidate(filesystemURI);
+            continue;
+          }
+        }
+      }
     }
-    return hadoopConf;
   }
 
   protected static Stream<Entry<String,String>>
