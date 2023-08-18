@@ -174,65 +174,64 @@ public class GarbageCollectionAlgorithm {
 
     }
 
-    MetadataReadTracker readTracker = new MetadataReadTracker();
+    // it is important that the tracker is closed before performing deletes so that last row is
+    // checked
+    try (MetadataReadTracker readTracker = new MetadataReadTracker()) {
+      Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
+      while (iter.hasNext()) {
+        Entry<Key,Value> entry = iter.next();
+        Key key = entry.getKey();
 
-    Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
-    while (iter.hasNext()) {
-      Entry<Key,Value> entry = iter.next();
-      Key key = entry.getKey();
+        // check that dir entry was read for the row. If not, the metadata information may not be
+        // complete. Abort the gc cycle.
+        readTracker.trackRow(key.getRow());
 
-      // check that dir entry was read for the row. If not, the metadata information may not be
-      // complete. Abort the gc cycle.
-      readTracker.trackRow(key.getRow());
+        Text cft = key.getColumnFamily();
 
-      Text cft = key.getColumnFamily();
+        if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
+          String cq = key.getColumnQualifier().toString();
 
-      if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
-        String cq = key.getColumnQualifier().toString();
+          String reference = cq;
+          if (cq.startsWith("/")) {
+            String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
+            reference = "/" + tableID + cq;
+          } else if (!cq.contains(":") && !cq.startsWith("../")) {
+            throw new RuntimeException("Bad file reference " + cq);
+          }
 
-        String reference = cq;
-        if (cq.startsWith("/")) {
+          reference = makeRelative(reference, 3);
+
+          // WARNING: This line is EXTREMELY IMPORTANT.
+          // You MUST REMOVE candidates that are still in use
+          if (candidateMap.remove(reference) != null)
+            log.debug("Candidate was still in use: " + reference);
+
+          String dir = reference.substring(0, reference.lastIndexOf('/'));
+          if (candidateMap.remove(dir) != null)
+            log.debug("Candidate was still in use: " + reference);
+
+        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          readTracker.markDirSeen();
           String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
-          reference = "/" + tableID + cq;
-        } else if (!cq.contains(":") && !cq.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + cq);
-        }
+          String dir = entry.getValue().toString();
+          if (!dir.contains(":")) {
+            if (!dir.startsWith("/"))
+              throw new RuntimeException("Bad directory " + dir);
+            dir = "/" + tableID + dir;
+          }
 
-        reference = makeRelative(reference, 3);
+          dir = makeRelative(dir, 2);
 
-        // WARNING: This line is EXTREMELY IMPORTANT.
-        // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: " + reference);
-
-        String dir = reference.substring(0, reference.lastIndexOf('/'));
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: " + reference);
-
-      } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-        readTracker.markDirSeen();
-        String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
-        String dir = entry.getValue().toString();
-        if (!dir.contains(":")) {
-          if (!dir.startsWith("/"))
-            throw new RuntimeException("Bad directory " + dir);
-          dir = "/" + tableID + dir;
-        }
-
-        dir = makeRelative(dir, 2);
-
-        if (candidateMap.remove(dir) != null) {
-          log.debug("Candidate was still in use: " + dir);
-        }
-      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-        readTracker.markPrevRowSeen();
-      } else
-        throw new RuntimeException(
-            "Scanner over metadata table returned unexpected column : " + entry.getKey());
-    }
-    // process last row to check metadata read included the dir entry.
-    readTracker.checkLastRow();
-
+          if (candidateMap.remove(dir) != null) {
+            log.debug("Candidate was still in use: " + dir);
+          }
+        } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+          readTracker.markPrevRowSeen();
+        } else
+          throw new RuntimeException(
+              "Scanner over metadata table returned unexpected column : " + entry.getKey());
+      }
+    } // closed tracker - checks last row.
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
   }
@@ -363,7 +362,7 @@ public class GarbageCollectionAlgorithm {
    * Track metadata rows read to help validate that gc scan has complete information to make a
    * decision on deleting files
    */
-  private static class MetadataReadTracker {
+  private static class MetadataReadTracker implements AutoCloseable {
     private boolean hasDir = false;
     private boolean hasPrevRow = false;
     private Text row;
@@ -418,9 +417,11 @@ public class GarbageCollectionAlgorithm {
     }
 
     /**
-     * Check that the final row being processed is complete.
+     * Check that the final row processed is complete and then close tracker to additional
+     * processing.
      */
-    public void checkLastRow() {
+    @Override
+    public void close() {
       Preconditions.checkState(!closed);
       if (row != null) {
         validate();
