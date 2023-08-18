@@ -1665,10 +1665,14 @@ public class RFile {
     }
 
     private Key getEndKey(Key key) {
-      if (fence.isEndKeyInclusive() || key == null) {
+      // If they key is infinite it will be null or if inclusive we can just use it as is
+      // as it would be the correct value for getLastKey()
+      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
         return key;
       }
 
+      // If exclusive we need to strip the last byte to get the last key that is part of the
+      // actual range to return
       final byte[] ba = key.getRow().getBytes();
       Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
       byte[] fba = new byte[ba.length - 1];
