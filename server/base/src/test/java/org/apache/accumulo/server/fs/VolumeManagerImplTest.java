@@ -23,6 +23,7 @@ import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACH
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_REPLICATION_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -161,16 +162,21 @@ public class VolumeManagerImplTest {
 
     final Configuration volumeConfig2 =
         VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf, fileSystem);
-    assertTrue(volumeConfig2 != hadoopConf);
-    assertTrue(volumeConfig != volumeConfig2);
-    assertTrue(!volumeConfig.equals(volumeConfig2));
+    assertFalse(volumeConfig2 == hadoopConf); // false because of the additional property
+    assertFalse(volumeConfig == volumeConfig2); // false because of the additional property
     assertTrue(volumeConfig2.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS).equals("true"));
 
     final Configuration volumeConfig3 =
         VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, volumeConfig2, fileSystem);
     assertTrue(volumeConfig3.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS).equals("true"));
-    assertTrue(volumeConfig3.equals(volumeConfig2));
-    assertTrue(volumeConfig3 == volumeConfig2);
+    assertFalse(volumeConfig3 == volumeConfig2); // false because of the different Hadoop
+                                                 // configuration input
+
+    final Configuration volumeConfig4 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf, fileSystem);
+    assertTrue(volumeConfig4.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS).equals("true"));
+    assertTrue(volumeConfig4 == volumeConfig2); // true because of the same hadoop configuration
+                                                // input
 
   }
 

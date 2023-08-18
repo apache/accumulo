@@ -406,8 +406,10 @@ public class VolumeManagerImpl implements VolumeManager {
     } else {
       // Get the Hadoop Configuration object from the Cache for this filesystemURI. If no object
       // exists, then create one, apply the overrides and put it in the cache. The Volume config
-      // overrides cannot change, so we only need to cache this once
-      return HDFS_CONFIGS_FOR_VOLUME.get(filesystemURI, (fs) -> {
+      // overrides cannot change, so we only need to cache this once. Construct a Key that is
+      // unique to the Hadoop Configuration input parameter in case different objects are passed in.
+      final String key = hadoopConf.hashCode() + filesystemURI;
+      return HDFS_CONFIGS_FOR_VOLUME.get(key, (fs) -> {
         log.debug("Caching a new configuration for volume: {} with overrides: {}", filesystemURI,
             volumeHdfsConfigOverrides);
         Configuration volumeConfig = new Configuration(hadoopConf);
