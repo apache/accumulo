@@ -66,9 +66,13 @@ function updateIconDisplay(isSpecialIcon) {
   if (isSpecialIcon) {
     $('#managerStatusDot').hide();
     $('#managerStatusCone').show();
+    $('#statusNotificationDot').hide();
+    $('#statusNotificationCone').show();
   } else {
     $('#managerStatusDot').show();
     $('#managerStatusCone').hide();
+    $('#statusNotificationDot').show();
+    $('#statusNotificationCone').hide();
   }
 }
 
