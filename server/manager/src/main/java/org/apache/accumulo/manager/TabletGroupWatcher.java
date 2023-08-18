@@ -104,7 +104,6 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -780,11 +779,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     KeyExtent previousKeyExtent = null;
     KeyExtent lastExtent = null;
 
-    // Used to track metadata entries that are being kept during merger
-    final Set<String> movedMetadataEntries = new HashSet<>();
-    // Used to track possible metadata entry deletions from the highest tablet
-    final Set<String> possibleMetadataDeletes = new HashSet<>();
-
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
@@ -824,25 +818,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             Range fenced = new Range(previousKeyExtent.endRow(), false, keyExtent.endRow(), true);
 
             // Clip range if exists
-            fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
+            fenced = existing.hasRange() ? existing.getRange().clip(fenced) : fenced;
 
-            // If null the range is disjoint with the new tablet range so need to handle
-            if (fenced == null) {
-              // Mark this file for possible deletion since it is disjoint with this tablet
-              // It will be removed later if not marked in the movedMetadataEntries set
-              // We need to check later after processing before deleting as it's possible this same
-              // metadata entry (file with range) is not disjoint across other tablets being merged
-              // into this highest tablet so we can't delete until the end
-              possibleMetadataDeletes.add(existing.getMetadata());
-            } else {
-              final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-              // If the existing metadata does not match then we need to delete the old
-              // and replace with a new range
-              if (!existing.equals(newFile)) {
-                possibleMetadataDeletes.add(existing.getMetadata());
-                movedMetadataEntries.add(newFile.getMetadata());
-                m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
-              }
+            final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+            // If the existing metadata does not match then we need to delete the old
+            // and replace with a new range
+            if (!existing.equals(newFile)) {
+              m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
+              m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
             }
 
             fileCount++;
@@ -863,15 +846,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               false, keyExtent.endRow(), true);
 
           // Clip range with the tablet range if the range already exists
-          fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
+          fenced = existing.hasRange() ? existing.getRange().clip(fenced) : fenced;
 
-          // If null then don't need to forward as it is disjoint and doesn't fall in the current
-          // merged range and will just get removed later when the tablet is deleted after merge
-          if (fenced != null) {
-            StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-            m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
-            movedMetadataEntries.add(newFile.getMetadata());
-          }
+          // Move the file and range to the last tablet
+          StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+          m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
+
           fileCount++;
         } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
             && firstPrevRowValue == null) {
@@ -887,13 +867,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         lastExtent = keyExtent;
       }
-
-      // Process deletes for the highest Tablet for any files that are not part of
-      // movedMetadataEntries
-      Sets.difference(possibleMetadataDeletes, movedMetadataEntries).forEach(delete -> {
-        Manager.log.debug("Deleting file {}", delete);
-        m.putDelete(DataFileColumnFamily.NAME, new Text(delete));
-      });
 
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
