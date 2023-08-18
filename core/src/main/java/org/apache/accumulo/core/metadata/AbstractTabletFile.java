@@ -23,6 +23,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -65,8 +66,8 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     }
 
     if (!range.isInfiniteStopKey()) {
-      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey()),
-          "Range is not a row range %s", range);
+      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey())
+          && isExclusiveKey(range.getEndKey()), "Range is not a row range %s", range);
     }
 
     return range;
@@ -75,6 +76,11 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   private static boolean isOnlyRowSet(Key key) {
     return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
         && key.getColumnVisibilityData().length() == 0 && key.getTimestamp() == Long.MAX_VALUE;
+  }
+
+  private static boolean isExclusiveKey(Key key) {
+    Text row = key.getRow();
+    return row.getLength() > 0 && row.getBytes()[row.getLength() - 1] == (byte) 0x00;
   }
 
 }

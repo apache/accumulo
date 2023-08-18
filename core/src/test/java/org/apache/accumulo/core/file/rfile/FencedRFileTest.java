@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.crypto.CryptoTest;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -60,24 +61,26 @@ public class FencedRFileTest extends AbstractRFileTest {
   public void testFencing1() throws IOException {
     // Test with fenced starting range at beginning and infinite end range
     // Expect entire range to be seen
-    assertEquals(1024, testFencing(List.of(new Range("r_000000", null)), List.of(new Range())));
+    assertEquals(1024,
+        testFencing(List.of(new Range(new Key("r_000000"), null)), List.of(new Range())));
   }
 
   @Test
   public void testFencing2() throws IOException {
     // Test with 2 ranges that are continuous which should be merged
     // Expect entire all rows to be seen as first range end key is inclusive
-    assertEquals(1024,
-        testFencing(List.of(new Range(null, new Key("r_000002")), new Range("r_000002", null)),
-            List.of(new Range())));
+    assertEquals(1024, testFencing(List.of(new Range(null, new Key(new Key("r_000002"))),
+        new Range(new Key("r_000002"), null)), List.of(new Range())));
   }
 
   @Test
   public void testFencing3() throws IOException {
     // Create a fence that contains only row 0 row 2
     // Expect only to see values from those two rows and not row 1 or row 3
-    final List<Range> ranges = List.of(new Range(null, true, "r_000001", false),
-        new Range("r_000002", true, "r_000003", false));
+    final List<Range> ranges =
+        List.of(new Range(null, true, new Key("r_000000").followingKey(PartialKey.ROW), false),
+            new Range(new Key("r_000002"), true, new Key("r_000002").followingKey(PartialKey.ROW),
+                false));
 
     // Use the same range for the fence and testing to make sure only the expected keys were seen
     // Should only be 512 keys as 2 rows * 256
@@ -88,11 +91,14 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing4() throws IOException {
     // Create a fence that contains row 0 and row 2 only
-    final List<Range> ranges = List.of(new Range(null, true, "r_000001", false),
-        new Range("r_000002", true, "r_000003", false));
+    final List<Range> ranges =
+        List.of(new Range(null, true, new Key("r_000000").followingKey(PartialKey.ROW), false),
+            new Range(new Key("r_000002"), true, new Key("r_000002").followingKey(PartialKey.ROW),
+                false));
 
     // Expected range contains only row 2 so should fail as row 1 should also be seen
-    final List<Range> ranges2 = List.of(new Range(null, true, "r_000002", false));
+    final List<Range> ranges2 =
+        List.of(new Range(null, true, new Key("r_000001").followingKey(PartialKey.ROW), false));
 
     boolean failed = false;
     try {
@@ -108,10 +114,15 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing5() throws IOException {
     // Test all 4 rows individually, should expect entire file
-    final List<Range> ranges = List.of(new Range("r_000000", true, "r_000001", false),
-        new Range("r_000001", true, "r_000002", false),
-        new Range("r_000002", true, "r_000003", false),
-        new Range("r_000003", true, "r_000004", false));
+    final List<Range> ranges = List.of(
+        new Range(new Key("r_000000"), true, new Key("r_000000").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000001"), true, new Key("r_000001").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000002"), true, new Key("r_000002").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000003"), true, new Key("r_000003").followingKey(PartialKey.ROW),
+            false));
 
     assertEquals(1024, testFencing(ranges, List.of(new Range())));
   }
@@ -147,7 +158,8 @@ public class FencedRFileTest extends AbstractRFileTest {
     // Test exclusive end key
 
     // Create a fence for 2 rows
-    final List<Range> ranges = List.of(new Range("r_000001", true, "r_000003", false));
+    final List<Range> ranges = List.of(new Range(new Key("r_000001"), true,
+        new Key("r_000002").followingKey(PartialKey.ROW), false));
 
     // None of row 2 should be included because end key is exclusive
     assertEquals(512, testFencing(ranges, ranges));
@@ -156,10 +168,15 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing9() throws IOException {
     // Test out of order ranges that should still cover whole file.
-    final List<Range> ranges = List.of(new Range("r_000002", true, "r_000003", false),
-        new Range("r_000003", true, "r_000004", false),
-        new Range("r_000000", true, "r_000001", false),
-        new Range("r_000001", true, "r_000002", false));
+    final List<Range> ranges = List.of(
+        new Range(new Key("r_000002"), true, new Key("r_000002").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000003"), true, new Key("r_000003").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000000"), true, new Key("r_000000").followingKey(PartialKey.ROW),
+            false),
+        new Range(new Key("r_000001"), true, new Key("r_000001").followingKey(PartialKey.ROW),
+            false));
 
     assertEquals(1024, testFencing(ranges, List.of(new Range())));
   }
@@ -167,9 +184,9 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing10() throws IOException {
     // Test overlap 2 rows that are merged
-    final List<Range> ranges =
-        Range.mergeOverlapping(List.of(new Range("r_000002", true, "r_000003", false),
-            new Range("r_000002", true, "r_000004", false)));
+    final List<Range> ranges = Range.mergeOverlapping(
+        List.of(new Range(new Key("r_000002"), true, new Key("r_000003"), false), new Range(
+            new Key("r_000002"), true, new Key("r_000003").followingKey(PartialKey.ROW), false)));
 
     assertEquals(512, testFencing(ranges, ranges));
   }
@@ -177,7 +194,8 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing11() throws IOException {
     // Test fence covering just a single row
-    final List<Range> ranges = List.of(new Range("r_000001", true, "r_000002", false));
+    final List<Range> ranges = List.of(new Range(new Key(new Key("r_000001")), true,
+        new Key(new Key("r_000001")).followingKey(PartialKey.ROW), false));
 
     // should be 256 keys in row r_000001
     assertEquals(256, testFencing(ranges, ranges));
@@ -191,7 +209,8 @@ public class FencedRFileTest extends AbstractRFileTest {
     trf.closeWriter();
 
     // Fence off the file to contain only 1 row (r_00001)
-    Range range = new Range(new Range("r_000001", true, "r_000002", false));
+    Range range = new Range(new Range(new Key("r_000001"), true,
+        new Key("r_000001").followingKey(PartialKey.ROW), false));
     trf.openReader(range);
 
     // Open a fenced reader
