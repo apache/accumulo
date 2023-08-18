@@ -183,7 +183,7 @@ public class GarbageCollectionAlgorithm {
 
       // check that dir entry was read for the row. If not, the metadata information may not be
       // complete. Abort the gc cycle.
-      readTracker.sawRow(key.getRow());
+      readTracker.trackRow(key.getRow());
 
       Text cft = key.getColumnFamily();
 
@@ -210,7 +210,7 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: " + reference);
 
       } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-        readTracker.sawDir();
+        readTracker.markDirSeen();
         String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
         String dir = entry.getValue().toString();
         if (!dir.contains(":")) {
@@ -225,13 +225,13 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: " + dir);
         }
       } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-        readTracker.sawPrevRow();
+        readTracker.markPrevRowSeen();
       } else
         throw new RuntimeException(
             "Scanner over metadata table returned unexpected column : " + entry.getKey());
     }
     // process last row to check metadata read included the dir entry.
-    readTracker.sawLastRow();
+    readTracker.checkLastRow();
 
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
@@ -374,46 +374,63 @@ public class GarbageCollectionAlgorithm {
       this.row = null;
     }
 
-    private void checkRow() {
+    private void validate() {
       Preconditions.checkState(hasDir && hasPrevRow,
           "May not have fully read metadata for row, aborting this run. Validation results: %s",
           this);
     }
 
-    public void sawRow(final Text candidate) {
+    /**
+     * Initializes row tracking for the provided row. If a previous row was being tracked, it is
+     * checked that all expected metadata fields have been marked as seen. If all fields have not
+     * been marked seen, an IllegalStateException is thrown to halt further processing.
+     *
+     * @param candidate
+     *          check current row, initialize a new row to track
+     */
+    public void trackRow(final Text candidate) {
       Preconditions.checkState(!closed);
       Objects.requireNonNull(candidate);
       if (row == null) {
         row = candidate;
       } else if (!row.equals(candidate)) {
-        checkRow();
+        validate();
         hasPrevRow = false;
         hasDir = false;
         row = candidate;
       }
     }
 
-    public void sawDir() {
+    /**
+     * Mark that the dir metadata entry seen for the current row being tracked.
+     */
+    public void markDirSeen() {
       Preconditions.checkState(!closed);
       hasDir = true;
     }
 
-    public void sawPrevRow() {
+    /**
+     * Mark that the prevRow metadata entry seen for the current row being tracked.
+     */
+    public void markPrevRowSeen() {
       Preconditions.checkState(!closed);
       hasPrevRow = true;
     }
 
-    public void sawLastRow() {
+    /**
+     * Check that the final row being processed is complete.
+     */
+    public void checkLastRow() {
       Preconditions.checkState(!closed);
       if (row != null) {
-        checkRow();
+        validate();
       }
       closed = true;
     }
 
     @Override
     public String toString() {
-      return "MetadataReadCheck{row=" + row + ", hasDir=" + hasDir + ", hasPrevRow=" + hasPrevRow
+      return "MetadataReadTracker{row=" + row + ", hasDir=" + hasDir + ", hasPrevRow=" + hasPrevRow
           + '}';
     }
   }
