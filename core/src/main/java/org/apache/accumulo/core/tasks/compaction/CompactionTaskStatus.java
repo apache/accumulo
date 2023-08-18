@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.tasks.compaction;
 
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tasks.TaskMessage;
 import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.ThriftSerializers;
@@ -30,7 +30,7 @@ public class CompactionTaskStatus extends TaskMessage {
   private byte[] status;
 
   @GsonIgnore
-  private TExternalCompaction thriftObj;
+  private TCompactionStatusUpdate statusThriftObj;
 
   public CompactionTaskStatus() {}
 
@@ -39,18 +39,18 @@ public class CompactionTaskStatus extends TaskMessage {
     return TaskMessageType.COMPACTION_TASK_STATUS;
   }
 
-  public void setCompactionStatus(TExternalCompaction status) throws TException {
+  public void setCompactionStatus(TCompactionStatusUpdate status) throws TException {
     this.status = ThriftSerializers.EXTERNAL_COMPACTION_STATUS_SERIALIZER.get().serialize(status);
-    this.thriftObj = status;
+    this.statusThriftObj = status;
   }
 
-  public TExternalCompaction getCompactionStatus() throws TException {
-    if (this.thriftObj == null && this.status != null) {
-      TExternalCompaction obj = new TExternalCompaction();
+  public TCompactionStatusUpdate getCompactionStatus() throws TException {
+    if (this.statusThriftObj == null && this.status != null) {
+      TCompactionStatusUpdate obj = new TCompactionStatusUpdate();
       ThriftSerializers.EXTERNAL_COMPACTION_STATUS_SERIALIZER.get().deserialize(obj, status);
-      this.thriftObj = obj;
+      this.statusThriftObj = obj;
     }
-    return this.thriftObj;
+    return this.statusThriftObj;
   }
 
 }

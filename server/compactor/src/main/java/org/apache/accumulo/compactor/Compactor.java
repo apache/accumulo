@@ -49,8 +49,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -86,9 +84,16 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
 import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
+import org.apache.accumulo.core.tasks.thrift.TaskManager.Client;
 import org.apache.accumulo.core.tasks.thrift.TaskRunner;
+import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -123,7 +128,7 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class Compactor extends AbstractServer
-    implements MetricsProducer, CompactorService.Iface, TaskRunner.Iface {
+    implements MetricsProducer, TaskRunner.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
@@ -337,7 +342,7 @@ public class Compactor extends AbstractServer
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
       throws TException {
     TableId tableId = JOB_HOLDER.getTableId();
     try {
@@ -367,8 +372,11 @@ public class Compactor extends AbstractServer
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), update, System.currentTimeMillis());
+            CompactionTaskStatus status = new CompactionTaskStatus();
+            status.setTaskId(job.getExternalCompactionId());
+            status.setCompactionStatus(update);
+            coordinatorClient.taskStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                System.currentTimeMillis(), status.toThriftTask());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -389,8 +397,10 @@ public class Compactor extends AbstractServer
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent);
+            CompactionTask failedMsg = new CompactionTask();
+            failedMsg.setTaskId(job.getExternalCompactionId());
+            failedMsg.setCompactionJob(job);
+            coordinatorClient.taskFailed(TraceUtil.traceInfo(), getContext().rpcCreds(), failedMsg.toThriftTask());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -412,8 +422,11 @@ public class Compactor extends AbstractServer
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats);
+            CompactionTaskCompleted completedMsg = new CompactionTaskCompleted();
+            completedMsg.setTaskId(job.getExternalCompactionId());
+            completedMsg.setCompactionJob(job);
+            completedMsg.setCompactionStats(stats);
+            coordinatorClient.taskCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(), completedMsg.toThriftTask());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -441,11 +454,15 @@ public class Compactor extends AbstractServer
           try {
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
+            TaskRunnerInfo runner = new TaskRunnerInfo(compactorAddress.getAddress().getHost(),
+                compactorAddress.getAddress().getPort(), this.getResourceGroup());
+            Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(), runner, eci.toString());
+            Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+                .equals(TaskMessageType.COMPACTION_TASK));
+            final CompactionTaskCompleted compactionTask =
+                (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup(),
-                ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
-                eci.toString());
+            return compactionTask.getCompactionJob();
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -462,13 +479,13 @@ public class Compactor extends AbstractServer
    * @return compaction coordinator client
    * @throws TTransportException when unable to get client
    */
-  protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
+  protected TaskManager.Client getCoordinatorClient() throws TTransportException {
     var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
-    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
+    return ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, coordinatorHost.orElseThrow(),
         getContext());
   }
 
@@ -827,59 +844,6 @@ public class Compactor extends AbstractServer
     return ret;
   }
 
-  /**
-   * Called by a CompactionCoordinator to get the running compaction
-   *
-   * @param tinfo trace info
-   * @param credentials caller credentials
-   * @return current compaction job or empty compaction job is none running
-   */
-  @Override
-  public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    // Return what is currently running, does not wait for jobs in the process of reserving. This
-    // method is called by a coordinator starting up to determine what is currently running on all
-    // compactors.
-
-    TExternalCompactionJob job = null;
-    synchronized (JOB_HOLDER) {
-      job = JOB_HOLDER.getJob();
-    }
-
-    if (null == job) {
-      return new TExternalCompactionJob();
-    } else {
-      return job;
-    }
-  }
-
-  @Override
-  public String getRunningCompactionId(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    // Any returned id must cover the time period from before a job is reserved until after it
-    // commits. This method is called to detect dead compactions and depends on this behavior.
-    // For the purpose of detecting dead compactions its ok if ids are returned that never end up
-    // being related to a running compaction.
-    ExternalCompactionId eci = currentCompactionId.get();
-    if (null == eci) {
-      return "";
-    } else {
-      return eci.canonical();
-    }
-  }
-
   @Override
   public Task getRunningTask(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
@@ -928,24 +892,6 @@ public class Compactor extends AbstractServer
     } else {
       return eci.canonical();
     }
-  }
-
-  @Override
-  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    TableId tableId = JOB_HOLDER.getTableId();
-    try {
-      NamespaceId nsId = getContext().getNamespaceId(tableId);
-      if (!security.canCompact(credentials, tableId, nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancel(externalCompactionId);
   }
 
 }

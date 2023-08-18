@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.compaction.thrift.CompactorService.Client;
+import org.apache.accumulo.core.tasks.thrift.TaskRunner.Client;
 
 public class CompactorServiceThriftClient extends ThriftClientTypes<Client> {
 

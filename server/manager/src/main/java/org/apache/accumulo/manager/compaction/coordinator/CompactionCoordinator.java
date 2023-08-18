@@ -101,7 +101,9 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tasks.TaskMessage;
 import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
 import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
@@ -138,7 +140,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
 public class CompactionCoordinator
-    implements CompactionCoordinatorService.Iface, TaskManager.Iface, Runnable {
+    implements /*CompactionCoordinatorService.Iface,*/ TaskManager.Iface, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -363,32 +365,25 @@ public class CompactionCoordinator
 
   }
 
-  /**
-   * Return the next compaction job from the queue to a Compactor
-   *
-   * @param groupName group
-   * @param compactorAddress compactor address
-   * @throws ThriftSecurityException when permission error
-   * @return compaction job
-   */
   @Override
-  public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
+  public Task getTask(TInfo tinfo, TCredentials credentials, TaskRunnerInfo taskRunner,
+      String taskID) throws TException {
 
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final String group = groupName.intern();
+    final String compactorAddress = taskRunner.getHostname() + ":" + taskRunner.getPort();
+    final String externalCompactionId = taskID;
+    final String group = taskRunner.getResourceGroup().intern();
     LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
     CompactionJobQueues.MetaJob metaJob =
-        jobQueues.poll(CompactionExecutorIdImpl.externalId(groupName));
+        jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
 
     while (metaJob != null) {
 
@@ -419,7 +414,7 @@ public class CompactionCoordinator
       } else {
         LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
             metaJob.getTabletMetadata().getExtent());
-        metaJob = jobQueues.poll(CompactionExecutorIdImpl.externalId(groupName));
+        metaJob = jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
       }
     }
 
@@ -427,15 +422,21 @@ public class CompactionCoordinator
       LOG.debug("No jobs found in group {} ", group);
     }
 
+    CompactionTask task = new CompactionTask();
+    task.setTaskId(externalCompactionId);
+
     if (result == null) {
       LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
           compactorAddress);
       result = new TExternalCompactionJob();
+    } else {
+      task.setCompactionJob(result);
     }
 
-    return result;
-
+    return task.toThriftTask();
   }
+
+
 
   // ELASTICITY_TODO unit test this code
   private boolean canReserveCompaction(TabletMetadata tablet, CompactionJob job,
@@ -731,22 +732,25 @@ public class CompactionCoordinator
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param textent tablet extent
-   * @param stats compaction stats
+   * @param task object
    * @throws ThriftSecurityException when permission error
    */
   @Override
-  public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
+  public void taskCompleted(TInfo tinfo, TCredentials credentials, Task task) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+        .equals(TaskMessageType.COMPACTION_TASK_COMPLETED));
+    CompactionTaskCompleted compactionTask =
+        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+    final TExternalCompactionJob job = compactionTask.getCompactionJob();
+    final String externalCompactionId = job.getExternalCompactionId();
+    final TCompactionStats stats = compactionTask.getCompactionStats();
 
-    var extent = KeyExtent.fromThrift(textent);
+    var extent = KeyExtent.fromThrift(job.getExtent());
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
@@ -1027,16 +1031,21 @@ public class CompactionCoordinator
   }
 
   @Override
-  public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
+  public void taskFailed(TInfo tinfo, TCredentials credentials, Task task) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.info("Compaction failed, id: {}", externalCompactionId);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+        .equals(TaskMessageType.COMPACTION_TASK_FAILED));
+    final CompactionTaskCompleted compactionTask =
+        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+    final TExternalCompactionJob job = compactionTask.getCompactionJob();
+
+    LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
+    final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
+    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
 
     // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
     // currently cleans up tmp files on tablet load. With tablets never loading possibly but still
@@ -1075,25 +1084,21 @@ public class CompactionCoordinator
     compactions.forEach((k, v) -> recordCompletion(k));
   }
 
-  /**
-   * Compactor calls to update the status of the assigned compaction
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param update compaction status update
-   * @param timestamp timestamp of the message
-   * @throws ThriftSecurityException when permission error
-   */
   @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
+  public void taskStatus(TInfo tinfo, TCredentials credentials, long timestamp,
+      Task taskUpdateObject) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+    Preconditions.checkState(TaskMessageType.valueOf(taskUpdateObject.getMessageType())
+        .equals(TaskMessageType.COMPACTION_TASK_STATUS));
+    final CompactionTaskStatus statusMsg =
+        (CompactionTaskStatus) TaskMessage.fromThriftTask(taskUpdateObject);
+    final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
+    final String externalCompactionId = statusMsg.getTaskId();
+    
     LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
         timestamp, update);
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
@@ -1101,6 +1106,7 @@ public class CompactionCoordinator
       rc.addUpdate(timestamp, update);
     }
   }
+
 
   private void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
@@ -1197,7 +1203,7 @@ public class CompactionCoordinator
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
       throws TException {
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
@@ -1278,179 +1284,6 @@ public class CompactionCoordinator
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
-  }
-
-  @Override
-  public Task getTask(TInfo tinfo, TCredentials credentials, TaskRunnerInfo taskRunner,
-      String taskID) throws TException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public void taskStatus(TInfo tinfo, TCredentials credentials, long timestamp,
-      Task taskUpdateObject) throws TException {
-    // TODO Auto-generated method stub
-
-  }
-
-  /**
-   * Compactors calls this method when they have finished a compaction. This method does the
-   * following.
-   *
-   * <ol>
-   * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
-   * things changed while the compaction was running and it can no longer commit.</li>
-   * <li>If the compaction can commit then a ~refresh entry may be written to the metadata table.
-   * This is done before attempting to commit to cover the case of process failure after commit. If
-   * the manager dies after commit then when it restarts it will see the ~refresh entry and refresh
-   * that tablet. The ~refresh entry is only written when its a system compaction on a tablet with a
-   * location.</li>
-   * <li>Commit the compaction using a conditional mutation. If the tablets files or location
-   * changed since reading the tablets metadata, then conditional mutation will fail. When this
-   * happens it will reread the metadata and go back to step 1 conceptually. When committing a
-   * compaction the compacted files are removed and scan entries are added to the tablet in case the
-   * files are in use, this prevents GC from deleting the files between updating tablet metadata and
-   * refreshing the tablet. The scan entries are only added when a tablet has a location.</li>
-   * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
-   * will cause the tablet to start using the newly compacted files for future scans. Also the
-   * tablet can delete the scan entries if there are no active scans using them.</li>
-   * <li>If a ~refresh entry was written, delete it since the refresh was successful.</li>
-   * </ol>
-   *
-   * <p>
-   * User compactions will be refreshed as part of the fate operation. The user compaction fate
-   * operation will see the compaction was committed after this code updates the tablet metadata,
-   * however if it were to rely on this code to do the refresh it would not be able to know when the
-   * refresh was actually done. Therefore, user compactions will refresh as part of the fate
-   * operation so that it's known to be done before the fate operation returns. Since the fate
-   * operation will do it, there is no need to do it here for user compactions.
-   * </p>
-   *
-   * <p>
-   * The ~refresh entries serve a similar purpose to FATE operations, it ensures that code executes
-   * even when a process dies. FATE was intentionally not used for compaction commit because FATE
-   * stores its data in zookeeper. The refresh entry is stored in the metadata table, which is much
-   * more scalable than zookeeper. The number of system compactions of small files could be large
-   * and this would be a large number of writes to zookeeper. Zookeeper scales somewhat with reads,
-   * but not with writes.
-   * </p>
-   *
-   * <p>
-   * Issue #3559 was opened to explore the possibility of making compaction commit a fate operation
-   * which would remove the need for the ~refresh section.
-   * </p>
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param task object
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void taskCompleted(TInfo tinfo, TCredentials credentials, Task task) throws TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-        .equals(TaskMessageType.COMPACTION_TASK_COMPLETED));
-    CompactionTaskCompleted compactionTask =
-        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
-    final TExternalCompactionJob job = compactionTask.getCompactionJob();
-    final String externalCompactionId = job.getExternalCompactionId();
-    final TCompactionStats stats = compactionTask.getCompactionStats();
-
-    var extent = KeyExtent.fromThrift(job.getExtent());
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
-        extent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-
-    var tabletMeta =
-        ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
-
-    if (!canCommitCompaction(ecid, tabletMeta)) {
-      return;
-    }
-
-    ExternalCompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
-
-    // ELASTICITY_TODO this code does not handle race conditions or faults. Need to ensure refresh
-    // happens in the case of manager process death between commit and refresh.
-    ReferencedTabletFile newDatafile =
-        TabletNameGenerator.computeCompactionFileDest(ecm.getCompactTmpName());
-
-    Optional<ReferencedTabletFile> optionalNewFile;
-    try {
-      optionalNewFile = renameOrDeleteFile(stats, ecm, newDatafile);
-    } catch (IOException e) {
-      LOG.warn("Can not commit complete compaction {} because unable to delete or rename {} ", ecid,
-          ecm.getCompactTmpName(), e);
-      compactionFailed(Map.of(ecid, extent));
-      return;
-    }
-
-    RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
-
-    try {
-      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
-    } catch (RuntimeException e) {
-      LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
-      compactionFailed(Map.of(ecid, extent));
-    }
-
-    if (ecm.getKind() != CompactionKind.USER) {
-      refreshTablet(tabletMeta);
-    }
-
-    // if a refresh entry was written, it can be removed after the tablet was refreshed
-    refreshWriter.deleteRefresh();
-
-    // It's possible that RUNNING might not have an entry for this ecid in the case
-    // of a coordinator restart when the Coordinator can't find the TServer for the
-    // corresponding external compaction.
-    recordCompletion(ecid);
-  }
-
-  @Override
-  public void taskFailed(TInfo tinfo, TCredentials credentials, Task task) throws TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-        .equals(TaskMessageType.COMPACTION_TASK_FAILED));
-    final CompactionTaskCompleted compactionTask =
-        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
-    final TExternalCompactionJob job = compactionTask.getCompactionJob();
-
-    LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
-    final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
-    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
-
-    // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
-    // currently cleans up tmp files on tablet load. With tablets never loading possibly but still
-    // compacting dying compactors may still leave tmp files behind.
-  }
-
-  @Override
-  public void cancelTask(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
-    try {
-      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
   }
 
 }

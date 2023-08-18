@@ -49,6 +49,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     TABLET_INGEST,
     TABLET_MANAGEMENT,
     TABLET_SCAN,
+    TASK_MANAGER,
     TSERV
   }
 

@@ -57,6 +57,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
       new TabletManagementClientServiceThriftClient("tablet");
+  
+  public static final TaskManagerThriftClient TASK_MANAGER = new TaskManagerThriftClient("task_mgr");
 
   /**
    * execute method with supplied client returning object of type R
