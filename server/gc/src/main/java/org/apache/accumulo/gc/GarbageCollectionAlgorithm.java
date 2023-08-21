@@ -368,6 +368,8 @@ public class GarbageCollectionAlgorithm {
     private Text row;
 
     private boolean closed = false;
+    // guard against processing only delete markers
+    private boolean sawAtLeastOneRow;
 
     public MetadataReadTracker() {
       this.row = null;
@@ -392,6 +394,7 @@ public class GarbageCollectionAlgorithm {
       Objects.requireNonNull(candidate);
       if (row == null) {
         row = candidate;
+        sawAtLeastOneRow = true;
       } else if (!row.equals(candidate)) {
         validate();
         hasPrevRow = false;
@@ -422,6 +425,7 @@ public class GarbageCollectionAlgorithm {
      */
     @Override
     public void close() {
+      Preconditions.checkState(sawAtLeastOneRow);
       Preconditions.checkState(!closed);
       if (row != null) {
         validate();

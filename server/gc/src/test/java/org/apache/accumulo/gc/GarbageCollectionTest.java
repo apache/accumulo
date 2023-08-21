@@ -854,10 +854,10 @@ public class GarbageCollectionTest {
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
 
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
     gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.addDirReference("5", null, "/4");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -874,8 +874,6 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
-
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
