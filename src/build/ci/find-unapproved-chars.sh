@@ -22,7 +22,7 @@
 # unintentionally, or maliciously, add any new non-ASCII characters unless they
 # are preapproved on the ALLOWED list or in known binary or resource files
 NUM_EXPECTED=0
-ALLOWED='©èö🐈三四五六八九十'
+ALLOWED='🦕🦖©èö🐈三四五六八九十'
 
 function findallnonascii() {
   # -P for perl matching, -o for only showing the match for counting occurrences not lines
