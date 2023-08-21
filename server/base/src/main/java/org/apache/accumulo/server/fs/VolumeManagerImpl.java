@@ -45,6 +45,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -78,7 +79,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<>();
 
-  private static final Cache<String,Configuration> HDFS_CONFIGS_FOR_VOLUME =
+  private static final Cache<Pair<Configuration,String>,Configuration> HDFS_CONFIGS_FOR_VOLUME =
       Caffeine.newBuilder().expireAfterWrite(24, TimeUnit.HOURS).build();
 
   private final Map<String,Volume> volumesByName;
@@ -383,7 +384,11 @@ public class VolumeManagerImpl implements VolumeManager {
    * </pre>
    *
    * We will use these properties to return a new Configuration object that can be used with the
-   * FileSystem URI.
+   * FileSystem URI to override properties in the original Configuration. If these properties are
+   * not set for a volume, then the original Configuration is returned. If they are set, a new
+   * Configuration is created with the overridden properties set. In either case, the returned
+   * Configuration is cached, to avoid unnecessary recomputation. This works because these override
+   * properties are instance properties and cannot change while the system is running.
    *
    * @param conf AccumuloConfiguration object
    * @param hadoopConf Hadoop Configuration object
@@ -393,31 +398,27 @@ public class VolumeManagerImpl implements VolumeManager {
   protected static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
       final Configuration hadoopConf, final String filesystemURI) {
 
-    Map<String,String> volumeHdfsConfigOverrides =
-        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
-            .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).collect(
-                Collectors.toUnmodifiableMap(e -> e.getKey().substring(filesystemURI.length() + 1),
-                    Entry::getValue));
+    final var cacheKey = new Pair<>(hadoopConf, filesystemURI);
+    return HDFS_CONFIGS_FOR_VOLUME.get(cacheKey, (key) -> {
 
-    if (volumeHdfsConfigOverrides.isEmpty()) {
-      // There are no overrides in the AccumuloConfiguration for this volume, return the Hadoop
-      // Configuration input parameter.
-      return hadoopConf;
-    } else {
-      // Get the Hadoop Configuration object from the Cache for this filesystemURI. If no object
-      // exists, then create one, apply the overrides and put it in the cache. The Volume config
-      // overrides cannot change, so we only need to cache this once. Construct a Key that is
-      // unique to the Hadoop Configuration input parameter in case different objects are passed in.
-      final String key = hadoopConf.hashCode() + filesystemURI;
-      return HDFS_CONFIGS_FOR_VOLUME.get(key, (fs) -> {
-        Configuration volumeConfig = new Configuration(hadoopConf);
-        volumeHdfsConfigOverrides.forEach((k, v) -> {
-          log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
-          volumeConfig.set(k, v);
-        });
-        return new Configuration(volumeConfig);
+      Map<String,String> volumeHdfsConfigOverrides =
+          conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+              .stream().filter(e -> e.getKey().startsWith(filesystemURI + "."))
+              .collect(Collectors.toUnmodifiableMap(
+                  e -> e.getKey().substring(filesystemURI.length() + 1), Entry::getValue));
+
+      // use the original if no overrides exist
+      if (volumeHdfsConfigOverrides.isEmpty()) {
+        return hadoopConf;
+      }
+
+      Configuration volumeConfig = new Configuration(hadoopConf);
+      volumeHdfsConfigOverrides.forEach((k, v) -> {
+        log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
+        volumeConfig.set(k, v);
       });
-    }
+      return volumeConfig;
+    });
   }
 
   protected static Stream<Entry<String,String>>

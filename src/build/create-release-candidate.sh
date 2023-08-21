@@ -20,6 +20,8 @@
 
 cd "$(dirname "$0")/.." || exit 1
 scriptname=$(basename "$0")
+projectroot="$(git rev-parse --show-toplevel)" || exit 1
+cd "$projectroot" || exit 1
 export tlpName=accumulo
 export projName="$tlpName"
 export projNameLong="Apache ${projName^}"
@@ -430,17 +432,17 @@ createReleaseCandidate() {
   [[ $numBin == "1" ]] && binSha=$(sha512sum target/checkout/**/"$projName-$ver-bin.tar.gz" | cut -f1 -d" ")
 
   # continue to creating email notification
-  echo "$(red Running)" "$(yellow "$scriptname" --create-email "$ver" "$rc")"
+  echo "$(red Running)" "$(yellow "$scriptname" --email "$ver" "$rc")"
   createEmail "$ver" "$rc" "" "$srcSha" "$binSha"
 }
 
 SELECTED_FINGERPRINT=""
-if [[ $1 == '--create-release-candidate' ]]; then
+if [[ $1 == '--create' ]]; then
   shift
   createReleaseCandidate "$@"
-elif [[ $1 == '--create-email' ]]; then
+elif [[ $1 == '--email' ]]; then
   shift
   createEmail "$@"
 else
-  fail "Missing one of: $(red --create-release-candidate), $(red --create-email)"
+  fail "Missing one of: $(red --create), $(red --email)"
 fi

@@ -133,7 +133,7 @@
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
-    <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
+    <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.6.0</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
@@ -770,7 +770,7 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.3.0</version>
           <configuration>
             <createBackupFile>false</createBackupFile>
             <expandEmptyElements>false</expandEmptyElements>
@@ -1174,13 +1174,13 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java,**/proto/*.java,**/HelpMojo.java</excludes>
+          <excludes>**/thrift/*.java,**/proto/*.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.12.1</version>
+            <version>10.12.2</version>
           </dependency>
         </dependencies>
         <executions>
