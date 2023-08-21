@@ -58,6 +58,12 @@ public class GarbageCollectionTest {
     ArrayList<String> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
+    public TestGCE() {
+      // add dummy reference so at lest one tablet to be "scanned" is always present.
+      addPrevRowReference("1", null);
+      addDirReference("1", null, "/default_tablet");
+    }
+
     @Override
     public boolean getCandidates(String continuePoint, List<String> ret) {
       Iterator<String> iter = candidates.tailSet(continuePoint, false).iterator();
@@ -591,8 +597,8 @@ public class GarbageCollectionTest {
   @Test
   public void testBadDeletes() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
     TestGCE gce = new TestGCE();
+
     gce.candidates.add("");
     gce.candidates.add("A");
     gce.candidates.add("/");
@@ -613,10 +619,10 @@ public class GarbageCollectionTest {
 
   @Test
   public void test() throws Exception {
-
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
+
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "/default_tablet");
     gce.addPrevRowReference("1636", null);
@@ -849,25 +855,6 @@ public class GarbageCollectionTest {
    * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
    */
   @Test
-  public void testFilesOnly2() {
-    TestGCE gce = new TestGCE();
-
-    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
-    gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addDirReference("5", null, "/4");
-
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
-    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
-  }
-
-  /**
-   * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
-   */
-  @Test
   public void testFilesOnly() {
     TestGCE gce = new TestGCE();
 
@@ -876,6 +863,9 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    // removed dummy reference so that no tablets scanned"
+    gce.removePrevRowReference("1", null);
+    gce.removeDirReference("1", null);
 
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
   }
