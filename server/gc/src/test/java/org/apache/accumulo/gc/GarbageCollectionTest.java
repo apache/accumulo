@@ -844,4 +844,42 @@ public class GarbageCollectionTest {
 
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
   }
+
+  /**
+   * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
+   */
+  @Test
+  public void testFilesOnly2() {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
+
+  /**
+   * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
+   */
+  @Test
+  public void testFilesOnly() {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
+
 }
