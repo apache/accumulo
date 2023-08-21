@@ -23,10 +23,12 @@ import com.google.gson.FieldAttributes;
 
 public class GsonIgnoreExclusionStrategy implements ExclusionStrategy {
 
+  @Override
   public boolean shouldSkipClass(Class<?> clazz) {
     return clazz.getAnnotation(GsonIgnore.class) != null;
   }
 
+  @Override
   public boolean shouldSkipField(FieldAttributes f) {
     return f.getAnnotation(GsonIgnore.class) != null;
   }
