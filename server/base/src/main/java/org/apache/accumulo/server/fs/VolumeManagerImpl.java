@@ -410,8 +410,6 @@ public class VolumeManagerImpl implements VolumeManager {
       // unique to the Hadoop Configuration input parameter in case different objects are passed in.
       final String key = hadoopConf.hashCode() + filesystemURI;
       return HDFS_CONFIGS_FOR_VOLUME.get(key, (fs) -> {
-        log.debug("Caching a new configuration for volume: {} with overrides: {}", filesystemURI,
-            volumeHdfsConfigOverrides);
         Configuration volumeConfig = new Configuration(hadoopConf);
         volumeHdfsConfigOverrides.forEach((k, v) -> {
           log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
