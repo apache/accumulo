@@ -28,7 +28,7 @@
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>3.0.0-SNAPSHOT</version>
+  <version>3.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based
@@ -137,7 +137,7 @@
     <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.6.0</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-06-14T05:41:08Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-08-14T08:11:10Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
