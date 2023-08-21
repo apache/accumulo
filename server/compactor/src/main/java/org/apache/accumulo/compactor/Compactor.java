@@ -460,9 +460,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
                 compactorAddress.getAddress().getPort(), this.getResourceGroup());
             Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 runner, eci.toString());
-            Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-                .equals(TaskMessageType.COMPACTION_TASK));
-            final CompactionTask compactionTask = (CompactionTask) TaskMessage.fromThriftTask(task);
+            final CompactionTask compactionTask =
+                TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK);
             currentCompactionId.set(eci);
             return compactionTask.getCompactionJob();
           } catch (Exception e) {

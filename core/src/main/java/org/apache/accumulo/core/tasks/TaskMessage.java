@@ -22,6 +22,7 @@ import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.accumulo.core.util.json.GsonIgnoreExclusionStrategy;
 
+import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -32,9 +33,13 @@ import com.google.gson.GsonBuilder;
  */
 public abstract class TaskMessage {
 
-  public static TaskMessage fromThriftTask(Task to) {
-    TaskMessageType type = TaskMessageType.valueOf(to.getMessageType());
-    return TaskMessage.GSON_FOR_TASKS.fromJson(to.getMessage(), type.getTaskClass());
+  @SuppressWarnings("unchecked")
+  public static <T extends TaskMessage> T convertTaskToType(Task task,
+      TaskMessageType expectedType) {
+    TaskMessageType type = TaskMessageType.valueOf(task.getMessageType());
+    Preconditions.checkState(type == expectedType,
+        "Task is of type: " + type + ", expected: " + expectedType);
+    return (T) TaskMessage.GSON_FOR_TASKS.fromJson(task.getMessage(), type.getTaskClass());
   }
 
   public static final Gson GSON_FOR_TASKS =

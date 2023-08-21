@@ -430,7 +430,7 @@ public class CompactionCoordinator
     if (result == null) {
       LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
           compactorAddress);
-      result = new TExternalCompactionJob();
+      task.setCompactionJob(new TExternalCompactionJob());
     } else {
       task.setCompactionJob(result);
     }
@@ -742,10 +742,8 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-        .equals(TaskMessageType.COMPACTION_TASK_COMPLETED));
     CompactionTaskCompleted compactionTask =
-        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+        TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_COMPLETED);
     final TExternalCompactionJob job = compactionTask.getCompactionJob();
     final String externalCompactionId = job.getExternalCompactionId();
     final TCompactionStats stats = compactionTask.getCompactionStats();
@@ -1037,10 +1035,8 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-        .equals(TaskMessageType.COMPACTION_TASK_FAILED));
     final CompactionTaskFailed compactionTask =
-        (CompactionTaskFailed) TaskMessage.fromThriftTask(task);
+        TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_FAILED);
     final TExternalCompactionJob job = compactionTask.getCompactionJob();
 
     LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
@@ -1092,10 +1088,8 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    Preconditions.checkState(TaskMessageType.valueOf(taskUpdateObject.getMessageType())
-        .equals(TaskMessageType.COMPACTION_TASK_STATUS));
     final CompactionTaskStatus statusMsg =
-        (CompactionTaskStatus) TaskMessage.fromThriftTask(taskUpdateObject);
+        TaskMessage.convertTaskToType(taskUpdateObject, TaskMessageType.COMPACTION_TASK_STATUS);
     final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
     final String externalCompactionId = statusMsg.getTaskId();
 

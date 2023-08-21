@@ -83,7 +83,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionTestUtils {
@@ -252,9 +251,8 @@ public class ExternalCompactionTestUtils {
         coordinatorHost.orElseThrow(), context);
     try {
       Task task = client.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
-      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
-      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      final CompactionTasksRunning list =
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       return list.getRunning();
     } finally {
       ThriftUtil.returnClient(client, context);
@@ -267,10 +265,8 @@ public class ExternalCompactionTestUtils {
         coordinatorHost.orElseThrow(), context);
     try {
       Task task = client.getCompletedTasks(TraceUtil.traceInfo(), context.rpcCreds());
-      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-          .equals(TaskMessageType.COMPACTION_TASKS_COMPLETED));
       final CompactionTasksCompleted list =
-          (CompactionTasksCompleted) TaskMessage.fromThriftTask(task);
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_COMPLETED);
       return list.getCompleted();
     } finally {
       ThriftUtil.returnClient(client, context);

@@ -103,7 +103,6 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -680,9 +679,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     TExternalCompactionList running;
     try {
       Task task = client.getRunningTasks(TraceUtil.traceInfo(), getContext().rpcCreds());
-      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
-      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      final CompactionTasksRunning list =
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       running = list.getRunning();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);

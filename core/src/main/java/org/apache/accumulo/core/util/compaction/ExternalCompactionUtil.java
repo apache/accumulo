@@ -57,7 +57,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionUtil {
@@ -171,9 +170,8 @@ public class ExternalCompactionUtil {
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactor, context);
       Task task = client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-          .equals(TaskMessageType.COMPACTION_TASK_LIST));
-      final ActiveCompactionTasks list = (ActiveCompactionTasks) TaskMessage.fromThriftTask(task);
+      final ActiveCompactionTasks list =
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_LIST);
       final ActiveCompactionList acl = list.getActiveCompactions();
       return acl.getCompactions();
     } catch (ThriftSecurityException e) {
@@ -200,9 +198,8 @@ public class ExternalCompactionUtil {
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
       Task task = client.getRunningTask(TraceUtil.traceInfo(), context.rpcCreds());
-      Preconditions.checkState(
-          TaskMessageType.valueOf(task.getMessageType()).equals(TaskMessageType.COMPACTION_TASK));
-      final CompactionTask compactionTask = (CompactionTask) TaskMessage.fromThriftTask(task);
+      final CompactionTask compactionTask =
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK);
       TExternalCompactionJob job = compactionTask.getCompactionJob();
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());

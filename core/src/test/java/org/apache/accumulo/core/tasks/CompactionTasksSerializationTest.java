@@ -72,7 +72,7 @@ public class CompactionTasksSerializationTest {
     assertEquals(TaskMessageType.COMPACTION_TASK.name(), to.getMessageType());
     System.out.println(to.getMessage());
 
-    CompactionTask task2 = (CompactionTask) TaskMessage.fromThriftTask(to);
+    CompactionTask task2 = TaskMessage.convertTaskToType(to, TaskMessageType.COMPACTION_TASK);
 
     assertEquals(task.getTaskId(), task2.getTaskId());
     assertEquals(task.getMessageType(), task2.getMessageType());

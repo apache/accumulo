@@ -44,7 +44,6 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -164,9 +163,8 @@ public class ECAdmin implements KeywordExecutable {
     try {
       coordinatorClient = getCoordinatorClient(context);
       Task task = coordinatorClient.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
-      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
-          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
-      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      final CompactionTasksRunning list =
+          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       running = list.getRunning();
       if (running == null) {
         System.out.println("No running compactions found.");
