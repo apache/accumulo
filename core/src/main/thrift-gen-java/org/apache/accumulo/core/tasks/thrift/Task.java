@@ -28,20 +28,20 @@ package org.apache.accumulo.core.tasks.thrift;
 public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.io.Serializable, Cloneable, Comparable<Task> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Task");
 
-  private static final org.apache.thrift.protocol.TField TASK_MANAGER_FIELD_DESC = new org.apache.thrift.protocol.TField("taskManager", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField TASK_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("taskId", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField MESSAGE_TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("messageType", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)3);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TaskStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TaskTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String taskManager; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String taskId; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String messageType; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String message; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    TASK_MANAGER((short)1, "taskManager"),
+    TASK_ID((short)1, "taskId"),
     MESSAGE_TYPE((short)2, "messageType"),
     MESSAGE((short)3, "message");
 
@@ -59,8 +59,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // TASK_MANAGER
-          return TASK_MANAGER;
+        case 1: // TASK_ID
+          return TASK_ID;
         case 2: // MESSAGE_TYPE
           return MESSAGE_TYPE;
         case 3: // MESSAGE
@@ -111,7 +111,7 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TASK_MANAGER, new org.apache.thrift.meta_data.FieldMetaData("taskManager", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TASK_ID, new org.apache.thrift.meta_data.FieldMetaData("taskId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.MESSAGE_TYPE, new org.apache.thrift.meta_data.FieldMetaData("messageType", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -125,12 +125,12 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
   }
 
   public Task(
-    java.lang.String taskManager,
+    java.lang.String taskId,
     java.lang.String messageType,
     java.lang.String message)
   {
     this();
-    this.taskManager = taskManager;
+    this.taskId = taskId;
     this.messageType = messageType;
     this.message = message;
   }
@@ -139,8 +139,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
    * Performs a deep copy on <i>other</i>.
    */
   public Task(Task other) {
-    if (other.isSetTaskManager()) {
-      this.taskManager = other.taskManager;
+    if (other.isSetTaskId()) {
+      this.taskId = other.taskId;
     }
     if (other.isSetMessageType()) {
       this.messageType = other.messageType;
@@ -157,33 +157,33 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
 
   @Override
   public void clear() {
-    this.taskManager = null;
+    this.taskId = null;
     this.messageType = null;
     this.message = null;
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getTaskManager() {
-    return this.taskManager;
+  public java.lang.String getTaskId() {
+    return this.taskId;
   }
 
-  public Task setTaskManager(@org.apache.thrift.annotation.Nullable java.lang.String taskManager) {
-    this.taskManager = taskManager;
+  public Task setTaskId(@org.apache.thrift.annotation.Nullable java.lang.String taskId) {
+    this.taskId = taskId;
     return this;
   }
 
-  public void unsetTaskManager() {
-    this.taskManager = null;
+  public void unsetTaskId() {
+    this.taskId = null;
   }
 
-  /** Returns true if field taskManager is set (has been assigned a value) and false otherwise */
-  public boolean isSetTaskManager() {
-    return this.taskManager != null;
+  /** Returns true if field taskId is set (has been assigned a value) and false otherwise */
+  public boolean isSetTaskId() {
+    return this.taskId != null;
   }
 
-  public void setTaskManagerIsSet(boolean value) {
+  public void setTaskIdIsSet(boolean value) {
     if (!value) {
-      this.taskManager = null;
+      this.taskId = null;
     }
   }
 
@@ -240,11 +240,11 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case TASK_MANAGER:
+    case TASK_ID:
       if (value == null) {
-        unsetTaskManager();
+        unsetTaskId();
       } else {
-        setTaskManager((java.lang.String)value);
+        setTaskId((java.lang.String)value);
       }
       break;
 
@@ -271,8 +271,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case TASK_MANAGER:
-      return getTaskManager();
+    case TASK_ID:
+      return getTaskId();
 
     case MESSAGE_TYPE:
       return getMessageType();
@@ -292,8 +292,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
     }
 
     switch (field) {
-    case TASK_MANAGER:
-      return isSetTaskManager();
+    case TASK_ID:
+      return isSetTaskId();
     case MESSAGE_TYPE:
       return isSetMessageType();
     case MESSAGE:
@@ -315,12 +315,12 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
     if (this == that)
       return true;
 
-    boolean this_present_taskManager = true && this.isSetTaskManager();
-    boolean that_present_taskManager = true && that.isSetTaskManager();
-    if (this_present_taskManager || that_present_taskManager) {
-      if (!(this_present_taskManager && that_present_taskManager))
+    boolean this_present_taskId = true && this.isSetTaskId();
+    boolean that_present_taskId = true && that.isSetTaskId();
+    if (this_present_taskId || that_present_taskId) {
+      if (!(this_present_taskId && that_present_taskId))
         return false;
-      if (!this.taskManager.equals(that.taskManager))
+      if (!this.taskId.equals(that.taskId))
         return false;
     }
 
@@ -349,9 +349,9 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetTaskManager()) ? 131071 : 524287);
-    if (isSetTaskManager())
-      hashCode = hashCode * 8191 + taskManager.hashCode();
+    hashCode = hashCode * 8191 + ((isSetTaskId()) ? 131071 : 524287);
+    if (isSetTaskId())
+      hashCode = hashCode * 8191 + taskId.hashCode();
 
     hashCode = hashCode * 8191 + ((isSetMessageType()) ? 131071 : 524287);
     if (isSetMessageType())
@@ -372,12 +372,12 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetTaskManager(), other.isSetTaskManager());
+    lastComparison = java.lang.Boolean.compare(isSetTaskId(), other.isSetTaskId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTaskManager()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.taskManager, other.taskManager);
+    if (isSetTaskId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.taskId, other.taskId);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -426,11 +426,11 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
     java.lang.StringBuilder sb = new java.lang.StringBuilder("Task(");
     boolean first = true;
 
-    sb.append("taskManager:");
-    if (this.taskManager == null) {
+    sb.append("taskId:");
+    if (this.taskId == null) {
       sb.append("null");
     } else {
-      sb.append(this.taskManager);
+      sb.append(this.taskId);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -494,10 +494,10 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
           break;
         }
         switch (schemeField.id) {
-          case 1: // TASK_MANAGER
+          case 1: // TASK_ID
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.taskManager = iprot.readString();
-              struct.setTaskManagerIsSet(true);
+              struct.taskId = iprot.readString();
+              struct.setTaskIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -534,9 +534,9 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.taskManager != null) {
-        oprot.writeFieldBegin(TASK_MANAGER_FIELD_DESC);
-        oprot.writeString(struct.taskManager);
+      if (struct.taskId != null) {
+        oprot.writeFieldBegin(TASK_ID_FIELD_DESC);
+        oprot.writeString(struct.taskId);
         oprot.writeFieldEnd();
       }
       if (struct.messageType != null) {
@@ -568,7 +568,7 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
     public void write(org.apache.thrift.protocol.TProtocol prot, Task struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetTaskManager()) {
+      if (struct.isSetTaskId()) {
         optionals.set(0);
       }
       if (struct.isSetMessageType()) {
@@ -578,8 +578,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
         optionals.set(2);
       }
       oprot.writeBitSet(optionals, 3);
-      if (struct.isSetTaskManager()) {
-        oprot.writeString(struct.taskManager);
+      if (struct.isSetTaskId()) {
+        oprot.writeString(struct.taskId);
       }
       if (struct.isSetMessageType()) {
         oprot.writeString(struct.messageType);
@@ -594,8 +594,8 @@ public class Task implements org.apache.thrift.TBase<Task, Task._Fields>, java.i
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
-        struct.taskManager = iprot.readString();
-        struct.setTaskManagerIsSet(true);
+        struct.taskId = iprot.readString();
+        struct.setTaskIdIsSet(true);
       }
       if (incoming.get(1)) {
         struct.messageType = iprot.readString();

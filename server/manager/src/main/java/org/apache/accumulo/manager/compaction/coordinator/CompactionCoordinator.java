@@ -65,7 +65,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -103,7 +102,10 @@ import org.apache.accumulo.core.tasks.TaskMessage;
 import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskFailed;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
 import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
@@ -140,7 +142,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
 public class CompactionCoordinator
-    implements /*CompactionCoordinatorService.Iface,*/ TaskManager.Iface, Runnable {
+    implements /* CompactionCoordinatorService.Iface, */ TaskManager.Iface, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -435,8 +437,6 @@ public class CompactionCoordinator
 
     return task.toThriftTask();
   }
-
-
 
   // ELASTICITY_TODO unit test this code
   private boolean canReserveCompaction(TabletMetadata tablet, CompactionJob job,
@@ -1039,8 +1039,8 @@ public class CompactionCoordinator
     }
     Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
         .equals(TaskMessageType.COMPACTION_TASK_FAILED));
-    final CompactionTaskCompleted compactionTask =
-        (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+    final CompactionTaskFailed compactionTask =
+        (CompactionTaskFailed) TaskMessage.fromThriftTask(task);
     final TExternalCompactionJob job = compactionTask.getCompactionJob();
 
     LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
@@ -1098,7 +1098,7 @@ public class CompactionCoordinator
         (CompactionTaskStatus) TaskMessage.fromThriftTask(taskUpdateObject);
     final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
     final String externalCompactionId = statusMsg.getTaskId();
-    
+
     LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
         timestamp, update);
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
@@ -1106,7 +1106,6 @@ public class CompactionCoordinator
       rc.addUpdate(timestamp, update);
     }
   }
-
 
   private void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
@@ -1154,8 +1153,8 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public Task getRunningTasks(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -1171,7 +1170,11 @@ public class CompactionCoordinator
       trc.setJob(rc.getJob());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    return result;
+
+    CompactionTasksRunning running = new CompactionTasksRunning();
+    running.setRunning(result);
+    return running.toThriftTask();
+
   }
 
   /**
@@ -1183,8 +1186,8 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public Task getCompletedTasks(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -1199,7 +1202,10 @@ public class CompactionCoordinator
       trc.setUpdates(rc.getUpdates());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    return result;
+
+    CompactionTasksCompleted completed = new CompactionTasksCompleted();
+    completed.setCompleted(result);
+    return completed.toThriftTask();
   }
 
   @Override

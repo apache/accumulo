@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -64,6 +63,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -78,6 +83,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionTestUtils {
@@ -242,12 +248,14 @@ public class ExternalCompactionTestUtils {
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context,
       Optional<HostAndPort> coordinatorHost) throws TException {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+    TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
+        coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionList running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return running;
+      Task task = client.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
+      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      return list.getRunning();
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -255,12 +263,15 @@ public class ExternalCompactionTestUtils {
 
   private static TExternalCompactionList getCompletedCompactions(ClientContext context,
       Optional<HostAndPort> coordinatorHost) throws Exception {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+    TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
+        coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionList completed =
-          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return completed;
+      Task task = client.getCompletedTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+          .equals(TaskMessageType.COMPACTION_TASKS_COMPLETED));
+      final CompactionTasksCompleted list =
+          (CompactionTasksCompleted) TaskMessage.fromThriftTask(task);
+      return list.getCompleted();
     } finally {
       ThriftUtil.returnClient(client, context);
     }

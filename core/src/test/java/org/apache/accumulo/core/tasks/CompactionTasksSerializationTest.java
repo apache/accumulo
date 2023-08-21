@@ -65,7 +65,6 @@ public class CompactionTasksSerializationTest {
     job.setPropagateDeletes(true);
 
     CompactionTask task = new CompactionTask();
-    task.setFateTxId(job.getFateTxId());
     task.setTaskId(UUID.randomUUID().toString());
     task.setCompactionJob(job);
 
@@ -76,7 +75,6 @@ public class CompactionTasksSerializationTest {
     CompactionTask task2 = (CompactionTask) TaskMessage.fromThriftTask(to);
 
     assertEquals(task.getTaskId(), task2.getTaskId());
-    assertEquals(task.getFateTxId(), task2.getFateTxId());
     assertEquals(task.getMessageType(), task2.getMessageType());
     assertEquals(task.getCompactionJob(), task2.getCompactionJob());
   }

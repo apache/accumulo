@@ -20,9 +20,9 @@ package org.apache.accumulo.core.rpc.clients;
 
 import org.apache.accumulo.core.tasks.thrift.TaskRunner.Client;
 
-public class CompactorServiceThriftClient extends ThriftClientTypes<Client> {
+public class TaskRunnerThriftClient extends ThriftClientTypes<Client> {
 
-  CompactorServiceThriftClient(String serviceName) {
+  TaskRunnerThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
   }
 

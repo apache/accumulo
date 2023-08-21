@@ -40,8 +40,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
    */
   public static enum ThriftService {
     CLIENT,
-    COORDINATOR,
-    COMPACTOR,
     FATE,
     GC,
     MANAGER,
@@ -49,6 +47,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     TABLET_INGEST,
     TABLET_MANAGEMENT,
     TABLET_SCAN,
+    TASK_RUNNER,
     TASK_MANAGER,
     TSERV
   }

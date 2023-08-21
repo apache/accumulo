@@ -42,7 +42,6 @@ public abstract class TaskMessage {
           .registerTypeHierarchyAdapter(byte[].class, new ByteArrayToBase64TypeAdapter()).create();
 
   private String taskId;
-  private long fateTxId;
 
   public TaskMessage() {}
 
@@ -54,18 +53,11 @@ public abstract class TaskMessage {
     this.taskId = taskId;
   }
 
-  public long getFateTxId() {
-    return fateTxId;
-  }
-
-  public void setFateTxId(long fateTxId) {
-    this.fateTxId = fateTxId;
-  }
-
   public abstract TaskMessageType getMessageType();
 
   public Task toThriftTask() {
     Task t = new Task();
+    t.setTaskId(getTaskId());
     t.setMessageType(getMessageType().name());
     t.setMessage(TaskMessage.GSON_FOR_TASKS.toJson(this));
     return t;

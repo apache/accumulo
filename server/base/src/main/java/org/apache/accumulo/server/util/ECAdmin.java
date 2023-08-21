@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -26,6 +25,11 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
@@ -40,6 +44,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -131,11 +136,11 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void cancelCompaction(ServerContext context, String ecid) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    TaskManager.Client coordinatorClient = null;
     ecid = ExternalCompactionId.from(ecid).canonical();
     try {
       coordinatorClient = getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      coordinatorClient.cancelTask(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
       System.out.println("Cancel sent to coordinator for " + ecid);
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
@@ -154,11 +159,15 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void runningCompactions(ServerContext context, boolean details) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    TaskManager.Client coordinatorClient = null;
     TExternalCompactionList running;
     try {
       coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      Task task = coordinatorClient.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
+      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      running = list.getRunning();
       if (running == null) {
         System.out.println("No running compactions found.");
         return;
@@ -195,15 +204,15 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private CompactionCoordinatorService.Client getCoordinatorClient(ServerContext context) {
+  private TaskManager.Client getCoordinatorClient(ServerContext context) {
     var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
     }
     HostAndPort address = coordinatorHost.orElseThrow();
-    CompactionCoordinatorService.Client coordinatorClient;
+    TaskManager.Client coordinatorClient;
     try {
-      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
+      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, address, context);
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
     }

@@ -47,7 +47,6 @@ import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
@@ -71,6 +70,11 @@ import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
@@ -99,6 +103,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -175,7 +180,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private GCStatus gcStatus;
   private Optional<HostAndPort> coordinatorHost = Optional.empty();
   private long coordinatorCheckNanos = 0L;
-  private CompactionCoordinatorService.Client coordinatorClient;
+  private TaskManager.Client coordinatorClient;
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator. Check that it is running. It is not "
           + "started automatically with other cluster processes so must be started by running "
@@ -674,7 +679,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     var client = getCoordinator(ccHost);
     TExternalCompactionList running;
     try {
-      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+      Task task = client.getRunningTasks(TraceUtil.traceInfo(), getContext().rpcCreds());
+      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+          .equals(TaskMessageType.COMPACTION_TASKS_RUNNING));
+      final CompactionTasksRunning list = (CompactionTasksRunning) TaskMessage.fromThriftTask(task);
+      running = list.getRunning();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
@@ -691,11 +700,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return ecRunningMap;
   }
 
-  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
+  private TaskManager.Client getCoordinator(HostAndPort address) {
     if (coordinatorClient == null) {
       try {
         coordinatorClient =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
+            ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, address, getContext());
       } catch (Exception e) {
         log.error("Unable to get Compaction coordinator at {}", address);
         throw new IllegalStateException(coordinatorMissingMsg, e);

@@ -25,19 +25,19 @@
 package org.apache.accumulo.core.tabletserver.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, IteratorConfig._Fields>, java.io.Serializable, Cloneable, Comparable<IteratorConfig> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IteratorConfig");
+public class ActiveCompactionList implements org.apache.thrift.TBase<ActiveCompactionList, ActiveCompactionList._Fields>, java.io.Serializable, Cloneable, Comparable<ActiveCompactionList> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ActiveCompactionList");
 
-  private static final org.apache.thrift.protocol.TField ITERATORS_FIELD_DESC = new org.apache.thrift.protocol.TField("iterators", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField COMPACTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("compactions", org.apache.thrift.protocol.TType.LIST, (short)1);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new IteratorConfigStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new IteratorConfigTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveCompactionListStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveCompactionListTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<TIteratorSetting> iterators; // required
+  public @org.apache.thrift.annotation.Nullable java.util.List<ActiveCompaction> compactions; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    ITERATORS((short)1, "iterators");
+    COMPACTIONS((short)1, "compactions");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -53,8 +53,8 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // ITERATORS
-          return ITERATORS;
+        case 1: // COMPACTIONS
+          return COMPACTIONS;
         default:
           return null;
       }
@@ -101,95 +101,95 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.ITERATORS, new org.apache.thrift.meta_data.FieldMetaData("iterators", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.COMPACTIONS, new org.apache.thrift.meta_data.FieldMetaData("compactions", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TIteratorSetting.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActiveCompaction.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(IteratorConfig.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveCompactionList.class, metaDataMap);
   }
 
-  public IteratorConfig() {
+  public ActiveCompactionList() {
   }
 
-  public IteratorConfig(
-    java.util.List<TIteratorSetting> iterators)
+  public ActiveCompactionList(
+    java.util.List<ActiveCompaction> compactions)
   {
     this();
-    this.iterators = iterators;
+    this.compactions = compactions;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public IteratorConfig(IteratorConfig other) {
-    if (other.isSetIterators()) {
-      java.util.List<TIteratorSetting> __this__iterators = new java.util.ArrayList<TIteratorSetting>(other.iterators.size());
-      for (TIteratorSetting other_element : other.iterators) {
-        __this__iterators.add(new TIteratorSetting(other_element));
+  public ActiveCompactionList(ActiveCompactionList other) {
+    if (other.isSetCompactions()) {
+      java.util.List<ActiveCompaction> __this__compactions = new java.util.ArrayList<ActiveCompaction>(other.compactions.size());
+      for (ActiveCompaction other_element : other.compactions) {
+        __this__compactions.add(new ActiveCompaction(other_element));
       }
-      this.iterators = __this__iterators;
+      this.compactions = __this__compactions;
     }
   }
 
   @Override
-  public IteratorConfig deepCopy() {
-    return new IteratorConfig(this);
+  public ActiveCompactionList deepCopy() {
+    return new ActiveCompactionList(this);
   }
 
   @Override
   public void clear() {
-    this.iterators = null;
+    this.compactions = null;
   }
 
-  public int getIteratorsSize() {
-    return (this.iterators == null) ? 0 : this.iterators.size();
+  public int getCompactionsSize() {
+    return (this.compactions == null) ? 0 : this.compactions.size();
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.util.Iterator<TIteratorSetting> getIteratorsIterator() {
-    return (this.iterators == null) ? null : this.iterators.iterator();
+  public java.util.Iterator<ActiveCompaction> getCompactionsIterator() {
+    return (this.compactions == null) ? null : this.compactions.iterator();
   }
 
-  public void addToIterators(TIteratorSetting elem) {
-    if (this.iterators == null) {
-      this.iterators = new java.util.ArrayList<TIteratorSetting>();
+  public void addToCompactions(ActiveCompaction elem) {
+    if (this.compactions == null) {
+      this.compactions = new java.util.ArrayList<ActiveCompaction>();
     }
-    this.iterators.add(elem);
+    this.compactions.add(elem);
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.util.List<TIteratorSetting> getIterators() {
-    return this.iterators;
+  public java.util.List<ActiveCompaction> getCompactions() {
+    return this.compactions;
   }
 
-  public IteratorConfig setIterators(@org.apache.thrift.annotation.Nullable java.util.List<TIteratorSetting> iterators) {
-    this.iterators = iterators;
+  public ActiveCompactionList setCompactions(@org.apache.thrift.annotation.Nullable java.util.List<ActiveCompaction> compactions) {
+    this.compactions = compactions;
     return this;
   }
 
-  public void unsetIterators() {
-    this.iterators = null;
+  public void unsetCompactions() {
+    this.compactions = null;
   }
 
-  /** Returns true if field iterators is set (has been assigned a value) and false otherwise */
-  public boolean isSetIterators() {
-    return this.iterators != null;
+  /** Returns true if field compactions is set (has been assigned a value) and false otherwise */
+  public boolean isSetCompactions() {
+    return this.compactions != null;
   }
 
-  public void setIteratorsIsSet(boolean value) {
+  public void setCompactionsIsSet(boolean value) {
     if (!value) {
-      this.iterators = null;
+      this.compactions = null;
     }
   }
 
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case ITERATORS:
+    case COMPACTIONS:
       if (value == null) {
-        unsetIterators();
+        unsetCompactions();
       } else {
-        setIterators((java.util.List<TIteratorSetting>)value);
+        setCompactions((java.util.List<ActiveCompaction>)value);
       }
       break;
 
@@ -200,8 +200,8 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case ITERATORS:
-      return getIterators();
+    case COMPACTIONS:
+      return getCompactions();
 
     }
     throw new java.lang.IllegalStateException();
@@ -215,31 +215,31 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
     }
 
     switch (field) {
-    case ITERATORS:
-      return isSetIterators();
+    case COMPACTIONS:
+      return isSetCompactions();
     }
     throw new java.lang.IllegalStateException();
   }
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof IteratorConfig)
-      return this.equals((IteratorConfig)that);
+    if (that instanceof ActiveCompactionList)
+      return this.equals((ActiveCompactionList)that);
     return false;
   }
 
-  public boolean equals(IteratorConfig that) {
+  public boolean equals(ActiveCompactionList that) {
     if (that == null)
       return false;
     if (this == that)
       return true;
 
-    boolean this_present_iterators = true && this.isSetIterators();
-    boolean that_present_iterators = true && that.isSetIterators();
-    if (this_present_iterators || that_present_iterators) {
-      if (!(this_present_iterators && that_present_iterators))
+    boolean this_present_compactions = true && this.isSetCompactions();
+    boolean that_present_compactions = true && that.isSetCompactions();
+    if (this_present_compactions || that_present_compactions) {
+      if (!(this_present_compactions && that_present_compactions))
         return false;
-      if (!this.iterators.equals(that.iterators))
+      if (!this.compactions.equals(that.compactions))
         return false;
     }
 
@@ -250,27 +250,27 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetIterators()) ? 131071 : 524287);
-    if (isSetIterators())
-      hashCode = hashCode * 8191 + iterators.hashCode();
+    hashCode = hashCode * 8191 + ((isSetCompactions()) ? 131071 : 524287);
+    if (isSetCompactions())
+      hashCode = hashCode * 8191 + compactions.hashCode();
 
     return hashCode;
   }
 
   @Override
-  public int compareTo(IteratorConfig other) {
+  public int compareTo(ActiveCompactionList other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetIterators(), other.isSetIterators());
+    lastComparison = java.lang.Boolean.compare(isSetCompactions(), other.isSetCompactions());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIterators()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.iterators, other.iterators);
+    if (isSetCompactions()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.compactions, other.compactions);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -296,14 +296,14 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("IteratorConfig(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("ActiveCompactionList(");
     boolean first = true;
 
-    sb.append("iterators:");
-    if (this.iterators == null) {
+    sb.append("compactions:");
+    if (this.compactions == null) {
       sb.append("null");
     } else {
-      sb.append(this.iterators);
+      sb.append(this.compactions);
     }
     first = false;
     sb.append(")");
@@ -331,17 +331,17 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
     }
   }
 
-  private static class IteratorConfigStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ActiveCompactionListStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public IteratorConfigStandardScheme getScheme() {
-      return new IteratorConfigStandardScheme();
+    public ActiveCompactionListStandardScheme getScheme() {
+      return new ActiveCompactionListStandardScheme();
     }
   }
 
-  private static class IteratorConfigStandardScheme extends org.apache.thrift.scheme.StandardScheme<IteratorConfig> {
+  private static class ActiveCompactionListStandardScheme extends org.apache.thrift.scheme.StandardScheme<ActiveCompactionList> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, IteratorConfig struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ActiveCompactionList struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -351,21 +351,21 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
           break;
         }
         switch (schemeField.id) {
-          case 1: // ITERATORS
+          case 1: // COMPACTIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list54 = iprot.readListBegin();
-                struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list54.size);
-                @org.apache.thrift.annotation.Nullable TIteratorSetting _elem55;
-                for (int _i56 = 0; _i56 < _list54.size; ++_i56)
+                org.apache.thrift.protocol.TList _list36 = iprot.readListBegin();
+                struct.compactions = new java.util.ArrayList<ActiveCompaction>(_list36.size);
+                @org.apache.thrift.annotation.Nullable ActiveCompaction _elem37;
+                for (int _i38 = 0; _i38 < _list36.size; ++_i38)
                 {
-                  _elem55 = new TIteratorSetting();
-                  _elem55.read(iprot);
-                  struct.iterators.add(_elem55);
+                  _elem37 = new ActiveCompaction();
+                  _elem37.read(iprot);
+                  struct.compactions.add(_elem37);
                 }
                 iprot.readListEnd();
               }
-              struct.setIteratorsIsSet(true);
+              struct.setCompactionsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -382,17 +382,17 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, IteratorConfig struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ActiveCompactionList struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.iterators != null) {
-        oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
+      if (struct.compactions != null) {
+        oprot.writeFieldBegin(COMPACTIONS_FIELD_DESC);
         {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-          for (TIteratorSetting _iter57 : struct.iterators)
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.compactions.size()));
+          for (ActiveCompaction _iter39 : struct.compactions)
           {
-            _iter57.write(oprot);
+            _iter39.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -404,51 +404,51 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
 
   }
 
-  private static class IteratorConfigTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ActiveCompactionListTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public IteratorConfigTupleScheme getScheme() {
-      return new IteratorConfigTupleScheme();
+    public ActiveCompactionListTupleScheme getScheme() {
+      return new ActiveCompactionListTupleScheme();
     }
   }
 
-  private static class IteratorConfigTupleScheme extends org.apache.thrift.scheme.TupleScheme<IteratorConfig> {
+  private static class ActiveCompactionListTupleScheme extends org.apache.thrift.scheme.TupleScheme<ActiveCompactionList> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, IteratorConfig struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ActiveCompactionList struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetIterators()) {
+      if (struct.isSetCompactions()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetIterators()) {
+      if (struct.isSetCompactions()) {
         {
-          oprot.writeI32(struct.iterators.size());
-          for (TIteratorSetting _iter58 : struct.iterators)
+          oprot.writeI32(struct.compactions.size());
+          for (ActiveCompaction _iter40 : struct.compactions)
           {
-            _iter58.write(oprot);
+            _iter40.write(oprot);
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, IteratorConfig struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ActiveCompactionList struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list59 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list59.size);
-          @org.apache.thrift.annotation.Nullable TIteratorSetting _elem60;
-          for (int _i61 = 0; _i61 < _list59.size; ++_i61)
+          org.apache.thrift.protocol.TList _list41 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.compactions = new java.util.ArrayList<ActiveCompaction>(_list41.size);
+          @org.apache.thrift.annotation.Nullable ActiveCompaction _elem42;
+          for (int _i43 = 0; _i43 < _list41.size; ++_i43)
           {
-            _elem60 = new TIteratorSetting();
-            _elem60.read(iprot);
-            struct.iterators.add(_elem60);
+            _elem42 = new ActiveCompaction();
+            _elem42.read(iprot);
+            struct.compactions.add(_elem42);
           }
         }
-        struct.setIteratorsIsSet(true);
+        struct.setCompactionsIsSet(true);
       }
     }
   }

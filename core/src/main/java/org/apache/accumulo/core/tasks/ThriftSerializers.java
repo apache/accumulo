@@ -21,6 +21,8 @@ package org.apache.accumulo.core.tasks;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompactionList;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.thrift.TBase;
@@ -72,8 +74,15 @@ public class ThriftSerializers {
   }
 
   public static final Supplier<
+      ThriftSerializer<ActiveCompactionList>> EXTERNAL_COMPACTION_ACTIVE_COMPACTION_LIST =
+          () -> new ThriftSerializer<ActiveCompactionList>();
+
+  public static final Supplier<
       ThriftSerializer<TExternalCompactionJob>> EXTERNAL_COMPACTION_JOB_SERIALIZER =
           () -> new ThriftSerializer<TExternalCompactionJob>();
+
+  public static final Supplier<ThriftSerializer<TExternalCompactionList>> EXTERNAL_COMPACTION_LIST =
+      () -> new ThriftSerializer<TExternalCompactionList>();
 
   public static final Supplier<
       ThriftSerializer<TCompactionStatusUpdate>> EXTERNAL_COMPACTION_STATUS_SERIALIZER =

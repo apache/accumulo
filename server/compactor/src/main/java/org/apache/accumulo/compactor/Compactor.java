@@ -49,7 +49,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
@@ -80,14 +79,16 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompactionList;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tasks.TaskMessage;
 import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.ActiveCompactionTasks;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskFailed;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
 import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskManager;
@@ -127,8 +128,7 @@ import com.google.common.net.HostAndPort;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class Compactor extends AbstractServer
-    implements MetricsProducer, TaskRunner.Iface {
+public class Compactor extends AbstractServer implements MetricsProducer, TaskRunner.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
@@ -289,7 +289,7 @@ public class Compactor extends AbstractServer
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
         if (compactorLock.tryLock(lw, new ServiceLockData(compactorId, hostPort,
-            ThriftService.COMPACTOR, this.getResourceGroup()))) {
+            ThriftService.TASK_RUNNER, this.getResourceGroup()))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }
@@ -397,10 +397,11 @@ public class Compactor extends AbstractServer
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            CompactionTask failedMsg = new CompactionTask();
+            CompactionTaskFailed failedMsg = new CompactionTaskFailed();
             failedMsg.setTaskId(job.getExternalCompactionId());
             failedMsg.setCompactionJob(job);
-            coordinatorClient.taskFailed(TraceUtil.traceInfo(), getContext().rpcCreds(), failedMsg.toThriftTask());
+            coordinatorClient.taskFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                failedMsg.toThriftTask());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -426,7 +427,8 @@ public class Compactor extends AbstractServer
             completedMsg.setTaskId(job.getExternalCompactionId());
             completedMsg.setCompactionJob(job);
             completedMsg.setCompactionStats(stats);
-            coordinatorClient.taskCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(), completedMsg.toThriftTask());
+            coordinatorClient.taskCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                completedMsg.toThriftTask());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -456,11 +458,11 @@ public class Compactor extends AbstractServer
             LOG.trace("Attempting to get next job, eci = {}", eci);
             TaskRunnerInfo runner = new TaskRunnerInfo(compactorAddress.getAddress().getHost(),
                 compactorAddress.getAddress().getPort(), this.getResourceGroup());
-            Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(), runner, eci.toString());
+            Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                runner, eci.toString());
             Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
                 .equals(TaskMessageType.COMPACTION_TASK));
-            final CompactionTaskCompleted compactionTask =
-                (CompactionTaskCompleted) TaskMessage.fromThriftTask(task);
+            final CompactionTask compactionTask = (CompactionTask) TaskMessage.fromThriftTask(task);
             currentCompactionId.set(eci);
             return compactionTask.getCompactionJob();
           } catch (Exception e) {
@@ -826,7 +828,7 @@ public class Compactor extends AbstractServer
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
+  public Task getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -835,13 +837,14 @@ public class Compactor extends AbstractServer
 
     List<CompactionInfo> compactions =
         org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
-    List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
 
-    for (CompactionInfo compactionInfo : compactions) {
-      ret.add(compactionInfo.toThrift());
-    }
+    ActiveCompactionList list = new ActiveCompactionList();
+    compactions.forEach(c -> list.addToCompactions(c.toThrift()));
 
-    return ret;
+    ActiveCompactionTasks tasks = new ActiveCompactionTasks();
+    tasks.setActiveCompactions(list);
+
+    return tasks.toThriftTask();
   }
 
   @Override
@@ -866,7 +869,6 @@ public class Compactor extends AbstractServer
     if (null == job) {
       task.setCompactionJob(new TExternalCompactionJob());
     } else {
-      task.setFateTxId(job.getFateTxId());
       task.setTaskId(job.getExternalCompactionId());
       task.setCompactionJob(job);
     }

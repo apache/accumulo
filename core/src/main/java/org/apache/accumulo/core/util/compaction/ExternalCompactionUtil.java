@@ -32,7 +32,6 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -42,7 +41,14 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompactionList;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.ActiveCompactionTasks;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskRunner;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
@@ -51,6 +57,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionUtil {
@@ -108,7 +115,7 @@ public class ExternalCompactionUtil {
       if (sld.isEmpty()) {
         return Optional.empty();
       }
-      return Optional.ofNullable(sld.orElseThrow().getAddress(ThriftService.COORDINATOR));
+      return Optional.ofNullable(sld.orElseThrow().getAddress(ThriftService.TASK_MANAGER));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -160,10 +167,15 @@ public class ExternalCompactionUtil {
    */
   public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
       ClientContext context) throws ThriftSecurityException {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactor, context);
-      return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactor, context);
+      Task task = client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      Preconditions.checkState(TaskMessageType.valueOf(task.getMessageType())
+          .equals(TaskMessageType.COMPACTION_TASK_LIST));
+      final ActiveCompactionTasks list = (ActiveCompactionTasks) TaskMessage.fromThriftTask(task);
+      final ActiveCompactionList acl = list.getActiveCompactions();
+      return acl.getCompactions();
     } catch (ThriftSecurityException e) {
       throw e;
     } catch (TException e) {
@@ -184,11 +196,14 @@ public class ExternalCompactionUtil {
   public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
       ClientContext context) {
 
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      TExternalCompactionJob job =
-          client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      Task task = client.getRunningTask(TraceUtil.traceInfo(), context.rpcCreds());
+      Preconditions.checkState(
+          TaskMessageType.valueOf(task.getMessageType()).equals(TaskMessageType.COMPACTION_TASK));
+      final CompactionTask compactionTask = (CompactionTask) TaskMessage.fromThriftTask(task);
+      TExternalCompactionJob job = compactionTask.getCompactionJob();
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
         return job;
@@ -203,10 +218,10 @@ public class ExternalCompactionUtil {
 
   private static ExternalCompactionId getRunningCompactionId(HostAndPort compactorAddr,
       ClientContext context) {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      String secid = client.getRunningTaskId(TraceUtil.traceInfo(), context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);
       }
@@ -305,10 +320,10 @@ public class ExternalCompactionUtil {
 
   public static void cancelCompaction(ClientContext context, HostAndPort compactorAddr,
       String ecid) {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      client.cancelTask(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
     } catch (TException e) {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
     } finally {

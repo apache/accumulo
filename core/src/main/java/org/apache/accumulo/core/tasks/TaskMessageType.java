@@ -18,16 +18,23 @@
  */
 package org.apache.accumulo.core.tasks;
 
+import org.apache.accumulo.core.tasks.compaction.ActiveCompactionTasks;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTaskFailed;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
 
 public enum TaskMessageType {
 
   COMPACTION_TASK(CompactionTask.class),
-  COMPACTION_TASK_FAILED(CompactionTask.class),
   COMPACTION_TASK_COMPLETED(CompactionTaskCompleted.class),
-  COMPACTION_TASK_STATUS(CompactionTaskStatus.class);
+  COMPACTION_TASK_FAILED(CompactionTaskFailed.class),
+  COMPACTION_TASK_LIST(ActiveCompactionTasks.class),
+  COMPACTION_TASK_STATUS(CompactionTaskStatus.class),
+  COMPACTION_TASKS_COMPLETED(CompactionTasksCompleted.class),
+  COMPACTION_TASKS_RUNNING(CompactionTasksRunning.class);
 
   private Class<? extends TaskMessage> taskClass;
 

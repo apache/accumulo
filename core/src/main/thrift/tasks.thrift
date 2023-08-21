@@ -21,6 +21,7 @@ namespace cpp org.apache.accumulo.core.tasks.thrift
 
 include "security.thrift"
 include "client.thrift"
+include "tabletserver.thrift"
 
 struct TaskRunnerInfo {
  1:string hostname
@@ -29,7 +30,7 @@ struct TaskRunnerInfo {
 }
 
 struct Task {
-  1:string taskManager
+  1:string taskId
   2:string messageType
   3:string message
 }
@@ -67,6 +68,22 @@ service TaskManager {
     2:security.TCredentials credentials
     3:string taskID
   )
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  Task getRunningTasks(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  )
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  Task getCompletedTasks(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  )
   
 }
 
@@ -91,5 +108,13 @@ service TaskRunner {
     2:security.TCredentials credentials
     3:string taskID
   )
+  
+  Task getActiveCompactions(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
 
 }

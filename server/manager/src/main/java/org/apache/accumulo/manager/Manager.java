@@ -1193,7 +1193,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator, compactionCoordinator, haProxy, getContext());
+        compactionCoordinator, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1368,8 +1368,8 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE, ThriftService.TASK_MANAGER}) {
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.FATE,
+        ThriftService.TASK_MANAGER}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 

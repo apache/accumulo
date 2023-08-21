@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tasks.thrift.TaskRunner.Iface;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.slf4j.Logger;
