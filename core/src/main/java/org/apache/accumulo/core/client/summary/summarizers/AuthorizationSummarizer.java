@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.client.summary.summarizers;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
@@ -30,8 +30,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.visibility.VisibilityExpression;
 
 /**
  * Counts unique authorizations in column visibility labels. Leverages super class to defend against
@@ -82,41 +81,16 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = findAuths(vis);
+          // TODO this code path is not the most efficient goes from byte[] to string and back to
+          // byte[]... maybe have a method that returns bytes[]? or a method that takes a consumer?
+          auths = VisibilityExpression.parse(vis.toArray()).getAuthorizations().stream()
+              .map(ArrayByteSequence::new).collect(Collectors.toSet());
           cache.put(new ArrayByteSequence(vis), auths);
         }
 
         for (ByteSequence auth : auths) {
           consumer.accept(auth);
         }
-      }
-    }
-
-    private Set<ByteSequence> findAuths(ByteSequence vis) {
-      HashSet<ByteSequence> auths = new HashSet<>();
-      byte[] expression = vis.toArray();
-      Node root = new ColumnVisibility(expression).getParseTree();
-
-      findAuths(root, expression, auths);
-
-      return auths;
-    }
-
-    private void findAuths(Node node, byte[] expression, HashSet<ByteSequence> auths) {
-      switch (node.getType()) {
-        case AND:
-        case OR:
-          for (Node child : node.getChildren()) {
-            findAuths(child, expression, auths);
-          }
-          break;
-        case TERM:
-          auths.add(node.getTerm(expression));
-          break;
-        case EMPTY:
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown node type " + node.getType());
       }
     }
   }

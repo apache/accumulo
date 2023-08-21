@@ -86,6 +86,10 @@
       <artifactId>accumulo-start</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-visibility</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
     </dependency>
@@ -258,6 +262,8 @@
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
+                <!-- allow the following types from the visibility API -->
+                <allow>org[.]apache[.]accumulo[.]visibility[.]VisibilityExpression</allow>
               </allows>
             </configuration>
           </execution>
