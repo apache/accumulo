@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,15 +46,17 @@ class SummaryReportTest {
   public void blankReport() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
     FateSummaryReport report = new FateSummaryReport(idMap, null);
-    assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
-    assertEquals(Map.of(), report.getStatusCounts());
-    assertEquals(Map.of(), report.getCmdCounts());
-    assertEquals(Map.of(), report.getStepCounts());
-    assertEquals(Set.of(), report.getFateDetails());
-    assertEquals(Set.of(), report.getStatusFilterNames());
-    assertNotNull(report.toJson());
-    assertNotNull(report.formatLines());
+
+    assertNotNull(report, "The report should not be null");
+    assertNotEquals(0, report.getReportTime(), "Report time should not be 0");
+    assertEquals(Map.of(), report.getStatusCounts(), "Status counts should be empty");
+    assertEquals(Map.of(), report.getCmdCounts(), "Command counts should be empty");
+    assertEquals(Map.of(), report.getStepCounts(), "Step counts should be empty");
+    assertEquals(Set.of(), report.getFateDetails(), "Fate details should be empty");
+    assertEquals(Set.of(), report.getStatusFilterNames(), "Status filter names should be empty");
+    assertNotNull(report.toJson(), "JSON representation should not be null");
+    assertNotNull(report.formatLines(), "Formatted lines should not be null");
+
     log.info("json: {}", report.toJson());
     log.info("formatted: {}", report.formatLines());
   }
@@ -77,16 +80,16 @@ class SummaryReportTest {
     FateSummaryReport report = new FateSummaryReport(idMap, null);
     report.gatherTxnStatus(status1);
 
-    assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
-    assertEquals(Map.of("IN_PROGRESS", 1), report.getStatusCounts());
-    assertEquals(Map.of("?", 1), report.getCmdCounts());
-    assertEquals(Map.of("?", 1), report.getStepCounts());
-    assertEquals(Set.of(), report.getStatusFilterNames());
-    assertNotNull(report.toJson());
-    assertNotNull(report.formatLines());
+    assertNotNull(report, "The report should not be null");
+    assertNotEquals(0, report.getReportTime(), "Report time should not be 0");
+    assertEquals(Map.of("IN_PROGRESS", 1), report.getStatusCounts(), "Status counts should match");
+    assertEquals(Map.of("?", 1), report.getCmdCounts(), "Command counts should match");
+    assertEquals(Map.of("?", 1), report.getStepCounts(), "Step counts should match");
+    assertEquals(Set.of(), report.getStatusFilterNames(), "Status filter names should be empty");
+    assertNotNull(report.toJson(), "JSON representation should not be null");
+    assertNotNull(report.formatLines(), "Formatted lines should not be null");
 
-    assertNotNull(report.getFateDetails());
+    assertNotNull(report.getFateDetails(), "Fate details should not be null");
 
     log.debug("json: {}", report.toJson());
     log.debug("formatted: {}", report.formatLines());
