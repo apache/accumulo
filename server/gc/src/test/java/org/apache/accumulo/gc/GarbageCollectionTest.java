@@ -58,11 +58,7 @@ public class GarbageCollectionTest {
     ArrayList<String> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
-    public TestGCE() {
-      // add dummy reference so at lest one tablet to be "scanned" is always present.
-      addPrevRowReference("1", null);
-      addDirReference("1", null, "/default_tablet");
-    }
+    public TestGCE() {}
 
     @Override
     public boolean getCandidates(String continuePoint, List<String> ret) {
@@ -787,6 +783,7 @@ public class GarbageCollectionTest {
     gce.addDirReference("1636", null, "/default_tablet");
     gce.addPrevRowReference("1636", null);
     gca.collect(gce);
+    assertEquals(0, gce.deletes.size());
   }
 
   /**
@@ -800,6 +797,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("/1636/default_tablet");
     gce.addPrevRowReference("1636", null);
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+    assertEquals(1, gce.candidates.size());
   }
 
   /**
@@ -818,6 +816,7 @@ public class GarbageCollectionTest {
     gce.addPrevRowReference("1636", null);
 
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+    assertEquals(2, gce.candidates.size());
   }
 
   /**
@@ -831,6 +830,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "/default_tablet");
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+    assertEquals(1, gce.candidates.size());
   }
 
   /**
@@ -849,25 +849,25 @@ public class GarbageCollectionTest {
     gce.addPrevRowReference("1636", null);
 
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+    assertEquals(2, gce.candidates.size());
   }
 
   /**
    * Show that IllegalState is thrown when no prevRow entry present in metadata scan.
    */
   @Test
-  public void testFilesOnly() {
+  public void testPrevRowOnly() {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
 
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-    // removed dummy reference so that no tablets scanned"
-    gce.removePrevRowReference("1", null);
-    gce.removeDirReference("1", null);
+    gce.addPrevRowReference("1636", null);
 
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+    assertEquals(3, gce.candidates.size());
   }
 
 }
