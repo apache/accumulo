@@ -25,11 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.net.URI;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class ReferencedTabletFileTest {
@@ -138,6 +140,18 @@ public class ReferencedTabletFileTest {
     // range where the key looks like a row, but the end key inclusivity is not whats expected
     Range r4 = new Range(new Key("r1"), true, new Key("r2"), true);
     assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r4));
+
+    // range where end key does not end with correct byte and is marked exclusive false
+    Range r5 = new Range(new Key("r1"), true, new Key("r2"), false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r5));
+
+    // This is valid as the end key is exclusive and ends in 0x00
+    Range r6 = new Range(new Key("r1"), true, new Key("r2").followingKey(PartialKey.ROW), false);
+    assertTrue(new ReferencedTabletFile(testPath, r6).hasRange());
+
+    // This is valid as the end key will be converted to exclusive and 0x00 should be appended
+    Range r7 = new Range(new Text("r1"), true, new Text("r2"), true);
+    assertTrue(new ReferencedTabletFile(testPath, r7).hasRange());
   }
 
 }

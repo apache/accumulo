@@ -1578,10 +1578,14 @@ public class RFile {
 
     private final FileSKVIterator reader;
     protected final Range fence;
+    private final Key fencedStartKey;
+    private final Key fencedEndKey;
 
     public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
       this.reader = Objects.requireNonNull(reader);
-      this.fence = fence;
+      this.fence = Objects.requireNonNull(fence);
+      this.fencedStartKey = fence.getStartKey();
+      this.fencedEndKey = getEndKey(fence.getEndKey());
     }
 
     @Override
@@ -1614,7 +1618,7 @@ public class RFile {
     public Key getFirstKey() throws IOException {
       var rfk = reader.getFirstKey();
       if (fence.beforeStartKey(rfk)) {
-        return fence.getStartKey();
+        return fencedStartKey;
       } else {
         return rfk;
       }
@@ -1624,7 +1628,7 @@ public class RFile {
     public Key getLastKey() throws IOException {
       var rlk = reader.getLastKey();
       if (fence.afterEndKey(rlk)) {
-        return fence.getEndKey();
+        return fencedEndKey;
       } else {
         return rlk;
       }
@@ -1659,6 +1663,24 @@ public class RFile {
     public void close() throws IOException {
       reader.close();
     }
+
+    private Key getEndKey(Key key) {
+      // If they key is infinite it will be null or if inclusive we can just use it as is
+      // as it would be the correct value for getLastKey()
+      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
+        return key;
+      }
+
+      // If exclusive we need to strip the last byte to get the last key that is part of the
+      // actual range to return
+      final byte[] ba = key.getRow().getBytes();
+      Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
+      byte[] fba = new byte[ba.length - 1];
+      System.arraycopy(ba, 0, fba, 0, ba.length - 1);
+
+      return new Key(fba);
+    }
+
   }
 
   static class FencedIndex extends FencedFileSKVIterator {
