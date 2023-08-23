@@ -33,6 +33,7 @@ assignees: ''
   - [ ] If LTM release, update previous LTM release entry on downloads page and release notes with an EOL date 1 year from the current release date
   - [ ] DOAP file
   - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs` using at least JDK 17)
+  - [ ] Add updated properties documentation (see [the website README](https://github.com/apache/accumulo-website#updating-property-documentation-for-releases))
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version
   - [ ] Update any older release notes front-matter to indicate they are either `archived: true` or `archived_critical: true`
