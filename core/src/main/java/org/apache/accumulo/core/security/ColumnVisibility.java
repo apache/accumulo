@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.visibility.IllegalVisibilityException;
 import org.apache.accumulo.visibility.VisibilityExpression;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
@@ -500,7 +501,11 @@ public class ColumnVisibility {
    *        syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
-    visibilityExpression = VisibilityExpression.parse(expression);
+    try {
+      visibilityExpression = VisibilityExpression.parse(expression);
+    } catch (IllegalVisibilityException e) {
+      throw new BadArgumentException(e);
+    }
     this.expression = expression.getBytes(UTF_8);
     nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));
   }
@@ -523,7 +528,11 @@ public class ColumnVisibility {
    */
   public ColumnVisibility(byte[] expression) {
     this.expression = expression;
-    visibilityExpression = VisibilityExpression.parse(this.expression);
+    try {
+      visibilityExpression = VisibilityExpression.parse(this.expression);
+    } catch (IllegalVisibilityException e) {
+      throw new BadArgumentException(e);
+    }
     nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));
   }
 
