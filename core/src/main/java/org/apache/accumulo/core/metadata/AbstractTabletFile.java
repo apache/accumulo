@@ -23,7 +23,6 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
