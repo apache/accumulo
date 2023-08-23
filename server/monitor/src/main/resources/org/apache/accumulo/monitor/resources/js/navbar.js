@@ -21,7 +21,7 @@
 /**
  * The status options from the servers
  */
-const SERVER_STATUS = {
+const STATUS = {
   WARN: 'WARN',
   OK: 'OK',
   ERROR: 'ERROR'
@@ -30,7 +30,7 @@ const SERVER_STATUS = {
 /**
  * The class names of bootstrap notification color classes
  */
-const COLOR_CLASS = {
+const CLASS = {
   WARNING: 'warning',
   NORMAL: 'normal',
   ERROR: 'error'
@@ -45,17 +45,17 @@ function updateElementStatus(elementId, status) {
   const $element = $(`#${elementId}`);
 
   // Remove existing status classes
-  $element.removeClass(Object.values(COLOR_CLASS).join(' '));
+  $element.removeClass(Object.values(CLASS).join(' '));
 
   switch (status) {
-  case SERVER_STATUS.ERROR:
-    $element.addClass(COLOR_CLASS.ERROR);
+  case STATUS.ERROR:
+    $element.addClass(CLASS.ERROR);
     break;
-  case SERVER_STATUS.WARN:
-    $element.addClass(COLOR_CLASS.WARNING);
+  case STATUS.WARN:
+    $element.addClass(CLASS.WARNING);
     break;
-  case SERVER_STATUS.OK:
-    $element.addClass(COLOR_CLASS.NORMAL);
+  case STATUS.OK:
+    $element.addClass(CLASS.NORMAL);
     break;
   default:
     console.error('Unrecognized status: ' + status);
@@ -96,45 +96,45 @@ function updateServerNotifications(statusData) {
     updateIconDisplay(isSafeMode || isCleanStop);
 
     // setting manager status notification
-    if (statusData.managerStatus === SERVER_STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusIcon', SERVER_STATUS.ERROR);
-    } else if (statusData.managerStatus === SERVER_STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusIcon', SERVER_STATUS.WARN);
-    } else if (statusData.managerStatus === SERVER_STATUS.OK) {
-      updateElementStatus('managerStatusIcon', SERVER_STATUS.OK);
+    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
+      updateElementStatus('managerStatusIcon', STATUS.ERROR);
+    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
+      updateElementStatus('managerStatusIcon', STATUS.WARN);
+    } else if (statusData.managerStatus === STATUS.OK) {
+      updateElementStatus('managerStatusIcon', STATUS.OK);
     } else {
       console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
     }
 
     // setting tserver status notification
-    if (statusData.tServerStatus === SERVER_STATUS.OK) {
-      updateElementStatus('serverStatusNotification', SERVER_STATUS.OK);
-    } else if (statusData.tServerStatus === SERVER_STATUS.WARN) {
-      updateElementStatus('serverStatusNotification', SERVER_STATUS.WARN);
+    if (statusData.tServerStatus === STATUS.OK) {
+      updateElementStatus('serverStatusNotification', STATUS.OK);
+    } else if (statusData.tServerStatus === STATUS.WARN) {
+      updateElementStatus('serverStatusNotification', STATUS.WARN);
     } else {
-      updateElementStatus('serverStatusNotification', SERVER_STATUS.ERROR);
+      updateElementStatus('serverStatusNotification', STATUS.ERROR);
     }
 
     // setting gc status notification
-    if (statusData.gcStatus === SERVER_STATUS.OK) {
-      updateElementStatus('gcStatusNotification', SERVER_STATUS.OK);
+    if (statusData.gcStatus === STATUS.OK) {
+      updateElementStatus('gcStatusNotification', STATUS.OK);
     } else {
-      updateElementStatus('gcStatusNotification', SERVER_STATUS.ERROR);
+      updateElementStatus('gcStatusNotification', STATUS.ERROR);
     }
 
     // Setting overall servers status notification
-    if ((statusData.managerStatus === SERVER_STATUS.OK && !isSafeMode && !isCleanStop) &&
-      statusData.tServerStatus === SERVER_STATUS.OK &&
-      statusData.gcStatus === SERVER_STATUS.OK) {
-      updateElementStatus('statusNotification', SERVER_STATUS.OK);
-    } else if (statusData.managerStatus === SERVER_STATUS.ERROR || isCleanStop ||
-      statusData.tServerStatus === SERVER_STATUS.ERROR ||
-      statusData.gcStatus === SERVER_STATUS.ERROR) {
-      updateElementStatus('statusNotification', SERVER_STATUS.ERROR);
-    } else if (statusData.managerStatus === SERVER_STATUS.WARN || isSafeMode ||
-      statusData.tServerStatus === SERVER_STATUS.WARN ||
-      statusData.gcStatus === SERVER_STATUS.WARN) {
-      updateElementStatus('statusNotification', SERVER_STATUS.WARN);
+    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
+      statusData.tServerStatus === STATUS.OK &&
+      statusData.gcStatus === STATUS.OK) {
+      updateElementStatus('statusNotification', STATUS.OK);
+    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
+      statusData.tServerStatus === STATUS.ERROR ||
+      statusData.gcStatus === STATUS.ERROR) {
+      updateElementStatus('statusNotification', STATUS.ERROR);
+    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
+      statusData.tServerStatus === STATUS.WARN ||
+      statusData.gcStatus === STATUS.WARN) {
+      updateElementStatus('statusNotification', STATUS.WARN);
     }
 
   });
@@ -146,12 +146,12 @@ function updateServerNotifications(statusData) {
 function updateRecentLogsNotification(statusData) {
   if (statusData.logNumber > 0) {
     if (statusData.logsHaveError) {
-      updateElementStatus('recentLogsNotifications', SERVER_STATUS.ERROR);
+      updateElementStatus('recentLogsNotifications', STATUS.ERROR);
     } else {
-      updateElementStatus('recentLogsNotifications', SERVER_STATUS.WARN);
+      updateElementStatus('recentLogsNotifications', STATUS.WARN);
     }
   } else {
-    updateElementStatus('recentLogsNotifications', SERVER_STATUS.OK);
+    updateElementStatus('recentLogsNotifications', STATUS.OK);
   }
   // Number
   const logNumber = statusData.logNumber > 99 ? '99+' : statusData.logNumber;
@@ -163,9 +163,9 @@ function updateRecentLogsNotification(statusData) {
  */
 function updateTableProblemsNotification(statusData) {
   if (statusData.problemNumber > 0) {
-    updateElementStatus('tableProblemsNotifications', SERVER_STATUS.ERROR);
+    updateElementStatus('tableProblemsNotifications', STATUS.ERROR);
   } else {
-    updateElementStatus('tableProblemsNotifications', SERVER_STATUS.OK);
+    updateElementStatus('tableProblemsNotifications', STATUS.OK);
   }
   // Number
   var problemNumber = statusData.problemNumber > 99 ? '99+' : statusData.problemNumber;
@@ -178,12 +178,12 @@ function updateTableProblemsNotification(statusData) {
 function updateDebugDropdownNotification(statusData) {
   if (statusData.logNumber > 0 || statusData.problemNumber > 0) {
     if (statusData.logsHaveError || statusData.problemNumber > 0) {
-      updateElementStatus('errorsNotification', SERVER_STATUS.ERROR);
+      updateElementStatus('errorsNotification', STATUS.ERROR);
     } else {
-      updateElementStatus('errorsNotification', SERVER_STATUS.WARN);
+      updateElementStatus('errorsNotification', STATUS.WARN);
     }
   } else {
-    updateElementStatus('errorsNotification', SERVER_STATUS.OK);
+    updateElementStatus('errorsNotification', STATUS.OK);
   }
   // Number
   var totalNumber = statusData.logNumber + statusData.problemNumber > 99 ?
