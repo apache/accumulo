@@ -305,7 +305,9 @@ public class Manager extends AbstractServer
         upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
         break;
       case NORMAL:
-        if (fate() != null) {
+        // fate isn't started until after upgrades are done, so non-null fateRef implies isUpgrading
+        // should return false
+        if (fateRef.get() != null && isUpgrading()) {
           throw new IllegalStateException("Access to Fate should not have been"
               + " initialized prior to the Manager finishing upgrades. Please save"
               + " all logs and file a bug.");
