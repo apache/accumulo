@@ -49,6 +49,7 @@
             </goals>
             <configuration>
               <includes>
+                <include>org[.]apache[.]accumulo[.]visibility[.]IllegalVisibilityException</include>
                 <include>org[.]apache[.]accumulo[.]visibility[.]VisibilityExpression</include>
                 <include>org[.]apache[.]accumulo[.]visibility[.]VisibilityArbiter</include>
               </includes>

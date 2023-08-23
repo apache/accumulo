@@ -20,10 +20,15 @@ package org.apache.accumulo.visibility;
 
 import java.util.regex.PatternSyntaxException;
 
-final class BadArgumentException extends PatternSyntaxException {
+/**
+ * TODO document
+ *
+ * @since ???
+ */
+public final class IllegalVisibilityException extends PatternSyntaxException {
   private static final long serialVersionUID = 1L;
 
-  public BadArgumentException(String desc, String badarg, int index) {
+  public IllegalVisibilityException(String desc, String badarg, int index) {
     super(desc, badarg, index);
   }
 }

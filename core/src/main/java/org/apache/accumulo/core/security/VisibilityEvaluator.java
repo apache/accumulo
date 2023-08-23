@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.security;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.visibility.IllegalVisibilityException;
 import org.apache.accumulo.visibility.VisibilityArbiter;
 
 /**
@@ -97,6 +98,10 @@ public class VisibilityEvaluator {
    *         subexpression is of an unknown type
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
-    return visibilityArbiter.isVisible(visibility.getVisibilityExpression());
+    try {
+      return visibilityArbiter.isVisible(visibility.getVisibilityExpression());
+    } catch (IllegalVisibilityException e) {
+      throw new VisibilityParseException(e);
+    }
   }
 }

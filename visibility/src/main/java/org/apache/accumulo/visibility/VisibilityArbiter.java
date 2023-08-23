@@ -20,7 +20,6 @@ package org.apache.accumulo.visibility;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 
 /**
  * <p>
@@ -40,7 +39,7 @@ import java.util.function.Predicate;
  * </pre>
  *
  *
- * @since 1.0
+ * @since ???
  */
 // TODO is there a better name? maybe use VisibilityEvaluator even though its a reuse of an existing
 // type name in another accumulo package.
@@ -50,30 +49,32 @@ public interface VisibilityArbiter {
    *         otherwise
    * @throws IllegalArgumentException when the expression is not valid
    */
-  boolean isVisible(String expression) throws IllegalArgumentException;
+  boolean isVisible(String expression) throws IllegalVisibilityException;
 
-  boolean isVisible(byte[] expression) throws IllegalArgumentException;
+  boolean isVisible(byte[] expression) throws IllegalVisibilityException;
 
-  boolean isVisible(VisibilityExpression expression) throws IllegalArgumentException;
+  /**
+   * TODO documnet that may be more efficient
+   */
+  boolean isVisible(VisibilityExpression expression) throws IllegalVisibilityException;
 
   // TODO decide if Charsequence should be used in API or not
 
+  /**
+   * @since ???
+   */
   interface AuthorizationChecker {
     boolean isAuthorized(byte[] auth);
   }
 
-  interface BytesPredicate extends Predicate<byte[]> {}
-
   interface AuthorizationsBuilder {
 
+    // TODO document utf-8 expected
     ExecutionBuilder authorizations(List<byte[]> authorizations);
 
     ExecutionBuilder authorizations(Set<String> authorizations);
 
     ExecutionBuilder authorizations(String... authorizations);
-
-    // TODO document utf-8 expected
-    ExecutionBuilder authorizations(byte[]... authorizations);
 
     ExecutionBuilder authorizations(AuthorizationChecker authorizationChecker);
   }

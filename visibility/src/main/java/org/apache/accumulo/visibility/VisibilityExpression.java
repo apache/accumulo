@@ -56,7 +56,7 @@ import java.util.Set;
  * [🦖, CAT, 🦕]
  * </pre>
  *
- *
+ * @since ???
  */
 // TODO could name VisibilityLabel
 public interface VisibilityExpression {
@@ -81,13 +81,13 @@ public interface VisibilityExpression {
   Set<String> getAuthorizations();
 
   // TODO builder instead? or use name of()?
-  static VisibilityExpression parse(String expression) {
+  static VisibilityExpression parse(String expression) throws IllegalVisibilityException {
     return new VisibilityExpressionImpl(expression);
   }
 
   // TODO builder instead? or use name of()?
   // TODO document utf8 expectations
-  static VisibilityExpression parse(byte[] expression) {
+  static VisibilityExpression parse(byte[] expression) throws IllegalVisibilityException {
     return new VisibilityExpressionImpl(expression);
   }
 
@@ -112,6 +112,7 @@ public interface VisibilityExpression {
   /**
    * @return an empty VisibilityExpression.
    */
+  // TODO could name of()
   static VisibilityExpression empty() {
     return VisibilityExpressionImpl.EMPTY;
   }

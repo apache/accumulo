@@ -81,8 +81,6 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          // TODO this code path is not the most efficient goes from byte[] to string and back to
-          // byte[]... maybe have a method that returns bytes[]? or a method that takes a consumer?
           auths = VisibilityExpression.parse(vis.toArray()).getAuthorizations().stream()
               .map(ArrayByteSequence::new).collect(Collectors.toSet());
           cache.put(new ArrayByteSequence(vis), auths);

@@ -18,98 +18,222 @@
  */
 package org.apache.accumulo.visibility;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 //this class is intentionally package private and should never be made public
 class VisibilityArbiterImpl implements VisibilityArbiter {
-  private final VisibilityEvaluator visibilityEvaluator;
+  private final Predicate<BytesWrapper> authorizedPredicate;
 
-  private VisibilityArbiterImpl(AuthorizationChecker authorizations) {
-    // TODO will probably be more efficient to pass in a set as that would avoid the unescaping
-    this.visibilityEvaluator = new VisibilityEvaluator(new AuthorizationContainer() {
-      @Override
-      public boolean contains(ByteSequence auth) {
-        return authorizations.isAuthorized(auth.toArray());
+  private VisibilityArbiterImpl(AuthorizationChecker authorizationChecker) {
+    this.authorizedPredicate = auth -> authorizationChecker.isAuthorized(unescape(auth));
+  }
+
+  public VisibilityArbiterImpl(List<byte[]> authorizations) {
+    var escapedAuths =
+        authorizations.stream().map(auth -> VisibilityArbiterImpl.escape(auth, false))
+            .map(BytesWrapper::new).collect(toSet());
+    this.authorizedPredicate = escapedAuths::contains;
+  }
+
+  static byte[] unescape(BytesWrapper auth) {
+    int escapeCharCount = 0;
+    for (int i = 0; i < auth.length(); i++) {
+      byte b = auth.byteAt(i);
+      if (b == '"' || b == '\\') {
+        escapeCharCount++;
       }
-    });
+    }
+
+    if (escapeCharCount > 0) {
+      if (escapeCharCount % 2 == 1) {
+        throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+      }
+
+      byte[] unescapedCopy = new byte[auth.length() - escapeCharCount / 2];
+      int pos = 0;
+      for (int i = 0; i < auth.length(); i++) {
+        byte b = auth.byteAt(i);
+        if (b == '\\') {
+          i++;
+          b = auth.byteAt(i);
+          if (b != '"' && b != '\\') {
+            throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+          }
+        } else if (b == '"') {
+          // should only see quote after a slash
+          throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+        }
+
+        unescapedCopy[pos++] = b;
+      }
+
+      return unescapedCopy;
+    } else {
+      return auth.toArray();
+    }
+  }
+
+  /**
+   * Properly escapes an authorization string. The string can be quoted if desired.
+   *
+   * @param auth authorization string, as UTF-8 encoded bytes
+   * @param quote true to wrap escaped authorization in quotes
+   * @return escaped authorization string
+   */
+  static byte[] escape(byte[] auth, boolean quote) {
+    int escapeCount = 0;
+
+    for (byte value : auth) {
+      if (value == '"' || value == '\\') {
+        escapeCount++;
+      }
+    }
+
+    if (escapeCount > 0 || quote) {
+      byte[] escapedAuth = new byte[auth.length + escapeCount + (quote ? 2 : 0)];
+      int index = quote ? 1 : 0;
+      for (byte b : auth) {
+        if (b == '"' || b == '\\') {
+          escapedAuth[index++] = '\\';
+        }
+        escapedAuth[index++] = b;
+      }
+
+      if (quote) {
+        escapedAuth[0] = '"';
+        escapedAuth[escapedAuth.length - 1] = '"';
+      }
+
+      auth = escapedAuth;
+    }
+    return auth;
   }
 
   @Override
   public boolean isVisible(String expression) throws IllegalArgumentException {
-    try {
-      return visibilityEvaluator.evaluate(new VisibilityExpressionImpl(expression));
-    } catch (VisibilityParseException e) {
-      throw new IllegalArgumentException(e);
-    }
+
+    return evaluate(new VisibilityExpressionImpl(expression));
+
   }
 
   @Override
   public boolean isVisible(byte[] expression) throws IllegalArgumentException {
-    try {
-      return visibilityEvaluator.evaluate(new VisibilityExpressionImpl(expression));
-    } catch (VisibilityParseException e) {
-      throw new IllegalArgumentException(e);
-    }
+
+    return evaluate(new VisibilityExpressionImpl(expression));
+
   }
 
   @Override
   public boolean isVisible(VisibilityExpression expression) throws IllegalArgumentException {
     if (expression instanceof VisibilityExpressionImpl) {
-      try {
-        return visibilityEvaluator.evaluate((VisibilityExpressionImpl) expression);
-      } catch (VisibilityParseException e) {
-        throw new IllegalArgumentException(e);
-      }
+
+      return evaluate((VisibilityExpressionImpl) expression);
+
     } else {
       return isVisible(expression.getExpression());
+    }
+  }
+
+  public boolean evaluate(VisibilityExpressionImpl visibility) throws IllegalVisibilityException {
+    // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
+    // expressions can be evaluated against.
+    return evaluate(visibility.getExpressionBytes(), visibility.getParseTree());
+  }
+
+  private boolean evaluate(final byte[] expression, final VisibilityExpressionImpl.Node root)
+      throws IllegalVisibilityException {
+    if (expression.length == 0) {
+      return true;
+    }
+    switch (root.type) {
+      case TERM:
+        return authorizedPredicate.test(root.getTerm(expression));
+      case AND:
+        if (root.children == null || root.children.size() < 2) {
+          throw new IllegalVisibilityException("AND has less than 2 children",
+              root.getTerm(expression).toString(), root.start);
+        }
+        for (VisibilityExpressionImpl.Node child : root.children) {
+          if (!evaluate(expression, child)) {
+            return false;
+          }
+        }
+        return true;
+      case OR:
+        if (root.children == null || root.children.size() < 2) {
+          throw new IllegalVisibilityException("OR has less than 2 children",
+              root.getTerm(expression).toString(), root.start);
+        }
+        for (VisibilityExpressionImpl.Node child : root.children) {
+          if (evaluate(expression, child)) {
+            return true;
+          }
+        }
+        return false;
+      default:
+        throw new IllegalVisibilityException("No such node type",
+            root.getTerm(expression).toString(), root.start);
     }
   }
 
   private static class BuilderImpl
       implements AuthorizationsBuilder, FinalBuilder, ExecutionBuilder {
 
-    private AuthorizationChecker authorizations;
+    private AuthorizationChecker authorizationsChecker;
+
+    private List<byte[]> authorizations;
     private int cacheSize = 0;
+
+    private void setAuthorizations(List<byte[]> auths) {
+      if (authorizationsChecker != null) {
+        throw new IllegalStateException("Cannot set checker and authorizations");
+      }
+
+      for (byte[] auth : auths) {
+        if (auth.length == 0) {
+          throw new IllegalArgumentException("Empty authorization");
+        }
+      }
+
+      this.authorizations = auths;
+    }
 
     @Override
     public ExecutionBuilder authorizations(List<byte[]> authorizations) {
-      // TODO maybe keep as byte array?
-
-      // TODO may want to copy byte arrays
-      var authsSet =
-          authorizations.stream().map(ArrayByteSequence::new).collect(Collectors.toSet());
-      this.authorizations = auth -> authsSet.contains(new ArrayByteSequence(auth));
+      // copy the passed in byte arrays because a the caller could change them after this returns
+      setAuthorizations(authorizations.stream().map(auth -> Arrays.copyOf(auth, auth.length))
+          .collect(toUnmodifiableList()));
       return this;
     }
 
     @Override
     public ExecutionBuilder authorizations(Set<String> authorizations) {
-      var authsSet =
-          authorizations.stream().map(ArrayByteSequence::new).collect(Collectors.toSet());
-      this.authorizations = auth -> authsSet.contains(new ArrayByteSequence(auth));
+      setAuthorizations(
+          authorizations.stream().map(auth -> auth.getBytes(UTF_8)).collect(toUnmodifiableList()));
       return this;
     }
 
     @Override
     public ExecutionBuilder authorizations(String... authorizations) {
-      var authsSet =
-          Stream.of(authorizations).map(ArrayByteSequence::new).collect(Collectors.toSet());
-      this.authorizations = auth -> authsSet.contains(new ArrayByteSequence(auth));
+      setAuthorizations(Stream.of(authorizations).map(auth -> auth.getBytes(UTF_8))
+          .collect(toUnmodifiableList()));
       return this;
     }
 
     @Override
-    public ExecutionBuilder authorizations(byte[]... authorizations) {
-      return authorizations(Arrays.asList(authorizations));
-    }
-
-    @Override
     public ExecutionBuilder authorizations(AuthorizationChecker authorizationChecker) {
-      this.authorizations = authorizationChecker;
+      if (authorizations != null) {
+        throw new IllegalStateException("Cannot set checker and authorizations");
+      }
+      this.authorizationsChecker = authorizationChecker;
       return this;
     }
 
@@ -124,7 +248,17 @@ class VisibilityArbiterImpl implements VisibilityArbiter {
 
     @Override
     public VisibilityArbiter build() {
-      VisibilityArbiter visibilityArbiter = new VisibilityArbiterImpl(authorizations);
+      if (authorizations != null ^ authorizationsChecker == null) {
+        throw new IllegalStateException();
+      }
+
+      VisibilityArbiter visibilityArbiter;
+      if (authorizationsChecker != null) {
+        visibilityArbiter = new VisibilityArbiterImpl(authorizationsChecker);
+      } else {
+        visibilityArbiter = new VisibilityArbiterImpl(authorizations);
+      }
+
       if (cacheSize > 0) {
         visibilityArbiter = new CachingVisibilityArbiter(visibilityArbiter, cacheSize);
       }

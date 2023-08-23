@@ -264,6 +264,7 @@
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
                 <!-- allow the following types from the visibility API -->
                 <allow>org[.]apache[.]accumulo[.]visibility[.]VisibilityExpression</allow>
+                <allow>org[.]apache[.]accumulo[.]visibility[.]IllegalVisibilityException</allow>
               </allows>
             </configuration>
           </execution>

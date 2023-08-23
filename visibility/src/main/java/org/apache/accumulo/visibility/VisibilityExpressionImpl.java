@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See
@@ -75,12 +76,18 @@ class VisibilityExpressionImpl implements VisibilityExpression {
   Node node = null;
   private byte[] expression;
 
+  private final AtomicReference<String> expressionString = new AtomicReference<>(null);
+
   public String getExpression() {
-    // TODO avoid repeated conversion to string
-    return new String(expression, UTF_8);
+    var expStr = expressionString.get();
+    if (expStr != null) {
+      return expStr;
+    }
+
+    return expressionString.updateAndGet(es -> es == null ? new String(expression, UTF_8) : es);
   }
 
-  public byte[] getExpressionBytes() {
+  byte[] getExpressionBytes() {
     return expression;
   }
 
@@ -140,15 +147,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       return children;
     }
 
-    public int getTermStart() {
-      return start;
-    }
-
-    public int getTermEnd() {
-      return end;
-    }
-
-    public ByteSequence getTerm(byte[] expression) {
+    public BytesWrapper getTerm(byte[] expression) {
       if (type != NodeType.TERM) {
         throw new IllegalStateException();
       }
@@ -158,9 +157,9 @@ class VisibilityExpressionImpl implements VisibilityExpression {
         int qStart = start + 1;
         int qEnd = end - 1;
 
-        return new ArrayByteSequence(expression, qStart, qEnd - qStart);
+        return new BytesWrapper(expression, qStart, qEnd - qStart);
       }
-      return new ArrayByteSequence(expression, start, end - start);
+      return new BytesWrapper(expression, start, end - start);
     }
   }
 
@@ -193,8 +192,6 @@ class VisibilityExpressionImpl implements VisibilityExpression {
           return 0; // All empty nodes are the same
         case TERM:
           return Arrays.compare(text, a.start, a.end, text, b.start, b.end);
-        // return WritableComparator.compareBytes(text, a.start, a.end - a.start, text, b.start,
-        // b.end - b.start);
         case OR:
         case AND:
           diff = a.children.size() - b.children.size();
@@ -318,12 +315,12 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       if (expression.length > 0) {
         Node node = parse_(expression);
         if (node == null) {
-          throw new BadArgumentException("operator or missing parens",
+          throw new IllegalVisibilityException("operator or missing parens",
               new String(expression, UTF_8), index - 1);
         }
         if (parens != 0) {
-          throw new BadArgumentException("parenthesis mis-match", new String(expression, UTF_8),
-              index - 1);
+          throw new IllegalVisibilityException("parenthesis mis-match",
+              new String(expression, UTF_8), index - 1);
         }
         return node;
       }
@@ -333,13 +330,13 @@ class VisibilityExpressionImpl implements VisibilityExpression {
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null) {
-          throw new BadArgumentException("expression needs | or &", new String(expression, UTF_8),
-              start);
+          throw new IllegalVisibilityException("expression needs | or &",
+              new String(expression, UTF_8), start);
         }
         return new Node(start, end);
       }
       if (expr == null) {
-        throw new BadArgumentException("empty term", new String(expression, UTF_8), start);
+        throw new IllegalVisibilityException("empty term", new String(expression, UTF_8), start);
       }
       return expr;
     }
@@ -357,8 +354,8 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND)) {
-                throw new BadArgumentException("cannot mix & and |", new String(expression, UTF_8),
-                    index - 1);
+                throw new IllegalVisibilityException("cannot mix & and |",
+                    new String(expression, UTF_8), index - 1);
               }
             } else {
               result = new Node(NodeType.AND, wholeTermStart);
@@ -372,8 +369,8 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR)) {
-                throw new BadArgumentException("cannot mix | and &", new String(expression, UTF_8),
-                    index - 1);
+                throw new IllegalVisibilityException("cannot mix | and &",
+                    new String(expression, UTF_8), index - 1);
               }
             } else {
               result = new Node(NodeType.OR, wholeTermStart);
@@ -386,7 +383,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
           case '(':
             parens++;
             if (subtermStart != index - 1 || expr != null) {
-              throw new BadArgumentException("expression needs & or |",
+              throw new IllegalVisibilityException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
             expr = parse_(expression);
@@ -397,7 +394,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null) {
-              throw new BadArgumentException("empty expression not allowed",
+              throw new IllegalVisibilityException("empty expression not allowed",
                   new String(expression, UTF_8), index);
             }
             if (result == null) {
@@ -414,7 +411,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             return result;
           case '"':
             if (subtermStart != index - 1) {
-              throw new BadArgumentException("expression needs & or |",
+              throw new IllegalVisibilityException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
 
@@ -423,7 +420,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
                 index++;
                 if (index == expression.length
                     || (expression[index] != '\\' && expression[index] != '"')) {
-                  throw new BadArgumentException("invalid escaping within quotes",
+                  throw new IllegalVisibilityException("invalid escaping within quotes",
                       new String(expression, UTF_8), index - 1);
                 }
               }
@@ -431,12 +428,12 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             }
 
             if (index == expression.length) {
-              throw new BadArgumentException("unclosed quote", new String(expression, UTF_8),
+              throw new IllegalVisibilityException("unclosed quote", new String(expression, UTF_8),
                   subtermStart);
             }
 
             if (subtermStart + 1 == index) {
-              throw new BadArgumentException("empty term", new String(expression, UTF_8),
+              throw new IllegalVisibilityException("empty term", new String(expression, UTF_8),
                   subtermStart);
             }
 
@@ -447,13 +444,13 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             break;
           default:
             if (subtermComplete) {
-              throw new BadArgumentException("expression needs & or |",
+              throw new IllegalVisibilityException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
 
             byte c = expression[index - 1];
-            if (!Authorizations.isValidAuthChar(c)) {
-              throw new BadArgumentException("bad character (" + c + ")",
+            if (!isValidAuthChar(c)) {
+              throw new IllegalVisibilityException("bad character (" + c + ")",
                   new String(expression, UTF_8), index - 1);
             }
         }
@@ -467,7 +464,8 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       }
       if (result.type != NodeType.TERM) {
         if (result.children.size() < 2) {
-          throw new BadArgumentException("missing term", new String(expression, UTF_8), index);
+          throw new IllegalVisibilityException("missing term", new String(expression, UTF_8),
+              index);
         }
       }
       return result;
@@ -475,6 +473,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
   }
 
   private void validate(byte[] expression) {
+    // TODO does not seem like null should be accepted
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
       node = p.parse(expression);
@@ -502,6 +501,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
    */
   public VisibilityExpressionImpl(String expression) {
     this(expression.getBytes(UTF_8));
+    expressionString.set(expression);
   }
 
   /**
@@ -591,7 +591,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
     boolean needsQuote = false;
 
     for (byte b : term) {
-      if (!Authorizations.isValidAuthChar(b)) {
+      if (!isValidAuthChar(b)) {
         needsQuote = true;
         break;
       }
@@ -601,6 +601,36 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       return term;
     }
 
-    return VisibilityEvaluator.escape(term, true);
+    return VisibilityArbiterImpl.escape(term, true);
+  }
+
+  private static final boolean[] validAuthChars = new boolean[256];
+
+  static {
+    for (int i = 0; i < 256; i++) {
+      validAuthChars[i] = false;
+    }
+
+    for (int i = 'a'; i <= 'z'; i++) {
+      validAuthChars[i] = true;
+    }
+
+    for (int i = 'A'; i <= 'Z'; i++) {
+      validAuthChars[i] = true;
+    }
+
+    for (int i = '0'; i <= '9'; i++) {
+      validAuthChars[i] = true;
+    }
+
+    validAuthChars['_'] = true;
+    validAuthChars['-'] = true;
+    validAuthChars[':'] = true;
+    validAuthChars['.'] = true;
+    validAuthChars['/'] = true;
+  }
+
+  static final boolean isValidAuthChar(byte b) {
+    return validAuthChars[0xff & b];
   }
 }
