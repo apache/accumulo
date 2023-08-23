@@ -79,8 +79,8 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   }
 
   private static boolean isExclusiveKey(Key key) {
-    Text row = key.getRow();
-    return row.getLength() > 0 && row.getBytes()[row.getLength() - 1] == (byte) 0x00;
+    var row = key.getRowData();
+    return row.length() > 0 && row.byteAt(row.length() - 1) == (byte) 0x00;
   }
 
 }
