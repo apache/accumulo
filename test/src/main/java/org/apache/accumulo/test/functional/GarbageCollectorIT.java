@@ -21,16 +21,22 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -45,9 +51,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
@@ -71,11 +80,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
+  public static final Logger log = LoggerFactory.getLogger(GarbageCollectorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -265,6 +277,37 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   @Test
+  public void testUserUniqueMutationDelete() throws Exception {
+    killMacGc();
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      String table = getUniqueNames(1)[0];
+      c.tableOperations().create(table);
+      log.info("User GcCandidate Deletion test of table {}", table);
+      log.info("GcCandidates will be added/removed from table {}", DataLevel.USER.metaTable());
+      createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.INUSE);
+    }
+  }
+
+  @Test
+  public void testMetadataUniqueMutationDelete() throws Exception {
+    killMacGc();
+    TableId tableId = DataLevel.USER.tableId();
+    log.info("Metadata GcCandidate Deletion test of table {}", DataLevel.USER.metaTable());
+    log.info("GcCandidates will be added/removed from table {}", DataLevel.METADATA.metaTable());
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+  }
+
+  @Test
+  public void testRootUniqueMutationDelete() throws Exception {
+    killMacGc();
+    TableId tableId = DataLevel.METADATA.tableId();
+    log.info(
+        "Root GcCandidate Deletion test of table {}\n GcCandidates will be added/removed from Zookeeper",
+        DataLevel.METADATA.metaTable());
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+  }
+
+  @Test
   public void testProperPortAdvertisement() throws Exception {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -328,5 +371,62 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         bw.addMutation(delFlag);
       }
     }
+  }
+
+  private void createAndDeleteUniqueMutation(TableId tableId, Ample.GcCandidateType type) {
+    Ample ample = cluster.getServerContext().getAmple();
+    DataLevel datalevel = Ample.DataLevel.of(tableId);
+
+    // Ensure that no other candidates exist before starting test.
+    List<GcCandidate> candidates = new ArrayList<>();
+    Iterator<GcCandidate> candidate = ample.getGcCandidates(datalevel);
+
+    while (candidate.hasNext()) {
+      GcCandidate cTemp = candidate.next();
+      log.debug("PreExisting Candidate Found: {}", cTemp);
+      candidates.add(cTemp);
+    }
+    assertTrue(candidates.size() == 0);
+
+    // Create multiple candidate entries
+    List<StoredTabletFile> stfs = Stream
+        .of(new StoredTabletFile("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf"),
+            new StoredTabletFile("hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf"))
+        .collect(Collectors.toList());
+
+    log.debug("Adding candidates to table {}", tableId);
+    ample.putGcCandidates(tableId, stfs);
+    // Retrieve new entries.
+    candidate = ample.getGcCandidates(datalevel);
+
+    while (candidate.hasNext()) {
+      GcCandidate cTemp = candidate.next();
+      log.debug("Candidate Found: {}", cTemp);
+      candidates.add(cTemp);
+    }
+    assertTrue(candidates.size() == 2);
+
+    GcCandidate deleteCandidate = candidates.get(0);
+    assertNotNull(deleteCandidate);
+    ample.putGcCandidates(tableId, List.of(new StoredTabletFile(deleteCandidate.getPath())));
+
+    log.debug("Deleting Candidate {}", deleteCandidate);
+    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), Ample.GcCandidateType.INUSE);
+
+    candidate = ample.getGcCandidates(datalevel);
+
+    int counter = 0;
+    boolean foundNewCandidate = false;
+    while (candidate.hasNext()) {
+      GcCandidate gcC = candidate.next();
+      log.debug("Candidate Found: {}", gcC);
+      if (gcC.getPath().equals(deleteCandidate.getPath())) {
+        assertTrue(!Objects.equals(gcC.getUid(), deleteCandidate.getUid()));
+        foundNewCandidate = true;
+      }
+      counter++;
+    }
+    assertTrue(counter == 2);
+    assertTrue(foundNewCandidate);
   }
 }
