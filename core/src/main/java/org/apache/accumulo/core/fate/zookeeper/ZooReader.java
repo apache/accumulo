@@ -186,7 +186,8 @@ public class ZooReader {
       } catch (KeeperException e) {
         if (alwaysRetryCondition.test(e)) {
           retries.waitForNextAttempt(log,
-              "attempting to communicate with zookeeper after exception that requires retry");
+              "attempting to communicate with zookeeper after exception that always requires retry: "
+                  + e.getMessage());
           continue;
         } else if (useRetryForTransient(retries, e)) {
           continue;
@@ -205,7 +206,8 @@ public class ZooReader {
       log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
       if (retries.canRetry()) {
         retries.useRetry();
-        retries.waitForNextAttempt(log, "attempting to communicate with zookeeper after exception");
+        retries.waitForNextAttempt(log,
+            "attempting to communicate with zookeeper after exception: " + e.getMessage());
         return true;
       }
       log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",
