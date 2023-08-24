@@ -337,7 +337,7 @@ pre.logevent {
 }
 
 .icon-dot.special::before {
-  content: "\26A0"; /* Unicode character for warning symbol: ⚠ */
+  content: "\26A0"; /* Unicode character for warning symbol */
   position: absolute;
   top: 50%;
   left: 50%;
