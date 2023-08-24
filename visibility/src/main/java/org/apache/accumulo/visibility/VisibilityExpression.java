@@ -51,7 +51,7 @@ import java.util.Set;
  * The above example will print the following.
  *
  * <pre>
- * (CAT&amp;"🦖")|(CAT&amp;"🦕"&CAT)
+ * (CAT&amp;"🦖")|(CAT&amp;"🦕"&amp;CAT)
  * ("🦕"&amp;CAT)|("🦖"&amp;CAT)
  * [🦖, CAT, 🦕]
  * </pre>
