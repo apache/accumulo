@@ -504,6 +504,8 @@ public class ColumnVisibility {
     try {
       visibilityExpression = VisibilityExpression.parse(expression);
     } catch (IllegalVisibilityException e) {
+      // This is thrown for compatability with the exception this class used to throw when it parsed
+      // exceptions itself.
       throw new BadArgumentException(e);
     }
     this.expression = expression.getBytes(UTF_8);
@@ -531,6 +533,8 @@ public class ColumnVisibility {
     try {
       visibilityExpression = VisibilityExpression.parse(this.expression);
     } catch (IllegalVisibilityException e) {
+      // This is thrown for compatability with the exception this class used to throw when it parsed
+      // exceptions itself.
       throw new BadArgumentException(e);
     }
     nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));

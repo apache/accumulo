@@ -101,6 +101,8 @@ public class VisibilityEvaluator {
     try {
       return visibilityArbiter.isVisible(visibility.getVisibilityExpression());
     } catch (IllegalVisibilityException e) {
+      // This is thrown for compatability with the exception this class used to evaluate expressions
+      // itself.
       throw new VisibilityParseException(e);
     }
   }
