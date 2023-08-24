@@ -42,7 +42,7 @@ public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
   protected static final RetryFactory RETRY_FACTORY =
-      Retry.builder().maxRetries(10).retryAfter(100, MILLISECONDS).incrementBy(100, MILLISECONDS)
+      Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
           .maxWait(2, MINUTES).backOffFactor(1.5).logInterval(3, MINUTES).createFactory();
 
   protected final String keepers;
