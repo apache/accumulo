@@ -35,13 +35,9 @@ public class BulkImportStatus implements org.apache.thrift.TBase<BulkImportStatu
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new BulkImportStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new BulkImportStatusTupleSchemeFactory();
 
-  public long startTime; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String filename; // required
-  /**
-   * 
-   * @see BulkImportState
-   */
-  public @org.apache.thrift.annotation.Nullable BulkImportState state; // required
+  private long startTime; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String filename; // required
+  private @org.apache.thrift.annotation.Nullable BulkImportState state; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

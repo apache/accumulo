@@ -39,13 +39,13 @@ public class MultiScanResult implements org.apache.thrift.TBase<MultiScanResult,
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new MultiScanResultStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new MultiScanResultTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<TKeyValue> results; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,java.util.List<TRange>> failures; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<TKeyExtent> fullScans; // required
-  public @org.apache.thrift.annotation.Nullable TKeyExtent partScan; // required
-  public @org.apache.thrift.annotation.Nullable TKey partNextKey; // required
-  public boolean partNextKeyInclusive; // required
-  public boolean more; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TKeyValue> results; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,java.util.List<TRange>> failures; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TKeyExtent> fullScans; // required
+  private @org.apache.thrift.annotation.Nullable TKeyExtent partScan; // required
+  private @org.apache.thrift.annotation.Nullable TKey partNextKey; // required
+  private boolean partNextKeyInclusive; // required
+  private boolean more; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

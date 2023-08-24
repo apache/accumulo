@@ -35,9 +35,9 @@ public class IterInfo implements org.apache.thrift.TBase<IterInfo, IterInfo._Fie
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new IterInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new IterInfoTupleSchemeFactory();
 
-  public int priority; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String className; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String iterName; // required
+  private int priority; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String className; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String iterName; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

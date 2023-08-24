@@ -35,9 +35,9 @@ public class UpdateErrors implements org.apache.thrift.TBase<UpdateErrors, Updat
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new UpdateErrorsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new UpdateErrorsTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,java.lang.Long> failedExtents; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<TConstraintViolationSummary> violationSummaries; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode> authorizationFailures; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,java.lang.Long> failedExtents; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TConstraintViolationSummary> violationSummaries; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<TKeyExtent,org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode> authorizationFailures; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

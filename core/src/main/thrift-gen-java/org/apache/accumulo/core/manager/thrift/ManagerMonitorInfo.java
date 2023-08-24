@@ -41,23 +41,15 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ManagerMonitorInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ManagerMonitorInfoTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<TabletServerStatus> tServerInfo; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Byte> badTServers; // required
-  /**
-   * 
-   * @see ManagerState
-   */
-  public @org.apache.thrift.annotation.Nullable ManagerState state; // required
-  /**
-   * 
-   * @see ManagerGoalState
-   */
-  public @org.apache.thrift.annotation.Nullable ManagerGoalState goalState; // required
-  public int unassignedTablets; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TabletServerStatus> tServerInfo; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Byte> badTServers; // required
+  private @org.apache.thrift.annotation.Nullable ManagerState state; // required
+  private @org.apache.thrift.annotation.Nullable ManagerGoalState goalState; // required
+  private int unassignedTablets; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

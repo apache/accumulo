@@ -79,11 +79,12 @@ public class ManagerResource {
       String label = "";
       if (gcStatusObj != null) {
         long start = 0;
-        if (gcStatusObj.current.started != 0 || gcStatusObj.currentLog.started != 0) {
-          start = Math.max(gcStatusObj.current.started, gcStatusObj.currentLog.started);
+        if (gcStatusObj.getCurrent().isSetStarted() || gcStatusObj.getCurrentLog().isSetStarted()) {
+          start = Math.max(gcStatusObj.getCurrent().getStarted(),
+              gcStatusObj.getCurrentLog().getStarted());
           label = "Running";
-        } else if (gcStatusObj.lastLog.finished != 0) {
-          start = gcStatusObj.lastLog.finished;
+        } else if (gcStatusObj.getLastLog().isSetFinished()) {
+          start = gcStatusObj.getLastLog().getFinished();
         }
         if (start != 0) {
           gcStatus = String.valueOf(start);
@@ -93,20 +94,20 @@ public class ManagerResource {
       }
 
       List<String> tservers = new ArrayList<>();
-      for (TabletServerStatus up : mmi.tServerInfo) {
-        tservers.add(up.name);
+      for (TabletServerStatus up : mmi.getTServerInfo()) {
+        tservers.add(up.getName());
       }
-      for (DeadServer down : mmi.deadTabletServers) {
-        tservers.add(down.server);
+      for (DeadServer down : mmi.getDeadTabletServers()) {
+        tservers.add(down.getServer());
       }
       List<String> managers = monitor.getContext().getManagerLocations();
 
       String manager =
           managers.isEmpty() ? "Down" : AddressUtil.parseAddress(managers.get(0), false).getHost();
-      int onlineTabletServers = mmi.tServerInfo.size();
+      int onlineTabletServers = mmi.getTServerInfoSize();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();
-      int unassignedTablets = mmi.unassignedTablets;
+      int unassignedTablets = mmi.getUnassignedTablets();
       long entries = monitor.getTotalEntries();
       double ingest = monitor.getTotalIngestRate();
       double entriesRead = monitor.getTotalScanRate();
@@ -115,7 +116,7 @@ public class ManagerResource {
       double osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
 
       int tables = monitor.getTotalTables();
-      int deadTabletServers = mmi.deadTabletServers.size();
+      int deadTabletServers = mmi.getDeadTabletServersSize();
       long lookups = monitor.getTotalLookups();
       long uptime = System.currentTimeMillis() - monitor.getStartTime();
 
@@ -140,7 +141,7 @@ public class ManagerResource {
     if (mmi == null) {
       return NO_MANAGERS;
     }
-    return mmi.state.toString();
+    return mmi.getState().toString();
   }
 
   /**
@@ -153,7 +154,7 @@ public class ManagerResource {
     if (mmi == null) {
       return NO_MANAGERS;
     }
-    return mmi.goalState.name();
+    return mmi.getGoalState().name();
   }
 
   /**
@@ -169,9 +170,9 @@ public class ManagerResource {
 
     DeadServerList deadServers = new DeadServerList();
     // Add new dead servers to the list
-    for (DeadServer dead : mmi.deadTabletServers) {
-      deadServers
-          .addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
+    for (DeadServer dead : mmi.getDeadTabletServers()) {
+      deadServers.addDeadServer(
+          new DeadServerInformation(dead.getServer(), dead.getLastStatus(), dead.getStatus()));
     }
     return deadServers;
   }
@@ -189,9 +190,9 @@ public class ManagerResource {
 
     DeadLoggerList deadLoggers = new DeadLoggerList();
     // Add new dead loggers to the list
-    for (DeadServer dead : mmi.deadTabletServers) {
-      deadLoggers
-          .addDeadLogger(new DeadLoggerInformation(dead.server, dead.lastStatus, dead.status));
+    for (DeadServer dead : mmi.getDeadTabletServers()) {
+      deadLoggers.addDeadLogger(
+          new DeadLoggerInformation(dead.getServer(), dead.getLastStatus(), dead.getStatus()));
     }
     return deadLoggers;
   }
@@ -241,7 +242,7 @@ public class ManagerResource {
     }
 
     // Add new servers to the list
-    for (String server : mmi.serversShuttingDown) {
+    for (String server : mmi.getServersShuttingDown()) {
       servers.addServerShuttingDown(new ServerShuttingDownInformation(server));
     }
     return servers;

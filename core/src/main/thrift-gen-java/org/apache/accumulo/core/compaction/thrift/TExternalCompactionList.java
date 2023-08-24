@@ -33,7 +33,7 @@ public class TExternalCompactionList implements org.apache.thrift.TBase<TExterna
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionListStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionListTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TExternalCompaction> compactions; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TExternalCompaction> compactions; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

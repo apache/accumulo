@@ -35,9 +35,9 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TColumnStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TColumnTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnFamily; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnQualifier; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnVisibility; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnFamily; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnQualifier; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnVisibility; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

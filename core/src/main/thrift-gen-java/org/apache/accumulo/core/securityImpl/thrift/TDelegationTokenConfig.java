@@ -33,7 +33,7 @@ public class TDelegationTokenConfig implements org.apache.thrift.TBase<TDelegati
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TDelegationTokenConfigStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TDelegationTokenConfigTupleSchemeFactory();
 
-  public long lifetime; // optional
+  private long lifetime; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

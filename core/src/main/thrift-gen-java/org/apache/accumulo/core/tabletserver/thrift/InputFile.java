@@ -36,10 +36,10 @@ public class InputFile implements org.apache.thrift.TBase<InputFile, InputFile._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new InputFileStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new InputFileTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String metadataFileEntry; // required
-  public long size; // required
-  public long entries; // required
-  public long timestamp; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String metadataFileEntry; // required
+  private long size; // required
+  private long entries; // required
+  private long timestamp; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

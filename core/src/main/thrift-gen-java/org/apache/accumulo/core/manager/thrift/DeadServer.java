@@ -35,9 +35,9 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new DeadServerStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new DeadServerTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String server; // required
-  public long lastStatus; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String status; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String server; // required
+  private long lastStatus; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

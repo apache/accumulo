@@ -35,9 +35,9 @@ public class TConditionalMutation implements org.apache.thrift.TBase<TConditiona
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TConditionalMutationStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TConditionalMutationTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<TCondition> conditions; // required
-  public @org.apache.thrift.annotation.Nullable TMutation mutation; // required
-  public long id; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TCondition> conditions; // required
+  private @org.apache.thrift.annotation.Nullable TMutation mutation; // required
+  private long id; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
