@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -44,7 +43,7 @@ public class ZooReader {
 
   protected static final RetryFactory RETRY_FACTORY =
       Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
-          .maxWait(5, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createFactory();
+          .maxWait(2, MINUTES).backOffFactor(1.5).logInterval(3, MINUTES).createFactory();
 
   protected final String keepers;
   protected final int timeout;
