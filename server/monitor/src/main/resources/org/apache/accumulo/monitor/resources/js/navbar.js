@@ -41,8 +41,14 @@ const CLASS = {
  * @param {string} elementId the element id to update
  * @param {string} status the status of that element. used to set the associated color
  */
-function updateElementStatus(elementId, status) {
+function updateElementStatus(elementId, status, specialIcon = false) {
   const $element = $(`#${elementId}`);
+
+  if (specialIcon) {
+    $element.addClass('special');
+  } else {
+    $element.removeClass('special');
+  }
 
   switch (status) {
   case STATUS.ERROR:
@@ -73,12 +79,13 @@ function updateServerNotifications(statusData) {
 
     const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
     const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
+    const isManagerNotNormal = isSafeMode || isCleanStop;
 
     // setting manager status notification
     if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', STATUS.ERROR);
+      updateElementStatus('managerStatusNotification', STATUS.ERROR, true);
     } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', STATUS.WARN);
+      updateElementStatus('managerStatusNotification', STATUS.WARN, true);
     } else if (statusData.managerStatus === STATUS.OK) {
       updateElementStatus('managerStatusNotification', STATUS.OK);
     } else {
@@ -102,18 +109,18 @@ function updateServerNotifications(statusData) {
     }
 
     // Setting overall servers status notification
-    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
+    if ((statusData.managerStatus === STATUS.OK && !isManagerNotNormal) &&
       statusData.tServerStatus === STATUS.OK &&
       statusData.gcStatus === STATUS.OK) {
       updateElementStatus('statusNotification', STATUS.OK);
     } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
       statusData.tServerStatus === STATUS.ERROR ||
       statusData.gcStatus === STATUS.ERROR) {
-      updateElementStatus('statusNotification', STATUS.ERROR);
+      updateElementStatus('statusNotification', STATUS.ERROR, isManagerNotNormal);
     } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
       statusData.tServerStatus === STATUS.WARN ||
       statusData.gcStatus === STATUS.WARN) {
-      updateElementStatus('statusNotification', STATUS.WARN);
+      updateElementStatus('statusNotification', STATUS.WARN, isManagerNotNormal);
     }
 
   });
