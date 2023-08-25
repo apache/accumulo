@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -135,7 +136,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.info("Counted {} files in path: {}", before, pathString);
 
       while (true) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
         int more = countFiles(pathString);
         if (more <= before) {
           break;
@@ -146,7 +147,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       // restart GC
       log.info("Restarting GC...");
       getCluster().start();
-      sleepUninterruptibly(15, TimeUnit.SECONDS);
+      sleepUninterruptibly(15, SECONDS);
       log.info("Again Counting files in path: {}", pathString);
 
       int after = countFiles(pathString);
@@ -166,7 +167,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       addEntries(c);
       cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      sleepUninterruptibly(20, SECONDS);
       String output = "";
       while (!output.contains("has exceeded the threshold")) {
         try {
@@ -190,7 +191,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().create(table);
       // let gc run for a bit
       cluster.start();
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      sleepUninterruptibly(20, SECONDS);
       killMacGc();
       // kill tservers
       for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -308,6 +309,33 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
       fail("Could not find advertised GC address");
     }
+  }
+
+  // Verify that the GC_CANDIDATE_BATCH_SIZE can use percentage rather than a specific byte value.
+  @Test
+  public void gcTestSetGCBatchSizeAsMemoryValue() throws Exception {
+    killMacGc();
+    Thread.sleep(SECONDS.toMillis(15));
+    getCluster().getConfig().setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "50%");
+    getCluster().start();
+    Thread.sleep(SECONDS.toMillis(15));
+
+    log.info("Property.GC_CANDIDATE_BATCH_SIZE percentagpe: {}",
+        getCluster().getSiteConfiguration().get(Property.GC_CANDIDATE_BATCH_SIZE));
+    var gcBytes50 =
+        getCluster().getSiteConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
+
+    killMacGc();
+    Thread.sleep(SECONDS.toMillis(15));
+    getCluster().getConfig().setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "25%");
+    getCluster().start();
+    Thread.sleep(SECONDS.toMillis(15));
+
+    log.info("Property.GC_CANDIDATE_BATCH_SIZE percentage: {}",
+        getCluster().getSiteConfiguration().get(Property.GC_CANDIDATE_BATCH_SIZE));
+    var gcBytes25 =
+        getCluster().getSiteConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
+    assertEquals(gcBytes25 * 2, gcBytes50);
   }
 
   private int countFiles(String pathStr) throws Exception {
