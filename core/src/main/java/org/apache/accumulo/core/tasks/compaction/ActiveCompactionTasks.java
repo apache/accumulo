@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.tasks.compaction;
 
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompactionList;
-import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.ThriftSerializers;
 import org.apache.accumulo.core.util.json.GsonIgnore;
 import org.apache.thrift.TException;
@@ -32,11 +31,6 @@ public class ActiveCompactionTasks extends CompactionTask {
   private ActiveCompactionList thriftCompactions;
 
   public ActiveCompactionTasks() {}
-
-  @Override
-  public TaskMessageType getMessageType() {
-    return TaskMessageType.COMPACTION_TASK_LIST;
-  }
 
   public void setActiveCompactions(ActiveCompactionList compactions) throws TException {
     this.activeCompactions =

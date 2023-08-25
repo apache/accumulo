@@ -252,7 +252,7 @@ public class ExternalCompactionTestUtils {
     try {
       Task task = client.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTasksRunning list =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       return list.getRunning();
     } finally {
       ThriftUtil.returnClient(client, context);
@@ -266,7 +266,7 @@ public class ExternalCompactionTestUtils {
     try {
       Task task = client.getCompletedTasks(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTasksCompleted list =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_COMPLETED);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_COMPLETED);
       return list.getCompleted();
     } finally {
       ThriftUtil.returnClient(client, context);

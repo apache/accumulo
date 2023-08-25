@@ -424,7 +424,7 @@ public class CompactionCoordinator
       LOG.debug("No jobs found in group {} ", group);
     }
 
-    CompactionTask task = new CompactionTask();
+    CompactionTask task = TaskMessageType.COMPACTION_TASK.getTaskMessage();
     task.setTaskId(externalCompactionId);
 
     if (result == null) {
@@ -743,7 +743,7 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     CompactionTaskCompleted compactionTask =
-        TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_COMPLETED);
+        TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_COMPLETED);
     final TExternalCompactionJob job = compactionTask.getCompactionJob();
     final String externalCompactionId = job.getExternalCompactionId();
     final TCompactionStats stats = compactionTask.getCompactionStats();
@@ -1036,7 +1036,7 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final CompactionTaskFailed compactionTask =
-        TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_FAILED);
+        TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_FAILED);
     final TExternalCompactionJob job = compactionTask.getCompactionJob();
 
     LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
@@ -1089,7 +1089,7 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final CompactionTaskStatus statusMsg =
-        TaskMessage.convertTaskToType(taskUpdateObject, TaskMessageType.COMPACTION_TASK_STATUS);
+        TaskMessage.fromThiftTask(taskUpdateObject, TaskMessageType.COMPACTION_TASK_STATUS);
     final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
     final String externalCompactionId = statusMsg.getTaskId();
 
@@ -1165,7 +1165,7 @@ public class CompactionCoordinator
       result.putToCompactions(ecid.canonical(), trc);
     });
 
-    CompactionTasksRunning running = new CompactionTasksRunning();
+    CompactionTasksRunning running = TaskMessageType.COMPACTION_TASKS_RUNNING.getTaskMessage();
     running.setRunning(result);
     return running.toThriftTask();
 
@@ -1197,7 +1197,8 @@ public class CompactionCoordinator
       result.putToCompactions(ecid.canonical(), trc);
     });
 
-    CompactionTasksCompleted completed = new CompactionTasksCompleted();
+    CompactionTasksCompleted completed =
+        TaskMessageType.COMPACTION_TASKS_COMPLETED.getTaskMessage();
     completed.setCompleted(result);
     return completed.toThriftTask();
   }

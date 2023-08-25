@@ -164,7 +164,7 @@ public class ECAdmin implements KeywordExecutable {
       coordinatorClient = getCoordinatorClient(context);
       Task task = coordinatorClient.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTasksRunning list =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       running = list.getRunning();
       if (running == null) {
         System.out.println("No running compactions found.");

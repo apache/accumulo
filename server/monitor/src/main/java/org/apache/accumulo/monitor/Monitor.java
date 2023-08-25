@@ -680,7 +680,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       Task task = client.getRunningTasks(TraceUtil.traceInfo(), getContext().rpcCreds());
       final CompactionTasksRunning list =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
       running = list.getRunning();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);

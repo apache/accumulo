@@ -372,7 +372,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            CompactionTaskStatus status = new CompactionTaskStatus();
+            CompactionTaskStatus status = TaskMessageType.COMPACTION_TASK_STATUS.getTaskMessage();
             status.setTaskId(job.getExternalCompactionId());
             status.setCompactionStatus(update);
             coordinatorClient.taskStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
@@ -397,7 +397,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            CompactionTaskFailed failedMsg = new CompactionTaskFailed();
+            CompactionTaskFailed failedMsg =
+                TaskMessageType.COMPACTION_TASK_FAILED.getTaskMessage();
             failedMsg.setTaskId(job.getExternalCompactionId());
             failedMsg.setCompactionJob(job);
             coordinatorClient.taskFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
@@ -423,7 +424,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            CompactionTaskCompleted completedMsg = new CompactionTaskCompleted();
+            CompactionTaskCompleted completedMsg =
+                TaskMessageType.COMPACTION_TASK_COMPLETED.getTaskMessage();
             completedMsg.setTaskId(job.getExternalCompactionId());
             completedMsg.setCompactionJob(job);
             completedMsg.setCompactionStats(stats);
@@ -461,8 +463,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
             Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 runner, eci.toString());
             final CompactionTask compactionTask =
-                TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK);
+                TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK);
             currentCompactionId.set(eci);
+            LOG.debug("Received task for eci: {}, job:{}", eci.toString(),
+                compactionTask.getCompactionJob());
             return compactionTask.getCompactionJob();
           } catch (Exception e) {
             currentCompactionId.set(null);
@@ -840,7 +844,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
     ActiveCompactionList list = new ActiveCompactionList();
     compactions.forEach(c -> list.addToCompactions(c.toThrift()));
 
-    ActiveCompactionTasks tasks = new ActiveCompactionTasks();
+    ActiveCompactionTasks tasks = TaskMessageType.COMPACTION_TASK_LIST.getTaskMessage();
     tasks.setActiveCompactions(list);
 
     return tasks.toThriftTask();
@@ -864,7 +868,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, TaskRu
       job = JOB_HOLDER.getJob();
     }
 
-    CompactionTask task = new CompactionTask();
+    CompactionTask task = TaskMessageType.COMPACTION_TASK.getTaskMessage();
     if (null == job) {
       task.setCompactionJob(new TExternalCompactionJob());
     } else {

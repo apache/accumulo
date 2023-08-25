@@ -18,13 +18,8 @@
  */
 package org.apache.accumulo.core.tasks.compaction;
 
-import org.apache.accumulo.core.tasks.TaskMessageType;
-
 public class CompactionTaskFailed extends CompactionTask {
 
-  @Override
-  public TaskMessageType getMessageType() {
-    return TaskMessageType.COMPACTION_TASK_FAILED;
-  }
+  public CompactionTaskFailed() {}
 
 }

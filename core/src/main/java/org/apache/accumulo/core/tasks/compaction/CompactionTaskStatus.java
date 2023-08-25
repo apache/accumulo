@@ -20,7 +20,6 @@ package org.apache.accumulo.core.tasks.compaction;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tasks.TaskMessage;
-import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.ThriftSerializers;
 import org.apache.accumulo.core.util.json.GsonIgnore;
 import org.apache.thrift.TException;
@@ -33,11 +32,6 @@ public class CompactionTaskStatus extends TaskMessage {
   private TCompactionStatusUpdate statusThriftObj;
 
   public CompactionTaskStatus() {}
-
-  @Override
-  public TaskMessageType getMessageType() {
-    return TaskMessageType.COMPACTION_TASK_STATUS;
-  }
 
   public void setCompactionStatus(TCompactionStatusUpdate status) throws TException {
     this.status = ThriftSerializers.EXTERNAL_COMPACTION_STATUS_SERIALIZER.get().serialize(status);

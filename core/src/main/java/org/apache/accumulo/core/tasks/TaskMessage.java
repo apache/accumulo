@@ -21,6 +21,8 @@ package org.apache.accumulo.core.tasks;
 import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.accumulo.core.util.json.GsonIgnoreExclusionStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -33,20 +35,24 @@ import com.google.gson.GsonBuilder;
  */
 public abstract class TaskMessage {
 
+  private static final Logger LOG = LoggerFactory.getLogger(TaskMessage.class);
+
   @SuppressWarnings("unchecked")
-  public static <T extends TaskMessage> T convertTaskToType(Task task,
-      TaskMessageType expectedType) {
+  public static <T extends TaskMessage> T fromThiftTask(Task task, TaskMessageType expectedType) {
     TaskMessageType type = TaskMessageType.valueOf(task.getMessageType());
     Preconditions.checkState(type == expectedType,
         "Task is of type: " + type + ", expected: " + expectedType);
-    return (T) TaskMessage.GSON_FOR_TASKS.fromJson(task.getMessage(), type.getTaskClass());
+    T decodedMsg = (T) TaskMessage.GSON_FOR_TASKS.fromJson(task.getMessage(), type.getTaskClass());
+    LOG.debug("Received {}", TaskMessage.GSON_FOR_TASKS.toJson(decodedMsg));
+    return decodedMsg;
   }
 
-  public static final Gson GSON_FOR_TASKS =
+  private static final Gson GSON_FOR_TASKS =
       new GsonBuilder().setExclusionStrategies(new GsonIgnoreExclusionStrategy())
           .registerTypeHierarchyAdapter(byte[].class, new ByteArrayToBase64TypeAdapter()).create();
 
   private String taskId;
+  private TaskMessageType type;
 
   public TaskMessage() {}
 
@@ -58,13 +64,20 @@ public abstract class TaskMessage {
     this.taskId = taskId;
   }
 
-  public abstract TaskMessageType getMessageType();
+  void setMessageType(TaskMessageType type) {
+    this.type = type;
+  }
+
+  public TaskMessageType getMessageType() {
+    return type;
+  }
 
   public Task toThriftTask() {
     Task t = new Task();
     t.setTaskId(getTaskId());
     t.setMessageType(getMessageType().name());
     t.setMessage(TaskMessage.GSON_FOR_TASKS.toJson(this));
+    LOG.debug("Sending {}", TaskMessage.GSON_FOR_TASKS.toJson(this));
     return t;
   }
 

@@ -20,24 +20,18 @@ package org.apache.accumulo.core.tasks.compaction;
 
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tasks.TaskMessage;
-import org.apache.accumulo.core.tasks.TaskMessageType;
 import org.apache.accumulo.core.tasks.ThriftSerializers;
 import org.apache.accumulo.core.util.json.GsonIgnore;
 import org.apache.thrift.TException;
 
 public class CompactionTask extends TaskMessage {
 
-  public byte[] job;
+  private byte[] job;
 
   @GsonIgnore
   private TExternalCompactionJob thriftJob;
 
   public CompactionTask() {}
-
-  @Override
-  public TaskMessageType getMessageType() {
-    return TaskMessageType.COMPACTION_TASK;
-  }
 
   public void setCompactionJob(TExternalCompactionJob job) throws TException {
     this.job = ThriftSerializers.EXTERNAL_COMPACTION_JOB_SERIALIZER.get().serialize(job);

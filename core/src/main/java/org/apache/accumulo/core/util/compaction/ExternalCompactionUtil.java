@@ -171,7 +171,7 @@ public class ExternalCompactionUtil {
       client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactor, context);
       Task task = client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
       final ActiveCompactionTasks list =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK_LIST);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_LIST);
       final ActiveCompactionList acl = list.getActiveCompactions();
       return acl.getCompactions();
     } catch (ThriftSecurityException e) {
@@ -199,7 +199,7 @@ public class ExternalCompactionUtil {
       client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
       Task task = client.getRunningTask(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTask compactionTask =
-          TaskMessage.convertTaskToType(task, TaskMessageType.COMPACTION_TASK);
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK);
       TExternalCompactionJob job = compactionTask.getCompactionJob();
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());

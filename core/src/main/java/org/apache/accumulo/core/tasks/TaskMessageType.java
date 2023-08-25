@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.tasks;
 
+import java.lang.reflect.InvocationTargetException;
+
 import org.apache.accumulo.core.tasks.compaction.ActiveCompactionTasks;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.compaction.CompactionTaskCompleted;
@@ -44,6 +46,18 @@ public enum TaskMessageType {
 
   public Class<? extends TaskMessage> getTaskClass() {
     return this.taskClass;
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends TaskMessage> T getTaskMessage() {
+    try {
+      T msg = (T) this.getTaskClass().getConstructor().newInstance();
+      msg.setMessageType(this);
+      return msg;
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+        | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+      throw new RuntimeException("Error creating instance of " + taskClass);
+    }
   }
 
 }
