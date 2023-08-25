@@ -62,6 +62,10 @@ import io.opentelemetry.context.Scope;
 
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
+
+  // A log of the transactions
+  private final DatafileTransactionLog tabletLog;
+
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<StoredTabletFile,DataFileValue> datafileSizes =
       Collections.synchronizedMap(new TreeMap<>());
@@ -84,6 +88,8 @@ class DatafileManager {
     this.tablet = tablet;
     this.metadataUpdateCount =
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
+    // TODO make the max size configurable
+    this.tabletLog = new DatafileTransactionLog(tablet.getExtent(), datafileSizes.keySet(), 1000);
   }
 
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
@@ -272,6 +278,7 @@ class DatafileManager {
             log.error("Adding file that is already in set {}", tpath.getKey());
           }
           datafileSizes.put(tpath.getKey(), tpath.getValue());
+          tabletLog.bulkImported(tpath.getKey());
         }
 
         tablet.getTabletResources().importedMapFiles();
@@ -417,6 +424,7 @@ class DatafileManager {
           }
           datafileSizes.put(newFileStored, dfv);
         }
+        tabletLog.flushed(newFile);
 
         tablet.flushComplete(flushId);
 
@@ -506,6 +514,7 @@ class DatafileManager {
           datafileSizes.put(newFile.orElseThrow(), dfv);
           // could be used by a follow on compaction in a multipass compaction
         }
+        tabletLog.compacted(oldDatafiles, newFile);
 
         tablet.computeNumEntries();
 
@@ -569,6 +578,10 @@ class DatafileManager {
 
   public MetadataUpdateCount getUpdateCount() {
     return metadataUpdateCount.get();
+  }
+
+  public DatafileTransactionLog getTransactionLog() {
+    return tabletLog;
   }
 
 }
