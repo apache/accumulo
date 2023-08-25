@@ -90,32 +90,32 @@ public class MergeInfoTest {
   }
 
   @Test
-  public void testNeedsToBeChopped_DifferentTables() {
+  public void testDeleteOverlaps_DifferentTables() {
     expect(keyExtent.tableId()).andReturn(TableId.of("table1"));
     replay(keyExtent);
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
     expect(keyExtent2.tableId()).andReturn(TableId.of("table2"));
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
-    assertFalse(mi.needsToBeChopped(keyExtent2));
+    assertFalse(mi.deleteOverlaps(keyExtent2));
   }
 
   @Test
-  public void testNeedsToBeChopped_Delete_NotFollowing() {
-    testNeedsToBeChopped_Delete("somerow", false);
+  public void testDeleteOverlaps_Delete_NotFollowing() {
+    testDeleteOverlaps_Delete("somerow", false);
   }
 
   @Test
-  public void testNeedsToBeChopped_Delete_Following() {
-    testNeedsToBeChopped_Delete("prev", true);
+  public void testDeleteOverlaps_Delete_Following() {
+    testDeleteOverlaps_Delete("prev", true);
   }
 
   @Test
-  public void testNeedsToBeChopped_Delete_NoPrevEndRow() {
-    testNeedsToBeChopped_Delete(null, false);
+  public void testDeleteOverlaps_Delete_NoPrevEndRow() {
+    testDeleteOverlaps_Delete(null, false);
   }
 
-  private void testNeedsToBeChopped_Delete(String prevEndRow, boolean expected) {
+  private void testDeleteOverlaps_Delete(String prevEndRow, boolean expected) {
     expect(keyExtent.tableId()).andReturn(TableId.of("table1"));
     expect(keyExtent.endRow()).andReturn(new Text("prev"));
     replay(keyExtent);
@@ -125,7 +125,7 @@ public class MergeInfoTest {
     expectLastCall().anyTimes();
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
-    assertEquals(expected, mi.needsToBeChopped(keyExtent2));
+    assertEquals(expected, mi.deleteOverlaps(keyExtent2));
   }
 
   @Test
@@ -194,13 +194,13 @@ public class MergeInfoTest {
   }
 
   @Test
-  public void testNeedsToBeChopped() {
+  public void testDeleteOverlaps() {
     MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
-    assertTrue(info.needsToBeChopped(ke("x", "c", "b")));
+    assertTrue(info.deleteOverlaps(ke("x", "c", "b")));
     assertTrue(info.overlaps(ke("x", "c", "b")));
-    assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
-    assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
-    assertFalse(info.needsToBeChopped(ke("x", "b", "a")));
+    assertFalse(info.deleteOverlaps(ke("y", "c", "b")));
+    assertFalse(info.deleteOverlaps(ke("x", "c", "bb")));
+    assertFalse(info.deleteOverlaps(ke("x", "b", "a")));
   }
 
 }

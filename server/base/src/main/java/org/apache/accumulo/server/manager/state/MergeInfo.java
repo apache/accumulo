@@ -81,23 +81,20 @@ public class MergeInfo implements Writable {
     return this.operation.equals(Operation.DELETE);
   }
 
-  public boolean needsToBeChopped(KeyExtent otherExtent) {
-    // TODO: For now only Deletes still need chops
-    // During a delete, the block after the merge will be stretched to cover the deleted area.
-    // Therefore, it needs to be chopped
+  public boolean overlaps(KeyExtent otherExtent) {
+    boolean result = this.extent.overlaps(otherExtent);
+    if (!result && deleteOverlaps(otherExtent)) {
+      return true;
+    }
+    return result;
+  }
+
+  public boolean deleteOverlaps(KeyExtent otherExtent) {
     if (isDelete() && otherExtent.tableId().equals(extent.tableId())) {
       return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
     } else {
       return false;
     }
-  }
-
-  public boolean overlaps(KeyExtent otherExtent) {
-    boolean result = this.extent.overlaps(otherExtent);
-    if (!result && needsToBeChopped(otherExtent)) {
-      return true;
-    }
-    return result;
   }
 
   @Override

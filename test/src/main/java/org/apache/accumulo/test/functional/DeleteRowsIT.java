@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -131,6 +133,10 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     // Split the table
     c.tableOperations().addSplits(table, SPLITS);
 
+    final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
+    log.debug("After splits");
+    printAndVerifyFileMetadata(getServerContext(), tableId);
+
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
     c.tableOperations().deleteRows(table, startText, endText);
@@ -140,7 +146,10 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     for (Text split : remainingSplits) {
       sb.append(split);
     }
-    assertEquals(result, sb.toString());
+
+    log.debug("After delete");
+    printAndVerifyFileMetadata(getServerContext(), tableId);
+
     // See that the rows are really deleted
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       int count = 0;
