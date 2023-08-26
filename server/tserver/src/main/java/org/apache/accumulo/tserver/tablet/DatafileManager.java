@@ -582,14 +582,22 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
+  /**
+   * This is called when metadata file list is determined to be out of sync withe in-memory file
+   * list. Firstly the operation log is dumped. Then metadata is compared again with memory. If
+   * still out of sync, then recovery is performed dependent on the action: 1) log: nothing else is
+   * done 2) logsync: memory is synched with the metadata IFF the operation log agrees with one or
+   * the other 3) metasync: metadata files are reloaded into memory IFF the operation log agrees
+   * with metadata 4) memsync: metadata is reset with the memory files IFF the operation log agrees
+   * with memory
+   *
+   * @param context The server context
+   */
   public void handleMetadataDiff(ServerContext context) {
     String action = tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY);
     synchronized (tablet) {
       // always log the operation log regardless of the requested action
       log.error("Operation log: " + tabletLog.dumpLog());
-
-      // clear the log
-      tabletLog.flush(0);
 
       // rescan for the tablet metadata
       var tabletMeta =
@@ -610,27 +618,44 @@ class DatafileManager {
                 "Resetting operation log " + expected + " with metadata and memory " + memory);
             tabletLog.reset(memory);
           }
-        } else {
+        } else if (!action.equals("log")) {
           if (action.equals("logsync")) {
             if (expected.equals(memory)) {
-              action = "metasync";
-            } else if (expected.equals(metadata)) {
               action = "memsync";
+            } else if (expected.equals(metadata)) {
+              action = "metasync";
             } else {
-              log.error("Operation log " + expected + " does not agree with metadata " + metadata
-                  + " or memory " + memory);
-              tabletLog.reset(memory);
+              log.error("Not synching files because the operation log " + expected
+                  + " does not agree with metadata " + metadata + " or memory " + memory);
             }
           }
 
           if (action.equals("metasync")) {
-            // TODO
+            if (!expected.equals(metadata)) {
+              log.error("Not synching memory because the operation log " + expected
+                  + " does not agree with metadata " + metadata);
+            } else {
+              resetMemoryWithMetadata();
+            }
           } else if (action.equals("memsync")) {
-            // TODO
+            if (!expected.equals(memory)) {
+              log.error("Not synching metadata because the operation log " + expected
+                  + " does not agree with memory " + memory);
+            } else {
+              resetMetadataWithMemory();
+            }
           }
         }
       }
     }
+  }
+
+  private void resetMemoryWithMetadata() {
+    // TODO
+  }
+
+  private void resetMetadataWithMemory() {
+    // TODO
   }
 
 }

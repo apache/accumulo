@@ -146,6 +146,12 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
+  public void testTypeDATAFILE_RECOVERY_ACTION() {
+    valid(null, "log", "logsync", "metasync", "memsync");
+    invalid("", "other");
+  }
+
+  @Test
   public void testTypeLAST_LOCATION_MODE() {
     valid(null, "compaction", "assignment");
     invalid("", "other");

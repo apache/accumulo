@@ -1196,7 +1196,7 @@ public enum Property {
       "The maximum number of logged operations logged in memory for diagnostic purposes. "
           + "The log will can be used for diagnosing if and when in-memory file list diverges from metadata.",
       "2.1.3"),
-  TABLE_OPERATION_LOG_RECOVERY("tablet.operation.log.recovery.action", "log",
+  TABLE_OPERATION_LOG_RECOVERY("table.operation.log.recovery.action", "log",
       PropertyType.DATAFILE_RECOVERY_ACTION,
       "The action to take when the in-memory file list is found to be different than the metadata. "
           + "1) log: simply log the operation log, "
