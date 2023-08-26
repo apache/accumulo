@@ -42,10 +42,12 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -88,8 +90,8 @@ class DatafileManager {
     this.tablet = tablet;
     this.metadataUpdateCount =
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
-    // TODO make the max size configurable
-    this.tabletLog = new DatafileTransactionLog(tablet.getExtent(), datafileSizes.keySet(), 1000);
+    this.tabletLog = new DatafileTransactionLog(tablet.getExtent(), datafileSizes.keySet(),
+        tablet.getTableConfiguration());
   }
 
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
@@ -580,8 +582,55 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
-  public DatafileTransactionLog getTransactionLog() {
-    return tabletLog;
+  public void handleMetadataDiff(ServerContext context) {
+    String action = tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY);
+    synchronized (tablet) {
+      // always log the operation log regardless of the requested action
+      log.error("Operation log: " + tabletLog.dumpLog());
+
+      // clear the log
+      tabletLog.flush(0);
+
+      // rescan for the tablet metadata
+      var tabletMeta =
+          context.getAmple().readTablet(tablet.getExtent(), TabletMetadata.ColumnType.FILES);
+      if (tabletMeta == null) {
+        String msg = "Tablet " + tablet.getExtent() + " not found in metadata";
+        log.error(msg);
+      } else {
+        Set<StoredTabletFile> metadata = new HashSet<>(tabletMeta.getFiles());
+        Set<StoredTabletFile> memory = new HashSet<>(datafileSizes.keySet());
+        Set<StoredTabletFile> expected = tabletLog.getExpectedFiles();
+
+        // verify we are still out of sync
+        if (metadata.equals(memory)) {
+          log.debug("Metadata and in-memory file list are back in-sync: " + metadata);
+          if (!expected.equals(memory)) {
+            log.error(
+                "Resetting operation log " + expected + " with metadata and memory " + memory);
+            tabletLog.reset(memory);
+          }
+        } else {
+          if (action.equals("logsync")) {
+            if (expected.equals(memory)) {
+              action = "metasync";
+            } else if (expected.equals(metadata)) {
+              action = "memsync";
+            } else {
+              log.error("Operation log " + expected + " does not agree with metadata " + metadata
+                  + " or memory " + memory);
+              tabletLog.reset(memory);
+            }
+          }
+
+          if (action.equals("metasync")) {
+            // TODO
+          } else if (action.equals("memsync")) {
+            // TODO
+          }
+        }
+      }
+    }
   }
 
 }

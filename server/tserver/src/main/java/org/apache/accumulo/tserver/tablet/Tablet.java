@@ -1146,7 +1146,7 @@ public class Tablet extends TabletBase {
         String msg = "Data files in " + extent + " differ from in-memory data "
             + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
         log.error(msg);
-        log.error(getDatafileManager().getTransactionLog().toString());
+        getDatafileManager().handleMetadataDiff(context);
       }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
@@ -1213,7 +1213,7 @@ public class Tablet extends TabletBase {
       } else {
         log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
             tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
-        log.error(getDatafileManager().getTransactionLog().toString());
+        getDatafileManager().handleMetadataDiff(context);
         loggedErrorForTabletComparison = true;
       }
     } else {

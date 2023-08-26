@@ -18,81 +18,86 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+
 public abstract class DatafileTransaction {
 
-    protected final long ts = System.currentTimeMillis();
+  protected final long ts = System.currentTimeMillis();
 
-    public void apply(Set<StoredTabletFile> files) {}
+  public void apply(Set<StoredTabletFile> files) {}
 
-    public Date getDate() {
-        return Date.from(Instant.ofEpochSecond(ts));
+  public Date getDate() {
+    return Date.from(Instant.ofEpochSecond(ts));
+  }
+
+  public static class Compacted extends DatafileTransaction {
+    private final Set<StoredTabletFile> compactedFiles = new HashSet<>();
+    private final Optional<StoredTabletFile> destination;
+
+    public Compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> destination) {
+      this.compactedFiles.addAll(files);
+      this.destination = destination;
     }
 
-    public static class Compacted extends DatafileTransaction {
-        private final Set<StoredTabletFile> compactedFiles = new HashSet<>();
-        private final Optional<StoredTabletFile> destination;
-        public Compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> destination) {
-            this.compactedFiles.addAll(files);
-            this.destination = destination;
-        }
-
-        @Override
-        public void apply(Set<StoredTabletFile> files) {
-            files.removeAll(compactedFiles);
-            if (destination.isPresent()) {
-                files.add(destination.orElseThrow());
-            }
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s: Compacted %s into %s", getDate(), compactedFiles, destination);
-        }
+    @Override
+    public void apply(Set<StoredTabletFile> files) {
+      files.removeAll(compactedFiles);
+      if (destination.isPresent()) {
+        files.add(destination.orElseThrow());
+      }
     }
 
-    static class Flushed extends DatafileTransaction {
-        private final Optional<StoredTabletFile> flushFile;
-        public Flushed(Optional<StoredTabletFile> flushFile) {
-            this.flushFile = flushFile;
-        }
-        public Flushed() {
-            this.flushFile = null;
-        }
-        @Override
-        public void apply(Set<StoredTabletFile> files) {
-            if (flushFile.isPresent()) {
-                files.add(flushFile.orElseThrow());
-            }
-        }
+    @Override
+    public String toString() {
+      return String.format("%s: Compacted %s into %s", getDate(), compactedFiles, destination);
+    }
+  }
 
-        @Override
-        public String toString() {
-            return String.format("%s: Flushed into %s", getDate(), flushFile);
-        }
+  static class Flushed extends DatafileTransaction {
+    private final Optional<StoredTabletFile> flushFile;
+
+    public Flushed(Optional<StoredTabletFile> flushFile) {
+      this.flushFile = flushFile;
     }
 
-    static class BulkImported extends DatafileTransaction {
-        private final StoredTabletFile importFile;
-        public BulkImported(StoredTabletFile importFile) {
-            this.importFile = importFile;
-        }
-
-        @Override
-        public void apply(Set<StoredTabletFile> files) {
-            files.add(importFile);
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s: Imported %s", getDate(), importFile);
-        }
+    public Flushed() {
+      this.flushFile = null;
     }
+
+    @Override
+    public void apply(Set<StoredTabletFile> files) {
+      if (flushFile.isPresent()) {
+        files.add(flushFile.orElseThrow());
+      }
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s: Flushed into %s", getDate(), flushFile);
+    }
+  }
+
+  static class BulkImported extends DatafileTransaction {
+    private final StoredTabletFile importFile;
+
+    public BulkImported(StoredTabletFile importFile) {
+      this.importFile = importFile;
+    }
+
+    @Override
+    public void apply(Set<StoredTabletFile> files) {
+      files.add(importFile);
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s: Imported %s", getDate(), importFile);
+    }
+  }
 }

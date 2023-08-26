@@ -1164,6 +1164,7 @@ public enum Property {
           + " data will be reported but queries will still run possibly returning a"
           + " subset of the data.",
       "1.3.5"),
+
   TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "",
       PropertyType.STRING,
       "The security label that will be assumed at scan time if an entry does"
@@ -1191,6 +1192,18 @@ public enum Property {
       "Determines whether index block cache is enabled for a table.", "1.3.5"),
   TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN,
       "Determines whether data block cache is enabled for a table.", "1.3.5"),
+  TABLE_OPERATION_LOG_MAX_SIZE("table.operation.log.max.size", "0", PropertyType.COUNT,
+      "The maximum number of logged operations logged in memory for diagnostic purposes. "
+          + "The log will can be used for diagnosing if and when in-memory file list diverges from metadata.",
+      "2.1.3"),
+  TABLE_OPERATION_LOG_RECOVERY("tablet.operation.log.recovery.action", "log",
+      PropertyType.DATAFILE_RECOVERY_ACTION,
+      "The action to take when the in-memory file list is found to be different than the metadata. "
+          + "1) log: simply log the operation log, "
+          + "2) logsync: sync in-memory and metadata with the log, "
+          + "3) metasync: sync memory with what the metadata holds, "
+          + "4) memsyn: sync metadata with what in-memory holds.",
+      "2.1.3"),
   TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at"
           + " various stages (scopes) of interaction with a table. These properties"
