@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -35,10 +36,11 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 
 public class DatafileTransactionLog {
   private final KeyExtent extent;
-  private Set<StoredTabletFile> initialFiles = new HashSet<>();
-  private long initialTs = System.currentTimeMillis();
-  private List<DatafileTransaction> tabletLogs = Collections.synchronizedList(new LinkedList<>());
-  private AccumuloConfiguration.Deriver<MaxLogSize> maxSize;
+  private final Set<StoredTabletFile> initialFiles = new HashSet<>();
+  private final List<DatafileTransaction> tabletLogs =
+      Collections.synchronizedList(new LinkedList<>());
+  private final AccumuloConfiguration.Deriver<MaxLogSize> maxSize;
+  private volatile long initialTs = System.currentTimeMillis();
 
   public DatafileTransactionLog(KeyExtent extent, Set<StoredTabletFile> initialFiles,
       TableConfiguration configuration) {
@@ -48,13 +50,16 @@ public class DatafileTransactionLog {
   }
 
   public void reset(Set<StoredTabletFile> files) {
-    tabletLogs.clear();
-    initialFiles.clear();
-    initialFiles.addAll(files);
+    synchronized (tabletLogs) {
+      tabletLogs.clear();
+      initialFiles.clear();
+      initialFiles.addAll(files);
+      initialTs = System.currentTimeMillis();
+    }
   }
 
   public Date getInitialDate() {
-    return Date.from(Instant.ofEpochSecond(initialTs));
+    return Date.from(Instant.ofEpochMilli(initialTs));
   }
 
   private void checkSize() {
@@ -63,6 +68,12 @@ public class DatafileTransactionLog {
 
   private int getMaxSize() {
     return maxSize.derive().getMaxSize();
+  }
+
+  public List<DatafileTransaction> getTransactions() {
+    synchronized (tabletLogs) {
+      return new ArrayList<>(tabletLogs);
+    }
   }
 
   public void flush(int size) {
@@ -74,7 +85,9 @@ public class DatafileTransactionLog {
   private void applyTransaction() {
     // synchronize to keep both the remove and apply atomic
     synchronized (tabletLogs) {
-      tabletLogs.remove(0).apply(initialFiles);
+      DatafileTransaction transaction = tabletLogs.remove(0);
+      transaction.apply(initialFiles);
+      initialTs = transaction.ts;
     }
   }
 

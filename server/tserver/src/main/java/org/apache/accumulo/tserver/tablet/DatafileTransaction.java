@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -33,7 +34,20 @@ public abstract class DatafileTransaction {
   public void apply(Set<StoredTabletFile> files) {}
 
   public Date getDate() {
-    return Date.from(Instant.ofEpochSecond(ts));
+    return Date.from(Instant.ofEpochMilli(ts));
+  }
+
+  @Override
+  public int hashCode() {
+    return getDate().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof DatafileTransaction) {
+      return ((DatafileTransaction) obj).ts == ts;
+    }
+    return false;
   }
 
   public static class Compacted extends DatafileTransaction {
@@ -43,6 +57,14 @@ public abstract class DatafileTransaction {
     public Compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> destination) {
       this.compactedFiles.addAll(files);
       this.destination = destination;
+    }
+
+    public Set<StoredTabletFile> getCompactedFiles() {
+      return Collections.unmodifiableSet(compactedFiles);
+    }
+
+    public Optional<StoredTabletFile> getDestination() {
+      return destination;
     }
 
     @Override
@@ -57,6 +79,20 @@ public abstract class DatafileTransaction {
     public String toString() {
       return String.format("%s: Compacted %s into %s", getDate(), compactedFiles, destination);
     }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + compactedFiles.hashCode() + destination.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (super.equals(obj) && obj instanceof Compacted) {
+        Compacted other = (Compacted) obj;
+        return compactedFiles.equals(other.compactedFiles) && destination.equals(other.destination);
+      }
+      return false;
+    }
   }
 
   static class Flushed extends DatafileTransaction {
@@ -66,8 +102,8 @@ public abstract class DatafileTransaction {
       this.flushFile = flushFile;
     }
 
-    public Flushed() {
-      this.flushFile = null;
+    public Optional<StoredTabletFile> getFlushFile() {
+      return flushFile;
     }
 
     @Override
@@ -81,6 +117,20 @@ public abstract class DatafileTransaction {
     public String toString() {
       return String.format("%s: Flushed into %s", getDate(), flushFile);
     }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + flushFile.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (super.equals(obj) && obj instanceof Flushed) {
+        Flushed other = (Flushed) obj;
+        return flushFile.equals(other.flushFile);
+      }
+      return false;
+    }
   }
 
   static class BulkImported extends DatafileTransaction {
@@ -88,6 +138,10 @@ public abstract class DatafileTransaction {
 
     public BulkImported(StoredTabletFile importFile) {
       this.importFile = importFile;
+    }
+
+    public StoredTabletFile getImportFile() {
+      return importFile;
     }
 
     @Override
@@ -98,6 +152,20 @@ public abstract class DatafileTransaction {
     @Override
     public String toString() {
       return String.format("%s: Imported %s", getDate(), importFile);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + importFile.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (super.equals(obj) && obj instanceof Compacted) {
+        BulkImported other = (BulkImported) obj;
+        return importFile.equals(other.importFile);
+      }
+      return false;
     }
   }
 }
