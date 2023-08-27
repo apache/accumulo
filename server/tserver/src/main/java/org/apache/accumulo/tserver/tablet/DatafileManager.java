@@ -35,6 +35,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.conf.LogSync;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -594,7 +595,8 @@ class DatafileManager {
    * @param context The server context
    */
   public void handleMetadataDiff(ServerContext context) {
-    String action = tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY);
+    LogSync action =
+        LogSync.valueOf(tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY));
     synchronized (tablet) {
       // always log the operation log regardless of the requested action
       log.error("Operation log: " + tabletLog.dumpLog());
@@ -618,31 +620,31 @@ class DatafileManager {
                 "Resetting operation log " + expected + " with metadata and memory " + memory);
             tabletLog.reset(memory);
           }
-        } else if (!action.equals("log")) {
-          if (action.equals("logsync")) {
+        } else if (!action.equals(LogSync.log)) {
+          if (action.equals(LogSync.logsync)) {
             if (expected.equals(memory)) {
-              action = "memsync";
+              action = LogSync.memsync;
             } else if (expected.equals(metadata)) {
-              action = "metasync";
+              action = LogSync.metasync;
             } else {
               log.error("Not synching files because the operation log " + expected
-                  + " does not agree with metadata " + metadata + " or memory " + memory);
+                  + " does not agree with metadata " + metadata + " nor memory " + memory);
             }
           }
 
-          if (action.equals("metasync")) {
+          if (action.equals(LogSync.metasync)) {
             if (!expected.equals(metadata)) {
               log.error("Not synching memory because the operation log " + expected
                   + " does not agree with metadata " + metadata);
             } else {
-              resetMemoryWithMetadata();
+              resetMemoryWithMetadata(tabletMeta.getFilesMap());
             }
-          } else if (action.equals("memsync")) {
+          } else if (action.equals(LogSync.memsync)) {
             if (!expected.equals(memory)) {
               log.error("Not synching metadata because the operation log " + expected
                   + " does not agree with memory " + memory);
             } else {
-              resetMetadataWithMemory();
+              resetMetadataWithMemory(metadata, datafileSizes);
             }
           }
         }
@@ -650,12 +652,29 @@ class DatafileManager {
     }
   }
 
-  private void resetMemoryWithMetadata() {
-    // TODO
+  private void resetMemoryWithMetadata(Map<StoredTabletFile,DataFileValue> metadata) {
+    // increment start count before metadata update AND updating in memory map of files
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
+    try {
+      datafileSizes.clear();
+      datafileSizes.putAll(metadata);
+    } finally {
+      // increment start count before metadata update AND updating in memory map of files
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
+    }
   }
 
-  private void resetMetadataWithMemory() {
-    // TODO
+  private void resetMetadataWithMemory(Set<StoredTabletFile> metadata,
+      Map<StoredTabletFile,DataFileValue> memory) {
+    // increment start count before metadata update AND updating in memory map of files
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
+    try {
+      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), tablet.getExtent(), metadata,
+          memory);
+    } finally {
+      // increment start count before metadata update AND updating in memory map of files
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
+    }
   }
 
 }

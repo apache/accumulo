@@ -206,6 +206,19 @@ public class ManagerMetadataUtil {
     tablet.mutate();
   }
 
+  public static void replaceDatafiles(ServerContext context, KeyExtent extent,
+      Set<StoredTabletFile> datafilesToDelete, Map<StoredTabletFile,DataFileValue> datafilesToAdd) {
+
+    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
+
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+
+    datafilesToDelete.forEach(tablet::deleteFile);
+    datafilesToAdd.forEach(tablet::putFile);
+
+    tablet.mutate();
+  }
+
   /**
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
