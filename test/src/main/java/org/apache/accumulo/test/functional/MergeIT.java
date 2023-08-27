@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -52,22 +51,22 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MergeIT extends AccumuloClusterHarness {
+
+  private static final Logger log = LoggerFactory.getLogger(MergeIT.class);
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();
@@ -136,8 +135,8 @@ public class MergeIT extends AccumuloClusterHarness {
       ingest(c, 1000, 1, tableName);
       c.tableOperations().flush(tableName, null, null, true);
 
-      System.out.println("\nMetadata after Ingest");
-      printAndVerifyFileMetadata(tableId, 1);
+      log.debug("Metadata after Ingest");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 1);
 
       // Add splits so we end up with 4 tablets
       final SortedSet<Text> splits = new TreeSet<>();
@@ -146,9 +145,9 @@ public class MergeIT extends AccumuloClusterHarness {
       }
       c.tableOperations().addSplits(tableName, splits);
 
-      System.out.println("Metadata after Split");
+      log.debug("Metadata after Split");
       verify(c, 1000, 1, tableName);
-      printAndVerifyFileMetadata(tableId, 4);
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 4);
 
       // Go through and delete two blocks of rows, 101 - 200
       // and also 301 - 400 so we can test that the data doesn't come
@@ -176,13 +175,13 @@ public class MergeIT extends AccumuloClusterHarness {
       // merged back with the other tablets as it still contains the original file
       c.tableOperations().compact(tableName, new CompactionConfig().setStartRow(null)
           .setEndRow(List.copyOf(splits).get(1)).setWait(true));
-      System.out.println("Metadata after deleting rows 101 - 200 and 301 - 400");
-      printAndVerifyFileMetadata(tableId, 4);
+      log.debug("Metadata after deleting rows 101 - 200 and 301 - 400");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 4);
 
       // Merge and print results
       c.tableOperations().merge(tableName, null, null);
-      System.out.println("Metadata after Merge");
-      printAndVerifyFileMetadata(tableId, 4);
+      log.debug("Metadata after Merge");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 4);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 100, 1, tableName);
@@ -206,8 +205,8 @@ public class MergeIT extends AccumuloClusterHarness {
       ingest(c, 1000, 1, tableName);
       c.tableOperations().flush(tableName, null, null, true);
 
-      System.out.println("\nMetadata after Ingest");
-      printAndVerifyFileMetadata(tableId, 1);
+      log.debug("Metadata after Ingest");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 1);
 
       // Add splits so we end up with 10 tablets
       final SortedSet<Text> splits = new TreeSet<>();
@@ -216,9 +215,9 @@ public class MergeIT extends AccumuloClusterHarness {
       }
       c.tableOperations().addSplits(tableName, splits);
 
-      System.out.println("Metadata after Split");
+      log.debug("Metadata after Split");
       verify(c, 1000, 1, tableName);
-      printAndVerifyFileMetadata(tableId, 10);
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 10);
 
       // Go through and delete three blocks of rows
       // 151 - 250, 451 - 550, 751 - 850
@@ -237,7 +236,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
       c.tableOperations().flush(tableName, null, null, true);
 
-      System.out.println("Metadata after deleting rows 151 - 250, 451 - 550, 751 - 850");
+      log.debug("Metadata after deleting rows 151 - 250, 451 - 550, 751 - 850");
       // compact some of the tablets with deletes so we can test that the data does not come back
       c.tableOperations().compact(tableName,
           new CompactionConfig().setStartRow(new Text("row_" + String.format("%010d", 150)))
@@ -247,11 +246,11 @@ public class MergeIT extends AccumuloClusterHarness {
               .setEndRow(new Text("row_" + String.format("%010d", 850))).setWait(true));
       // Should be 16 files (10 for the original splits plus 2 extra files per deletion range across
       // tablets)
-      printAndVerifyFileMetadata(tableId, 12);
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 12);
 
       c.tableOperations().merge(tableName, null, null);
-      System.out.println("Metadata after Merge");
-      printAndVerifyFileMetadata(tableId, 12);
+      log.debug("Metadata after Merge");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 12);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 150, 1, tableName);
@@ -265,9 +264,10 @@ public class MergeIT extends AccumuloClusterHarness {
       // Compact and verify we clean up all the files and only 1 left
       // Verify only 700 entries
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      System.out.println("Metadata after compact");
+      log.debug("Metadata after compact");
       // Should just be 1 file with infinite range
-      Map<StoredTabletFile,DataFileValue> files = printAndVerifyFileMetadata(tableId, 1);
+      Map<StoredTabletFile,DataFileValue> files =
+          printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 1);
       assertEquals(new Range(), files.keySet().stream().findFirst().orElseThrow().getRange());
       assertEquals(700, files.values().stream().findFirst().orElseThrow().getNumEntries());
     }
@@ -285,8 +285,8 @@ public class MergeIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
-      System.out.println("\nMetadata after initial test run");
-      printAndVerifyFileMetadata(tableId, -1);
+      log.debug("Metadata after initial test run");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, -1);
 
       // Add splits so we end up with 10 tablets
       final SortedSet<Text> splits = new TreeSet<>();
@@ -295,7 +295,7 @@ public class MergeIT extends AccumuloClusterHarness {
       }
       c.tableOperations().addSplits(tableName, splits);
 
-      System.out.println("Metadata after Split for second time");
+      log.debug("Metadata after Split for second time");
       // Verify that the deleted rows can't be read after merge
       verify(c, 150, 1, tableName);
       verifyNoRows(c, 100, 151, tableName);
@@ -304,7 +304,7 @@ public class MergeIT extends AccumuloClusterHarness {
       verify(c, 200, 551, tableName);
       verifyNoRows(c, 100, 751, tableName);
       verify(c, 150, 851, tableName);
-      printAndVerifyFileMetadata(tableId, -1);
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, -1);
 
       c.tableOperations().flush(tableName, null, null, true);
 
@@ -322,7 +322,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
       c.tableOperations().flush(tableName, null, null, true);
 
-      System.out.println("Metadata after deleting rows 151 - 250, 451 - 550, 651 - 700, 751 - 850");
+      log.debug("Metadata after deleting rows 151 - 250, 451 - 550, 651 - 700, 751 - 850");
       // compact some of the tablets with deletes so we can test that the data does not come back
       c.tableOperations().compact(tableName,
           new CompactionConfig().setStartRow(new Text("row_" + String.format("%010d", 150)))
@@ -330,8 +330,8 @@ public class MergeIT extends AccumuloClusterHarness {
 
       // Re-merge a second time after deleting more rows
       c.tableOperations().merge(tableName, null, null);
-      System.out.println("Metadata after second Merge");
-      printAndVerifyFileMetadata(tableId, -1);
+      log.debug("Metadata after second Merge");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, -1);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 150, 1, tableName);
@@ -358,8 +358,8 @@ public class MergeIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
-      System.out.println("\nMetadata after initial no chop merge test");
-      printAndVerifyFileMetadata(tableId, 4);
+      log.debug("Metadata after initial no chop merge test");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, 4);
 
       // Add splits so we end up with 4 tablets
       final SortedSet<Text> splits = new TreeSet<>();
@@ -368,20 +368,20 @@ public class MergeIT extends AccumuloClusterHarness {
       }
       c.tableOperations().addSplits(tableName, splits);
 
-      System.out.println("Metadata after Split");
+      log.debug("Metadata after Split");
       // Verify after splitting for the second time
       verify(c, 100, 1, tableName);
       verifyNoRows(c, 100, 101, tableName);
       verify(c, 100, 201, tableName);
       verifyNoRows(c, 100, 301, tableName);
       verify(c, 600, 401, tableName);
-      printAndVerifyFileMetadata(tableId, -1);
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, -1);
 
       // Re-Merge and print results. This tests merging with files
       // that already have a range
       c.tableOperations().merge(tableName, null, null);
-      System.out.println("Metadata after Merge");
-      printAndVerifyFileMetadata(tableId, -1);
+      log.debug("Metadata after Merge");
+      printAndVerifyFileMetadata(getCluster().getServerContext(), tableId, -1);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 100, 1, tableName);
@@ -422,46 +422,6 @@ public class MergeIT extends AccumuloClusterHarness {
     } catch (AccumuloException e) {
       assertTrue(e.getMessage().contains("Did not read expected number of rows. Saw 0"));
     }
-  }
-
-  private static Map<StoredTabletFile,DataFileValue> printAndVerifyFileMetadata(TableId tableId)
-      throws TableNotFoundException {
-    return printAndVerifyFileMetadata(tableId, -1);
-  }
-
-  // TODO this is mostly a temporary method to help debug the tests. If we keep it
-  // it could be moved to a utility class
-  private static Map<StoredTabletFile,DataFileValue> printAndVerifyFileMetadata(TableId tableId,
-      int expectedFiles) {
-
-    final ServerContext ctx = getCluster().getServerContext();
-    final Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
-
-    try (TabletsMetadata tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId)
-        .fetch(ColumnType.FILES, ColumnType.PREV_ROW).build()) {
-
-      // Read each file referenced by that table
-      int i = 0;
-      for (TabletMetadata tabletMetadata : tabletsMetadata) {
-        for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()
-            .entrySet()) {
-          StoredTabletFile file = fileEntry.getKey();
-          DataFileValue dfv = fileEntry.getValue();
-          files.put(file, dfv);
-          System.out.println("Extent: " + tabletMetadata.getExtent() + "; File Name: "
-              + file.getFileName() + "; Range: " + file.getRange() + "; Entries: "
-              + dfv.getNumEntries() + ", Size: " + dfv.getSize());
-          i++;
-        }
-      }
-
-      System.out.println();
-      if (expectedFiles >= 0) {
-        assertEquals(expectedFiles, i);
-      }
-    }
-
-    return files;
   }
 
   private String[] toStrings(Collection<Text> listSplits) {
@@ -528,7 +488,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   private void runMergeTest(AccumuloClient client, String table, String[] splits,
       String[] expectedSplits, String[] inserts, String start, String end) throws Exception {
-    System.out.println(
+    log.debug(
         "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
     SortedSet<Text> splitSet = splits(splits);
@@ -549,16 +509,18 @@ public class MergeIT extends AccumuloClusterHarness {
       }
     }
 
-    System.out.println("Before Merge");
+    log.debug("Before Merge");
     client.tableOperations().flush(table, null, null, true);
-    printAndVerifyFileMetadata(TableId.of(client.tableOperations().tableIdMap().get(table)));
+    printAndVerifyFileMetadata(getCluster().getServerContext(),
+        TableId.of(client.tableOperations().tableIdMap().get(table)));
 
     client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));
 
     client.tableOperations().flush(table, null, null, true);
-    System.out.println("After Merge");
-    printAndVerifyFileMetadata(TableId.of(client.tableOperations().tableIdMap().get(table)));
+    log.debug("After Merge");
+    printAndVerifyFileMetadata(getCluster().getServerContext(),
+        TableId.of(client.tableOperations().tableIdMap().get(table)));
 
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
