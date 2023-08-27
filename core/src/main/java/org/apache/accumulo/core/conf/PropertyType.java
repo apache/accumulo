@@ -132,8 +132,8 @@ public enum PropertyType {
   DATAFILE_RECOVERY_ACTION("datafile_recovery_action",
       in(true, null, LogSync.log.name(), LogSync.logsync.name(), LogSync.metasync.name(),
           LogSync.memsync.name()),
-      "One of '" + LogSync.log + "', '" + LogSync.logsync + "', '" + LogSync.metasync + "', '"
-          + LogSync.memsync + "'"),
+      "One of '" + LogSync.log.name() + "', '" + LogSync.logsync.name() + "', '"
+          + LogSync.metasync.name() + "', '" + LogSync.memsync.name() + "'"),
   LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
       "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
 

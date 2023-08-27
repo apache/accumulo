@@ -1196,13 +1196,15 @@ public enum Property {
       "The maximum number of logged operations logged in memory for diagnostic purposes. "
           + "The log will can be used for diagnosing if and when in-memory file list diverges from metadata.",
       "2.1.3"),
-  TABLE_OPERATION_LOG_RECOVERY("table.operation.log.recovery.action", "log",
+  TABLE_OPERATION_LOG_RECOVERY("table.operation.log.recovery.action", LogSync.log.name(),
       PropertyType.DATAFILE_RECOVERY_ACTION,
-      "The action to take when the in-memory file list is found to be different than the metadata. "
-          + "1) log: simply log the operation log, "
-          + "2) logsync: sync in-memory and metadata with the log, "
-          + "3) metasync: sync memory with what the metadata holds, "
-          + "4) memsyn: sync metadata with what in-memory holds.",
+      "The action to take when the in-memory file list is found to be different than the metadata.\n1)"
+          + LogSync.log.name() + ": simply log the operation log,\n2) " + LogSync.logsync.name()
+          + ": sync in-memory and metadata with the log depending on what the operation log agrees with,\n3) "
+          + LogSync.metasync.name()
+          + ": update memory with what the metadata holds if operation log agrees with metadata,\n4) "
+          + LogSync.memsync.name()
+          + ": update metadata with what in-memory holds if operation log agrees with memory.",
       "2.1.3"),
   TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at"
