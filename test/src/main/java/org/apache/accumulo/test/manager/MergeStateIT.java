@@ -190,14 +190,16 @@ public class MergeStateIT extends ConfigurableMacBase {
       metaDataStateStore
           .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer, null)));
 
-      // onos... there's a new tablet online
-      stats = scan(state, metaDataStateStore);
-      assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
-
-      // chop it
-      m = TabletColumnFamily.createPrevRowMutation(tablet);
-      ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk"));
-      update(accumuloClient, m);
+      // No more chop compactions for merges
+      //
+      // // onos... there's a new tablet online
+      // stats = scan(state, metaDataStateStore);
+      // assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
+      //
+      // // chop it
+      // m = TabletColumnFamily.createPrevRowMutation(tablet);
+      // ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk"));
+      // update(accumuloClient, m);
 
       stats = scan(state, metaDataStateStore);
       assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
