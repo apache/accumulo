@@ -161,7 +161,7 @@ public abstract class DatafileTransaction {
 
     @Override
     public boolean equals(Object obj) {
-      if (super.equals(obj) && obj instanceof Compacted) {
+      if (super.equals(obj) && obj instanceof BulkImported) {
         BulkImported other = (BulkImported) obj;
         return importFile.equals(other.importFile);
       }

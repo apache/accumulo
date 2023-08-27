@@ -627,8 +627,8 @@ class DatafileManager {
             } else if (expected.equals(metadata)) {
               action = LogSync.metasync;
             } else {
-              log.error("Not synching files because the operation log " + expected
-                  + " does not agree with metadata " + metadata + " nor memory " + memory);
+              log.error("Not syncing files because the operation log {}"
+                  + " does not agree with metadata {}  nor memory {}", expected, metadata, memory);
             }
           }
 

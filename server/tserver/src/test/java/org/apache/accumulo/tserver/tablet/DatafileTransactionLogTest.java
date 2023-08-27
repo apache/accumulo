@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import com.google.common.collect.Sets;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -61,6 +60,8 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Sets;
 
 public class DatafileTransactionLogTest {
 
