@@ -953,8 +953,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
         try {
           MutationSet allFailures = new MutationSet();
 
-          // TODO remove single update thrift method?
-
           usid = client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
 
           List<TMutation> updates = new ArrayList<>();
