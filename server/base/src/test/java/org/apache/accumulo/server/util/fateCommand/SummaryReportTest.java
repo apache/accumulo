@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -45,8 +45,9 @@ class SummaryReportTest {
   public void blankReport() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
     FateSummaryReport report = new FateSummaryReport(idMap, null);
+
     assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
+    assertNotEquals(0, report.getReportTime());
     assertEquals(Map.of(), report.getStatusCounts());
     assertEquals(Map.of(), report.getCmdCounts());
     assertEquals(Map.of(), report.getStepCounts());
@@ -54,6 +55,7 @@ class SummaryReportTest {
     assertEquals(Set.of(), report.getStatusFilterNames());
     assertNotNull(report.toJson());
     assertNotNull(report.formatLines());
+
     log.info("json: {}", report.toJson());
     log.info("formatted: {}", report.formatLines());
   }
@@ -78,7 +80,7 @@ class SummaryReportTest {
     report.gatherTxnStatus(status1);
 
     assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
+    assertNotEquals(0, report.getReportTime());
     assertEquals(Map.of("IN_PROGRESS", 1), report.getStatusCounts());
     assertEquals(Map.of("?", 1), report.getCmdCounts());
     assertEquals(Map.of("?", 1), report.getStepCounts());
