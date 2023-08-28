@@ -25,13 +25,12 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Writer;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -52,15 +51,14 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
           TablePermission.WRITE);
 
       ServerContext context = getServerContext();
-      Writer w = new Writer(context, MetadataTable.ID);
       KeyExtent extent = new KeyExtent(TableId.of("5"), null, null);
 
       Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
-      var e = assertThrows(RuntimeException.class,
-          () -> MetadataTableUtil.update(context, w, null, m, extent));
-      assertEquals(ConstraintViolationException.class, e.getCause().getClass());
+      var e = assertThrows(IllegalArgumentException.class,
+          () -> MetadataTableUtil.update(context, null, m, extent));
+      assertEquals(MutationsRejectedException.class, e.getCause().getClass());
     }
   }
 }
