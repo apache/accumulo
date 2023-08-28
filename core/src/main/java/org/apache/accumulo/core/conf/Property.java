@@ -228,6 +228,15 @@ public enum Property {
       "2.1.0"),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls", "1.3.5"),
+  GENERAL_FILENAME_PREFIX("general.filename.", null, PropertyType.PREFIX,
+      "Properties related to filename allocations.", "2.1.3"),
+  GENERAL_FILENAME_BASE_ALLOCATION("general.filename.base.allocation", "100", PropertyType.COUNT,
+      "The minimum number of filenames that will be allocated from Zookeeper at a time.", "2.1.3"),
+  GENERAL_FILENAME_JITTER_ALLOCATION("general.filename.jitter.allocation", "100",
+      PropertyType.COUNT,
+      "The size of the jitter that will be applied to the `general.filename.base.allocation` when allocating "
+          + "filenames from Zookeeper. This will result in an allocation between base and (base + jitter).",
+      "2.1.3"),
   @Experimental
   GENERAL_RPC_SERVER_TYPE("general.rpc.server.type", "", PropertyType.STRING,
       "Type of Thrift server to instantiate, see "
@@ -1830,6 +1839,7 @@ public enum Property {
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.startsWith(Property.GENERAL_FILENAME_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }
