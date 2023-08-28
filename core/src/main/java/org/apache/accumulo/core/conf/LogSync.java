@@ -19,7 +19,8 @@
 package org.apache.accumulo.core.conf;
 
 /**
- * Constants to be used for the DatafileTransactionLog
+ * Constants to be used for the DatafileTransactionLog. Note these are lowercase since out
+ * convention for property values are lowercase.
  */
 public enum LogSync {
   log, logsync, metasync, memsync

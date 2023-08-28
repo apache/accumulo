@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -595,18 +596,26 @@ class DatafileManager {
    * @param context The server context
    */
   public void handleMetadataDiff(ServerContext context) {
-    LogSync action =
-        LogSync.valueOf(tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY));
+    LogSync action = LogSync.log;
+
+    try {
+      action = LogSync
+          .valueOf(tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY));
+    } catch (Exception e) {
+      log.error("Failed to parse property value {} into one of {}.  Defaulting to {}.",
+          tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY),
+          Arrays.asList(LogSync.values()), action);
+    }
+
     synchronized (tablet) {
       // always log the operation log regardless of the requested action
-      log.error("Operation log: " + tabletLog.dumpLog());
+      log.error("Operation log: {}", tabletLog.dumpLog());
 
       // rescan for the tablet metadata
       var tabletMeta =
           context.getAmple().readTablet(tablet.getExtent(), TabletMetadata.ColumnType.FILES);
       if (tabletMeta == null) {
-        String msg = "Tablet " + tablet.getExtent() + " not found in metadata";
-        log.error(msg);
+        log.error("Tablet {} not found in metadata", tablet.getExtent());
       } else {
         Set<StoredTabletFile> metadata = new HashSet<>(tabletMeta.getFiles());
         Set<StoredTabletFile> memory = new HashSet<>(datafileSizes.keySet());
@@ -614,36 +623,51 @@ class DatafileManager {
 
         // verify we are still out of sync
         if (metadata.equals(memory)) {
-          log.debug("Metadata and in-memory file list are back in-sync: " + metadata);
+          log.debug("Metadata and in-memory file list are back in-sync: {}", metadata);
           if (!expected.equals(memory)) {
-            log.error(
-                "Resetting operation log " + expected + " with metadata and memory " + memory);
+            log.error("Resetting operation log {} with metadata and memory {}", expected, memory);
             tabletLog.reset(memory);
           }
         } else if (!action.equals(LogSync.log)) {
           if (action.equals(LogSync.logsync)) {
+            // LogSync.logsync means that we will sync depending on which side the log agrees with
             if (expected.equals(memory)) {
+              // we agree with memory, so sync the metadata with the memory
               action = LogSync.memsync;
             } else if (expected.equals(metadata)) {
+              // we agree with the metadata, so sync the memory with the metadata
               action = LogSync.metasync;
             } else {
-              log.error("Not syncing files because the operation log {}"
-                  + " does not agree with metadata {}  nor memory {}", expected, metadata, memory);
+              // nothing agrees.... so nothing more
+              log.error(
+                  "Not syncing files because the operation log {}"
+                      + " does not agree with metadata {}  nor memory {}",
+                  expected, metadata, memory);
             }
           }
 
           if (action.equals(LogSync.metasync)) {
+            // metasync means update memory with that of metadata
             if (!expected.equals(metadata)) {
-              log.error("Not synching memory because the operation log " + expected
-                  + " does not agree with metadata " + metadata);
+              log.error(
+                  "Not synching memory because the operation log {} does not agree with metadata ",
+                  expected, metadata);
             } else {
+              log.warn(
+                  "Synching memory with metadata because the operation log agrees with metadata {}",
+                  expected);
               resetMemoryWithMetadata(tabletMeta.getFilesMap());
             }
           } else if (action.equals(LogSync.memsync)) {
+            // memsync means update metadata with that of memory
             if (!expected.equals(memory)) {
-              log.error("Not synching metadata because the operation log " + expected
-                  + " does not agree with memory " + memory);
+              log.error(
+                  "Not synching metadata because the operation log {} does not agree with memory {}",
+                  expected, memory);
             } else {
+              log.warn(
+                  "Synching metadata with memory because the operation log agrees with memory {}",
+                  expected);
               resetMetadataWithMemory(metadata, datafileSizes);
             }
           }
