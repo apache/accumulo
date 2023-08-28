@@ -39,7 +39,7 @@ public abstract class DatafileTransaction {
 
   @Override
   public int hashCode() {
-    return getDate().hashCode();
+    return Long.hashCode(ts);
   }
 
   @Override
