@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import java.util.Set;
 
 /**
  * An opaque type that contains a parsed visibility expression. When this type is constructed with
- * {@link #parse(String)} and then used with
- * {@link VisibilityArbiter#isVisible(VisibilityExpression)} it can be more efficient and avoid
- * reparsing the expression.
+ * {@link #of(String)} and then used with {@link AccessEvaluator#isAccessible(AccessExpression)} it
+ * can be more efficient and avoid reparsing the expression.
  *
  * <p>
  * For reviewers : this type is similar to ColumnVisibility. This interface and impl have goal of
@@ -37,11 +36,11 @@ import java.util.Set;
  *
  * <pre>
  *     {@code
- * var auth1 = VisibilityExpression.quote("CAT");
- * var auth2 = VisibilityExpression.quote("🦕");
- * var auth3 = VisibilityExpression.quote("🦖");
- * var visExp = VisibilityExpression
- *     .parse("(" + auth1 + "&" + auth3 + ")|(" + auth1 + "&" + auth2 + "&" + auth1 + ")");
+ * var auth1 = AccessExpression.quote("CAT");
+ * var auth2 = AccessExpression.quote("🦕");
+ * var auth3 = AccessExpression.quote("🦖");
+ * var visExp = AccessExpression
+ *     .of("(" + auth1 + "&" + auth3 + ")|(" + auth1 + "&" + auth2 + "&" + auth1 + ")");
  * System.out.println(visExp.getExpression());
  * System.out.println(visExp.normalize());
  * System.out.println(visExp.getAuthorizations());
@@ -59,7 +58,7 @@ import java.util.Set;
  * @since ???
  */
 // TODO could name VisibilityLabel
-public interface VisibilityExpression {
+public interface AccessExpression {
 
   /**
    * @return the expression that was used to create this object.
@@ -80,15 +79,20 @@ public interface VisibilityExpression {
    */
   Set<String> getAuthorizations();
 
-  // TODO builder instead? or use name of()?
-  static VisibilityExpression parse(String expression) throws IllegalVisibilityException {
-    return new VisibilityExpressionImpl(expression);
+  static AccessExpression of(String expression) throws IllegalAccessExpressionException {
+    return new AccessExpressionImpl(expression);
   }
 
-  // TODO builder instead? or use name of()?
   // TODO document utf8 expectations
-  static VisibilityExpression parse(byte[] expression) throws IllegalVisibilityException {
-    return new VisibilityExpressionImpl(expression);
+  static AccessExpression of(byte[] expression) throws IllegalAccessExpressionException {
+    return new AccessExpressionImpl(expression);
+  }
+
+  /**
+   * @return an empty VisibilityExpression.
+   */
+  static AccessExpression of() {
+    return AccessExpressionImpl.EMPTY;
   }
 
   /**
@@ -97,7 +101,7 @@ public interface VisibilityExpression {
    * method will quote if its needed.
    */
   static byte[] quote(byte[] authorization) {
-    return VisibilityExpressionImpl.quote(authorization);
+    return AccessExpressionImpl.quote(authorization);
   }
 
   /**
@@ -106,14 +110,7 @@ public interface VisibilityExpression {
    * method will quote if its needed.
    */
   static String quote(String authorization) {
-    return VisibilityExpressionImpl.quote(authorization);
+    return AccessExpressionImpl.quote(authorization);
   }
 
-  /**
-   * @return an empty VisibilityExpression.
-   */
-  // TODO could name of()
-  static VisibilityExpression empty() {
-    return VisibilityExpressionImpl.EMPTY;
-  }
 }

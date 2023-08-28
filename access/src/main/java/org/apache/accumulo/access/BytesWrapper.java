@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 

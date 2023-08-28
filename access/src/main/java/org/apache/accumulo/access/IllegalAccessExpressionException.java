@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import java.util.regex.PatternSyntaxException;
 
@@ -25,10 +25,10 @@ import java.util.regex.PatternSyntaxException;
  *
  * @since ???
  */
-public final class IllegalVisibilityException extends PatternSyntaxException {
+public final class IllegalAccessExpressionException extends PatternSyntaxException {
   private static final long serialVersionUID = 1L;
 
-  public IllegalVisibilityException(String desc, String badarg, int index) {
+  public IllegalAccessExpressionException(String desc, String badarg, int index) {
     super(desc, badarg, index);
   }
 }

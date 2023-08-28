@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -33,8 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See
- * {@link VisibilityExpressionImpl#VisibilityExpressionImpl(byte[])} for the definition of an
- * expression.
+ * {@link AccessExpressionImpl#AccessExpressionImpl(byte[])} for the definition of an expression.
  *
  * <p>
  * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the binary
@@ -71,7 +70,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * &quot;A#C&quot; &amp; B
  * </pre>
  */
-class VisibilityExpressionImpl implements VisibilityExpression {
+class AccessExpressionImpl implements AccessExpression {
 
   Node node = null;
   private byte[] expression;
@@ -104,7 +103,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
   private static final Node EMPTY_NODE = new Node(NodeType.EMPTY, 0);
 
   // must create this after creating EMPTY_NODE
-  static final VisibilityExpression EMPTY = new VisibilityExpressionImpl("");
+  static final AccessExpression EMPTY = new AccessExpressionImpl("");
 
   /**
    * A node in the parse tree for a visibility expression.
@@ -315,11 +314,11 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       if (expression.length > 0) {
         Node node = parse_(expression);
         if (node == null) {
-          throw new IllegalVisibilityException("operator or missing parens",
+          throw new IllegalAccessExpressionException("operator or missing parens",
               new String(expression, UTF_8), index - 1);
         }
         if (parens != 0) {
-          throw new IllegalVisibilityException("parenthesis mis-match",
+          throw new IllegalAccessExpressionException("parenthesis mis-match",
               new String(expression, UTF_8), index - 1);
         }
         return node;
@@ -330,13 +329,14 @@ class VisibilityExpressionImpl implements VisibilityExpression {
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null) {
-          throw new IllegalVisibilityException("expression needs | or &",
+          throw new IllegalAccessExpressionException("expression needs | or &",
               new String(expression, UTF_8), start);
         }
         return new Node(start, end);
       }
       if (expr == null) {
-        throw new IllegalVisibilityException("empty term", new String(expression, UTF_8), start);
+        throw new IllegalAccessExpressionException("empty term", new String(expression, UTF_8),
+            start);
       }
       return expr;
     }
@@ -354,7 +354,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND)) {
-                throw new IllegalVisibilityException("cannot mix & and |",
+                throw new IllegalAccessExpressionException("cannot mix & and |",
                     new String(expression, UTF_8), index - 1);
               }
             } else {
@@ -369,7 +369,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR)) {
-                throw new IllegalVisibilityException("cannot mix | and &",
+                throw new IllegalAccessExpressionException("cannot mix | and &",
                     new String(expression, UTF_8), index - 1);
               }
             } else {
@@ -383,7 +383,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
           case '(':
             parens++;
             if (subtermStart != index - 1 || expr != null) {
-              throw new IllegalVisibilityException("expression needs & or |",
+              throw new IllegalAccessExpressionException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
             expr = parse_(expression);
@@ -394,7 +394,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null) {
-              throw new IllegalVisibilityException("empty expression not allowed",
+              throw new IllegalAccessExpressionException("empty expression not allowed",
                   new String(expression, UTF_8), index);
             }
             if (result == null) {
@@ -411,7 +411,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             return result;
           case '"':
             if (subtermStart != index - 1) {
-              throw new IllegalVisibilityException("expression needs & or |",
+              throw new IllegalAccessExpressionException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
 
@@ -420,7 +420,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
                 index++;
                 if (index == expression.length
                     || (expression[index] != '\\' && expression[index] != '"')) {
-                  throw new IllegalVisibilityException("invalid escaping within quotes",
+                  throw new IllegalAccessExpressionException("invalid escaping within quotes",
                       new String(expression, UTF_8), index - 1);
                 }
               }
@@ -428,13 +428,13 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             }
 
             if (index == expression.length) {
-              throw new IllegalVisibilityException("unclosed quote", new String(expression, UTF_8),
-                  subtermStart);
+              throw new IllegalAccessExpressionException("unclosed quote",
+                  new String(expression, UTF_8), subtermStart);
             }
 
             if (subtermStart + 1 == index) {
-              throw new IllegalVisibilityException("empty term", new String(expression, UTF_8),
-                  subtermStart);
+              throw new IllegalAccessExpressionException("empty term",
+                  new String(expression, UTF_8), subtermStart);
             }
 
             index++;
@@ -444,13 +444,13 @@ class VisibilityExpressionImpl implements VisibilityExpression {
             break;
           default:
             if (subtermComplete) {
-              throw new IllegalVisibilityException("expression needs & or |",
+              throw new IllegalAccessExpressionException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
             }
 
             byte c = expression[index - 1];
             if (!isValidAuthChar(c)) {
-              throw new IllegalVisibilityException("bad character (" + c + ")",
+              throw new IllegalAccessExpressionException("bad character (" + c + ")",
                   new String(expression, UTF_8), index - 1);
             }
         }
@@ -464,7 +464,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       }
       if (result.type != NodeType.TERM) {
         if (result.children.size() < 2) {
-          throw new IllegalVisibilityException("missing term", new String(expression, UTF_8),
+          throw new IllegalAccessExpressionException("missing term", new String(expression, UTF_8),
               index);
         }
       }
@@ -487,9 +487,9 @@ class VisibilityExpressionImpl implements VisibilityExpression {
    * Creates an empty visibility. Normally, elements with empty visibility can be seen by everyone.
    * Though, one could change this behavior with filters.
    *
-   * @see #VisibilityExpressionImpl(String)
+   * @see #AccessExpressionImpl(String)
    */
-  public VisibilityExpressionImpl() {
+  public AccessExpressionImpl() {
     this(new byte[] {});
   }
 
@@ -499,7 +499,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
    * @param expression An expression of the rights needed to see this mutation. The expression
    *        syntax is defined at the class-level documentation
    */
-  public VisibilityExpressionImpl(String expression) {
+  public AccessExpressionImpl(String expression) {
     this(expression.getBytes(UTF_8));
     expressionString.set(expression);
   }
@@ -508,9 +508,9 @@ class VisibilityExpressionImpl implements VisibilityExpression {
    * Creates a column visibility for a Mutation from a string already encoded in UTF-8 bytes.
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
-   * @see #VisibilityExpressionImpl(String)
+   * @see #AccessExpressionImpl(String)
    */
-  public VisibilityExpressionImpl(byte[] expression) {
+  public AccessExpressionImpl(byte[] expression) {
     // TODO copy bytes to make immutable?
     validate(expression);
   }
@@ -521,12 +521,12 @@ class VisibilityExpressionImpl implements VisibilityExpression {
   }
 
   /**
-   * See {@link #equals(VisibilityExpressionImpl)}
+   * See {@link #equals(AccessExpressionImpl)}
    */
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof VisibilityExpressionImpl) {
-      return equals((VisibilityExpressionImpl) obj);
+    if (obj instanceof AccessExpressionImpl) {
+      return equals((AccessExpressionImpl) obj);
     }
     return false;
   }
@@ -538,7 +538,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
    * @param otherLe other column visibility
    * @return true if this visibility equals the other via string comparison
    */
-  public boolean equals(VisibilityExpressionImpl otherLe) {
+  public boolean equals(AccessExpressionImpl otherLe) {
     return Arrays.equals(expression, otherLe.expression);
   }
 
@@ -601,7 +601,7 @@ class VisibilityExpressionImpl implements VisibilityExpression {
       return term;
     }
 
-    return VisibilityArbiterImpl.escape(term, true);
+    return AccessEvaluatorImpl.escape(term, true);
   }
 
   private static final boolean[] validAuthChars = new boolean[256];

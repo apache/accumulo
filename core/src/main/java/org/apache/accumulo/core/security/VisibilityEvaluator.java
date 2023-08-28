@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.core.security;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
-import org.apache.accumulo.visibility.IllegalVisibilityException;
-import org.apache.accumulo.visibility.VisibilityArbiter;
 
 /**
  * A class which evaluates visibility expressions against a set of authorizations.
  */
 public class VisibilityEvaluator {
-  private final VisibilityArbiter visibilityArbiter;
+  private final AccessEvaluator accessEvaluator;
 
   /**
    * Properly escapes an authorization string. The string can be quoted if desired.
@@ -72,7 +72,7 @@ public class VisibilityEvaluator {
    */
   public VisibilityEvaluator(AuthorizationContainer authsContainer) {
     // TODO need to look into efficiency and correctness of this
-    this.visibilityArbiter = VisibilityArbiter.builder()
+    this.accessEvaluator = AccessEvaluator.builder()
         .authorizations(auth -> authsContainer.contains(new ArrayByteSequence(auth))).build();
   }
 
@@ -83,8 +83,8 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.visibilityArbiter =
-        VisibilityArbiter.builder().authorizations(authorizations.getAuthorizations()).build();
+    this.accessEvaluator =
+        AccessEvaluator.builder().authorizations(authorizations.getAuthorizations()).build();
   }
 
   /**
@@ -99,8 +99,8 @@ public class VisibilityEvaluator {
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     try {
-      return visibilityArbiter.isVisible(visibility.getVisibilityExpression());
-    } catch (IllegalVisibilityException e) {
+      return accessEvaluator.isAccessible(visibility.getVisibilityExpression());
+    } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to evaluate expressions
       // itself.
       throw new VisibilityParseException(e);

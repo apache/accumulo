@@ -30,8 +30,8 @@ Goals of this prototype.
 
 The following types constitute the public API of this library.  All other types are package private and are not part of the public API.
 
-  * [IllegalVisibilityException](src/main/java/org/apache/accumulo/visibility/IllegalVisibilityException.java).
-  * [VisibilityArbiter](src/main/java/org/apache/accumulo/visibility/VisibilityArbiter.java).
-  * [VisibilityExpression](src/main/java/org/apache/accumulo/visibility/VisibilityExpression.java).
+  * [IllegalAccessExpressionException](src/main/java/org/apache/accumulo/access/IllegalAccessExpressionException.java).
+  * [AccessEvaluator](src/main/java/org/apache/accumulo/access/AccessEvaluator.java).
+  * [AccessExpression](src/main/java/org/apache/accumulo/access/AccessExpression.java).
 
-For an example of using this library see the [unit test](src/test/java/org/apache/accumulo/visibility/VisibilityArbiterTest.java).
+For an example of using this library see the [unit test](src/test/java/org/apache/accumulo/access/VisibilityArbiterTest.java).

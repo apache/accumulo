@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-class CachingVisibilityArbiter implements VisibilityArbiter {
+class CachingAccessEvaluator implements AccessEvaluator {
 
-  private final VisibilityArbiter visibilityArbiter;
+  private final AccessEvaluator accessEvaluator;
   private final LinkedHashMap<String,Boolean> cache;
 
-  CachingVisibilityArbiter(VisibilityArbiter visibilityArbiter, int cacheSize) {
+  CachingAccessEvaluator(AccessEvaluator accessEvaluator, int cacheSize) {
     if (cacheSize <= 0) {
       throw new IllegalArgumentException();
     }
-    this.visibilityArbiter = visibilityArbiter;
+    this.accessEvaluator = accessEvaluator;
     this.cache = new LinkedHashMap<>(cacheSize, 0.75f, true) {
       @Override
       public boolean removeEldestEntry(Map.Entry<String,Boolean> entry) {
@@ -42,19 +42,19 @@ class CachingVisibilityArbiter implements VisibilityArbiter {
   }
 
   @Override
-  public boolean isVisible(String expression) throws IllegalArgumentException {
-    return cache.computeIfAbsent(expression, visibilityArbiter::isVisible);
+  public boolean isAccessible(String expression) throws IllegalArgumentException {
+    return cache.computeIfAbsent(expression, accessEvaluator::isAccessible);
   }
 
   @Override
-  public boolean isVisible(byte[] expression) throws IllegalArgumentException {
+  public boolean isAccessible(byte[] expression) throws IllegalArgumentException {
     // TODO avoid converting to string, maybe create separate cache for byte arrays keys
-    return isVisible(new String(expression, UTF_8));
+    return isAccessible(new String(expression, UTF_8));
   }
 
   @Override
-  public boolean isVisible(VisibilityExpression expression) throws IllegalArgumentException {
+  public boolean isAccessible(AccessExpression expression) throws IllegalArgumentException {
     return cache.computeIfAbsent(expression.getExpression(),
-        k -> visibilityArbiter.isVisible(expression));
+        k -> accessEvaluator.isAccessible(expression));
   }
 }

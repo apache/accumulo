@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import java.util.List;
 import java.util.Set;
@@ -33,30 +33,28 @@ import java.util.Set;
  * {@code
  * var evaluator = VisibilityArbiter.builder().authorizations("ALPHA", "OMEGA").build();
  *
- * System.out.println(evaluator.isVisible("ALPHA&BETA"));
- * System.out.println(evaluator.isVisible("(ALPHA|BETA)&(OMEGA|EPSILON)"));
+ * System.out.println(evaluator.isAccessible("ALPHA&BETA"));
+ * System.out.println(evaluator.isAccessible("(ALPHA|BETA)&(OMEGA|EPSILON)"));
  * }
  * </pre>
  *
  *
  * @since ???
  */
-// TODO is there a better name? maybe use VisibilityEvaluator even though its a reuse of an existing
-// type name in another accumulo package.
-public interface VisibilityArbiter {
+public interface AccessEvaluator {
   /**
    * @return true if the expression is visible using the authorizations supplied at creation, false
    *         otherwise
    * @throws IllegalArgumentException when the expression is not valid
    */
-  boolean isVisible(String expression) throws IllegalVisibilityException;
+  boolean isAccessible(String accessExpression) throws IllegalAccessExpressionException;
 
-  boolean isVisible(byte[] expression) throws IllegalVisibilityException;
+  boolean isAccessible(byte[] accessExpression) throws IllegalAccessExpressionException;
 
   /**
    * TODO documnet that may be more efficient
    */
-  boolean isVisible(VisibilityExpression expression) throws IllegalVisibilityException;
+  boolean isAccessible(AccessExpression accessExpression) throws IllegalAccessExpressionException;
 
   // TODO decide if Charsequence should be used in API or not
 
@@ -84,10 +82,10 @@ public interface VisibilityArbiter {
   }
 
   interface FinalBuilder {
-    VisibilityArbiter build();
+    AccessEvaluator build();
   }
 
   static AuthorizationsBuilder builder() {
-    return VisibilityArbiterImpl.builder();
+    return AccessEvaluatorImpl.builder();
   }
 }

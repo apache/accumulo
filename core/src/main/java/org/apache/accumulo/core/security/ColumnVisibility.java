@@ -29,12 +29,12 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.access.AccessExpression;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.visibility.IllegalVisibilityException;
-import org.apache.accumulo.visibility.VisibilityExpression;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 
@@ -86,7 +86,7 @@ public class ColumnVisibility {
   private final Supplier<Node> nodeSupplier;
   private final byte[] expression;
 
-  private final VisibilityExpression visibilityExpression;
+  private final AccessExpression accessExpression;
 
   /**
    * Accessor for the underlying byte string.
@@ -97,8 +97,8 @@ public class ColumnVisibility {
     return expression;
   }
 
-  public VisibilityExpression getVisibilityExpression() {
-    return visibilityExpression;
+  public AccessExpression getVisibilityExpression() {
+    return accessExpression;
   }
 
   /**
@@ -302,7 +302,7 @@ public class ColumnVisibility {
    * @return normalized expression in byte[] form
    */
   public byte[] flatten() {
-    return visibilityExpression.normalize().getBytes(UTF_8);
+    return accessExpression.normalize().getBytes(UTF_8);
   }
 
   private static class ColumnVisibilityParser {
@@ -489,7 +489,7 @@ public class ColumnVisibility {
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility() {
-    visibilityExpression = VisibilityExpression.empty();
+    accessExpression = AccessExpression.of();
     expression = EMPTY_BYTES;
     nodeSupplier = Suppliers.memoize(() -> createNode(expression));
   }
@@ -502,8 +502,8 @@ public class ColumnVisibility {
    */
   public ColumnVisibility(String expression) {
     try {
-      visibilityExpression = VisibilityExpression.parse(expression);
-    } catch (IllegalVisibilityException e) {
+      accessExpression = AccessExpression.of(expression);
+    } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
@@ -531,8 +531,8 @@ public class ColumnVisibility {
   public ColumnVisibility(byte[] expression) {
     this.expression = expression;
     try {
-      visibilityExpression = VisibilityExpression.parse(this.expression);
-    } catch (IllegalVisibilityException e) {
+      accessExpression = AccessExpression.of(this.expression);
+    } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
@@ -602,7 +602,7 @@ public class ColumnVisibility {
    * @return quoted term (unquoted if unnecessary)
    */
   public static String quote(String term) {
-    return VisibilityExpression.quote(term);
+    return AccessExpression.quote(term);
   }
 
   /**
@@ -614,6 +614,6 @@ public class ColumnVisibility {
    * @see #quote(String)
    */
   public static byte[] quote(byte[] term) {
-    return VisibilityExpression.quote(term);
+    return AccessExpression.quote(term);
   }
 }

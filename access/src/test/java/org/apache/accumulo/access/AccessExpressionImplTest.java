@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Comparator;
 
-import org.apache.accumulo.visibility.VisibilityExpressionImpl.Node;
-import org.apache.accumulo.visibility.VisibilityExpressionImpl.NodeComparator;
-import org.apache.accumulo.visibility.VisibilityExpressionImpl.NodeType;
+import org.apache.accumulo.access.AccessExpressionImpl.Node;
+import org.apache.accumulo.access.AccessExpressionImpl.NodeComparator;
+import org.apache.accumulo.access.AccessExpressionImpl.NodeType;
 import org.junit.jupiter.api.Test;
 
-public class VisibilityExpressionImplTest {
+public class AccessExpressionImplTest {
 
   @Test
   public void testParseTree() {
@@ -84,14 +84,14 @@ public class VisibilityExpressionImplTest {
   @Test
   public void testEmptyParseTreesAreEqual() {
     Comparator<Node> comparator = new NodeComparator(new byte[] {});
-    Node empty = new VisibilityExpressionImpl().getParseTree();
+    Node empty = new AccessExpressionImpl().getParseTree();
     assertEquals(0, comparator.compare(empty, parse("")));
   }
 
   @Test
   public void testParseTreesOrdering() {
     byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
-    byte[] flattened = new VisibilityExpressionImpl(expression).normalize().getBytes(UTF_8);
+    byte[] flattened = new AccessExpressionImpl(expression).normalize().getBytes(UTF_8);
 
     // Convert to String for indexOf convenience
     String flat = new String(flattened, UTF_8);
@@ -100,7 +100,7 @@ public class VisibilityExpressionImplTest {
   }
 
   private Node parse(String s) {
-    VisibilityExpressionImpl v = new VisibilityExpressionImpl(s);
+    AccessExpressionImpl v = new AccessExpressionImpl(s);
     return v.getParseTree();
   }
 

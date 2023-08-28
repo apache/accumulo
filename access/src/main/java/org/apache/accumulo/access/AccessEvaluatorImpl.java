@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.visibility;
+package org.apache.accumulo.access;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
@@ -29,17 +29,16 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 //this class is intentionally package private and should never be made public
-class VisibilityArbiterImpl implements VisibilityArbiter {
+class AccessEvaluatorImpl implements AccessEvaluator {
   private final Predicate<BytesWrapper> authorizedPredicate;
 
-  private VisibilityArbiterImpl(AuthorizationChecker authorizationChecker) {
+  private AccessEvaluatorImpl(AuthorizationChecker authorizationChecker) {
     this.authorizedPredicate = auth -> authorizationChecker.isAuthorized(unescape(auth));
   }
 
-  public VisibilityArbiterImpl(List<byte[]> authorizations) {
-    var escapedAuths =
-        authorizations.stream().map(auth -> VisibilityArbiterImpl.escape(auth, false))
-            .map(BytesWrapper::new).collect(toSet());
+  public AccessEvaluatorImpl(List<byte[]> authorizations) {
+    var escapedAuths = authorizations.stream().map(auth -> AccessEvaluatorImpl.escape(auth, false))
+        .map(BytesWrapper::new).collect(toSet());
     this.authorizedPredicate = escapedAuths::contains;
   }
 
@@ -118,38 +117,38 @@ class VisibilityArbiterImpl implements VisibilityArbiter {
   }
 
   @Override
-  public boolean isVisible(String expression) throws IllegalArgumentException {
+  public boolean isAccessible(String expression) throws IllegalArgumentException {
 
-    return evaluate(new VisibilityExpressionImpl(expression));
-
-  }
-
-  @Override
-  public boolean isVisible(byte[] expression) throws IllegalArgumentException {
-
-    return evaluate(new VisibilityExpressionImpl(expression));
+    return evaluate(new AccessExpressionImpl(expression));
 
   }
 
   @Override
-  public boolean isVisible(VisibilityExpression expression) throws IllegalArgumentException {
-    if (expression instanceof VisibilityExpressionImpl) {
+  public boolean isAccessible(byte[] expression) throws IllegalArgumentException {
 
-      return evaluate((VisibilityExpressionImpl) expression);
+    return evaluate(new AccessExpressionImpl(expression));
+
+  }
+
+  @Override
+  public boolean isAccessible(AccessExpression expression) throws IllegalArgumentException {
+    if (expression instanceof AccessExpressionImpl) {
+
+      return evaluate((AccessExpressionImpl) expression);
 
     } else {
-      return isVisible(expression.getExpression());
+      return isAccessible(expression.getExpression());
     }
   }
 
-  public boolean evaluate(VisibilityExpressionImpl visibility) throws IllegalVisibilityException {
+  public boolean evaluate(AccessExpressionImpl visibility) throws IllegalAccessExpressionException {
     // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
     // expressions can be evaluated against.
     return evaluate(visibility.getExpressionBytes(), visibility.getParseTree());
   }
 
-  private boolean evaluate(final byte[] expression, final VisibilityExpressionImpl.Node root)
-      throws IllegalVisibilityException {
+  private boolean evaluate(final byte[] expression, final AccessExpressionImpl.Node root)
+      throws IllegalAccessExpressionException {
     if (expression.length == 0) {
       return true;
     }
@@ -158,10 +157,10 @@ class VisibilityArbiterImpl implements VisibilityArbiter {
         return authorizedPredicate.test(root.getTerm(expression));
       case AND:
         if (root.children == null || root.children.size() < 2) {
-          throw new IllegalVisibilityException("AND has less than 2 children",
+          throw new IllegalAccessExpressionException("AND has less than 2 children",
               root.getTerm(expression).toString(), root.start);
         }
-        for (VisibilityExpressionImpl.Node child : root.children) {
+        for (AccessExpressionImpl.Node child : root.children) {
           if (!evaluate(expression, child)) {
             return false;
           }
@@ -169,17 +168,17 @@ class VisibilityArbiterImpl implements VisibilityArbiter {
         return true;
       case OR:
         if (root.children == null || root.children.size() < 2) {
-          throw new IllegalVisibilityException("OR has less than 2 children",
+          throw new IllegalAccessExpressionException("OR has less than 2 children",
               root.getTerm(expression).toString(), root.start);
         }
-        for (VisibilityExpressionImpl.Node child : root.children) {
+        for (AccessExpressionImpl.Node child : root.children) {
           if (evaluate(expression, child)) {
             return true;
           }
         }
         return false;
       default:
-        throw new IllegalVisibilityException("No such node type",
+        throw new IllegalAccessExpressionException("No such node type",
             root.getTerm(expression).toString(), root.start);
     }
   }
@@ -247,22 +246,22 @@ class VisibilityArbiterImpl implements VisibilityArbiter {
     }
 
     @Override
-    public VisibilityArbiter build() {
+    public AccessEvaluator build() {
       if (authorizations != null ^ authorizationsChecker == null) {
         throw new IllegalStateException();
       }
 
-      VisibilityArbiter visibilityArbiter;
+      AccessEvaluator accessEvaluator;
       if (authorizationsChecker != null) {
-        visibilityArbiter = new VisibilityArbiterImpl(authorizationsChecker);
+        accessEvaluator = new AccessEvaluatorImpl(authorizationsChecker);
       } else {
-        visibilityArbiter = new VisibilityArbiterImpl(authorizations);
+        accessEvaluator = new AccessEvaluatorImpl(authorizations);
       }
 
       if (cacheSize > 0) {
-        visibilityArbiter = new CachingVisibilityArbiter(visibilityArbiter, cacheSize);
+        accessEvaluator = new CachingAccessEvaluator(accessEvaluator, cacheSize);
       }
-      return visibilityArbiter;
+      return accessEvaluator;
     }
 
   }
