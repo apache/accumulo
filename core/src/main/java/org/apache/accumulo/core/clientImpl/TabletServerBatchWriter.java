@@ -1038,6 +1038,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // happen after the batch writer closes. See #3721. Queuing a task instead of executing
           // the code here because throwing exceptions in a finally block makes the code hard to
           // reason about. Queue is less likely to throw an exception.
+          //
+          // When the task is created below it adds to the failedSessions map, this is done while
+          // the mutations for this task are still incremented in totalMemUsed. It is important that
+          // these overlap in time so that there is no gap where the client would not wait for the
+          // session to close. Overlap in times means the session is added to failedSessions before
+          // the mutations are decremented from totalMemUsed.
           sendThreadPool.execute(new CloseSessionTask(location, usid));
         }
       }
