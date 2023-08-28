@@ -622,7 +622,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         writer.println();
 
         String partialLine = uie.getPartialLine();
-        if (partialLine == null || uie.getPartialLine().trim().isEmpty()) {
+        if (partialLine == null || partialLine.trim().isEmpty()) {
           // No content, actually exit
           return exitCode;
         }
