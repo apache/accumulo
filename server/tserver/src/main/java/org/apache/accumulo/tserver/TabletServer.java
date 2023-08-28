@@ -222,7 +222,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   volatile HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
-  private volatile boolean shutdownComplete = false;
 
   private ServiceLock tabletServerLock;
 
@@ -641,12 +640,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
+          if (!serverStopRequested) {
+            Halt.halt(serverStopRequested ? 0 : 1, () -> {
               log.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            context.getLowMemoryDetector().logGCInfo(getConfiguration());
-          });
+            });
+          }
+          context.getLowMemoryDetector().logGCInfo(getConfiguration());
         }
 
         @Override
@@ -879,22 +878,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     }
 
-    // wait for shutdown
-    // if the main thread exits oldServer the manager listener, the JVM will
-    // kill the other threads and finalize objects. We want the shutdown that is
-    // running in the manager listener thread to complete oldServer this happens.
-    // consider making other threads daemon threads so that objects don't
-    // get prematurely finalized
-    synchronized (this) {
-      while (!shutdownComplete) {
-        try {
-          this.wait(1000);
-        } catch (InterruptedException e) {
-          log.error(e.toString());
-        }
-      }
-    }
-
     log.debug("Stopping Thrift Servers");
     if (server != null) {
       server.stop();
@@ -914,7 +897,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       tabletServerLock.unlock();
     } catch (Exception e) {
-      log.warn("Failed to release tablet server lock", e);
+      log.trace("Failed to release tablet server lock", e);
     }
   }
 

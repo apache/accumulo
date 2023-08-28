@@ -1214,16 +1214,16 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     checkPermission(security, context, server, credentials, lock, "halt");
 
-    Halt.halt(0, () -> {
+    //Halt.halt(0, () -> {
       log.info("Manager requested tablet server halt");
       context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
       try {
         server.getLock().unlock();
       } catch (Exception e) {
-        log.error("Caught exception unlocking TabletServer lock", e);
+        log.trace("Caught exception unlocking TabletServer lock", e);
       }
-    });
+    //});
   }
 
   @Override
