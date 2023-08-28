@@ -235,7 +235,7 @@ public enum Property {
   GENERAL_FILENAME_JITTER_ALLOCATION("general.filename.jitter.allocation", "100",
       PropertyType.COUNT,
       "The size of the jitter that will be applied to the `general.filename.base.allocation` when allocating "
-          + "filenames from Zookeeper. This will result in an allocation between base and (base + jitter).",
+          + "filenames from Zookeeper. This will result in an allocation between base and (base + jitter).  This property is ignored when its <= 0 and only base is used.",
       "2.1.3"),
   @Experimental
   GENERAL_RPC_SERVER_TYPE("general.rpc.server.type", "", PropertyType.STRING,

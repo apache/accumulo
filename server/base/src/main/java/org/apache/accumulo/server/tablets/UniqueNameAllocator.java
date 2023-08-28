@@ -83,8 +83,7 @@ public class UniqueNameAllocator {
         context.getConfiguration().getCount(Property.GENERAL_FILENAME_JITTER_ALLOCATION);
 
     if (baseAllocation <= 0) {
-      log.warn(Property.GENERAL_FILENAME_BASE_ALLOCATION.getKey()
-          + " must be greater than 0. Using the default.");
+      log.warn("{} was set to {}, must be greater than 0. Using the default {}.", Property.GENERAL_FILENAME_BASE_ALLOCATION.getKey(), baseAllocation, DEFAULT_BASE_ALLOCATION);
       baseAllocation = DEFAULT_BASE_ALLOCATION;
     }
 
@@ -93,7 +92,7 @@ public class UniqueNameAllocator {
       totalAllocation += random.nextInt(jitterAllocation);
     }
 
-    log.debug("Allocated {} filenames", totalAllocation);
+    log.debug("Allocating {} filenames", totalAllocation);
 
     return totalAllocation;
   }
