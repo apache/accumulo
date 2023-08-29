@@ -64,7 +64,7 @@ public class ThriftUtil {
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
   private static final TFramedTransport.Factory transportFactory =
-      new TFramedTransport.Factory(Integer.MAX_VALUE);
+      new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
@@ -186,10 +186,28 @@ public class ThriftUtil {
     int maxFrameSize1 = (int) maxFrameSize;
     TTransportFactory factory = factoryCache.get(maxFrameSize1);
     if (factory == null) {
-      factory = new TFramedTransport.Factory(maxFrameSize1);
+      factory = new AccumuloTFramedTransportFactory(maxFrameSize1);
       factoryCache.put(maxFrameSize1, factory);
     }
     return factory;
+  }
+
+  public static class AccumuloTFramedTransportFactory extends TFramedTransport.Factory {
+
+    private final int maxMessageSize;
+
+    public AccumuloTFramedTransportFactory(int maxMessageSize) {
+      super(maxMessageSize);
+      this.maxMessageSize = maxMessageSize;
+    }
+
+    @Override
+    public TTransport getTransport(TTransport base) throws TTransportException {
+      base.getConfiguration().setMaxFrameSize(maxMessageSize);
+      base.getConfiguration().setMaxMessageSize(maxMessageSize);
+      return super.getTransport(base);
+    }
+
   }
 
   /**
