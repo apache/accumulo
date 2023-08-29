@@ -42,6 +42,7 @@ public class UniqueNameAllocator {
   private static final SecureRandom random = new SecureRandom();
   private static final Property MIN_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN;
   private static final Property MAX_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX;
+  private static final int DEFAULT_MIN = DefaultConfiguration.getInstance().getCount(MIN_PROP);
 
   private final ServerContext context;
   private final String nextNamePath;
@@ -79,10 +80,9 @@ public class UniqueNameAllocator {
     int maxAllocation = context.getConfiguration().getCount(MAX_PROP);
 
     if (minAllocation <= 0) {
-      int defaultMin = DefaultConfiguration.getInstance().getCount(MIN_PROP);
       log.warn("{} was set to {}, but must be greater than 0. Using the default ({}).",
-          MIN_PROP.getKey(), minAllocation, defaultMin);
-      minAllocation = defaultMin;
+          MIN_PROP.getKey(), minAllocation, DEFAULT_MIN);
+      minAllocation = DEFAULT_MIN;
     }
 
     if (maxAllocation < minAllocation) {
