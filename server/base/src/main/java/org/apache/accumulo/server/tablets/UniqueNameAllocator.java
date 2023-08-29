@@ -68,7 +68,7 @@ public class UniqueNameAllocator {
         next = maxAllocated - allocate;
 
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
     return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
