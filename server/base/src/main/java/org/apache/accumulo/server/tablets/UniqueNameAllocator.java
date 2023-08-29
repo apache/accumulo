@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
@@ -36,15 +37,16 @@ import org.slf4j.LoggerFactory;
  */
 public class UniqueNameAllocator {
 
-  private static Logger log = LoggerFactory.getLogger(UniqueNameAllocator.class);
+  private static final Logger log = LoggerFactory.getLogger(UniqueNameAllocator.class);
+  private static final Property MIN_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN;
+  private static final Property MAX_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX;
+  private static final int DEFAULT_MIN = DefaultConfiguration.getInstance().getCount(MIN_PROP);
 
-  private static final int DEFAULT_BASE_ALLOCATION =
-      Integer.parseInt(Property.GENERAL_FILENAME_BASE_ALLOCATION.getDefaultValue());
+  private final ServerContext context;
+  private final String nextNamePath;
 
-  private ServerContext context;
   private long next = 0;
   private long maxAllocated = 0;
-  private String nextNamePath;
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
@@ -52,10 +54,8 @@ public class UniqueNameAllocator {
   }
 
   public synchronized String getNextName() {
-
     while (next >= maxAllocated) {
       final int allocate = getAllocation();
-
       try {
         byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
           long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
@@ -69,31 +69,28 @@ public class UniqueNameAllocator {
         throw new IllegalStateException(e);
       }
     }
-
     return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
         UTF_8);
   }
 
   private int getAllocation() {
-    int baseAllocation =
-        context.getConfiguration().getCount(Property.GENERAL_FILENAME_BASE_ALLOCATION);
-    int jitterAllocation =
-        context.getConfiguration().getCount(Property.GENERAL_FILENAME_JITTER_ALLOCATION);
+    int minAllocation = context.getConfiguration().getCount(MIN_PROP);
+    int maxAllocation = context.getConfiguration().getCount(MAX_PROP);
 
-    if (baseAllocation <= 0) {
-      log.warn("{} was set to {}, must be greater than 0. Using the default {}.",
-          Property.GENERAL_FILENAME_BASE_ALLOCATION.getKey(), baseAllocation,
-          DEFAULT_BASE_ALLOCATION);
-      baseAllocation = DEFAULT_BASE_ALLOCATION;
+    if (minAllocation <= 0) {
+      log.warn("{} was set to {}, but must be greater than 0. Using the default ({}).",
+          MIN_PROP.getKey(), minAllocation, DEFAULT_MIN);
+      minAllocation = DEFAULT_MIN;
     }
 
-    int totalAllocation = baseAllocation;
-    if (jitterAllocation > 0) {
-      totalAllocation += RANDOM.get().nextInt(jitterAllocation);
+    if (maxAllocation < minAllocation) {
+      log.warn("{} was set to {}, must be greater than or equal to {} ({}). Using {}.",
+          MAX_PROP.getKey(), maxAllocation, MIN_PROP.getKey(), minAllocation, minAllocation);
+      maxAllocation = minAllocation;
     }
 
-    log.debug("Allocating {} filenames", totalAllocation);
-
-    return totalAllocation;
+    int actualBatchSize = minAllocation + RANDOM.get().nextInt((maxAllocation - minAllocation) + 1);
+    log.debug("Allocating {} filenames", actualBatchSize);
+    return actualBatchSize;
   }
 }
