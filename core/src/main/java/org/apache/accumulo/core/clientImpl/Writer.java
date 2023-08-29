@@ -53,7 +53,6 @@ public class Writer {
 
     try (var writer = context.createBatchWriter(table)) {
       writer.addMutation(m);
-      writer.flush();
     }
 
   }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
@@ -56,9 +57,11 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
-      var e = assertThrows(IllegalArgumentException.class,
+      var iae = assertThrows(IllegalArgumentException.class,
           () -> MetadataTableUtil.update(context, null, m, extent));
-      assertEquals(MutationsRejectedException.class, e.getCause().getClass());
+      assertEquals(MutationsRejectedException.class, iae.getCause().getClass());
+      var mre = (MutationsRejectedException) iae.getCause();
+      assertFalse(mre.getConstraintViolationSummaries().isEmpty());
     }
   }
 }

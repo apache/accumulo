@@ -37,12 +37,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -165,7 +167,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final HashSet<String> serverSideErrors = new HashSet<>();
   private final FailedMutations failedMutations;
   private int unknownErrors = 0;
-  private volatile boolean somethingFailed = false;
+  private final AtomicBoolean somethingFailed = new AtomicBoolean(false);
   private Exception lastUnknownError = null;
   private final Set<Pair<Long,String>> failedSessions = new HashSet<>();
 
@@ -269,7 +271,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     checkForFailures();
 
-    waitRTE(() -> (totalMemUsed > maxMem || flushing) && !somethingFailed);
+    waitRTE(() -> (totalMemUsed > maxMem || flushing) && !somethingFailed.get());
 
     // do checks again since things could have changed while waiting and not holding lock
     if (closed) {
@@ -329,7 +331,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       if (flushing) {
         // some other thread is currently flushing, so wait
-        waitRTE(() -> flushing && !somethingFailed);
+        waitRTE(() -> flushing && !somethingFailed.get());
 
         checkForFailures();
 
@@ -341,7 +343,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       startProcessing();
       checkForFailures();
 
-      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed);
+      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed.get());
 
       flushing = false;
       this.notifyAll();
@@ -368,7 +370,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       startProcessing();
 
-      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed);
+      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed.get());
 
       logStats();
 
@@ -514,7 +516,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private void updatedConstraintViolations(List<ConstraintViolationSummary> cvsList) {
     if (!cvsList.isEmpty()) {
       synchronized (this) {
-        somethingFailed = true;
+        somethingFailed.set(true);
         violations.add(cvsList);
         this.notifyAll();
       }
@@ -530,7 +532,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           .forEach(context::requireNotDeleted);
 
       synchronized (this) {
-        somethingFailed = true;
+        somethingFailed.set(true);
         // add these authorizationFailures to those collected by this batch writer
         authorizationFailures.forEach((ke, code) -> this.authorizationFailures
             .computeIfAbsent(ke, k -> new HashSet<>()).add(code));
@@ -540,14 +542,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
-    somethingFailed = true;
+    somethingFailed.set(true);
     this.serverSideErrors.add(server);
     this.notifyAll();
     log.error("Server side error on {}", server, e);
   }
 
   private synchronized void updateUnknownErrors(String msg, Exception t) {
-    somethingFailed = true;
+    somethingFailed.set(true);
     unknownErrors++;
     this.lastUnknownError = t;
     this.notifyAll();
@@ -560,7 +562,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   }
 
   private void checkForFailures() throws MutationsRejectedException {
-    if (somethingFailed) {
+    if (somethingFailed.get()) {
       List<ConstraintViolationSummary> cvsList = violations.asList();
       HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af =
           new HashMap<>();
@@ -907,9 +909,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             span.end();
           }
         } catch (IOException e) {
-          if (log.isDebugEnabled()) {
-            log.debug("failed to send mutations to {} : {}", location, e.getMessage());
-          }
+          log.debug("failed to send mutations to {} : {}", location, e.getMessage());
 
           HashSet<TableId> tables = new HashSet<>();
           for (KeyExtent ke : mutationBatch.keySet()) {
@@ -937,7 +937,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       timeoutTracker.startingWrite();
 
-      Long usid = null;
+      OptionalLong usid = OptionalLong.empty();
 
       try {
         final HostAndPort parsedServer = HostAndPort.fromString(location);
@@ -953,7 +953,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         try {
           MutationSet allFailures = new MutationSet();
 
-          usid = client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
+          usid = OptionalLong.of(
+              client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability)));
 
           List<TMutation> updates = new ArrayList<>();
           for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -966,14 +967,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 size += mutation.numBytes();
               }
 
-              client.applyUpdates(tinfo, usid, entry.getKey().toThrift(), updates);
+              client.applyUpdates(tinfo, usid.getAsLong(), entry.getKey().toThrift(), updates);
               updates.clear();
               size = 0;
             }
           }
 
-          UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
-          usid = null;
+          UpdateErrors updateErrors = client.closeUpdate(tinfo, usid.getAsLong());
+          usid = OptionalLong.empty();
 
           // @formatter:off
             Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
@@ -1021,19 +1022,19 @@ public class TabletServerBatchWriter implements AutoCloseable {
         throw new IOException(e);
       } catch (TApplicationException tae) {
         // no need to bother closing session in this case
-        usid = null;
+        usid = OptionalLong.empty();
         updateServerErrors(location, tae);
         throw new AccumuloServerException(location, tae);
       } catch (ThriftSecurityException e) {
         // no need to bother closing session in this case
-        usid = null;
+        usid = OptionalLong.empty();
         updateAuthorizationFailures(
             tabMuts.keySet().stream().collect(toMap(identity(), ke -> e.code)));
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
         throw new IOException(e);
       } finally {
-        if (usid != null) {
+        if (usid.isPresent()) {
           // There is an open session, must close it before the batchwriter closes or writes could
           // happen after the batch writer closes. See #3721. Queuing a task instead of executing
           // the code here because throwing exceptions in a finally block makes the code hard to
@@ -1044,7 +1045,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // these overlap in time so that there is no gap where the client would not wait for the
           // session to close. Overlap in times means the session is added to failedSessions before
           // the mutations are decremented from totalMemUsed.
-          sendThreadPool.execute(new CloseSessionTask(location, usid));
+          sendThreadPool.execute(new CloseSessionTask(location, usid.getAsLong()));
         }
       }
     }
@@ -1103,7 +1104,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
         // exceptions.
-        while (!somethingFailed) {
+        while (!somethingFailed.get()) {
 
           TabletClientService.Client client = null;
 
