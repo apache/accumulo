@@ -79,7 +79,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -170,7 +169,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private int unknownErrors = 0;
   private final AtomicBoolean somethingFailed = new AtomicBoolean(false);
   private Exception lastUnknownError = null;
-  private final Set<Pair<Long,String>> failedSessions = new HashSet<>();
 
   private static class TimeoutTracker {
 
@@ -344,7 +342,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       startProcessing();
       checkForFailures();
 
-      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed.get());
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed.get());
 
       flushing = false;
       this.notifyAll();
@@ -371,7 +369,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       startProcessing();
 
-      waitRTE(() -> (totalMemUsed > 0 || !failedSessions.isEmpty()) && !somethingFailed.get());
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed.get());
 
       logStats();
 
@@ -880,7 +878,15 @@ public class TabletServerBatchWriter implements AutoCloseable {
             }
 
             long st1 = System.currentTimeMillis();
-            failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker);
+            try (SessionCloser sessionCloser = new SessionCloser(location)) {
+              failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker,
+                  sessionCloser);
+            } catch (ThriftSecurityException e) {
+              updateAuthorizationFailures(
+                  mutationBatch.keySet().stream().collect(toMap(identity(), ke -> e.code)));
+              throw new AccumuloSecurityException(e.user, e.code, e);
+            }
+
             long st2 = System.currentTimeMillis();
             if (log.isTraceEnabled()) {
               log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
@@ -929,7 +935,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     private MutationSet sendMutationsToTabletServer(String location,
-        Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker)
+        Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker,
+        SessionCloser sessionCloser)
         throws IOException, AccumuloSecurityException, AccumuloServerException {
       if (tabMuts.isEmpty()) {
         return new MutationSet();
@@ -938,8 +945,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       timeoutTracker.startingWrite();
 
-      OptionalLong usid = OptionalLong.empty();
-
+      // If there is an open session, must close it before the batchwriter closes or writes could
+      // happen after the batch writer closes. See #3721
       try {
         final HostAndPort parsedServer = HostAndPort.fromString(location);
         final TabletClientService.Iface client;
@@ -954,7 +961,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
         try {
           MutationSet allFailures = new MutationSet();
 
-          usid = OptionalLong.of(
+          // set the session on the sessionCloser so that any failures after this point will close
+          // the session if needed
+          sessionCloser.setSession(
               client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability)));
 
           List<TMutation> updates = new ArrayList<>();
@@ -968,14 +977,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 size += mutation.numBytes();
               }
 
-              client.applyUpdates(tinfo, usid.getAsLong(), entry.getKey().toThrift(), updates);
+              client.applyUpdates(tinfo, sessionCloser.getSession(), entry.getKey().toThrift(),
+                  updates);
               updates.clear();
               size = 0;
             }
           }
 
-          UpdateErrors updateErrors = client.closeUpdate(tinfo, usid.getAsLong());
-          usid = OptionalLong.empty();
+          UpdateErrors updateErrors = client.closeUpdate(tinfo, sessionCloser.getSession());
+
+          // the write completed successfully so no need to close the session
+          sessionCloser.clearSession();
 
           // @formatter:off
             Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
@@ -1022,63 +1034,50 @@ public class TabletServerBatchWriter implements AutoCloseable {
         timeoutTracker.errorOccured();
         throw new IOException(e);
       } catch (TApplicationException tae) {
-        // no need to bother closing session in this case
-        usid = OptionalLong.empty();
+        // no need to close the session when unretryable errors happen
+        sessionCloser.clearSession();
         updateServerErrors(location, tae);
         throw new AccumuloServerException(location, tae);
       } catch (ThriftSecurityException e) {
-        // no need to bother closing session in this case
-        usid = OptionalLong.empty();
+        // no need to close the session when unretryable errors happen
+        sessionCloser.clearSession();
         updateAuthorizationFailures(
             tabMuts.keySet().stream().collect(toMap(identity(), ke -> e.code)));
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
         throw new IOException(e);
-      } finally {
-        if (usid.isPresent()) {
-          // There is an open session, must close it before the batchwriter closes or writes could
-          // happen after the batch writer closes. See #3721. Queuing a task instead of executing
-          // the code here because throwing exceptions in a finally block makes the code hard to
-          // reason about. Queue is less likely to throw an exception.
-          //
-          // When the task is created below it adds to the failedSessions map, this is done while
-          // the mutations for this task are still incremented in totalMemUsed. It is important that
-          // these overlap in time so that there is no gap where the client would not wait for the
-          // session to close. Overlap in times means the session is added to failedSessions before
-          // the mutations are decremented from totalMemUsed.
-          sendThreadPool.execute(new CloseSessionTask(location, usid.getAsLong()));
-        }
       }
     }
 
-    class CloseSessionTask implements Runnable {
+    class SessionCloser implements AutoCloseable {
 
       private final String location;
-      private final long usid;
+      private OptionalLong usid;
 
-      CloseSessionTask(String location, Long usid) {
+      SessionCloser(String location) {
         this.location = location;
-        this.usid = usid;
-        synchronized (TabletServerBatchWriter.this) {
-          if (!failedSessions.add(new Pair<>(usid, location))) {
-            throw new IllegalStateException("Duplicate session " + location + " " + usid);
-          }
-        }
+        usid = OptionalLong.empty();
+      }
 
+      void setSession(long usid) {
+        this.usid = OptionalLong.of(usid);
+      }
+
+      public long getSession() {
+        return usid.getAsLong();
+      }
+
+      void clearSession() {
+        usid = OptionalLong.empty();
       }
 
       @Override
-      public void run() {
-        try {
-          closeSession();
-        } catch (InterruptedException | RuntimeException | ThriftSecurityException e) {
-          updateUnknownErrors("Failed to close session " + location + " " + usid, e);
-        } finally {
-          synchronized (TabletServerBatchWriter.this) {
-            if (!failedSessions.remove(new Pair<>(usid, location))) {
-              throw new IllegalStateException("Session missing " + location + " " + usid);
-            }
-            TabletServerBatchWriter.this.notifyAll();
+      public void close() throws ThriftSecurityException {
+        if (usid.isPresent()) {
+          try {
+            closeSession();
+          } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
           }
         }
       }
@@ -1128,7 +1127,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
             }
 
-            client.closeUpdate(TraceUtil.traceInfo(), usid);
+            client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
             retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
             break;
           } catch (NoSuchScanIDException e) {
