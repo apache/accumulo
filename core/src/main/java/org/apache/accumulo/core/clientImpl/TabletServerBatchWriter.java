@@ -44,6 +44,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1099,7 +1100,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         final HostAndPort parsedServer = HostAndPort.fromString(location);
 
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
 
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
@@ -1149,7 +1150,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           // if a timeout is set on the batch writer, then do not retry longer than the timeout
-          if ((System.currentTimeMillis() - startTime) > timeout) {
+          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > timeout) {
             log.debug("Giving up on closing session {} {} and timing out.", location, usid);
             throw new TimedOutException(Set.of(location));
           }
