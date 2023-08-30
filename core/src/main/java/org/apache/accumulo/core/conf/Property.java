@@ -1164,7 +1164,6 @@ public enum Property {
           + " data will be reported but queries will still run possibly returning a"
           + " subset of the data.",
       "1.3.5"),
-
   TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "",
       PropertyType.STRING,
       "The security label that will be assumed at scan time if an entry does"
@@ -1193,18 +1192,8 @@ public enum Property {
   TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN,
       "Determines whether data block cache is enabled for a table.", "1.3.5"),
   TABLE_OPERATION_LOG_MAX_SIZE("table.operation.log.max.size", "0", PropertyType.COUNT,
-      "The maximum number of logged operations logged in memory for diagnostic purposes. "
-          + "The log will can be used for diagnosing if and when in-memory file list diverges from metadata.",
-      "2.1.3"),
-  TABLE_OPERATION_LOG_RECOVERY("table.operation.log.recovery.action", LogSync.log.name(),
-      PropertyType.DATAFILE_RECOVERY_ACTION,
-      "The action to take when the in-memory file list is found to be different than the metadata.\n1)"
-          + LogSync.log.name() + ": simply log the operation log,\n2) " + LogSync.logsync.name()
-          + ": sync in-memory and metadata with the log depending on what the operation log agrees with,\n3) "
-          + LogSync.metasync.name()
-          + ": update memory with what the metadata holds if operation log agrees with metadata,\n4) "
-          + LogSync.memsync.name()
-          + ": update metadata with what in-memory holds if operation log agrees with memory.",
+      "The maximum number of operations logged in memory for diagnostic purposes when "
+          + "the in-memory file list diverges from the metadata table.",
       "2.1.3"),
   TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at"

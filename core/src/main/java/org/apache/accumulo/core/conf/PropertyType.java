@@ -129,11 +129,6 @@ public enum PropertyType {
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
       "One of 'none', 'flush', or 'compact'."),
 
-  DATAFILE_RECOVERY_ACTION("datafile_recovery_action",
-      in(true, null, LogSync.log.name(), LogSync.logsync.name(), LogSync.metasync.name(),
-          LogSync.memsync.name()),
-      "One of '" + LogSync.log.name() + "', '" + LogSync.logsync.name() + "', '"
-          + LogSync.metasync.name() + "', '" + LogSync.memsync.name() + "'"),
   LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
       "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
 

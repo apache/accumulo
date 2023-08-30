@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.tablet;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +35,6 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.conf.LogSync;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -44,12 +42,10 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -283,6 +279,7 @@ class DatafileManager {
           }
           datafileSizes.put(tpath.getKey(), tpath.getValue());
           tabletLog.bulkImported(tpath.getKey());
+          checkTransactionLog();
         }
 
         tablet.getTabletResources().importedMapFiles();
@@ -429,6 +426,7 @@ class DatafileManager {
           datafileSizes.put(newFileStored, dfv);
         }
         tabletLog.flushed(newFile);
+        checkTransactionLog();
 
         tablet.flushComplete(flushId);
 
@@ -519,6 +517,7 @@ class DatafileManager {
           // could be used by a follow on compaction in a multipass compaction
         }
         tabletLog.compacted(oldDatafiles, newFile);
+        checkTransactionLog();
 
         tablet.computeNumEntries();
 
@@ -584,121 +583,16 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
-  /**
-   * This is called when metadata file list is determined to be out of sync withe in-memory file
-   * list. Firstly the operation log is dumped. Then metadata is compared again with memory. If
-   * still out of sync, then recovery is performed dependent on the action: 1) log: nothing else is
-   * done 2) logsync: memory is synched with the metadata IFF the operation log agrees with one or
-   * the other 3) metasync: metadata files are reloaded into memory IFF the operation log agrees
-   * with metadata 4) memsync: metadata is reset with the memory files IFF the operation log agrees
-   * with memory
-   *
-   * @param context The server context
-   */
-  public void handleMetadataDiff(ServerContext context) {
-    LogSync action = LogSync.log;
-
-    try {
-      action = LogSync
-          .valueOf(tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY));
-    } catch (Exception e) {
-      log.error("Failed to parse property value {} into one of {}.  Defaulting to {}.",
-          tablet.getTableConfiguration().get(Property.TABLE_OPERATION_LOG_RECOVERY),
-          Arrays.asList(LogSync.values()), action);
-    }
-
-    synchronized (tablet) {
-      // always log the operation log regardless of the requested action
-      log.error("Operation log: {}", tabletLog.dumpLog());
-
-      // rescan for the tablet metadata
-      var tabletMeta =
-          context.getAmple().readTablet(tablet.getExtent(), TabletMetadata.ColumnType.FILES);
-      if (tabletMeta == null) {
-        log.error("Tablet {} not found in metadata", tablet.getExtent());
-      } else {
-        Set<StoredTabletFile> metadata = new HashSet<>(tabletMeta.getFiles());
-        Set<StoredTabletFile> memory = new HashSet<>(datafileSizes.keySet());
-        Set<StoredTabletFile> expected = tabletLog.getExpectedFiles();
-
-        // verify we are still out of sync
-        if (metadata.equals(memory)) {
-          log.debug("Metadata and in-memory file list are back in-sync: {}", metadata);
-          if (!expected.equals(memory)) {
-            log.error("Resetting operation log {} with metadata and memory {}", expected, memory);
-            tabletLog.reset(memory);
-          }
-        } else if (!action.equals(LogSync.log)) {
-          if (action.equals(LogSync.logsync)) {
-            // LogSync.logsync means that we will sync depending on which side the log agrees with
-            if (expected.equals(memory)) {
-              // we agree with memory, so sync the metadata with the memory
-              action = LogSync.memsync;
-            } else if (expected.equals(metadata)) {
-              // we agree with the metadata, so sync the memory with the metadata
-              action = LogSync.metasync;
-            } else {
-              // nothing agrees.... so nothing more
-              log.error(
-                  "Not syncing files because the operation log {}"
-                      + " does not agree with metadata {}  nor memory {}",
-                  expected, metadata, memory);
-            }
-          }
-
-          if (action.equals(LogSync.metasync)) {
-            // metasync means update memory with that of metadata
-            if (!expected.equals(metadata)) {
-              log.error(
-                  "Not synching memory because the operation log {} does not agree with metadata ",
-                  expected, metadata);
-            } else {
-              log.warn(
-                  "Synching memory with metadata because the operation log agrees with metadata {}",
-                  expected);
-              resetMemoryWithMetadata(tabletMeta.getFilesMap());
-            }
-          } else if (action.equals(LogSync.memsync)) {
-            // memsync means update metadata with that of memory
-            if (!expected.equals(memory)) {
-              log.error(
-                  "Not synching metadata because the operation log {} does not agree with memory {}",
-                  expected, memory);
-            } else {
-              log.warn(
-                  "Synching metadata with memory because the operation log agrees with memory {}",
-                  expected);
-              resetMetadataWithMemory(metadata, datafileSizes);
-            }
-          }
-        }
-      }
-    }
+  public void logTransactions() {
+    // always log the operation log regardless of the requested action
+    log.error("Operation log: {}", tabletLog.dumpLog());
   }
 
-  private void resetMemoryWithMetadata(Map<StoredTabletFile,DataFileValue> metadata) {
-    // increment start count before metadata update AND updating in memory map of files
-    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    try {
-      datafileSizes.clear();
-      datafileSizes.putAll(metadata);
-    } finally {
-      // increment start count before metadata update AND updating in memory map of files
-      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
+  public void checkTransactionLog() {
+    Set<StoredTabletFile> files = datafileSizes.keySet();
+    if (!tabletLog.isExpectedFiles(files)) {
+      log.error("In-memory files {} do not match transaction log", files);
+      logTransactions();
     }
   }
-
-  private void resetMetadataWithMemory(Set<StoredTabletFile> metadata,
-      Map<StoredTabletFile,DataFileValue> memory) {
-    // increment start count before metadata update AND updating in memory map of files
-    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    try {
-      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), tablet.getExtent(), metadata,
-          memory);
-    } finally {
-      // increment start count before metadata update AND updating in memory map of files
-      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
-    }
-  }
-
 }

@@ -70,9 +70,7 @@ public abstract class DatafileTransaction {
     @Override
     public void apply(Set<StoredTabletFile> files) {
       files.removeAll(compactedFiles);
-      if (destination.isPresent()) {
-        files.add(destination.orElseThrow());
-      }
+      destination.ifPresent(files::add);
     }
 
     @Override
@@ -108,9 +106,7 @@ public abstract class DatafileTransaction {
 
     @Override
     public void apply(Set<StoredTabletFile> files) {
-      if (flushFile.isPresent()) {
-        files.add(flushFile.orElseThrow());
-      }
+      flushFile.ifPresent(files::add);
     }
 
     @Override
