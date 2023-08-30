@@ -19,8 +19,8 @@
 
 -->
 
-# accumulo-visibility
-Prototype of standalone Accumulo Visibility Library
+# accumulo-access
+Prototype of standalone Accumulo Access Control Library
 
 Goals of this prototype.
 
@@ -34,4 +34,4 @@ The following types constitute the public API of this library.  All other types 
   * [AccessEvaluator](src/main/java/org/apache/accumulo/access/AccessEvaluator.java).
   * [AccessExpression](src/main/java/org/apache/accumulo/access/AccessExpression.java).
 
-For an example of using this library see the [unit test](src/test/java/org/apache/accumulo/access/VisibilityArbiterTest.java).
+For an example of using this library see the [unit test](src/test/java/org/apache/accumulo/access/AccessEvaluatorTest.java).
