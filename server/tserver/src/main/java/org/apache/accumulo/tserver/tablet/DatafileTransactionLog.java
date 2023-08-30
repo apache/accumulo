@@ -35,9 +35,16 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.server.conf.TableConfiguration;
 
+/**
+ * This is a transaction log that will maintain the last N transactions. It is used to be able to
+ * log and review the transactions when issues are detected.
+ */
 public class DatafileTransactionLog {
+  // The tablet extent for which we are logging
   private final KeyExtent extent;
+  // The max size of the log
   private final AccumuloConfiguration.Deriver<MaxLogSize> maxSize;
+  // The current log
   private TransactionLog log;
 
   public DatafileTransactionLog(KeyExtent extent, Set<StoredTabletFile> initialFiles,
@@ -45,10 +52,6 @@ public class DatafileTransactionLog {
     this.extent = extent;
     this.maxSize = configuration.newDeriver(MaxLogSize::new);
     this.log = new TransactionLog(initialFiles);
-  }
-
-  public void reset(Set<StoredTabletFile> files) {
-    this.log = new TransactionLog(files);
   }
 
   private int getMaxSize() {
@@ -79,6 +82,11 @@ public class DatafileTransactionLog {
     addTransaction(new DatafileTransaction.BulkImported(file));
   }
 
+  /**
+   * Add a transaction to the log. This will trim the size of the log if needed.
+   *
+   * @param transaction The transaction to add
+   */
   private void addTransaction(DatafileTransaction transaction) {
     TransactionLog log = this.log;
     TransactionLog newLog = new TransactionLog(log, transaction, getMaxSize());
@@ -105,6 +113,11 @@ public class DatafileTransactionLog {
     return false;
   }
 
+  /**
+   * Get a string that provides a list of the transactions.
+   *
+   * @return a log dump
+   */
   public String dumpLog() {
     return this.log.dumpLog(extent);
   }
@@ -114,26 +127,18 @@ public class DatafileTransactionLog {
     return dumpLog();
   }
 
-  private static class MaxLogSize {
-    private final int maxSize;
-
-    public MaxLogSize(AccumuloConfiguration config) {
-      maxSize = config.getCount(Property.TABLE_OPERATION_LOG_MAX_SIZE);
-    }
-
-    public int getMaxSize() {
-      return maxSize;
-    }
-  }
-
   /**
    * A transaction log consists of the original file set and its timestamp, a set of transactions,
    * and the final set of files after applying the transations. This class is immutable.
    */
   private static class TransactionLog {
+    // The time stamp of the initial file set
     private final long initialTs;
+    // the initial file set
     private final StoredTabletFile[] initialFiles;
+    // the transactions
     private final DatafileTransaction[] tabletLog;
+    // the final file set derived be applying the transactions to the initial file set
     private final StoredTabletFile[] finalFiles;
 
     public TransactionLog(Set<StoredTabletFile> files) {
@@ -152,18 +157,32 @@ public class DatafileTransactionLog {
       this.finalFiles = finalFiles;
     }
 
+    /**
+     * This constructor will be the passed in log, adding the passed in transaction, and trimming
+     * the log to maxSize if needed.
+     *
+     * @param log The starting log
+     * @param transaction The new transaction
+     * @param maxSize The max transaction log size
+     */
     public TransactionLog(TransactionLog log, DatafileTransaction transaction, int maxSize) {
+      // if the starting log is smaller than maxSize, then simply add the transaction to the end
       if (log.tabletLog.length < maxSize) {
         this.initialTs = log.initialTs;
         this.initialFiles = log.initialFiles;
         this.tabletLog = Arrays.copyOf(log.tabletLog, log.tabletLog.length + 1);
         this.tabletLog[log.tabletLog.length] = transaction;
         this.finalFiles = applyTransaction(log.finalFiles, transaction);
-      } else if (maxSize == 0) {
+      }
+      // if the max size is 0, then return a log of 0 size, applying the transaction to the file set
+      else if (maxSize == 0) {
         this.initialTs = transaction.ts;
         this.initialFiles = this.finalFiles = applyTransaction(log.finalFiles, transaction);
         this.tabletLog = new DatafileTransaction[0];
-      } else {
+      }
+      // otherwise we are over the max size limit. Trim the transaction log and apply transactions
+      // appropriately to the initial and final file sets.
+      else {
         this.tabletLog = new DatafileTransaction[maxSize];
         System.arraycopy(log.tabletLog, log.tabletLog.length - maxSize + 1, this.tabletLog, 0,
             maxSize - 1);
@@ -175,6 +194,13 @@ public class DatafileTransactionLog {
       }
     }
 
+    /**
+     * Apply a transaction to the set of files and return an updated file set
+     *
+     * @param files The initial files
+     * @param transaction The transaction
+     * @return The final files
+     */
     private static StoredTabletFile[] applyTransaction(StoredTabletFile[] files,
         DatafileTransaction transaction) {
       Set<StoredTabletFile> newFiles = new HashSet<>(Arrays.asList(files));
@@ -182,6 +208,14 @@ public class DatafileTransactionLog {
       return newFiles.toArray(new StoredTabletFile[0]);
     }
 
+    /**
+     * Apply a set of transactions to a set of files and return the update file set
+     *
+     * @param files The initial files
+     * @param transactions The transactions
+     * @param length The number of transactions to apply
+     * @return The final files
+     */
     private static StoredTabletFile[] applyTransactions(StoredTabletFile[] files,
         DatafileTransaction[] transactions, int length) {
       Set<StoredTabletFile> newFiles = new HashSet<>(Arrays.asList(files));
@@ -211,6 +245,12 @@ public class DatafileTransactionLog {
       return Collections.unmodifiableSortedSet(new TreeSet<>(Arrays.asList(this.finalFiles)));
     }
 
+    /**
+     * Return a human readable dump of the log
+     *
+     * @param extent The tablet extent
+     * @return A dump of the log
+     */
     String dumpLog(KeyExtent extent) {
       StringBuilder builder = new StringBuilder();
       builder.append(String.format("%s: Initial files for %s : %s\n", getInitialDate(), extent,
@@ -220,4 +260,20 @@ public class DatafileTransactionLog {
       return builder.toString();
     }
   }
+
+  /**
+   * The max size of the log as derived from the configuration
+   */
+  private static class MaxLogSize {
+    private final int maxSize;
+
+    public MaxLogSize(AccumuloConfiguration config) {
+      maxSize = config.getCount(Property.TABLE_OPERATION_LOG_MAX_SIZE);
+    }
+
+    public int getMaxSize() {
+      return maxSize;
+    }
+  }
+
 }
