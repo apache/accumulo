@@ -173,7 +173,7 @@ public class DatafileTransactionLog {
         this.tabletLog = Arrays.copyOf(log.tabletLog, log.tabletLog.length + 1);
         this.tabletLog[log.tabletLog.length] = transaction;
         this.finalFiles = applyTransaction(log.finalFiles, transaction);
-      } else if (maxSize == 0) {
+      } else if (maxSize <= 0) {
         // if the max size is 0, then return a log of 0 size, applying the transaction to the file
         // set
         this.initialTs = transaction.ts;
