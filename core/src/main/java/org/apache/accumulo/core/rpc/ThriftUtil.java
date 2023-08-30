@@ -203,6 +203,19 @@ public class ThriftUtil {
 
     @Override
     public TTransport getTransport(TTransport base) throws TTransportException {
+      // The input parameter "base" is typically going to be a TSocket implementation
+      // that represents a connection between two Accumulo endpoints (client-server,
+      // or server-server). The base transport has a maxMessageSize which defaults to
+      // 100MB. The FramedTransport that is created by this factory adds a header to
+      // the message with payload size information. The FramedTransport has a default
+      // frame size of 16MB, but the TFramedTransport constructor sets the frame size
+      // to the frame size set on the underlying transport ("base" in this case").
+      // According to current Thrift docs, a message has to fit into 1 frame, so the
+      // frame size will be set to the value that is lower. Prior to this class being
+      // created, we were only setting the frame size, so messages were capped at 100MB
+      // because that's the default maxMessageSize. Here we are setting the maxMessageSize
+      // and maxFrameSize to the same value on the "base" transport so that when the
+      // TFramedTransport object is created, it ends up using the values that we want.
       base.getConfiguration().setMaxFrameSize(maxMessageSize);
       base.getConfiguration().setMaxMessageSize(maxMessageSize);
       return super.getTransport(base);

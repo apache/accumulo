@@ -42,6 +42,9 @@ public class ThriftUtilTest {
   @Test
   public void testDefaultTFramedTransportFactory() throws TTransportException {
 
+    // This test confirms that the default maxMessageSize in Thrift is 100MB
+    // even when we set the frame size to be 1GB
+
     TByteBuffer underlyingTransport = new TByteBuffer(ByteBuffer.allocate(1024));
 
     TFramedTransport.Factory factory = new TFramedTransport.Factory(GB);
@@ -53,6 +56,10 @@ public class ThriftUtilTest {
 
   @Test
   public void testAccumuloTFramedTransportFactory() throws TTransportException {
+
+    // This test confirms that our custom FramedTransportFactory sets the max
+    // message size and max frame size to the value that we want.
+
     TByteBuffer underlyingTransport = new TByteBuffer(ByteBuffer.allocate(1024));
 
     AccumuloTFramedTransportFactory factory = new AccumuloTFramedTransportFactory(GB);
@@ -64,11 +71,18 @@ public class ThriftUtilTest {
 
   @Test
   public void testMessageSizeReadWriteSuccess() throws Exception {
+
+    // This test creates an 10MB buffer in memory as the underlying tranport, then
+    // creates a TFramedTransport with a 1MB maxFrameSize and maxMessageSize. It then
+    // writes 1MB - 4 bytes (to account for the frame header) to the transport and
+    // reads the data back out.
+
     TByteBuffer underlyingTransport = new TByteBuffer(ByteBuffer.allocate(MB10));
     AccumuloTFramedTransportFactory factory = new AccumuloTFramedTransportFactory(MB1);
     TTransport framedTransport = factory.getTransport(underlyingTransport);
+    assertEquals(framedTransport.getConfiguration().getMaxFrameSize(), MB1);
+    assertEquals(framedTransport.getConfiguration().getMaxMessageSize(), MB1);
 
-    // Write more than 1MB to the TByteBuffer, this does not fail.
     byte[] writeBuf = new byte[MB1 - FRAME_HDR_SIZE];
     Arrays.fill(writeBuf, (byte) 1);
     framedTransport.write(writeBuf);
@@ -79,16 +93,23 @@ public class ThriftUtilTest {
     assertEquals(0, underlyingTransport.getByteBuffer().position());
     assertEquals(MB1, underlyingTransport.getByteBuffer().limit());
 
-    // Try to read more than 1MB from the TByteBuffer, this fails
     byte[] readBuf = new byte[MB1];
     framedTransport.read(readBuf, 0, MB1);
   }
 
   @Test
   public void testMessageSizeWriteFailure() throws Exception {
+
+    // This test creates an 10MB buffer in memory as the underlying tranport, then
+    // creates a TFramedTransport with a 1MB maxFrameSize and maxMessageSize. It then
+    // writes 1MB + 100 bytes to the transport, which fails as it's larger than the
+    // configured frame and message size.
+
     TByteBuffer underlyingTransport = new TByteBuffer(ByteBuffer.allocate(MB10));
     AccumuloTFramedTransportFactory factory = new AccumuloTFramedTransportFactory(MB1);
     TTransport framedTransport = factory.getTransport(underlyingTransport);
+    assertEquals(framedTransport.getConfiguration().getMaxFrameSize(), MB1);
+    assertEquals(framedTransport.getConfiguration().getMaxMessageSize(), MB1);
 
     // Unable to write more than 1MB to the TByteBuffer
     byte[] writeBuf = new byte[MB1 + 100];
