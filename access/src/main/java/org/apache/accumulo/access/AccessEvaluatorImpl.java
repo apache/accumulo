@@ -23,23 +23,29 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 //this class is intentionally package private and should never be made public
 class AccessEvaluatorImpl implements AccessEvaluator {
-  private final Predicate<BytesWrapper> authorizedPredicate;
+  private final Collection<Predicate<BytesWrapper>> authorizedPredicates;
 
   private AccessEvaluatorImpl(AuthorizationChecker authorizationChecker) {
-    this.authorizedPredicate = auth -> authorizationChecker.isAuthorized(unescape(auth));
+    this.authorizedPredicates = List.of(auth -> authorizationChecker.isAuthorized(unescape(auth)));
   }
 
-  public AccessEvaluatorImpl(List<byte[]> authorizations) {
-    var escapedAuths = authorizations.stream().map(auth -> AccessEvaluatorImpl.escape(auth, false))
-        .map(BytesWrapper::new).collect(toSet());
-    this.authorizedPredicate = escapedAuths::contains;
+  public AccessEvaluatorImpl(Collection<List<byte[]>> authorizationSets) {
+    authorizedPredicates = authorizationSets.stream()
+        .map(authorizations -> authorizations.stream()
+            .map(auth -> AccessEvaluatorImpl.escape(auth, false)).map(BytesWrapper::new)
+            .collect(toSet()))
+        .map(escapedAuths -> (Predicate<BytesWrapper>) escapedAuths::contains)
+        .collect(Collectors.toList());
   }
 
   static byte[] unescape(BytesWrapper auth) {
@@ -144,10 +150,12 @@ class AccessEvaluatorImpl implements AccessEvaluator {
   public boolean evaluate(AccessExpressionImpl visibility) throws IllegalAccessExpressionException {
     // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
     // expressions can be evaluated against.
-    return evaluate(visibility.getExpressionBytes(), visibility.getParseTree());
+    return authorizedPredicates.stream()
+        .allMatch(ap -> evaluate(ap, visibility.getExpressionBytes(), visibility.getParseTree()));
   }
 
-  private boolean evaluate(final byte[] expression, final AccessExpressionImpl.Node root)
+  private static boolean evaluate(Predicate<BytesWrapper> authorizedPredicate,
+      final byte[] expression, final AccessExpressionImpl.Node root)
       throws IllegalAccessExpressionException {
     if (expression.length == 0) {
       return true;
@@ -161,7 +169,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
               root.getTerm(expression).toString(), root.start);
         }
         for (AccessExpressionImpl.Node child : root.children) {
-          if (!evaluate(expression, child)) {
+          if (!evaluate(authorizedPredicate, expression, child)) {
             return false;
           }
         }
@@ -172,7 +180,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
               root.getTerm(expression).toString(), root.start);
         }
         for (AccessExpressionImpl.Node child : root.children) {
-          if (evaluate(expression, child)) {
+          if (evaluate(authorizedPredicate, expression, child)) {
             return true;
           }
         }
@@ -188,21 +196,26 @@ class AccessEvaluatorImpl implements AccessEvaluator {
 
     private AuthorizationChecker authorizationsChecker;
 
-    private List<byte[]> authorizations;
+    private Collection<List<byte[]>> authorizationSets;
     private int cacheSize = 0;
 
     private void setAuthorizations(List<byte[]> auths) {
+      setAuthorizations(Collections.singletonList(auths));
+    }
+
+    private void setAuthorizations(Collection<List<byte[]>> authSets) {
       if (authorizationsChecker != null) {
         throw new IllegalStateException("Cannot set checker and authorizations");
       }
 
-      for (byte[] auth : auths) {
-        if (auth.length == 0) {
-          throw new IllegalArgumentException("Empty authorization");
+      for (List<byte[]> auths : authSets) {
+        for (byte[] auth : auths) {
+          if (auth.length == 0) {
+            throw new IllegalArgumentException("Empty authorization");
+          }
         }
       }
-
-      this.authorizations = auths;
+      this.authorizationSets = authSets;
     }
 
     @Override
@@ -221,6 +234,16 @@ class AccessEvaluatorImpl implements AccessEvaluator {
     }
 
     @Override
+    public ExecutionBuilder authorizations(Collection<Set<String>> authorizationSets) {
+      setAuthorizations(
+          authorizationSets
+              .stream().map(authorizations -> authorizations.stream()
+                  .map(auth -> auth.getBytes(UTF_8)).collect(toUnmodifiableList()))
+              .collect(Collectors.toList()));
+      return this;
+    }
+
+    @Override
     public ExecutionBuilder authorizations(String... authorizations) {
       setAuthorizations(Stream.of(authorizations).map(auth -> auth.getBytes(UTF_8))
           .collect(toUnmodifiableList()));
@@ -229,7 +252,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
 
     @Override
     public ExecutionBuilder authorizations(AuthorizationChecker authorizationChecker) {
-      if (authorizations != null) {
+      if (authorizationSets != null) {
         throw new IllegalStateException("Cannot set checker and authorizations");
       }
       this.authorizationsChecker = authorizationChecker;
@@ -247,7 +270,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
 
     @Override
     public AccessEvaluator build() {
-      if (authorizations != null ^ authorizationsChecker == null) {
+      if (authorizationSets != null ^ authorizationsChecker == null) {
         throw new IllegalStateException();
       }
 
@@ -255,7 +278,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
       if (authorizationsChecker != null) {
         accessEvaluator = new AccessEvaluatorImpl(authorizationsChecker);
       } else {
-        accessEvaluator = new AccessEvaluatorImpl(authorizations);
+        accessEvaluator = new AccessEvaluatorImpl(authorizationSets);
       }
 
       if (cacheSize > 0) {

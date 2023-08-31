@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.access;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -71,6 +72,8 @@ public interface AccessEvaluator {
     ExecutionBuilder authorizations(List<byte[]> authorizations);
 
     ExecutionBuilder authorizations(Set<String> authorizations);
+
+    ExecutionBuilder authorizations(Collection<Set<String>> authorizations);
 
     ExecutionBuilder authorizations(String... authorizations);
 

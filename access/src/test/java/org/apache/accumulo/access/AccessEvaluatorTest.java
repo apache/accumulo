@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -197,6 +198,23 @@ public class AccessEvaluatorTest {
 
     invalidEscapeSeqList
         .forEach(seq -> assertThrows(IllegalArgumentException.class, () -> unescape(seq), message));
+  }
+
+  @Test
+  public void testMultipleAuthorizationSets() {
+    Collection<Set<String>> authSets = List.of(Set.of("A", "B"), Set.of("C", "D"));
+    var ae = AccessEvaluator.builder().authorizations(authSets).build();
+
+    assertFalse(ae.isAccessible("A"));
+    assertFalse(ae.isAccessible("A&B"));
+    assertFalse(ae.isAccessible("C&D"));
+    assertFalse(ae.isAccessible("A&C"));
+    assertFalse(ae.isAccessible("B&C"));
+    assertFalse(ae.isAccessible("A&B&C&D"));
+    assertFalse(ae.isAccessible("(A&C)|(B&D)"));
+    assertTrue(ae.isAccessible(""));
+    assertTrue(ae.isAccessible("B|C"));
+    assertTrue(ae.isAccessible("(A&B)|(C&D)"));
   }
 
   // TODO need to copy all test from Accumulo
