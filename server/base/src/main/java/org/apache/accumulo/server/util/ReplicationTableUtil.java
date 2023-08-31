@@ -46,7 +46,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -158,8 +157,7 @@ public class ReplicationTableUtil {
       try {
         t.update(m);
         return;
-      } catch (AccumuloException | TableNotFoundException | ConstraintViolationException
-          | AccumuloSecurityException e) {
+      } catch (AccumuloException | TableNotFoundException e) {
         log.error(e.toString(), e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);

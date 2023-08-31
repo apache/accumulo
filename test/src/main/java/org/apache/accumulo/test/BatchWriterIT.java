@@ -18,15 +18,40 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletserver.thrift.TDurability;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.constraints.NumericValueConstraint;
+import org.apache.hadoop.io.Text;
+import org.apache.thrift.TServiceClient;
 import org.junit.jupiter.api.Test;
 
 public class BatchWriterIT extends AccumuloClusterHarness {
@@ -52,4 +77,73 @@ public class BatchWriterIT extends AccumuloClusterHarness {
     }
   }
 
+  private static void update(ClientContext context, Mutation m, KeyExtent extent) throws Exception {
+
+    TabletLocator.TabletLocation tabLoc = TabletLocator.getLocator(context, extent.tableId())
+        .locateTablet(context, new Text(m.getRow()), false, true);
+
+    var server = HostAndPort.fromString(tabLoc.tablet_location);
+
+    TabletClientService.Iface client = null;
+    try {
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
+      client.update(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(),
+          TDurability.DEFAULT);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code);
+    } finally {
+      ThriftUtil.returnClient((TServiceClient) client, context);
+    }
+  }
+
+  static String toString(Map.Entry<Key,Value> e) {
+    return e.getKey().getRow() + ":" + e.getKey().getColumnFamily() + ":"
+        + e.getKey().getColumnQualifier() + ":" + e.getKey().getColumnVisibility() + ":"
+        + e.getValue();
+  }
+
+  @Test
+  public void testSingleMutationWriteRPC() throws Exception {
+    // The batchwriter used to use this RPC and no longer does. This test exist to exercise the
+    // unused RPC until its removed in 3.x. Older client versions of Accumulo 2.1.x may call this
+    // RPC.
+
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.setProperties(Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+          NumericValueConstraint.class.getName()));
+      c.tableOperations().create(table, ntc);
+
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
+
+      Mutation m = new Mutation("r1");
+      m.put("f1", "q3", new Value("1"));
+      m.put("f1", "q4", new Value("2"));
+
+      update((ClientContext) c, m, new KeyExtent(tableId, null, null));
+
+      try (var scanner = c.createScanner(table)) {
+        var entries = scanner.stream().map(BatchWriterIT::toString).collect(Collectors.toList());
+        assertEquals(List.of("r1:f1:q3::1", "r1:f1:q4::2"), entries);
+      }
+
+      m = new Mutation("r1");
+      m.put("f1", "q3", new Value("5"));
+      m.put("f1", "q7", new Value("3"));
+
+      update((ClientContext) c, m, new KeyExtent(tableId, null, null));
+
+      try (var scanner = c.createScanner(table)) {
+        var entries = scanner.stream().map(BatchWriterIT::toString).collect(Collectors.toList());
+        assertEquals(List.of("r1:f1:q3::5", "r1:f1:q4::2", "r1:f1:q7::3"), entries);
+      }
+
+      var m2 = new Mutation("r2");
+      m2.put("f1", "q1", new Value("abc"));
+      assertThrows(ConstraintViolationException.class,
+          () -> update((ClientContext) c, m2, new KeyExtent(tableId, null, null)));
+    }
+
+  }
 }
