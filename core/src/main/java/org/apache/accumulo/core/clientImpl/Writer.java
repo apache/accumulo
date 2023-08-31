@@ -25,12 +25,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Writer {
-
-  private static final Logger log = LoggerFactory.getLogger(Writer.class);
 
   private ClientContext context;
   private TableId tableId;

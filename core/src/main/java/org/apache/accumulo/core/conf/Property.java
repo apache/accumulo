@@ -226,6 +226,12 @@ public enum Property {
       "Name of classloader factory to be used to create classloaders for named contexts,"
           + " such as per-table contexts set by `table.class.loader.context`.",
       "2.1.0"),
+  GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN("general.file.name.allocation.batch.size.min", "100",
+      PropertyType.COUNT,
+      "The minimum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
+  GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX("general.file.name.allocation.batch.size.max", "200",
+      PropertyType.COUNT,
+      "The maximum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls", "1.3.5"),
   @Experimental
@@ -1830,6 +1836,8 @@ public enum Property {
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
+        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }
