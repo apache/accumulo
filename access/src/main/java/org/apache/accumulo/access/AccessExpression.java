@@ -18,12 +18,10 @@
  */
 package org.apache.accumulo.access;
 
-import java.util.Set;
-
 /**
  * An opaque type that contains a parsed visibility expression. When this type is constructed with
- * {@link #of(String)} and then used with {@link AccessEvaluator#isAccessible(AccessExpression)} it
- * can be more efficient and avoid reparsing the expression.
+ * {@link #of(String)} and then used with {@link AccessEvaluator#canAccess(AccessExpression)} it can
+ * be more efficient and avoid reparsing the expression.
  *
  * <p>
  * For reviewers : this type is similar to ColumnVisibility. This interface and impl have goal of
@@ -74,10 +72,10 @@ public interface AccessExpression {
   String normalize();
 
   /**
-   * @return the authorizations that occur in the expression. For example, for the expression
+   * @return the unique authorizations that occur in the expression. For example, for the expression
    *         {@code (A&B)|(A&C)|(A&D)} this method would return {@code [A,B,C,D]]}
    */
-  Set<String> getAuthorizations();
+  Authorizations getAuthorizations();
 
   static AccessExpression of(String expression) throws IllegalAccessExpressionException {
     return new AccessExpressionImpl(expression);
@@ -98,7 +96,7 @@ public interface AccessExpression {
   /**
    * Authorizations occurring a visibility expression can only contain the characters TODO unless
    * quoted. Use this method to quote authorizations that occur in a visibility expression. This
-   * method will quote if its needed.
+   * method will only quote if its needed.
    */
   static byte[] quote(byte[] authorization) {
     return AccessExpressionImpl.quote(authorization);
@@ -107,7 +105,7 @@ public interface AccessExpression {
   /**
    * Authorizations occurring a visibility expression can only contain the characters TODO unless
    * quoted. Use this method to quote authorizations that occur in a visibility expression. This
-   * method will quote if its needed.
+   * method will only quote if its needed.
    */
   static String quote(String authorization) {
     return AccessExpressionImpl.quote(authorization);

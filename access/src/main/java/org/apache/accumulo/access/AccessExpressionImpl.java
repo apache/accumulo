@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -280,10 +279,10 @@ class AccessExpressionImpl implements AccessExpression {
   }
 
   @Override
-  public Set<String> getAuthorizations() {
+  public Authorizations getAuthorizations() {
     HashSet<String> auths = new HashSet<>();
     findAuths(node, expression, auths);
-    return Collections.unmodifiableSet(auths);
+    return Authorizations.of(auths);
   }
 
   private void findAuths(Node node, byte[] expression, HashSet<String> auths) {

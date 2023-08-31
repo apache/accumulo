@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -83,8 +85,9 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.accessEvaluator =
-        AccessEvaluator.builder().authorizations(authorizations.getAuthorizations()).build();
+    var authsArray = authorizations.getAuthorizations().stream()
+        .map(auth -> new String(auth, StandardCharsets.UTF_8)).toArray(String[]::new);
+    this.accessEvaluator = AccessEvaluator.builder().authorizations(authsArray).build();
   }
 
   /**
@@ -99,7 +102,7 @@ public class VisibilityEvaluator {
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     try {
-      return accessEvaluator.isAccessible(visibility.getVisibilityExpression());
+      return accessEvaluator.canAccess(visibility.getVisibilityExpression());
     } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to evaluate expressions
       // itself.

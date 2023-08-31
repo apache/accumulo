@@ -22,11 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,7 +33,7 @@ import java.util.stream.Stream;
 class AccessEvaluatorImpl implements AccessEvaluator {
   private final Collection<Predicate<BytesWrapper>> authorizedPredicates;
 
-  private AccessEvaluatorImpl(AuthorizationChecker authorizationChecker) {
+  private AccessEvaluatorImpl(Authorizer authorizationChecker) {
     this.authorizedPredicates = List.of(auth -> authorizationChecker.isAuthorized(unescape(auth)));
   }
 
@@ -48,7 +46,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
         .collect(Collectors.toList());
   }
 
-  static byte[] unescape(BytesWrapper auth) {
+  static String unescape(BytesWrapper auth) {
     int escapeCharCount = 0;
     for (int i = 0; i < auth.length(); i++) {
       byte b = auth.byteAt(i);
@@ -80,9 +78,9 @@ class AccessEvaluatorImpl implements AccessEvaluator {
         unescapedCopy[pos++] = b;
       }
 
-      return unescapedCopy;
+      return new String(unescapedCopy, UTF_8);
     } else {
-      return auth.toArray();
+      return auth.toString();
     }
   }
 
@@ -123,27 +121,27 @@ class AccessEvaluatorImpl implements AccessEvaluator {
   }
 
   @Override
-  public boolean isAccessible(String expression) throws IllegalArgumentException {
+  public boolean canAccess(String expression) throws IllegalArgumentException {
 
     return evaluate(new AccessExpressionImpl(expression));
 
   }
 
   @Override
-  public boolean isAccessible(byte[] expression) throws IllegalArgumentException {
+  public boolean canAccess(byte[] expression) throws IllegalArgumentException {
 
     return evaluate(new AccessExpressionImpl(expression));
 
   }
 
   @Override
-  public boolean isAccessible(AccessExpression expression) throws IllegalArgumentException {
+  public boolean canAccess(AccessExpression expression) throws IllegalArgumentException {
     if (expression instanceof AccessExpressionImpl) {
 
       return evaluate((AccessExpressionImpl) expression);
 
     } else {
-      return isAccessible(expression.getExpression());
+      return canAccess(expression.getExpression());
     }
   }
 
@@ -194,7 +192,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
   private static class BuilderImpl
       implements AuthorizationsBuilder, FinalBuilder, ExecutionBuilder {
 
-    private AuthorizationChecker authorizationsChecker;
+    private Authorizer authorizationsChecker;
 
     private Collection<List<byte[]>> authorizationSets;
     private int cacheSize = 0;
@@ -219,27 +217,18 @@ class AccessEvaluatorImpl implements AccessEvaluator {
     }
 
     @Override
-    public ExecutionBuilder authorizations(List<byte[]> authorizations) {
-      // copy the passed in byte arrays because a the caller could change them after this returns
-      setAuthorizations(authorizations.stream().map(auth -> Arrays.copyOf(auth, auth.length))
+    public ExecutionBuilder authorizations(Authorizations authorizations) {
+      setAuthorizations(authorizations.asSet().stream().map(auth -> auth.getBytes(UTF_8))
           .collect(toUnmodifiableList()));
       return this;
     }
 
     @Override
-    public ExecutionBuilder authorizations(Set<String> authorizations) {
-      setAuthorizations(
-          authorizations.stream().map(auth -> auth.getBytes(UTF_8)).collect(toUnmodifiableList()));
-      return this;
-    }
-
-    @Override
-    public ExecutionBuilder authorizations(Collection<Set<String>> authorizationSets) {
-      setAuthorizations(
-          authorizationSets
-              .stream().map(authorizations -> authorizations.stream()
-                  .map(auth -> auth.getBytes(UTF_8)).collect(toUnmodifiableList()))
-              .collect(Collectors.toList()));
+    public ExecutionBuilder authorizations(Collection<Authorizations> authorizationSets) {
+      setAuthorizations(authorizationSets
+          .stream().map(authorizations -> authorizations.asSet().stream()
+              .map(auth -> auth.getBytes(UTF_8)).collect(toUnmodifiableList()))
+          .collect(Collectors.toList()));
       return this;
     }
 
@@ -251,7 +240,7 @@ class AccessEvaluatorImpl implements AccessEvaluator {
     }
 
     @Override
-    public ExecutionBuilder authorizations(AuthorizationChecker authorizationChecker) {
+    public ExecutionBuilder authorizations(Authorizer authorizationChecker) {
       if (authorizationSets != null) {
         throw new IllegalStateException("Cannot set checker and authorizations");
       }

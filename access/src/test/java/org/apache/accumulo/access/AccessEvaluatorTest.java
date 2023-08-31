@@ -38,39 +38,38 @@ public class AccessEvaluatorTest {
     for (int cacheSize : List.of(0, 100)) {
       var arbiter =
           AccessEvaluator.builder().authorizations("A1", "Z9").cacheSize(cacheSize).build();
-      assertTrue(arbiter.isAccessible("A1"));
-      assertTrue(arbiter.isAccessible("Z9"));
-      assertTrue(arbiter.isAccessible("A1|G2"));
-      assertTrue(arbiter.isAccessible("G2|A1"));
-      assertTrue(arbiter.isAccessible("Z9|G2"));
-      assertTrue(arbiter.isAccessible("G2|A1"));
-      assertTrue(arbiter.isAccessible("Z9|A1"));
-      assertTrue(arbiter.isAccessible("A1|Z9"));
-      assertTrue(arbiter.isAccessible("(A1|G2)&(Z9|G5)"));
+      assertTrue(arbiter.canAccess("A1"));
+      assertTrue(arbiter.canAccess("Z9"));
+      assertTrue(arbiter.canAccess("A1|G2"));
+      assertTrue(arbiter.canAccess("G2|A1"));
+      assertTrue(arbiter.canAccess("Z9|G2"));
+      assertTrue(arbiter.canAccess("G2|A1"));
+      assertTrue(arbiter.canAccess("Z9|A1"));
+      assertTrue(arbiter.canAccess("A1|Z9"));
+      assertTrue(arbiter.canAccess("(A1|G2)&(Z9|G5)"));
 
-      assertFalse(arbiter.isAccessible("Z8"));
-      assertFalse(arbiter.isAccessible("A2"));
-      assertFalse(arbiter.isAccessible("A2|Z8"));
-      assertFalse(arbiter.isAccessible("A1&Z8"));
-      assertFalse(arbiter.isAccessible("Z8&A1"));
+      assertFalse(arbiter.canAccess("Z8"));
+      assertFalse(arbiter.canAccess("A2"));
+      assertFalse(arbiter.canAccess("A2|Z8"));
+      assertFalse(arbiter.canAccess("A1&Z8"));
+      assertFalse(arbiter.canAccess("Z8&A1"));
 
       // rerun some of the same labels
-      assertTrue(arbiter.isAccessible("Z9|A1"));
-      assertTrue(arbiter.isAccessible("(A1|G2)&(Z9|G5)"));
-      assertFalse(arbiter.isAccessible("A2|Z8"));
-      assertFalse(arbiter.isAccessible("A1&Z8"));
+      assertTrue(arbiter.canAccess("Z9|A1"));
+      assertTrue(arbiter.canAccess("(A1|G2)&(Z9|G5)"));
+      assertFalse(arbiter.canAccess("A2|Z8"));
+      assertFalse(arbiter.canAccess("A1&Z8"));
     }
   }
 
   @Test
   public void testIncorrectExpression() {
     var evaluator = AccessEvaluator.builder().authorizations("A1", "Z9").build();
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.isAccessible("(A"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.isAccessible("A)"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.isAccessible("((A)"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.isAccessible("A$B"));
-    assertThrows(IllegalAccessExpressionException.class,
-        () -> evaluator.isAccessible("(A|(B&()))"));
+    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("(A"));
+    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("A)"));
+    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("((A)"));
+    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("A$B"));
+    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("(A|(B&()))"));
   }
 
   // copied from VisibilityEvaluatorTest in Accumulo and modified, need to copy more test from that
@@ -80,29 +79,29 @@ public class AccessEvaluatorTest {
     var ct = AccessEvaluator.builder().authorizations("one", "two", "three", "four").build();
 
     // test for empty vis
-    assertTrue(ct.isAccessible(""));
+    assertTrue(ct.canAccess(""));
 
     // test for and
-    assertTrue(ct.isAccessible("one&two"), "'and' test");
+    assertTrue(ct.canAccess("one&two"), "'and' test");
 
     // test for or
-    assertTrue(ct.isAccessible("foor|four"), "'or' test");
+    assertTrue(ct.canAccess("foor|four"), "'or' test");
 
     // test for and and or
-    assertTrue(ct.isAccessible("(one&two)|(foo&bar)"), "'and' and 'or' test");
+    assertTrue(ct.canAccess("(one&two)|(foo&bar)"), "'and' and 'or' test");
 
     // test for false negatives
     for (String marking : new String[] {"one", "one|five", "five|one", "(one)",
         "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two"}) {
-      assertTrue(ct.isAccessible(marking), marking);
-      assertTrue(ct.isAccessible(marking.getBytes(UTF_8)), marking);
+      assertTrue(ct.canAccess(marking), marking);
+      assertTrue(ct.canAccess(marking.getBytes(UTF_8)), marking);
     }
 
     // test for false positives
     for (String marking : new String[] {"five", "one&five", "five&one", "((one|foo)|bar)&goober"}) {
-      assertFalse(ct.isAccessible(marking), marking);
-      assertFalse(ct.isAccessible(marking.getBytes(UTF_8)), marking);
+      assertFalse(ct.canAccess(marking), marking);
+      assertFalse(ct.canAccess(marking.getBytes(UTF_8)), marking);
     }
   }
 
@@ -112,22 +111,20 @@ public class AccessEvaluatorTest {
 
     var authsSet = Set.of("A#C", "A\"C", "A\\C", "AC");
     // construct VisibilityEvaluator using another constructor and run test again
-    runQuoteTest(AccessEvaluator.builder()
-        .authorizations(auth -> authsSet.contains(new String(auth, UTF_8))).build());
+    runQuoteTest(AccessEvaluator.builder().authorizations(authsSet::contains).build());
   }
 
   private void runQuoteTest(AccessEvaluator va) {
-    assertTrue(va.isAccessible(quote("A#C") + "|" + quote("A?C")));
-    assertTrue(va.isAccessible(AccessExpression.of(quote("A#C") + "|" + quote("A?C")).normalize()));
-    assertTrue(va.isAccessible(quote("A\"C") + "&" + quote("A\\C")));
-    assertTrue(
-        va.isAccessible(AccessExpression.of(quote("A\"C") + "&" + quote("A\\C")).normalize()));
-    assertTrue(va.isAccessible("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)"));
+    assertTrue(va.canAccess(quote("A#C") + "|" + quote("A?C")));
+    assertTrue(va.canAccess(AccessExpression.of(quote("A#C") + "|" + quote("A?C")).normalize()));
+    assertTrue(va.canAccess(quote("A\"C") + "&" + quote("A\\C")));
+    assertTrue(va.canAccess(AccessExpression.of(quote("A\"C") + "&" + quote("A\\C")).normalize()));
+    assertTrue(va.canAccess("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)"));
 
-    assertFalse(va.isAccessible(quote("A#C") + "&B"));
+    assertFalse(va.canAccess(quote("A#C") + "&B"));
 
-    assertTrue(va.isAccessible(quote("A#C")));
-    assertTrue(va.isAccessible("(" + quote("A#C") + ")"));
+    assertTrue(va.canAccess(quote("A#C")));
+    assertTrue(va.canAccess("(" + quote("A#C") + ")"));
   }
 
   @Test
@@ -146,16 +143,11 @@ public class AccessEvaluatorTest {
     var va = AccessEvaluator.builder().authorizations("五", "六", "八", "九", "五十").build();
     testNonAscii(va);
 
-    va = AccessEvaluator.builder().authorizations(Set.of("五", "六", "八", "九", "五十")).build();
-    testNonAscii(va);
-
-    va = AccessEvaluator.builder().authorizations(List.of("五".getBytes(UTF_8), "六".getBytes(UTF_8),
-        "八".getBytes(UTF_8), "九".getBytes(UTF_8), "五十".getBytes(UTF_8))).build();
+    va = AccessEvaluator.builder().authorizations("五", "六", "八", "九", "五十").build();
     testNonAscii(va);
 
     var authsSet = Set.of("五", "六", "八", "九", "五十");
-    va = AccessEvaluator.builder()
-        .authorizations(auth -> authsSet.contains(new String(auth, UTF_8))).build();
+    va = AccessEvaluator.builder().authorizations(authsSet::contains).build();
     testNonAscii(va);
   }
 
@@ -166,8 +158,8 @@ public class AccessEvaluatorTest {
     visible.add("\"五\"&(\"四\"|\"五十\")");
 
     for (String marking : visible) {
-      assertTrue(va.isAccessible(marking), marking);
-      assertTrue(va.isAccessible(marking.getBytes(UTF_8)), marking);
+      assertTrue(va.canAccess(marking), marking);
+      assertTrue(va.canAccess(marking.getBytes(UTF_8)), marking);
     }
 
     List<String> invisible = new ArrayList<>();
@@ -176,13 +168,13 @@ public class AccessEvaluatorTest {
     invisible.add("\"五\"&(\"四\"|\"三\")");
 
     for (String marking : invisible) {
-      assertFalse(va.isAccessible(marking), marking);
-      assertFalse(va.isAccessible(marking.getBytes(UTF_8)), marking);
+      assertFalse(va.canAccess(marking), marking);
+      assertFalse(va.canAccess(marking.getBytes(UTF_8)), marking);
     }
   }
 
   private static String unescape(String s) {
-    return new String(AccessEvaluatorImpl.unescape(new BytesWrapper(s.getBytes(UTF_8))), UTF_8);
+    return AccessEvaluatorImpl.unescape(new BytesWrapper(s.getBytes(UTF_8)));
   }
 
   @Test
@@ -202,19 +194,20 @@ public class AccessEvaluatorTest {
 
   @Test
   public void testMultipleAuthorizationSets() {
-    Collection<Set<String>> authSets = List.of(Set.of("A", "B"), Set.of("C", "D"));
-    var ae = AccessEvaluator.builder().authorizations(authSets).build();
+    Collection<Authorizations> authSets =
+        List.of(Authorizations.of("A", "B"), Authorizations.of("C", "D"));
+    var evaluator = AccessEvaluator.builder().authorizations(authSets).build();
 
-    assertFalse(ae.isAccessible("A"));
-    assertFalse(ae.isAccessible("A&B"));
-    assertFalse(ae.isAccessible("C&D"));
-    assertFalse(ae.isAccessible("A&C"));
-    assertFalse(ae.isAccessible("B&C"));
-    assertFalse(ae.isAccessible("A&B&C&D"));
-    assertFalse(ae.isAccessible("(A&C)|(B&D)"));
-    assertTrue(ae.isAccessible(""));
-    assertTrue(ae.isAccessible("B|C"));
-    assertTrue(ae.isAccessible("(A&B)|(C&D)"));
+    assertFalse(evaluator.canAccess("A"));
+    assertFalse(evaluator.canAccess("A&B"));
+    assertFalse(evaluator.canAccess("C&D"));
+    assertFalse(evaluator.canAccess("A&C"));
+    assertFalse(evaluator.canAccess("B&C"));
+    assertFalse(evaluator.canAccess("A&B&C&D"));
+    assertFalse(evaluator.canAccess("(A&C)|(B&D)"));
+    assertTrue(evaluator.canAccess(""));
+    assertTrue(evaluator.canAccess("B|C"));
+    assertTrue(evaluator.canAccess("(A&B)|(C&D)"));
   }
 
   // TODO need to copy all test from Accumulo

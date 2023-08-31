@@ -42,19 +42,19 @@ class CachingAccessEvaluator implements AccessEvaluator {
   }
 
   @Override
-  public boolean isAccessible(String expression) throws IllegalArgumentException {
-    return cache.computeIfAbsent(expression, accessEvaluator::isAccessible);
+  public boolean canAccess(String expression) throws IllegalArgumentException {
+    return cache.computeIfAbsent(expression, accessEvaluator::canAccess);
   }
 
   @Override
-  public boolean isAccessible(byte[] expression) throws IllegalArgumentException {
+  public boolean canAccess(byte[] expression) throws IllegalArgumentException {
     // TODO avoid converting to string, maybe create separate cache for byte arrays keys
-    return isAccessible(new String(expression, UTF_8));
+    return canAccess(new String(expression, UTF_8));
   }
 
   @Override
-  public boolean isAccessible(AccessExpression expression) throws IllegalArgumentException {
+  public boolean canAccess(AccessExpression expression) throws IllegalArgumentException {
     return cache.computeIfAbsent(expression.getExpression(),
-        k -> accessEvaluator.isAccessible(expression));
+        k -> accessEvaluator.canAccess(expression));
   }
 }
