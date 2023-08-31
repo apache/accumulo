@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.rpc.ThriftUtil.AccumuloTFramedTransportFactory;
 import org.apache.thrift.transport.TByteBuffer;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -72,7 +71,7 @@ public class ThriftUtilTest {
   @Test
   public void testMessageSizeReadWriteSuccess() throws Exception {
 
-    // This test creates an 10MB buffer in memory as the underlying tranport, then
+    // This test creates an 10MB buffer in memory as the underlying transport, then
     // creates a TFramedTransport with a 1MB maxFrameSize and maxMessageSize. It then
     // writes 1MB - 4 bytes (to account for the frame header) to the transport and
     // reads the data back out.
@@ -100,7 +99,7 @@ public class ThriftUtilTest {
   @Test
   public void testMessageSizeWriteFailure() throws Exception {
 
-    // This test creates an 10MB buffer in memory as the underlying tranport, then
+    // This test creates an 10MB buffer in memory as the underlying transport, then
     // creates a TFramedTransport with a 1MB maxFrameSize and maxMessageSize. It then
     // writes 1MB + 100 bytes to the transport, which fails as it's larger than the
     // configured frame and message size.

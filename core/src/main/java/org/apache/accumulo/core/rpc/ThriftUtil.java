@@ -49,7 +49,6 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +62,7 @@ public class ThriftUtil {
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
-  private static final TFramedTransport.Factory transportFactory =
+  private static final AccumuloTFramedTransportFactory transportFactory =
       new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
@@ -190,37 +189,6 @@ public class ThriftUtil {
       factoryCache.put(maxFrameSize1, factory);
     }
     return factory;
-  }
-
-  public static class AccumuloTFramedTransportFactory extends TFramedTransport.Factory {
-
-    private final int maxMessageSize;
-
-    public AccumuloTFramedTransportFactory(int maxMessageSize) {
-      super(maxMessageSize);
-      this.maxMessageSize = maxMessageSize;
-    }
-
-    @Override
-    public TTransport getTransport(TTransport base) throws TTransportException {
-      // The input parameter "base" is typically going to be a TSocket implementation
-      // that represents a connection between two Accumulo endpoints (client-server,
-      // or server-server). The base transport has a maxMessageSize which defaults to
-      // 100MB. The FramedTransport that is created by this factory adds a header to
-      // the message with payload size information. The FramedTransport has a default
-      // frame size of 16MB, but the TFramedTransport constructor sets the frame size
-      // to the frame size set on the underlying transport ("base" in this case").
-      // According to current Thrift docs, a message has to fit into 1 frame, so the
-      // frame size will be set to the value that is lower. Prior to this class being
-      // created, we were only setting the frame size, so messages were capped at 100MB
-      // because that's the default maxMessageSize. Here we are setting the maxMessageSize
-      // and maxFrameSize to the same value on the "base" transport so that when the
-      // TFramedTransport object is created, it ends up using the values that we want.
-      base.getConfiguration().setMaxFrameSize(maxMessageSize);
-      base.getConfiguration().setMaxMessageSize(maxMessageSize);
-      return super.getTransport(base);
-    }
-
   }
 
   /**

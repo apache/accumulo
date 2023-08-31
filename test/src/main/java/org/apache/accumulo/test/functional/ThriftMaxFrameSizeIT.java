@@ -91,14 +91,16 @@ public class ThriftMaxFrameSizeIT extends AccumuloClusterHarness {
     @Test
     public void testMaxFrameSizeLargerThanDefault() throws Exception {
 
+      int maxSize = TConfiguration.DEFAULT_MAX_FRAME_SIZE;
+      // make sure we go even bigger than that
+      int ourSize = maxSize + 1;
+
       // Ingest with a value width greater than the thrift default size to verify our setting works
-      // for max frame wize
+      // for max frame size
       try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
         String table = getUniqueNames(1)[0];
-        ReadWriteIT.ingest(accumuloClient, 1, 1, TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1, 0,
-            table);
-        ReadWriteIT.verify(accumuloClient, 1, 1, TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1, 0,
-            table);
+        ReadWriteIT.ingest(accumuloClient, 1, 1, ourSize, 0, table);
+        ReadWriteIT.verify(accumuloClient, 1, 1, ourSize, 0, table);
       }
     }
   }
