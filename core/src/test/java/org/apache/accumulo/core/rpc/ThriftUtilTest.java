@@ -33,8 +33,8 @@ import org.junit.jupiter.api.Test;
 public class ThriftUtilTest {
 
   public static final int FRAME_HDR_SIZE = 4;
-  public static final int MB1 = 100 * 1024 * 1024;
-  public static final int MB10 = 100 * 1024 * 1024;
+  public static final int MB1 = 1 * 1024 * 1024;
+  public static final int MB10 = 10 * 1024 * 1024;
   public static final int MB100 = 100 * 1024 * 1024;
   public static final int GB = 1 * 1024 * 1024 * 1024;
 
@@ -110,10 +110,20 @@ public class ThriftUtilTest {
     assertEquals(framedTransport.getConfiguration().getMaxFrameSize(), MB1);
     assertEquals(framedTransport.getConfiguration().getMaxMessageSize(), MB1);
 
-    // Unable to write more than 1MB to the TByteBuffer
+    // Write more than 1MB to the TByteBuffer, it's possible to write more data
+    // than allowed by the frame, it's enforced on the read.
     byte[] writeBuf = new byte[MB1 + 100];
     Arrays.fill(writeBuf, (byte) 1);
     framedTransport.write(writeBuf);
-    assertThrows(TTransportException.class, () -> framedTransport.flush());
+    framedTransport.flush();
+
+    assertEquals(MB1 + 100 + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().position());
+    underlyingTransport.flip();
+    assertEquals(0, underlyingTransport.getByteBuffer().position());
+    assertEquals(MB1 + 100 + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().limit());
+
+    byte[] readBuf = new byte[MB1 + 100];
+    assertThrows(TTransportException.class, () -> framedTransport.read(readBuf, 0, MB1 + 100));
+
   }
 }

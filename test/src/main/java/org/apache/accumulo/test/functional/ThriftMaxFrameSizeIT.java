@@ -45,6 +45,8 @@ public class ThriftMaxFrameSizeIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.GENERAL_RPC_SERVER_TYPE, serverType.name());
+    cfg.setProperty(Property.GENERAL_MAX_MESSAGE_SIZE,
+        Integer.toString(TConfiguration.DEFAULT_MAX_FRAME_SIZE));
     if (serverType == ThriftServerType.SSL) {
       configureForSsl(cfg,
           getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName())));
@@ -93,7 +95,7 @@ public class ThriftMaxFrameSizeIT extends AccumuloClusterHarness {
 
       int maxSize = TConfiguration.DEFAULT_MAX_FRAME_SIZE;
       // make sure we go even bigger than that
-      int ourSize = maxSize + 1;
+      int ourSize = maxSize * 2;
 
       // Ingest with a value width greater than the thrift default size to verify our setting works
       // for max frame size
