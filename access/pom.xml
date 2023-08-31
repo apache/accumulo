@@ -52,6 +52,7 @@
                 <include>org[.]apache[.]accumulo[.]access[.]IllegalAccessExpressionException</include>
                 <include>org[.]apache[.]accumulo[.]access[.]AccessExpression</include>
                 <include>org[.]apache[.]accumulo[.]access[.]AccessEvaluator</include>
+                <include>org[.]apache[.]accumulo[.]access[.]Authorizations</include>
               </includes>
             </configuration>
           </execution>
