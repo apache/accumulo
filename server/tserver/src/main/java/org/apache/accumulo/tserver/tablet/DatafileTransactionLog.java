@@ -62,6 +62,10 @@ public class DatafileTransactionLog {
     return this.log.getInitialDate();
   }
 
+  public int getNumTransactions() {
+    return this.log.getNumTransactions();
+  }
+
   public List<DatafileTransaction> getTransactions() {
     return this.log.getTransactions();
   }
@@ -230,6 +234,10 @@ public class DatafileTransactionLog {
 
     SortedSet<StoredTabletFile> getSortedInitialFiles() {
       return Collections.unmodifiableSortedSet(new TreeSet<>(Arrays.asList(this.finalFiles)));
+    }
+
+    int getNumTransactions() {
+      return tabletLog.length;
     }
 
     List<DatafileTransaction> getTransactions() {

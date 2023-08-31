@@ -584,15 +584,18 @@ class DatafileManager {
   }
 
   public void logTransactions() {
-    // always log the operation log regardless of the requested action
-    log.error("Operation log: {}", tabletLog.dumpLog());
+    if (tabletLog.getNumTransactions() > 0) {
+      log.error("Operation log: {}", tabletLog.dumpLog());
+    }
   }
 
   public void checkTransactionLog() {
-    Set<StoredTabletFile> files = datafileSizes.keySet();
-    if (!tabletLog.isExpectedFiles(files)) {
-      log.error("In-memory files {} do not match transaction log", files);
-      logTransactions();
+    if (tabletLog.getNumTransactions() > 0) {
+      Set<StoredTabletFile> files = datafileSizes.keySet();
+      if (!tabletLog.isExpectedFiles(files)) {
+        log.error("In-memory files {} do not match transaction log {}", files);
+        logTransactions();
+      }
     }
   }
 }
