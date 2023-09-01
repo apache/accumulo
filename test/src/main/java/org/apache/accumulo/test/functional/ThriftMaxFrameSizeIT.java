@@ -43,7 +43,7 @@ public class ThriftMaxFrameSizeIT {
 
   // use something other than TConfiguration.DEFAULT_MAX_FRAME_SIZE to make sure the override works
   // small values seem to be insufficient for Accumulo, at least for this test
-  private static final int CONFIGURED_MAX_FRAME_SIZE = 80 * 1024 * 1024;
+  private static final int CONFIGURED_MAX_FRAME_SIZE = 32 * 1024 * 1024;
 
   @Nested
   class DefaultServerNestedIT extends TestMaxFrameSize {
@@ -124,7 +124,7 @@ public class ThriftMaxFrameSizeIT {
 
     // Messages bigger than the configured size should not work.
     @Test
-    public void testFrameSizeLargerThanConfiguredMax() throws Exception {
+    public void testFrameSizeGreaterThanConfiguredMax() throws Exception {
       // ssl is weird seems to pass, at least for some values less than the default max message size
       // of 100MB; more troubleshooting might be needed to figure out how to get max message
       // configurability with ssl
