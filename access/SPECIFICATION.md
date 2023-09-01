@@ -35,7 +35,7 @@ lparen                  = "("
 rparen                  = ")"
 ```
 
-The definition of utf8 was borrowed from this [ietf document][2].
+The definition of utf8 was borrowed from this [ietf document][2].  TODO that doc defines unicode and not utf8
 
 ## Serialization
 
