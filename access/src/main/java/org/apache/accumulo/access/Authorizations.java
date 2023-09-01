@@ -29,7 +29,7 @@ public class Authorizations {
   private final Set<String> authorizations;
 
   private Authorizations(Set<String> authorizations) {
-    this.authorizations = authorizations;
+    this.authorizations = Set.copyOf(authorizations);
   }
 
   public Set<String> asSet() {

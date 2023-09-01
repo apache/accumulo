@@ -76,6 +76,7 @@ class AccessExpressionImpl implements AccessExpression {
 
   private final AtomicReference<String> expressionString = new AtomicReference<>(null);
 
+  @Override
   public String getExpression() {
     var expStr = expressionString.get();
     if (expStr != null) {
@@ -211,7 +212,7 @@ class AccessExpressionImpl implements AccessExpression {
    * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
-  public static Node normalize(Node root, byte[] expression) {
+  private static Node normalize(Node root, byte[] expression) {
     return normalize(root, new NodeComparator(expression));
   }
 
@@ -223,7 +224,7 @@ class AccessExpressionImpl implements AccessExpression {
      *  3) dedupes labels (`a&b&a` becomes `a&b`)
      */
     // @formatter:on
-  public static Node normalize(Node root, NodeComparator comparator) {
+  private static Node normalize(Node root, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);
       java.util.Iterator<Node> itr = root.children.iterator();
@@ -251,7 +252,7 @@ class AccessExpressionImpl implements AccessExpression {
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This
    * method adds parens where necessary.
    */
-  public static void stringify(Node root, byte[] expression, StringBuilder out) {
+  private static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start, UTF_8));
     } else {
@@ -271,6 +272,7 @@ class AccessExpressionImpl implements AccessExpression {
     }
   }
 
+  @Override
   public String normalize() {
     Node normRoot = normalize(node, expression);
     StringBuilder builder = new StringBuilder(expression.length);
@@ -488,7 +490,7 @@ class AccessExpressionImpl implements AccessExpression {
    *
    * @see #AccessExpressionImpl(String)
    */
-  public AccessExpressionImpl() {
+  AccessExpressionImpl() {
     this(new byte[] {});
   }
 
@@ -498,7 +500,7 @@ class AccessExpressionImpl implements AccessExpression {
    * @param expression An expression of the rights needed to see this mutation. The expression
    *        syntax is defined at the class-level documentation
    */
-  public AccessExpressionImpl(String expression) {
+  AccessExpressionImpl(String expression) {
     this(expression.getBytes(UTF_8));
     expressionString.set(expression);
   }
@@ -509,7 +511,7 @@ class AccessExpressionImpl implements AccessExpression {
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #AccessExpressionImpl(String)
    */
-  public AccessExpressionImpl(byte[] expression) {
+  AccessExpressionImpl(byte[] expression) {
     // TODO copy bytes to make immutable?
     validate(expression);
   }
@@ -537,7 +539,7 @@ class AccessExpressionImpl implements AccessExpression {
    * @param otherLe other column visibility
    * @return true if this visibility equals the other via string comparison
    */
-  public boolean equals(AccessExpressionImpl otherLe) {
+  boolean equals(AccessExpressionImpl otherLe) {
     return Arrays.equals(expression, otherLe.expression);
   }
 
@@ -551,7 +553,7 @@ class AccessExpressionImpl implements AccessExpression {
    *
    * @return parse tree node
    */
-  public Node getParseTree() {
+  Node getParseTree() {
     return node;
   }
 
@@ -574,7 +576,7 @@ class AccessExpressionImpl implements AccessExpression {
    * @param term term to quote
    * @return quoted term (unquoted if unnecessary)
    */
-  public static String quote(String term) {
+  static String quote(String term) {
     return new String(quote(term.getBytes(UTF_8)), UTF_8);
   }
 
@@ -586,7 +588,7 @@ class AccessExpressionImpl implements AccessExpression {
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
    */
-  public static byte[] quote(byte[] term) {
+  static byte[] quote(byte[] term) {
     boolean needsQuote = false;
 
     for (byte b : term) {
