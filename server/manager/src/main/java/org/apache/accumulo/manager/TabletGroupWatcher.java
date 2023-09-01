@@ -983,7 +983,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     // This covers the case of when a deletion range overlaps the last tablet
     // We need to create a range that excludes the deletion.
-    if ((!tabletEndRow.equals(deleteRange.toDataRange().getEndKey().getRow()))
+    if ((tabletEndRow == null
+        || !tabletEndRow.equals(deleteRange.toDataRange().getEndKey().getRow()))
         && deleteRange.toDataRange().getEndKey() != null
         && tabletRange.contains(deleteRange.toDataRange().getEndKey())) {
       Manager.log.trace(
