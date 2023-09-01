@@ -90,7 +90,8 @@ public interface AccessEvaluator {
      * authorization set. In order to return true for {@code canAccess()} the expression must
      * evaluate to true for each authorization set.
      *
-     * <table border="1">
+     * <table>
+     * <caption>Evaluations</caption>
      * <tr>
      * <td></td>
      * <td>[A,B]</td>
