@@ -40,5 +40,5 @@ rparen                  = ")"
 An AccessExpression is a UTF-8 string. It can be serialized using a byte array as long as it
 can be deserialized back into the same UTF-8 string.
 
-[1] https://www.rfc-editor.org/rfc/rfc5234
-[2] https://datatracker.ietf.org/doc/html/draft-seantek-unicode-in-abnf-03#section-4.2
+[1]: https://www.rfc-editor.org/rfc/rfc5234
+[2]: https://datatracker.ietf.org/doc/html/draft-seantek-unicode-in-abnf-03#section-4.2
