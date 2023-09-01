@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,8 +33,10 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TConfiguration;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag(MINI_CLUSTER_ONLY)
 public class ThriftMaxFrameSizeIT {
 
   private ThriftServerType serverType;
