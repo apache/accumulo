@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,7 +171,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
 
     if (hasProblems) {
-      MetadataTableUtil.getMetadataTable(context).update(delMut);
+      try (var writer = context.createBatchWriter(MetadataTable.NAME)) {
+        writer.addMutation(delMut);
+      }
     }
   }
 

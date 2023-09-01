@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -52,9 +51,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
-import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -86,7 +83,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -103,31 +99,9 @@ import com.google.common.annotations.VisibleForTesting;
 public class MetadataTableUtil {
 
   public static final Text EMPTY_TEXT = new Text();
-  private static Map<Credentials,Writer> root_tables = new HashMap<>();
-  private static Map<Credentials,Writer> metadata_tables = new HashMap<>();
   private static final Logger log = LoggerFactory.getLogger(MetadataTableUtil.class);
 
   private MetadataTableUtil() {}
-
-  public static synchronized Writer getMetadataTable(ServerContext context) {
-    Credentials credentials = context.getCredentials();
-    Writer metadataTable = metadata_tables.get(credentials);
-    if (metadataTable == null) {
-      metadataTable = new Writer(context, MetadataTable.ID);
-      metadata_tables.put(credentials, metadataTable);
-    }
-    return metadataTable;
-  }
-
-  public static synchronized Writer getRootTable(ServerContext context) {
-    Credentials credentials = context.getCredentials();
-    Writer rootTable = root_tables.get(credentials);
-    if (rootTable == null) {
-      rootTable = new Writer(context, RootTable.ID);
-      root_tables.put(credentials, rootTable);
-    }
-    return rootTable;
-  }
 
   public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
     ServerColumnFamily.LOCK_COLUMN.put(m,
@@ -136,26 +110,27 @@ public class MetadataTableUtil {
 
   public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
-    Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
-    update(context, t, zooLock, m, extent);
-  }
 
-  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m,
-      KeyExtent extent) {
     if (zooLock != null) {
       putLockID(context, zooLock, m);
     }
+
+    String metaTable = Ample.DataLevel.of(extent.tableId()).metaTable();
     while (true) {
-      try {
-        t.update(m);
+      try (BatchWriter writer = context.createBatchWriter(metaTable)) {
+        writer.addMutation(m);
+        writer.flush();
         return;
-      } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+      } catch (MutationsRejectedException e) {
+
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
+          // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
+          throw new IllegalArgumentException(e);
+        }
+      } catch (TableNotFoundException e) {
         logUpdateFailure(m, extent, e);
-      } catch (ConstraintViolationException e) {
-        logUpdateFailure(m, extent, e);
-        // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-        throw new RuntimeException(e);
       }
+
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }

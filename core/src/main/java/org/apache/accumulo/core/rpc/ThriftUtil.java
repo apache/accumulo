@@ -49,7 +49,6 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +62,8 @@ public class ThriftUtil {
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
-  private static final TFramedTransport.Factory transportFactory =
-      new TFramedTransport.Factory(Integer.MAX_VALUE);
+  private static final AccumuloTFramedTransportFactory transportFactory =
+      new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
@@ -186,7 +185,7 @@ public class ThriftUtil {
     int maxFrameSize1 = (int) maxFrameSize;
     TTransportFactory factory = factoryCache.get(maxFrameSize1);
     if (factory == null) {
-      factory = new TFramedTransport.Factory(maxFrameSize1);
+      factory = new AccumuloTFramedTransportFactory(maxFrameSize1);
       factoryCache.put(maxFrameSize1, factory);
     }
     return factory;
