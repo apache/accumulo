@@ -108,6 +108,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -982,8 +983,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     // This covers the case of when a deletion range overlaps the last tablet
     // We need to create a range that excludes the deletion.
-    if ((tabletEndRow == null
-        || !tabletEndRow.equals(deleteRange.toDataRange().getEndKey().getRow()))
+    if ((!tabletEndRow.equals(deleteRange.toDataRange().getEndKey().getRow()))
         && deleteRange.toDataRange().getEndKey() != null
         && tabletRange.contains(deleteRange.toDataRange().getEndKey())) {
       Manager.log.trace(
@@ -1028,6 +1028,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Create the ranges for fencing the files, this takes the place of
           // chop compactions and splits
           final List<Range> ranges = createRangesForDeletion(tabletMetadata, range);
+          Preconditions.checkState(!ranges.isEmpty(),
+              "No ranges found that overlap deletion range.");
 
           // Go through and fence each of the files that are part of the tablet
           for (Entry<StoredTabletFile,DataFileValue> entry : tabletMetadata.getFilesMap()
@@ -1058,10 +1060,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 // Add the new file to the newFiles set, it will be added later if it doesn't match
                 // the existing file already. We still need to add to the set to be checked later
                 // even if it matches the existing file as later the deletion logic will check to
-                // see
-                // if the existing file is part of this set before deleting. This is done to make
-                // sure
-                // the existing file isn't deleted unless it is not needed/disjoint with all ranges
+                // see if the existing file is part of this set before deleting. This is done to
+                // make sure the existing file isn't deleted unless it is not needed/disjoint
+                // with all ranges.
                 newFiles.add(newFile);
               } else {
                 Manager.log.trace("Found a disjoint file {} with  range {} on delete",
