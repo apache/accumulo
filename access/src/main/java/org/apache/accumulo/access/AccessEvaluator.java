@@ -107,7 +107,7 @@ public interface AccessEvaluator {
      * <td>True</td>
      * </tr>
      * <tr>
-     * <td>A&D</td>
+     * <td>A&amp;D</td>
      * <td>False</td>
      * <td>False</td>
      * </tr>
