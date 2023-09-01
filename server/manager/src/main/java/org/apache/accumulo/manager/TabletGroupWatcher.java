@@ -110,6 +110,7 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -1010,13 +1011,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           ? new Key(range.endRow()).followingKey(PartialKey.ROW).getRow() : null;
 
       // Find the tablets that overlap the start and end of the deletion range
-      final List<TabletMetadata> tabletMetadatas = new ArrayList<>();
+      // Store in a Map so that if we have the same Tablet we only need to process once
+      final SortedMap<KeyExtent,TabletMetadata> tabletMetadatas = new TreeMap<>();
       loadTabletMetadata(range.tableId(), startRow, ColumnType.PREV_ROW, ColumnType.FILES)
-          .ifPresent(tabletMetadatas::add);
+          .ifPresent(tm -> tabletMetadatas.put(tm.getExtent(), tm));
       loadTabletMetadata(range.tableId(), lastRow, ColumnType.PREV_ROW, ColumnType.FILES)
-          .ifPresent(tabletMetadatas::add);
+          .ifPresent(tm -> tabletMetadatas.putIfAbsent(tm.getExtent(), tm));
 
-      for (TabletMetadata tabletMetadata : tabletMetadatas) {
+      for (TabletMetadata tabletMetadata : tabletMetadatas.values()) {
         final KeyExtent keyExtent = tabletMetadata.getExtent();
 
         // Check if this tablet needs to have its files fenced for the deletion
@@ -1033,44 +1035,46 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             StoredTabletFile existing = entry.getKey();
             Value value = entry.getValue().encodeAsValue();
 
-            Mutation m = new Mutation(keyExtent.toMetaRow());
+            final Mutation m = new Mutation(keyExtent.toMetaRow());
 
             // Go through each range that was created and modify the metadata for the file
             // The end row should be inclusive for the current tablet and the previous end row
             // should be exclusive for the start row.
-            int disjointCount = 0;
+            final Set<StoredTabletFile> newFiles = new HashSet<>();
+            final Set<StoredTabletFile> existingFile = Set.of(existing);
+
             for (Range fenced : ranges) {
               // Clip range with the tablet range if the range already exists
               fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
 
               // If null the range is disjoint which can happen if there are existing fenced files
-              if (fenced == null) {
-                Manager.log.trace("Found a disjoint file range {} on delete, incrementing counter.",
-                    existing.getRange());
-                // Check if the file is disjoint and increment the counter if it is
-                // Later we will delete if the file is disjoint with all new ranges
-                disjointCount++;
+              // If the existing file is disjoint then later we will delete if the file is not part
+              // of the newFiles set which means it is disjoint with all ranges
+              if (fenced != null) {
+                final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+                Manager.log.trace("Adding new file {} with range {}", newFile.getMetadataPath(),
+                    newFile.getRange());
+
+                // Add the new file to the newFiles set, it will be added later if it doesn't match
+                // the existing file already. We still need to add to the set to be checked later
+                // even if it matches the existing file as later the deletion logic will check to
+                // see
+                // if the existing file is part of this set before deleting. This is done to make
+                // sure
+                // the existing file isn't deleted unless it is not needed/disjoint with all ranges
+                newFiles.add(newFile);
               } else {
-                Manager.log.debug("Clipped fenced file is {}", fenced);
-
-                // Move the file and range to the last tablet
-                StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-
-                // If the existing metadata does not match then we need to delete the old
-                // and replace with a new range
-                if (!existing.equals(newFile)) {
-                  m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
-                  m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value);
-                }
+                Manager.log.trace("Found a disjoint file {} with  range {} on delete",
+                    existing.getMetadataPath(), existing.getRange());
               }
             }
 
-            // If all ranges are disjoint we can safely delete the file
-            if (disjointCount > 0 && disjointCount == ranges.size()) {
-              Manager.log.trace("Found a disjoint file {} with range {}, deleting.",
-                  existing.getFileName(), existing.getRange());
-              m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
-            }
+            // If the existingFile is not contained in the newFiles set then we can delete it
+            Sets.difference(existingFile, newFiles).forEach(
+                delete -> m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText()));
+            // Add any new files that don't match the existingFile
+            Sets.difference(newFiles, existingFile).forEach(
+                newFile -> m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value));
 
             if (!m.getUpdates().isEmpty()) {
               bw.addMutation(m);
