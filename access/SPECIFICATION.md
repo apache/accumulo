@@ -7,7 +7,7 @@ access a particular piece of data.
 ## Syntax
 
 The formal definition of the AccessExpression UTF-8 string representation is provided by
-the following ABNF[1]:
+the following [ABNF][1]:
 
 ```
 access_expression       =  and_expression / or_expression
@@ -23,7 +23,7 @@ or_expression           =/ access_token
 access_token            = 1*( ALPHA / DIGIT / underscore / hyphen / period / colon / slash )
 access_token            =/ DQUOTE *utf8 DQUOTE ; TODO define escaping
 
-utf8                    = %x20-21 / %x23-7E / UVCHARBEYONDASCII ; see [2]
+utf8                    = %x20-21 / %x23-7E / UVCHARBEYONDASCII
 underscore              = "_"
 hyphen                  = "-"
 period                  = "."
@@ -34,6 +34,8 @@ and_operator            = "&"
 lparen                  = "("
 rparen                  = ")"
 ```
+
+The definition of utf8 was borrowed from this [ietf document][2].
 
 ## Serialization
 
