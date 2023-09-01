@@ -37,6 +37,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -559,35 +561,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return result;
   }
 
-  // This method is used to detect if a tablet needs to be split for a delete
-  // Instead of performing a split, the tablet will have it's files fenced.
-  private boolean needsFencingForSplit(MergeInfo info, KeyExtent extent) {
-    // Merges don't split
-    if (!info.isDelete()) {
-      return false;
-    }
-    // Does this extent cover the end points of the delete?
-    KeyExtent range = info.getExtent();
-    if (extent.overlaps(range)) {
-      for (Text splitPoint : new Text[] {range.prevEndRow(), range.endRow()}) {
-        if (splitPoint == null) {
-          continue;
-        }
-        if (!extent.contains(splitPoint)) {
-          continue;
-        }
-        if (splitPoint.equals(extent.endRow())) {
-          continue;
-        }
-        if (splitPoint.equals(extent.prevEndRow())) {
-          continue;
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
   private void updateMergeState(Map<TableId,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
@@ -967,8 +940,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  // This method is used to detect if a tablet needs to be split/chopped for a delete
+  // Instead of performing a split or chop compaction, the tablet will have its files fenced.
   private boolean needsFencingForDeletion(MergeInfo info, KeyExtent keyExtent) {
-    return needsFencingForSplit(info, keyExtent) || info.needsToBeChopped(keyExtent);
+    // Does this extent cover the end points of the delete?
+    final Predicate<Text> isWithin = r -> r != null && keyExtent.contains(r);
+    final Predicate<Text> isNotBoundary =
+        r -> !r.equals(keyExtent.endRow()) && !r.equals(keyExtent.prevEndRow());
+    final KeyExtent deleteRange = info.getExtent();
+
+    return (keyExtent.overlaps(deleteRange) && Stream
+        .of(deleteRange.prevEndRow(), deleteRange.endRow()).anyMatch(isWithin.and(isNotBoundary)))
+        || info.needsToBeChopped(keyExtent);
   }
 
   // Instead of splitting or chopping tablets for a delete we instead create ranges
