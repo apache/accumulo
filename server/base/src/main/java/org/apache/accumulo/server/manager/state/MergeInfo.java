@@ -83,13 +83,13 @@ public class MergeInfo implements Writable {
 
   public boolean overlaps(KeyExtent otherExtent) {
     boolean result = this.extent.overlaps(otherExtent);
-    if (!result && deleteOverlaps(otherExtent)) {
+    if (!result && needsToBeChopped(otherExtent)) {
       return true;
     }
     return result;
   }
 
-  public boolean deleteOverlaps(KeyExtent otherExtent) {
+  public boolean needsToBeChopped(KeyExtent otherExtent) {
     if (isDelete() && otherExtent.tableId().equals(extent.tableId())) {
       return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
     } else {

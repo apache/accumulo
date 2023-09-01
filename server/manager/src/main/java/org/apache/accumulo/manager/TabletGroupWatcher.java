@@ -968,7 +968,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private boolean needsFencingForDeletion(MergeInfo info, KeyExtent keyExtent) {
-    return needsFencingForSplit(info, keyExtent) || info.deleteOverlaps(keyExtent);
+    return needsFencingForSplit(info, keyExtent) || info.needsToBeChopped(keyExtent);
   }
 
   // Instead of splitting or chopping tablets for a delete we instead create ranges

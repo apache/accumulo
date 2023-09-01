@@ -151,7 +151,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       // Eliminate some rows in the last tablet
       testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272, "z", "z");
       // Delete everything
-      testSplit(c, tableName + i++, null, null, "", 0);
+      testSplit(c, tableName + i++, null, null, "", 0, "a", "z");
     }
   }
 
