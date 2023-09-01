@@ -38,7 +38,7 @@ public class Wait {
    * @return the parsed value or the value from the onError function, if an error occurred
    */
   public static int getTimeoutFactor(ToIntFunction<NumberFormatException> onError) {
-    String timeoutString = System.getProperty("timeout.factor");
+    String timeoutString = System.getProperty("timeout.factor", "1");
     try {
       int factor = Integer.parseInt(timeoutString);
       if (factor < 1) {
