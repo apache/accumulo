@@ -22,6 +22,10 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.layered.TFramedTransport;
 
+/**
+ * This is a workaround for the issue reported in https://issues.apache.org/jira/browse/THRIFT-5732
+ * and can be removed once that issue is fixed.
+ */
 public class AccumuloTFramedTransportFactory extends TFramedTransport.Factory {
 
   private final int maxMessageSize;

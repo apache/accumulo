@@ -112,18 +112,21 @@ public class ThriftUtilTest {
 
     // Write more than 1MB to the TByteBuffer, it's possible to write more data
     // than allowed by the frame, it's enforced on the read.
-    byte[] writeBuf = new byte[MB1 + 100];
+    final int ourSize = MB1 + 100;
+    byte[] writeBuf = new byte[ourSize];
     Arrays.fill(writeBuf, (byte) 1);
     framedTransport.write(writeBuf);
     framedTransport.flush();
 
-    assertEquals(MB1 + 100 + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().position());
+    assertEquals(ourSize + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().position());
     underlyingTransport.flip();
     assertEquals(0, underlyingTransport.getByteBuffer().position());
-    assertEquals(MB1 + 100 + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().limit());
+    assertEquals(ourSize + FRAME_HDR_SIZE, underlyingTransport.getByteBuffer().limit());
 
-    byte[] readBuf = new byte[MB1 + 100];
-    assertThrows(TTransportException.class, () -> framedTransport.read(readBuf, 0, MB1 + 100));
-
+    byte[] readBuf = new byte[ourSize];
+    var e =
+        assertThrows(TTransportException.class, () -> framedTransport.read(readBuf, 0, ourSize));
+    assertEquals("Frame size (" + ourSize + ") larger than max length (" + MB1 + ")!",
+        e.getMessage());
   }
 }
