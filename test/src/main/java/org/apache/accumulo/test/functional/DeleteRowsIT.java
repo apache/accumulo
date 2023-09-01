@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -116,8 +118,50 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     }
   }
 
+  // Test that deletion works on tablets that have files that have already been fenced
+  // The fenced files are created by doing merges first
+  @Test
+  public void testManyRowsAlreadyFenced() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      // Delete ranges of rows, and verify the tablets are removed.
+      int i = 0;
+      // Eliminate whole tablets
+      String tableName = getUniqueNames(1)[0];
+      testSplit(c, tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260, "f", "h");
+      // Eliminate whole tablets, partial first tablet
+      testSplit(c, tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262, "f", "h");
+      // Eliminate whole tablets, partial last tablet
+      testSplit(c, tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258, "f", "h");
+      // Eliminate whole tablets, partial first and last tablet
+      testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260, "f", "h");
+      // Eliminate one tablet
+      testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270, "f", "g");
+      // Eliminate partial tablet, matches start split
+      testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278, "f", "f");
+      // Eliminate partial tablet, matches end split
+      testSplit(c, tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272, "f", "g");
+      // Eliminate tablets starting at -inf
+      testSplit(c, tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200, "a", "h");
+      // Eliminate tablets ending at +inf
+      testSplit(c, tableName + i++, "t", null, "abcdefghijklmnopqrst", 200, "t", "z");
+      // Eliminate some rows inside one tablet
+      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278, "t", "t");
+      // Eliminate some rows in the first tablet
+      testSplit(c, tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278, "a", "a");
+      // Eliminate some rows in the last tablet
+      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272, "z", "z");
+      // Delete everything
+      testSplit(c, tableName + i++, null, null, "", 0);
+    }
+  }
+
   private void testSplit(AccumuloClient c, String table, String start, String end, String result,
       int entries) throws Exception {
+    testSplit(c, table, start, end, result, entries, null, null);
+  }
+
+  private void testSplit(AccumuloClient c, String table, String start, String end, String result,
+      int entries, String mergeStart, String mergeEnd) throws Exception {
     // Put a bunch of rows on each tablet
     c.tableOperations().create(table);
     try (BatchWriter bw = c.createBatchWriter(table)) {
@@ -130,12 +174,40 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       }
       bw.flush();
     }
-    // Split the table
-    c.tableOperations().addSplits(table, SPLITS);
 
     final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
-    log.debug("After splits");
-    printAndVerifyFileMetadata(getServerContext(), tableId);
+    // Split the table
+
+    // If a merge range is defined then merge the tablets given in the range after
+    // The purpose of the merge is to generate file metadata that contains ranges
+    // so this will test deletings on existing ranged files
+    if (mergeStart != null) {
+      SortedSet<Text> splits = new TreeSet<>(SPLITS);
+      // Generate 2 split points for each existing split and add
+      SortedSet<Text> mergeSplits =
+          SPLITS.subSet(new Text(mergeStart), true, new Text(mergeEnd), true);
+      mergeSplits.forEach(split -> splits.add(new Text(split.toString() + (ROWS_PER_TABLET / 2))));
+
+      log.debug("After splits");
+      c.tableOperations().addSplits(table, splits);
+      printAndVerifyFileMetadata(getServerContext(), tableId);
+
+      // Merge back the extra splits to a single tablet per letter to generate 2 files per tablet
+      // that have a range
+      mergeSplits.forEach(split -> {
+        try {
+          c.tableOperations().merge(table, split, new Key(split.toString() + (ROWS_PER_TABLET / 2))
+              .followingKey(PartialKey.ROW).getRow());
+          log.debug("After Merge");
+          printAndVerifyFileMetadata(getServerContext(), tableId);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+    } else {
+      c.tableOperations().addSplits(table, SPLITS);
+      log.debug("After splits");
+    }
 
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);

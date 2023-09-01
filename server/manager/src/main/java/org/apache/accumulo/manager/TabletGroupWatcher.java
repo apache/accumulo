@@ -1055,19 +1055,38 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             // Go through each range that was created and modify the metadata for the file
             // The end row should be inclusive for the current tablet and the previous end row
             // should be exclusive for the start row.
+            int disjointCount = 0;
             for (Range fenced : ranges) {
               // Clip range with the tablet range if the range already exists
-              fenced = existing.hasRange() ? existing.getRange().clip(fenced) : fenced;
+              fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
 
-              // Move the file and range to the last tablet
-              StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+              // If null the range is disjoint which can happen if there are existing fenced files
+              if (fenced == null) {
+                Manager.log.trace("Found a disjoint file range {} on delete, incrementing counter.",
+                    existing.getRange());
+                // Check if the file is disjoint and increment the counter if it is
+                // Later we will delete if the file is disjoint with all new ranges
+                disjointCount++;
+              } else {
+                Manager.log.debug("Clipped fenced file is {}", fenced);
 
-              // If the existing metadata does not match then we need to delete the old
-              // and replace with a new range
-              if (!existing.equals(newFile)) {
-                m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
-                m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value);
+                // Move the file and range to the last tablet
+                StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+
+                // If the existing metadata does not match then we need to delete the old
+                // and replace with a new range
+                if (!existing.equals(newFile)) {
+                  m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
+                  m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value);
+                }
               }
+            }
+
+            // If all ranges are disjoint we can safely delete the file
+            if (disjointCount > 0 && disjointCount == ranges.size()) {
+              Manager.log.trace("Found a disjoint file {} with range {}, deleting.",
+                  existing.getFileName(), existing.getRange());
+              m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText());
             }
 
             if (!m.getUpdates().isEmpty()) {
