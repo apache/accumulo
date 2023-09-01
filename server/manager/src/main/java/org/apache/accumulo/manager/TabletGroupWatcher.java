@@ -82,7 +82,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -589,53 +588,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return false;
   }
 
-  private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
-    // Already split?
-    if (!info.getState().equals(MergeState.SPLITTING)) {
-      return;
-    }
-    // Merges don't split
-    if (!info.isDelete()) {
-      return;
-    }
-    // Online and ready to split?
-    if (!state.equals(TabletState.HOSTED)) {
-      return;
-    }
-    // Does this extent cover the end points of the delete?
-    KeyExtent range = info.getExtent();
-    if (tls.extent.overlaps(range)) {
-      for (Text splitPoint : new Text[] {range.prevEndRow(), range.endRow()}) {
-        if (splitPoint == null) {
-          continue;
-        }
-        if (!tls.extent.contains(splitPoint)) {
-          continue;
-        }
-        if (splitPoint.equals(tls.extent.endRow())) {
-          continue;
-        }
-        if (splitPoint.equals(tls.extent.prevEndRow())) {
-          continue;
-        }
-        try {
-          TServerConnection conn;
-          conn = manager.tserverSet.getConnection(tls.getCurrentServer());
-          if (conn != null) {
-            Manager.log.info("Asking {} to split {} at {}", tls.current, tls.extent, splitPoint);
-            conn.splitTablet(tls.extent, splitPoint);
-          } else {
-            Manager.log.warn("Not connected to server {}", tls.current);
-          }
-        } catch (NotServingTabletException e) {
-          Manager.log.debug("Error asking tablet server to split a tablet: ", e);
-        } catch (Exception e) {
-          Manager.log.warn("Error asking tablet server to split a tablet: ", e);
-        }
-      }
-    }
-  }
-
   private void updateMergeState(Map<TableId,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
@@ -679,13 +631,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (deletionStartRow != null) {
       Manager.log.trace("Finding tablet that contains the start row {} for deletion",
           deletionStartRow);
-      KeyExtent firstTablet =
+      final KeyExtent firstTablet =
           loadTabletMetadata(info.getExtent().tableId(), deletionStartRow, ColumnType.PREV_ROW)
               .map(TabletMetadata::getExtent).orElse(null);
       // If needsFencingForDeletion() is true then this tablet was previously fenced
       // so we need to keep it and not delete the tablet. Skip to the next highest
       // tablet after this one if it exists
-      if (firstTablet != null && needsFencingForDeletion(info, firstTablet)) {
+      if (needsFencingForDeletion(info, firstTablet)) {
         Key nextExtent = new Key(deletionStartRow).followingKey(PartialKey.ROW);
         deletionStartRow = getHighTablet(new KeyExtent(info.getExtent().tableId(),
             nextExtent.getRow(), info.getExtent().prevEndRow())).endRow();
@@ -700,13 +652,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Text deletionEndRow = info.getExtent().endRow();
     if (deletionEndRow != null) {
       Manager.log.trace("Finding tablet that contains the end row {} for deletion", deletionEndRow);
-      KeyExtent last =
+      final KeyExtent last =
           loadTabletMetadata(info.getExtent().tableId(), deletionEndRow, ColumnType.PREV_ROW)
               .map(TabletMetadata::getExtent).orElse(null);
       // If needsFencingForDeletion() is true then this tablet was previously fenced
       // so we need to keep it and not delete the tablet. Find the previous tablet
       // if it exists to stop deletion on
-      if (last != null && needsFencingForDeletion(info, last)) {
+      if (needsFencingForDeletion(info, last)) {
         deletionEndRow = last.prevEndRow();
         Manager.log.debug("Last tablet in deletion range updated to contain endRow {}",
             deletionEndRow);
