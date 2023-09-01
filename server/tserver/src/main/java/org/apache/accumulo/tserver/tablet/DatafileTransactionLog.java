@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -70,6 +70,10 @@ public class DatafileTransactionLog {
     return this.log.getTransactions();
   }
 
+  public boolean isEmpty() {
+    return this.log.isEmpty();
+  }
+
   public boolean isExpectedFiles(Set<StoredTabletFile> files) {
     return this.log.isExpectedFiles(files);
   }
@@ -92,29 +96,8 @@ public class DatafileTransactionLog {
    * @param transaction The transaction to add
    */
   private void addTransaction(DatafileTransaction transaction) {
-    TransactionLog log = this.log;
-    TransactionLog newLog = new TransactionLog(log, transaction, getMaxSize());
-    while (!updateLog(log, newLog)) {
-      log = this.log;
-      newLog = new TransactionLog(log, transaction, getMaxSize());
-    }
-  }
-
-  /**
-   * This is the only place the log actually gets updated, minimizing synchronization
-   *
-   * @param origLog The original log used to determine whether the log was changed out from
-   *        underneath us
-   * @param newLog The new log
-   * @return true if we were able to update the log, false otherwise
-   */
-  private synchronized boolean updateLog(TransactionLog origLog, TransactionLog newLog) {
-    // only if this log is the original log as expected do we update
-    if (this.log == origLog) {
-      this.log = newLog;
-      return true;
-    }
-    return false;
+    this.log.setCapacity(getMaxSize());
+    this.log.addTransaction(transaction);
   }
 
   /**
@@ -123,7 +106,11 @@ public class DatafileTransactionLog {
    * @return a log dump
    */
   public String dumpLog() {
-    return this.log.dumpLog(extent);
+    return this.log.dumpLog(extent, false);
+  }
+
+  public String dumpAndClearLog() {
+    return this.log.dumpLog(extent, true);
   }
 
   @Override
@@ -136,65 +123,80 @@ public class DatafileTransactionLog {
    * and the final set of files after applying the transations. This class is immutable.
    */
   private static class TransactionLog {
+    private static final String DATE_FORMAT = "yyyyMMdd'T'HH:mm:ss.SSS";
+    private volatile long updateCount = 0;
     // The time stamp of the initial file set
-    private final long initialTs;
+    private volatile long initialTs;
     // the initial file set
-    private final StoredTabletFile[] initialFiles;
+    private StoredTabletFile[] initialFiles;
     // the transactions
-    private final DatafileTransaction[] tabletLog;
+    private Ring<DatafileTransaction> tabletLog;
     // the final file set derived be applying the transactions to the initial file set
-    private final StoredTabletFile[] finalFiles;
+    private StoredTabletFile[] finalFiles;
 
     public TransactionLog(Set<StoredTabletFile> files) {
       this(files.toArray(new StoredTabletFile[0]));
     }
 
     private TransactionLog(StoredTabletFile[] files) {
-      this(System.currentTimeMillis(), files, new DatafileTransaction[0], files);
+      this(System.currentTimeMillis(), files, new Ring<>(0), files);
     }
 
     private TransactionLog(long initialTs, StoredTabletFile[] initialFiles,
-        DatafileTransaction[] tabletLog, StoredTabletFile[] finalFiles) {
+        Ring<DatafileTransaction> tabletLog, StoredTabletFile[] finalFiles) {
       this.initialTs = initialTs;
       this.initialFiles = initialFiles;
       this.tabletLog = tabletLog;
       this.finalFiles = finalFiles;
+      this.updateCount = tabletLog.getUpdateCount();
+    }
+
+    public void setCapacity(int maxSize) {
+      if (this.tabletLog.capacity() != maxSize) {
+        long initialTs = 0;
+        Set<StoredTabletFile> initialFileSet = null;
+        if (this.tabletLog.capacity() != maxSize) {
+          Ring<DatafileTransaction> newTabletLog = new Ring<>(maxSize);
+          for (DatafileTransaction t : this.tabletLog.toList()) {
+            DatafileTransaction removed = newTabletLog.add(t);
+            if (removed != null) {
+              if (initialFileSet == null) {
+                initialFileSet = new HashSet<>(Arrays.asList(this.initialFiles));
+              }
+              initialTs = removed.ts;
+              removed.apply(initialFileSet);
+            }
+          }
+          this.tabletLog = newTabletLog;
+          if (initialFileSet != null) {
+            this.initialTs = initialTs;
+            this.initialFiles = initialFileSet.toArray(new StoredTabletFile[0]);
+          }
+          this.updateCount = this.tabletLog.getUpdateCount();
+        }
+      }
+    }
+
+    public void clear() {
+      this.tabletLog.clear();
+      this.initialTs = System.currentTimeMillis();
+      this.initialFiles = this.finalFiles;
+      this.updateCount = this.tabletLog.getUpdateCount();
     }
 
     /**
-     * This constructor will be the passed in log, adding the passed in transaction, and trimming
-     * the log to maxSize if needed.
+     * Add the passed in transaction, adjusting the log size as needed.
      *
-     * @param log The starting log
      * @param transaction The new transaction
-     * @param maxSize The max transaction log size
      */
-    public TransactionLog(TransactionLog log, DatafileTransaction transaction, int maxSize) {
-      // if the starting log is smaller than maxSize, then simply add the transaction to the end
-      if (log.tabletLog.length < maxSize) {
-        this.initialTs = log.initialTs;
-        this.initialFiles = log.initialFiles;
-        this.tabletLog = Arrays.copyOf(log.tabletLog, log.tabletLog.length + 1);
-        this.tabletLog[log.tabletLog.length] = transaction;
-        this.finalFiles = applyTransaction(log.finalFiles, transaction);
-      } else if (maxSize <= 0) {
-        // if the max size is 0, then return a log of 0 size, applying the transaction to the file
-        // set
-        this.initialTs = transaction.ts;
-        this.initialFiles = this.finalFiles = applyTransaction(log.finalFiles, transaction);
-        this.tabletLog = new DatafileTransaction[0];
-      } else {
-        // otherwise we are over the max size limit. Trim the transaction log and apply transactions
-        // appropriately to the initial and final file sets.
-        this.tabletLog = new DatafileTransaction[maxSize];
-        System.arraycopy(log.tabletLog, log.tabletLog.length - maxSize + 1, this.tabletLog, 0,
-            maxSize - 1);
-        this.tabletLog[maxSize - 1] = transaction;
-        this.initialFiles =
-            applyTransactions(log.initialFiles, log.tabletLog, log.tabletLog.length - maxSize + 1);
-        this.initialTs = log.tabletLog[log.tabletLog.length - maxSize].ts;
-        this.finalFiles = applyTransaction(log.finalFiles, transaction);
+    public void addTransaction(DatafileTransaction transaction) {
+      DatafileTransaction removed = this.tabletLog.add(transaction);
+      if (removed != null) {
+        this.initialTs = removed.ts;
+        this.initialFiles = applyTransaction(this.initialFiles, removed);
       }
+      this.finalFiles = applyTransaction(this.finalFiles, transaction);
+      this.updateCount = this.tabletLog.getUpdateCount();
     }
 
     /**
@@ -211,45 +213,24 @@ public class DatafileTransactionLog {
       return newFiles.toArray(new StoredTabletFile[0]);
     }
 
-    /**
-     * Apply a set of transactions to a set of files and return the update file set
-     *
-     * @param files The initial files
-     * @param transactions The transactions
-     * @param length The number of transactions to apply
-     * @return The final files
-     */
-    private static StoredTabletFile[] applyTransactions(StoredTabletFile[] files,
-        DatafileTransaction[] transactions, int length) {
-      Set<StoredTabletFile> newFiles = new HashSet<>(Arrays.asList(files));
-      for (int i = 0; i < length; i++) {
-        transactions[i].apply(newFiles);
-      }
-      return newFiles.toArray(new StoredTabletFile[0]);
-    }
-
     Date getInitialDate() {
       return Date.from(Instant.ofEpochMilli(initialTs));
     }
 
-    SortedSet<StoredTabletFile> getSortedInitialFiles() {
-      return Collections.unmodifiableSortedSet(new TreeSet<>(Arrays.asList(this.finalFiles)));
-    }
-
     int getNumTransactions() {
-      return tabletLog.length;
+      return tabletLog.size();
     }
 
     List<DatafileTransaction> getTransactions() {
-      return Collections.unmodifiableList(Arrays.asList(tabletLog));
+      return tabletLog.toList();
     }
 
     boolean isExpectedFiles(Set<StoredTabletFile> expected) {
       return new HashSet<>(Arrays.asList(finalFiles)).equals(new HashSet<>(expected));
     }
 
-    SortedSet<StoredTabletFile> getSortedFinalFiles() {
-      return Collections.unmodifiableSortedSet(new TreeSet<>(Arrays.asList(this.finalFiles)));
+    boolean isEmpty() {
+      return tabletLog.isEmpty();
     }
 
     /**
@@ -258,12 +239,40 @@ public class DatafileTransactionLog {
      * @param extent The tablet extent
      * @return A dump of the log
      */
-    String dumpLog(KeyExtent extent) {
+    String dumpLog(KeyExtent extent, boolean clear) {
+      // first lets get a consistent set of files and transactions
+      long initialTs;
+      StoredTabletFile[] initialFiles;
+      List<DatafileTransaction> transactions;
+      StoredTabletFile[] finalFiles;
+      boolean consistent;
+      do {
+        long updateCount = this.updateCount;
+        initialTs = this.initialTs;
+        initialFiles = this.initialFiles;
+        finalFiles = this.finalFiles;
+        transactions = this.tabletLog.toList();
+        consistent =
+            (updateCount == this.updateCount && updateCount == this.tabletLog.getUpdateCount());
+      } while (!consistent);
+
+      // now clear out the log if requested
+      if (clear) {
+        clear();
+      }
+
+      // now we can build our dump string
       StringBuilder builder = new StringBuilder();
-      builder.append(String.format("%s: Initial files for %s : %s\n", getInitialDate(), extent,
-          getSortedInitialFiles()));
-      getTransactions().stream().forEach(t -> builder.append(t).append('\n'));
-      builder.append("Final files: ").append(getSortedFinalFiles());
+      SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
+      String initialDate = format.format(Date.from(Instant.ofEpochMilli(initialTs)));
+
+      builder.append(String.format("%s: Initial files for %s : %s", initialDate, extent,
+          new TreeSet<>(Arrays.asList(initialFiles))));
+      transactions.stream().forEach(t -> builder.append('\n').append(t.toString(format)));
+      if (!transactions.isEmpty()) {
+        builder.append("\nFinal files: ").append(new TreeSet<>(Arrays.asList(finalFiles)));
+      }
+
       return builder.toString();
     }
   }
@@ -283,4 +292,79 @@ public class DatafileTransactionLog {
     }
   }
 
+  /**
+   * A simple implementation of a ring buffer
+   */
+  public static class Ring<T> {
+    private Object[] ring;
+    private volatile int first;
+    private volatile int last;
+
+    public Ring(int size) {
+      ring = new Object[size];
+      first = 0;
+      last = -1;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T add(T object) {
+      Object removed = null;
+      if (ring.length > 0) {
+        if (size() == ring.length) {
+          removed = ring[first++ % ring.length];
+        }
+        int newEnd = last + 1;
+        ring[newEnd % ring.length] = object;
+        last = newEnd;
+      } else {
+        removed = object;
+      }
+      return (T) removed;
+    }
+
+    public int size() {
+      return last - first + 1;
+    }
+
+    public int capacity() {
+      return ring.length;
+    }
+
+    public boolean isEmpty() {
+      return last < first;
+    }
+
+    public void clear() {
+      last = -1;
+      first = 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<T> toList() {
+      if (isEmpty()) {
+        return Collections.emptyList();
+      }
+
+      Object[] data = null;
+      boolean consistent = false;
+      do {
+        long updateCount = getUpdateCount();
+        int lastPos = last;
+        int firstPos = first;
+        data = new Object[lastPos - firstPos + 1];
+        int index = 0;
+        for (int i = firstPos; i <= lastPos; i++) {
+          data[index++] = ring[i % ring.length];
+        }
+        consistent = (updateCount == getUpdateCount());
+      } while (!consistent);
+
+      return (List<T>) Collections.unmodifiableList(Arrays.asList(data));
+    }
+
+    public long getUpdateCount() {
+      return first + last;
+    }
+
+  }
 }

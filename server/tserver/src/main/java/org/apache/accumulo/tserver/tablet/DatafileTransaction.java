@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -35,6 +36,15 @@ public abstract class DatafileTransaction {
 
   public Date getDate() {
     return Date.from(Instant.ofEpochMilli(ts));
+  }
+
+  public String toString(SimpleDateFormat format) {
+    return format.format(getDate());
+  }
+
+  @Override
+  public String toString() {
+    return getDate().toString();
   }
 
   @Override
@@ -75,7 +85,14 @@ public abstract class DatafileTransaction {
 
     @Override
     public String toString() {
-      return String.format("%s: Compacted %s into %s", getDate(), compactedFiles, destination);
+      return String.format("%s: Compacted %s into %s", super.toString(), compactedFiles,
+          destination);
+    }
+
+    @Override
+    public String toString(SimpleDateFormat format) {
+      return String.format("%s: Compacted %s into %s", super.toString(format), compactedFiles,
+          destination);
     }
 
     @Override
@@ -111,7 +128,12 @@ public abstract class DatafileTransaction {
 
     @Override
     public String toString() {
-      return String.format("%s: Flushed into %s", getDate(), flushFile);
+      return String.format("%s: Flushed into %s", super.toString(), flushFile);
+    }
+
+    @Override
+    public String toString(SimpleDateFormat format) {
+      return String.format("%s: Flushed into %s", super.toString(format), flushFile);
     }
 
     @Override
@@ -147,7 +169,12 @@ public abstract class DatafileTransaction {
 
     @Override
     public String toString() {
-      return String.format("%s: Imported %s", getDate(), importFile);
+      return String.format("%s: Imported %s", super.toString(), importFile);
+    }
+
+    @Override
+    public String toString(SimpleDateFormat format) {
+      return String.format("%s: Imported %s", super.toString(format), importFile);
     }
 
     @Override

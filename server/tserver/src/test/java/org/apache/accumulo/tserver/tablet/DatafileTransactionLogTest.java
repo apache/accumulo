@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
@@ -102,6 +103,7 @@ public class DatafileTransactionLogTest {
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile);
     DatafileTransactionLog log = createLog(initialFiles);
+    String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
@@ -110,6 +112,8 @@ public class DatafileTransactionLogTest {
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     logDate = log.getInitialDate().getTime();
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
 
     Thread.sleep(2);
     StoredTabletFile flushedFile =
@@ -118,6 +122,7 @@ public class DatafileTransactionLogTest {
     assertTrue(log.isExpectedFiles(Sets.newHashSet(initialFile, flushedFile)));
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
+    assertNotEquals(dump, log.dumpLog());
   }
 
   @Test
@@ -126,6 +131,7 @@ public class DatafileTransactionLogTest {
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile);
     DatafileTransactionLog log = createLog(initialFiles);
+    String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
@@ -135,6 +141,7 @@ public class DatafileTransactionLogTest {
     assertTrue(log.isExpectedFiles(Sets.newHashSet(initialFile, importedFile)));
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
+    assertNotEquals(dump, log.dumpLog());
   }
 
   @Test
@@ -147,6 +154,7 @@ public class DatafileTransactionLogTest {
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
     DatafileTransactionLog log = createLog(initialFiles);
+    String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
@@ -156,6 +164,8 @@ public class DatafileTransactionLogTest {
     assertTrue(log.isExpectedFiles(Sets.newHashSet(initialFile3, compactedFile)));
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
     logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
@@ -163,6 +173,7 @@ public class DatafileTransactionLogTest {
     assertTrue(log.isExpectedFiles(Sets.newHashSet(initialFile3)));
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
+    assertNotEquals(dump, log.dumpLog());
   }
 
   @Test
@@ -175,6 +186,7 @@ public class DatafileTransactionLogTest {
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
     DatafileTransactionLog log = createLog(initialFiles, 3);
+    String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
@@ -186,6 +198,8 @@ public class DatafileTransactionLogTest {
     List<DatafileTransaction> logs = log.getTransactions();
     assertEquals(1, logs.size());
     assertEquals(logDate, log.getInitialDate().getTime());
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
 
     Thread.sleep(2);
     StoredTabletFile compactedFile =
@@ -195,6 +209,8 @@ public class DatafileTransactionLogTest {
     assertEquals(logDate, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(2, logs.size());
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
 
     Thread.sleep(2);
     log.compacted(Sets.newHashSet(compactedFile), Optional.empty());
@@ -202,6 +218,8 @@ public class DatafileTransactionLogTest {
     assertEquals(logDate, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(3, logs.size());
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
 
     assertTrue(logs.get(0) instanceof DatafileTransaction.BulkImported);
     assertEquals(importedFile, ((DatafileTransaction.BulkImported) logs.get(0)).getImportFile());
@@ -223,6 +241,8 @@ public class DatafileTransactionLogTest {
     assertEquals(logs.get(0).ts, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(3, logs.size());
+    assertNotEquals(dump, log.dumpLog());
+    dump = log.dumpLog();
 
     assertTrue(logs.get(0) instanceof DatafileTransaction.Compacted);
     assertEquals(Sets.newHashSet(initialFile3, importedFile),
@@ -245,6 +265,7 @@ public class DatafileTransactionLogTest {
     assertEquals(logs.get(2).ts, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(1, logs.size());
+    assertNotEquals(dump, log.dumpLog());
 
     assertTrue(logs.get(0) instanceof DatafileTransaction.Flushed);
     assertEquals(Optional.empty(), ((DatafileTransaction.Flushed) logs.get(0)).getFlushFile());

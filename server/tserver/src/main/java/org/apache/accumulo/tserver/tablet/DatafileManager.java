@@ -584,13 +584,13 @@ class DatafileManager {
   }
 
   public void logTransactions() {
-    if (tabletLog.getNumTransactions() > 0) {
-      log.error("Operation log: {}", tabletLog.dumpLog());
+    if (!tabletLog.isEmpty()) {
+      log.error("Operation log: {}", tabletLog.dumpAndClearLog());
     }
   }
 
   public void checkTransactionLog() {
-    if (tabletLog.getNumTransactions() > 0) {
+    if (!tabletLog.isEmpty()) {
       Set<StoredTabletFile> files = datafileSizes.keySet();
       if (!tabletLog.isExpectedFiles(files)) {
         log.error("In-memory files {} do not match transaction log {}", files);
