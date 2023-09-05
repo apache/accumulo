@@ -422,8 +422,7 @@ public class GarbageCollectionAlgorithm {
      */
     @Override
     public void close() {
-      Preconditions.checkState(!closed);
-      if (row != null) {
+      if (!closed && row != null) {
         validate();
       }
       closed = true;
