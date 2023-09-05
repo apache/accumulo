@@ -65,11 +65,24 @@ public class AccessEvaluatorTest {
   @Test
   public void testIncorrectExpression() {
     var evaluator = AccessEvaluator.builder().authorizations("A1", "Z9").build();
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("(A"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("A)"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("((A)"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("A$B"));
-    assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess("(A|(B&()))"));
+
+    for (String marking : List.of("()", "()|()", "()&()", "&", "|", "(&)", "(|)", "A|", "|A", "A&",
+        "&A", "A|(B|)", "A|(|B)", "A|(B&)", "A|(&B)", "((A)", "(A", "A)", "((A)", ")", "))", "A|B)",
+        "(A|B))", "A&B)", "(A&B))", "A&)", "A|)", "(&A", "(|B", "A$B", "(A|(B&()))", "A|B&C",
+        "A&B|C", "(A&B|C)|(C&Z)", "(A&B|C)&(C&Z)", "(A&B|C)|(D|C&Z)", "(A&B|C)&(D|C&Z)", "\"",
+        "\"\\c\"", "\"\\\"", "\"\"\"", "\"\"\"&A")) {
+      assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess(marking),
+          marking);
+    }
+
+    // Create a quoted string that is empty
+    String eq = "\"\"";
+
+    for (String marking : List.of(eq, eq + "|A", "A|" + eq, eq + "&A", "A&" + eq,
+        "A&(" + eq + "|B)", "(" + eq + ")")) {
+      assertThrows(IllegalAccessExpressionException.class, () -> evaluator.canAccess(marking),
+          marking);
+    }
   }
 
   // copied from VisibilityEvaluatorTest in Accumulo and modified, need to copy more test from that
@@ -125,6 +138,72 @@ public class AccessEvaluatorTest {
 
     assertTrue(va.canAccess(quote("A#C")));
     assertTrue(va.canAccess("(" + quote("A#C") + ")"));
+  }
+
+  @Test
+  public void testSpecialChars() {
+    // test the non alphanumeric characters that can occur unquoted as an authorization in an
+    // expression
+
+    var evaluator = AccessEvaluator.builder()
+        .authorizations("a_b", "a-c", "a/d", "a:e", "a.f", "a_b-c/d:e.f").build();
+
+    // test for false negatives
+    for (String marking : new String[] {"a_b", "\"a_b\"", "a-c", "\"a-c\"", "a/d", "\"a/d\"", "a:e",
+        "\"a:e\"", "a.f", "\"a.f\"", "a_b|a_z", "a-z|a-c", "a/d|a/z", "a:e|a:z", "a.z|a.f",
+        "a_b&a-c&a/d&a:e&a.f", "(a-z|a-c)&(a/d|a/z)", "a_b-c/d:e.f", "a_b-c/d:e.f&a/d"}) {
+      assertTrue(evaluator.canAccess(marking), marking);
+      assertTrue(evaluator.canAccess(marking.getBytes(UTF_8)), marking);
+    }
+
+    // test for false positives
+    for (String marking : new String[] {"a_c", "b_b", "a-b", "a/c", "a:f", "a.e", "a_b&a_z",
+        "a_b&a-b&a/d&a:e&a.f", "a_b-c/d:e.z", "a_b-c/d:e.f&a/c"}) {
+      assertFalse(evaluator.canAccess(marking), marking);
+      assertFalse(evaluator.canAccess(marking.getBytes(UTF_8)), marking);
+    }
+
+    var evaluator2 = AccessEvaluator.builder().authorizations("_", "-", "/", ":", ".").build();
+    for (String marking : new String[] {"_", "\"_\"", "-", "/", ":", ".", "_&-", "_&(a|:)",
+        "/&:&."}) {
+      assertTrue(evaluator2.canAccess(marking), marking);
+      assertTrue(evaluator2.canAccess(marking.getBytes(UTF_8)), marking);
+    }
+
+    // special chars do not need quoting
+    for (String qt : List.of("A_", "_", "A_C", "_C")) {
+      assertEquals(qt, quote(qt));
+      for (char c : new char[] {'/', ':', '-', '.'}) {
+        String qt2 = qt.replace('_', c);
+        assertEquals(qt2, quote(qt2));
+      }
+    }
+
+    assertEquals("a_b:c/d.e", quote("a_b:c/d.e"));
+  }
+
+  @Test
+  public void testEmpty() {
+
+    var expression1 = AccessExpression.of("");
+    var expression2 = AccessExpression.of("A1");
+
+    var evaluator = AccessEvaluator.builder().authorizations("A1").build();
+    assertTrue(evaluator.canAccess(""));
+    assertTrue(evaluator.canAccess("".getBytes(UTF_8)));
+    assertTrue(evaluator.canAccess(expression1));
+    assertTrue(evaluator.canAccess("A1"));
+    assertTrue(evaluator.canAccess("A1".getBytes(UTF_8)));
+    assertTrue(evaluator.canAccess(expression2));
+
+    var evaluator2 = AccessEvaluator.builder().authorizations().build();
+    assertTrue(evaluator2.canAccess(""), "");
+    assertTrue(evaluator2.canAccess("".getBytes(UTF_8)), "");
+    assertTrue(evaluator2.canAccess(expression1), "");
+    assertFalse(evaluator2.canAccess("A1"));
+    assertFalse(evaluator2.canAccess("A1".getBytes(UTF_8)));
+    assertFalse(evaluator2.canAccess(expression2));
+
   }
 
   @Test
@@ -208,6 +287,7 @@ public class AccessEvaluatorTest {
     assertTrue(evaluator.canAccess(""));
     assertTrue(evaluator.canAccess("B|C"));
     assertTrue(evaluator.canAccess("(A&B)|(C&D)"));
+    assertTrue(evaluator.canAccess("(A&B)|(C)"));
   }
 
   // TODO need to copy all test from Accumulo

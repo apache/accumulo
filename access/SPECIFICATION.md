@@ -31,24 +31,23 @@ The formal definition of the AccessExpression UTF-8 string representation is pro
 the following [ABNF][1]:
 
 ```
-access_expression       =  and_expression / or_expression
+access_expression       = [expression] ; empty string is a valid access expression
+
+expression              =  and_expression / or_expression
 
 and_expression          =  and_expression and_operator and_expression
-and_expression          =/ lparen access_expression rparen
+and_expression          =/ lparen expression rparen
 and_expression          =/ access_token 
 
 or_expression           =  or_expression or_operator or_expression
-or_expression           =/ lparen access_expression rparen
+or_expression           =/ lparen expression rparen
 or_expression           =/ access_token 
 
-access_token            = 1*( ALPHA / DIGIT / underscore / hyphen / period / colon / slash )
-access_token            =/ DQUOTE *utf8 DQUOTE ; TODO define escaping
+access_token            = 1*( ALPHA / DIGIT / "_" / "-" / "." / ":" / slash )
+access_token            =/ DQUOTE 1*(utf8_subset / escaped) DQUOTE ; TODO define escaping
 
-utf8                    = %x20-21 / %x23-7E / UVCHARBEYONDASCII
-underscore              = "_"
-hyphen                  = "-"
-period                  = "."
-colon                   = ":"
+utf8_subset             = %x20-21 / %x23-5B / %5D-7E / UVCHARBEYONDASCII ; utf8 minus '"' and '\'
+escaped                 = "\" DQUOTE / "\\"
 slash                   = "/"
 or_operator             = "|"
 and_operator            = "&"
