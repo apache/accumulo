@@ -402,19 +402,21 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void scanTimestampTest() throws IOException {
+    String name = getUniqueNames(1)[0];
     Shell.log.debug("Starting scanTimestamp test ------------------------");
-    exec("createtable test", true);
+    exec("createtable " + name, true);
     exec("insert r f q v -ts 0", true);
     exec("scan -st", true, "r f:q [] 0\tv");
     exec("scan -st -f 0", true, " : [] 0\t");
     exec("deletemany -f", true);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
   }
 
   @Test
   public void scanFewTest() throws IOException {
     Shell.log.debug("Starting scanFew test ------------------------");
-    exec("createtable test", true);
+    String name = getUniqueNames(1)[0];
+    exec("createtable " + name, true);
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
     exec("setauths -s 12345678", true);
@@ -427,7 +429,7 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true,
         expectedFew);
     exec("setauths -c", true);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
   }
 
   @Test
@@ -543,10 +545,22 @@ public class ShellIT extends SharedMiniClusterBase {
           Shell.log.debug("Property Type: " + propertyType + " has no defined test case");
           invalidValue = "foo";
       }
-      String setCommand = "config -s ";
-      if (Property.isValidTablePropertyKey(property.getKey())) {
-        setCommand = "config -t " + testTable + " -s ";
+
+      String setCommand;
+      if (property.isDeprecated()) {
+        setCommand = "config --force -s ";
+      } else {
+        setCommand = "config -s ";
       }
+
+      if (Property.isValidTablePropertyKey(property.getKey())) {
+        if (property.isDeprecated()) {
+          setCommand = "config --force -t " + testTable + " -s ";
+        } else {
+          setCommand = "config -t " + testTable + " -s ";
+        }
+      }
+
       Shell.log.debug("Testing Property {} with Type {}", property.getKey(), propertyType);
       Shell.log.debug("Invalid property value of \"{}\"", invalidValue);
       exec(setCommand + property.getKey() + "=" + invalidValue, false,

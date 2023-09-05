@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -232,6 +233,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private long authTimeout;
   private long lastUserActivity = System.nanoTime();
   private boolean logErrorsToConsole = false;
+  private boolean askAgain = false;
+  private boolean usedClientProps = false;
 
   static {
     // set the JLine output encoding to some reasonable default if it isn't already set
@@ -249,7 +252,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  // no arg constructor should do minimal work since its used in Main ServiceLoader
+  // no arg constructor should do minimal work since it's used in Main ServiceLoader
   public Shell() {}
 
   public Shell(LineReader reader) {
@@ -271,8 +274,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
         && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties))) {
       token = ClientProperty.getAuthenticationToken(clientProperties);
+      usedClientProps = true;
     }
-    if (token == null) {
+    if (token == null || askAgain) {
+      usedClientProps = false;
       // Read password if the user explicitly asked for it, or didn't specify anything at all
       if (PasswordConverter.STDIN.equals(authenticationString) || authenticationString == null) {
         authenticationString = reader.readLine(passwordPrompt, '*');
@@ -617,7 +622,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         writer.println();
 
         String partialLine = uie.getPartialLine();
-        if (partialLine == null || "".equals(uie.getPartialLine().trim())) {
+        if (partialLine == null || partialLine.trim().isEmpty()) {
           // No content, actually exit
           return exitCode;
         }
@@ -759,6 +764,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
             if (authFailed) {
               writer.print("Invalid password. ");
+              askAgain = true;
+            } else {
+              if (usedClientProps) {
+                writer.println(
+                    "User re-authenticated using value from accumulo-client.properties file");
+              }
             }
           } while (authFailed);
           lastUserActivity = System.nanoTime();
@@ -1263,4 +1274,24 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return exit;
   }
 
+  /**
+   * Prompt user for yes/no using the shell prompt.
+   *
+   * @param prompt the string printed to user, with (yes|no)? appended as the prompt.
+   * @return true if user enters y | yes, false or null.
+   */
+  public Optional<Boolean> confirm(final String prompt) {
+    getWriter().flush();
+    String line;
+    Optional<Boolean> confirmed = Optional.empty();
+    try {
+      line = getReader().readLine(prompt + " (yes|no)? ");
+    } catch (EndOfFileException ignored) {
+      line = null;
+    }
+    if (line != null) {
+      confirmed = Optional.of(line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+    }
+    return confirmed;
+  }
 }

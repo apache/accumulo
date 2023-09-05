@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.1.2-SNAPSHOT</version>
+    <version>2.1.3-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
@@ -188,7 +188,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
                   <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
@@ -334,9 +334,8 @@
             </goals>
             <phase>prepare-package</phase>
             <configuration>
-              <executable>mkdir</executable>
+              <executable>${basedir}/src/main/scripts/mkdirs.sh</executable>
               <arguments>
-                <argument>-p</argument>
                 <argument>${project.build.directory}/generated-docs</argument>
               </arguments>
             </configuration>
@@ -425,6 +424,8 @@
                   <exclude>**/TestCfCqSlice.java</exclude>
                   <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
                   <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                  <exclude>**/core/rpc/SaslConnectionParamsTest.java</exclude>
+                  <exclude>**/core/clientImpl/ThriftTransportKeyTest.java</exclude>
                 </excludes>
               </configuration>
               <executions>
@@ -444,7 +445,9 @@
                       <include>**/IdleRatioScanPrioritizerTest.java</include>
                       <include>**/TestCfCqSlice.java</include>
                       <include>**/TestCfCqSliceSeekingFilter.java</include>
-                      <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                      <include>**/core/constraints/DefaultKeySizeConstraintTest.java</include>
+                      <include>**/core/rpc/SaslConnectionParamsTest.java</include>
+                      <include>**/core/clientImpl/ThriftTransportKeyTest.java</include>
                     </includes>
                   </configuration>
                 </execution>

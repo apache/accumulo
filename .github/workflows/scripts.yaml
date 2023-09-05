@@ -42,9 +42,9 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
-      run: contrib/ci/install-shfmt.sh
+      run: src/build/ci/install-shfmt.sh
     - name: Checking formatting of all scripts
-      run: contrib/ci/run-shfmt.sh
+      run: src/build/ci/run-shfmt.sh
 
   shellcheck:
     name: ShellCheck
@@ -55,7 +55,23 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
-      run: contrib/ci/install-shfmt.sh
+      run: src/build/ci/install-shfmt.sh
     - name: Running shellcheck on all scripts
-      run: contrib/ci/run-shellcheck.sh
+      run: src/build/ci/run-shellcheck.sh
 
+  thrift:
+    name: Thrift
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Show the first log message
+      run: git log -n1
+    - name: Update package repository
+      run: sudo apt-get update
+    - name: Install xmllint
+      run: sudo apt-get install libxml2-utils
+    - name: Install thrift
+      run: src/build/ci/install-thrift.sh
+    - name: Running thrift to check for changes
+      run: src/build/ci/run-thrift.sh

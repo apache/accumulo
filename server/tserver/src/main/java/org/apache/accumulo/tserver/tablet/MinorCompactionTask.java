@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -90,8 +88,11 @@ class MinorCompactionTask implements Runnable {
               tablet.getTabletServer().minorCompactionStarted(commitSession,
                   commitSession.getWALogSeq() + 1, newFile.getMetaInsert());
               break;
-            } catch (IOException e) {
-              // An IOException could have occurred while creating the new file
+            } catch (Exception e) {
+              // Catching Exception here rather than something more specific as we can't allow the
+              // MinorCompactionTask to exit and the thread to die. Tablet.minorCompact *must* be
+              // called and *must* complete else no future minor compactions can be performed on
+              // this Tablet.
               if (newFile == null) {
                 log.warn("Failed to create new file for minor compaction {}", e.getMessage(), e);
               } else {

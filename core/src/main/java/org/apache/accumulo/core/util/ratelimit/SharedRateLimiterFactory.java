@@ -157,9 +157,9 @@ public class SharedRateLimiterFactory {
     }
 
     @Override
-    public void acquire(long permits) {
-      super.acquire(permits);
-      permitsAcquired.addAndGet(permits);
+    public void acquire(long numPermits) {
+      super.acquire(numPermits);
+      permitsAcquired.addAndGet(numPermits);
     }
 
     /** Poll the callback, updating the current rate if necessary. */

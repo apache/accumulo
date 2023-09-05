@@ -1,3 +1,4 @@
+#! /usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -17,15 +18,18 @@
 # under the License.
 #
 
-useMiniDFS=true
-rootPassword=secret
-instanceName=testInstance
-numTServers=1
-zooKeeperPort=3191
-jdwpEnabled=true
-zooKeeperMemory=128M
-tserverMemory=256M
-managerMemory=128M
-defaultMemory=256M
-shutdownPort=4446
-site.instance.secret=HUSH
+# Check that the generated thrift code hasn't changed from
+# what is currently checked in to the repository
+
+set -e
+
+echo 'Checking if thrift modified any files...'
+(cd core && src/main/scripts/generate-thrift.sh)
+
+if [[ -n $(git status --porcelain --ignored=no) ]]; then
+  echo 'Thrift build changed files in worktree:'
+  git status --short --ignored=no
+  exit 1
+else
+  echo 'No changes detected.'
+fi

@@ -38,12 +38,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -66,6 +68,8 @@ import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -74,6 +78,9 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final Logger log = LoggerFactory.getLogger(VolumeManagerImpl.class);
 
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<>();
+
+  private static final Cache<Pair<Configuration,String>,Configuration> HDFS_CONFIGS_FOR_VOLUME =
+      Caffeine.newBuilder().expireAfterWrite(24, TimeUnit.HOURS).build();
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
@@ -377,27 +384,41 @@ public class VolumeManagerImpl implements VolumeManager {
    * </pre>
    *
    * We will use these properties to return a new Configuration object that can be used with the
-   * FileSystem URI.
+   * FileSystem URI to override properties in the original Configuration. If these properties are
+   * not set for a volume, then the original Configuration is returned. If they are set, a new
+   * Configuration is created with the overridden properties set. In either case, the returned
+   * Configuration is cached, to avoid unnecessary recomputation. This works because these override
+   * properties are instance properties and cannot change while the system is running.
    *
    * @param conf AccumuloConfiguration object
    * @param hadoopConf Hadoop Configuration object
    * @param filesystemURI Volume Filesystem URI
    * @return Hadoop Configuration with custom overrides for this FileSystem
    */
-  private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
+  protected static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
       final Configuration hadoopConf, final String filesystemURI) {
 
-    final Configuration volumeConfig = new Configuration(hadoopConf);
+    final var cacheKey = new Pair<>(hadoopConf, filesystemURI);
+    return HDFS_CONFIGS_FOR_VOLUME.get(cacheKey, (key) -> {
 
-    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
-        .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
-          String key = e.getKey().substring(filesystemURI.length() + 1);
-          String value = e.getValue();
-          log.info("Overriding property {} for volume {}", key, value, filesystemURI);
-          volumeConfig.set(key, value);
-        });
+      Map<String,String> volumeHdfsConfigOverrides =
+          conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+              .stream().filter(e -> e.getKey().startsWith(filesystemURI + "."))
+              .collect(Collectors.toUnmodifiableMap(
+                  e -> e.getKey().substring(filesystemURI.length() + 1), Entry::getValue));
 
-    return volumeConfig;
+      // use the original if no overrides exist
+      if (volumeHdfsConfigOverrides.isEmpty()) {
+        return hadoopConf;
+      }
+
+      Configuration volumeConfig = new Configuration(hadoopConf);
+      volumeHdfsConfigOverrides.forEach((k, v) -> {
+        log.info("Overriding property {}={} for volume {}", k, v, filesystemURI);
+        volumeConfig.set(k, v);
+      });
+      return volumeConfig;
+    });
   }
 
   protected static Stream<Entry<String,String>>
@@ -441,16 +462,21 @@ public class VolumeManagerImpl implements VolumeManager {
     return new VolumeManagerImpl(volumes, conf, hadoopConf);
   }
 
+  @SuppressWarnings("deprecation")
+  private static boolean inSafeMode(DistributedFileSystem dfs) throws IOException {
+    // Returns true when safemode is on; this version of setSafeMode was deprecated in Hadoop 3.3.6,
+    // because SafeModeAction enum was moved to a new package, and this deprecated method was
+    // overloaded with a version of the method that accepts the new enum. However, we can't use that
+    // replacement method if we want to continue working with versions less than 3.3.6, so we just
+    // suppress the deprecation warning.
+    return dfs.setSafeMode(SafeModeAction.SAFEMODE_GET);
+  }
+
   @Override
   public boolean isReady() throws IOException {
     for (Volume volume : volumesByName.values()) {
       final FileSystem fs = volume.getFileSystem();
-      if (!(fs instanceof DistributedFileSystem)) {
-        continue;
-      }
-      final DistributedFileSystem dfs = (DistributedFileSystem) fs;
-      // Returns true when safemode is on
-      if (dfs.setSafeMode(SafeModeAction.SAFEMODE_GET)) {
+      if (fs instanceof DistributedFileSystem && inSafeMode((DistributedFileSystem) fs)) {
         return false;
       }
     }

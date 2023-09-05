@@ -282,6 +282,12 @@ class DatafileManager {
       for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
+    } catch (Exception e) {
+      // Any exception in this code is prone to leaving the persisted tablet metadata and the
+      // tablets in memory data structs out of sync. Log the extent and exact files involved as this
+      // may be useful for debugging.
+      log.error("Failure adding bulk import files {} {}", tablet.getExtent(), paths.keySet(), e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
@@ -416,6 +422,12 @@ class DatafileManager {
 
         t2 = System.currentTimeMillis();
       }
+    } catch (Exception e) {
+      // Any exception in this code is prone to leaving the persisted tablet metadata and the
+      // tablets in memory data structs out of sync. Log the extent and exact file involved as this
+      // may be useful for debugging.
+      log.error("Failure adding minor compacted file {} {}", tablet.getExtent(), newDatafile, e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
@@ -518,6 +530,13 @@ class DatafileManager {
       tablet.setLastCompactionID(compactionIdToWrite);
       removeFilesAfterScan(filesInUseByScans);
 
+    } catch (Exception e) {
+      // Any exception in this code is prone to leaving the persisted tablet metadata and the
+      // tablets in memory data structs out of sync. Log the extent and exact files involved as this
+      // may be useful for debugging.
+      log.error("Failure updating files after major compaction {} {} {}", tablet.getExtent(),
+          newFile, oldDatafiles, e);
+      throw e;
     } finally {
       // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
