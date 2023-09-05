@@ -113,6 +113,14 @@ public class DatafileTransactionLog {
     return this.log.dumpLog(extent, true);
   }
 
+  public void clearLog() {
+    this.log.clear();
+  }
+
+  public void resetLog(Set<StoredTabletFile> files) {
+    this.log.reset(files);
+  }
+
   @Override
   public String toString() {
     return dumpLog();
@@ -181,6 +189,13 @@ public class DatafileTransactionLog {
       this.tabletLog.clear();
       this.initialTs = System.currentTimeMillis();
       this.initialFiles = this.finalFiles;
+      this.updateCount = this.tabletLog.getUpdateCount();
+    }
+
+    public void reset(Set<StoredTabletFile> files) {
+      this.tabletLog.clear();
+      this.initialTs = System.currentTimeMillis();
+      this.initialFiles = this.finalFiles = files.toArray(new StoredTabletFile[0]);
       this.updateCount = this.tabletLog.getUpdateCount();
     }
 

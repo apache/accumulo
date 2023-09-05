@@ -1147,6 +1147,8 @@ public class Tablet extends TabletBase {
             + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
         log.error(msg);
         getDatafileManager().logTransactions();
+      } else {
+        getDatafileManager().clearTransactions();
       }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
@@ -1225,6 +1227,7 @@ public class Tablet extends TabletBase {
         log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
             tabletMetadata.getExtent(), updateCounter);
       }
+      getDatafileManager().clearTransactions();
     }
   }
 

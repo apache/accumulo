@@ -583,19 +583,25 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
-  public void logTransactions() {
-    if (!tabletLog.isEmpty()) {
-      log.error("Operation log: {}", tabletLog.dumpAndClearLog());
+  public void clearTransactions() {
+    tabletLog.clearLog();
+  }
+
+  public void resetTransactions() {
+    synchronized (tablet) {
+      tabletLog.resetLog(datafileSizes.keySet());
     }
   }
 
+  public void logTransactions() {
+    log.error("Operation log: {}", tabletLog.dumpLog());
+  }
+
   public void checkTransactionLog() {
-    if (!tabletLog.isEmpty()) {
-      Set<StoredTabletFile> files = datafileSizes.keySet();
-      if (!tabletLog.isExpectedFiles(files)) {
-        log.error("In-memory files {} do not match transaction log {}", files);
-        logTransactions();
-      }
+    Set<StoredTabletFile> files = datafileSizes.keySet();
+    if (!tabletLog.isExpectedFiles(files)) {
+      log.error("In-memory files {} do not match transaction log {}", files);
+      logTransactions();
     }
   }
 }
