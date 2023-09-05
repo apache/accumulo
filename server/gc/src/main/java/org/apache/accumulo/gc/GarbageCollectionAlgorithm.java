@@ -393,7 +393,9 @@ public class GarbageCollectionAlgorithm {
       if (row == null) {
         row = candidate; // first row seen
       } else if (!row.equals(candidate)) {
+        // row changed, validate previous
         validate();
+        // start tracking the next row
         hasPrevRow = false;
         hasDir = false;
         row = candidate;
