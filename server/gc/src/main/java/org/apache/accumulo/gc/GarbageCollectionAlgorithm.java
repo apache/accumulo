@@ -391,7 +391,7 @@ public class GarbageCollectionAlgorithm {
       Preconditions.checkState(!closed);
       Objects.requireNonNull(candidate);
       if (row == null) {
-        row = candidate;
+        row = candidate; // first row seen
       } else if (!row.equals(candidate)) {
         validate();
         hasPrevRow = false;
