@@ -231,7 +231,9 @@ public class GarbageCollectionAlgorithm {
           throw new RuntimeException(
               "Scanner over metadata table returned unexpected column : " + entry.getKey());
       }
-    } // closed tracker - checks last row.
+      // the tracker is closed at the end of this block; it will check the last row
+      // in its close method as its final action
+    }
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
   }
