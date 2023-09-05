@@ -36,6 +36,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -191,7 +192,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // create a properties file contents
     StringBuilder sb = new StringBuilder();
     for (Property p : shouldBeSet) {
-      sb.append(p.getKey()).append("=foo\n");
+      sb.append(p.getKey()).append("=foo").append(System.lineSeparator());
     }
     String propsFileContents = sb.toString();
 
@@ -228,7 +229,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     SystemPropKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps = new VersionedProperties(1, Instant.now(),
         Map.of(GC_PORT.getKey(), "1234", TSERV_SCAN_MAX_OPENFILES.getKey(), "19"));
-    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
     ConfigurationCopy defaultConfig = new ConfigurationCopy(
         Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue()));
@@ -243,6 +244,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     verifyProps(systemConfiguration, shouldBeSet, shouldNotBeSet);
 
     testPropertyIsSetImpl(systemConfiguration, shouldBeSet, shouldNotBeSet);
+
+    verify(context, propStore);
   }
 
   @Test
@@ -257,10 +260,6 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     replay(context); // prop store is read from context.
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
-    var sysPropKey = SystemPropKey.of(instanceId);
-    VersionedProperties sysProps =
-        new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
     NamespaceId NID = NamespaceId.of("namespace");
     var nsPropKey = NamespacePropKey.of(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
@@ -290,6 +289,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     verifyProps(tableConfiguration, shouldBeSet, shouldNotBeSet);
 
     testPropertyIsSetImpl(tableConfiguration, shouldBeSet, shouldNotBeSet);
+
+    verify(context, propStore);
   }
 
   @Test
@@ -307,7 +308,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234"));
-    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
     ConfigurationCopy defaultConfig = new ConfigurationCopy(
         Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue()));
@@ -322,6 +323,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     verifyProps(zooBasedConfiguration, shouldBeSet, shouldNotBeSet);
 
     testPropertyIsSetImpl(zooBasedConfiguration, shouldBeSet, shouldNotBeSet);
+
+    verify(context, propStore);
   }
 
 }
