@@ -37,11 +37,11 @@ expression              =  and_expression / or_expression
 
 and_expression          =  and_expression and_operator and_expression
 and_expression          =/ lparen expression rparen
-and_expression          =/ access_token 
+and_expression          =/ access_token
 
 or_expression           =  or_expression or_operator or_expression
 or_expression           =/ lparen expression rparen
-or_expression           =/ access_token 
+or_expression           =/ access_token
 
 access_token            = 1*( ALPHA / DIGIT / "_" / "-" / "." / ":" / slash )
 access_token            =/ DQUOTE 1*(utf8_subset / escaped) DQUOTE
