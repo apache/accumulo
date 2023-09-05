@@ -128,7 +128,9 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void configurationCopy() {
     Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE, GC_PORT);
-    Set<Property> shouldNotBeSet = Sets.difference(shouldBeSet, ALL_PROPERTIES);
+    Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
+
+    assertFalse(shouldNotBeSet.isEmpty());
 
     // set up object
     ConfigurationCopy configurationCopy = new ConfigurationCopy();
@@ -174,7 +176,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
         new NamespaceConfiguration(context, NSID, parent);
 
     Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE, INSTANCE_SECRET);
-    Set<Property> shouldNotBeSet = Sets.difference(shouldBeSet, ALL_PROPERTIES);
+    Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
 
     verifyProps(namespaceConfiguration, shouldBeSet, shouldNotBeSet);
 
@@ -315,6 +317,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
     Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE, GC_PORT);
     Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
+
+    assertFalse(shouldNotBeSet.isEmpty());
 
     // create ZooBasedConfiguration object
     ZooBasedConfiguration zooBasedConfiguration =
