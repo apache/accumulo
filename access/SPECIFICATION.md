@@ -44,7 +44,7 @@ or_expression           =/ lparen expression rparen
 or_expression           =/ access_token 
 
 access_token            = 1*( ALPHA / DIGIT / "_" / "-" / "." / ":" / slash )
-access_token            =/ DQUOTE 1*(utf8_subset / escaped) DQUOTE ; TODO define escaping
+access_token            =/ DQUOTE 1*(utf8_subset / escaped) DQUOTE
 
 utf8_subset             = %x20-21 / %x23-5B / %5D-7E / UVCHARBEYONDASCII ; utf8 minus '"' and '\'
 escaped                 = "\" DQUOTE / "\\"
