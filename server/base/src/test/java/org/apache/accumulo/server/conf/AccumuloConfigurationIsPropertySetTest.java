@@ -121,8 +121,20 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     Map<String,String> propsMap = new HashMap<>();
     accumuloConfiguration.getProperties(propsMap, x -> true);
     Predicate<Property> mapContainsProp = property -> propsMap.containsKey(property.getKey());
-    assertTrue(shouldBeSet.stream().allMatch(mapContainsProp));
-    assertTrue(shouldNotBeSet.stream().noneMatch(mapContainsProp));
+
+    // Collect properties that should be set but are not
+    Set<Property> notSetButShouldBe =
+        shouldBeSet.stream().filter(mapContainsProp.negate()).collect(Collectors.toSet());
+
+    // Collect properties that should not be set but are
+    Set<Property> setButShouldNotBe =
+        shouldNotBeSet.stream().filter(mapContainsProp).collect(Collectors.toSet());
+
+    // Assert and print offending sets
+    assertTrue(notSetButShouldBe.isEmpty(),
+        "Properties that should be set but are not: " + notSetButShouldBe);
+    assertTrue(setButShouldNotBe.isEmpty(),
+        "Properties that should not be set but are: " + setButShouldNotBe);
   }
 
   @Test
@@ -282,8 +294,9 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     NamespaceConfiguration namespaceConfig =
         new NamespaceConfiguration(context, nsid, parentConfig);
 
-    Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE);
-    Set<Property> shouldNotBeSet = Set.of(TSERV_SCAN_MAX_OPENFILES);
+    Set<Property> shouldBeSet =
+        Set.of(TABLE_FILE_MAX, TABLE_BLOOM_ENABLED, TABLE_BLOOM_SIZE, TABLE_DURABILITY);
+    Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
 
     // Create a TableConfiguration object
     TableConfiguration tableConfiguration = new TableConfiguration(context, TID, namespaceConfig);
