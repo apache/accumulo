@@ -74,8 +74,8 @@ public class DatafileTransactionLog {
     return this.log.isEmpty();
   }
 
-  public boolean isExpectedFiles(Set<StoredTabletFile> files) {
-    return this.log.isExpectedFiles(files);
+  public Set<StoredTabletFile> getExpectedFiles() {
+    return this.log.getExpectedFiles();
   }
 
   public void compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> output) {
@@ -240,8 +240,8 @@ public class DatafileTransactionLog {
       return tabletLog.toList();
     }
 
-    boolean isExpectedFiles(Set<StoredTabletFile> expected) {
-      return new HashSet<>(Arrays.asList(finalFiles)).equals(new HashSet<>(expected));
+    Set<StoredTabletFile> getExpectedFiles() {
+      return new HashSet<>(Arrays.asList(finalFiles));
     }
 
     boolean isEmpty() {

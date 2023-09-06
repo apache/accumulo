@@ -599,8 +599,10 @@ class DatafileManager {
 
   public void checkTransactionLog() {
     Set<StoredTabletFile> files = datafileSizes.keySet();
-    if (!tabletLog.isExpectedFiles(files)) {
-      log.error("In-memory files {} do not match transaction log {}", files);
+    Set<StoredTabletFile> expected = tabletLog.getExpectedFiles();
+    if (!expected.equals(files)) {
+      log.error("In-memory files {} do not match transaction log {}", new TreeSet<>(files),
+          new TreeSet<>(expected));
       logTransactions();
     }
   }
