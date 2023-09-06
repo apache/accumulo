@@ -201,7 +201,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
     Set<Property> shouldBeSet =
         Set.of(INSTANCE_ZK_HOST, INSTANCE_SECRET, MANAGER_BULK_TSERVER_REGEX);
-    Set<Property> shouldNotBeSet = Sets.difference(shouldBeSet, ALL_PROPERTIES);
+    Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
 
     // create a properties file contents
     StringBuilder sb = new StringBuilder();
@@ -249,7 +249,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
         Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue()));
 
     Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE, GC_PORT, TSERV_SCAN_MAX_OPENFILES);
-    Set<Property> shouldNotBeSet = Sets.difference(shouldBeSet, ALL_PROPERTIES);
+    Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
 
     // create SystemConfiguration object
     SystemConfiguration systemConfiguration =
