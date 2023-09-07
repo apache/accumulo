@@ -104,12 +104,16 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
    */
   private static void testPropertyIsSetImpl(AccumuloConfiguration accumuloConfiguration,
       Set<Property> expectIsSet, Set<Property> expectNotSet) {
-    for (Property prop : expectIsSet) {
-      assertTrue(accumuloConfiguration.isPropertySet(prop), "Expected " + prop + " to be set");
-    }
-    for (Property prop : expectNotSet) {
-      assertFalse(accumuloConfiguration.isPropertySet(prop), "Expected " + prop + " to NOT be set");
-    }
+
+    Set<Property> notSetButShouldBe = expectIsSet.stream()
+        .filter(prop -> !accumuloConfiguration.isPropertySet(prop)).collect(Collectors.toSet());
+    Set<Property> setButShouldNotBe = expectNotSet.stream()
+        .filter(accumuloConfiguration::isPropertySet).collect(Collectors.toSet());
+
+    assertTrue(notSetButShouldBe.isEmpty(),
+        "Properties that should be set but are not: " + notSetButShouldBe);
+    assertTrue(setButShouldNotBe.isEmpty(),
+        "Properties that should not be set but are: " + setButShouldNotBe);
   }
 
   /**
@@ -248,7 +252,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     ConfigurationCopy defaultConfig = new ConfigurationCopy(
         Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue()));
 
-    Set<Property> shouldBeSet = Set.of(TABLE_BLOOM_SIZE, GC_PORT, TSERV_SCAN_MAX_OPENFILES);
+    Set<Property> shouldBeSet =
+        new HashSet<>(Set.of(TABLE_BLOOM_SIZE, GC_PORT, TSERV_SCAN_MAX_OPENFILES));
     Set<Property> shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
 
     // create SystemConfiguration object
@@ -256,6 +261,10 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
         new SystemConfiguration(context, sysPropKey, defaultConfig);
 
     verifyProps(systemConfiguration, shouldBeSet, shouldNotBeSet);
+
+    // these get added from the constructor via RuntimeFixedProperties and get checked in the
+    // isPropertySet impl
+    shouldBeSet.addAll(Property.fixedProperties);
 
     testPropertyIsSetImpl(systemConfiguration, shouldBeSet, shouldNotBeSet);
 
