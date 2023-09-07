@@ -1,0 +1,376 @@
+[
+  {
+    "description": "basic expressions",
+    "auths": [
+      [
+        "one",
+        "two",
+        "three",
+        "four"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "one",
+          "one|five",
+          "five|one",
+          "(one)",
+          "(one&two)|(foo&bar)",
+          "(one|foo)&three",
+          "one|foo|bar",
+          "(one|foo)|bar",
+          "((one|foo)|bar)&two",
+          "",
+          "one&two",
+          "foor|four",
+          "(one&two)|(foo&bar)"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "five",
+          "one&five",
+          "five&one",
+          "((one|foo)|bar)&goober"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "basic expressions with repeats",
+    "auths": [
+      [
+        "A1",
+        "Z9"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "A1",
+          "Z9",
+          "A1|G2",
+          "G2|A1",
+          "Z9|G2",
+          "G2|A1",
+          "G2|A1",
+          "Z9|A1",
+          "A1|Z9",
+          "Z9|A1",
+          "(A1|G2)&(Z9|G5)",
+          "Z9|A1",
+          "(A1|G2)&(Z9|G5)"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "Z8",
+          "A2",
+          "A2|Z8",
+          "A1&Z8",
+          "Z8&A1"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "incorrect expressions",
+    "auths": [
+      [
+        "A1",
+        "Z9"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ERROR",
+        "expressions": [
+          "()",
+          "()|()",
+          "()&()",
+          "&",
+          "|",
+          "(&)",
+          "(|)",
+          "A|",
+          "|A",
+          "A&",
+          "&A",
+          "A|(B|)",
+          "A|(|B)",
+          "A|(B&)",
+          "A|(&B)",
+          "((A)",
+          "(A",
+          "A)",
+          "((A)",
+          ")",
+          "))",
+          "A|B)",
+          "(A|B))",
+          "A&B)",
+          "(A&B))",
+          "A&)",
+          "A|)",
+          "(&A",
+          "(|B",
+          "A$B",
+          "(A|(B&()))",
+          "A|B&C",
+          "A&B|C",
+          "(A&B|C)|(C&Z)",
+          "(A&B|C)&(C&Z)",
+          "(A&B|C)|(D|C&Z)",
+          "(A&B|C)&(D|C&Z)",
+          "\"",
+          "\"\\c\"",
+          "\"\\\"",
+          "\"\"\"",
+          "\"\"\"&A"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "incorrect empty quoted expressions",
+    "auths": [
+      [
+        "A1",
+        "Z9"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ERROR",
+        "expressions": [
+          "\"\"",
+          "\"\"|A",
+          "A|\"\"",
+          "\"\"&A",
+          "A&\"\"",
+          "A&(\"\"|B)",
+          "(\"\")"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "expressions with non alpha numeric characters",
+    "auths": [
+      [
+        "a_b",
+        "a-c",
+        "a/d",
+        "a:e",
+        "a.f",
+        "a_b-c/d:e.f"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "a_b",
+          "\"a_b\"",
+          "a-c",
+          "\"a-c\"",
+          "a/d",
+          "\"a/d\"",
+          "a:e",
+          "\"a:e\"",
+          "a.f",
+          "\"a.f\"",
+          "a_b|a_z",
+          "a-z|a-c",
+          "a/d|a/z",
+          "a:e|a:z",
+          "a.z|a.f",
+          "a_b&a-c&a/d&a:e&a.f",
+          "(a-z|a-c)&(a/d|a/z)",
+          "a_b-c/d:e.f",
+          "a_b-c/d:e.f&a/d"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "a_c",
+          "b_b",
+          "a-b",
+          "a/c",
+          "a:f",
+          "a.e",
+          "a_b&a_z",
+          "a_b&a-b&a/d&a:e&a.f",
+          "a_b-c/d:e.z",
+          "a_b-c/d:e.f&a/c"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "expressions with non alpha numeric characters",
+    "auths": [
+      [
+        "_",
+        "-",
+        "/",
+        ":",
+        "."
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "_",
+          "\"_\"",
+          "-",
+          "/",
+          ":",
+          ".",
+          "_&-",
+          "_&(a|:)"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "A&_",
+          "A",
+          "/&A",
+          "B|(_&C)"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "non ascii expressions",
+    "auths": [
+      [
+        "五",
+        "六",
+        "八",
+        "九",
+        "五十"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "\"五\"|\"四\"",
+          "\"五\"&(\"四\"|\"九\")",
+          "\"五\"&(\"四\"|\"五十\")"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "\"五\"&\"四\"",
+          "\"五\"&(\"四\"|\"三\")",
+          "\"五\"&(\"四\"|\"三\")"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "multiple authorization sets",
+    "auths": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "C",
+        "D"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "",
+          "B|C",
+          "(A&B)|(C&D)",
+          "(A&B)|(C)"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "A",
+          "A&B",
+          "C&D",
+          "A&C",
+          "B&C",
+          "A&B&C&D",
+          "(A&C)|(B&D)"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "test auths needing quoting",
+    "auths": [
+      [
+        "A#C",
+        "A\"C",
+        "A\\C",
+        "AC"
+      ]
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          "\"A#C\"|\"A?C\"",
+          "\"A\\\"C\"&\"A\\\\C\"",
+          "(\"A\\\"C\"|B)&(\"A#C\"|D)"
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "\"A#C\"&B"
+        ]
+      }
+    ]
+  },
+  {
+    "description": "no authorizations",
+    "auths": [
+      []
+    ],
+    "tests": [
+      {
+        "expectedResult": "ACCESSIBLE",
+        "expressions": [
+          ""
+        ]
+      },
+      {
+        "expectedResult": "INACCESSIBLE",
+        "expressions": [
+          "A",
+          "A&B",
+          "A|B",
+          "AB&(CD|E)"
+        ]
+      },
+      {
+        "expectedResult": "ERROR",
+        "expressions": [
+          "()",
+          " ",
+          "\n"
+        ]
+      }
+    ]
+  }
+]
