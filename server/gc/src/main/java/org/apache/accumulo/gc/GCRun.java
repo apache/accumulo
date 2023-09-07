@@ -87,6 +87,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * A single garbage collection performed on a table (Root, MD) or all User tables.
  */
 public class GCRun implements GarbageCollectionEnvironment {
+  // loggers are not static to support unique naming by level
   private final Logger log;
   private final Logger fileLog;
   private final Ample.DataLevel level;
