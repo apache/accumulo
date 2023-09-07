@@ -227,7 +227,24 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // create the object
     SiteConfiguration siteConfiguration = SiteConfiguration.fromFile(propsFile).build();
 
-    verifyProps(siteConfiguration, shouldBeSet, shouldNotBeSet);
+    Map<String,String> propsMap = new HashMap<>();
+    // verify properties are in the object without using defaults
+    siteConfiguration.getProperties(propsMap, x -> true, false);
+    Predicate<Property> mapContainsProp = property -> propsMap.containsKey(property.getKey());
+
+    // Collect properties that should be set but are not
+    Set<Property> notSetButShouldBe =
+        shouldBeSet.stream().filter(mapContainsProp.negate()).collect(Collectors.toSet());
+
+    // Collect properties that should not be set but are
+    Set<Property> setButShouldNotBe =
+        shouldNotBeSet.stream().filter(mapContainsProp).collect(Collectors.toSet());
+
+    // Assert and print offending sets
+    assertTrue(notSetButShouldBe.isEmpty(),
+        "Properties that should be set but are not: " + notSetButShouldBe);
+    assertTrue(setButShouldNotBe.isEmpty(),
+        "Properties that should not be set but are: " + setButShouldNotBe);
 
     testPropertyIsSetImpl(siteConfiguration, shouldBeSet, shouldNotBeSet);
   }
