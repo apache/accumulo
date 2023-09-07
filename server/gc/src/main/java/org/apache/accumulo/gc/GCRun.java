@@ -89,7 +89,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class GCRun implements GarbageCollectionEnvironment {
   // loggers are not static to support unique naming by level
   private final Logger log;
-  private final Logger fileLog;
+  private static String fileActionPrefix = "FILE-ACTION:";
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
@@ -100,7 +100,6 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
     this.log = LoggerFactory.getLogger(GCRun.class.getName() + level.name());
-    this.fileLog = LoggerFactory.getLogger(GCRun.class.getName() + level.name() + ".files");
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
@@ -239,17 +238,17 @@ public class GCRun implements GarbageCollectionEnvironment {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
           + " data file candidates marked for deletion in " + metadataLocation + ".\n"
           + "          Examine the log files to identify them.\n");
-      fileLog.info("SAFEMODE: Listing all data file candidates for deletion");
+      log.info("{} SAFEMODE: Listing all data file candidates for deletion", fileActionPrefix);
       for (String s : confirmedDeletes.values()) {
-        fileLog.info("SAFEMODE: {}", s);
+        log.info("{} SAFEMODE: {}", fileActionPrefix, s);
       }
-      fileLog.info("SAFEMODE: End candidates for deletion");
+      log.info("SAFEMODE: End candidates for deletion");
       return;
     }
 
     List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, fileLog);
+    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
 
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS, false);
@@ -281,7 +280,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            fileLog.debug("Deleting {}", pathToDel);
+            log.debug("{} Deleting {}", fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
@@ -291,7 +290,8 @@ public class GCRun implements GarbageCollectionEnvironment {
               // leave the entry in the metadata; we'll try again later
               removeFlag = false;
               errors++;
-              fileLog.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
+              log.warn("{} File exists, but was not deleted for an unknown reason: {}",
+                  fileActionPrefix, pathToDel);
               break;
             } else {
               // this failure, we still want to remove the metadata entry
@@ -306,11 +306,11 @@ public class GCRun implements GarbageCollectionEnvironment {
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist
                   if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    fileLog.debug("File doesn't exist: {}", pathToDel);
+                    log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
                   }
                 }
               } else {
-                fileLog.warn("Very strange path name: {}", delete);
+                log.warn("{} Very strange path name: {}", fileActionPrefix, delete);
               }
             }
           }
@@ -321,7 +321,7 @@ public class GCRun implements GarbageCollectionEnvironment {
             processedDeletes.add(delete);
           }
         } catch (Exception e) {
-          fileLog.error("{}", e.getMessage(), e);
+          log.error("{} {}", fileActionPrefix, e.getMessage(), e);
         }
 
       };
@@ -356,7 +356,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
       if (tabletDirs.length == 0) {
         Path p = new Path(dir + "/" + tableID);
-        fileLog.debug("Removing table dir {}", p);
+        log.debug("{} Removing table dir {}", fileActionPrefix, p);
         if (!moveToTrash(p)) {
           fs.delete(p);
         }
@@ -440,7 +440,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           if (sameVol) {
-            logger.info("Ignoring {} because {} exist", entry.getValue(), lastDirAbs);
+            logger.info("{} Ignoring {} because {} exist", fileActionPrefix, entry.getValue(),
+                lastDirAbs);
             processedDeletes.add(entry.getValue());
             cdIter.remove();
           }
