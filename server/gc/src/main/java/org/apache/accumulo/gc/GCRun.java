@@ -88,6 +88,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  */
 public class GCRun implements GarbageCollectionEnvironment {
   private final Logger log;
+  private final Logger fileLog;
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
@@ -98,6 +99,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
     this.log = LoggerFactory.getLogger(GCRun.class.getName() + level.name());
+    this.fileLog = LoggerFactory.getLogger(GCRun.class.getName() + level.name() + ".files");
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
@@ -236,17 +238,17 @@ public class GCRun implements GarbageCollectionEnvironment {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
           + " data file candidates marked for deletion in " + metadataLocation + ".\n"
           + "          Examine the log files to identify them.\n");
-      log.info("SAFEMODE: Listing all data file candidates for deletion");
+      fileLog.info("SAFEMODE: Listing all data file candidates for deletion");
       for (String s : confirmedDeletes.values()) {
-        log.info("SAFEMODE: {}", s);
+        fileLog.info("SAFEMODE: {}", s);
       }
-      log.info("SAFEMODE: End candidates for deletion");
+      fileLog.info("SAFEMODE: End candidates for deletion");
       return;
     }
 
     List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
+    minimizeDeletes(confirmedDeletes, processedDeletes, fs, fileLog);
 
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS, false);
@@ -278,7 +280,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            log.debug("Deleting {}", pathToDel);
+            fileLog.debug("Deleting {}", pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
@@ -288,7 +290,7 @@ public class GCRun implements GarbageCollectionEnvironment {
               // leave the entry in the metadata; we'll try again later
               removeFlag = false;
               errors++;
-              log.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
+              fileLog.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
               break;
             } else {
               // this failure, we still want to remove the metadata entry
@@ -303,11 +305,11 @@ public class GCRun implements GarbageCollectionEnvironment {
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist
                   if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("File doesn't exist: {}", pathToDel);
+                    fileLog.debug("File doesn't exist: {}", pathToDel);
                   }
                 }
               } else {
-                log.warn("Very strange path name: {}", delete);
+                fileLog.warn("Very strange path name: {}", delete);
               }
             }
           }
@@ -318,7 +320,7 @@ public class GCRun implements GarbageCollectionEnvironment {
             processedDeletes.add(delete);
           }
         } catch (Exception e) {
-          log.error("{}", e.getMessage(), e);
+          fileLog.error("{}", e.getMessage(), e);
         }
 
       };
@@ -353,7 +355,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
       if (tabletDirs.length == 0) {
         Path p = new Path(dir + "/" + tableID);
-        log.debug("Removing table dir {}", p);
+        fileLog.debug("Removing table dir {}", p);
         if (!moveToTrash(p)) {
           fs.delete(p);
         }
