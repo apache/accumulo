@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class AccessEvaluatorTest {
 
   enum ExpectedResult {
@@ -46,13 +48,13 @@ public class AccessEvaluatorTest {
 
   public static class TestExpressions {
     ExpectedResult expectedResult;
-    public String[] expressions;
+    String[] expressions;
   }
 
   public static class TestDataSet {
-    public String description;
+    String description;
 
-    public String[][] auths;
+    String[][] auths;
 
     List<TestExpressions> tests;
 
@@ -70,6 +72,8 @@ public class AccessEvaluatorTest {
     }
   }
 
+  @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
+      justification = "Field is written by Gson")
   @Test
   public void runTestCases() throws IOException {
     List<TestDataSet> testData = readTestData();
@@ -103,6 +107,8 @@ public class AccessEvaluatorTest {
 
   }
 
+  @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
+      justification = "Field is written by Gson")
   private static void runTestCases(TestDataSet testSet, AccessEvaluator evaluator) {
 
     assertFalse(testSet.tests.isEmpty());
