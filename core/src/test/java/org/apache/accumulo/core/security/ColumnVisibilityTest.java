@@ -170,6 +170,7 @@ public class ColumnVisibilityTest {
     assertEquals("[\"五\"]", cv.toString());
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTree() {
     Node node = parse("(W)|(U&V)");
@@ -178,12 +179,14 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreeWithNoChildren() {
     Node node = parse("ABC");
     assertNode(node, NodeType.TERM, 0, 3);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreeWithTwoChildren() {
     Node node = parse("ABC|DEF");
@@ -192,6 +195,7 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.TERM, 4, 7);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreeWithParenthesesAndTwoChildren() {
     Node node = parse("(ABC|DEF)");
@@ -200,6 +204,7 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.TERM, 5, 8);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreeWithParenthesizedChildren() {
     Node node = parse("ABC|(DEF&GHI)");
@@ -210,6 +215,7 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 9, 12);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreeWithMoreParentheses() {
     Node node = parse("(W)|(U&V)");
@@ -220,6 +226,7 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testEmptyParseTreesAreEqual() {
     Comparator<Node> comparator = new NodeComparator(new byte[] {});
@@ -227,6 +234,7 @@ public class ColumnVisibilityTest {
     assertEquals(0, comparator.compare(empty, parse("")));
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testParseTreesOrdering() {
     byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
@@ -238,11 +246,13 @@ public class ColumnVisibilityTest {
     assertTrue(flat.indexOf('b') < flat.indexOf('a'), "shortest children sort first");
   }
 
+  @SuppressWarnings("removal")
   private Node parse(String s) {
     ColumnVisibility v = new ColumnVisibility(s);
     return v.getParseTree();
   }
 
+  @SuppressWarnings("removal")
   private void assertNode(Node node, NodeType nodeType, int start, int end) {
     assertEquals(node.type, nodeType);
     assertEquals(start, node.start);

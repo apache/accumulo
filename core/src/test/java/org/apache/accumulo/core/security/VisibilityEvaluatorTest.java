@@ -21,12 +21,8 @@ package org.apache.accumulo.core.security;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-
-import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.jupiter.api.Test;
 
@@ -98,25 +94,6 @@ public class VisibilityEvaluatorTest {
     assertEquals("ACS", quote("ACS"));
     assertEquals("\"九\"", quote("九"));
     assertEquals("\"五十\"", quote("五十"));
-  }
-
-  @Test
-  public void testUnescape() {
-    assertEquals("a\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\"b")).toString());
-    assertEquals("a\\b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b")).toString());
-    assertEquals("a\\\"b",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
-    assertEquals("\\\"",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
-    assertEquals("a\\b\\c\\d",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
-
-    final String message = "Expected failure to unescape invalid escape sequence";
-    final var invalidEscapeSeqList = List.of(new ArrayByteSequence("a\\b"),
-        new ArrayByteSequence("a\\b\\c"), new ArrayByteSequence("a\"b\\"));
-
-    invalidEscapeSeqList.forEach(seq -> assertThrows(IllegalArgumentException.class,
-        () -> VisibilityEvaluator.unescape(seq), message));
   }
 
   @Test

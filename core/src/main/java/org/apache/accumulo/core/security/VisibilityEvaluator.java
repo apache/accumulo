@@ -18,92 +18,17 @@
  */
 package org.apache.accumulo.core.security;
 
-import java.util.ArrayList;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
 /**
  * A class which evaluates visibility expressions against a set of authorizations.
  */
 public class VisibilityEvaluator {
-  private AuthorizationContainer auths;
-
-  /**
-   * Authorizations in column visibility expression are in escaped form. Column visibility parsing
-   * does not unescape. This class wraps an AuthorizationContainer and unescapes auths before
-   * checking the wrapped container.
-   */
-  private static class UnescapingAuthorizationContainer implements AuthorizationContainer {
-
-    private AuthorizationContainer wrapped;
-
-    UnescapingAuthorizationContainer(AuthorizationContainer wrapee) {
-      this.wrapped = wrapee;
-    }
-
-    @Override
-    public boolean contains(ByteSequence auth) {
-      return wrapped.contains(unescape(auth));
-    }
-  }
-
-  static ByteSequence unescape(ByteSequence auth) {
-    int escapeCharCount = 0;
-    for (int i = 0; i < auth.length(); i++) {
-      byte b = auth.byteAt(i);
-      if (b == '"' || b == '\\') {
-        escapeCharCount++;
-      }
-    }
-
-    if (escapeCharCount > 0) {
-      if (escapeCharCount % 2 == 1) {
-        throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
-      }
-
-      byte[] unescapedCopy = new byte[auth.length() - escapeCharCount / 2];
-      int pos = 0;
-      for (int i = 0; i < auth.length(); i++) {
-        byte b = auth.byteAt(i);
-        if (b == '\\') {
-          i++;
-          b = auth.byteAt(i);
-          if (b != '"' && b != '\\') {
-            throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
-          }
-        } else if (b == '"') {
-          // should only see quote after a slash
-          throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
-        }
-
-        unescapedCopy[pos++] = b;
-      }
-
-      return new ArrayByteSequence(unescapedCopy);
-    } else {
-      return auth;
-    }
-  }
-
-  /**
-   * Creates a new {@link Authorizations} object with escaped forms of the authorizations in the
-   * given object.
-   *
-   * @param auths original authorizations
-   * @return authorizations object with escaped authorization strings
-   * @see #escape(byte[], boolean)
-   */
-  static Authorizations escape(Authorizations auths) {
-    ArrayList<byte[]> retAuths = new ArrayList<>(auths.getAuthorizations().size());
-
-    for (byte[] auth : auths.getAuthorizations()) {
-      retAuths.add(escape(auth, false));
-    }
-
-    return new Authorizations(retAuths);
-  }
+  private final AccessEvaluator accessEvaluator;
 
   /**
    * Properly escapes an authorization string. The string can be quoted if desired.
@@ -112,6 +37,7 @@ public class VisibilityEvaluator {
    * @param quote true to wrap escaped authorization in quotes
    * @return escaped authorization string
    */
+  @Deprecated(forRemoval = true, since = "3.1.0")
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
 
@@ -147,7 +73,9 @@ public class VisibilityEvaluator {
    * @since 1.7.0
    */
   public VisibilityEvaluator(AuthorizationContainer authsContainer) {
-    this.auths = new UnescapingAuthorizationContainer(authsContainer);
+    // TODO need to look into efficiency and correctness of this
+    this.accessEvaluator = AccessEvaluator.builder()
+        .authorizations(auth -> authsContainer.contains(new ArrayByteSequence(auth))).build();
   }
 
   /**
@@ -157,7 +85,9 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.auths = escape(authorizations);
+    var authsArray = authorizations.getAuthorizations().stream()
+        .map(auth -> new String(auth, UTF_8)).toArray(String[]::new);
+    this.accessEvaluator = AccessEvaluator.builder().authorizations(authsArray).build();
   }
 
   /**
@@ -171,42 +101,12 @@ public class VisibilityEvaluator {
    *         subexpression is of an unknown type
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
-    // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
-    // expressions can be evaluated against.
-    return evaluate(visibility.getExpression(), visibility.getParseTree());
-  }
-
-  private final boolean evaluate(final byte[] expression, final Node root)
-      throws VisibilityParseException {
-    if (expression.length == 0) {
-      return true;
-    }
-    switch (root.type) {
-      case TERM:
-        return auths.contains(root.getTerm(expression));
-      case AND:
-        if (root.children == null || root.children.size() < 2) {
-          throw new VisibilityParseException("AND has less than 2 children", expression,
-              root.start);
-        }
-        for (Node child : root.children) {
-          if (!evaluate(expression, child)) {
-            return false;
-          }
-        }
-        return true;
-      case OR:
-        if (root.children == null || root.children.size() < 2) {
-          throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
-        }
-        for (Node child : root.children) {
-          if (evaluate(expression, child)) {
-            return true;
-          }
-        }
-        return false;
-      default:
-        throw new VisibilityParseException("No such node type", expression, root.start);
+    try {
+      return accessEvaluator.canAccess(visibility.getVisibilityExpression());
+    } catch (IllegalAccessExpressionException e) {
+      // This is thrown for compatability with the exception this class used to evaluate expressions
+      // itself.
+      throw new VisibilityParseException(e);
     }
   }
 }

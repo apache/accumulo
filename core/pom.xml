@@ -83,6 +83,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-access</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
     <dependency>
@@ -258,6 +262,9 @@
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
+                <!-- allow the following types from the visibility API -->
+                <allow>org[.]apache[.]accumulo[.]access[.]AccessExpression</allow>
+                <allow>org[.]apache[.]accumulo[.]access[.]IllegalAccessExpressionException</allow>
               </allows>
             </configuration>
           </execution>
