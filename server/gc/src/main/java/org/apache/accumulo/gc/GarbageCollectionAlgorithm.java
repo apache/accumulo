@@ -176,7 +176,7 @@ public class GarbageCollectionAlgorithm {
 
     // it is important that the tracker is closed before performing deletes so that last row is
     // checked
-    try (MetadataReadTracker readTracker = new MetadataReadTracker()) {
+    try (MetadataRowReadTracker readTracker = new MetadataRowReadTracker()) {
       Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
       while (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
@@ -364,14 +364,14 @@ public class GarbageCollectionAlgorithm {
    * Track metadata rows read to help validate that gc scan has complete information to make a
    * decision on deleting files
    */
-  private static class MetadataReadTracker implements AutoCloseable {
+  private static class MetadataRowReadTracker implements AutoCloseable {
     private boolean hasDir = false;
     private boolean hasPrevRow = false;
     private Text row;
 
     private boolean closed = false;
 
-    public MetadataReadTracker() {
+    public MetadataRowReadTracker() {
       this.row = null;
     }
 

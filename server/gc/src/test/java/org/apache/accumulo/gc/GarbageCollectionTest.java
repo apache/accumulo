@@ -870,4 +870,14 @@ public class GarbageCollectionTest {
     assertEquals(3, gce.candidates.size());
   }
 
+  @Test
+  public void testNoPrevRowNoDir() throws Exception {
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("/1636/default_tablet");
+    gce.addFileReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf");
+    assertThrows(IllegalStateException.class, () -> gca.collect(gce));
+  }
 }
