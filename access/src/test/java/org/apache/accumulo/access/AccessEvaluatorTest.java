@@ -33,19 +33,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class AccessEvaluatorTest {
 
   enum ExpectedResult {
-    ACCESSIBLE,
-    INACCESSIBLE,
-    ERROR
+    ACCESSIBLE, INACCESSIBLE, ERROR
   }
-
 
   public static class TestExpressions {
     ExpectedResult expectedResult;
@@ -62,17 +59,16 @@ public class AccessEvaluatorTest {
   }
 
   private List<TestDataSet> readTestData() throws IOException {
-    try(var input = getClass().getClassLoader().getResourceAsStream("testdata.json")){
-      if(input == null) {
+    try (var input = getClass().getClassLoader().getResourceAsStream("testdata.json")) {
+      if (input == null) {
         throw new IllegalStateException("could not find resource : testdata.json");
       }
       var json = new String(input.readAllBytes(), UTF_8);
 
-      Type listType = new TypeToken<ArrayList<TestDataSet>>(){}.getType();
+      Type listType = new TypeToken<ArrayList<TestDataSet>>() {}.getType();
       return new Gson().fromJson(json, listType);
     }
   }
-
 
   @Test
   public void runTestCases() throws IOException {
@@ -80,24 +76,26 @@ public class AccessEvaluatorTest {
 
     assertFalse(testData.isEmpty());
 
-    for(var testSet : testData) {
+    for (var testSet : testData) {
       AccessEvaluator evaluator;
       assertTrue(testSet.auths.length >= 1);
-      if(testSet.auths.length == 1) {
+      if (testSet.auths.length == 1) {
         evaluator = AccessEvaluator.builder().authorizations(testSet.auths[0]).build();
         runTestCases(testSet, evaluator);
 
         evaluator = AccessEvaluator.builder().authorizations(testSet.auths[0]).cacheSize(1).build();
         runTestCases(testSet, evaluator);
 
-        evaluator = AccessEvaluator.builder().authorizations(testSet.auths[0]).cacheSize(10).build();
+        evaluator =
+            AccessEvaluator.builder().authorizations(testSet.auths[0]).cacheSize(10).build();
         runTestCases(testSet, evaluator);
 
         Set<String> auths = Stream.of(testSet.auths[0]).collect(Collectors.toSet());
         evaluator = AccessEvaluator.builder().authorizations(auths::contains).build();
         runTestCases(testSet, evaluator);
       } else {
-        var authSets = Stream.of(testSet.auths).map(Authorizations::of).collect(Collectors.toList());
+        var authSets =
+            Stream.of(testSet.auths).map(Authorizations::of).collect(Collectors.toList());
         evaluator = AccessEvaluator.builder().authorizations(authSets).build();
         runTestCases(testSet, evaluator);
       }
@@ -109,28 +107,33 @@ public class AccessEvaluatorTest {
 
     assertFalse(testSet.tests.isEmpty());
 
-    for(var tests : testSet.tests) {
+    for (var tests : testSet.tests) {
 
       assertTrue(tests.expressions.length > 0);
 
-      for(var expression : tests.expressions) {
+      for (var expression : tests.expressions) {
         switch (tests.expectedResult) {
           case ACCESSIBLE:
-            assertTrue(evaluator.canAccess(expression),expression);
+            assertTrue(evaluator.canAccess(expression), expression);
             assertTrue(evaluator.canAccess(expression.getBytes(UTF_8)), expression);
             assertTrue(evaluator.canAccess(AccessExpression.of(expression)), expression);
-            assertTrue(evaluator.canAccess(AccessExpression.of(expression).normalize()), expression);
+            assertTrue(evaluator.canAccess(AccessExpression.of(expression).normalize()),
+                expression);
             break;
           case INACCESSIBLE:
             assertFalse(evaluator.canAccess(expression), expression);
             assertFalse(evaluator.canAccess(expression.getBytes(UTF_8)), expression);
             assertFalse(evaluator.canAccess(AccessExpression.of(expression)), expression);
-            assertFalse(evaluator.canAccess(AccessExpression.of(expression).normalize()), expression);
+            assertFalse(evaluator.canAccess(AccessExpression.of(expression).normalize()),
+                expression);
             break;
           case ERROR:
-            assertThrows(IllegalAccessExpressionException.class, ()-> evaluator.canAccess(expression), expression);
-            assertThrows(IllegalAccessExpressionException.class, ()-> evaluator.canAccess(expression.getBytes(UTF_8)), expression);
-            assertThrows(IllegalAccessExpressionException.class, ()-> evaluator.canAccess(AccessExpression.of(expression)), expression);
+            assertThrows(IllegalAccessExpressionException.class,
+                () -> evaluator.canAccess(expression), expression);
+            assertThrows(IllegalAccessExpressionException.class,
+                () -> evaluator.canAccess(expression.getBytes(UTF_8)), expression);
+            assertThrows(IllegalAccessExpressionException.class,
+                () -> evaluator.canAccess(AccessExpression.of(expression)), expression);
             break;
           default:
             throw new IllegalArgumentException();
