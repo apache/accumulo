@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -31,11 +31,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -45,11 +42,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -176,12 +171,12 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().online(tableName, true);
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
       // Should have 4 files
-      printAndVerifyFileMetadata(accumuloClient, tableId, 4);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 4);
 
       // Compact and verify the correct rows are still valid
       accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
-      printAndVerifyFileMetadata(accumuloClient, tableId, 1);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 1);
     }
   }
 
@@ -258,7 +253,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       verify(accumuloClient, rowsPerRange * 2, COLS, 10, (rowsPerRange * 2) + 1, tableName);
 
       // Should have 3 rfiles in metadata
-      printAndVerifyFileMetadata(accumuloClient, tableId, 3);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 3);
       // Compact and verify the correct rows are still valid
       accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
@@ -271,7 +266,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       // Verify rows 5001 - 10000 are readable
       verify(accumuloClient, rowsPerRange * 2, COLS, 10, (rowsPerRange * 2) + 1, tableName);
       // Should just have 1 file after compaction
-      printAndVerifyFileMetadata(accumuloClient, tableId, 1);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 1);
 
     }
   }
@@ -344,11 +339,11 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().online(tableName, true);
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
 
-      printAndVerifyFileMetadata(accumuloClient, tableId, 20);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 20);
       // Compact and verify the correct rows are still valid
       accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
-      printAndVerifyFileMetadata(accumuloClient, tableId, 10);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 10);
 
     }
   }
@@ -415,7 +410,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
         }
       }
       accumuloClient.tableOperations().online(tableName, true);
-      printAndVerifyFileMetadata(accumuloClient, tableId, 3);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 3);
       // Verify rows 1 - 2500 are readable
       verify(accumuloClient, rowsPerRange, COLS, 10, 1, tableName);
       // Rows 2501 - 5000 should not be fenced and not visible
@@ -448,7 +443,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       // range: 1 - 25000; splits: 10000, 20000, 30000
       // range: 50001 - 75000; splits: 60000, 70000, 80000
       // range: 75001 - 100000; splits: 80000, 90000, 100000
-      printAndVerifyFileMetadata(accumuloClient, tableId, 9);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 9);
 
       // // Compact and verify the correct rows are still valid
       accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
@@ -464,7 +459,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       // After compaction should be 8 files because data was ingested into
       // 1 - 25000, 50001 - 10000. 25001 - 50000 was skipped so splits of
       // 40000 and 50000 do not have data or files.
-      printAndVerifyFileMetadata(accumuloClient, tableId, 8);
+      printAndVerifyFileMetadata(getServerContext(), tableId, 8);
     }
   }
 
@@ -478,30 +473,6 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       fail("Should have failed");
     } catch (AccumuloException e) {
       assertTrue(e.getMessage().contains("Did not read expected number of rows. Saw 0"));
-    }
-  }
-
-  private static void printAndVerifyFileMetadata(AccumuloClient accumuloClient, TableId tableId,
-      int expectedFiles) throws TableNotFoundException {
-    try (Scanner mdScanner =
-        accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-
-      // Read each file referenced by that table
-      int i = 0;
-      for (Entry<Key,Value> entry : mdScanner) {
-        StoredTabletFile file =
-            new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
-        DataFileValue dfv = new DataFileValue(entry.getValue().toString());
-        // files.put(file, new DataFileValue(entry.getValue().toString()));
-        System.out.println("Row: " + entry.getKey().getRow() + "; File Name: " + file.getFileName()
-            + "; Range: " + file.getRange() + "; Entries: " + dfv.getNumEntries() + ", Size: "
-            + dfv.getSize());
-        i++;
-      }
-      System.out.println();
-      assertEquals(expectedFiles, i);
     }
   }
 }
