@@ -958,39 +958,46 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   // Instead of splitting or chopping tablets for a delete we instead create ranges
   // to exclude the portion of the tablet that should be deleted
+  private Text followingRow(Text row) {
+    if (row == null)
+      return null;
+    return new Key(row).followingKey(PartialKey.ROW).getRow();
+  }
+
+  // Instead of splitting or chopping tablets for a delete we instead create ranges
+  // to exclude the portion of the tablet that should be deleted
   private List<Range> createRangesForDeletion(TabletMetadata tabletMetadata,
       final KeyExtent deleteRange) {
-    final KeyExtent keyExtent = tabletMetadata.getExtent();
-    final Text prevTabletEndRow =
-        tabletMetadata.getPrevEndRow() != null ? tabletMetadata.getPrevEndRow() : null;
-    final Text tabletEndRow = keyExtent.endRow();
-    final Range tabletRange = tabletMetadata.getExtent().toDataRange();
-    final Key firstKey =
-        prevTabletEndRow != null ? new Key(prevTabletEndRow).followingKey(PartialKey.ROW) : null;
+    final KeyExtent tabletExtent = tabletMetadata.getExtent();
+
+    // If the delete range wholly contains the tablet being deleted then there is no range to clip
+    // files to because the files should be completely dropped.
+    Preconditions.checkArgument(!deleteRange.contains(tabletExtent), "delete range:%s tablet:%s",
+        deleteRange, tabletExtent);
+
     final List<Range> ranges = new ArrayList<>();
 
-    // This covers the case of when a deletion range overlaps the first tablet
-    // We need to create a range that excludes the deletion
-    if ((firstKey == null || !firstKey.equals(deleteRange.toDataRange().getStartKey()))
-        && deleteRange.toDataRange().getStartKey() != null
-        && tabletRange.contains(deleteRange.toDataRange().getStartKey())) {
-      Manager.log.trace(
-          "Fencing tablet at start of deletion range with end row {}, Start deletion row {}",
-          prevTabletEndRow, deleteRange.toDataRange().getStartKey().getRow());
-      ranges.add(new Range(prevTabletEndRow, false,
-          deleteRange.toDataRange().getStartKey().getRow(), false));
-    }
+    if (deleteRange.overlaps(tabletExtent)) {
+      if (deleteRange.prevEndRow() != null
+          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))) {
+        Manager.log.trace("Fencing tablet {} files to ({},{}]", tabletExtent,
+            tabletExtent.prevEndRow(), deleteRange.prevEndRow());
+        ranges.add(new Range(tabletExtent.prevEndRow(), false, deleteRange.prevEndRow(), true));
+      }
 
-    // This covers the case of when a deletion range overlaps the last tablet
-    // We need to create a range that excludes the deletion.
-    if ((tabletEndRow == null
-        || !tabletEndRow.equals(deleteRange.toDataRange().getEndKey().getRow()))
-        && deleteRange.toDataRange().getEndKey() != null
-        && tabletRange.contains(deleteRange.toDataRange().getEndKey())) {
+      // This covers the case of when a deletion range overlaps the last tablet. We need to create a
+      // range that excludes the deletion.
+      if (deleteRange.endRow() != null
+          && tabletMetadata.getExtent().contains(deleteRange.endRow())) {
+        Manager.log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, deleteRange.endRow(),
+            tabletExtent.endRow());
+        ranges.add(new Range(deleteRange.endRow(), false, tabletExtent.endRow(), true));
+      }
+    } else {
       Manager.log.trace(
-          "Fencing tablet at end of deletion range with end row {}, End deletion row {}",
-          tabletEndRow, deleteRange.toDataRange().getEndKey().getRow());
-      ranges.add(new Range(deleteRange.toDataRange().getEndKey().getRow(), tabletEndRow));
+          "Fencing tablet {} files to itself because it does not overlap delete range",
+          tabletExtent);
+      ranges.add(tabletExtent.toDataRange());
     }
 
     return ranges;
