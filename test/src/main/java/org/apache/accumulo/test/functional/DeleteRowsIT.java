@@ -99,6 +99,10 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
       // Eliminate one tablet
       testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
+      // Eliminate first tablet
+      testSplit(c, tableName + i++, null, "a", "abcdefhijklmnopqrstuvwxyz", 270);
+      // Eliminate last tablet
+      testSplit(c, tableName + i++, "z", null, "abcdefhijklmnopqrstuvwxyz", 260);
       // Eliminate partial tablet, matches start split
       testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
       // Eliminate partial tablet, matches end split
@@ -136,6 +140,10 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260, "f", "h");
       // Eliminate one tablet
       testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270, "f", "g");
+      // Eliminate first tablet
+      testSplit(c, tableName + i++, null, "a", "abcdefhijklmnopqrstuvwxyz", 270);
+      // Eliminate last tablet
+      testSplit(c, tableName + i++, "z", null, "abcdefhijklmnopqrstuvwxyz", 260);
       // Eliminate partial tablet, matches start split
       testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278, "f", "f");
       // Eliminate partial tablet, matches end split
@@ -207,6 +215,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     } else {
       c.tableOperations().addSplits(table, SPLITS);
       log.debug("After splits");
+      printAndVerifyFileMetadata(getServerContext(), tableId);
     }
 
     Text startText = start == null ? null : new Text(start);

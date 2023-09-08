@@ -84,6 +84,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -598,47 +599,39 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private Text getDeletionStartRow(MergeInfo info) throws AccumuloException {
-    // Find the first tablet in the deletion range and check if it was fenced
-    // If the tablet has been fenced we need to keep it as there is still valid
-    // data and we don't want to delete it
-    Text deletionStartRow = info.getExtent().prevEndRow();
-    if (deletionStartRow != null) {
-      Manager.log.trace("Finding tablet that contains the start row {} for deletion",
-          deletionStartRow);
-      final KeyExtent firstTablet =
-          loadTabletMetadata(info.getExtent().tableId(), deletionStartRow, ColumnType.PREV_ROW)
-              .map(TabletMetadata::getExtent).orElse(null);
-      // If needsFencingForDeletion() is true then this tablet was previously fenced
-      // so we need to keep it and not delete the tablet. Skip to the next highest
-      // tablet after this one if it exists
-      if (needsFencingForDeletion(info, firstTablet)) {
-        Key nextExtent = new Key(deletionStartRow).followingKey(PartialKey.ROW);
-        deletionStartRow = getHighTablet(new KeyExtent(info.getExtent().tableId(),
-            nextExtent.getRow(), info.getExtent().prevEndRow())).endRow();
-        Manager.log.trace("First tablet in deletion range updated to contain startRow {}",
-            deletionStartRow);
-      }
+  // This method finds returns the deletion starting row (exclusive) for tablets that
+  // need to be actually deleted. If the startTablet is null then
+  // the deletion start row will just be null as all tablets are being deleted
+  // up to the end. Otherwise, this returns the endRow of the first tablet
+  // as the first tablet should be kept and will have been previously
+  // fenced if necessary
+  private Text getDeletionStartRow(final KeyExtent startTablet) {
+    if (startTablet == null) {
+      Manager.log.debug("First tablet for delete range is null");
+      return null;
     }
+
+    final Text deletionStartRow = startTablet.endRow();
+    Manager.log.debug("Start row is {} for deletion", deletionStartRow);
+
     return deletionStartRow;
   }
 
-  private Text getDeletionEndRow(MergeInfo info) {
-    Text deletionEndRow = info.getExtent().endRow();
-    if (deletionEndRow != null) {
-      Manager.log.trace("Finding tablet that contains the end row {} for deletion", deletionEndRow);
-      final KeyExtent last =
-          loadTabletMetadata(info.getExtent().tableId(), deletionEndRow, ColumnType.PREV_ROW)
-              .map(TabletMetadata::getExtent).orElse(null);
-      // If needsFencingForDeletion() is true then this tablet was previously fenced
-      // so we need to keep it and not delete the tablet. Find the previous tablet
-      // if it exists to stop deletion on
-      if (needsFencingForDeletion(info, last)) {
-        deletionEndRow = last.prevEndRow();
-        Manager.log.debug("Last tablet in deletion range updated to contain endRow {}",
-            deletionEndRow);
-      }
+  // This method finds returns the deletion ending row (inclusive) for tablets that
+  // need to be actually deleted. If the endTablet is null then
+  // the deletion end row will just be null as all tablets are being deleted
+  // after the start row. Otherwise, this returns the prevEndRow of the last tablet
+  // as the last tablet should be kept and will have been previously
+  // fenced if necessary
+  private Text getDeletionEndRow(final KeyExtent endTablet) {
+    if (endTablet == null) {
+      Manager.log.debug("Last tablet for delete range is null");
+      return null;
     }
+
+    Text deletionEndRow = endTablet.prevEndRow();
+    Manager.log.debug("Deletion end row is {}", deletionEndRow);
+
     return deletionEndRow;
   }
 
@@ -665,19 +658,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private void deleteTablets(MergeInfo info) throws AccumuloException {
-    // Before deleting actual tablets we need to fence the files in tablets
-    // that overlap the start/end of the delete range
-    updateMetadataRecordsForDelete(info);
+    // Before updated metadata and get the first and last tablets which
+    // are fenced if necessary
+    final Pair<KeyExtent,KeyExtent> firstAndLastTablets = updateMetadataRecordsForDelete(info);
 
-    // Find the first tablet in the deletion range and check if it was fenced
-    // If the tablet has been fenced we need to keep it as there is still valid
-    // data and we don't want to delete it
-    final Text deletionStartRow = getDeletionStartRow(info);
+    // Find the deletion start row (exclusive) for tablets that need to be actually deleted
+    // This will be null if deleting everything up until the end row or it will be
+    // the endRow of the first tablet as the first tablet should be kept and will have
+    // already been fenced if necessary
+    final Text deletionStartRow = getDeletionStartRow(firstAndLastTablets.getFirst());
 
-    // Find the last tablet in the deletion range and check if it was fenced
-    // If the tablet has been fenced we need to keep it as there is still valid
-    // data and we don't want to delete it
-    Text deletionEndRow = getDeletionEndRow(info);
+    // Find the deletion end row (inclusive) for tablets that need to be actually deleted
+    // This will be null if deleting everything after the starting row or it will be
+    // the prevEndRow of the last tablet as the last tablet should be kept and will have
+    // already been fenced if necessary
+    Text deletionEndRow = getDeletionEndRow(firstAndLastTablets.getSecond());
 
     // check if there are any tablets to delete and if not return
     if (!hasTabletsToDelete(info, deletionStartRow, deletionEndRow)) {
@@ -1004,28 +999,43 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return ranges;
   }
 
-  private void updateMetadataRecordsForDelete(MergeInfo info) throws AccumuloException {
+  private Pair<KeyExtent,KeyExtent> updateMetadataRecordsForDelete(MergeInfo info)
+      throws AccumuloException {
     final KeyExtent range = info.getExtent();
 
     String targetSystemTable = MetadataTable.NAME;
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;
     }
+    final Pair<KeyExtent,KeyExtent> startAndEndTablets;
 
     final AccumuloClient client = manager.getContext();
 
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       final Text startRow = range.prevEndRow();
-      final Text lastRow = range.endRow() != null
+      final Text endRow = range.endRow() != null
           ? new Key(range.endRow()).followingKey(PartialKey.ROW).getRow() : null;
 
-      // Find the tablets that overlap the start and end of the deletion range
-      // Store in a Map so that if we have the same Tablet we only need to process once
+      // Find the tablets that overlap the start and end row of the deletion range
+      // If the startRow is null then there will be an empty startTablet we don't need
+      // to fence a starting tablet as we are deleting everything up to the end tablet
+      // Likewise, if the endRow is null there will be an empty endTablet as we are deleting
+      // all tablets after the starting tablet
+      final Optional<TabletMetadata> startTablet =
+          Optional.ofNullable(startRow).flatMap(er -> loadTabletMetadata(range.tableId(), startRow,
+              ColumnType.PREV_ROW, ColumnType.FILES));
+      final Optional<TabletMetadata> endTablet = Optional.ofNullable(endRow).flatMap(
+          er -> loadTabletMetadata(range.tableId(), endRow, ColumnType.PREV_ROW, ColumnType.FILES));
+
+      // Store the tablets in a Map if present so that if we have the same Tablet we
+      // only need to process the same tablet once when fencing
       final SortedMap<KeyExtent,TabletMetadata> tabletMetadatas = new TreeMap<>();
-      loadTabletMetadata(range.tableId(), startRow, ColumnType.PREV_ROW, ColumnType.FILES)
-          .ifPresent(tm -> tabletMetadatas.put(tm.getExtent(), tm));
-      loadTabletMetadata(range.tableId(), lastRow, ColumnType.PREV_ROW, ColumnType.FILES)
-          .ifPresent(tm -> tabletMetadatas.putIfAbsent(tm.getExtent(), tm));
+      startTablet.ifPresent(ft -> tabletMetadatas.put(ft.getExtent(), ft));
+      endTablet.ifPresent(lt -> tabletMetadatas.putIfAbsent(lt.getExtent(), lt));
+
+      // Capture the tablets to return them or null if not loaded
+      startAndEndTablets = new Pair<>(startTablet.map(TabletMetadata::getExtent).orElse(null),
+          endTablet.map(TabletMetadata::getExtent).orElse(null));
 
       for (TabletMetadata tabletMetadata : tabletMetadatas.values()) {
         final KeyExtent keyExtent = tabletMetadata.getExtent();
@@ -1099,6 +1109,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       bw.flush();
 
+      return startAndEndTablets;
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
