@@ -959,8 +959,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Instead of splitting or chopping tablets for a delete we instead create ranges
   // to exclude the portion of the tablet that should be deleted
   private Text followingRow(Text row) {
-    if (row == null)
+    if (row == null) {
       return null;
+    }
     return new Key(row).followingKey(PartialKey.ROW).getRow();
   }
 
