@@ -484,57 +484,66 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public UpdateErrors closeUpdate(TInfo tinfo, long updateID) throws NoSuchScanIDException {
-    final UpdateSession us = (UpdateSession) server.sessionManager.removeSession(updateID);
+    // Reserve the session and wait for any write that may currently have it reserved. Once reserved
+    // no write stragglers can start against this session id.
+    final UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID, true);
     if (us == null) {
       throw new NoSuchScanIDException();
     }
 
-    // clients may or may not see data from an update session while
-    // it is in progress, however when the update session is closed
-    // want to ensure that reads wait for the write to finish
-    long opid = writeTracker.startWrite(us.queuedMutations.keySet());
-
     try {
-      flush(us);
-    } catch (HoldTimeoutException e) {
-      // Assumption is that the client has timed out and is gone. If that's not the case throw an
-      // exception that will cause it to retry.
-      log.debug("HoldTimeoutException during closeUpdate, reporting no such session");
-      throw new NoSuchScanIDException();
-    } finally {
-      writeTracker.finishWrite(opid);
-    }
+      // clients may or may not see data from an update session while
+      // it is in progress, however when the update session is closed
+      // want to ensure that reads wait for the write to finish
+      long opid = writeTracker.startWrite(us.queuedMutations.keySet());
 
-    if (log.isTraceEnabled()) {
-      log.trace(
-          String.format("UpSess %s %,d in %.3fs, at=[%s] ft=%.3fs(pt=%.3fs lt=%.3fs ct=%.3fs)",
-              TServerUtils.clientAddress.get(), us.totalUpdates,
-              (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes,
-              us.flushTime / 1000.0, us.prepareTimes.sum() / 1000.0, us.walogTimes.sum() / 1000.0,
-              us.commitTimes.sum() / 1000.0));
+      try {
+        flush(us);
+      } catch (HoldTimeoutException e) {
+        // Assumption is that the client has timed out and is gone. If that's not the case throw an
+        // exception that will cause it to retry.
+        log.debug("HoldTimeoutException during closeUpdate, reporting no such session");
+        throw new NoSuchScanIDException();
+      } finally {
+        writeTracker.finishWrite(opid);
+      }
+
+      if (log.isTraceEnabled()) {
+        log.trace(
+            String.format("UpSess %s %,d in %.3fs, at=[%s] ft=%.3fs(pt=%.3fs lt=%.3fs ct=%.3fs)",
+                TServerUtils.clientAddress.get(), us.totalUpdates,
+                (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes,
+                us.flushTime / 1000.0, us.prepareTimes.sum() / 1000.0, us.walogTimes.sum() / 1000.0,
+                us.commitTimes.sum() / 1000.0));
+      }
+      if (!us.failures.isEmpty()) {
+        Entry<KeyExtent,Long> first = us.failures.entrySet().iterator().next();
+        log.debug(String.format("Failures: %d, first extent %s successful commits: %d",
+            us.failures.size(), first.getKey().toString(), first.getValue()));
+      }
+      List<ConstraintViolationSummary> violations = us.violations.asList();
+      if (!violations.isEmpty()) {
+        ConstraintViolationSummary first = us.violations.asList().iterator().next();
+        log.debug(String.format("Violations: %d, first %s occurs %d", violations.size(),
+            first.violationDescription, first.numberOfViolatingMutations));
+      }
+      if (!us.authFailures.isEmpty()) {
+        KeyExtent first = us.authFailures.keySet().iterator().next();
+        log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(),
+            first.toString()));
+      }
+      return new UpdateErrors(
+          us.failures.entrySet().stream()
+              .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)),
+          violations.stream().map(ConstraintViolationSummary::toThrift)
+              .collect(Collectors.toList()),
+          us.authFailures.entrySet().stream()
+              .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)));
+    } finally {
+      // Atomically unreserve and delete the session. If there any write stragglers, they will fail
+      // after this point.
+      server.sessionManager.removeSession(updateID, true);
     }
-    if (!us.failures.isEmpty()) {
-      Entry<KeyExtent,Long> first = us.failures.entrySet().iterator().next();
-      log.debug(String.format("Failures: %d, first extent %s successful commits: %d",
-          us.failures.size(), first.getKey().toString(), first.getValue()));
-    }
-    List<ConstraintViolationSummary> violations = us.violations.asList();
-    if (!violations.isEmpty()) {
-      ConstraintViolationSummary first = us.violations.asList().iterator().next();
-      log.debug(String.format("Violations: %d, first %s occurs %d", violations.size(),
-          first.violationDescription, first.numberOfViolatingMutations));
-    }
-    if (!us.authFailures.isEmpty()) {
-      KeyExtent first = us.authFailures.keySet().iterator().next();
-      log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(),
-          first.toString()));
-    }
-    return new UpdateErrors(
-        us.failures.entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)),
-        violations.stream().map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()),
-        us.authFailures.entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)));
   }
 
   @Override
