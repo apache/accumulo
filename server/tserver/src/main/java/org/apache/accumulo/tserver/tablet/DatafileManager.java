@@ -337,29 +337,12 @@ class DatafileManager {
 
     long t1, t2;
 
-    Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    @SuppressWarnings("deprecation")
-    boolean replicate = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-        .isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
-    Set<String> logFileOnly = null;
-    if (replicate) {
-      // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
-      logFileOnly = new HashSet<>();
-      for (String unusedWalLog : unusedWalLogs) {
-        int index = unusedWalLog.indexOf('/');
-        if (index == -1) {
-          log.warn("Could not find host component to strip from DFSLogger representation of WAL");
-        } else {
-          unusedWalLog = unusedWalLog.substring(index + 1);
-        }
-        logFileOnly.add(unusedWalLog);
-      }
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    // do not place any code here between above stmt and try{}finally
+    // do not place any code here between above stmt and following try{}finally
     try {
+      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+      // do not place any code here between above stmt and following try{}finally
       try {
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
@@ -376,7 +359,23 @@ class DatafileManager {
         // MinC cannot happen unless the
         // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL
         // replication status cannot be 'closed'.
+        @SuppressWarnings("deprecation")
+        boolean replicate = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+            .isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
         if (replicate) {
+          // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
+          Set<String> logFileOnly = new HashSet<>();
+          for (String unusedWalLog : unusedWalLogs) {
+            int index = unusedWalLog.indexOf('/');
+            if (index == -1) {
+              log.warn(
+                  "Could not find host component to strip from DFSLogger representation of WAL");
+            } else {
+              unusedWalLog = unusedWalLog.substring(index + 1);
+            }
+            logFileOnly.add(unusedWalLog);
+          }
+
           if (log.isDebugEnabled()) {
             log.debug("Recording that data has been ingested into {} using {}", tablet.getExtent(),
                 logFileOnly);

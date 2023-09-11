@@ -1889,6 +1889,8 @@ public class Tablet extends TabletBase {
     }
   }
 
+  @SuppressFBWarnings(value = "UL_UNRELEASED_LOCK",
+      justification = "lock is released by caller calling finishClearingUnusedLogs method")
   Set<String> beginClearingUnusedLogs() {
     Set<String> unusedLogs = new HashSet<>();
 
@@ -1897,47 +1899,50 @@ public class Tablet extends TabletBase {
 
     // do not hold tablet lock while acquiring the log lock
     logLock.lock();
+    try {
+      synchronized (this) {
+        if (removingLogs) {
+          throw new IllegalStateException(
+              "Attempted to clear logs when removal of logs in progress on " + extent);
+        }
 
-    synchronized (this) {
-      if (removingLogs) {
-        throw new IllegalStateException(
-            "Attempted to clear logs when removal of logs in progress on " + extent);
+        for (DfsLogger logger : otherLogs) {
+          otherLogsCopy.add(logger.toString());
+          unusedLogs.add(logger.getMeta());
+        }
+
+        for (DfsLogger logger : currentLogs) {
+          currentLogsCopy.add(logger.toString());
+          unusedLogs.remove(logger.getMeta());
+        }
+
+        otherLogs = Collections.emptySet();
+        // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
+        // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
+        // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
+        // rebuildReferencedLogs() for more info.
+
+        if (!unusedLogs.isEmpty()) {
+          removingLogs = true;
+        }
       }
 
-      for (DfsLogger logger : otherLogs) {
-        otherLogsCopy.add(logger.toString());
-        unusedLogs.add(logger.getMeta());
+      // do debug logging outside tablet lock
+      for (String logger : otherLogsCopy) {
+        log.trace("Logs for memory compacted: {} {}", getExtent(), logger);
       }
 
-      for (DfsLogger logger : currentLogs) {
-        currentLogsCopy.add(logger.toString());
-        unusedLogs.remove(logger.getMeta());
+      for (String logger : currentLogsCopy) {
+        log.trace("Logs for current memory: {} {}", getExtent(), logger);
       }
 
-      otherLogs = Collections.emptySet();
-      // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
-      // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
-      // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
-      // rebuildReferencedLogs() for more info.
-
-      if (!unusedLogs.isEmpty()) {
-        removingLogs = true;
+      for (String logger : unusedLogs) {
+        log.trace("Logs to be destroyed: {} {}", getExtent(), logger);
       }
+    } catch (RuntimeException e) {
+      logLock.unlock();
+      throw e;
     }
-
-    // do debug logging outside tablet lock
-    for (String logger : otherLogsCopy) {
-      log.trace("Logs for memory compacted: {} {}", getExtent(), logger);
-    }
-
-    for (String logger : currentLogsCopy) {
-      log.trace("Logs for current memory: {} {}", getExtent(), logger);
-    }
-
-    for (String logger : unusedLogs) {
-      log.trace("Logs to be destroyed: {} {}", getExtent(), logger);
-    }
-
     return unusedLogs;
   }
 
