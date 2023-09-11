@@ -45,7 +45,7 @@ public class DatafileTransactionLog {
   // The max size of the log
   private final AccumuloConfiguration.Deriver<MaxLogSize> maxSize;
   // The current log
-  private TransactionLog log;
+  private final TransactionLog log;
 
   public DatafileTransactionLog(KeyExtent extent, Set<StoredTabletFile> initialFiles,
       TableConfiguration configuration) {
@@ -132,7 +132,7 @@ public class DatafileTransactionLog {
    */
   private static class TransactionLog {
     private static final String DATE_FORMAT = "yyyyMMdd'T'HH:mm:ss.SSS";
-    private volatile long updateCount = 0;
+    private volatile long updateCount;
     // The time stamp of the initial file set
     private volatile long initialTs;
     // the initial file set
@@ -311,7 +311,7 @@ public class DatafileTransactionLog {
    * A simple implementation of a ring buffer
    */
   public static class Ring<T> {
-    private Object[] ring;
+    private final Object[] ring;
     private volatile int first;
     private volatile int last;
 
@@ -360,8 +360,8 @@ public class DatafileTransactionLog {
         return Collections.emptyList();
       }
 
-      Object[] data = null;
-      boolean consistent = false;
+      Object[] data;
+      boolean consistent;
       do {
         long updateCount = getUpdateCount();
         int lastPos = last;
@@ -374,7 +374,7 @@ public class DatafileTransactionLog {
         consistent = (updateCount == getUpdateCount());
       } while (!consistent);
 
-      return (List<T>) Collections.unmodifiableList(Arrays.asList(data));
+      return (List<T>) List.of(data);
     }
 
     public long getUpdateCount() {
