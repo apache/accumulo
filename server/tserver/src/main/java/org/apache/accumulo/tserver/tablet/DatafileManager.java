@@ -341,9 +341,12 @@ class DatafileManager {
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and following try{}finally
     try {
-      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-      // do not place any code here between above stmt and following try{}finally
       try {
+        // The following call pairs with tablet.finishClearingUnusedLogs() in the finally block. If
+        // moving where the following method is called, examine it and finishClearingUnusedLogs()
+        // before moving.
+        Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
         // reverse order data could be lost... the minor compaction start even should be written
