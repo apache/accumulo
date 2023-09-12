@@ -28,6 +28,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -72,6 +73,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   private final RateLimiter readLimiter;
   private final RateLimiter writeLimiter;
 
+  // used to signal if running compactions for this service should keep running
+  private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+
   private class InternalJob extends SubmittedJob implements Runnable {
 
     private final AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
@@ -96,7 +100,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       try {
         if (status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
           queuedJob.remove(this);
-          compactable.compact(csid, getJob(), readLimiter, writeLimiter, queuedTime);
+          compactable.compact(csid, getJob(), keepRunning::get, readLimiter, writeLimiter,
+              queuedTime);
           completionCallback.accept(compactable);
         }
       } catch (RuntimeException e) {
@@ -236,6 +241,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         canceled++;
       }
     }
+
+    keepRunning.set(false);
 
     log.debug("Stopped compaction executor {} running:{} canceled:{}", ceid, running, canceled);
     metricCloser.close();

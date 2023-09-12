@@ -38,6 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -1140,10 +1141,11 @@ public class CompactableImpl implements Compactable {
     private final Supplier<Boolean> expensiveCheck;
     private final Supplier<Boolean> inexpensiveCheck;
 
-    public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
-      this.expensiveCheck = Suppliers.memoizeWithExpiration(() -> {
-        return service.equals(getConfiguredService(kind));
-      }, 3, TimeUnit.SECONDS);
+    public CompactionCheck(CompactionServiceId service, CompactionKind kind,
+        BooleanSupplier keepRunning, Long compactionId) {
+      this.expensiveCheck = Suppliers.memoizeWithExpiration(
+          () -> service.equals(getConfiguredService(kind)) && keepRunning.getAsBoolean(), 3,
+          TimeUnit.SECONDS);
       this.inexpensiveCheck = Suppliers.memoizeWithExpiration(() -> {
         if (closed
             || (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId)) {
@@ -1271,8 +1273,8 @@ public class CompactableImpl implements Compactable {
   }
 
   @Override
-  public void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
-      RateLimiter writeLimiter, long queuedTime) {
+  public void compact(CompactionServiceId service, CompactionJob job, BooleanSupplier keepRunning,
+      RateLimiter readLimiter, RateLimiter writeLimiter, long queuedTime) {
 
     Optional<CompactionInfo> ocInfo = reserveFilesForCompaction(service, job);
     if (ocInfo.isEmpty()) {
@@ -1290,7 +1292,7 @@ public class CompactableImpl implements Compactable {
     try {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
-      var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
+      var check = new CompactionCheck(service, kind, keepRunning, cInfo.checkCompactionId);
       TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
       var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
