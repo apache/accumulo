@@ -344,7 +344,7 @@ class DatafileManager {
       tablet.getLogLock().lock();
       // do not place any code here between lock and try
       try {
-        // The following call pairs with tablet.finishClearingUnusedLogs() in the finally block. If
+        // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
         // moving where the following method is called, examine it and finishClearingUnusedLogs()
         // before moving.
         Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
