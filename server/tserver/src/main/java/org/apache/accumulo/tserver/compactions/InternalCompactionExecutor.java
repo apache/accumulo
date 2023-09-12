@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -182,7 +184,16 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       Consumer<Compactable> completionCallback) {
     Preconditions.checkArgument(job.getExecutor().equals(ceid));
     var internalJob = new InternalJob(job, compactable, csid, completionCallback);
-    threadPool.execute(internalJob);
+    try {
+      threadPool.execute(internalJob);
+    } catch (RejectedExecutionException e) {
+      if (threadPool.isShutdown()) {
+        log.trace("Ignoring rejected execution exception because thread pool is shutdown", e);
+        internalJob.cancel(Status.QUEUED);
+      } else {
+        throw new IllegalStateException(e);
+      }
+    }
     return internalJob;
   }
 
@@ -208,8 +219,25 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public void stop() {
-    threadPool.shutdownNow();
-    log.debug("Stopped compaction executor {}", ceid);
+    // Let compactions that are running keep running, but stop accepting new compactions.
+    threadPool.shutdown();
+
+    int running = threadPool.getActiveCount();
+
+    List<InternalJob> jobToCancel;
+    synchronized (queuedJob) {
+      jobToCancel = new ArrayList<>(queuedJob);
+    }
+
+    // Cancel any compactions queued for the thread pool that have not yet started running.
+    int canceled = 0;
+    for (var job : jobToCancel) {
+      if (job.cancel(Status.QUEUED)) {
+        canceled++;
+      }
+    }
+
+    log.debug("Stopped compaction executor {} running:{} canceled:{}", ceid, running, canceled);
     metricCloser.close();
   }
 
