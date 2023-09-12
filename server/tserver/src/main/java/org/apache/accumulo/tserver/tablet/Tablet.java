@@ -1889,14 +1889,18 @@ public class Tablet extends TabletBase {
     }
   }
 
+  ReentrantLock getLogLock() {
+    return logLock;
+  }
+
   Set<String> beginClearingUnusedLogs() {
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<String> unusedLogs = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
 
     // do not hold tablet lock while acquiring the log lock
-    logLock.lock();
 
     synchronized (this) {
       if (removingLogs) {
@@ -1913,12 +1917,6 @@ public class Tablet extends TabletBase {
         currentLogsCopy.add(logger.toString());
         unusedLogs.remove(logger.getMeta());
       }
-
-      otherLogs = Collections.emptySet();
-      // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
-      // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
-      // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
-      // rebuildReferencedLogs() for more info.
 
       if (!unusedLogs.isEmpty()) {
         removingLogs = true;
@@ -1942,15 +1940,10 @@ public class Tablet extends TabletBase {
   }
 
   synchronized void finishClearingUnusedLogs() {
-    if (logLock.isHeldByCurrentThread()) {
-      removingLogs = false;
-      rebuildReferencedLogs();
-      logLock.unlock();
-    } else {
-      log.debug("Ignoring call to finishClearingUnusedLogs() for {} because logLock is not held.  "
-          + "There was probably an exception in beginClearingUnusedLogs() before acquiring"
-          + " the lock.", extent);
-    }
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
+    removingLogs = false;
+    otherLogs = Collections.emptySet();
+    rebuildReferencedLogs();
   }
 
   private boolean removingLogs = false;
