@@ -103,7 +103,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   }
 
   private void readyMocks(Object... mocksToReplay) {
-    Arrays.stream(mocksToReplay).forEach(mocks::add);
+    mocks.addAll(Arrays.asList(mocksToReplay));
     replay(mocksToReplay);
   }
 
