@@ -160,6 +160,16 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     // there is a lot going on in this "one line" so see below for more info
     var tabletReferences = tabletStream.flatMap(tm -> {
+
+      // verify that dir and prev row entries present for to check for complete row scan
+      log.trace("tablet metadata table id: {}, dir:{}, saw: {}, prev row: {}", tm.getTableId(),
+          tm.getDirName(), tm.sawPrevEndRow(), tm.getPrevEndRow());
+      if (tm.getDirName() == null || tm.getDirName().isEmpty() || !tm.sawPrevEndRow()) {
+        throw new IllegalStateException(
+            "possible incomplete metadata scan for table id: " + tm.getTableId() + ", dir: "
+                + tm.getDirName() + ", saw prev row: " + tm.sawPrevEndRow());
+      }
+
       // combine all the entries read from file and scan columns in the metadata table
       Stream<StoredTabletFile> fileStream = tm.getFiles().stream();
       // scans are normally empty, so only introduce a layer of indirection when needed
