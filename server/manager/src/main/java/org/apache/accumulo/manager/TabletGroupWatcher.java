@@ -636,11 +636,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return deletionEndRow;
   }
 
-  private static boolean isFirstTablet(KeyExtent tablet) {
+  private static boolean isFirstTabletInTable(KeyExtent tablet) {
     return tablet != null && tablet.prevEndRow() == null;
   }
 
-  private static boolean isLastTablet(KeyExtent tablet) {
+  private static boolean isLastTabletInTable(KeyExtent tablet) {
     return tablet != null && tablet.endRow() == null;
   }
 
@@ -649,35 +649,36 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         && Objects.equals(firstTablet.endRow(), lastTablet.prevEndRow());
   }
 
-  private boolean hasTabletsToDelete(final KeyExtent firstTablet, final KeyExtent lastTablet) {
+  private boolean hasTabletsToDelete(final KeyExtent firstTabletInRange,
+      final KeyExtent lastTableInRange) {
     // If the tablets are equal (and not null) then the deletion range is just part of 1 tablet
     // which will be fenced so there are no tablets to delete. The null check is because if both
     // are null then we are just deleting everything, so we do have tablets to delete
-    if (Objects.equals(firstTablet, lastTablet) && firstTablet != null) {
+    if (Objects.equals(firstTabletInRange, lastTableInRange) && firstTabletInRange != null) {
       Manager.log.trace(
           "No tablets to delete, firstTablet {} equals lastTablet {} in deletion range and was fenced.",
-          firstTablet, lastTablet);
+          firstTabletInRange, lastTableInRange);
       return false;
       // If the lastTablet of the deletion range is the first tablet of the table it has been fenced
       // already so nothing to actually delete before it
-    } else if (isFirstTablet(lastTablet)) {
+    } else if (isFirstTabletInTable(lastTableInRange)) {
       Manager.log.trace(
           "No tablets to delete, lastTablet {} in deletion range is the first tablet of the table and was fenced.",
-          lastTablet);
+          lastTableInRange);
       return false;
       // If the firstTablet of the deletion range is the last tablet of the table it has been fenced
       // already so nothing to actually delete after it
-    } else if (isLastTablet(firstTablet)) {
+    } else if (isLastTabletInTable(firstTabletInRange)) {
       Manager.log.trace(
           "No tablets to delete, firstTablet {} in deletion range is the last tablet of the table and was fenced.",
-          firstTablet);
+          firstTabletInRange);
       return false;
       // If the firstTablet and lastTablet are contiguous tablets then there is nothing to delete as
       // each will be fenced and nothing between
-    } else if (areContiguousTablets(firstTablet, lastTablet)) {
+    } else if (areContiguousTablets(firstTabletInRange, lastTableInRange)) {
       Manager.log.trace(
           "No tablets to delete, firstTablet {} and lastTablet {} in deletion range are contiguous and were fenced.",
-          firstTablet, lastTablet);
+          firstTabletInRange, lastTableInRange);
       return false;
     }
 
