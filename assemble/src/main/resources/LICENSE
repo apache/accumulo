@@ -314,6 +314,15 @@ Files:
 
     distributed under the MIT license (see above)
 
+## popper (https://popper.js.org/)
+
+Files:
+* popper*.js
+
+    Copyright (c) 2021 Floating UI contributors
+
+    Available under the MIT License (see above and https://github.com/floating-ui/floating-ui/blob/master/LICENSE)
+
 **********
 
 # BUNDLED DEPENDENCIES
