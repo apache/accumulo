@@ -284,7 +284,7 @@ Files:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-## Flot 4.2.3 (https://github.com/flot/flot)
+## Flot 4.2.6 (https://github.com/flot/flot)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/flot/*
