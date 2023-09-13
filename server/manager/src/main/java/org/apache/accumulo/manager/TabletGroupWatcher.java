@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -635,22 +636,48 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return deletionEndRow;
   }
 
-  private boolean hasTabletsToDelete(MergeInfo info, Text deletionStartRow, Text deletionEndRow) {
-    // If the endRow of the deletion range is not null, but the actual deletionEndRow is null then
-    // this means
-    // the first tablet was fenced so there are no tablets to delete and we can return
-    if (info.getExtent().endRow() != null && deletionEndRow == null) {
+  private static boolean isFirstTablet(KeyExtent tablet) {
+    return tablet != null && tablet.prevEndRow() == null;
+  }
+
+  private static boolean isLastTablet(KeyExtent tablet) {
+    return tablet != null && tablet.endRow() == null;
+  }
+
+  private static boolean areContiguousTablets(KeyExtent firstTablet, KeyExtent lastTablet) {
+    return firstTablet != null && lastTablet != null
+        && Objects.equals(firstTablet.endRow(), lastTablet.prevEndRow());
+  }
+
+  private boolean hasTabletsToDelete(final KeyExtent firstTablet, final KeyExtent lastTablet) {
+    // If the tablets are equal (and not null) then the deletion range is just part of 1 tablet
+    // which will be fenced so there are no tablets to delete. The null check is because if both
+    // are null then we are just deleting everything, so we do have tablets to delete
+    if (Objects.equals(firstTablet, lastTablet) && firstTablet != null) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} equals lastTablet {} in deletion range and was fenced.",
+          firstTablet, lastTablet);
       return false;
-      // If the prevEndRow of the deletion range is not null, but the actual deletionStartRow is
-      // null then this means
-      // the last tablet was fenced so there are no tablets to delete and we can return
-    } else if (info.getExtent().prevEndRow() != null && deletionStartRow == null) {
+      // If the lastTablet of the deletion range is the first tablet of the table it has been fenced
+      // already so nothing to actually delete before it
+    } else if (isFirstTablet(lastTablet)) {
+      Manager.log.trace(
+          "No tablets to delete, lastTablet {} in deletion range is the first tablet of the table and was fenced.",
+          lastTablet);
       return false;
-      // Make sure detected deletionEndRow is after deletionStartRow. If they are the same tablet or
-      // before then nothing to delete and we can return
-      // This would happen in some situations such as a deletion range fully contained in 1 tablet
-    } else if (deletionEndRow != null && deletionStartRow != null
-        && new Key(deletionEndRow).compareRow(deletionStartRow) <= 0) {
+      // If the firstTablet of the deletion range is the last tablet of the table it has been fenced
+      // already so nothing to actually delete after it
+    } else if (isLastTablet(firstTablet)) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} in deletion range is the last tablet of the table and was fenced.",
+          firstTablet);
+      return false;
+      // If the firstTablet and lastTablet are contiguous tablets then there is nothing to delete as
+      // each will be fenced and nothing between
+    } else if (areContiguousTablets(firstTablet, lastTablet)) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} and lastTablet {} in deletion range are contiguous and were fenced.",
+          firstTablet, lastTablet);
       return false;
     }
 
@@ -675,7 +702,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Text deletionEndRow = getDeletionEndRow(firstAndLastTablets.getSecond());
 
     // check if there are any tablets to delete and if not return
-    if (!hasTabletsToDelete(info, deletionStartRow, deletionEndRow)) {
+    if (!hasTabletsToDelete(firstAndLastTablets.getFirst(), firstAndLastTablets.getSecond())) {
       Manager.log.trace("No tablets to delete for range {}, returning", info.getExtent());
       return;
     }
