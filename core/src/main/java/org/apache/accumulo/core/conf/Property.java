@@ -52,9 +52,9 @@ public enum Property {
           + " RPC. See also instance.ssl.enabled",
       "1.6.0"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
-      "Configures the TCP backlog for the"
-          + "server side sockets created by Thrift. This property is not used for SSL type"
-          + "server sockets.",
+      "Configures the TCP backlog for the server side sockets created by Thrift."
+          + " This property is not used for SSL type server sockets. A value of zero"
+          + " will use the Thrift default value.",
       "2.1.3"),
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
       "Path of the keystore file for the server's private SSL key", "1.6.0"),
