@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_SECRET;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_ZK_HOST;
-import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TSERVER_REGEX;
+import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
@@ -189,7 +189,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
   @Test
   public void testSiteConfiguration() throws IOException {
-    var shouldBeSet = Set.of(INSTANCE_ZK_HOST, INSTANCE_SECRET, MANAGER_BULK_TSERVER_REGEX);
+    var shouldBeSet = Set.of(INSTANCE_ZK_HOST, INSTANCE_SECRET, MANAGER_BULK_TIMEOUT);
     var shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
     assertFalse(shouldNotBeSet.isEmpty());
 
