@@ -341,6 +341,9 @@ class DatafileManager {
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and following try{}finally
     try {
+      // Can not hold tablet lock while acquiring the log lock. The following check is there to
+      // prevent deadlock.
+      Preconditions.checkState(!Thread.holdsLock(this));
       tablet.getLogLock().lock();
       // do not place any code here between lock and try
       try {

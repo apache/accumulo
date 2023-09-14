@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
@@ -120,10 +121,11 @@ public class ZombieTServer {
             TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
             context));
 
-    ServerAddress serverPort =
-        TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
-            muxProcessor, "ZombieTServer", "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
-            1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
+    ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "ZombieTServer", "walking dead", 2,
+        ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG),
+        HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
     var zLockPath =

@@ -404,7 +404,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     ServerAddress server = TServerUtils.startTServer(getConfiguration(),
         getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
         "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
-        getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
+        getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+        getConfiguration().getCount(Property.RPC_BACKLOG), addresses);
     log.debug("Starting garbage collector listening on " + server.address);
     return server.address;
   }
