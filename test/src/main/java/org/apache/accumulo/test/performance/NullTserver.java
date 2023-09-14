@@ -161,12 +161,6 @@ public class NullTserver {
     }
 
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
-        TMutation mutation, TDurability durability) {
-
-    }
-
-    @Override
     public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
       return null;
     }
