@@ -49,6 +49,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -66,7 +67,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
@@ -257,7 +257,8 @@ public class CompactableUtils {
           SummaryCollection fsc = SummaryReader
               .load(fs, conf, factory, file.getPath(), summarySelector, tsrm.getSummaryCache(),
                   tsrm.getIndexCache(), tsrm.getFileLenCache(), tableConf.getCryptoService())
-              .getSummaries(Collections.singletonList(new Gatherer.RowRange(tablet.getExtent())));
+              .getSummaries(Collections.singletonList(RowRange
+                  .openClosed(tablet.getExtent().prevEndRow(), tablet.getExtent().endRow())));
           sc.merge(fsc, factory);
         }
 

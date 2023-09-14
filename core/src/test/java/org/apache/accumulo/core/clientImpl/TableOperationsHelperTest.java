@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -89,8 +90,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-        boolean startInclusive, Text endRow, boolean endInclusive) {
+    public Text getMaxRow(String tableName, Authorizations auths, RowRange range) {
       return null;
     }
 
