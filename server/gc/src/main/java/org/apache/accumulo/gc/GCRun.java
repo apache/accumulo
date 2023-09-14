@@ -336,7 +336,7 @@ public class GCRun implements GarbageCollectionEnvironment {
                   }
                 }
               } else {
-                log.warn("Very strange path name: {}", delete.getPath());
+                log.warn("Delete Failed: Path name format cannot be parsed: {}", delete.getPath());
               }
             }
           }
