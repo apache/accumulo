@@ -1133,6 +1133,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               // This compatability handling for accumulo version 2.1.2 and earlier that did not
               // have cancelUpdate. Can remove this in 3.1.
               client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
+              retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
               break;
             } else {
               if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
