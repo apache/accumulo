@@ -338,10 +338,19 @@ class DatafileManager {
 
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    // do not place any code here between above stmt and try{}finally
+    // do not place any code here between above stmt and following try{}finally
     try {
-      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+      // Can not hold tablet lock while acquiring the log lock. The following check is there to
+      // prevent deadlock.
+      Preconditions.checkState(!Thread.holdsLock(this));
+      tablet.getLogLock().lock();
+      // do not place any code here between lock and try
       try {
+        // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
+        // moving where the following method is called, examine it and finishClearingUnusedLogs()
+        // before moving.
+        Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
         // reverse order data could be lost... the minor compaction start even should be written
@@ -349,7 +358,7 @@ class DatafileManager {
         newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
             unusedWalLogs, flushId);
       } finally {
-        tablet.finishClearingUnusedLogs();
+        tablet.getLogLock().unlock();
       }
 
       do {
