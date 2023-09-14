@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -83,11 +82,9 @@ import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -489,96 +486,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       // Atomically unreserve and delete the session. If there any write stragglers, they will fail
       // after this point.
       server.sessionManager.removeSession(updateID, true);
-    }
-  }
-
-  @Override
-  public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
-      TMutation tmutation, TDurability tdurability)
-      throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
-
-    final TableId tableId = TableId.of(new String(tkeyExtent.getTable(), UTF_8));
-    NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-    if (!security.canWrite(credentials, tableId, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    final KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
-    final Tablet tablet = server.getOnlineTablet(KeyExtent.copyOf(keyExtent));
-    if (tablet == null) {
-      throw new NotServingTabletException(tkeyExtent);
-    }
-    Durability tabletDurability = tablet.getDurability();
-
-    if (!keyExtent.isMeta()) {
-      try {
-        server.resourceManager.waitUntilCommitsAreEnabled();
-      } catch (HoldTimeoutException hte) {
-        // Major hack. Assumption is that the client has timed out and is gone. If that's not the
-        // case, then throwing the following will let client know there
-        // was a failure and it should retry.
-        throw new NotServingTabletException(tkeyExtent);
-      }
-    }
-
-    final long opid = writeTracker.startWrite(TabletType.type(keyExtent));
-
-    try {
-      final Mutation mutation = new ServerMutation(tmutation);
-      final List<Mutation> mutations = Collections.singletonList(mutation);
-
-      PreparedMutations prepared;
-      Span span = TraceUtil.startSpan(this.getClass(), "update::prep");
-      try (Scope scope = span.makeCurrent()) {
-        prepared = tablet.prepareMutationsForCommit(
-            new TservConstraintEnv(server.getContext(), security, credentials), mutations);
-      } catch (Exception e) {
-        TraceUtil.setException(span, e, true);
-        throw e;
-      } finally {
-        span.end();
-      }
-
-      if (prepared.tabletClosed()) {
-        throw new NotServingTabletException(tkeyExtent);
-      } else if (!prepared.getViolators().isEmpty()) {
-        throw new ConstraintViolationException(prepared.getViolations().asList().stream()
-            .map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()));
-      } else {
-        CommitSession session = prepared.getCommitSession();
-        Durability durability = DurabilityImpl
-            .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
-
-        // Instead of always looping on true, skip completely when durability is NONE.
-        while (durability != Durability.NONE) {
-          try {
-            Span span2 = TraceUtil.startSpan(this.getClass(), "update::wal");
-            try (Scope scope = span2.makeCurrent()) {
-              server.logger.log(session, mutation, durability);
-            } catch (Exception e) {
-              TraceUtil.setException(span2, e, true);
-              throw e;
-            } finally {
-              span2.end();
-            }
-            break;
-          } catch (IOException ex) {
-            log.warn("Error writing mutations to log", ex);
-          }
-        }
-
-        Span span3 = TraceUtil.startSpan(this.getClass(), "update::commit");
-        try (Scope scope = span3.makeCurrent()) {
-          session.commit(mutations);
-        } catch (Exception e) {
-          TraceUtil.setException(span3, e, true);
-          throw e;
-        } finally {
-          span3.end();
-        }
-      }
-    } finally {
-      writeTracker.finishWrite(opid);
     }
   }
 
