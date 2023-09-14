@@ -357,6 +357,8 @@ class DatafileManager {
         // before the following metadata write is made
         newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
             unusedWalLogs, flushId);
+
+        tablet.finishClearingUnusedLogs();
       } finally {
         tablet.getLogLock().unlock();
       }
