@@ -1895,7 +1895,9 @@ public class Tablet extends TabletBase {
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
 
-    // do not hold tablet lock while acquiring the log lock
+    // Can not hold tablet lock while acquiring the log lock. The following check is there to
+    // prevent deadlock.
+    Preconditions.checkState(!Thread.holdsLock(this));
     logLock.lock();
 
     synchronized (this) {
@@ -1960,7 +1962,9 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // do not hold tablet lock while acquiring the log lock
+    // Can not hold tablet lock while acquiring the log lock. The following check is there to
+    // prevent deadlock.
+    Preconditions.checkState(!Thread.holdsLock(this));
     logLock.lock();
 
     try {
