@@ -82,9 +82,6 @@ public class MergeInfo implements Writable {
   }
 
   public boolean needsToBeChopped(KeyExtent otherExtent) {
-    // TODO: For now only Deletes still need chops
-    // During a delete, the block after the merge will be stretched to cover the deleted area.
-    // Therefore, it needs to be chopped
     if (isDelete() && otherExtent.tableId().equals(extent.tableId())) {
       return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
     } else {

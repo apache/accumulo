@@ -30,12 +30,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -66,6 +70,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateExc
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -75,9 +80,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -102,8 +110,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -251,8 +261,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
-          sendChopRequest(mergeStats.getMergeInfo(), state, tls);
-          sendSplitRequest(mergeStats.getMergeInfo(), state, tls);
 
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
@@ -557,83 +565,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return result;
   }
 
-  private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
-    // Already split?
-    if (!info.getState().equals(MergeState.SPLITTING)) {
-      return;
-    }
-    // Merges don't split
-    if (!info.isDelete()) {
-      return;
-    }
-    // Online and ready to split?
-    if (!state.equals(TabletState.HOSTED)) {
-      return;
-    }
-    // Does this extent cover the end points of the delete?
-    KeyExtent range = info.getExtent();
-    if (tls.extent.overlaps(range)) {
-      for (Text splitPoint : new Text[] {range.prevEndRow(), range.endRow()}) {
-        if (splitPoint == null) {
-          continue;
-        }
-        if (!tls.extent.contains(splitPoint)) {
-          continue;
-        }
-        if (splitPoint.equals(tls.extent.endRow())) {
-          continue;
-        }
-        if (splitPoint.equals(tls.extent.prevEndRow())) {
-          continue;
-        }
-        try {
-          TServerConnection conn;
-          conn = manager.tserverSet.getConnection(tls.getCurrentServer());
-          if (conn != null) {
-            Manager.log.info("Asking {} to split {} at {}", tls.current, tls.extent, splitPoint);
-            conn.splitTablet(tls.extent, splitPoint);
-          } else {
-            Manager.log.warn("Not connected to server {}", tls.current);
-          }
-        } catch (NotServingTabletException e) {
-          Manager.log.debug("Error asking tablet server to split a tablet: ", e);
-        } catch (Exception e) {
-          Manager.log.warn("Error asking tablet server to split a tablet: ", e);
-        }
-      }
-    }
-  }
-
-  private void sendChopRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
-    // Don't bother if we're in the wrong state
-    if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED)) {
-      return;
-    }
-    // Tablet must be online
-    if (!state.equals(TabletState.HOSTED)) {
-      return;
-    }
-    // Tablet isn't already chopped
-    if (tls.chopped) {
-      return;
-    }
-    // Tablet ranges intersect
-    if (info.needsToBeChopped(tls.extent)) {
-      TServerConnection conn;
-      try {
-        conn = manager.tserverSet.getConnection(tls.getCurrentServer());
-        if (conn != null) {
-          Manager.log.info("Asking {} to chop {}", tls.current, tls.extent);
-          conn.chop(manager.managerLock, tls.extent);
-        } else {
-          Manager.log.warn("Could not connect to server {}", tls.current);
-        }
-      } catch (TException e) {
-        Manager.log.warn("Communications error asking tablet server to chop a tablet");
-      }
-    }
-  }
-
   private void updateMergeState(Map<TableId,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
@@ -669,8 +600,118 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  // This method finds returns the deletion starting row (exclusive) for tablets that
+  // need to be actually deleted. If the startTablet is null then
+  // the deletion start row will just be null as all tablets are being deleted
+  // up to the end. Otherwise, this returns the endRow of the first tablet
+  // as the first tablet should be kept and will have been previously
+  // fenced if necessary
+  private Text getDeletionStartRow(final KeyExtent startTablet) {
+    if (startTablet == null) {
+      Manager.log.debug("First tablet for delete range is null");
+      return null;
+    }
+
+    final Text deletionStartRow = startTablet.endRow();
+    Manager.log.debug("Start row is {} for deletion", deletionStartRow);
+
+    return deletionStartRow;
+  }
+
+  // This method finds returns the deletion ending row (inclusive) for tablets that
+  // need to be actually deleted. If the endTablet is null then
+  // the deletion end row will just be null as all tablets are being deleted
+  // after the start row. Otherwise, this returns the prevEndRow of the last tablet
+  // as the last tablet should be kept and will have been previously
+  // fenced if necessary
+  private Text getDeletionEndRow(final KeyExtent endTablet) {
+    if (endTablet == null) {
+      Manager.log.debug("Last tablet for delete range is null");
+      return null;
+    }
+
+    Text deletionEndRow = endTablet.prevEndRow();
+    Manager.log.debug("Deletion end row is {}", deletionEndRow);
+
+    return deletionEndRow;
+  }
+
+  private static boolean isFirstTabletInTable(KeyExtent tablet) {
+    return tablet != null && tablet.prevEndRow() == null;
+  }
+
+  private static boolean isLastTabletInTable(KeyExtent tablet) {
+    return tablet != null && tablet.endRow() == null;
+  }
+
+  private static boolean areContiguousTablets(KeyExtent firstTablet, KeyExtent lastTablet) {
+    return firstTablet != null && lastTablet != null
+        && Objects.equals(firstTablet.endRow(), lastTablet.prevEndRow());
+  }
+
+  private boolean hasTabletsToDelete(final KeyExtent firstTabletInRange,
+      final KeyExtent lastTableInRange) {
+    // If the tablets are equal (and not null) then the deletion range is just part of 1 tablet
+    // which will be fenced so there are no tablets to delete. The null check is because if both
+    // are null then we are just deleting everything, so we do have tablets to delete
+    if (Objects.equals(firstTabletInRange, lastTableInRange) && firstTabletInRange != null) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} equals lastTablet {} in deletion range and was fenced.",
+          firstTabletInRange, lastTableInRange);
+      return false;
+      // If the lastTablet of the deletion range is the first tablet of the table it has been fenced
+      // already so nothing to actually delete before it
+    } else if (isFirstTabletInTable(lastTableInRange)) {
+      Manager.log.trace(
+          "No tablets to delete, lastTablet {} in deletion range is the first tablet of the table and was fenced.",
+          lastTableInRange);
+      return false;
+      // If the firstTablet of the deletion range is the last tablet of the table it has been fenced
+      // already so nothing to actually delete after it
+    } else if (isLastTabletInTable(firstTabletInRange)) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} in deletion range is the last tablet of the table and was fenced.",
+          firstTabletInRange);
+      return false;
+      // If the firstTablet and lastTablet are contiguous tablets then there is nothing to delete as
+      // each will be fenced and nothing between
+    } else if (areContiguousTablets(firstTabletInRange, lastTableInRange)) {
+      Manager.log.trace(
+          "No tablets to delete, firstTablet {} and lastTablet {} in deletion range are contiguous and were fenced.",
+          firstTabletInRange, lastTableInRange);
+      return false;
+    }
+
+    return true;
+  }
+
   private void deleteTablets(MergeInfo info) throws AccumuloException {
-    KeyExtent extent = info.getExtent();
+    // Before updated metadata and get the first and last tablets which
+    // are fenced if necessary
+    final Pair<KeyExtent,KeyExtent> firstAndLastTablets = updateMetadataRecordsForDelete(info);
+
+    // Find the deletion start row (exclusive) for tablets that need to be actually deleted
+    // This will be null if deleting everything up until the end row or it will be
+    // the endRow of the first tablet as the first tablet should be kept and will have
+    // already been fenced if necessary
+    final Text deletionStartRow = getDeletionStartRow(firstAndLastTablets.getFirst());
+
+    // Find the deletion end row (inclusive) for tablets that need to be actually deleted
+    // This will be null if deleting everything after the starting row or it will be
+    // the prevEndRow of the last tablet as the last tablet should be kept and will have
+    // already been fenced if necessary
+    Text deletionEndRow = getDeletionEndRow(firstAndLastTablets.getSecond());
+
+    // check if there are any tablets to delete and if not return
+    if (!hasTabletsToDelete(firstAndLastTablets.getFirst(), firstAndLastTablets.getSecond())) {
+      Manager.log.trace("No tablets to delete for range {}, returning", info.getExtent());
+      return;
+    }
+
+    // Build an extent for the actual deletion range
+    final KeyExtent extent =
+        new KeyExtent(info.getExtent().tableId(), deletionEndRow, deletionStartRow);
+    Manager.log.debug("Tablet deletion range is {}", extent);
     String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;
     Manager.log.debug("Deleting tablets for {}", extent);
     MetadataTime metadataTime = null;
@@ -921,6 +962,191 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     } catch (Exception ex) {
       throw new AccumuloException(ex);
+    }
+  }
+
+  // This method is used to detect if a tablet needs to be split/chopped for a delete
+  // Instead of performing a split or chop compaction, the tablet will have its files fenced.
+  private boolean needsFencingForDeletion(MergeInfo info, KeyExtent keyExtent) {
+    // Does this extent cover the end points of the delete?
+    final Predicate<Text> isWithin = r -> r != null && keyExtent.contains(r);
+    final Predicate<Text> isNotBoundary =
+        r -> !r.equals(keyExtent.endRow()) && !r.equals(keyExtent.prevEndRow());
+    final KeyExtent deleteRange = info.getExtent();
+
+    return (keyExtent.overlaps(deleteRange) && Stream
+        .of(deleteRange.prevEndRow(), deleteRange.endRow()).anyMatch(isWithin.and(isNotBoundary)))
+        || info.needsToBeChopped(keyExtent);
+  }
+
+  // Instead of splitting or chopping tablets for a delete we instead create ranges
+  // to exclude the portion of the tablet that should be deleted
+  private Text followingRow(Text row) {
+    if (row == null) {
+      return null;
+    }
+    return new Key(row).followingKey(PartialKey.ROW).getRow();
+  }
+
+  // Instead of splitting or chopping tablets for a delete we instead create ranges
+  // to exclude the portion of the tablet that should be deleted
+  private List<Range> createRangesForDeletion(TabletMetadata tabletMetadata,
+      final KeyExtent deleteRange) {
+    final KeyExtent tabletExtent = tabletMetadata.getExtent();
+
+    // If the delete range wholly contains the tablet being deleted then there is no range to clip
+    // files to because the files should be completely dropped.
+    Preconditions.checkArgument(!deleteRange.contains(tabletExtent), "delete range:%s tablet:%s",
+        deleteRange, tabletExtent);
+
+    final List<Range> ranges = new ArrayList<>();
+
+    if (deleteRange.overlaps(tabletExtent)) {
+      if (deleteRange.prevEndRow() != null
+          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))) {
+        Manager.log.trace("Fencing tablet {} files to ({},{}]", tabletExtent,
+            tabletExtent.prevEndRow(), deleteRange.prevEndRow());
+        ranges.add(new Range(tabletExtent.prevEndRow(), false, deleteRange.prevEndRow(), true));
+      }
+
+      // This covers the case of when a deletion range overlaps the last tablet. We need to create a
+      // range that excludes the deletion.
+      if (deleteRange.endRow() != null
+          && tabletMetadata.getExtent().contains(deleteRange.endRow())) {
+        Manager.log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, deleteRange.endRow(),
+            tabletExtent.endRow());
+        ranges.add(new Range(deleteRange.endRow(), false, tabletExtent.endRow(), true));
+      }
+    } else {
+      Manager.log.trace(
+          "Fencing tablet {} files to itself because it does not overlap delete range",
+          tabletExtent);
+      ranges.add(tabletExtent.toDataRange());
+    }
+
+    return ranges;
+  }
+
+  private Pair<KeyExtent,KeyExtent> updateMetadataRecordsForDelete(MergeInfo info)
+      throws AccumuloException {
+    final KeyExtent range = info.getExtent();
+
+    String targetSystemTable = MetadataTable.NAME;
+    if (range.isMeta()) {
+      targetSystemTable = RootTable.NAME;
+    }
+    final Pair<KeyExtent,KeyExtent> startAndEndTablets;
+
+    final AccumuloClient client = manager.getContext();
+
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
+      final Text startRow = range.prevEndRow();
+      final Text endRow = range.endRow() != null
+          ? new Key(range.endRow()).followingKey(PartialKey.ROW).getRow() : null;
+
+      // Find the tablets that overlap the start and end row of the deletion range
+      // If the startRow is null then there will be an empty startTablet we don't need
+      // to fence a starting tablet as we are deleting everything up to the end tablet
+      // Likewise, if the endRow is null there will be an empty endTablet as we are deleting
+      // all tablets after the starting tablet
+      final Optional<TabletMetadata> startTablet = Optional.ofNullable(startRow).flatMap(
+          row -> loadTabletMetadata(range.tableId(), row, ColumnType.PREV_ROW, ColumnType.FILES));
+      final Optional<TabletMetadata> endTablet = Optional.ofNullable(endRow).flatMap(
+          row -> loadTabletMetadata(range.tableId(), row, ColumnType.PREV_ROW, ColumnType.FILES));
+
+      // Store the tablets in a Map if present so that if we have the same Tablet we
+      // only need to process the same tablet once when fencing
+      final SortedMap<KeyExtent,TabletMetadata> tabletMetadatas = new TreeMap<>();
+      startTablet.ifPresent(ft -> tabletMetadatas.put(ft.getExtent(), ft));
+      endTablet.ifPresent(lt -> tabletMetadatas.putIfAbsent(lt.getExtent(), lt));
+
+      // Capture the tablets to return them or null if not loaded
+      startAndEndTablets = new Pair<>(startTablet.map(TabletMetadata::getExtent).orElse(null),
+          endTablet.map(TabletMetadata::getExtent).orElse(null));
+
+      for (TabletMetadata tabletMetadata : tabletMetadatas.values()) {
+        final KeyExtent keyExtent = tabletMetadata.getExtent();
+
+        // Check if this tablet needs to have its files fenced for the deletion
+        if (needsFencingForDeletion(info, keyExtent)) {
+          Manager.log.debug("Found overlapping keyExtent {} for delete, fencing files.", keyExtent);
+
+          // Create the ranges for fencing the files, this takes the place of
+          // chop compactions and splits
+          final List<Range> ranges = createRangesForDeletion(tabletMetadata, range);
+          Preconditions.checkState(!ranges.isEmpty(),
+              "No ranges found that overlap deletion range.");
+
+          // Go through and fence each of the files that are part of the tablet
+          for (Entry<StoredTabletFile,DataFileValue> entry : tabletMetadata.getFilesMap()
+              .entrySet()) {
+            StoredTabletFile existing = entry.getKey();
+            Value value = entry.getValue().encodeAsValue();
+
+            final Mutation m = new Mutation(keyExtent.toMetaRow());
+
+            // Go through each range that was created and modify the metadata for the file
+            // The end row should be inclusive for the current tablet and the previous end row
+            // should be exclusive for the start row.
+            final Set<StoredTabletFile> newFiles = new HashSet<>();
+            final Set<StoredTabletFile> existingFile = Set.of(existing);
+
+            for (Range fenced : ranges) {
+              // Clip range with the tablet range if the range already exists
+              fenced = existing.hasRange() ? existing.getRange().clip(fenced, true) : fenced;
+
+              // If null the range is disjoint which can happen if there are existing fenced files
+              // If the existing file is disjoint then later we will delete if the file is not part
+              // of the newFiles set which means it is disjoint with all ranges
+              if (fenced != null) {
+                final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+                Manager.log.trace("Adding new file {} with range {}", newFile.getMetadataPath(),
+                    newFile.getRange());
+
+                // Add the new file to the newFiles set, it will be added later if it doesn't match
+                // the existing file already. We still need to add to the set to be checked later
+                // even if it matches the existing file as later the deletion logic will check to
+                // see if the existing file is part of this set before deleting. This is done to
+                // make sure the existing file isn't deleted unless it is not needed/disjoint
+                // with all ranges.
+                newFiles.add(newFile);
+              } else {
+                Manager.log.trace("Found a disjoint file {} with  range {} on delete",
+                    existing.getMetadataPath(), existing.getRange());
+              }
+            }
+
+            // If the existingFile is not contained in the newFiles set then we can delete it
+            Sets.difference(existingFile, newFiles).forEach(
+                delete -> m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText()));
+            // Add any new files that don't match the existingFile
+            Sets.difference(newFiles, existingFile).forEach(
+                newFile -> m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value));
+
+            if (!m.getUpdates().isEmpty()) {
+              bw.addMutation(m);
+            }
+          }
+        } else {
+          Manager.log.debug(
+              "Skipping metadata update on file for keyExtent {} for delete as not overlapping on rows.",
+              keyExtent);
+        }
+      }
+
+      bw.flush();
+
+      return startAndEndTablets;
+    } catch (Exception ex) {
+      throw new AccumuloException(ex);
+    }
+  }
+
+  private Optional<TabletMetadata> loadTabletMetadata(TableId tabletId, final Text row,
+      ColumnType... columns) {
+    try (TabletsMetadata tabletsMetadata = manager.getContext().getAmple().readTablets()
+        .forTable(tabletId).overlapping(row, true, row).fetch(columns).build()) {
+      return tabletsMetadata.stream().findFirst();
     }
   }
 
