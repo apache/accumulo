@@ -411,7 +411,6 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":")) {
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         }
-        // TODO: Fix this?
         m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
       } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
         m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());

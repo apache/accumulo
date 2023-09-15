@@ -128,9 +128,6 @@ public class MergeStats {
         log.info("Merge range is already contained in a single tablet {}", info.getExtent());
         state = MergeState.COMPLETE;
       } else if (hosted == total) {
-        // Todo: Clean up references to WAITING_FOR_CHOPPED and SPLITTING and remove
-        // from enum in a future PR as both are going away. for now just change
-        // this to going to WAITING_FOR_OFFLINE as chops are not necessary
         state = MergeState.WAITING_FOR_OFFLINE;
       } else {
         log.info("Waiting for {} hosted tablets to be {} {}", hosted, total, info.getExtent());

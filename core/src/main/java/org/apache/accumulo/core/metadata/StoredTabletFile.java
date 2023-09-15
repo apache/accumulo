@@ -51,8 +51,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final ReferencedTabletFile referencedTabletFile;
   private final String metadataEntryPath;
 
-  // TODO: Comparing by metadata path (file path) and then range object,
-  // Is this ok or should we compare by the metadtaEntry string lexicographical order?
   private static final Comparator<StoredTabletFile> comparator = Comparator
       .comparing(StoredTabletFile::getMetadataPath).thenComparing(StoredTabletFile::getRange);
 

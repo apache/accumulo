@@ -290,7 +290,6 @@ class LoadFiles extends ManagerRepo {
         Mutation mutation = new Mutation(tablet.getExtent().toMetaRow());
 
         for (final Bulk.FileInfo fileInfo : files) {
-          // Todo: do we need to support importing with a range here?
           StoredTabletFile fullPath =
               StoredTabletFile.of(new Path(bulkDir, fileInfo.getFileName()).toUri(), new Range());
           byte[] val =

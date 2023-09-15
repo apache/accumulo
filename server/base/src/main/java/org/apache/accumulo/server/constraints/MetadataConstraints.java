@@ -234,8 +234,8 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           /*
-           * TODO: This needs to be re-worked after Issue
-           * https://github.com/apache/accumulo/issues/3505 is done.
+           * This needs to be re-worked after Issue https://github.com/apache/accumulo/issues/3505
+           * is done.
            *
            * That issue will reorganizes this class and make things more efficient so we are not
            * looping over the same mutation more than once like in this case. The below check is
@@ -272,7 +272,7 @@ public class MetadataConstraints implements Constraint {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
               try {
-                // TODO: This actually validates for a second time as the loop already validates
+                // This actually validates for a second time as the loop already validates
                 // if a DataFileColumnFamily, this will likely be fixed as part of
                 // https://github.com/apache/accumulo/issues/3505
                 dataFiles.add(StoredTabletFile.of(new Text(update.getColumnQualifier())));
