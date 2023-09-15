@@ -92,31 +92,31 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       testSplit(c, tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
       // Eliminate whole tablets, partial first tablet
-      testSplit(c, tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
+      testSplit(c, tableName + i++, "f1", "h", "abcdefgijklmnopqrstuvwxyz", 262);
       // Eliminate whole tablets, partial last tablet
       testSplit(c, tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258);
       // Eliminate whole tablets, partial first and last tablet
-      testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
+      testSplit(c, tableName + i++, "f1", "h1", "abcdefgijklmnopqrstuvwxyz", 260);
       // Eliminate one tablet
       testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
       // Eliminate first tablet
-      testSplit(c, tableName + i++, null, "a", "abcdefhijklmnopqrstuvwxyz", 270);
+      testSplit(c, tableName + i++, null, "a", "bcdefghijklmnopqrstuvwxyz", 270);
       // Eliminate last tablet
-      testSplit(c, tableName + i++, "z", null, "abcdefhijklmnopqrstuvwxyz", 260);
+      testSplit(c, tableName + i++, "z", null, "abcdefghijklmnopqrstuvwxyz", 260);
       // Eliminate partial tablet, matches start split
       testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
       // Eliminate partial tablet, matches end split
-      testSplit(c, tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272);
+      testSplit(c, tableName + i++, "f1", "g", "abcdefghijklmnopqrstuvwxyz", 272);
       // Eliminate tablets starting at -inf
       testSplit(c, tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200);
       // Eliminate tablets ending at +inf
       testSplit(c, tableName + i++, "t", null, "abcdefghijklmnopqrst", 200);
       // Eliminate some rows inside one tablet
-      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278);
+      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstuvwxyz", 278);
       // Eliminate some rows in the first tablet
       testSplit(c, tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278);
       // Eliminate some rows in the last tablet
-      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272);
+      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz", 272);
       // Delete everything
       testSplit(c, tableName + i++, null, null, "", 0);
     }
@@ -133,31 +133,31 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       testSplit(c, tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260, "f", "h");
       // Eliminate whole tablets, partial first tablet
-      testSplit(c, tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262, "f", "h");
+      testSplit(c, tableName + i++, "f1", "h", "abcdefgijklmnopqrstuvwxyz", 262, "f", "h");
       // Eliminate whole tablets, partial last tablet
       testSplit(c, tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258, "f", "h");
       // Eliminate whole tablets, partial first and last tablet
-      testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260, "f", "h");
+      testSplit(c, tableName + i++, "f1", "h1", "abcdefgijklmnopqrstuvwxyz", 260, "f", "h");
       // Eliminate one tablet
       testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270, "f", "g");
       // Eliminate first tablet
-      testSplit(c, tableName + i++, null, "a", "abcdefhijklmnopqrstuvwxyz", 270);
+      testSplit(c, tableName + i++, null, "a", "bcdefghijklmnopqrstuvwxyz", 270, "a", "a");
       // Eliminate last tablet
-      testSplit(c, tableName + i++, "z", null, "abcdefhijklmnopqrstuvwxyz", 260);
+      testSplit(c, tableName + i++, "z", null, "abcdefghijklmnopqrstuvwxyz", 260, "z", "z");
       // Eliminate partial tablet, matches start split
       testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278, "f", "f");
       // Eliminate partial tablet, matches end split
-      testSplit(c, tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272, "f", "g");
+      testSplit(c, tableName + i++, "f1", "g", "abcdefghijklmnopqrstuvwxyz", 272, "f", "g");
       // Eliminate tablets starting at -inf
       testSplit(c, tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200, "a", "h");
       // Eliminate tablets ending at +inf
       testSplit(c, tableName + i++, "t", null, "abcdefghijklmnopqrst", 200, "t", "z");
       // Eliminate some rows inside one tablet
-      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278, "t", "t");
+      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstuvwxyz", 278, "t", "t");
       // Eliminate some rows in the first tablet
       testSplit(c, tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278, "a", "a");
       // Eliminate some rows in the last tablet
-      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272, "z", "z");
+      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz", 272, "z", "z");
       // Delete everything
       testSplit(c, tableName + i++, null, null, "", 0, "a", "z");
     }
@@ -227,9 +227,9 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     for (Text split : remainingSplits) {
       sb.append(split);
     }
-
     log.debug("After delete");
     printAndVerifyFileMetadata(getServerContext(), tableId);
+    assertEquals(result, sb.toString());
 
     // See that the rows are really deleted
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {

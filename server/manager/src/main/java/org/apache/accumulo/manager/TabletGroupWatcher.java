@@ -1049,11 +1049,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // to fence a starting tablet as we are deleting everything up to the end tablet
       // Likewise, if the endRow is null there will be an empty endTablet as we are deleting
       // all tablets after the starting tablet
-      final Optional<TabletMetadata> startTablet =
-          Optional.ofNullable(startRow).flatMap(er -> loadTabletMetadata(range.tableId(), startRow,
-              ColumnType.PREV_ROW, ColumnType.FILES));
+      final Optional<TabletMetadata> startTablet = Optional.ofNullable(startRow).flatMap(
+          row -> loadTabletMetadata(range.tableId(), row, ColumnType.PREV_ROW, ColumnType.FILES));
       final Optional<TabletMetadata> endTablet = Optional.ofNullable(endRow).flatMap(
-          er -> loadTabletMetadata(range.tableId(), endRow, ColumnType.PREV_ROW, ColumnType.FILES));
+          row -> loadTabletMetadata(range.tableId(), row, ColumnType.PREV_ROW, ColumnType.FILES));
 
       // Store the tablets in a Map if present so that if we have the same Tablet we
       // only need to process the same tablet once when fencing
