@@ -110,6 +110,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
@@ -1080,8 +1081,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Go through and fence each of the files that are part of the tablet
           for (Entry<StoredTabletFile,DataFileValue> entry : tabletMetadata.getFilesMap()
               .entrySet()) {
-            StoredTabletFile existing = entry.getKey();
-            Value value = entry.getValue().encodeAsValue();
+            final StoredTabletFile existing = entry.getKey();
+            final DataFileValue value = entry.getValue();
 
             final Mutation m = new Mutation(keyExtent.toMetaRow());
 
@@ -1119,9 +1120,28 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             // If the existingFile is not contained in the newFiles set then we can delete it
             Sets.difference(existingFile, newFiles).forEach(
                 delete -> m.putDelete(DataFileColumnFamily.NAME, existing.getMetadataText()));
+
             // Add any new files that don't match the existingFile
-            Sets.difference(newFiles, existingFile).forEach(
-                newFile -> m.put(DataFileColumnFamily.NAME, newFile.getMetadataText(), value));
+            // As of now we will only have at most 2 files as up to 2 ranges are created
+            final List<StoredTabletFile> filesToAdd =
+                new ArrayList<>(Sets.difference(newFiles, existingFile));
+            Preconditions.checkArgument(filesToAdd.size() <= 2,
+                "There should only be at most 2 StoredTabletFiles after computing new ranges.");
+
+            // If more than 1 new file then re-calculate the num entries and size
+            if (filesToAdd.size() == 2) {
+              // This splits up the values in half and makes sure they total the original
+              // values
+              final Pair<DataFileValue,DataFileValue> newDfvs = computeNewDfv(value);
+              m.put(DataFileColumnFamily.NAME, filesToAdd.get(0).getMetadataText(),
+                  newDfvs.getFirst().encodeAsValue());
+              m.put(DataFileColumnFamily.NAME, filesToAdd.get(1).getMetadataText(),
+                  newDfvs.getSecond().encodeAsValue());
+            } else {
+              // Will be 0 or 1 files
+              filesToAdd.forEach(newFile -> m.put(DataFileColumnFamily.NAME,
+                  newFile.getMetadataText(), value.encodeAsValue()));
+            }
 
             if (!m.getUpdates().isEmpty()) {
               bw.addMutation(m);
@@ -1140,6 +1160,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
+  }
+
+  // Divide each new DFV in half and make sure the sum equals the original
+  @VisibleForTesting
+  protected static Pair<DataFileValue,DataFileValue> computeNewDfv(DataFileValue value) {
+    final DataFileValue file1Value = new DataFileValue(Math.max(1, value.getSize() / 2),
+        Math.max(1, value.getNumEntries() / 2), value.getTime());
+
+    final DataFileValue file2Value =
+        new DataFileValue(Math.max(1, value.getSize() - file1Value.getSize()),
+            Math.max(1, value.getNumEntries() - file1Value.getNumEntries()), value.getTime());
+
+    return new Pair<>(file1Value, file2Value);
   }
 
   private Optional<TabletMetadata> loadTabletMetadata(TableId tabletId, final Text row,
