@@ -99,7 +99,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   private long errors = 0;
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
-    this.log = LoggerFactory.getLogger(GCRun.class.getName() + level.name());
+    this.log = LoggerFactory.getLogger(GCRun.class.getName() + "." + level.name());
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
