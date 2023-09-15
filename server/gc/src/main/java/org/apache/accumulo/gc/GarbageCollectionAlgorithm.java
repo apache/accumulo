@@ -161,8 +161,7 @@ public class GarbageCollectionAlgorithm {
 
         GcCandidate gcTemp = candidateMap.remove(dir);
         if (gcTemp != null) {
-          log.debug("Candidate was still in use: {}", dir);
-          inUseCandidates.add(gcTemp);
+          log.debug("Directory Candidate was still in use by dir ref: {}", dir);
         }
       } else {
         String reference = ref.getMetadataEntry();
@@ -180,15 +179,14 @@ public class GarbageCollectionAlgorithm {
         // You MUST REMOVE candidates that are still in use
         GcCandidate gcTemp = candidateMap.remove(relativePath);
         if (gcTemp != null) {
-          log.debug("Candidate was still in use: {}", relativePath);
+          log.debug("File Candidate was still in use: {}", relativePath);
           inUseCandidates.add(gcTemp);
         }
 
         String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
         GcCandidate gcT = candidateMap.remove(dir);
         if (gcT != null) {
-          log.debug("Candidate was still in use: {}", relativePath);
-          inUseCandidates.add(gcT);
+          log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
         }
       }
     }
