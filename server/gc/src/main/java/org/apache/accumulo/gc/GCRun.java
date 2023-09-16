@@ -89,7 +89,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class GCRun implements GarbageCollectionEnvironment {
   // loggers are not static to support unique naming by level
   private final Logger log;
-  private static String fileActionPrefix = "FILE-ACTION:";
+  private static final String fileActionPrefix = "FILE-ACTION:";
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
