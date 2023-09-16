@@ -310,7 +310,7 @@ public class GCRun implements GarbageCollectionEnvironment {
                   }
                 }
               } else {
-                log.warn("{} Very strange path name: {}", fileActionPrefix, delete);
+                log.warn("{} Invalid file path format: {}", fileActionPrefix, delete);
               }
             }
           }
