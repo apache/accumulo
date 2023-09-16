@@ -21,13 +21,11 @@ package org.apache.accumulo.core.gc;
 import java.lang.Object;
 import java.util.Objects;
 
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-
 public class GcCandidate implements Comparable<GcCandidate> {
-  private final Long uid;
+  private final long uid;
   private final String path;
 
-  public GcCandidate(String path, Long uid) {
+  public GcCandidate(String path, long uid) {
     this.path = path;
     this.uid = uid;
   }
@@ -36,16 +34,8 @@ public class GcCandidate implements Comparable<GcCandidate> {
     return path;
   }
 
-  public Long getUid() {
+  public long getUid() {
     return uid;
-  }
-
-  public String getFileName() {
-    return new StoredTabletFile(path).getFileName();
-  }
-
-  public String getParent() {
-    return new StoredTabletFile(path).getPath().getParent().toString();
   }
 
   @Override
@@ -60,7 +50,7 @@ public class GcCandidate implements Comparable<GcCandidate> {
     }
     if (obj instanceof GcCandidate) {
       GcCandidate candidate = (GcCandidate) obj;
-      return this.uid.equals(candidate.getUid()) && this.path.equals(candidate.getPath());
+      return this.uid == candidate.getUid() && this.path.equals(candidate.getPath());
     }
     return false;
   }
@@ -69,7 +59,7 @@ public class GcCandidate implements Comparable<GcCandidate> {
   public int compareTo(GcCandidate candidate) {
     var cmp = this.path.compareTo(candidate.getPath());
     if (cmp == 0) {
-      return this.uid.compareTo(candidate.getUid());
+      return Long.compare(this.uid, candidate.getUid());
     } else {
       return cmp;
     }

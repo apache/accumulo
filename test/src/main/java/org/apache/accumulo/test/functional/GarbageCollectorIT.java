@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -282,8 +283,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String table = getUniqueNames(1)[0];
       c.tableOperations().create(table);
-      log.info("User GcCandidate Deletion test of table {}", table);
-      log.info("GcCandidates will be added/removed from table {}", DataLevel.USER.metaTable());
+      log.info("User GcCandidate Deletion test of table: {}", table);
+      log.info("GcCandidates will be added/removed from table: {}", DataLevel.USER.metaTable());
       createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.INUSE);
     }
   }
@@ -292,19 +293,103 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public void testMetadataUniqueMutationDelete() throws Exception {
     killMacGc();
     TableId tableId = DataLevel.USER.tableId();
-    log.info("Metadata GcCandidate Deletion test of table {}", DataLevel.USER.metaTable());
-    log.info("GcCandidates will be added/removed from table {}", DataLevel.METADATA.metaTable());
+    log.info("Metadata GcCandidate Deletion test");
+    log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
   }
 
+  /**
+   * Root INUSE deletions are not supported in 2.1.x. This test can be migrated to use
+   * createAndDeleteUniqueMutation in 3.x
+   *
+   * @throws Exception may occur when killing the GC process.
+   */
   @Test
   public void testRootUniqueMutationDelete() throws Exception {
     killMacGc();
     TableId tableId = DataLevel.METADATA.tableId();
-    log.info(
-        "Root GcCandidate Deletion test of table {}\n GcCandidates will be added/removed from Zookeeper",
-        DataLevel.METADATA.metaTable());
-    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+    log.info("Root GcCandidate Deletion test");
+    // Behavior for 2.1. INUSE candidates deletion support will be added in 3.x
+    log.info("GcCandidates will be added but not removed from Zookeeper");
+
+    Ample ample = cluster.getServerContext().getAmple();
+    DataLevel datalevel = DataLevel.ROOT;
+
+    // Ensure that no other candidates exist before starting test.
+    Iterator<GcCandidate> cIter = ample.getGcCandidates(datalevel);
+
+    ArrayList<GcCandidate> tempCandidates = new ArrayList<>();
+    while (cIter.hasNext()) {
+      GcCandidate cTemp = cIter.next();
+      log.debug("PreExisting Candidate Found: {}", cTemp);
+      tempCandidates.add(cTemp);
+    }
+    assertTrue(tempCandidates.size() == 0);
+
+    // Create multiple candidate entries
+    List<GcCandidate> candidates =
+        List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
+            new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
+
+    List<StoredTabletFile> stfs = new LinkedList<>();
+    candidates.stream().forEach(temp -> stfs.add(new StoredTabletFile(temp.getPath())));
+
+    log.debug("Adding root table GcCandidates");
+    ample.putGcCandidates(tableId, stfs);
+
+    // Retrieve the recently created entries.
+    cIter = ample.getGcCandidates(datalevel);
+
+    int counter = 0;
+    while (cIter.hasNext()) {
+      // Duplicate these entries back into zookeeper
+      ample.putGcCandidates(tableId, List.of(new StoredTabletFile(cIter.next().getPath())));
+      counter++;
+    }
+    // Ensure Zookeeper collapsed the entries and did not support duplicates.
+    assertTrue(counter == 2);
+
+    cIter = ample.getGcCandidates(datalevel);
+    while (cIter.hasNext()) {
+      // This should be a noop call. Root inUse candidate deletions are not supported in 2.1.x
+      ample.deleteGcCandidates(datalevel, List.of(cIter.next()), Ample.GcCandidateType.INUSE);
+    }
+
+    // Check that GcCandidates still exist
+    cIter = ample.getGcCandidates(datalevel);
+
+    counter = candidates.size();
+    while (cIter.hasNext()) {
+      GcCandidate gcC = cIter.next();
+      log.debug("Candidate Found: {}", gcC);
+      for (GcCandidate cand : candidates) {
+        if (gcC.getPath().equals(cand.getPath())) {
+          // Candidate uid's will never match as they are randomly generated in 2.1.x
+          assertTrue(!Objects.equals(gcC.getUid(), cand.getUid()));
+          counter--;
+        }
+      }
+    }
+    // Ensure that we haven't seen more candidates than we expected.
+    assertTrue(counter == 0);
+
+    // Delete the candidates as VALID GcCandidates
+    cIter = ample.getGcCandidates(datalevel);
+    while (cIter.hasNext()) {
+      ample.deleteGcCandidates(datalevel, List.of(cIter.next()), Ample.GcCandidateType.VALID);
+    }
+    // Ensure the GcCandidates have been removed.
+    cIter = ample.getGcCandidates(datalevel);
+
+    counter = 0;
+    while (cIter.hasNext()) {
+      GcCandidate gcC = cIter.next();
+      if (gcC != null) {
+        log.error("Candidate Found: {}", gcC);
+        counter++;
+      }
+    }
+    assertEquals(counter, 0);
   }
 
   @Test

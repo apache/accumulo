@@ -66,7 +66,6 @@ public class RootGcCandidates {
 
   public RootGcCandidates(String jsonString) {
     this.data = gson.fromJson(jsonString, Data.class);
-
     checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
         data.version);
     data.candidates.forEach((parent, files) -> {

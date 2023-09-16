@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
@@ -49,6 +50,13 @@ public interface GarbageCollectionEnvironment {
    * @return an iterator referencing a List containing deletion candidates
    */
   Iterator<GcCandidate> getCandidates() throws TableNotFoundException;
+
+  /**
+   * Used for determining if deletion of InUse candidates is enabled.
+   *
+   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
+   */
+  boolean canRemoveInUseCandidates();
 
   /**
    * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit

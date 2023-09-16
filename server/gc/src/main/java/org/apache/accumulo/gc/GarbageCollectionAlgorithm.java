@@ -22,6 +22,7 @@ import static java.util.Arrays.stream;
 import static java.util.function.Predicate.not;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -143,7 +144,7 @@ public class GarbageCollectionAlgorithm {
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
       SortedMap<String,GcCandidate> candidateMap) throws InterruptedException {
 
-    Set<GcCandidate> inUseCandidates = new HashSet<>();
+    List<GcCandidate> inUseCandidates = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>();
     Iterator<Reference> iter = gce.getReferences().iterator();
@@ -162,6 +163,8 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcTemp = candidateMap.remove(dir);
         if (gcTemp != null) {
           log.debug("Directory Candidate was still in use by dir ref: {}", dir);
+          // Intentionally not adding dir candidates to inUseCandidates as they are only added once.
+          // If dir candidates are deleted, due to being in use, nothing will add them again.
         }
       } else {
         String reference = ref.getMetadataEntry();
@@ -187,13 +190,17 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcT = candidateMap.remove(dir);
         if (gcT != null) {
           log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+          // Intentionally not adding dir candidates to inUseCandidates as they are only added once.
+          // If dir candidates are deleted, due to being in use, nothing will add them again.
         }
       }
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
         Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
-    gce.deleteGcCandidates(inUseCandidates, GcCandidateType.INUSE);
+    if (gce.canRemoveInUseCandidates()) {
+      gce.deleteGcCandidates(inUseCandidates, GcCandidateType.INUSE);
+    }
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
@@ -414,6 +421,5 @@ public class GarbageCollectionAlgorithm {
     deleteConfirmedCandidates(gce, candidateMap);
 
     return blips;
-
   }
 }

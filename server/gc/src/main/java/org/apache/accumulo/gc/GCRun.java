@@ -121,19 +121,17 @@ public class GCRun implements GarbageCollectionEnvironment {
   public void deleteGcCandidates(Collection<GcCandidate> gcCandidates, GcCandidateType type) {
     if (inSafeMode()) {
       System.out.println("SAFEMODE: There are " + gcCandidates.size()
-          + " reference file gcCandidates entries marked for deletion from " + level + ".\n"
-          + "          Examine the log files to identify them.\n");
+          + " reference file gcCandidates entries marked for deletion from " + level + " of type: "
+          + type + ".\n          Examine the log files to identify them.\n");
       log.info("SAFEMODE: Listing all ref file gcCandidates for deletion");
       for (GcCandidate gcCandidate : gcCandidates) {
         log.info("SAFEMODE: {}", gcCandidate);
       }
       log.info("SAFEMODE: End reference candidates for deletion");
-    }
-
-    if (!config.getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES)
-        && type.equals(GcCandidateType.INUSE)) {
       return;
     }
+
+    log.info("Attempting to delete gcCandidates of type {} from metadata", type);
     context.getAmple().deleteGcCandidates(level, gcCandidates, type);
   }
 
@@ -481,10 +479,20 @@ public class GCRun implements GarbageCollectionEnvironment {
   /**
    * Checks if safemode is set - files will not be deleted.
    *
-   * @return number of delete threads
+   * @return value of {@link Property#GC_SAFEMODE}
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);
+  }
+
+  /**
+   * Checks if InUse Candidates can be removed.
+   *
+   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
+   */
+  @Override
+  public boolean canRemoveInUseCandidates() {
+    return context.getConfiguration().getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES);
   }
 
   /**
