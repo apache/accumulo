@@ -321,7 +321,7 @@ public class GCRun implements GarbageCollectionEnvironment {
             processedDeletes.add(delete);
           }
         } catch (Exception e) {
-          log.error("{} {}", fileActionPrefix, e.getMessage(), e);
+          log.error("{} Exception while deleting files ", fileActionPrefix, e);
         }
 
       };
