@@ -64,7 +64,7 @@ class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
 
   // A log of the transactions
-  private final DatafileTransactionLog tabletLog;
+  private final TabletTransactionLog tabletLog;
 
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<StoredTabletFile,DataFileValue> datafileSizes =
@@ -88,7 +88,7 @@ class DatafileManager {
     this.tablet = tablet;
     this.metadataUpdateCount =
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
-    this.tabletLog = new DatafileTransactionLog(tablet.getExtent(), datafileSizes.keySet(),
+    this.tabletLog = new TabletTransactionLog(tablet.getExtent(), datafileSizes.keySet(),
         tablet.getTableConfiguration());
   }
 
@@ -597,7 +597,7 @@ class DatafileManager {
     log.error("Operation log: {}", tabletLog.dumpLog());
   }
 
-  public void checkTransactionLog() {
+  private void checkTransactionLog() {
     Set<StoredTabletFile> files = datafileSizes.keySet();
     Set<StoredTabletFile> expected = tabletLog.getExpectedFiles();
     if (!expected.equals(files)) {

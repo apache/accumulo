@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 
-public abstract class DatafileTransaction {
+public abstract class TabletTransaction {
 
   protected final long ts = System.currentTimeMillis();
 
@@ -54,13 +54,13 @@ public abstract class DatafileTransaction {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof DatafileTransaction) {
-      return ((DatafileTransaction) obj).ts == ts;
+    if (obj instanceof TabletTransaction) {
+      return ((TabletTransaction) obj).ts == ts;
     }
     return false;
   }
 
-  public static class Compacted extends DatafileTransaction {
+  public static class Compacted extends TabletTransaction {
     private final Set<StoredTabletFile> compactedFiles = new HashSet<>();
     private final Optional<StoredTabletFile> destination;
 
@@ -110,7 +110,7 @@ public abstract class DatafileTransaction {
     }
   }
 
-  static class Flushed extends DatafileTransaction {
+  static class Flushed extends TabletTransaction {
     private final Optional<StoredTabletFile> flushFile;
 
     public Flushed(Optional<StoredTabletFile> flushFile) {
@@ -151,7 +151,7 @@ public abstract class DatafileTransaction {
     }
   }
 
-  static class BulkImported extends DatafileTransaction {
+  static class BulkImported extends TabletTransaction {
     private final StoredTabletFile importFile;
 
     public BulkImported(StoredTabletFile importFile) {

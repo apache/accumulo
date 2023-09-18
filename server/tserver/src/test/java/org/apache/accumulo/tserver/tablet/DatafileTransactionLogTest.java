@@ -79,14 +79,14 @@ public class DatafileTransactionLogTest {
     initFactory(factory);
   }
 
-  private DatafileTransactionLog createLog(Set<StoredTabletFile> initialFiles) {
+  private TabletTransactionLog createLog(Set<StoredTabletFile> initialFiles) {
     return createLog(initialFiles, 0);
   }
 
-  private DatafileTransactionLog createLog(final Set<StoredTabletFile> initialFiles,
+  private TabletTransactionLog createLog(final Set<StoredTabletFile> initialFiles,
       final int maxSize) {
     setMaxSize(maxSize);
-    DatafileTransactionLog log = new DatafileTransactionLog(FOO_EXTENT, initialFiles,
+    TabletTransactionLog log = new TabletTransactionLog(FOO_EXTENT, initialFiles,
         factory.getTableConfiguration(FOO.getId()));
     assertEquals(log.getExpectedFiles(), initialFiles);
     return log;
@@ -102,7 +102,7 @@ public class DatafileTransactionLogTest {
     StoredTabletFile initialFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile);
-    DatafileTransactionLog log = createLog(initialFiles);
+    TabletTransactionLog log = createLog(initialFiles);
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
@@ -130,7 +130,7 @@ public class DatafileTransactionLogTest {
     StoredTabletFile initialFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile);
-    DatafileTransactionLog log = createLog(initialFiles);
+    TabletTransactionLog log = createLog(initialFiles);
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
@@ -153,7 +153,7 @@ public class DatafileTransactionLogTest {
     StoredTabletFile initialFile3 =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
-    DatafileTransactionLog log = createLog(initialFiles);
+    TabletTransactionLog log = createLog(initialFiles);
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
@@ -185,7 +185,7 @@ public class DatafileTransactionLogTest {
     StoredTabletFile initialFile3 =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
     Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
-    DatafileTransactionLog log = createLog(initialFiles, 3);
+    TabletTransactionLog log = createLog(initialFiles, 3);
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
@@ -195,7 +195,7 @@ public class DatafileTransactionLogTest {
     log.bulkImported(importedFile);
     assertTrue(log.getExpectedFiles()
         .equals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile)));
-    List<DatafileTransaction> logs = log.getTransactions();
+    List<TabletTransaction> logs = log.getTransactions();
     assertEquals(1, logs.size());
     assertEquals(logDate, log.getInitialDate().getTime());
     assertNotEquals(dump, log.dumpLog());
@@ -222,17 +222,17 @@ public class DatafileTransactionLogTest {
     assertNotEquals(dump, log.dumpLog());
     dump = log.dumpLog();
 
-    assertTrue(logs.get(0) instanceof DatafileTransaction.BulkImported);
-    assertEquals(importedFile, ((DatafileTransaction.BulkImported) logs.get(0)).getImportFile());
-    assertTrue(logs.get(1) instanceof DatafileTransaction.Compacted);
+    assertTrue(logs.get(0) instanceof TabletTransaction.BulkImported);
+    assertEquals(importedFile, ((TabletTransaction.BulkImported) logs.get(0)).getImportFile());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Compacted);
     assertEquals(Sets.newHashSet(initialFile3, importedFile),
-        ((DatafileTransaction.Compacted) logs.get(1)).getCompactedFiles());
+        ((TabletTransaction.Compacted) logs.get(1)).getCompactedFiles());
     assertEquals(Optional.of(compactedFile),
-        ((DatafileTransaction.Compacted) logs.get(1)).getDestination());
-    assertTrue(logs.get(2) instanceof DatafileTransaction.Compacted);
+        ((TabletTransaction.Compacted) logs.get(1)).getDestination());
+    assertTrue(logs.get(2) instanceof TabletTransaction.Compacted);
     assertEquals(Sets.newHashSet(compactedFile),
-        ((DatafileTransaction.Compacted) logs.get(2)).getCompactedFiles());
-    assertEquals(Optional.empty(), ((DatafileTransaction.Compacted) logs.get(2)).getDestination());
+        ((TabletTransaction.Compacted) logs.get(2)).getCompactedFiles());
+    assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(2)).getDestination());
 
     Thread.sleep(2);
     StoredTabletFile flushedFile =
@@ -245,18 +245,18 @@ public class DatafileTransactionLogTest {
     assertNotEquals(dump, log.dumpLog());
     dump = log.dumpLog();
 
-    assertTrue(logs.get(0) instanceof DatafileTransaction.Compacted);
+    assertTrue(logs.get(0) instanceof TabletTransaction.Compacted);
     assertEquals(Sets.newHashSet(initialFile3, importedFile),
-        ((DatafileTransaction.Compacted) logs.get(0)).getCompactedFiles());
+        ((TabletTransaction.Compacted) logs.get(0)).getCompactedFiles());
     assertEquals(Optional.of(compactedFile),
-        ((DatafileTransaction.Compacted) logs.get(0)).getDestination());
-    assertTrue(logs.get(1) instanceof DatafileTransaction.Compacted);
+        ((TabletTransaction.Compacted) logs.get(0)).getDestination());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Compacted);
     assertEquals(Sets.newHashSet(compactedFile),
-        ((DatafileTransaction.Compacted) logs.get(1)).getCompactedFiles());
-    assertEquals(Optional.empty(), ((DatafileTransaction.Compacted) logs.get(1)).getDestination());
-    assertTrue(logs.get(2) instanceof DatafileTransaction.Flushed);
+        ((TabletTransaction.Compacted) logs.get(1)).getCompactedFiles());
+    assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(1)).getDestination());
+    assertTrue(logs.get(2) instanceof TabletTransaction.Flushed);
     assertEquals(Optional.of(flushedFile),
-        ((DatafileTransaction.Flushed) logs.get(2)).getFlushFile());
+        ((TabletTransaction.Flushed) logs.get(2)).getFlushFile());
 
     Thread.sleep(2);
     setMaxSize(1);
@@ -268,8 +268,8 @@ public class DatafileTransactionLogTest {
     assertEquals(1, logs.size());
     assertNotEquals(dump, log.dumpLog());
 
-    assertTrue(logs.get(0) instanceof DatafileTransaction.Flushed);
-    assertEquals(Optional.empty(), ((DatafileTransaction.Flushed) logs.get(0)).getFlushFile());
+    assertTrue(logs.get(0) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.empty(), ((TabletTransaction.Flushed) logs.get(0)).getFlushFile());
   }
 
   protected ServerContext createMockContext() {

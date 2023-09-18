@@ -29,7 +29,7 @@ public class RingBufferTest {
 
   @Test
   public void goPathTest() {
-    DatafileTransactionLog.Ring<String> ring = new DatafileTransactionLog.Ring<>(4);
+    TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(4);
     ring.add("1");
     ring.add("2");
     ring.add("3");
@@ -42,7 +42,7 @@ public class RingBufferTest {
 
   @Test
   public void overflowTest() {
-    DatafileTransactionLog.Ring<String> ring = new DatafileTransactionLog.Ring<>(4);
+    TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(4);
     ring.add("1");
     ring.add("2");
     ring.add("3");
@@ -56,7 +56,7 @@ public class RingBufferTest {
 
   @Test
   public void oddCapacityTest() {
-    DatafileTransactionLog.Ring<String> ring = new DatafileTransactionLog.Ring<>(3);
+    TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(3);
     ring.add("1");
     ring.add("2");
     ring.add("3");
@@ -70,7 +70,7 @@ public class RingBufferTest {
 
   @Test
   public void zeroLengthTest() {
-    DatafileTransactionLog.Ring<String> ring = new DatafileTransactionLog.Ring<>(0);
+    TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(0);
     assertEquals("1", ring.add("1"));
   }
 }
