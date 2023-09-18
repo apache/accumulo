@@ -846,9 +846,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           previousKeyExtent = lastExtent;
         }
 
-        // Special case for now to handle the highest/stop tablet which is where files are
-        // merged to so we need to handle the deletes on update here as it won't be handled later
-        // TODO: Can this be re-written to not have a special edge case and make it simpler?
+        // Special case to handle the highest/stop tablet, which is where files are
+        // merged to. The existing merge code won't delete files from this tablet
+        // so we need to handle the deletes in this tablet when fencing files.
+        // We may be able to make this simpler in the future.
         if (keyExtent.equals(stopExtent)) {
           if (previousKeyExtent != null
               && key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
@@ -876,10 +877,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
 
+        // Handle metadata updates for all other tablets except the highest tablet
+        // Ranges are created for the files and then added to the highest tablet in
+        // the merge range. Deletes are handled later for the old files when the tablets
+        // are removed.
         if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
-          // TODO: Should we try and be smart and eventually collapse overlapping ranges to reduce
-          // the metadata? The fenced reader will already collapse ranges when reading.
 
           // Fence off files by the previous tablet and current tablet that is being merged
           // The end row should be inclusive for the current tablet and the previous end row should
