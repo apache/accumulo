@@ -1957,9 +1957,8 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // Can not hold tablet lock while acquiring the log lock. The following check is there to
-    // prevent deadlock.
-    Preconditions.checkState(!Thread.holdsLock(this));
+    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
+    // to deadlock. However there is a path in the code that does this. See #3759
     logLock.lock();
 
     try {
