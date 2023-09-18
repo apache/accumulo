@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -127,7 +129,8 @@ class PopulateMetadataTable extends ManagerRepo {
             Text cq;
 
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-              String oldName = new Path(key.getColumnQualifier().toString()).getName();
+              final StoredTabletFile oldTabletFile = StoredTabletFile.of(key.getColumnQualifier());
+              String oldName = oldTabletFile.getFileName();
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
@@ -136,7 +139,9 @@ class PopulateMetadataTable extends ManagerRepo {
                     "File " + oldName + " does not exist in import dir");
               }
 
-              cq = new Text(newName);
+              // Copy over the range for the new file
+              cq = StoredTabletFile.of(URI.create(newName), oldTabletFile.getRange())
+                  .getMetadataText();
             } else {
               cq = key.getColumnQualifier();
             }

@@ -43,5 +43,6 @@ public interface Reference {
    * A directory will be read from the "srv:dir" column family:
    * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily}
    */
-  String getMetadataEntry();
+  String getMetadataPath();
+
 }

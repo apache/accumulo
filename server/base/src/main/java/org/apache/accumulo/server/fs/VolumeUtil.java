@@ -21,6 +21,7 @@ package org.apache.accumulo.server.fs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -53,29 +54,29 @@ public class VolumeUtil {
   }
 
   public static Path removeTrailingSlash(Path path) {
-    String pathStr = path.toString();
+    String pathStr = Objects.requireNonNull(path).toString();
     if (pathStr.endsWith("/")) {
       return new Path(removeTrailingSlash(pathStr));
     }
     return path;
   }
 
-  public static Path switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
+  public static Path switchVolume(Path path, FileType ft, List<Pair<Path,Path>> replacements) {
     if (replacements.isEmpty()) {
       log.trace("Not switching volume because there are no replacements");
       return null;
     }
-    Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
     // false
-    Path volume = removeTrailingSlash(ft.getVolume(p));
+    Path volume = removeTrailingSlash(ft.getVolume(Objects.requireNonNull(path)));
 
     for (Pair<Path,Path> pair : replacements) {
       Path key = removeTrailingSlash(pair.getFirst());
 
       if (key.equals(volume)) {
-        Path replacement = new Path(pair.getSecond(), ft.removeVolume(p));
+        Path replacement =
+            new Path(pair.getSecond(), Objects.requireNonNull(ft.removeVolume(path)));
         log.trace("Replacing {} with {}", path, replacement);
         return replacement;
       }
@@ -87,7 +88,7 @@ public class VolumeUtil {
   }
 
   private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    Path switchedPath = switchVolume(le.filename, FileType.WAL, replacements);
+    Path switchedPath = switchVolume(new Path(le.filename), FileType.WAL, replacements);
     String switchedString;
     int numSwitched = 0;
     if (switchedPath != null) {
@@ -162,11 +163,12 @@ public class VolumeUtil {
     }
 
     for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().getMetaUpdateDelete();
-      Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+      String metaPath = entry.getKey().getMetadata();
+      Path switchedPath = switchVolume(entry.getKey().getPath(), FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        ReferencedTabletFile switchedFile = new ReferencedTabletFile(switchedPath);
+        ReferencedTabletFile switchedFile =
+            new ReferencedTabletFile(switchedPath, entry.getKey().getRange());
         filesToAdd.put(switchedFile, entry.getValue());
         ret.datafiles.put(switchedFile.insert(), entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);

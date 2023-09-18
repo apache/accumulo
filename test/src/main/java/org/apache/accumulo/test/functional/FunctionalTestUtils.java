@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
@@ -61,6 +62,7 @@ import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -89,14 +91,18 @@ public class FunctionalTestUtils {
   }
 
   public static List<String> getRFilePaths(AccumuloClient c, String tableName) throws Exception {
-    List<String> files = new ArrayList<>();
+    return getStoredTabletFiles(c, tableName).stream().map(StoredTabletFile::getMetadataPath)
+        .collect(Collectors.toList());
+  }
+
+  public static List<StoredTabletFile> getStoredTabletFiles(AccumuloClient c, String tableName)
+      throws Exception {
+    List<StoredTabletFile> files = new ArrayList<>();
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.forEach(entry -> {
-        files.add(entry.getKey().getColumnQualifier().toString());
-      });
+      scanner.forEach(entry -> files.add(StoredTabletFile.of(entry.getKey().getColumnQualifier())));
     }
     return files;
   }

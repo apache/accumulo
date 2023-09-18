@@ -21,12 +21,13 @@ package org.apache.accumulo.core.metadata;
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
 import java.net.URI;
+import java.util.Comparator;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,12 +152,20 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   private static final Logger log = LoggerFactory.getLogger(ReferencedTabletFile.class);
   private static final String HDFS_TABLES_DIR_NAME = HDFS_TABLES_DIR.substring(1);
 
+  private static final Comparator<ReferencedTabletFile> comparator =
+      Comparator.comparing(ReferencedTabletFile::getNormalizedPathStr)
+          .thenComparing(ReferencedTabletFile::getRange);
+
+  public ReferencedTabletFile(Path metaPath) {
+    this(metaPath, new Range());
+  }
+
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
    */
-  public ReferencedTabletFile(Path metaPath) {
-    super(Objects.requireNonNull(metaPath));
+  public ReferencedTabletFile(Path metaPath, Range range) {
+    super(Objects.requireNonNull(metaPath), range);
     log.trace("Parsing TabletFile from {}", metaPath);
     parts = parsePath(metaPath);
   }
@@ -187,24 +196,10 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   }
 
   /**
-   * Return a string for inserting a new tablet file.
-   */
-  public String getMetaInsert() {
-    return parts.getNormalizedPath();
-  }
-
-  /**
-   * Return a new Text object of {@link #getMetaInsert()}
-   */
-  public Text getMetaInsertText() {
-    return new Text(getMetaInsert());
-  }
-
-  /**
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return new StoredTabletFile(parts.getNormalizedPath());
+    return StoredTabletFile.of(getPath(), getRange());
   }
 
   @Override
@@ -212,7 +207,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
     if (equals(o)) {
       return 0;
     } else {
-      return parts.getNormalizedPath().compareTo(o.parts.getNormalizedPath());
+      return comparator.compare(this, o);
     }
   }
 
@@ -220,14 +215,15 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   public boolean equals(Object obj) {
     if (obj instanceof ReferencedTabletFile) {
       ReferencedTabletFile that = (ReferencedTabletFile) obj;
-      return parts.getNormalizedPath().equals(that.parts.getNormalizedPath());
+      return parts.getNormalizedPath().equals(that.parts.getNormalizedPath())
+          && range.equals(that.range);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return parts.getNormalizedPath().hashCode();
+    return Objects.hash(parts.getNormalizedPath(), range);
   }
 
   @Override
@@ -237,6 +233,10 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
 
   public static ReferencedTabletFile of(final Path path) {
     return new ReferencedTabletFile(path);
+  }
+
+  public static ReferencedTabletFile of(final Path path, Range range) {
+    return new ReferencedTabletFile(path, range);
   }
 
 }
