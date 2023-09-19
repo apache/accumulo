@@ -584,12 +584,8 @@ class DatafileManager {
   }
 
   public void clearTransactions() {
-    tabletLog.clearLog();
-  }
-
-  public void resetTransactions() {
     synchronized (tablet) {
-      tabletLog.resetLog(datafileSizes.keySet());
+      tabletLog.clearLog();
     }
   }
 

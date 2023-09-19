@@ -64,7 +64,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
-public class DatafileTransactionLogTest {
+public class TabletTransactionLogTest {
 
   private static TestTable FOO = new TestTable("Foo", TableId.of("1"));
   private static KeyExtent FOO_EXTENT = new KeyExtent(FOO.getId(), new Text("2"), new Text("1"));

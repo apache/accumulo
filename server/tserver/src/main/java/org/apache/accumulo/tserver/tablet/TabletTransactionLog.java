@@ -36,7 +36,9 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 
 /**
  * This is a transaction log that will maintain the last N transactions. It is used to be able to
- * log and review the transactions when issues are detected.
+ * log and review the transactions when issues are detected. The modifications to this log are NOT
+ * thread safe. However one can get the list of transactions or dump the log without having to
+ * synchronize.
  */
 public class TabletTransactionLog {
   // The tablet extent for which we are logging
@@ -59,10 +61,6 @@ public class TabletTransactionLog {
 
   public Date getInitialDate() {
     return this.log.getInitialDate();
-  }
-
-  public int getNumTransactions() {
-    return this.log.getNumTransactions();
   }
 
   public List<TabletTransaction> getTransactions() {
@@ -108,16 +106,8 @@ public class TabletTransactionLog {
     return this.log.dumpLog(extent, false);
   }
 
-  public String dumpAndClearLog() {
-    return this.log.dumpLog(extent, true);
-  }
-
   public void clearLog() {
     this.log.clear();
-  }
-
-  public void resetLog(Set<StoredTabletFile> files) {
-    this.log.reset(files);
   }
 
   @Override
