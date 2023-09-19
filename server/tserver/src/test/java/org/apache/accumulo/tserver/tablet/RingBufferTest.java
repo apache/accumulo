@@ -20,8 +20,12 @@ package org.apache.accumulo.tserver.tablet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
@@ -72,5 +76,91 @@ public class RingBufferTest {
   public void zeroLengthTest() {
     TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(0);
     assertEquals("1", ring.add("1"));
+  }
+
+  private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+    public Throwable thrown = null;
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      synchronized (this) {
+        thrown = e;
+      }
+    }
+  }
+
+  @Test
+  public void testThreadSafety() {
+    final TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(5);
+    final ExceptionHandler handler = new ExceptionHandler();
+    final Object startLock = new Object();
+    final AtomicInteger ready = new AtomicInteger(0);
+
+    // create a writer threads
+    Thread writerThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (startLock) {
+          try {
+            ready.incrementAndGet();
+            startLock.wait();
+          } catch (Exception e) {}
+        }
+        long start = System.currentTimeMillis();
+        Random random = new Random();
+        while (System.currentTimeMillis() - start < 2000) {
+          if (random.nextBoolean()) {
+            ring.add(UUID.randomUUID().toString());
+          } else {
+            ring.clear();
+          }
+        }
+      }
+    });
+    writerThread.setUncaughtExceptionHandler(handler);
+
+    // create a writer threads
+    Thread readerThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (startLock) {
+          try {
+            ready.incrementAndGet();
+            startLock.wait();
+          } catch (Exception e) {}
+        }
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < 2000) {
+          ring.toList();
+        }
+      }
+    });
+    readerThread.setUncaughtExceptionHandler(handler);
+
+    // start the threads
+    writerThread.start();
+    readerThread.start();
+
+    // wait until they are both waiting on the start lock
+    while (ready.get() < 2) {
+      try {
+        Thread.sleep(100);
+      } catch (Exception e) {}
+    }
+
+    // unlock the threads
+    synchronized (startLock) {
+      startLock.notifyAll();
+    }
+
+    // wait for the threads to complete
+    while (writerThread.isAlive() || readerThread.isAlive()) {
+      try {
+        Thread.sleep(100);
+      } catch (Exception e) {}
+    }
+
+    // ensure no exceptions were thrown
+    assertNull(handler.thrown, "Exception was thrown: " + handler.thrown);
   }
 }

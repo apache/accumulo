@@ -353,8 +353,7 @@ public class TabletTransactionLog {
     }
 
     public void clear() {
-      last = -1;
-      first = 0;
+      last = first - 1;
     }
 
     @SuppressWarnings("unchecked")
@@ -378,7 +377,6 @@ public class TabletTransactionLog {
           consistent = (updateCount == getUpdateCount());
         }
       } while (!consistent);
-
       return (List<T>) List.of(data);
     }
 
