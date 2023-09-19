@@ -86,13 +86,13 @@ public abstract class TabletTransaction {
     @Override
     public String toString() {
       return String.format("%s: Compacted %s into %s", super.toString(), compactedFiles,
-          destination);
+          destination.isPresent() ? destination.orElseThrow().toString() : "<empty>");
     }
 
     @Override
     public String toString(SimpleDateFormat format) {
       return String.format("%s: Compacted %s into %s", super.toString(format), compactedFiles,
-          destination);
+          destination.isPresent() ? destination.orElseThrow().toString() : "<empty>");
     }
 
     @Override
@@ -128,12 +128,14 @@ public abstract class TabletTransaction {
 
     @Override
     public String toString() {
-      return String.format("%s: Flushed into %s", super.toString(), flushFile);
+      return String.format("%s: Flushed into %s", super.toString(),
+          flushFile.isPresent() ? flushFile.orElseThrow().toString() : "<empty>");
     }
 
     @Override
     public String toString(SimpleDateFormat format) {
-      return String.format("%s: Flushed into %s", super.toString(format), flushFile);
+      return String.format("%s: Flushed into %s", super.toString(format),
+          flushFile.isPresent() ? flushFile.orElseThrow().toString() : "<empty>");
     }
 
     @Override
