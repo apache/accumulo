@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -98,8 +99,8 @@ public interface Compactable {
 
   Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind);
 
-  void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
-      RateLimiter writeLimiter, long queuedTime);
+  void compact(CompactionServiceId service, CompactionJob job, BooleanSupplier keepRunning,
+      RateLimiter readLimiter, RateLimiter writeLimiter, long queuedTime);
 
   CompactionServiceId getConfiguredService(CompactionKind kind);
 
