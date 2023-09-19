@@ -90,11 +90,12 @@ public class RingBufferTest {
   }
 
   @Test
-  public void testThreadSafety() {
+  public void testThreadSafety() throws InterruptedException {
     final TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(5);
     final ExceptionHandler handler = new ExceptionHandler();
     final Object startLock = new Object();
     final AtomicInteger ready = new AtomicInteger(0);
+    final Random random = new Random();
 
     // create a writer threads
     Thread writerThread = new Thread(new Runnable() {
@@ -103,11 +104,12 @@ public class RingBufferTest {
         synchronized (startLock) {
           try {
             ready.incrementAndGet();
-            startLock.wait();
-          } catch (Exception e) {}
+            startLock.wait(3000);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
         }
         long start = System.currentTimeMillis();
-        Random random = new Random();
         while (System.currentTimeMillis() - start < 2000) {
           if (random.nextBoolean()) {
             ring.add(UUID.randomUUID().toString());
@@ -126,8 +128,10 @@ public class RingBufferTest {
         synchronized (startLock) {
           try {
             ready.incrementAndGet();
-            startLock.wait();
-          } catch (Exception e) {}
+            startLock.wait(3000);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
         }
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < 2000) {
@@ -143,21 +147,18 @@ public class RingBufferTest {
 
     // wait until they are both waiting on the start lock
     while (ready.get() < 2) {
-      try {
-        Thread.sleep(100);
-      } catch (Exception e) {}
+      Thread.sleep(100);
     }
 
     // unlock the threads
     synchronized (startLock) {
+      ready.incrementAndGet();
       startLock.notifyAll();
     }
 
     // wait for the threads to complete
     while (writerThread.isAlive() || readerThread.isAlive()) {
-      try {
-        Thread.sleep(100);
-      } catch (Exception e) {}
+      Thread.sleep(100);
     }
 
     // ensure no exceptions were thrown
