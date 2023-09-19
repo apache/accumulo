@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.security.SecureRandom;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -95,7 +95,7 @@ public class RingBufferTest {
     final ExceptionHandler handler = new ExceptionHandler();
     final Object startLock = new Object();
     final AtomicInteger ready = new AtomicInteger(0);
-    final Random random = new Random();
+    final SecureRandom random = new SecureRandom();
 
     // create a writer threads
     Thread writerThread = new Thread(new Runnable() {
