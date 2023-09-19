@@ -328,7 +328,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
       TabletIterator tabletIterator =
-          new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
+          new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), true, true);
 
       return Iterators
           .concat(Iterators.transform(tabletIterator, input -> input.entrySet().iterator()));
