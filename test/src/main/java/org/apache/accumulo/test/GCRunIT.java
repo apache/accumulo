@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -147,53 +146,13 @@ public class GCRunIT extends SharedMiniClusterBase {
   }
 
   /**
-   * This is a place holder - deleting the prev row causes the scan to fail before validation check.
-   * Either find a way to simulate / force or delete this test.
+   * This is a placeholder - deleting the prev row causes the scan to fail before validation check.
+   * Either find a way to simulate / force or delete this test. To test, Ample or the methods in
+   * GCRun need to support injecting synthetic row data, or another solution is required.
    */
   @Test
-  @Disabled("deleting pre v row causes scan to fail before row read validation")
-  public void forceMissingPrevRowTest() throws Exception {
-
-    final String[] names = getUniqueNames(2);
-    final String table1 = names[0];
-    final String clone1 = names[1];
-
-    fillMetadataEntries(table1, clone1);
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-
-      client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
-          TablePermission.WRITE);
-
-      String cloneId = client.tableOperations().tableIdMap().get(clone1);
-
-      // pick last row that should always exist.
-      final Mutation m = new Mutation(new Text(cloneId + ";5"));
-      final Text colf = new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
-      final Text colq = new Text(PREV_ROW_QUAL);
-      // m.put(colf, colq, new Value("3"));
-
-      m.putDelete(colf, colq, new ColumnVisibility());
-
-      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME,
-          new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
-              .setMaxWriteThreads(1).setTimeout(5_000, TimeUnit.MILLISECONDS))) {
-        log.info("adding false of ~tab:~pr with mutation {}", m.prettyPrint());
-        bw.addMutation(m);
-      }
-
-      log.warn("TRY SCAN");
-
-      var context = getCluster().getServerContext();
-
-      scanReferences(new GCRun(Ample.DataLevel.ROOT, context));
-      scanReferences(new GCRun(Ample.DataLevel.METADATA, context));
-      // "missing srv:dir prevents full reference scan for user table
-      assertThrows(IllegalStateException.class,
-          () -> scanReferences(new GCRun(Ample.DataLevel.USER, context)));
-
-      client.tableOperations().delete(clone1);
-    }
-  }
+  @Disabled("deleting prev row causes scan to fail before row read validation")
+  public void forceMissingPrevRowTest() {}
 
   private void scanReferences(GCRun userGC) {
     final AtomicInteger counter = new AtomicInteger(0);
