@@ -238,10 +238,16 @@ class ScanDataSource implements DataSource {
   public void close(boolean sawErrors) {
 
     if (memIters != null) {
+      log.debug("Returning mem iterators");
       tablet.returnMemIterators(memIters);
       memIters = null;
-      tablet.returnFilesForScan(fileReservationId);
-      fileReservationId = -1;
+      log.debug("Returning files for scanning");
+      try {
+        tablet.returnFilesForScan(fileReservationId);
+        fileReservationId = -1;
+      } catch (IllegalArgumentException | IllegalStateException e) {
+        log.debug("Error Returning files for scanning {}", e.getMessage());
+      }
     }
 
     synchronized (tablet) {
