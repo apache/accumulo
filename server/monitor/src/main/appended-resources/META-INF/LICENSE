@@ -75,15 +75,6 @@ Files:
      * Dual licensed under the MIT and GPL licenses.
      * http://benalman.com/about/license/
 
-## popper (https://popper.js.org/)
-
-Files:
-* popper*.js
-
-    Copyright (c) 2021 Floating UI contributors
-
-    Available under the MIT License (see above and https://github.com/floating-ui/floating-ui/blob/master/LICENSE)
-
 ## Bootstrap v5.3.1 (https://getbootstrap.com/)
 
 Files:
