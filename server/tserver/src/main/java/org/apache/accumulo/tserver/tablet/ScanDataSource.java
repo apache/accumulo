@@ -55,8 +55,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
-
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
@@ -90,24 +88,23 @@ class ScanDataSource implements DataSource {
 
   @Override
   public DataSource getNewDataSource() {
+
     if (isCurrent()) {
       return this;
     } else {
-      // log.debug("Switching data sources during a scan");
-      if (memIters != null) {
-        tablet.returnMemIterators(memIters);
-        memIters = null;
-        tablet.returnFilesForScan(fileReservationId);
-        fileReservationId = -1;
+      try {
+        returnIterators();
+      } finally {
+        try {
+          if (fileManager != null) {
+            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+            fileManager.releaseOpenFiles(false);
+          }
+        } finally {
+          expectedDeletionCount = tablet.getDataSourceDeletions();
+          iter = null;
+        }
       }
-
-      if (fileManager != null) {
-        tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-        fileManager.releaseOpenFiles(false);
-      }
-
-      expectedDeletionCount = tablet.getDataSourceDeletions();
-      iter = null;
 
       return this;
     }
@@ -237,58 +234,49 @@ class ScanDataSource implements DataSource {
     }
   }
 
-  @Override
-  public void close(boolean sawErrors) {
-
-    Exception exceptionThrown = null;
-
+  private void returnIterators() {
     if (memIters != null) {
       log.trace("Returning mem iterators for {}", tablet.getExtent());
       try {
         tablet.returnMemIterators(memIters);
-      } catch (Exception e) {
-        log.warn("Failed to return memory iterators for " + tablet.getExtent(), e);
-        exceptionThrown = e;
-      }
-      memIters = null;
-      log.trace("Returning file iterators for {}", tablet.getExtent());
-      try {
-        tablet.returnFilesForScan(fileReservationId);
-      } catch (Exception e) {
-        log.warn("Error Returning files for scanning " + tablet.getExtent(), e);
-        if (exceptionThrown == null) {
-          exceptionThrown = e;
+      } finally {
+        memIters = null;
+        log.trace("Returning file iterators for {}", tablet.getExtent());
+        try {
+          tablet.returnFilesForScan(fileReservationId);
+        } finally {
+          fileReservationId = -1;
         }
       }
-      fileReservationId = -1;
     }
+  }
 
-    synchronized (tablet) {
-      log.trace("Removing active scan for {}", tablet.getExtent());
-      if (tablet.removeScan(this) == 0) {
-        tablet.notifyAll();
-      }
-    }
-
-    if (fileManager != null) {
-      tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-      try {
-        fileManager.releaseOpenFiles(sawErrors);
-      } catch (Exception e) {
-        log.warn("Failed to release open files for scan on " + tablet.getExtent(), e);
-        if (exceptionThrown == null) {
-          exceptionThrown = e;
+  @Override
+  public void close(boolean sawErrors) {
+    try {
+      returnIterators();
+    } finally {
+      synchronized (tablet) {
+        log.trace("Removing active scan for {}", tablet.getExtent());
+        if (tablet.removeScan(this) == 0) {
+          tablet.notifyAll();
         }
       }
-      fileManager = null;
-    }
 
-    if (statsIterator != null) {
-      statsIterator.report();
-    }
-
-    if (exceptionThrown != null) {
-      Throwables.throwIfUnchecked(exceptionThrown);
+      try {
+        if (fileManager != null) {
+          try {
+            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+            fileManager.releaseOpenFiles(sawErrors);
+          } finally {
+            fileManager = null;
+          }
+        }
+      } finally {
+        if (statsIterator != null) {
+          statsIterator.report();
+        }
+      }
     }
   }
 
