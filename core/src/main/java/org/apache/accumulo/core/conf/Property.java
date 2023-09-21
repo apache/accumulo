@@ -868,7 +868,7 @@ public enum Property {
       "Properties in this category affect the behavior of the accumulo garbage collector.",
       "1.3.5"),
   GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "50%", PropertyType.MEMORY,
-      "The amount of memory used to calculate batch size for garbage collection.", "2.1.0"),
+      "The amount of memory used as the batch size for garbage collection.", "2.1.0"),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs.",
       "1.3.5"),

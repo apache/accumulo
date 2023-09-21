@@ -101,9 +101,6 @@ public class GCRun implements GarbageCollectionEnvironment {
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
-    log.info("GC candidate batch size = {} bytes ({} of GC memory)",
-        config.getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE),
-        config.get(Property.GC_CANDIDATE_BATCH_SIZE));
   }
 
   @Override

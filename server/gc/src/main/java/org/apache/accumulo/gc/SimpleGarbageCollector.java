@@ -90,8 +90,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
-    log.info("GC candidate batch size: {} bytes ({} of GC memory)", getCandidateBatchSize(),
-        conf.get(Property.GC_CANDIDATE_BATCH_SIZE));
+    log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
   }
