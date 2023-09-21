@@ -55,6 +55,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
@@ -149,6 +151,7 @@ class ScanDataSource implements DataSource {
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
         tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
+        log.trace("Adding active scan for " + tablet.getExtent());
         tablet.addActiveScans(this);
       }
 
@@ -237,20 +240,31 @@ class ScanDataSource implements DataSource {
   @Override
   public void close(boolean sawErrors) {
 
+    Exception exceptionThrown = null;
+
     if (memIters != null) {
-      log.debug("Returning mem iterators");
-      tablet.returnMemIterators(memIters);
+      log.trace("Returning mem iterators for {}", tablet.getExtent());
+      try {
+        tablet.returnMemIterators(memIters);
+      } catch (Exception e) {
+        log.warn("Failed to return memory iterators for " + tablet.getExtent(), e);
+        exceptionThrown = e;
+      }
       memIters = null;
-      log.debug("Returning files for scanning");
+      log.trace("Returning file iterators for {}", tablet.getExtent());
       try {
         tablet.returnFilesForScan(fileReservationId);
-        fileReservationId = -1;
-      } catch (IllegalArgumentException | IllegalStateException e) {
-        log.debug("Error Returning files for scanning {}", e.getMessage());
+      } catch (Exception e) {
+        log.warn("Error Returning files for scanning " + tablet.getExtent(), e);
+        if (exceptionThrown == null) {
+          exceptionThrown = e;
+        }
       }
+      fileReservationId = -1;
     }
 
     synchronized (tablet) {
+      log.trace("Removing active scan for {}", tablet.getExtent());
       if (tablet.removeScan(this) == 0) {
         tablet.notifyAll();
       }
@@ -258,7 +272,14 @@ class ScanDataSource implements DataSource {
 
     if (fileManager != null) {
       tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-      fileManager.releaseOpenFiles(sawErrors);
+      try {
+        fileManager.releaseOpenFiles(sawErrors);
+      } catch (Exception e) {
+        log.warn("Failed to release open files for scan on " + tablet.getExtent(), e);
+        if (exceptionThrown == null) {
+          exceptionThrown = e;
+        }
+      }
       fileManager = null;
     }
 
@@ -266,6 +287,9 @@ class ScanDataSource implements DataSource {
       statsIterator.report();
     }
 
+    if (exceptionThrown != null) {
+      Throwables.throwIfUnchecked(exceptionThrown);
+    }
   }
 
   public void interrupt() {

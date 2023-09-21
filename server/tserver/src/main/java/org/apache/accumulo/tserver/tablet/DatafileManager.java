@@ -121,35 +121,39 @@ class DatafileManager {
 
     final Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
-    synchronized (tablet) {
-      Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
+    try {
+      synchronized (tablet) {
+        Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-      if (absFilePaths == null) {
-        throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
-      }
+        if (absFilePaths == null) {
+          throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
+        }
 
-      boolean notify = false;
-      for (StoredTabletFile path : absFilePaths) {
-        long refCount = fileScanReferenceCounts.decrement(path, 1);
-        if (refCount == 0) {
-          if (filesToDeleteAfterScan.remove(path)) {
-            filesToDelete.add(path);
+        boolean notify = false;
+        try {
+          for (StoredTabletFile path : absFilePaths) {
+            long refCount = fileScanReferenceCounts.decrement(path, 1);
+            if (refCount == 0) {
+              if (filesToDeleteAfterScan.remove(path)) {
+                filesToDelete.add(path);
+              }
+              notify = true;
+            } else if (refCount < 0) {
+              throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+            }
           }
-          notify = true;
-        } else if (refCount < 0) {
-          throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+        } finally {
+          if (notify) {
+            tablet.notifyAll();
+          }
         }
       }
-
-      if (notify) {
-        tablet.notifyAll();
+    } finally {
+      if (!filesToDelete.isEmpty()) {
+        log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
+        MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
+            tablet.getTabletServer().getLock());
       }
-    }
-
-    if (!filesToDelete.isEmpty()) {
-      log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
-          tablet.getTabletServer().getLock());
     }
   }
 
