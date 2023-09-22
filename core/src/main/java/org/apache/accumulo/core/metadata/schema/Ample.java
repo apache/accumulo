@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -134,6 +135,24 @@ public interface Ample {
   }
 
   /**
+   * Enables status based processing of GcCandidates.
+   */
+  public enum GcCandidateType {
+    /**
+     * Candidates which have corresponding file references still present in tablet metadata.
+     */
+    INUSE,
+    /**
+     * Candidates that have no matching file references and can be removed from the system.
+     */
+    VALID,
+    /**
+     * Candidates that are malformed.
+     */
+    INVALID
+  }
+
+  /**
    * Read a single tablets metadata. No checking is done for prev row, so it could differ. The
    * method will read the data using {@link ReadConsistency#IMMEDIATE}.
    *
@@ -193,11 +212,15 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void deleteGcCandidates(DataLevel level, Collection<String> paths) {
+  /**
+   * Enum added to support unique candidate deletions in 2.1
+   */
+  default void deleteGcCandidates(DataLevel level, Collection<GcCandidate> candidates,
+      GcCandidateType type) {
     throw new UnsupportedOperationException();
   }
 
-  default Iterator<String> getGcCandidates(DataLevel level) {
+  default Iterator<GcCandidate> getGcCandidates(DataLevel level) {
     throw new UnsupportedOperationException();
   }
 
