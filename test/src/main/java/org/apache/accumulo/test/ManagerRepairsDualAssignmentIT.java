@@ -111,16 +111,33 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         states.clear();
         replStates.clear();
         boolean allAssigned = true;
+
+        // check that we can get the store iterator - it may be unavailable until reassignment
+        // completes
+        boolean needIterator = true;
+        while (needIterator) {
+          try (var iterator = store.iterator()) {
+            if (iterator.hasNext()) {
+              needIterator = false;
+            }
+          } catch (Exception ex) {
+            log.debug("Failed to get TabletStateStore iterator - will retry", ex);
+            UtilWaitThread.sleep(1000);
+          }
+        }
+        log.info("Have TabletStateStore iterator. Proceeding with reading states");
         for (TabletLocationState tls : store) {
           if (tls != null && tls.current != null) {
+            log.trace("adding tablet location state: {}", tls);
             states.add(tls.current);
           } else if (tls != null && tls.extent.equals(new KeyExtent(repTable, null, null))) {
+            log.trace("adding replication tablet location state: {}", tls);
             replStates.add(tls.current);
           } else {
             allAssigned = false;
           }
         }
-        System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
+        log.info("{}, size {}, allAssigned {}", states, states.size(), allAssigned);
         if (states.size() != 2 && allAssigned) {
           break;
         }
@@ -155,7 +172,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
-        System.out.println(ex);
+        log.info("waitForCleanStore found exception - will continue", ex);
         UtilWaitThread.sleep(250);
         continue;
       }
