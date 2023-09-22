@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -211,17 +212,22 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void deleteGcCandidates(DataLevel level, Collection<String> paths) {
+  public void deleteGcCandidates(DataLevel level, Collection<GcCandidate> candidates,
+      GcCandidateType type) {
 
     if (level == DataLevel.ROOT) {
-      mutateRootGcCandidates(rgcc -> rgcc.remove(paths.stream()));
+      if (type == GcCandidateType.INUSE) {
+        // Deletion of INUSE candidates is not supported in 2.1.x.
+        return;
+      }
+      mutateRootGcCandidates(rgcc -> rgcc.remove(candidates.stream()));
       return;
     }
 
     try (BatchWriter writer = context.createBatchWriter(level.metaTable())) {
-      for (String path : paths) {
-        Mutation m = new Mutation(DeletesSection.encodeRow(path));
-        m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+      for (GcCandidate candidate : candidates) {
+        Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+        m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
         writer.addMutation(m);
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
@@ -230,7 +236,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Iterator<String> getGcCandidates(DataLevel level) {
+  public Iterator<GcCandidate> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
       var zooReader = context.getZooReader();
       byte[] jsonBytes;
@@ -252,7 +258,10 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       scanner.setRange(range);
       return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
-          .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
+          .map(
+              entry -> new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
+                  entry.getKey().getTimestamp()))
+          .iterator();
     } else {
       throw new IllegalArgumentException();
     }

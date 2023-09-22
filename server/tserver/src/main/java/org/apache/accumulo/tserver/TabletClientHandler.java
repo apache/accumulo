@@ -544,6 +544,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
   }
 
+  @Override
+  public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+    return server.sessionManager.removeIfNotReserved(updateID);
+  }
+
   private NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
       throws ThriftSecurityException {
     try {
