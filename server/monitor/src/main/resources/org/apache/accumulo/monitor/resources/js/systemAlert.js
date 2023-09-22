@@ -28,13 +28,13 @@
  */
 const alertMap = {
   CLEAN_STOP: {
-    message: "The manager state is in CLEAN_STOP.",
+    message: "The manager state is CLEAN_STOP.",
     id: "cleanStop",
     alertClass: "alert-danger",
     notifcationClass: "error"
   },
   SAFE_MODE: {
-    message: "The manager is in SAFE_MODE.",
+    message: "The manager state is SAFE_MODE.",
     id: "safeMode",
     alertClass: "alert-warning",
     notifcationClass: "warning"
