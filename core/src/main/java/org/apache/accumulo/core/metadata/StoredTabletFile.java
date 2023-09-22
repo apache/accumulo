@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -30,7 +32,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
 import com.google.gson.Gson;
@@ -217,9 +218,11 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private static byte[] encodeRow(final Key key) {
     final Text row = key != null ? key.getRow() : null;
     if (row != null) {
-      try (DataOutputBuffer buffer = new DataOutputBuffer()) {
-        row.write(buffer);
-        return buffer.getData();
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream dos = new DataOutputStream(baos)) {
+        row.write(dos);
+        dos.close();
+        return baos.toByteArray();
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
