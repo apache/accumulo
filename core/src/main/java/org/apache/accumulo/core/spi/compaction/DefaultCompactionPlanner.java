@@ -272,8 +272,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (group.isEmpty()
-        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
-            || params.getKind() == CompactionKind.CHOP)
+        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
         && params.getRunningCompactions().stream()
             .noneMatch(job -> job.getKind() == params.getKind())) {
       group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);

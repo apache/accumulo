@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -128,7 +127,6 @@ public class MergeStateIT extends ConfigurableMacBase {
             TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, split, pr));
         prevRow.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
             new Value("127.0.0.1:1234"));
-        ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk"));
         bw.addMutation(prevRow);
         pr = split;
       }
@@ -197,7 +195,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       Collection<Collection<String>> walogs = Collections.emptyList();
       metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null,
-          Location.current(state.someTServer), null, null, walogs, false)), null);
+          Location.current(state.someTServer), null, null, walogs)), null);
 
       // now we can split
       stats = scan(state, metaDataStateStore);
@@ -209,7 +207,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
     for (TabletLocationState tss : metaDataStateStore) {
-      stats.update(tss.extent, tss.getState(state.onlineTabletServers()), tss.chopped, false);
+      stats.update(tss.extent, tss.getState(state.onlineTabletServers()));
     }
     return stats;
   }

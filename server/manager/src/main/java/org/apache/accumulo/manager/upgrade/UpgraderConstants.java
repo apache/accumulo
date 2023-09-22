@@ -16,30 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.manager.upgrade;
 
-import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.hadoop.io.Text;
 
-/**
- * @since 2.1.0
- * @see org.apache.accumulo.core.spi.compaction
- */
-public enum CompactionKind {
+public class UpgraderConstants {
+
   /**
-   * A system initiated routine compaction.
+   * ChoppedColumnFamily kept around for cleaning up old entries on upgrade
    */
-  SYSTEM,
-  /**
-   * Set of files selected by a {@link CompactionSelector} configured for a table.
-   */
-  SELECTOR,
-  /**
-   * A user initiated a one time compaction using an Accumulo client.
-   */
-  USER,
-  /**
-   * @deprecated Chop Compactions have been deprecated
-   */
-  @Deprecated(since = "3.1")
-  CHOP
+  public static class ChoppedColumnFamily {
+    public static final String STR_NAME = "chopped";
+    public static final Text NAME = new Text(STR_NAME);
+    public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+  }
+
 }

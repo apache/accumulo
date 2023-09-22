@@ -23,7 +23,6 @@ import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,7 +51,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -104,25 +102,6 @@ public class CompactableUtils {
         Key last = openReader.getLastKey();
         result.put(file, new Pair<>(first, last));
       }
-    }
-    return result;
-  }
-
-  public static Set<StoredTabletFile> findChopFiles(KeyExtent extent,
-      Map<StoredTabletFile,Pair<Key,Key>> firstAndLastKeys, Collection<StoredTabletFile> allFiles) {
-    Set<StoredTabletFile> result = new HashSet<>();
-
-    for (StoredTabletFile file : allFiles) {
-      Pair<Key,Key> pair = firstAndLastKeys.get(file);
-      Key first = pair.getFirst();
-      Key last = pair.getSecond();
-      // If first and last are null, it's an empty file. Add it to the compact set so it goes
-      // away.
-      if ((first == null && last == null) || (first != null && !extent.contains(first.getRow()))
-          || (last != null && !extent.contains(last.getRow()))) {
-        result.add(file);
-      }
-
     }
     return result;
   }
