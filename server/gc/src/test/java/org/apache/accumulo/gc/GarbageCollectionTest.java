@@ -55,7 +55,7 @@ public class GarbageCollectionTest {
 
   static class TestGCE implements GarbageCollectionEnvironment {
     TreeSet<GcCandidate> candidates = new TreeSet<>();
-    TreeSet<GcCandidate> deletedCandidates = new TreeSet<>();
+    TreeMap<GcCandidate,GcCandidateType> deletedCandidates = new TreeMap<>();
     ArrayList<String> blips = new ArrayList<>();
     Map<String,Reference> references = new TreeMap<>();
     HashSet<TableId> tableIds = new HashSet<>();
@@ -123,7 +123,7 @@ public class GarbageCollectionTest {
       if (type.equals(GcCandidateType.INUSE) && this.level.equals(Ample.DataLevel.ROOT)) {
         return;
       }
-      deletedCandidates.addAll(refCandidates);
+      refCandidates.forEach(gcCandidate -> deletedCandidates.put(gcCandidate, type));
       this.candidates.removeAll(refCandidates);
     }
 
@@ -224,9 +224,15 @@ public class GarbageCollectionTest {
     assertEquals(0, gce.deletes.size(), "Deletes not empty: " + gce.deletes);
   }
 
-  private void assertCandidateRemoved(TestGCE gce, GcCandidate... gcCandidates) {
+  private void assertNoCandidatesRemoved(TestGCE gce) {
+    assertEquals(0, gce.deletedCandidates.size(),
+        "Deleted Candidates not empty: " + gce.deleteInUseRefs);
+  }
+
+  private void assertCandidateRemoved(TestGCE gce, GcCandidateType gcCandidateType,
+      GcCandidate... gcCandidates) {
     for (GcCandidate gcCandidate : gcCandidates) {
-      assertTrue(gce.deletedCandidates.remove(gcCandidate));
+      assertEquals(gcCandidateType, gce.deletedCandidates.remove(gcCandidate));
     }
     assertEquals(0, gce.deletedCandidates.size(),
         "Deleted Candidates not empty: " + gce.deleteInUseRefs);
@@ -785,7 +791,7 @@ public class GarbageCollectionTest {
 
     assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     assertTrue(tids.containsAll(gce.tablesDirsToDelete));
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
   }
 
   @Test
@@ -910,13 +916,13 @@ public class GarbageCollectionTest {
     // All candidates currently have references
     gca.collect(gce);
     assertRemoved(gce);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
 
     // Enable InUseRefs to be removed if the file ref is found.
     gce.deleteInUseRefs = true;
     gca.collect(gce);
     assertRemoved(gce);
-    assertCandidateRemoved(gce, candidate);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
 
     var cand1 = gce.addCandidate("/9/t0/F003.rf");
     var cand2 = gce.addCandidate("../144/t0/F003.rf");
@@ -924,7 +930,7 @@ public class GarbageCollectionTest {
     gce.removeFileReference("4", null, "/t0/F003.rf");
 
     gca.collect(gce);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
     // File references did not exist, so candidates are processed
     assertRemoved(gce, cand1, cand2);
   }
@@ -953,14 +959,14 @@ public class GarbageCollectionTest {
     // No InUse Candidates should be removed.
     gca.collect(gce);
     assertRemoved(gce);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
 
     gce.deleteInUseRefs = true;
     // Due to the gce Datalevel of ROOT, InUse candidate deletion is not supported regardless of
     // property setting.
     gca.collect(gce);
     assertRemoved(gce);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
 
     gce.removeFileReference("+r", null, "/t0/F000.rf");
     gce.removeFileReference("+r", null, "/t0/F001.rf");
@@ -970,7 +976,7 @@ public class GarbageCollectionTest {
     // With file references deleted, the GC should now process the candidates
     gca.collect(gce);
     assertRemoved(gce, toBeRemoved);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
   }
 
   @Test
@@ -988,7 +994,7 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertRemoved(gce, candTwo);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
     assertEquals(1, gce.candidates.size());
 
     // Removing the dir reference causes the dir to be deleted.
@@ -996,7 +1002,7 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertRemoved(gce, candOne);
-    assertCandidateRemoved(gce);
+    assertNoCandidatesRemoved(gce);
 
     assertEquals(0, gce.candidates.size());
 
@@ -1012,7 +1018,7 @@ public class GarbageCollectionTest {
     var removedCandidate = gce.addCandidate("6/t-0/F003.rf");
 
     gca.collect(gce);
-    assertCandidateRemoved(gce, removedCandidate);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, removedCandidate);
     assertRemoved(gce);
     // Check and make sure the InUse directory candidates are not removed.
     assertEquals(1, gce.candidates.size());
