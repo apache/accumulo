@@ -66,12 +66,14 @@
       <script src="/resources/js/${js}"></script>
     </#if>
     <script src="/resources/js/navbar.js"></script>
+    <script src="/resources/js/systemAlert.js"></script>
   </head>
 
   <body>
     <#include "navbar.ftl">
 
     <div id="main" class="container-fluid">
+      <#include "systemAlert.ftl">
       <#include "${template}">
     </div>
 

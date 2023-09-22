@@ -31,6 +31,9 @@
         </div>
         <div class="collapse navbar-collapse" id="nav-items">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="navbar-text px-2">
+              <span id="alertStatus" class="icon-dot special" title="System-wide alert. See top of page." style="display: none;"></span>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span id="statusNotification" class="icon-dot normal"></span>&nbspServers
