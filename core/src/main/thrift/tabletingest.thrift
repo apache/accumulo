@@ -66,6 +66,11 @@ service TabletIngestClientService {
     1:tabletserver.NoSuchScanIDException nssi
   )
 
+  bool cancelUpdate(
+    1:client.TInfo tinfo
+    2:data.UpdateID updateID
+  )
+
   data.TConditionalSession startConditionalUpdate(
     1:client.TInfo tinfo
     2:security.TCredentials credentials

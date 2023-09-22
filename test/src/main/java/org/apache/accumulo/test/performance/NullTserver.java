@@ -117,6 +117,11 @@ public class NullTserver {
     }
 
     @Override
+    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+      return true;
+    }
+
+    @Override
     public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
         Map<TKeyExtent,Map<String,DataFileInfo>> fileMap, boolean setTime) {}
 
