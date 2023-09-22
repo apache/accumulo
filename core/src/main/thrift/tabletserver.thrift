@@ -318,6 +318,11 @@ service TabletClientService {
     1:NoSuchScanIDException nssi
   )
 
+  bool cancelUpdate(
+    1:trace.TInfo tinfo
+    2:data.UpdateID updateID
+  )
+
   //the following call supports making a single update to a tablet
   void update(
     4:trace.TInfo tinfo

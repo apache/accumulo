@@ -591,6 +591,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
+  public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+    return server.sessionManager.removeIfNotReserved(updateID);
+  }
+
+  @Override
   public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
       TMutation tmutation, TDurability tdurability)
       throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
