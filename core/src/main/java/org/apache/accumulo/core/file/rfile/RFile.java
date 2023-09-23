@@ -85,6 +85,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 public class RFile {
 
@@ -1579,13 +1581,13 @@ public class RFile {
     private final FileSKVIterator reader;
     protected final Range fence;
     private final Key fencedStartKey;
-    private final Key fencedEndKey;
+    private final Supplier<Key> fencedEndKey;
 
     public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
       this.reader = Objects.requireNonNull(reader);
       this.fence = Objects.requireNonNull(fence);
       this.fencedStartKey = fence.getStartKey();
-      this.fencedEndKey = getEndKey(fence.getEndKey());
+      this.fencedEndKey = Suppliers.memoize(() -> getEndKey(fence.getEndKey()));
     }
 
     @Override
@@ -1628,7 +1630,7 @@ public class RFile {
     public Key getLastKey() throws IOException {
       var rlk = reader.getLastKey();
       if (fence.afterEndKey(rlk)) {
-        return fencedEndKey;
+        return fencedEndKey.get();
       } else {
         return rlk;
       }
