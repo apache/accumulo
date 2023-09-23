@@ -1020,6 +1020,9 @@ public class Manager extends AbstractServer
             }
             badServers.remove(server);
           }
+          log.debug("communication error count: {} of {} attempts for server {}",
+              badServers.getOrDefault(server, new AtomicInteger(-1)).get(), MAX_BAD_STATUS_COUNT,
+              server);
         }
       });
     }
