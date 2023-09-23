@@ -52,4 +52,16 @@ public class TabletGroupWatcherTest {
     assertEquals(original.getTime(), newValues.getSecond().getTime());
   }
 
+  @Test
+  public void testComputeNewDfvSmall() {
+    DataFileValue original = new DataFileValue(1, 2, 100);
+    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+
+    assertEquals(1, newValues.getFirst().getSize());
+    assertEquals(1, newValues.getFirst().getNumEntries());
+    assertEquals(original.getTime(), newValues.getFirst().getTime());
+    assertEquals(1, newValues.getSecond().getSize());
+    assertEquals(1, newValues.getSecond().getNumEntries());
+    assertEquals(original.getTime(), newValues.getSecond().getTime());
+  }
 }

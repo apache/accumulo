@@ -57,6 +57,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -242,6 +243,44 @@ public class RFileClientTest {
     assertEquals(expected.subMap(range.getStartKey(), range.getEndKey()), toMap(scanner));
 
     scanner.close();
+  }
+
+  @Test
+  public void testRequiresRowRange() throws Exception {
+    SortedMap<Key,Value> testData = createTestData(10, 10, 10);
+    String testFile = createRFile(testData);
+
+    // Row Ranges may have null for start and/or end row or be set.
+    // If start is set, it must be inclusive and if end is set it ust be exclusive.
+    // End key must also be an exclusive key (end in 0x00 byte).
+    // Lastly only the row portion of a key is allowed.
+
+    // Test valid Row Ranges
+    new FencedPath(new Path(new File(testFile).toURI()), new Range());
+    // This constructor converts to the proper inclusive/exclusive rows
+    new FencedPath(new Path(new File(testFile).toURI()),
+        new Range(rowStr(3), true, rowStr(14), true));
+    new FencedPath(new Path(new File(testFile).toURI()), new Range(new Key(rowStr(3)), true,
+        new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
+
+    // Test invalid Row Ranges
+    // Missing 0x00 byte
+    assertThrows(IllegalArgumentException.class,
+        () -> new FencedPath(new Path(new File(testFile).toURI()),
+            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
+    // End key inclusive
+    assertThrows(IllegalArgumentException.class,
+        () -> new FencedPath(new Path(new File(testFile).toURI()),
+            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
+    // Start key exclusive
+    assertThrows(IllegalArgumentException.class,
+        () -> new FencedPath(new Path(new File(testFile).toURI()),
+            new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
+    // CF is set which is not allowed
+    assertThrows(IllegalArgumentException.class,
+        () -> new FencedPath(new Path(new File(testFile).toURI()),
+            new Range(new Key(rowStr(3), colStr(3)), true,
+                new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
   }
 
   @Test

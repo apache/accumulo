@@ -1784,7 +1784,7 @@ public class RFile {
   public static RFileSKVIterator getReader(final CachableBuilder cb, Range range)
       throws IOException {
     final RFile.Reader reader = new RFile.Reader(Objects.requireNonNull(cb));
-    return !Objects.requireNonNull(range).isInfiniteStartKey() || !range.isInfiniteStopKey()
+    return !range.isInfiniteStartKey() || !range.isInfiniteStopKey()
         ? new FencedReader(reader, range) : reader;
   }
 }

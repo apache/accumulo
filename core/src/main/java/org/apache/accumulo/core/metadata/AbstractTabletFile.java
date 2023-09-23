@@ -58,7 +58,7 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
   }
 
-  static Range requireRowRange(Range range) {
+  public static Range requireRowRange(Range range) {
     if (!range.isInfiniteStartKey()) {
       Preconditions.checkArgument(range.isStartKeyInclusive() && isOnlyRowSet(range.getStartKey()),
           "Range is not a row range %s", range);
