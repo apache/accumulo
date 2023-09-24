@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -120,7 +122,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
 
       final int rows = 10000;
       final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
+      createTableAndDisableCompactions(accumuloClient, tableName);
       final TableId tableId =
           TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
@@ -194,7 +196,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       int rowsPerRange = rows / ranges;
 
       final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
+      createTableAndDisableCompactions(accumuloClient, tableName);
       final TableId tableId =
           TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
@@ -282,7 +284,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
 
       final int rows = 100000;
       final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
+      createTableAndDisableCompactions(accumuloClient, tableName);
       final TableId tableId =
           TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
@@ -362,7 +364,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       int rowsPerRange = rows / ranges;
 
       final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
+      createTableAndDisableCompactions(accumuloClient, tableName);
       final TableId tableId =
           TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
@@ -474,5 +476,13 @@ public class FileMetadataIT extends AccumuloClusterHarness {
     } catch (AccumuloException e) {
       assertTrue(e.getMessage().contains("Did not read expected number of rows. Saw 0"));
     }
+  }
+
+  private static void createTableAndDisableCompactions(AccumuloClient c, String tableName)
+      throws Exception {
+    // disable compactions
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "9999"));
+    c.tableOperations().create(tableName, ntc);
   }
 }
