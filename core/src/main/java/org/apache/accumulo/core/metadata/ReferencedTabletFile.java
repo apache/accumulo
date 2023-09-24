@@ -204,11 +204,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
 
   @Override
   public int compareTo(ReferencedTabletFile o) {
-    if (equals(o)) {
-      return 0;
-    } else {
-      return comparator.compare(this, o);
-    }
+    return comparator.compare(this, o);
   }
 
   @Override
