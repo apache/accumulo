@@ -163,7 +163,7 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        Path switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
+        Path switchedWalog = VolumeUtil.switchVolume(new Path(walog), FileType.WAL,
             manager.getContext().getVolumeReplacements());
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When

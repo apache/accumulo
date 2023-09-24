@@ -163,11 +163,11 @@ public class GarbageCollectionAlgorithm {
           // If dir candidates are deleted, due to being in use, nothing will add them again.
         }
       } else {
-        String reference = ref.getMetadataEntry();
+        String reference = ref.getMetadataPath();
         if (reference.startsWith("/")) {
           log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
               ref.getTableId());
-          reference = "/" + ref.getTableId() + ref.getMetadataEntry();
+          reference = "/" + ref.getTableId() + ref.getMetadataPath();
         } else if (!reference.contains(":") && !reference.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + reference);
         }

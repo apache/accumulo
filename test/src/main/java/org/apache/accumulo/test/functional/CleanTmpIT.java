@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -92,7 +93,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
         s.setRange(Range.prefix(id));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         Entry<Key,Value> entry = getOnlyElement(s);
-        file = new Path(entry.getKey().getColumnQualifier().toString());
+        file = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath();
       }
 
       FileSystem fs = getCluster().getFileSystem();

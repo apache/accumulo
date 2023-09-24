@@ -167,7 +167,7 @@ public class SimpleGarbageCollectorTest {
     confirmed.put("5a/t-0002/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
     var allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    confirmed.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataEntry(), 4L));
+    confirmed.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
     confirmed.put("5b/t-0003/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf", 5L));
     confirmed.put("5b/t-0003/F0002.rf",
@@ -175,7 +175,7 @@ public class SimpleGarbageCollectorTest {
     confirmed.put("5b/t-0003/F0003.rf",
         new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    confirmed.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataEntry(), 8L));
+    confirmed.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
     confirmed.put("5b/t-0004/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L));
 
@@ -188,11 +188,11 @@ public class SimpleGarbageCollectorTest {
     expected.put("5a/t-0002/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    expected.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataEntry(), 4L));
+    expected.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
     expected.put("5b/t-0003/F0003.rf",
         new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    expected.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataEntry(), 8L));
+    expected.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
 
     assertEquals(expected, confirmed);
     assertEquals(

@@ -450,13 +450,13 @@ public class CompactableUtils {
   }
 
   public static ReferencedTabletFile computeCompactionFileDest(ReferencedTabletFile tmpFile) {
-    String newFilePath = tmpFile.getMetaInsert();
+    String newFilePath = tmpFile.getNormalizedPathStr();
     int idx = newFilePath.indexOf("_tmp");
     if (idx > 0) {
       newFilePath = newFilePath.substring(0, idx);
     } else {
-      throw new IllegalArgumentException(
-          "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
+      throw new IllegalArgumentException("Expected compaction tmp file "
+          + tmpFile.getNormalizedPathStr() + " to have suffix '_tmp'");
     }
     return new ReferencedTabletFile(new Path(newFilePath));
   }

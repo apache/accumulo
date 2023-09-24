@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -333,7 +334,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
             new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
 
     List<StoredTabletFile> stfs = new LinkedList<>();
-    candidates.stream().forEach(temp -> stfs.add(new StoredTabletFile(temp.getPath())));
+    candidates.stream().forEach(
+        temp -> stfs.add(new StoredTabletFile(StoredTabletFile.serialize(temp.getPath()))));
 
     log.debug("Adding root table GcCandidates");
     ample.putGcCandidates(tableId, stfs);
@@ -344,7 +346,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     int counter = 0;
     while (cIter.hasNext()) {
       // Duplicate these entries back into zookeeper
-      ample.putGcCandidates(tableId, List.of(new StoredTabletFile(cIter.next().getPath())));
+      ample.putGcCandidates(tableId,
+          List.of(new StoredTabletFile(StoredTabletFile.serialize(cIter.next().getPath()))));
       counter++;
     }
     // Ensure Zookeeper collapsed the entries and did not support duplicates.
@@ -445,8 +448,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
+        var path = URI.create(String.format("file:/%020d/%s", i, longpath));
+        Mutation delFlag =
+            ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), new Path(path)));
         bw.addMutation(delFlag);
       }
     }
@@ -469,8 +473,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     // Create multiple candidate entries
     List<StoredTabletFile> stfs = Stream
-        .of(new StoredTabletFile("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf"),
-            new StoredTabletFile("hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf"))
+        .of(new StoredTabletFile(
+            StoredTabletFile.serialize("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf")),
+            new StoredTabletFile(
+                StoredTabletFile.serialize("hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf")))
         .collect(Collectors.toList());
 
     log.debug("Adding candidates to table {}", tableId);
@@ -487,7 +493,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     GcCandidate deleteCandidate = candidates.get(0);
     assertNotNull(deleteCandidate);
-    ample.putGcCandidates(tableId, List.of(new StoredTabletFile(deleteCandidate.getPath())));
+    ample.putGcCandidates(tableId,
+        List.of(new StoredTabletFile(StoredTabletFile.serialize(deleteCandidate.getPath()))));
 
     log.debug("Deleting Candidate {}", deleteCandidate);
     ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), Ample.GcCandidateType.INUSE);

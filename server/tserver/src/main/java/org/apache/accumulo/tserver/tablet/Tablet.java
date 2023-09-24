@@ -262,7 +262,7 @@ public class Tablet extends TabletBase {
   ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
     String tmpFileName = getNextDataFilename(
         !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
-        .getMetaInsert() + "_tmp";
+        .insert().getMetadataPath() + "_tmp";
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 

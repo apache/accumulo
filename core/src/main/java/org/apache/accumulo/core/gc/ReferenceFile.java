@@ -21,6 +21,9 @@ package org.apache.accumulo.core.gc;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.hadoop.fs.Path;
 
 /**
  * A GC reference used for streaming and delete markers. This type is a file. Subclass is a
@@ -30,12 +33,27 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
 
-  // the exact string that is stored in the metadata
-  protected final String metadataEntry;
+  // the exact path from the file reference string that is stored in the metadata
+  protected final String metadataPath;
 
-  public ReferenceFile(TableId tableId, String metadataEntry) {
+  protected ReferenceFile(TableId tableId, String metadataPath) {
     this.tableId = Objects.requireNonNull(tableId);
-    this.metadataEntry = Objects.requireNonNull(metadataEntry);
+    this.metadataPath = Objects.requireNonNull(metadataPath);
+  }
+
+  public ReferenceFile(TableId tableId, Path metadataPathPath) {
+    this.tableId = Objects.requireNonNull(tableId);
+    this.metadataPath = Objects.requireNonNull(metadataPathPath.toString());
+  }
+
+  public ReferenceFile(TableId tableId, ScanServerRefTabletFile tabletFile) {
+    this.tableId = Objects.requireNonNull(tableId);
+    this.metadataPath = Objects.requireNonNull(tabletFile.getNormalizedPathStr());
+  }
+
+  public ReferenceFile(TableId tableId, StoredTabletFile tabletFile) {
+    this.tableId = Objects.requireNonNull(tableId);
+    this.metadataPath = Objects.requireNonNull(tabletFile.getMetadataPath());
   }
 
   @Override
@@ -49,8 +67,8 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
-  public String getMetadataEntry() {
-    return metadataEntry;
+  public String getMetadataPath() {
+    return metadataPath;
   }
 
   @Override
@@ -58,7 +76,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     if (equals(that)) {
       return 0;
     } else {
-      return this.metadataEntry.compareTo(that.metadataEntry);
+      return this.metadataPath.compareTo(that.metadataPath);
     }
   }
 
@@ -74,17 +92,17 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
       return false;
     }
     ReferenceFile other = (ReferenceFile) obj;
-    return metadataEntry.equals(other.metadataEntry);
+    return metadataPath.equals(other.metadataPath);
   }
 
   @Override
   public int hashCode() {
-    return this.metadataEntry.hashCode();
+    return this.metadataPath.hashCode();
   }
 
   @Override
   public String toString() {
-    return "Reference [id=" + tableId + ", ref=" + metadataEntry + "]";
+    return "Reference [id=" + tableId + ", ref=" + metadataPath + "]";
   }
 
 }

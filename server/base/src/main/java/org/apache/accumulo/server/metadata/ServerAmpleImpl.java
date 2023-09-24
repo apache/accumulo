@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -140,8 +141,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     if (DataLevel.of(tableId) == DataLevel.ROOT) {
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
-          .map(reference -> new StoredTabletFile(reference.getMetadataEntry()))));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream().map(
+          reference -> StoredTabletFile.of(URI.create(reference.getMetadataPath()), new Range()))));
       return;
     }
 
@@ -268,11 +269,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataEntry());
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath());
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetaUpdateDelete());
+    return createDelMutation(pathToRemove.getMetadataPath());
   }
 
   private Mutation createDelMutation(String path) {

@@ -58,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -158,7 +159,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
         k.getColumnQualifier(cq);
 
         if (cf.equals(DataFileColumnFamily.NAME)) {
-          Path p = new Path(cq.toString());
+          Path p = StoredTabletFile.of(cq).getPath();
           FileSystem fs = cluster.getFileSystem();
           assertTrue(fs.exists(p), "File does not exist: " + p);
         } else if (cf.equals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {

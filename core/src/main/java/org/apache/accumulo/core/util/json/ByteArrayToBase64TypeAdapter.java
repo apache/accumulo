@@ -72,7 +72,7 @@ public class ByteArrayToBase64TypeAdapter
    * @return GsonBuilder
    */
   public static GsonBuilder registerBase64TypeAdapter(final GsonBuilder gsonBuilder) {
-    return Objects.requireNonNull(gsonBuilder).registerTypeHierarchyAdapter(byte[].class,
-        new ByteArrayToBase64TypeAdapter());
+    return Objects.requireNonNull(gsonBuilder).disableHtmlEscaping()
+        .registerTypeHierarchyAdapter(byte[].class, new ByteArrayToBase64TypeAdapter());
   }
 }
