@@ -51,6 +51,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -111,11 +112,9 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       @SuppressWarnings("deprecation")
       TableId repTable = org.apache.accumulo.core.replication.ReplicationTable.ID;
 
-      while (getZkDeadCount(cluster.getServerContext().getZooReader(),
-          cluster.getServerContext().getInstanceID()) <= deadCount) {
-        log.debug("Waiting for dead server to be reported in ZooKeeper. Waiting for next check...");
-        UtilWaitThread.sleep(5000);
-      }
+      Wait.waitFor(
+          () -> getZkDeadCount(context.getZooReader(), context.getInstanceID()) > deadCount, 60_000,
+          5_000, "Timed out waiting for dead server to be reported in ZooKeeper");
 
       // Find out which tablet server remains
       while (true) {
@@ -164,16 +163,11 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
     }
   }
 
-  private int getZkDeadCount(ZooReader zooReader, final InstanceId iid) {
+  private int getZkDeadCount(ZooReader zooReader, final InstanceId iid) throws Exception {
     String tPath = Constants.ZROOT + "/" + iid + Constants.ZDEADTSERVERS;
-    try {
-      int count = zooReader.getChildren(tPath).size();
-      log.debug("Current dead server count: {}", count);
-      return count;
-    } catch (Exception ex) {
-      throw new IllegalStateException(
-          "Failed to read the number of dead tservers reported in ZooKeeper", ex);
-    }
+    int count = zooReader.getChildren(tPath).size();
+    log.debug("Current dead server count: {}", count);
+    return count;
   }
 
   private void waitForCleanStore(TabletStateStore store) {
@@ -181,7 +175,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
-        log.debug("Exception waiting fro clean store", ex);
+        log.debug("Exception waiting for clean store", ex);
         UtilWaitThread.sleep(250);
         continue;
       }
