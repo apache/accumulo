@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.security.SecureRandom;
 import java.util.List;
@@ -135,7 +136,7 @@ public class RingBufferTest {
         }
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < 2000) {
-          ring.toList();
+          ring.toListNoFail();
         }
       }
     });
@@ -163,5 +164,46 @@ public class RingBufferTest {
 
     // ensure no exceptions were thrown
     assertNull(handler.thrown, "Exception was thrown: " + handler.thrown);
+  }
+
+  @Test
+  public void maxAllowedSizeFails() {
+    try {
+      TabletTransactionLog.Ring<Integer> ring =
+          new TabletTransactionLog.Ring<>(TabletTransactionLog.Ring.MAX_ALLOWED_SIZE + 1);
+      fail("Expected failure creating ring larger than "
+          + TabletTransactionLog.Ring.MAX_ALLOWED_SIZE);
+    } catch (IllegalArgumentException e) {
+      // expected;
+    }
+  }
+
+  @Test
+  public void testOverrun() {
+    TabletTransactionLog.Ring<Integer> ring = new TabletTransactionLog.Ring<>(10);
+    for (int i = 0; i < TabletTransactionLog.Ring.OVERRUN_THRESHOLD; i++) {
+      ring.add(1);
+    }
+    assertEquals(10, ring.size());
+    assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 1, ring.last());
+    assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 10, ring.first());
+
+    ring.add(1);
+
+    assertEquals(10, ring.size());
+    assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD, ring.last());
+    assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 9, ring.first());
+
+    ring.add(1);
+
+    assertEquals(10, ring.size());
+    assertEquals(9, ring.last());
+    assertEquals(0, ring.first());
+
+    ring.add(1);
+
+    assertEquals(10, ring.size());
+    assertEquals(10, ring.last());
+    assertEquals(1, ring.first());
   }
 }

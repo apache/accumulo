@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a transaction log that will maintain the last N transactions. It is used to be able to
@@ -41,6 +44,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
  * synchronize.
  */
 public class TabletTransactionLog {
+  private static final Logger logger = LoggerFactory.getLogger(TabletTransactionLog.class);
   // The tablet extent for which we are logging
   private final KeyExtent extent;
   // The max size of the log
@@ -149,13 +153,21 @@ public class TabletTransactionLog {
     }
 
     public void setCapacity(int maxSize) {
+
+      if (maxSize > Ring.MAX_ALLOWED_SIZE) {
+        logger.warn(
+            "Attempting to set transaction log capacity larger than max allowed size of {}, capping at max allowed size",
+            Ring.MAX_ALLOWED_SIZE);
+        maxSize = Ring.MAX_ALLOWED_SIZE;
+      }
+
       if (this.tabletLog.capacity() == maxSize) {
         return;
       }
       long initialTs = 0;
       Set<StoredTabletFile> initialFileSet = null;
       Ring<TabletTransaction> newTabletLog = new Ring<>(maxSize);
-      for (TabletTransaction t : this.tabletLog.toList()) {
+      for (TabletTransaction t : this.tabletLog.toListNoFail()) {
         TabletTransaction removed = newTabletLog.add(t);
         if (removed != null) {
           if (initialFileSet == null) {
@@ -225,7 +237,7 @@ public class TabletTransactionLog {
     }
 
     List<TabletTransaction> getTransactions() {
-      return tabletLog.toList();
+      return tabletLog.toListNoFail();
     }
 
     Set<StoredTabletFile> getExpectedFiles() {
@@ -254,7 +266,7 @@ public class TabletTransactionLog {
         initialTs = this.initialTs;
         initialFiles = this.initialFiles;
         finalFiles = this.finalFiles;
-        transactions = this.tabletLog.toList();
+        transactions = this.tabletLog.toListNoFail();
         consistent =
             (updateCount == this.updateCount && updateCount == this.tabletLog.getUpdateCount());
       } while (!consistent);
@@ -299,13 +311,17 @@ public class TabletTransactionLog {
    * A simple implementation of a ring buffer. Note that this is not thread safe when it comes to
    * modifications. However the read methods can be done concurrently with a write method.
    */
-  public static class Ring<T> {
+  static class Ring<T> {
     private final Object[] ring;
     private volatile int first;
     private volatile int last;
-    private static final int overrunThreshold = (Integer.MAX_VALUE / 2);
+    public static final int OVERRUN_THRESHOLD = (Integer.MAX_VALUE / 2);
+    public static final int MAX_ALLOWED_SIZE = (OVERRUN_THRESHOLD / 2 - 1);
 
     public Ring(int size) {
+      if (size > MAX_ALLOWED_SIZE) {
+        throw new IllegalArgumentException("Size cannot be larger than " + MAX_ALLOWED_SIZE);
+      }
       ring = new Object[size];
       first = 0;
       last = -1;
@@ -332,6 +348,14 @@ public class TabletTransactionLog {
       return last - first + 1;
     }
 
+    int first() {
+      return first;
+    }
+
+    int last() {
+      return last;
+    }
+
     public int capacity() {
       return ring.length;
     }
@@ -341,12 +365,12 @@ public class TabletTransactionLog {
     }
 
     public void avoidOverrun() {
-      if (last > overrunThreshold) {
-        int max = Math.max(first, last);
+      if (last > OVERRUN_THRESHOLD) {
+        int max = Math.min(first, last);
         first -= max;
         last -= max;
-      } else if (first > overrunThreshold) {
-        int max = Math.max(first, last);
+      } else if (first > OVERRUN_THRESHOLD) {
+        int max = Math.min(first, last);
         last -= max;
         first -= max;
       }
@@ -356,27 +380,37 @@ public class TabletTransactionLog {
       last = first - 1;
     }
 
+    public List<T> toListNoFail() {
+      while (true) {
+        try {
+          return toList();
+        } catch (ConcurrentModificationException cme) {
+          // try again.
+        }
+      }
+    }
+
     @SuppressWarnings("unchecked")
     public List<T> toList() {
       Object[] data = null;
-      // consistency is defined as the last position and the first position being
-      // the same before and after pulling the list.
-      boolean consistent = false;
-      do {
-        long updateCount = getUpdateCount();
-        int lastPos = last;
-        int firstPos = first;
-        // if either is over the threshold, then we must be in the middle of a modification
-        // but before the overrun threshold is called. try again.
-        if (lastPos <= overrunThreshold && firstPos <= overrunThreshold) {
-          data = new Object[lastPos - firstPos + 1];
-          int index = 0;
-          for (int i = firstPos; i <= lastPos; i++) {
-            data[index++] = ring[i % ring.length];
-          }
-          consistent = (updateCount == getUpdateCount());
+      long updateCount = getUpdateCount();
+      int lastPos = last;
+      int firstPos = first;
+      // if either is over the threshold, then we must be in the middle of a modification
+      // but before the overrun threshold is called. try again.
+      if (lastPos <= OVERRUN_THRESHOLD && firstPos <= OVERRUN_THRESHOLD) {
+        data = new Object[lastPos - firstPos + 1];
+        int index = 0;
+        for (int i = firstPos; i <= lastPos; i++) {
+          data[index++] = ring[i % ring.length];
         }
-      } while (!consistent);
+        // if the update count is not the same, then we are in the process of modifying the ring
+        if (updateCount != getUpdateCount()) {
+          throw new ConcurrentModificationException("Update count changed");
+        }
+      } else {
+        throw new ConcurrentModificationException("Overrun threshold detected");
+      }
       return (List<T>) List.of(data);
     }
 
