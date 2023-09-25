@@ -106,8 +106,9 @@ public class ExtCEnv implements CompactionEnv {
         return TCompactionReason.CHOP;
       case SELECTOR:
       case SYSTEM:
-      default:
         return TCompactionReason.SYSTEM;
+      default:
+        throw new IllegalStateException("Unknown compaction kind " + job.getKind());
     }
   }
 
