@@ -21,7 +21,7 @@
 <div id="systemAlert" class="alert" style="display: none;" role="alert">
     <h4>System-wide Notifications</h4>
     <hr>
-    <ul id="alertMessages">
+    <ul id="alertMessages" class="mb-0">
         <!-- Messages will be appended here -->
     </ul>
 </div>
