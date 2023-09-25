@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -27,13 +27,16 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -99,12 +102,21 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         }
       }
       assertEquals(2, states.size());
+      int deadCount = getZkDeadCount(cluster.getServerContext().getZooReader(),
+          cluster.getServerContext().getInstanceID());
       // Kill a tablet server... we don't care which one... wait for everything to be reassigned
       cluster.killProcess(ServerType.TABLET_SERVER,
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       Set<TabletMetadata.Location> replStates = new HashSet<>();
       @SuppressWarnings("deprecation")
       TableId repTable = org.apache.accumulo.core.replication.ReplicationTable.ID;
+
+      while (getZkDeadCount(cluster.getServerContext().getZooReader(),
+          cluster.getServerContext().getInstanceID()) <= deadCount) {
+        log.debug("Waiting for dead server to be reported in ZooKeeper. Waiting for next check...");
+        UtilWaitThread.sleep(5000);
+      }
+
       // Find out which tablet server remains
       while (true) {
         UtilWaitThread.sleep(1000);
@@ -120,13 +132,15 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
             allAssigned = false;
           }
         }
-        System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
+        log.info(states + "{} size {} allAssigned {}", states, states.size(), allAssigned);
         if (states.size() != 2 && allAssigned) {
           break;
         }
       }
+
       assertEquals(1, replStates.size());
       assertEquals(1, states.size());
+
       // pick an assigned tablet and assign it to the old tablet
       TabletLocationState moved = null;
       for (TabletLocationState old : oldLocations) {
@@ -134,7 +148,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           moved = old;
         }
       }
-      assertNotEquals(null, moved);
+      assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
       tabletMutator.putLocation(moved.current);
@@ -150,12 +164,24 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
     }
   }
 
+  private int getZkDeadCount(ZooReader zooReader, final InstanceId iid) {
+    String tPath = Constants.ZROOT + "/" + iid + Constants.ZDEADTSERVERS;
+    try {
+      int count = zooReader.getChildren(tPath).size();
+      log.debug("Current dead server count: {}", count);
+      return count;
+    } catch (Exception ex) {
+      throw new IllegalStateException(
+          "Failed to read the number of dead tservers reported in ZooKeeper", ex);
+    }
+  }
+
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
-        System.out.println(ex);
+        log.debug("Exception waiting fro clean store", ex);
         UtilWaitThread.sleep(250);
         continue;
       }
