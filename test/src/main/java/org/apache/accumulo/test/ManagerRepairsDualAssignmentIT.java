@@ -19,8 +19,9 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.io.EOFException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
@@ -121,10 +122,15 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
               needIterator = false;
             }
           } catch (Exception ex) {
-            log.debug("Failed to get TabletStateStore iterator - will retry", ex);
-            UtilWaitThread.sleep(1000);
+            if (ex.getCause() instanceof EOFException) {
+              log.debug("Failed to get TabletStateStore iterator - will retry", ex);
+              UtilWaitThread.sleep(1000);
+            } else {
+              throw ex;
+            }
           }
         }
+
         log.info("Have TabletStateStore iterator. Proceeding with reading states");
         for (TabletLocationState tls : store) {
           if (tls != null && tls.current != null) {
@@ -151,7 +157,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           moved = old;
         }
       }
-      assertNotEquals(null, moved);
+      assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
       tabletMutator.putLocation(moved.current);
