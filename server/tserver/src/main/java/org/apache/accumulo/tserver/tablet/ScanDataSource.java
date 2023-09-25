@@ -148,7 +148,7 @@ class ScanDataSource implements DataSource {
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
         tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
-        log.trace("Adding active scan for " + tablet.getExtent());
+        log.trace("Adding active scan for  {}", tablet.getExtent());
         tablet.addActiveScans(this);
       }
 
