@@ -132,7 +132,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
             allAssigned = false;
           }
         }
-        log.info(states + "{} size {} allAssigned {}", states, states.size(), allAssigned);
+        log.info("{} size {} allAssigned {}", states, states.size(), allAssigned);
         if (states.size() != 2 && allAssigned) {
           break;
         }
