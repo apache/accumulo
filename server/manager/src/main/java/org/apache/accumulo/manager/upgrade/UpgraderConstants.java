@@ -24,7 +24,7 @@ import org.apache.hadoop.io.Text;
 public class UpgraderConstants {
 
   /**
-   * ChoppedColumnFamily kept around for cleaning up old entries on upgrade
+   * ChoppedColumnFamily kept around for cleaning up old entries on upgrade.  Currently not used, will be used by #3768
    */
   public static class ChoppedColumnFamily {
     public static final String STR_NAME = "chopped";
