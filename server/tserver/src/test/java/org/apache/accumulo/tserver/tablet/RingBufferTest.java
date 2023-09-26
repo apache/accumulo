@@ -181,27 +181,33 @@ public class RingBufferTest {
   @Test
   public void testOverrun() {
     TabletTransactionLog.Ring<Integer> ring = new TabletTransactionLog.Ring<>(10);
+    int count = 0;
     for (int i = 0; i < TabletTransactionLog.Ring.OVERRUN_THRESHOLD; i++) {
-      ring.add(1);
+      ring.add(count++);
     }
+
+    assertEquals(IntStream.range(count-10, count).boxed().collect(Collectors.toList()), ring.toList());
     assertEquals(10, ring.size());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 1, ring.last());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 10, ring.first());
 
-    ring.add(1);
+    ring.add(count++);
 
+    assertEquals(IntStream.range(count-10, count).boxed().collect(Collectors.toList()), ring.toList());
     assertEquals(10, ring.size());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD, ring.last());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 9, ring.first());
 
-    ring.add(1);
+    ring.add(count++);
 
+    assertEquals(IntStream.range(count-10, count).boxed().collect(Collectors.toList()), ring.toList());
     assertEquals(10, ring.size());
     assertEquals(9, ring.last());
     assertEquals(0, ring.first());
 
-    ring.add(1);
+    ring.add(count++);
 
+    assertEquals(IntStream.range(count-10, count).boxed().collect(Collectors.toList()), ring.toList());
     assertEquals(10, ring.size());
     assertEquals(10, ring.last());
     assertEquals(1, ring.first());
