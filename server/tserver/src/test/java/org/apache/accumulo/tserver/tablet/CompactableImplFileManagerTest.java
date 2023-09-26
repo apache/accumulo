@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.core.spi.compaction.CompactionKind.CHOP;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.SELECTOR;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.SYSTEM;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.USER;
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -44,8 +42,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.tserver.tablet.CompactableImpl.ChopSelectionStatus;
-import org.apache.accumulo.tserver.tablet.CompactableImpl.FileManager.ChopSelector;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.FileSelectionStatus;
 import org.junit.jupiter.api.Test;
 
@@ -61,7 +57,7 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf"),
         fileMgr.getCandidates(tabletFiles, SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
 
     var job1 = newJob(CompactionKind.SYSTEM, "F00000.rf", "F00001.rf");
 
@@ -69,7 +65,7 @@ public class CompactableImplFileManagerTest {
     assertEquals(job1.getSTFiles(), fileMgr.getCompactingFiles());
 
     assertEquals(newFiles("F00002.rf", "F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
 
     var job2 = newJob(CompactionKind.SYSTEM, "F00002.rf", "F00003.rf");
 
@@ -80,7 +76,7 @@ public class CompactableImplFileManagerTest {
     assertFalse(fileMgr.reserveFiles(newJob(CompactionKind.SYSTEM, "F00001.rf", "F00002.rf")));
 
     assertEquals(Set.of(), fileMgr.getCandidates(tabletFiles, CompactionKind.SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, USER, SELECTOR);
 
     fileMgr.completed(job2, newFile("C00004.rf"));
     fileMgr.completed(job1, newFile("C00005.rf"));
@@ -89,12 +85,12 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("C00004.rf", "C00005.rf"),
         fileMgr.getCandidates(tabletFiles, CompactionKind.SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
 
     var job3 = newJob(CompactionKind.SYSTEM, "C00004.rf", "C00005.rf");
     assertTrue(fileMgr.reserveFiles(job3));
 
-    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, USER, SELECTOR);
 
     fileMgr.completed(job3, newFile("A00006.rf"));
     assertEquals(Set.of(), fileMgr.getCompactingFiles());
@@ -115,19 +111,19 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf"),
         fileMgr.getCandidates(tabletFiles, SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
 
     assertTrue(fileMgr.initiateSelection(USER));
 
     assertFalse(fileMgr.reserveFiles(staleJob));
 
-    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, USER, SELECTOR);
 
     assertTrue(fileMgr.beginSelection());
 
     assertFalse(fileMgr.reserveFiles(staleJob));
 
-    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, USER, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, USER, SELECTOR);
 
     fileMgr.finishSelection(newFiles("F00000.rf", "F00001.rf", "F00002.rf"), false);
 
@@ -136,7 +132,7 @@ public class CompactableImplFileManagerTest {
     assertEquals(newFiles("F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM));
     assertEquals(newFiles("F00000.rf", "F00001.rf", "F00002.rf"),
         fileMgr.getCandidates(tabletFiles, USER));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SELECTOR);
 
     assertFalse(fileMgr.reserveFiles(newJob(SELECTOR, "F00000.rf", "F00001.rf")));
     assertFalse(fileMgr.reserveFiles(newJob(SYSTEM, "F00000.rf", "F00001.rf")));
@@ -156,7 +152,7 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM));
     assertEquals(newFiles("F00002.rf"), fileMgr.getCandidates(tabletFiles, USER));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SELECTOR);
 
     fileMgr.completed(job1, newFile("C00004.rf"));
     assertEquals(FileSelectionStatus.RESERVED, fileMgr.getSelectionStatus());
@@ -165,7 +161,7 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM));
     assertEquals(newFiles("F00002.rf", "C00004.rf"), fileMgr.getCandidates(tabletFiles, USER));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SELECTOR);
 
     var job2 = newJob(USER, "F00002.rf", "C00004.rf");
 
@@ -180,7 +176,7 @@ public class CompactableImplFileManagerTest {
     tabletFiles = newFiles("C00005.rf", "F00003.rf");
 
     assertEquals(newFiles("C00005.rf", "F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, USER, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
   }
 
   @Test
@@ -198,7 +194,7 @@ public class CompactableImplFileManagerTest {
 
     assertEquals(newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf"),
         fileMgr.getCandidates(tabletFiles, USER));
-    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SYSTEM, SELECTOR);
 
     // advance time to a point where the selection is eligible to expire
     fileMgr.setNanoTime(2 * SELECTION_EXPIRATION.toNanos());
@@ -209,7 +205,7 @@ public class CompactableImplFileManagerTest {
         fileMgr.getCandidates(tabletFiles, USER));
     assertEquals(newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf"),
         fileMgr.getCandidates(tabletFiles, SYSTEM));
-    assertNoCandidates(fileMgr, tabletFiles, CHOP, SELECTOR);
+    assertNoCandidates(fileMgr, tabletFiles, SELECTOR);
 
     // a system compaction should be able to reserve selected files after expiration which should
     // deactivate the selection
@@ -338,60 +334,6 @@ public class CompactableImplFileManagerTest {
     fileMgr.completed(job2, newFile("C00006.rf"));
     assertEquals(FileSelectionStatus.NOT_ACTIVE, fileMgr.getSelectionStatus());
     assertEquals(Set.of(), fileMgr.getCompactingFiles());
-
-  }
-
-  @Test
-  public void testChop() {
-    TestFileManager fileMgr = new TestFileManager();
-
-    // simulate a compaction because files that were created by compaction are remembered as not
-    // needing a chop
-    var job1 = newJob(SYSTEM, "F00000.rf", "F00001.rf");
-    assertTrue(fileMgr.reserveFiles(job1));
-    fileMgr.completed(job1, newFile("C00005.rf"));
-
-    var tabletFiles = newFiles("C00005.rf", "F00002.rf", "F00003.rf", "F00004.rf");
-
-    ChopSelector chopSel = fileMgr.initiateChop(tabletFiles);
-    assertEquals(ChopSelectionStatus.SELECTING, fileMgr.getChopStatus());
-
-    assertEquals(Set.of(), fileMgr.getCandidates(tabletFiles, CHOP));
-
-    // this should not include C00005.rf because it was created by a compaction observed by the file
-    // manager
-    assertEquals(newFiles("F00002.rf", "F00003.rf", "F00004.rf"), chopSel.getFilesToExamine());
-
-    chopSel.selectChopFiles(newFiles("F00002.rf", "F00004.rf"));
-    assertEquals(ChopSelectionStatus.SELECTED, fileMgr.getChopStatus());
-
-    assertEquals(newFiles("F00002.rf", "F00004.rf"), fileMgr.getCandidates(tabletFiles, CHOP));
-
-    // simulate compacting one of the files that needs to be chopped, but this should not finish the
-    // chop because more files need to be chopped
-    var job2 = newJob(CHOP, "F00002.rf");
-    assertTrue(fileMgr.reserveFiles(job2));
-    fileMgr.completed(job2, newFile("C00006.rf"));
-    tabletFiles = newFiles("C00004.rf", "C00006.rf", "F00003.rf", "F00004.rf");
-    assertFalse(fileMgr.finishChop(tabletFiles));
-    assertEquals(ChopSelectionStatus.SELECTED, fileMgr.getChopStatus());
-    assertThrows(IllegalStateException.class, fileMgr::finishMarkingChop);
-
-    assertEquals(newFiles("F00004.rf"), fileMgr.getCandidates(tabletFiles, CHOP));
-
-    // simulate compacting the last file to chop. should cause the chop finish
-    var job3 = newJob(CHOP, "F00004.rf");
-    assertTrue(fileMgr.reserveFiles(job3));
-    fileMgr.completed(job3, newFile("C00007.rf"));
-    tabletFiles = newFiles("C00004.rf", "C00006.rf", "F00003.rf", "C00007.rf");
-    assertTrue(fileMgr.finishChop(tabletFiles));
-
-    assertEquals(Set.of(), fileMgr.getCandidates(tabletFiles, CHOP));
-    assertEquals(ChopSelectionStatus.MARKING, fileMgr.getChopStatus());
-    assertEquals(Set.of(), fileMgr.getCompactingFiles());
-
-    fileMgr.finishMarkingChop();
-    assertEquals(ChopSelectionStatus.NOT_ACTIVE, fileMgr.getChopStatus());
 
   }
 

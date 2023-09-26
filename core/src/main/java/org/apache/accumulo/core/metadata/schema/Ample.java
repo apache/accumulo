@@ -302,8 +302,6 @@ public interface Ample {
 
     TabletMutator deleteBulkFile(StoredTabletFile bulkref);
 
-    TabletMutator putChopped();
-
     TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
 
     TabletMutator deleteSuspension();

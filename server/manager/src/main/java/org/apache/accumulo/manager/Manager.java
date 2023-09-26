@@ -647,7 +647,6 @@ public class Manager extends AbstractServer
             case COMPLETE:
               break;
             case STARTED:
-            case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
             case MERGING:

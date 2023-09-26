@@ -85,8 +85,6 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
     switch (kind) {
       case USER:
         return TCompactionReason.USER;
-      case CHOP:
-        return TCompactionReason.CHOP;
       case SELECTOR:
       case SYSTEM:
         return TCompactionReason.SYSTEM;

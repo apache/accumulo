@@ -54,8 +54,9 @@ public abstract class ActiveCompaction {
      */
     SYSTEM,
     /**
-     * Compaction initiated by merge operation
+     * @deprecated Chop compactions have been removed
      */
+    @Deprecated(since = "3.1", forRemoval = true)
     CHOP,
     /**
      * idle compaction

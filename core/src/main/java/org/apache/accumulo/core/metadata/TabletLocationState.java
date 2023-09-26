@@ -56,7 +56,7 @@ public class TabletLocationState {
   }
 
   public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
-      SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped)
+      SuspendingTServer suspend, Collection<Collection<String>> walogs)
       throws BadLocationStateException {
     this.extent = extent;
     this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
@@ -67,7 +67,6 @@ public class TabletLocationState {
       walogs = Collections.emptyList();
     }
     this.walogs = walogs;
-    this.chopped = chopped;
     if (hasCurrent() && hasFuture()) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
@@ -81,7 +80,6 @@ public class TabletLocationState {
   public final Location last;
   public final SuspendingTServer suspend;
   public final Collection<Collection<String>> walogs;
-  public final boolean chopped;
 
   public TServerInstance getCurrentServer() {
     return serverInstance(current);
@@ -150,7 +148,7 @@ public class TabletLocationState {
 
   @Override
   public String toString() {
-    return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
+    return extent + "@(" + future + "," + current + "," + last + ")";
   }
 
   private static Location validateLocation(final Location location,

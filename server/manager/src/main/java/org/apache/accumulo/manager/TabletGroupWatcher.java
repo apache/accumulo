@@ -72,7 +72,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -261,7 +260,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               tls.getFutureServer(), tls.getCurrentServer(), tls.walogs.size());
 
           stats.update(tableId, state);
-          mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
+          mergeStats.update(tls.extent, state);
 
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
@@ -780,7 +779,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           Mutation m = new Mutation(followingTablet.toMetaRow());
           TabletColumnFamily.PREV_ROW_COLUMN.put(m,
               TabletColumnFamily.encodePrevEndRow(extent.prevEndRow()));
-          ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
           bw.addMutation(m);
           bw.flush();
         } finally {
@@ -957,12 +955,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       bw.flush();
 
       deleteTablets(info, scanRange, bw, client);
-
-      // Clean-up the last chopped marker
-      var m2 = new Mutation(stopRow);
-      ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m2);
-      bw.addMutation(m2);
-      bw.flush();
 
     } catch (Exception ex) {
       throw new AccumuloException(ex);

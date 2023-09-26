@@ -483,7 +483,7 @@ public class Tablet extends TabletBase {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-        storedFile.ifPresent(stf -> compactable.filesAdded(true, List.of(stf)));
+        storedFile.ifPresent(stf -> compactable.filesAdded());
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
         throw e;
@@ -1771,13 +1771,13 @@ public class Tablet extends TabletBase {
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
 
-      var storedTabletFile = getDatafileManager().importDataFiles(tid, entries, setTime);
+      getDatafileManager().importDataFiles(tid, entries, setTime);
       lastDataFileImportTime = System.currentTimeMillis();
 
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
       } else {
-        compactable.filesAdded(false, storedTabletFile);
+        compactable.filesAdded();
       }
     } finally {
       synchronized (this) {
@@ -2004,10 +2004,6 @@ public class Tablet extends TabletBase {
 
   public void finishUpdatingLogsUsed() {
     logLock.unlock();
-  }
-
-  public void chopFiles() {
-    compactable.initiateChop();
   }
 
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {
