@@ -37,6 +37,12 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
+   * version (12) reflect changes to support no chop merges including json encoding of the file
+   * column family stored in root and metadata tables.
+   */
+  public static final int METADATA_FILE_JSON_ENCODING = 12;
+
+  /**
    * version (11) reflects removal of replication starting with 3.0
    */
   public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
@@ -59,7 +65,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = REMOVE_DEPRECATIONS_FOR_VERSION_3;
+  private static final int CURRENT_VERSION = METADATA_FILE_JSON_ENCODING;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -71,7 +77,11 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  // TODO - this is currently set to disable upgrades until metadata file json conversion
+  // implemented
+  // public static final Set<Integer> CAN_RUN = Set.of(REMOVE_DEPRECATIONS_FOR_VERSION_3,
+  // CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION);
 
   /**
    * Get the stored, current working version.
@@ -96,6 +106,8 @@ public class AccumuloDataVersion {
         return "2.1.0";
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
+      case METADATA_FILE_JSON_ENCODING:
+        return "3.1.0";
     }
     throw new IllegalArgumentException("Unsupported data version " + version);
   }
