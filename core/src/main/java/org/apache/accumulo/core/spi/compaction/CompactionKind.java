@@ -36,10 +36,5 @@ public enum CompactionKind {
   /**
    * A user initiated a one time compaction using an Accumulo client.
    */
-  USER,
-  /**
-   * @deprecated Chop Compactions have been deprecated
-   */
-  @Deprecated(since = "3.1")
-  CHOP
+  USER
 }
