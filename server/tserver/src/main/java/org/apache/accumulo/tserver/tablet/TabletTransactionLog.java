@@ -367,10 +367,12 @@ public class TabletTransactionLog {
     public void avoidOverrun() {
       if (last > OVERRUN_THRESHOLD) {
         int max = Math.min(first, last);
+        max -= max % ring.length;
         first -= max;
         last -= max;
       } else if (first > OVERRUN_THRESHOLD) {
         int max = Math.min(first, last);
+        max -= max % ring.length;
         last -= max;
         first -= max;
       }
