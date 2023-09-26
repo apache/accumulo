@@ -143,15 +143,15 @@ class DatafileManager {
             }
           }
         } finally {
-          // Remove scan files even if the loop above did not fully complete because once a
-          // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
-          // and would never be added back.
           if (notify) {
             tablet.notifyAll();
           }
         }
       }
     } finally {
+      // Remove scan files even if the loop above did not fully complete because once a
+      // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
+      // and would never be added back.
       if (!filesToDelete.isEmpty()) {
         log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
         MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),

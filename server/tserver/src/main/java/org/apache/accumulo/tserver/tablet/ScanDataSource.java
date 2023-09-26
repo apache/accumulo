@@ -53,6 +53,7 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -252,9 +253,8 @@ class ScanDataSource implements DataSource {
           tablet.returnFilesForScan(fileReservationId);
         } catch (IllegalArgumentException | IllegalStateException e) {
           if (log.isTraceEnabled()) {
-            log.trace("Error Returning file iterators for scan: {}, :{}", scanDataSourceId,
-                e.getMessage());
-            e.printStackTrace();
+            log.trace("Error Returning file iterators for scan: {}, :{}", scanDataSourceId, e.getMessage());
+            log.trace("{}", ExceptionUtils.getStackTrace(e));
           }
           // Continue bubbling the exception up for handling.
           throw e;
