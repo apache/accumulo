@@ -39,9 +39,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This is a transaction log that will maintain the last N transactions. It is used to be able to
- * log and review the transactions when issues are detected. The modifications to this log are NOT
- * thread safe. However one can get the list of transactions or dump the log without having to
- * synchronize.
+ * log and review the transactions when issues are detected. This class is thread safe.
  */
 public class TabletTransactionLog {
   private static final Logger logger = LoggerFactory.getLogger(TabletTransactionLog.class);
@@ -59,34 +57,75 @@ public class TabletTransactionLog {
     this.log = new TransactionLog(initialFiles);
   }
 
+  /**
+   * Get the max size of the transaction log currently configured.
+   *
+   * @return the max size
+   */
   private int getMaxSize() {
     return maxSize.derive().getMaxSize();
   }
 
+  /**
+   * Get the date of the first transaction in the log
+   *
+   * @return the initial date
+   */
   public Date getInitialDate() {
     return this.log.getInitialDate();
   }
 
+  /**
+   * Get the list of transactions.
+   *
+   * @return the list of transactions
+   */
   public List<TabletTransaction> getTransactions() {
     return this.log.getTransactions();
   }
 
+  /**
+   * Is the transaction log empty
+   *
+   * @return true if empty
+   */
   public boolean isEmpty() {
     return this.log.isEmpty();
   }
 
+  /**
+   * Get the current list of expected files after all transactions are applied.
+   *
+   * @return the list of expected files
+   */
   public Set<StoredTabletFile> getExpectedFiles() {
     return this.log.getExpectedFiles();
   }
 
+  /**
+   * Add a compaction transaction.
+   *
+   * @param files The files that were compacted
+   * @param output The destination file
+   */
   public void compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> output) {
     addTransaction(new TabletTransaction.Compacted(files, output));
   }
 
+  /**
+   * Add a flush transaction
+   *
+   * @param newDatafile The new flushed file
+   */
   public void flushed(Optional<StoredTabletFile> newDatafile) {
     addTransaction(new TabletTransaction.Flushed(newDatafile));
   }
 
+  /**
+   * Add a bulk import transaction
+   *
+   * @param file the new bulk import file
+   */
   public void bulkImported(StoredTabletFile file) {
     addTransaction(new TabletTransaction.BulkImported(file));
   }
@@ -96,9 +135,16 @@ public class TabletTransactionLog {
    *
    * @param transaction The transaction to add
    */
-  private void addTransaction(TabletTransaction transaction) {
+  private synchronized void addTransaction(TabletTransaction transaction) {
     this.log.setCapacity(getMaxSize());
     this.log.addTransaction(transaction);
+  }
+
+  /**
+   * Clear the log
+   */
+  public synchronized void clearLog() {
+    this.log.clear();
   }
 
   /**
@@ -110,10 +156,6 @@ public class TabletTransactionLog {
     return this.log.dumpLog(extent, false);
   }
 
-  public void clearLog() {
-    this.log.clear();
-  }
-
   @Override
   public String toString() {
     return dumpLog();
@@ -121,7 +163,9 @@ public class TabletTransactionLog {
 
   /**
    * A transaction log consists of the original file set and its timestamp, a set of transactions,
-   * and the final set of files after applying the transations. This class is immutable.
+   * and the final set of files after applying the transations. The modification methods of this
+   * class are NOT thread safe. However the read methods can be called concurrently with the write
+   * methods.
    */
   private static class TransactionLog {
     private static final String DATE_FORMAT = "yyyyMMdd'T'HH:mm:ss.SSS";
@@ -152,21 +196,26 @@ public class TabletTransactionLog {
       this.updateCount = tabletLog.getUpdateCount();
     }
 
-    public void setCapacity(int maxSize) {
+    /**
+     * Update the capacity of the ring.
+     *
+     * @param capacity The new capacity
+     */
+    public void setCapacity(int capacity) {
 
-      if (maxSize > Ring.MAX_ALLOWED_SIZE) {
+      if (capacity > Ring.MAX_ALLOWED_SIZE) {
         logger.warn(
             "Attempting to set transaction log capacity larger than max allowed size of {}, capping at max allowed size",
             Ring.MAX_ALLOWED_SIZE);
-        maxSize = Ring.MAX_ALLOWED_SIZE;
+        capacity = Ring.MAX_ALLOWED_SIZE;
       }
 
-      if (this.tabletLog.capacity() == maxSize) {
+      if (this.tabletLog.capacity() == capacity) {
         return;
       }
       long initialTs = 0;
       Set<StoredTabletFile> initialFileSet = null;
-      Ring<TabletTransaction> newTabletLog = new Ring<>(maxSize);
+      Ring<TabletTransaction> newTabletLog = new Ring<>(capacity);
       for (TabletTransaction t : this.tabletLog.toListNoFail()) {
         TabletTransaction removed = newTabletLog.add(t);
         if (removed != null) {
@@ -185,17 +234,13 @@ public class TabletTransactionLog {
       this.updateCount = this.tabletLog.getUpdateCount();
     }
 
+    /**
+     * Clear the log, keeping the final list of files and timestamp.
+     */
     public void clear() {
       this.tabletLog.clear();
       this.initialTs = System.currentTimeMillis();
       this.initialFiles = this.finalFiles;
-      this.updateCount = this.tabletLog.getUpdateCount();
-    }
-
-    public void reset(Set<StoredTabletFile> files) {
-      this.tabletLog.clear();
-      this.initialTs = System.currentTimeMillis();
-      this.initialFiles = this.finalFiles = files.toArray(new StoredTabletFile[0]);
       this.updateCount = this.tabletLog.getUpdateCount();
     }
 
@@ -228,22 +273,36 @@ public class TabletTransactionLog {
       return newFiles.toArray(new StoredTabletFile[0]);
     }
 
+    /**
+     * Get the date of the initial files.
+     *
+     * @return the date
+     */
     Date getInitialDate() {
       return Date.from(Instant.ofEpochMilli(initialTs));
     }
 
-    int getNumTransactions() {
-      return tabletLog.size();
-    }
-
+    /**
+     * Get the list of transactions. This can be called concurrently with the modification methods.
+     *
+     * @return the list of transactions
+     */
     List<TabletTransaction> getTransactions() {
       return tabletLog.toListNoFail();
     }
 
+    /**
+     * Get the expected list of files after all transactions are applied the the initial set.
+     */
     Set<StoredTabletFile> getExpectedFiles() {
       return new HashSet<>(Arrays.asList(finalFiles));
     }
 
+    /**
+     * Is the log empty
+     *
+     * @return true if empty
+     */
     boolean isEmpty() {
       return tabletLog.isEmpty();
     }
@@ -308,8 +367,8 @@ public class TabletTransactionLog {
   }
 
   /**
-   * A simple implementation of a ring buffer. Note that this is not thread safe when it comes to
-   * modifications. However the read methods can be done concurrently with a write method.
+   * A simple implementation of a ring buffer. Note that this is NOT thread safe. Only the
+   * toListNoFail method can be done concurrently with a write method (add).
    */
   static class Ring<T> {
     private final Object[] ring;
@@ -318,15 +377,27 @@ public class TabletTransactionLog {
     public static final int OVERRUN_THRESHOLD = (Integer.MAX_VALUE / 2);
     public static final int MAX_ALLOWED_SIZE = (OVERRUN_THRESHOLD / 2 - 1);
 
-    public Ring(int size) {
-      if (size > MAX_ALLOWED_SIZE) {
+    /**
+     * Create a new ring with the specified capacity
+     *
+     * @param capacity The capacity of the ring
+     * @throws IllegalArgumentException if the size is too large
+     */
+    public Ring(int capacity) {
+      if (capacity > MAX_ALLOWED_SIZE) {
         throw new IllegalArgumentException("Size cannot be larger than " + MAX_ALLOWED_SIZE);
       }
-      ring = new Object[size];
+      ring = new Object[capacity];
       first = 0;
       last = -1;
     }
 
+    /**
+     * Add an item to the ring
+     *
+     * @param object The object to add
+     * @return the item removed from the back of the ring if any
+     */
     @SuppressWarnings("unchecked")
     public T add(T object) {
       Object removed = null;
@@ -344,44 +415,46 @@ public class TabletTransactionLog {
       return (T) removed;
     }
 
+    /**
+     * The size of the ring
+     *
+     * @return the size
+     */
     public int size() {
       return last - first + 1;
     }
 
-    int first() {
-      return first;
-    }
-
-    int last() {
-      return last;
-    }
-
+    /**
+     * The capacity of the ring
+     *
+     * @return the capacity
+     */
     public int capacity() {
       return ring.length;
     }
 
+    /**
+     * Is the ring empty
+     *
+     * @return true if the ring is empty
+     */
     public boolean isEmpty() {
       return last < first;
     }
 
-    public void avoidOverrun() {
-      if (last > OVERRUN_THRESHOLD) {
-        int max = Math.min(first, last);
-        max -= max % ring.length;
-        first -= max;
-        last -= max;
-      } else if (first > OVERRUN_THRESHOLD) {
-        int max = Math.min(first, last);
-        max -= max % ring.length;
-        last -= max;
-        first -= max;
-      }
-    }
-
+    /**
+     * Clear/empty the ring.
+     */
     public void clear() {
       last = first - 1;
     }
 
+    /**
+     * This is the only method that can be done concurrently with a modification via the add method.
+     * This will continue to call toList as long as a concurrent modification exception is thrown.
+     *
+     * @return The list of objects in the ring.
+     */
     public List<T> toListNoFail() {
       while (true) {
         try {
@@ -392,8 +465,14 @@ public class TabletTransactionLog {
       }
     }
 
+    /**
+     * Return the list of objects in the ring.
+     *
+     * @return the list of objects
+     * @throws ConcurrentModificationException if the list is modified while gathering the list
+     */
     @SuppressWarnings("unchecked")
-    public List<T> toList() {
+    public List<T> toList() throws ConcurrentModificationException {
       Object[] data = null;
       long updateCount = getUpdateCount();
       int lastPos = last;
@@ -416,8 +495,54 @@ public class TabletTransactionLog {
       return (List<T>) List.of(data);
     }
 
+    /**
+     * This will return a value that can be used to determine when changes are made to the ring.
+     *
+     * @return first + last
+     */
     public long getUpdateCount() {
       return first + last;
+    }
+
+    /**
+     * This will adjust the first and last values to ensure we stay under the overrun threshold
+     */
+    private void avoidOverrun() {
+      if (last > OVERRUN_THRESHOLD) {
+        // start with max adjustment we can make with is the minimum of the positions
+        int adjustment = Math.min(first, last);
+        // then adjust that amount to ensure we keep the same position in the ring.
+        adjustment -= adjustment % ring.length;
+        // modify the first and then the last so that this can be detected in the toList call
+        first -= adjustment;
+        last -= adjustment;
+      } else if (first > OVERRUN_THRESHOLD) {
+        // start with max adjustment we can make with is the minimum of the positions
+        int adjustment = Math.min(first, last);
+        // then adjust that amount to ensure we keep the same position in the ring.
+        adjustment -= adjustment % ring.length;
+        // modify the last and then the first so that this can be detected in the toList call
+        last -= adjustment;
+        first -= adjustment;
+      }
+    }
+
+    /**
+     * The first position (used in tests)
+     *
+     * @return first
+     */
+    int first() {
+      return first;
+    }
+
+    /**
+     * The last position (used in tests)
+     *
+     * @return last
+     */
+    int last() {
+      return last;
     }
 
   }

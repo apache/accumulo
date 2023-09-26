@@ -189,21 +189,24 @@ public class RingBufferTest {
       ring.add(count++);
     }
 
-    assertEquals(IntStream.range(count-capacity, count).boxed().collect(Collectors.toList()), ring.toList());
+    assertEquals(IntStream.range(count - capacity, count).boxed().collect(Collectors.toList()),
+        ring.toList());
     assertEquals(capacity, ring.size());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - 1, ring.last());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - capacity, ring.first());
 
     ring.add(count++);
 
-    assertEquals(IntStream.range(count-capacity, count).boxed().collect(Collectors.toList()), ring.toList());
+    assertEquals(IntStream.range(count - capacity, count).boxed().collect(Collectors.toList()),
+        ring.toList());
     assertEquals(capacity, ring.size());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD, ring.last());
     assertEquals(TabletTransactionLog.Ring.OVERRUN_THRESHOLD - capacity + 1, ring.first());
 
     ring.add(count++);
 
-    assertEquals(IntStream.range(count-capacity, count).boxed().collect(Collectors.toList()), ring.toList());
+    assertEquals(IntStream.range(count - capacity, count).boxed().collect(Collectors.toList()),
+        ring.toList());
     assertEquals(capacity, ring.size());
     // calculate the first index that leaves us in the same position
     int first = TabletTransactionLog.Ring.OVERRUN_THRESHOLD - capacity + 2;
@@ -213,7 +216,8 @@ public class RingBufferTest {
 
     ring.add(count++);
 
-    assertEquals(IntStream.range(count-capacity, count).boxed().collect(Collectors.toList()), ring.toList());
+    assertEquals(IntStream.range(count - capacity, count).boxed().collect(Collectors.toList()),
+        ring.toList());
     assertEquals(capacity, ring.size());
     assertEquals(capacity + delta, ring.last());
     assertEquals(delta + 1, ring.first());
