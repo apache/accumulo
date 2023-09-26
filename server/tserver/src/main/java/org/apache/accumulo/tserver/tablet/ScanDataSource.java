@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -61,6 +62,7 @@ class ScanDataSource implements DataSource {
   // data source state
   private final TabletBase tablet;
   private ScanFileManager fileManager;
+  private static AtomicLong nextSourceId = new AtomicLong(0);
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
@@ -71,6 +73,7 @@ class ScanDataSource implements DataSource {
   private final ScanParameters scanParams;
   private final boolean loadIters;
   private final byte[] defaultLabels;
+  private final long scanDataSourceId;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
@@ -80,9 +83,10 @@ class ScanDataSource implements DataSource {
     this.interruptFlag = interruptFlag;
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
+    this.scanDataSourceId = nextSourceId.incrementAndGet();
     if (log.isTraceEnabled()) {
-      log.trace("new scan data source, tablet: {}, params: {}, loadIterators: {}", this.tablet,
-          this.scanParams, this.loadIters);
+      log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
+          this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
     }
   }
 
@@ -236,14 +240,24 @@ class ScanDataSource implements DataSource {
 
   private void returnIterators() {
     if (memIters != null) {
-      log.trace("Returning mem iterators for {}", tablet.getExtent());
+      log.trace("Returning mem iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+          scanDataSourceId, fileReservationId);
       try {
         tablet.returnMemIterators(memIters);
       } finally {
         memIters = null;
-        log.trace("Returning file iterators for {}", tablet.getExtent());
+        log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+            scanDataSourceId, fileReservationId);
         try {
           tablet.returnFilesForScan(fileReservationId);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+          if (log.isTraceEnabled()) {
+            log.trace("Error Returning file iterators for scan: {}, :{}", scanDataSourceId,
+                e.getMessage());
+            e.printStackTrace();
+          }
+          // Continue bubbling the exception up for handling.
+          throw e;
         } finally {
           fileReservationId = -1;
         }
@@ -257,7 +271,7 @@ class ScanDataSource implements DataSource {
       returnIterators();
     } finally {
       synchronized (tablet) {
-        log.trace("Removing active scan for {}", tablet.getExtent());
+        log.trace("Removing active scan for {} hc:{}", tablet.getExtent(), hashCode());
         if (tablet.removeScan(this) == 0) {
           tablet.notifyAll();
         }

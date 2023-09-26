@@ -143,6 +143,9 @@ class DatafileManager {
             }
           }
         } finally {
+          // Remove scan files even if the loop above did not fully complete because once a
+          // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
+          // and would never be added back.
           if (notify) {
             tablet.notifyAll();
           }
