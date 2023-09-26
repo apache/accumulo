@@ -309,8 +309,6 @@ public class CompactableImpl implements Compactable {
           // intentional fall through
         case USER:
           return handleUserSelectorCompaction(currFiles, kind);
-        case CHOP:
-          return Set.of();
         default:
           throw new AssertionError();
       }
