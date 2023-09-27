@@ -136,7 +136,8 @@ public class ServerContextTest {
     // to ensure we don't unintentionally break upgrade support; changing this should be a conscious
     // decision and this check will ensure we don't overlook it
 
-    // TODO basically disable check until upgrade to 3.1 is supported.
+    // TODO basically disable check until upgrade to 3.1 is supported. Should be:
+    // final int oldestSupported = AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
     final int oldestSupported = AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
     final int currentVersion = AccumuloDataVersion.get();
     IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
