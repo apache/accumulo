@@ -19,6 +19,9 @@
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.InputStream;
+import java.util.Objects;
+
+import org.apache.accumulo.core.data.Range;
 
 /**
  * RFile metadata is stored at the end of the file. Inorder to read an RFile, its length must be
@@ -29,10 +32,19 @@ import java.io.InputStream;
 public class RFileSource {
   private final InputStream in;
   private final long len;
+  private final Range range;
 
   public RFileSource(InputStream in, long len) {
-    this.in = in;
+    this(in, len, new Range());
+  }
+
+  /**
+   * @since 3.1.0
+   */
+  public RFileSource(InputStream in, long len, Range range) {
+    this.in = Objects.requireNonNull(in);
     this.len = len;
+    this.range = Objects.requireNonNull(range);
   }
 
   public InputStream getInputStream() {
@@ -41,5 +53,14 @@ public class RFileSource {
 
   public long getLength() {
     return len;
+  }
+
+  /**
+   * @return The range of the RFileSource
+   *
+   * @since 3.1.0
+   */
+  public Range getRange() {
+    return range;
   }
 }

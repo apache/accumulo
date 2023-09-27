@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -35,8 +36,10 @@ import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -76,6 +79,38 @@ public class RFile {
      * @return this
      */
     ScannerFSOptions from(String... files);
+
+    /**
+     * Specify FencedPath files to read from. When multiple are specified the {@link Scanner}
+     * constructed will present a merged view.
+     *
+     * @param files one or more FencedPaths to read.
+     * @return this
+     *
+     * @since 3.1.0
+     */
+    ScannerFSOptions from(FencedPath... files);
+
+    /**
+     * @since 3.1.0
+     */
+    class FencedPath {
+      private final Path path;
+      private final Range fence;
+
+      public FencedPath(Path path, Range fence) {
+        this.path = Objects.requireNonNull(path);
+        this.fence = AbstractTabletFile.requireRowRange(fence);
+      }
+
+      public Path getPath() {
+        return path;
+      }
+
+      public Range getFence() {
+        return fence;
+      }
+    }
   }
 
   /**

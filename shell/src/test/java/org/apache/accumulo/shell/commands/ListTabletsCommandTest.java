@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -49,6 +50,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -130,16 +132,20 @@ public class ListTabletsCommandTest {
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     TServerInstance ser2 = new TServerInstance(HostAndPort.fromParts("server2", 2354), "s002");
 
-    StoredTabletFile sf11 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-dir1/sf11.rf");
+    StoredTabletFile sf11 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-dir1/sf11.rf")).insert();
     DataFileValue dfv11 = new DataFileValue(5643, 89);
 
-    StoredTabletFile sf12 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-dir1/sf12.rf");
+    StoredTabletFile sf12 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-dir1/sf12.rf")).insert();
     DataFileValue dfv12 = new DataFileValue(379963, 1027);
 
-    StoredTabletFile sf21 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-dir2/sf21.rf");
+    StoredTabletFile sf21 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-dir2/sf21.rf")).insert();
     DataFileValue dfv21 = new DataFileValue(5323, 142);
 
-    StoredTabletFile sf31 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-dir3/sf31.rf");
+    StoredTabletFile sf31 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-dir3/sf31.rf")).insert();
     DataFileValue dfv31 = new DataFileValue(95832L, 231);
 
     KeyExtent extent = new KeyExtent(tableId, new Text("d"), null);

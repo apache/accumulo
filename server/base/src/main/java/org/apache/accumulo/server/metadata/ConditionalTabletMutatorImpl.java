@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
@@ -181,7 +180,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       case FILES: {
         // ELASTICITY_TODO compare values?
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFiles(),
-            stf -> TextUtil.getBytes(stf.getMetaUpdateDeleteText()), DataFileColumnFamily.NAME);
+            stf -> stf.getMetadata().getBytes(UTF_8), DataFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
@@ -213,7 +212,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case LOADED: {
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getLoaded().keySet(),
-            stf -> TextUtil.getBytes(stf.getMetaUpdateDeleteText()), BulkFileColumnFamily.NAME);
+            stf -> stf.getMetadata().getBytes(UTF_8), BulkFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -40,4 +41,15 @@ public interface TabletFile {
    */
   Path getPath();
 
+  /**
+   * @return The range of the TabletFile
+   *
+   */
+  Range getRange();
+
+  /**
+   * @return True if this file is fenced by a range
+   *
+   */
+  boolean hasRange();
 }

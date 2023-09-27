@@ -101,18 +101,6 @@ public class MergeInfoTest {
   }
 
   @Test
-  public void testNeedsToBeChopped_NotDelete() {
-    expect(keyExtent.tableId()).andReturn(TableId.of("table1"));
-    KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.tableId()).andReturn(TableId.of("table1"));
-    replay(keyExtent2);
-    expect(keyExtent.overlaps(keyExtent2)).andReturn(true);
-    replay(keyExtent);
-    mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
-    assertTrue(mi.needsToBeChopped(keyExtent2));
-  }
-
-  @Test
   public void testNeedsToBeChopped_Delete_NotFollowing() {
     testNeedsToBeChopped_Delete("somerow", false);
   }
@@ -213,14 +201,6 @@ public class MergeInfoTest {
     assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
     assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
     assertFalse(info.needsToBeChopped(ke("x", "b", "a")));
-    info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE);
-    assertTrue(info.needsToBeChopped(ke("x", "c", "a")));
-    assertTrue(info.needsToBeChopped(ke("x", "aa", "a")));
-    assertTrue(info.needsToBeChopped(ke("x", null, null)));
-    assertFalse(info.needsToBeChopped(ke("x", "c", "b")));
-    assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
-    assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
-    assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
   }
 
 }

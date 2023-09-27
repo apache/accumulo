@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
@@ -31,9 +32,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -86,7 +89,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
       ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
-      mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf",
+      mut.put(DataFileColumnFamily.NAME.toString(),
+          getMetadata(filePrefix + "/default_tablet/0_0.rf"),
           new DataFileValue(1, 200).encodeAsString());
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -98,8 +102,10 @@ public class CloneIT extends AccumuloClusterHarness {
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         Mutation mut2 = new Mutation(ke.toMetaRow());
-        mut2.putDelete(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf");
-        mut2.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/1_0.rf",
+        mut2.putDelete(DataFileColumnFamily.NAME.toString(),
+            getMetadata(filePrefix + "/default_tablet/0_0.rf"));
+        mut2.put(DataFileColumnFamily.NAME.toString(),
+            getMetadata(filePrefix + "/default_tablet/1_0.rf"),
             new DataFileValue(2, 300).encodeAsString());
 
         bw1.addMutation(mut2);
@@ -126,7 +132,7 @@ public class CloneIT extends AccumuloClusterHarness {
         }
       }
       assertEquals(1, files.size());
-      assertTrue(files.contains(filePrefix + "/default_tablet/1_0.rf"));
+      assertTrue(files.contains(getMetadata(filePrefix + "/default_tablet/1_0.rf")));
     }
   }
 
@@ -174,7 +180,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(1, count);
       assertEquals(1, files.size());
-      assertTrue(files.contains(filePrefix + "/default_tablet/0_0.rf"));
+      assertTrue(files.contains(getMetadata(filePrefix + "/default_tablet/0_0.rf")));
     }
   }
 
@@ -198,7 +204,8 @@ public class CloneIT extends AccumuloClusterHarness {
         bw1.addMutation(
             createTablet("0", "m", null, "/default_tablet", filePrefix + "/default_tablet/1_0.rf"));
         Mutation mut3 = createTablet("0", null, "m", "/t-1", filePrefix + "/default_tablet/1_0.rf");
-        mut3.putDelete(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf");
+        mut3.putDelete(DataFileColumnFamily.NAME.toString(),
+            getMetadata(filePrefix + "/default_tablet/0_0.rf"));
         bw1.addMutation(mut3);
 
         bw1.flush();
@@ -226,7 +233,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(1, files.size());
       assertEquals(2, count);
-      assertTrue(files.contains(filePrefix + "/default_tablet/1_0.rf"));
+      assertTrue(files.contains(getMetadata(filePrefix + "/default_tablet/1_0.rf")));
     }
   }
 
@@ -237,7 +244,7 @@ public class CloneIT extends AccumuloClusterHarness {
     TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
     ServerColumnFamily.TIME_COLUMN.putDelete(mut);
     ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
-    mut.putDelete(DataFileColumnFamily.NAME.toString(), file);
+    mut.putDelete(DataFileColumnFamily.NAME.toString(), getMetadata(file));
 
     return mut;
   }
@@ -250,7 +257,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
     ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
     ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
-    mut.put(DataFileColumnFamily.NAME.toString(), file,
+    mut.put(DataFileColumnFamily.NAME.toString(), getMetadata(file),
         new DataFileValue(10, 200).encodeAsString());
 
     return mut;
@@ -300,8 +307,8 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(2, count);
       assertEquals(2, files.size());
-      assertTrue(files.contains(filePrefix + "/d1/file1.rf"));
-      assertTrue(files.contains(filePrefix + "/d2/file2.rf"));
+      assertTrue(files.contains(getMetadata(filePrefix + "/d1/file1.rf")));
+      assertTrue(files.contains(getMetadata(filePrefix + "/d2/file2.rf")));
     }
   }
 
@@ -365,9 +372,9 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(3, count);
       assertEquals(3, files.size());
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d1/file1.rf"));
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d2/file3.rf"));
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d4/file3.rf"));
+      assertTrue(files.contains(getMetadata("hdfs://nn:8000/accumulo/tables/0/d1/file1.rf")));
+      assertTrue(files.contains(getMetadata("hdfs://nn:8000/accumulo/tables/0/d2/file3.rf")));
+      assertTrue(files.contains(getMetadata("hdfs://nn:8000/accumulo/tables/0/d4/file3.rf")));
     }
   }
 
@@ -390,7 +397,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf"));
         Mutation mut = createTablet("0", null, null, "/d2", filePrefix + "/d2/file2.rf");
-        mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/d1/file1.rf",
+        mut.put(DataFileColumnFamily.NAME.toString(), getMetadata(filePrefix + "/d1/file1.rf"),
             new DataFileValue(10, 200).encodeAsString());
         bw1.addMutation(mut);
 
@@ -400,5 +407,9 @@ public class CloneIT extends AccumuloClusterHarness {
             TableId.of("0"), TableId.of("1"), client, bw2));
       }
     }
+  }
+
+  private static String getMetadata(String file) {
+    return StoredTabletFile.of(URI.create(file), new Range()).getMetadata();
   }
 }

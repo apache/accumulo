@@ -62,7 +62,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -119,7 +118,6 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private boolean chopped = false;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
@@ -151,7 +149,6 @@ public class TabletMetadata {
     COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
-    CHOPPED,
     ECOMP,
     HOSTING_GOAL,
     HOSTING_REQUESTED,
@@ -383,11 +380,6 @@ public class TabletMetadata {
     return splitRatio;
   }
 
-  public boolean hasChopped() {
-    ensureFetched(ColumnType.CHOPPED);
-    return chopped;
-  }
-
   public TabletHostingGoal getHostingGoal() {
     if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
       // Override the goal for the system tables
@@ -413,7 +405,7 @@ public class TabletMetadata {
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
         .append("compact", compact).append("splitRatio", splitRatio)
-        .append("extCompactions", extCompactions).append("chopped", chopped).append("goal", goal)
+        .append("extCompactions", extCompactions).append("goal", goal)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
@@ -565,9 +557,6 @@ public class TabletMetadata {
           break;
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));
-          break;
-        case ChoppedColumnFamily.STR_NAME:
-          te.chopped = true;
           break;
         case HostingColumnFamily.STR_NAME:
           switch (qual) {

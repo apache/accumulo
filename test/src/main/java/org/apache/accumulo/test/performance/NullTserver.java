@@ -112,6 +112,11 @@ public class NullTserver {
     }
 
     @Override
+    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+      return true;
+    }
+
+    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override

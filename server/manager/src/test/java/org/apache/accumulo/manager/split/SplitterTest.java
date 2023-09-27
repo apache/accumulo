@@ -31,11 +31,13 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -56,10 +58,10 @@ public class SplitterTest {
     KeyExtent ke2 = new KeyExtent(TableId.of("1"), null, new Text("m"));
 
     Set<StoredTabletFile> files1 = new HashSet<>();
-    files1.add(new StoredTabletFile(
-        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-    files1.add(new StoredTabletFile(
-        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    files1.add(new ReferencedTabletFile(
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf")).insert());
+    files1.add(new ReferencedTabletFile(
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf")).insert());
 
     TabletMetadata tabletMeta1 = createMock(TabletMetadata.class);
     expect(tabletMeta1.getExtent()).andReturn(ke1).anyTimes();
@@ -92,16 +94,21 @@ public class SplitterTest {
     // to it's file set should cause it to be removed from
     // the unsplittable set of tablets, becoming splittable
     // again.
-    files1.add(new StoredTabletFile(
-        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    files1.add(new ReferencedTabletFile(
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf")).insert());
     assertTrue(splitter.isSplittable(tabletMeta1));
 
     // when a tablets files change it should become a candidate for inspection
     Set<StoredTabletFile> files2 = Set.of(
-        new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"),
-        new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"),
-        new StoredTabletFile(
-            "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000073.rf"));
+        new ReferencedTabletFile(
+            new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"))
+            .insert(),
+        new ReferencedTabletFile(
+            new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"))
+            .insert(),
+        new ReferencedTabletFile(
+            new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000073.rf"))
+            .insert());
     TabletMetadata tabletMeta3 = createMock(TabletMetadata.class);
     expect(tabletMeta3.getExtent()).andReturn(ke1).anyTimes();
     expect(tabletMeta3.getFiles()).andReturn(files2).anyTimes();

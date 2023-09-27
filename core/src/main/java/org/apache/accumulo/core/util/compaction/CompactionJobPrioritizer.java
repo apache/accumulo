@@ -35,7 +35,6 @@ public class CompactionJobPrioritizer {
 
     switch (kind) {
       case USER:
-      case CHOP:
         // user-initiated compactions will have a positive priority
         // based on number of files
         if (prio > Short.MAX_VALUE) {

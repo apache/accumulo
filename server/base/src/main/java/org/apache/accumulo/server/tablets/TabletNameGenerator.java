@@ -67,30 +67,22 @@ public class TabletNameGenerator {
   }
 
   public static ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes,
-      ServerContext context, KeyExtent extent, String dirName, Consumer<String> dirCreator) {
-    String tmpFileName = getNextDataFilename(
-        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION,
-        context, extent, dirName, dirCreator).getMetaInsert() + "_tmp";
-    return new ReferencedTabletFile(new Path(tmpFileName));
-  }
-
-  public static ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes,
       ServerContext context, TabletMetadata tabletMetadata, Consumer<String> dirCreator) {
     String tmpFileName = getNextDataFilename(
         !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION,
-        context, tabletMetadata.getExtent(), tabletMetadata.getDirName(), dirName -> {})
-        .getMetaInsert() + "_tmp";
+        context, tabletMetadata.getExtent(), tabletMetadata.getDirName(), dirName -> {}).insert()
+        .getMetadataPath() + "_tmp";
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 
   public static ReferencedTabletFile computeCompactionFileDest(ReferencedTabletFile tmpFile) {
-    String newFilePath = tmpFile.getMetaInsert();
+    String newFilePath = tmpFile.getNormalizedPathStr();
     int idx = newFilePath.indexOf("_tmp");
     if (idx > 0) {
       newFilePath = newFilePath.substring(0, idx);
     } else {
-      throw new IllegalArgumentException(
-          "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
+      throw new IllegalArgumentException("Expected compaction tmp file "
+          + tmpFile.getNormalizedPathStr() + " to have suffix '_tmp'");
     }
     return new ReferencedTabletFile(new Path(newFilePath));
   }

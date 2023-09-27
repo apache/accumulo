@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -160,7 +159,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       for (Text split : splits) {
         Mutation prevRow =
             TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, split, pr));
-        ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk"));
+        prevRow.put(CurrentLocationColumnFamily.NAME, new Text("123456"),
+            new Value("127.0.0.1:1234"));
         bw.addMutation(prevRow);
         pr = split;
       }
@@ -218,15 +218,6 @@ public class MergeStateIT extends ConfigurableMacBase {
       metaDataStateStore
           .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer, null)));
 
-      // onos... there's a new tablet online
-      stats = scan(state, metaDataStateStore);
-      assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
-
-      // chop it
-      m = TabletColumnFamily.createPrevRowMutation(tablet);
-      ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk"));
-      update(accumuloClient, m);
-
       stats = scan(state, metaDataStateStore);
       assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
 
@@ -251,8 +242,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     for (TabletManagement tm : metaDataStateStore) {
       TabletMetadata tabletMetadata = tm.getTabletMetadata();
       stats.update(tm.getTabletMetadata().getExtent(),
-          TabletState.compute(tabletMetadata, state.onlineTabletServers()),
-          tm.getTabletMetadata().hasChopped(), false);
+          TabletState.compute(tabletMetadata, state.onlineTabletServers()));
     }
     return stats;
   }
