@@ -252,7 +252,7 @@ class ScanDataSource implements DataSource {
         try {
           tablet.returnFilesForScan(fileReservationId);
         } catch (IllegalArgumentException | IllegalStateException e) {
-          if (log.isTraceEnabled()) {
+          if (log.isWarnEnabled()) {
             log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId,
                 e.getMessage());
             log.warn("{}", ExceptionUtils.getStackTrace(e));
