@@ -224,7 +224,7 @@ public class SslConnectionParams {
 
   public TSSLTransportParameters getTSSLTransportParameters() {
     if (useJsse) {
-      throw new IllegalStateException("Cannot get TTransportParams for JSSE configuration.");
+      throw new IllegalStateException("Cannot get TSSLTransportParameters for JSSE configuration.");
     }
 
     TSSLTransportParameters params = new TSSLTransportParameters(clientProtocol, cipherSuites);
