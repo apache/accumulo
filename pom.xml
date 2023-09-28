@@ -152,7 +152,6 @@
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.20.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
-    <version.maven-javadoc-plugin>3.6.0</version.maven-javadoc-plugin>
     <version.opentelemetry>1.27.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.7</version.slf4j>
@@ -822,7 +821,8 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
+                <!-- Automatic modules do not work with the javadoc plugin - see MJAVADOC-707 -->
+                <!-- Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name -->
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
                 <Sealed>true</Sealed>
               </manifestEntries>
@@ -839,7 +839,6 @@
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
             <doclint>all,-missing</doclint>
-            <legacyMode>true</legacyMode>
           </configuration>
         </plugin>
         <plugin>
