@@ -105,6 +105,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       assertEquals(2, states.size());
       int deadCount = getZkDeadCount(cluster.getServerContext().getZooReader(),
           cluster.getServerContext().getInstanceID());
+      assertEquals(0, deadCount, "expect no dead servers at start");
       // Kill a tablet server... we don't care which one... wait for everything to be reassigned
       cluster.killProcess(ServerType.TABLET_SERVER,
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
