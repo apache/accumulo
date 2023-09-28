@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
-  private static final String ZLOCK_PREFIX = "zlock#";
+  public static final String ZLOCK_PREFIX = "zlock#";
 
   private static class Prefix {
     private final String prefix;
