@@ -113,7 +113,9 @@ public class RingBufferTest {
         List<Integer> ints = Collections.emptyList();
         while (!done) {
           try {
-            ints = ring.toList();
+            synchronized (ring) {
+              ints = ring.toList();
+            }
             done = true;
           } catch (ConcurrentModificationException c) {
             // try again
@@ -121,9 +123,7 @@ public class RingBufferTest {
         }
 
         // the list size should increase up to the capacity
-        // it could shrink by 1 every once in a while if the list is gathered during
-        // the addition of a transaction that is removing an item as well.
-        assertTrue(ints.size() >= (lastSize - 1) && ints.size() <= ring.capacity());
+        assertTrue(ints.size() >= lastSize && ints.size() <= ring.capacity());
 
         lastSize = ints.size();
 
@@ -140,7 +140,9 @@ public class RingBufferTest {
 
     var writerFuture = executor.submit(() -> {
       for (int i = 0; i < max; i++) {
-        ring.add(i);
+        synchronized (ring) {
+          ring.add(i);
+        }
       }
     });
 

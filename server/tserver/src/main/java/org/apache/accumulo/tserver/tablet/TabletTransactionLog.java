@@ -21,8 +21,6 @@ package org.apache.accumulo.tserver.tablet;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TabletTransactionLog {
   private static final Logger logger = LoggerFactory.getLogger(TabletTransactionLog.class);
+  private static final String DATE_FORMAT = "yyyyMMdd'T'HH:mm:ss.SSS";
   // The tablet extent for which we are logging
   private final KeyExtent extent;
   // The max size of the log
@@ -102,7 +101,7 @@ public class TabletTransactionLog {
    *
    * @return the list of transactions
    */
-  public List<TabletTransaction> getTransactions() {
+  public synchronized List<TabletTransaction> getTransactions() {
     return this.log.getTransactions();
   }
 
@@ -200,12 +199,37 @@ public class TabletTransactionLog {
   }
 
   /**
-   * Get a string that provides a list of the transactions.
+   * Return a human readable dump of the log
    *
-   * @return a log dump
+   * @return A dump of the log
    */
   public String dumpLog() {
-    return this.log.dumpLog(extent, false);
+    final Date initialTs;
+    final Set<StoredTabletFile> initialFiles;
+    final Set<StoredTabletFile> finalFiles;
+    final List<TabletTransaction> transactions;
+
+    // first lets get a consistent set of files and transactions
+    synchronized (this) {
+      initialTs = log.getInitialDate();
+      initialFiles = log.getInitialFiles();
+      finalFiles = log.getExpectedFiles();
+      transactions = log.getTransactions();
+    }
+
+    // now we can build our dump string
+    StringBuilder builder = new StringBuilder();
+    SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
+    String initialDate = format.format(initialTs);
+
+    builder.append(
+        String.format("\n%s: Initial files for %s : %s", initialDate, extent, initialFiles));
+    transactions.stream().forEach(t -> builder.append('\n').append(t.toString(format)));
+    if (!transactions.isEmpty()) {
+      builder.append("\nFinal files: ").append(finalFiles);
+    }
+
+    return builder.toString();
   }
 
   @Override
@@ -215,13 +239,9 @@ public class TabletTransactionLog {
 
   /**
    * A transaction log consists of the original file set and its timestamp, a set of transactions,
-   * and the final set of files after applying the transations. The modification methods of this
-   * class are NOT thread safe. However the read methods can be called concurrently with the write
-   * methods.
+   * and the final set of files after applying the transations. This class is NOT thread safe.
    */
   private static class TransactionLog {
-    private static final String DATE_FORMAT = "yyyyMMdd'T'HH:mm:ss.SSS";
-    private volatile long updateCount;
     // The time stamp of the initial file set
     private volatile long initialTs;
     // the initial file set
@@ -242,7 +262,6 @@ public class TabletTransactionLog {
       if (tabletLog.capacity() != 0) {
         this.tabletLog = new Ring<>(0);
       }
-      this.updateCount = tabletLog.getUpdateCount();
     }
 
     /**
@@ -269,7 +288,6 @@ public class TabletTransactionLog {
         this.tabletLog = new Ring<>(0);
         this.initialTs = System.currentTimeMillis();
         this.initialFiles = this.finalFiles;
-        this.updateCount = this.tabletLog.getUpdateCount();
         return;
       }
 
@@ -291,7 +309,6 @@ public class TabletTransactionLog {
         this.initialTs = initialTs;
         this.initialFiles = initialFileSet.toArray(new StoredTabletFile[0]);
       }
-      this.updateCount = this.tabletLog.getUpdateCount();
     }
 
     /**
@@ -301,7 +318,6 @@ public class TabletTransactionLog {
       this.tabletLog.clear();
       this.initialTs = System.currentTimeMillis();
       this.initialFiles = this.finalFiles;
-      this.updateCount = this.tabletLog.getUpdateCount();
     }
 
     /**
@@ -316,7 +332,6 @@ public class TabletTransactionLog {
         this.initialFiles = applyTransaction(this.initialFiles, removed);
       }
       this.finalFiles = applyTransaction(this.finalFiles, transaction);
-      this.updateCount = this.tabletLog.getUpdateCount();
     }
 
     /**
@@ -346,7 +361,7 @@ public class TabletTransactionLog {
      * Get the expected list of files after all transactions are applied the the initial set.
      */
     Set<StoredTabletFile> getInitialFiles() {
-      return new HashSet<>(Arrays.asList(initialFiles));
+      return new TreeSet<>(Arrays.asList(initialFiles));
     }
 
     /**
@@ -355,20 +370,14 @@ public class TabletTransactionLog {
      * @return the list of transactions
      */
     List<TabletTransaction> getTransactions() {
-      while (true) {
-        try {
-          return tabletLog.toList();
-        } catch (ConcurrentModificationException cme) {
-          // try again.
-        }
-      }
+      return tabletLog.toList();
     }
 
     /**
      * Get the expected list of files after all transactions are applied the the initial set.
      */
     Set<StoredTabletFile> getExpectedFiles() {
-      return new HashSet<>(Arrays.asList(finalFiles));
+      return new TreeSet<>(Arrays.asList(finalFiles));
     }
 
     /**
@@ -380,52 +389,6 @@ public class TabletTransactionLog {
       return tabletLog.isEmpty();
     }
 
-    /**
-     * Return a human readable dump of the log
-     *
-     * @param extent The tablet extent
-     * @return A dump of the log
-     */
-    String dumpLog(KeyExtent extent, boolean clear) {
-      // first lets get a consistent set of files and transactions
-      long initialTs = this.initialTs;
-      StoredTabletFile[] initialFiles = this.initialFiles;
-      StoredTabletFile[] finalFiles = this.finalFiles;
-      List<TabletTransaction> transactions = Collections.emptyList();
-      boolean consistent = false;
-      do {
-        long updateCount = this.updateCount;
-        try {
-          initialTs = this.initialTs;
-          initialFiles = this.initialFiles;
-          finalFiles = this.finalFiles;
-          transactions = this.tabletLog.toList();
-          consistent =
-              (updateCount == this.updateCount && updateCount == this.tabletLog.getUpdateCount());
-        } catch (ConcurrentModificationException e) {
-          // try again
-        }
-      } while (!consistent);
-
-      // now clear out the log if requested
-      if (clear) {
-        clear();
-      }
-
-      // now we can build our dump string
-      StringBuilder builder = new StringBuilder();
-      SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
-      String initialDate = format.format(Date.from(Instant.ofEpochMilli(initialTs)));
-
-      builder.append(String.format("\n%s: Initial files for %s : %s", initialDate, extent,
-          new TreeSet<>(Arrays.asList(initialFiles))));
-      transactions.stream().forEach(t -> builder.append('\n').append(t.toString(format)));
-      if (!transactions.isEmpty()) {
-        builder.append("\nFinal files: ").append(new TreeSet<>(Arrays.asList(finalFiles)));
-      }
-
-      return builder.toString();
-    }
   }
 
   /**
@@ -459,10 +422,7 @@ public class TabletTransactionLog {
   }
 
   /**
-   * A simple implementation of a ring buffer. Note that this is NOT thread safe. However the toList
-   * method can be called concurrently and it will throw a ConcurrentModificationException if any
-   * modification is made concurrently. Hence the toList method can be called without having to
-   * synchronize with the write methods provided the exception is handled appropriately.
+   * A simple implementation of a ring buffer. Note that this is NOT thread safe.
    */
   static class Ring<T> {
     private final Object[] ring;
@@ -499,9 +459,7 @@ public class TabletTransactionLog {
         if (size() == ring.length) {
           removed = ring[first++ % ring.length];
         }
-        int newEnd = last + 1;
-        ring[newEnd % ring.length] = object;
-        last = newEnd;
+        ring[++last % ring.length] = object;
       } else {
         removed = object;
       }
@@ -547,62 +505,27 @@ public class TabletTransactionLog {
      * Return the list of objects in the ring.
      *
      * @return the list of objects
-     * @throws ConcurrentModificationException if the list is modified while gathering the list
      */
     @SuppressWarnings("unchecked")
-    public List<T> toList() throws ConcurrentModificationException {
-      Object[] data = null;
-      long updateCount = getUpdateCount();
-      int lastPos = last;
-      int firstPos = first;
-      // if either is over the threshold, then we must be in the middle of a modification
-      // but before the overrun threshold is called. try again.
-      int size = lastPos - firstPos + 1;
-      if (size >= 0 && size <= ring.length && lastPos <= OVERRUN_THRESHOLD
-          && firstPos <= OVERRUN_THRESHOLD) {
-        data = new Object[size];
-
-        int index = 0;
-        for (int i = firstPos; i <= lastPos; i++) {
-          data[index++] = ring[i % ring.length];
-        }
-        // if the update count is not the same, then we are in the process of modifying the ring
-        if (updateCount != getUpdateCount()) {
-          throw new ConcurrentModificationException("Update count changed");
-        }
-      } else {
-        throw new ConcurrentModificationException("Overrun threshold detected");
+    public List<T> toList() {
+      Object[] data = new Object[size()];
+      int index = 0;
+      for (int i = first; i <= last; i++) {
+        data[index++] = ring[i % ring.length];
       }
       return (List<T>) List.of(data);
-    }
-
-    /**
-     * This will return a value that can be used to determine when changes have made to the ring.
-     *
-     * @return first + last
-     */
-    public long getUpdateCount() {
-      return first + last;
     }
 
     /**
      * This will adjust the first and last values to ensure we stay under the overrun threshold
      */
     private void avoidOverrun() {
-      if (last > OVERRUN_THRESHOLD) {
+      if (last > OVERRUN_THRESHOLD || first > OVERRUN_THRESHOLD) {
         // start with max adjustment we can make with is the minimum of the positions
         int adjustment = Math.min(first, last);
         // then adjust that amount to ensure we keep the same position in the ring.
         adjustment -= adjustment % ring.length;
-        // modify the first and then the last so that this can be detected in the toList call
-        first -= adjustment;
-        last -= adjustment;
-      } else if (first > OVERRUN_THRESHOLD) {
-        // start with max adjustment we can make with is the minimum of the positions
-        int adjustment = Math.min(first, last);
-        // then adjust that amount to ensure we keep the same position in the ring.
-        adjustment -= adjustment % ring.length;
-        // modify the last and then the first so that this can be detected in the toList call
+        // modify the pointers
         last -= adjustment;
         first -= adjustment;
       }
