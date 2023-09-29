@@ -304,6 +304,70 @@ public class TabletTransactionLogTest {
   }
 
   @Test
+  public void testEnableDisable() throws InterruptedException {
+    StoredTabletFile initialFile1 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
+    StoredTabletFile initialFile2 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile2.rf");
+    StoredTabletFile initialFile3 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
+    Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
+    TabletTransactionLog log = createLog(initialFiles, 3);
+
+    StoredTabletFile importedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ifile1.rf");
+    Set<StoredTabletFile> expectedFiles =
+        Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile);
+    log.bulkImported(importedFile, expectedFiles);
+    StoredTabletFile compactedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Cfile1.rf");
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, compactedFile);
+    log.compacted(Sets.newHashSet(initialFile3, importedFile), Optional.of(compactedFile),
+        expectedFiles);
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2);
+    log.compacted(Sets.newHashSet(compactedFile), Optional.empty(), expectedFiles);
+
+    List<TabletTransaction> logs = log.getTransactions();
+    assertEquals(3, logs.size());
+
+    // now disable the log
+    enableLog(false);
+
+    // still has transactions until a new one is added
+    logs = log.getTransactions();
+    assertEquals(3, logs.size());
+
+    // another transaction
+    StoredTabletFile flushedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile1.rf");
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.of(flushedFile), expectedFiles);
+
+    // no more transactions
+    logs = log.getTransactions();
+    assertEquals(0, logs.size());
+
+    // add a transaction
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.empty(), expectedFiles);
+
+    // still no more transactions
+    logs = log.getTransactions();
+    assertEquals(0, logs.size());
+
+    // reenable the log
+    enableLog(true);
+
+    // add a transaction
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.empty(), expectedFiles);
+
+    // Now we have a transaction
+    logs = log.getTransactions();
+    assertEquals(1, logs.size());
+  }
+
+  @Test
   public void testCapacityChange() {
     StoredTabletFile initialFile1 =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");

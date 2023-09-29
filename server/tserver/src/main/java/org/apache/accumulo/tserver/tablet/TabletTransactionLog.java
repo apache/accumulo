@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -129,9 +130,9 @@ public class TabletTransactionLog {
    * @param files The files that were compacted
    * @param output The destination file
    */
-  public void compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> output,
-      Set<StoredTabletFile> newFiles) {
-    addTransaction(new TabletTransaction.Compacted(files, output), newFiles);
+  public void compacted(final Set<StoredTabletFile> files, final Optional<StoredTabletFile> output,
+      final Set<StoredTabletFile> newFiles) {
+    addTransaction(() -> new TabletTransaction.Compacted(files, output), newFiles);
   }
 
   /**
@@ -139,8 +140,9 @@ public class TabletTransactionLog {
    *
    * @param newDatafile The new flushed file
    */
-  public void flushed(Optional<StoredTabletFile> newDatafile, Set<StoredTabletFile> newFiles) {
-    addTransaction(new TabletTransaction.Flushed(newDatafile), newFiles);
+  public void flushed(final Optional<StoredTabletFile> newDatafile,
+      final Set<StoredTabletFile> newFiles) {
+    addTransaction(() -> new TabletTransaction.Flushed(newDatafile), newFiles);
   }
 
   /**
@@ -148,20 +150,20 @@ public class TabletTransactionLog {
    *
    * @param file the new bulk import file
    */
-  public void bulkImported(StoredTabletFile file, Set<StoredTabletFile> newFiles) {
-    addTransaction(new TabletTransaction.BulkImported(file), newFiles);
+  public void bulkImported(final StoredTabletFile file, final Set<StoredTabletFile> newFiles) {
+    addTransaction(() -> new TabletTransaction.BulkImported(file), newFiles);
   }
 
   /**
    * Add a transaction to the log. This will trim the size of the log if needed.
    *
-   * @param transaction The transaction to add
+   * @param transactionFactory The transaction supplier
    */
-  private synchronized void addTransaction(TabletTransaction transaction,
+  private synchronized void addTransaction(Supplier<TabletTransaction> transactionFactory,
       Set<StoredTabletFile> newFiles) {
     if (isEnabled()) {
       this.log.setCapacity(getMaxSize());
-      this.log.addTransaction(transaction);
+      this.log.addTransaction(transactionFactory.get());
       checkTransactionLog(newFiles);
     } else {
       this.log.reset(newFiles);
