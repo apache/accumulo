@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
 import java.util.HashSet;
@@ -39,7 +40,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This is a transaction log that will maintain the last N transactions. It is used to be able to
- * log and review the transactions when issues are detected. This class is thread safe.
+ * log and review the transactions when issues are detected. This class is thread safe. The inner
+ * classes however are not.
  */
 public class TabletTransactionLog {
   private static final Logger logger = LoggerFactory.getLogger(TabletTransactionLog.class);
@@ -47,6 +49,8 @@ public class TabletTransactionLog {
   private final KeyExtent extent;
   // The max size of the log
   private final AccumuloConfiguration.Deriver<MaxLogSize> maxSize;
+  // is the transaction log enabled
+  private final AccumuloConfiguration.Deriver<LogEnabled> enabled;
   // The current log
   private final TransactionLog log;
 
@@ -54,6 +58,7 @@ public class TabletTransactionLog {
       TableConfiguration configuration) {
     this.extent = extent;
     this.maxSize = configuration.newDeriver(MaxLogSize::new);
+    this.enabled = configuration.newDeriver(LogEnabled::new);
     this.log = new TransactionLog(initialFiles);
   }
 
@@ -67,12 +72,28 @@ public class TabletTransactionLog {
   }
 
   /**
+   * Is this log enabled
+   *
+   * @return true if enabled.
+   */
+  private boolean isEnabled() {
+    return enabled.derive().isEnabled();
+  }
+
+  /**
    * Get the date of the first transaction in the log
    *
    * @return the initial date
    */
   public Date getInitialDate() {
     return this.log.getInitialDate();
+  }
+
+  /**
+   * Get the expected list of files after all transactions are applied the the initial set.
+   */
+  public Set<StoredTabletFile> getInitialFiles() {
+    return this.log.getInitialFiles();
   }
 
   /**
@@ -108,8 +129,9 @@ public class TabletTransactionLog {
    * @param files The files that were compacted
    * @param output The destination file
    */
-  public void compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> output) {
-    addTransaction(new TabletTransaction.Compacted(files, output));
+  public void compacted(Set<StoredTabletFile> files, Optional<StoredTabletFile> output,
+      Set<StoredTabletFile> newFiles) {
+    addTransaction(new TabletTransaction.Compacted(files, output), newFiles);
   }
 
   /**
@@ -117,8 +139,8 @@ public class TabletTransactionLog {
    *
    * @param newDatafile The new flushed file
    */
-  public void flushed(Optional<StoredTabletFile> newDatafile) {
-    addTransaction(new TabletTransaction.Flushed(newDatafile));
+  public void flushed(Optional<StoredTabletFile> newDatafile, Set<StoredTabletFile> newFiles) {
+    addTransaction(new TabletTransaction.Flushed(newDatafile), newFiles);
   }
 
   /**
@@ -126,8 +148,8 @@ public class TabletTransactionLog {
    *
    * @param file the new bulk import file
    */
-  public void bulkImported(StoredTabletFile file) {
-    addTransaction(new TabletTransaction.BulkImported(file));
+  public void bulkImported(StoredTabletFile file, Set<StoredTabletFile> newFiles) {
+    addTransaction(new TabletTransaction.BulkImported(file), newFiles);
   }
 
   /**
@@ -135,9 +157,37 @@ public class TabletTransactionLog {
    *
    * @param transaction The transaction to add
    */
-  private synchronized void addTransaction(TabletTransaction transaction) {
-    this.log.setCapacity(getMaxSize());
-    this.log.addTransaction(transaction);
+  private synchronized void addTransaction(TabletTransaction transaction,
+      Set<StoredTabletFile> newFiles) {
+    if (isEnabled()) {
+      this.log.setCapacity(getMaxSize());
+      this.log.addTransaction(transaction);
+      checkTransactionLog(newFiles);
+    } else {
+      this.log.reset(newFiles);
+    }
+  }
+
+  /**
+   * Dump the transaction log
+   */
+  public void logTransactions() {
+    logger.error("Operation log: {}", dumpLog());
+  }
+
+  /**
+   * Check the transaction log against the expected files. Log the transactions if they do not
+   * match.
+   *
+   * @param files the current set of files
+   */
+  private void checkTransactionLog(Set<StoredTabletFile> files) {
+    Set<StoredTabletFile> expected = log.getExpectedFiles();
+    if (!expected.equals(files)) {
+      logger.error("In-memory files {} do not match transaction log {}", new TreeSet<>(files),
+          new TreeSet<>(expected));
+      logTransactions();
+    }
   }
 
   /**
@@ -175,24 +225,21 @@ public class TabletTransactionLog {
     // the initial file set
     private StoredTabletFile[] initialFiles;
     // the transactions
-    private Ring<TabletTransaction> tabletLog;
+    private Ring<TabletTransaction> tabletLog = new Ring<>(0);
     // the final file set derived be applying the transactions to the initial file set
     private StoredTabletFile[] finalFiles;
 
     public TransactionLog(Set<StoredTabletFile> files) {
-      this(files.toArray(new StoredTabletFile[0]));
+      reset(files);
     }
 
-    private TransactionLog(StoredTabletFile[] files) {
-      this(System.currentTimeMillis(), files, new Ring<>(0), files);
-    }
-
-    private TransactionLog(long initialTs, StoredTabletFile[] initialFiles,
-        Ring<TabletTransaction> tabletLog, StoredTabletFile[] finalFiles) {
-      this.initialTs = initialTs;
-      this.initialFiles = initialFiles;
-      this.tabletLog = tabletLog;
-      this.finalFiles = finalFiles;
+    public void reset(Set<StoredTabletFile> files) {
+      this.initialTs = System.currentTimeMillis();
+      this.initialFiles = files.toArray(new StoredTabletFile[0]);
+      this.finalFiles = this.initialFiles;
+      if (tabletLog.capacity() != 0) {
+        this.tabletLog = new Ring<>(0);
+      }
       this.updateCount = tabletLog.getUpdateCount();
     }
 
@@ -210,13 +257,24 @@ public class TabletTransactionLog {
         capacity = Ring.MAX_ALLOWED_SIZE;
       }
 
+      // short circuit if not change
       if (this.tabletLog.capacity() == capacity) {
         return;
       }
+
+      // quick update setting capacity to 0
+      if (capacity == 0) {
+        this.tabletLog = new Ring<>(0);
+        this.initialTs = System.currentTimeMillis();
+        this.initialFiles = this.finalFiles;
+        this.updateCount = this.tabletLog.getUpdateCount();
+        return;
+      }
+
       long initialTs = 0;
       Set<StoredTabletFile> initialFileSet = null;
       Ring<TabletTransaction> newTabletLog = new Ring<>(capacity);
-      for (TabletTransaction t : this.tabletLog.toListNoFail()) {
+      for (TabletTransaction t : this.tabletLog.toList()) {
         TabletTransaction removed = newTabletLog.add(t);
         if (removed != null) {
           if (initialFileSet == null) {
@@ -283,12 +341,25 @@ public class TabletTransactionLog {
     }
 
     /**
+     * Get the expected list of files after all transactions are applied the the initial set.
+     */
+    Set<StoredTabletFile> getInitialFiles() {
+      return new HashSet<>(Arrays.asList(initialFiles));
+    }
+
+    /**
      * Get the list of transactions. This can be called concurrently with the modification methods.
      *
      * @return the list of transactions
      */
     List<TabletTransaction> getTransactions() {
-      return tabletLog.toListNoFail();
+      while (true) {
+        try {
+          return tabletLog.toList();
+        } catch (ConcurrentModificationException cme) {
+          // try again.
+        }
+      }
     }
 
     /**
@@ -315,19 +386,23 @@ public class TabletTransactionLog {
      */
     String dumpLog(KeyExtent extent, boolean clear) {
       // first lets get a consistent set of files and transactions
-      long initialTs;
-      StoredTabletFile[] initialFiles;
-      List<TabletTransaction> transactions;
-      StoredTabletFile[] finalFiles;
-      boolean consistent;
+      long initialTs = this.initialTs;
+      StoredTabletFile[] initialFiles = this.initialFiles;
+      StoredTabletFile[] finalFiles = this.finalFiles;
+      List<TabletTransaction> transactions = Collections.emptyList();
+      boolean consistent = false;
       do {
         long updateCount = this.updateCount;
-        initialTs = this.initialTs;
-        initialFiles = this.initialFiles;
-        finalFiles = this.finalFiles;
-        transactions = this.tabletLog.toListNoFail();
-        consistent =
-            (updateCount == this.updateCount && updateCount == this.tabletLog.getUpdateCount());
+        try {
+          initialTs = this.initialTs;
+          initialFiles = this.initialFiles;
+          finalFiles = this.finalFiles;
+          transactions = this.tabletLog.toList();
+          consistent =
+              (updateCount == this.updateCount && updateCount == this.tabletLog.getUpdateCount());
+        } catch (ConcurrentModificationException e) {
+          // try again
+        }
       } while (!consistent);
 
       // now clear out the log if requested
@@ -358,7 +433,7 @@ public class TabletTransactionLog {
     private final int maxSize;
 
     public MaxLogSize(AccumuloConfiguration config) {
-      maxSize = config.getCount(Property.TABLE_OPERATION_LOG_MAX_SIZE);
+      maxSize = config.getCount(Property.TABLE_TRANSACTION_LOG_MAX_SIZE);
     }
 
     public int getMaxSize() {
@@ -367,8 +442,25 @@ public class TabletTransactionLog {
   }
 
   /**
-   * A simple implementation of a ring buffer. Note that this is NOT thread safe. Only the
-   * toListNoFail method can be done concurrently with a write method (add).
+   * The max size of the log as derived from the configuration
+   */
+  private static class LogEnabled {
+    private final boolean enabled;
+
+    public LogEnabled(AccumuloConfiguration config) {
+      enabled = config.getBoolean(Property.TABLE_TRANSACTION_LOG_ENABLED);
+    }
+
+    public boolean isEnabled() {
+      return enabled;
+    }
+  }
+
+  /**
+   * A simple implementation of a ring buffer. Note that this is NOT thread safe. However the toList
+   * method can be called concurrently and it will throw a ConcurrentModificationException if any
+   * modification is made concurrently. Hence the toList method can be called without having to
+   * synchronize with the write methods provided the exception is handled appropriately.
    */
   static class Ring<T> {
     private final Object[] ring;
@@ -450,22 +542,6 @@ public class TabletTransactionLog {
     }
 
     /**
-     * This is the only method that can be done concurrently with a modification via the add method.
-     * This will continue to call toList as long as a concurrent modification exception is thrown.
-     *
-     * @return The list of objects in the ring.
-     */
-    public List<T> toListNoFail() {
-      while (true) {
-        try {
-          return toList();
-        } catch (ConcurrentModificationException cme) {
-          // try again.
-        }
-      }
-    }
-
-    /**
      * Return the list of objects in the ring.
      *
      * @return the list of objects
@@ -499,7 +575,7 @@ public class TabletTransactionLog {
     }
 
     /**
-     * This will return a value that can be used to determine when changes are made to the ring.
+     * This will return a value that can be used to determine when changes have made to the ring.
      *
      * @return first + last
      */

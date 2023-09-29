@@ -21,12 +21,13 @@ package org.apache.accumulo.tserver.tablet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -37,11 +38,20 @@ public class RingBufferTest {
   @Test
   public void goPathTest() {
     TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(4);
-    ring.add("1");
-    ring.add("2");
-    ring.add("3");
-    ring.add("4");
-
+    assertEquals(4, ring.capacity());
+    assertEquals(0, ring.size());
+    assertTrue(ring.isEmpty());
+    assertNull(ring.add("1"));
+    assertEquals(1, ring.size());
+    assertFalse(ring.isEmpty());
+    assertNull(ring.add("2"));
+    assertEquals(2, ring.size());
+    assertFalse(ring.isEmpty());
+    assertNull(ring.add("3"));
+    assertEquals(3, ring.size());
+    assertFalse(ring.isEmpty());
+    assertNull(ring.add("4"));
+    assertEquals(4, ring.size());
     assertFalse(ring.isEmpty());
     assertEquals(4, ring.capacity());
     assertEquals(List.of("1", "2", "3", "4"), ring.toList());
@@ -50,13 +60,14 @@ public class RingBufferTest {
   @Test
   public void overflowTest() {
     TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(4);
-    ring.add("1");
-    ring.add("2");
-    ring.add("3");
-    ring.add("4");
+    assertNull(ring.add("1"));
+    assertNull(ring.add("2"));
+    assertNull(ring.add("3"));
+    assertNull(ring.add("4"));
     assertEquals("1", ring.add("5"));
 
     assertFalse(ring.isEmpty());
+    assertEquals(4, ring.size());
     assertEquals(4, ring.capacity());
     assertEquals(List.of("2", "3", "4", "5"), ring.toList());
   }
@@ -64,14 +75,15 @@ public class RingBufferTest {
   @Test
   public void oddCapacityTest() {
     TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(3);
-    ring.add("1");
-    ring.add("2");
-    ring.add("3");
+    assertNull(ring.add("1"));
+    assertNull(ring.add("2"));
+    assertNull(ring.add("3"));
     assertEquals("1", ring.add("4"));
     assertEquals("2", ring.add("5"));
 
     assertFalse(ring.isEmpty());
     assertEquals(3, ring.capacity());
+    assertEquals(3, ring.size());
     assertEquals(List.of("3", "4", "5"), ring.toList());
   }
 
@@ -79,23 +91,16 @@ public class RingBufferTest {
   public void zeroLengthTest() {
     TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(0);
     assertEquals("1", ring.add("1"));
+    assertTrue(ring.isEmpty());
+    assertEquals(0, ring.size());
+    assertEquals(0, ring.capacity());
+    assertEquals(List.of(), ring.toList());
   }
 
-  private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
-    public Throwable thrown = null;
-
-    @Override
-    public void uncaughtException(Thread t, Throwable e) {
-      synchronized (this) {
-        thrown = e;
-      }
-    }
-  }
   @Test
   public void threadOrderingTest() throws Exception {
     var executor = Executors.newFixedThreadPool(2);
 
-    // TODO could try diff ring sizes
     final TabletTransactionLog.Ring<Integer> ring = new TabletTransactionLog.Ring<>(11);
 
     final int max = 100_000_000;
@@ -104,10 +109,21 @@ public class RingBufferTest {
       int lastSize = 0;
 
       while (true) {
-        List<Integer> ints = ring.toListNoFail();
+        boolean done = false;
+        List<Integer> ints = Collections.emptyList();
+        while (!done) {
+          try {
+            ints = ring.toList();
+            done = true;
+          } catch (ConcurrentModificationException c) {
+            // try again
+          }
+        }
 
-        // the list size should increase up to the capacity, do not expect it to ever shrink
-        assertTrue(ints.size() >= lastSize && ints.size() <= ring.capacity());
+        // the list size should increase up to the capacity
+        // it could shrink by 1 every once in a while if the list is gathered during
+        // the addition of a transaction that is removing an item as well.
+        assertTrue(ints.size() >= (lastSize - 1) && ints.size() <= ring.capacity());
 
         lastSize = ints.size();
 
@@ -133,82 +149,6 @@ public class RingBufferTest {
     writerFuture.get();
 
     executor.shutdownNow();
-  }
-  
-  @Test
-  public void testThreadSafety() throws InterruptedException {
-    final TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(5);
-    final ExceptionHandler handler = new ExceptionHandler();
-    final Object startLock = new Object();
-    final AtomicInteger ready = new AtomicInteger(0);
-    final SecureRandom random = new SecureRandom();
-
-    // create a writer threads
-    Thread writerThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (startLock) {
-          try {
-            ready.incrementAndGet();
-            startLock.wait(3000);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < 2000) {
-          if (random.nextBoolean()) {
-            ring.add(UUID.randomUUID().toString());
-          } else {
-            ring.clear();
-          }
-        }
-      }
-    });
-    writerThread.setUncaughtExceptionHandler(handler);
-
-    // create a writer threads
-    Thread readerThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (startLock) {
-          try {
-            ready.incrementAndGet();
-            startLock.wait(3000);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < 2000) {
-          ring.toListNoFail();
-        }
-      }
-    });
-    readerThread.setUncaughtExceptionHandler(handler);
-
-    // start the threads
-    writerThread.start();
-    readerThread.start();
-
-    // wait until they are both waiting on the start lock
-    while (ready.get() < 2) {
-      Thread.sleep(100);
-    }
-
-    // unlock the threads
-    synchronized (startLock) {
-      ready.incrementAndGet();
-      startLock.notifyAll();
-    }
-
-    // wait for the threads to complete
-    while (writerThread.isAlive() || readerThread.isAlive()) {
-      Thread.sleep(100);
-    }
-
-    // ensure no exceptions were thrown
-    assertNull(handler.thrown, "Exception was thrown: " + handler.thrown);
   }
 
   @Test

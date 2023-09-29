@@ -1191,7 +1191,11 @@ public enum Property {
       "Determines whether index block cache is enabled for a table.", "1.3.5"),
   TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN,
       "Determines whether data block cache is enabled for a table.", "1.3.5"),
-  TABLE_OPERATION_LOG_MAX_SIZE("table.operation.log.max.size", "0", PropertyType.COUNT,
+  TABLE_TRANSACTION_LOG_ENABLED("table.transaction.log.enabled", "false", PropertyType.BOOLEAN,
+      "Is the transaction log enabled.  The transaction log is used to diagnose metadata vs in-memory differences "
+          + "if that were to occur.",
+      "2.1.3"),
+  TABLE_TRANSACTION_LOG_MAX_SIZE("table.transaction.log.max.size", "0", PropertyType.COUNT,
       "The maximum number of operations logged in memory for diagnostic purposes when "
           + "the in-memory file list diverges from the metadata table.",
       "2.1.3"),

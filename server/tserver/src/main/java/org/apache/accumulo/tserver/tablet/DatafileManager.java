@@ -278,8 +278,7 @@ class DatafileManager {
             log.error("Adding file that is already in set {}", tpath.getKey());
           }
           datafileSizes.put(tpath.getKey(), tpath.getValue());
-          tabletLog.bulkImported(tpath.getKey());
-          checkTransactionLog();
+          tabletLog.bulkImported(tpath.getKey(), datafileSizes.keySet());
         }
 
         tablet.getTabletResources().importedMapFiles();
@@ -425,8 +424,7 @@ class DatafileManager {
           }
           datafileSizes.put(newFileStored, dfv);
         }
-        tabletLog.flushed(newFile);
-        checkTransactionLog();
+        tabletLog.flushed(newFile, datafileSizes.keySet());
 
         tablet.flushComplete(flushId);
 
@@ -516,8 +514,7 @@ class DatafileManager {
           datafileSizes.put(newFile.orElseThrow(), dfv);
           // could be used by a follow on compaction in a multipass compaction
         }
-        tabletLog.compacted(oldDatafiles, newFile);
-        checkTransactionLog();
+        tabletLog.compacted(oldDatafiles, newFile, datafileSizes.keySet());
 
         tablet.computeNumEntries();
 
@@ -584,22 +581,10 @@ class DatafileManager {
   }
 
   public void clearTransactions() {
-    synchronized (tablet) {
-      tabletLog.clearLog();
-    }
+    tabletLog.clearLog();
   }
 
   public void logTransactions() {
-    log.error("Operation log: {}", tabletLog.dumpLog());
-  }
-
-  private void checkTransactionLog() {
-    Set<StoredTabletFile> files = datafileSizes.keySet();
-    Set<StoredTabletFile> expected = tabletLog.getExpectedFiles();
-    if (!expected.equals(files)) {
-      log.error("In-memory files {} do not match transaction log {}", new TreeSet<>(files),
-          new TreeSet<>(expected));
-      logTransactions();
-    }
+    tabletLog.logTransactions();
   }
 }

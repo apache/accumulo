@@ -26,8 +26,11 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -85,16 +89,22 @@ public class TabletTransactionLogTest {
 
   private TabletTransactionLog createLog(final Set<StoredTabletFile> initialFiles,
       final int maxSize) {
+    enableLog(true);
     setMaxSize(maxSize);
     TabletTransactionLog log = new TabletTransactionLog(FOO_EXTENT, initialFiles,
         factory.getTableConfiguration(FOO.getId()));
-    assertEquals(log.getExpectedFiles(), initialFiles);
+    assertEquals(initialFiles, log.getExpectedFiles());
     return log;
+  }
+
+  private void enableLog(boolean enabled) {
+    ((ConfigurationCopy) (factory.getSystemConfiguration()))
+        .set(Property.TABLE_TRANSACTION_LOG_ENABLED, Boolean.toString(enabled));
   }
 
   private void setMaxSize(int maxSize) {
     ((ConfigurationCopy) (factory.getSystemConfiguration()))
-        .set(Property.TABLE_OPERATION_LOG_MAX_SIZE, Integer.toString(maxSize));
+        .set(Property.TABLE_TRANSACTION_LOG_MAX_SIZE, Integer.toString(maxSize));
   }
 
   @Test
@@ -106,20 +116,23 @@ public class TabletTransactionLogTest {
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
-    Thread.sleep(2);
-    log.flushed(Optional.empty());
-    assertEquals(log.getExpectedFiles(), initialFiles);
+    Thread.sleep(2); // to insure the time stamp is different
+    log.flushed(Optional.empty(), initialFiles);
+    assertEquals(initialFiles, log.getInitialFiles());
+    assertEquals(initialFiles, log.getExpectedFiles());
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     logDate = log.getInitialDate().getTime();
     assertNotEquals(dump, log.dumpLog());
     dump = log.dumpLog();
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile flushedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile1.rf");
-    log.flushed(Optional.of(flushedFile));
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile, flushedFile));
+    Set<StoredTabletFile> expectedFiles = Sets.newHashSet(initialFile, flushedFile);
+    log.flushed(Optional.of(flushedFile), expectedFiles);
+    assertEquals(expectedFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     assertNotEquals(dump, log.dumpLog());
@@ -134,11 +147,13 @@ public class TabletTransactionLogTest {
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile importedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ifile1.rf");
-    log.bulkImported(importedFile);
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile, importedFile));
+    Set<StoredTabletFile> expectedFiles = Sets.newHashSet(initialFile, importedFile);
+    log.bulkImported(importedFile, expectedFiles);
+    assertEquals(expectedFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     assertNotEquals(dump, log.dumpLog());
@@ -157,11 +172,14 @@ public class TabletTransactionLogTest {
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile compactedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Cfile1.rf");
-    log.compacted(Sets.newHashSet(initialFile1, initialFile2), Optional.of(compactedFile));
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile3, compactedFile));
+    Set<StoredTabletFile> expectedFiles = Sets.newHashSet(initialFile3, compactedFile);
+    log.compacted(Sets.newHashSet(initialFile1, initialFile2), Optional.of(compactedFile),
+        expectedFiles);
+    assertEquals(expectedFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     assertNotEquals(dump, log.dumpLog());
@@ -169,8 +187,10 @@ public class TabletTransactionLogTest {
     logDate = log.getInitialDate().getTime();
 
     Thread.sleep(2);
-    log.compacted(Sets.newHashSet(compactedFile), Optional.empty());
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile3));
+    expectedFiles = Sets.newHashSet(initialFile3);
+    log.compacted(Sets.newHashSet(compactedFile), Optional.empty(), expectedFiles);
+    assertEquals(expectedFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(0, log.getTransactions().size());
     assertTrue(log.getInitialDate().getTime() > logDate);
     assertNotEquals(dump, log.dumpLog());
@@ -189,33 +209,39 @@ public class TabletTransactionLogTest {
     String dump = log.dumpLog();
     long logDate = log.getInitialDate().getTime();
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile importedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ifile1.rf");
-    log.bulkImported(importedFile);
-    assertTrue(log.getExpectedFiles()
-        .equals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile)));
+    Set<StoredTabletFile> expectedFiles =
+        Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile);
+    log.bulkImported(importedFile, expectedFiles);
+    assertEquals(initialFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     List<TabletTransaction> logs = log.getTransactions();
     assertEquals(1, logs.size());
     assertEquals(logDate, log.getInitialDate().getTime());
     assertNotEquals(dump, log.dumpLog());
     dump = log.dumpLog();
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile compactedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Cfile1.rf");
-    log.compacted(Sets.newHashSet(initialFile3, importedFile), Optional.of(compactedFile));
-    assertEquals(log.getExpectedFiles(),
-        Sets.newHashSet(initialFile1, initialFile2, compactedFile));
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, compactedFile);
+    log.compacted(Sets.newHashSet(initialFile3, importedFile), Optional.of(compactedFile),
+        expectedFiles);
+    assertEquals(initialFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(logDate, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(2, logs.size());
     assertNotEquals(dump, log.dumpLog());
     dump = log.dumpLog();
 
-    Thread.sleep(2);
-    log.compacted(Sets.newHashSet(compactedFile), Optional.empty());
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile1, initialFile2));
+    Thread.sleep(2); // to insure the time stamp is different
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2);
+    log.compacted(Sets.newHashSet(compactedFile), Optional.empty(), expectedFiles);
+    assertEquals(initialFiles, log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(logDate, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(3, logs.size());
@@ -234,11 +260,14 @@ public class TabletTransactionLogTest {
         ((TabletTransaction.Compacted) logs.get(2)).getCompactedFiles());
     assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(2)).getDestination());
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     StoredTabletFile flushedFile =
         new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile1.rf");
-    log.flushed(Optional.of(flushedFile));
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile1, initialFile2, flushedFile));
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.of(flushedFile), expectedFiles);
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile),
+        log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     assertEquals(logs.get(0).ts, log.getInitialDate().getTime());
     logs = log.getTransactions();
     assertEquals(3, logs.size());
@@ -258,10 +287,12 @@ public class TabletTransactionLogTest {
     assertEquals(Optional.of(flushedFile),
         ((TabletTransaction.Flushed) logs.get(2)).getFlushFile());
 
-    Thread.sleep(2);
+    Thread.sleep(2); // to insure the time stamp is different
     setMaxSize(1);
-    log.flushed(Optional.empty());
-    assertEquals(log.getExpectedFiles(), Sets.newHashSet(initialFile1, initialFile2, flushedFile));
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.empty(), expectedFiles);
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, flushedFile), log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
     // we went from 3 to 1 logs, so the first one should not be the last of the original logs
     assertEquals(logs.get(2).ts, log.getInitialDate().getTime());
     logs = log.getTransactions();
@@ -272,9 +303,261 @@ public class TabletTransactionLogTest {
     assertEquals(Optional.empty(), ((TabletTransaction.Flushed) logs.get(0)).getFlushFile());
   }
 
+  @Test
+  public void testCapacityChange() {
+    StoredTabletFile initialFile1 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
+    StoredTabletFile initialFile2 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile2.rf");
+    StoredTabletFile initialFile3 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile3.rf");
+    Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile1, initialFile2, initialFile3);
+    TabletTransactionLog log = createLog(initialFiles, 3);
+    StoredTabletFile importedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ifile1.rf");
+    Set<StoredTabletFile> expectedFiles =
+        Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile);
+    log.bulkImported(importedFile, expectedFiles);
+    StoredTabletFile compactedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Cfile1.rf");
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, compactedFile);
+    log.compacted(Sets.newHashSet(initialFile3, importedFile), Optional.of(compactedFile),
+        expectedFiles);
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2);
+    log.compacted(Sets.newHashSet(compactedFile), Optional.empty(), expectedFiles);
+    StoredTabletFile flushedFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile1.rf");
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile);
+    log.flushed(Optional.of(flushedFile), expectedFiles);
+
+    List<TabletTransaction> logs = log.getTransactions();
+    assertEquals(3, logs.size());
+    assertTrue(logs.get(0) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(initialFile3, importedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getCompactedFiles());
+    assertEquals(Optional.of(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getDestination());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(1)).getCompactedFiles());
+    assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(1)).getDestination());
+    assertTrue(logs.get(2) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile),
+        ((TabletTransaction.Flushed) logs.get(2)).getFlushFile());
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile),
+        log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
+
+    // change the capacity
+    setMaxSize(5);
+    logs = log.getTransactions();
+    assertEquals(3, logs.size());
+    assertTrue(logs.get(0) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(initialFile3, importedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getCompactedFiles());
+    assertEquals(Optional.of(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getDestination());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(1)).getCompactedFiles());
+    assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(1)).getDestination());
+    assertTrue(logs.get(2) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile),
+        ((TabletTransaction.Flushed) logs.get(2)).getFlushFile());
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile),
+        log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
+
+    // add another transaction
+    StoredTabletFile flushedFile2 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile2.rf");
+    expectedFiles = Sets.newHashSet(initialFile1, initialFile2, flushedFile, flushedFile2);
+    log.flushed(Optional.of(flushedFile2), expectedFiles);
+
+    logs = log.getTransactions();
+    assertEquals(4, logs.size());
+    assertTrue(logs.get(0) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(initialFile3, importedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getCompactedFiles());
+    assertEquals(Optional.of(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(0)).getDestination());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Compacted);
+    assertEquals(Sets.newHashSet(compactedFile),
+        ((TabletTransaction.Compacted) logs.get(1)).getCompactedFiles());
+    assertEquals(Optional.empty(), ((TabletTransaction.Compacted) logs.get(1)).getDestination());
+    assertTrue(logs.get(2) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile),
+        ((TabletTransaction.Flushed) logs.get(2)).getFlushFile());
+    assertTrue(logs.get(3) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile2),
+        ((TabletTransaction.Flushed) logs.get(3)).getFlushFile());
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile),
+        log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
+
+    // change the capacity to be smaller
+    setMaxSize(2);
+
+    // size won't actually change until we add another transaction
+    logs = log.getTransactions();
+    assertEquals(4, logs.size());
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, initialFile3, importedFile),
+        log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
+
+    // add another transaction
+    StoredTabletFile flushedFile3 =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile3.rf");
+    expectedFiles =
+        Sets.newHashSet(initialFile1, initialFile2, flushedFile, flushedFile2, flushedFile3);
+    log.flushed(Optional.of(flushedFile3), expectedFiles);
+
+    // ensure we are now a reduced size
+    logs = log.getTransactions();
+    assertEquals(2, logs.size());
+    assertTrue(logs.get(0) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile2),
+        ((TabletTransaction.Flushed) logs.get(0)).getFlushFile());
+    assertTrue(logs.get(1) instanceof TabletTransaction.Flushed);
+    assertEquals(Optional.of(flushedFile3),
+        ((TabletTransaction.Flushed) logs.get(1)).getFlushFile());
+    assertEquals(Sets.newHashSet(initialFile1, initialFile2, flushedFile), log.getInitialFiles());
+    assertEquals(expectedFiles, log.getExpectedFiles());
+  }
+
+  private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+    public Throwable thrown = null;
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      synchronized (this) {
+        thrown = e;
+      }
+    }
+  }
+
+  @Test
+  public void testThreadSafety() throws InterruptedException {
+    StoredTabletFile initialFile =
+        new StoredTabletFile("file://accumulo/tables/1/default_tablet/Afile1.rf");
+    Set<StoredTabletFile> initialFiles = Sets.newHashSet(initialFile);
+    final TabletTransactionLog log = createLog(initialFiles, 5);
+    final ExceptionHandler handler = new ExceptionHandler();
+    final Object startLock = new Object();
+    final AtomicInteger ready = new AtomicInteger(0);
+    final AtomicInteger writes = new AtomicInteger(0);
+    final AtomicInteger reads = new AtomicInteger(0);
+    final SecureRandom random = new SecureRandom();
+    final int STARTUP_WAIT = 15000;
+    final int EXECUTION_TIME = 2000;
+
+    // create writer threads
+    // Note that the write methods are being done randomly hence the
+    // expected new file list will most certainly be different each time
+    // resulting in much logging. This is ok.
+    Runnable writable = new Runnable() {
+      @Override
+      public void run() {
+        synchronized (startLock) {
+          try {
+            ready.incrementAndGet();
+            startLock.wait(STARTUP_WAIT);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+        long start = System.currentTimeMillis();
+        StoredTabletFile importedFile =
+            new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ifile1.rf");
+        StoredTabletFile flushedFile =
+            new StoredTabletFile("file://accumulo/tables/1/default_tablet/Ffile1.rf");
+        StoredTabletFile compactedFile =
+            new StoredTabletFile("file://accumulo/tables/1/default_tablet/Cfile1.rf");
+        while (System.currentTimeMillis() - start < EXECUTION_TIME) {
+          enableLog(random.nextBoolean());
+          setMaxSize(random.nextInt(10));
+          int choice = random.nextInt(4);
+          switch (choice) {
+            case 0:
+              log.bulkImported(importedFile, Sets.newHashSet(importedFile));
+              break;
+            case 1:
+              log.flushed(Optional.of(flushedFile), Sets.newHashSet(flushedFile));
+              break;
+            case 2:
+              log.compacted(Sets.newHashSet(importedFile, flushedFile), Optional.of(compactedFile),
+                  Sets.newHashSet(compactedFile));
+              break;
+            default:
+              log.clearLog();
+          }
+          writes.incrementAndGet();
+        }
+      }
+    };
+
+    // create a writer threads
+    Runnable readable = new Runnable() {
+      @Override
+      public void run() {
+        synchronized (startLock) {
+          try {
+            ready.incrementAndGet();
+            startLock.wait(STARTUP_WAIT);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < EXECUTION_TIME) {
+          log.getTransactions();
+          reads.incrementAndGet();
+        }
+      }
+    };
+
+    // create the threads
+    List<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      Thread readerThread = new Thread(readable);
+      readerThread.setUncaughtExceptionHandler(handler);
+      threads.add(readerThread);
+      Thread writerThread = new Thread(writable);
+      writerThread.setUncaughtExceptionHandler(handler);
+      threads.add(writerThread);
+    }
+
+    // start the threads
+    threads.stream().forEach(t -> t.start());
+
+    // wait until they are both waiting on the start lock
+    while (ready.get() < 10) {
+      Thread.sleep(100);
+    }
+
+    // unlock the threads
+    synchronized (startLock) {
+      ready.incrementAndGet();
+      startLock.notifyAll();
+    }
+
+    // wait for the threads to complete
+    boolean alive = threads.stream().anyMatch(t -> t.isAlive());
+    while (alive) {
+      Thread.sleep(100);
+      alive = threads.stream().anyMatch(t -> t.isAlive());
+    }
+
+    // ensure no exceptions were thrown
+    assertNull(handler.thrown, "Exception was thrown: " + handler.thrown);
+
+    // ensure we got some writes and some reads in there
+    assertTrue(writes.get() > 0);
+    assertTrue(reads.get() > 0);
+  }
+
   protected ServerContext createMockContext() {
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
-
     ServerContext mockContext = createMock(ServerContext.class);
     PropStore propStore = createMock(ZooPropStore.class);
     expect(mockContext.getProperties()).andReturn(new Properties()).anyTimes();
@@ -326,7 +609,7 @@ public class TabletTransactionLogTest {
 
   protected static final HashMap<String,String> DEFAULT_TABLE_PROPERTIES = new HashMap<>();
   {
-    DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_OPERATION_LOG_MAX_SIZE.getKey(), "0");
+    DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_TRANSACTION_LOG_MAX_SIZE.getKey(), "0");
   }
 
   private static SiteConfiguration siteConfg = SiteConfiguration.empty().build();
