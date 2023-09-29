@@ -91,7 +91,50 @@ public class RingBufferTest {
       }
     }
   }
+  @Test
+  public void threadOrderingTest() throws Exception {
+    var executor = Executors.newFixedThreadPool(2);
 
+    // TODO could try diff ring sizes
+    final TabletTransactionLog.Ring<Integer> ring = new TabletTransactionLog.Ring<>(11);
+
+    final int max = 100_000_000;
+
+    var readerFuture = executor.submit(() -> {
+      int lastSize = 0;
+
+      while (true) {
+        List<Integer> ints = ring.toListNoFail();
+
+        // the list size should increase up to the capacity, do not expect it to ever shrink
+        assertTrue(ints.size() >= lastSize && ints.size() <= ring.capacity());
+
+        lastSize = ints.size();
+
+        // always expect list to contain monotonically increasing integers
+        for (int i = 1; i < ints.size(); i++) {
+          assertEquals(ints.get(i - 1), ints.get(i) - 1);
+        }
+
+        if (!ints.isEmpty() && ints.get(ints.size() - 1) == max - 1) {
+          return;
+        }
+      }
+    });
+
+    var writerFuture = executor.submit(() -> {
+      for (int i = 0; i < max; i++) {
+        ring.add(i);
+      }
+    });
+
+    // ensure task completed w/o exception
+    readerFuture.get();
+    writerFuture.get();
+
+    executor.shutdownNow();
+  }
+  
   @Test
   public void testThreadSafety() throws InterruptedException {
     final TabletTransactionLog.Ring<String> ring = new TabletTransactionLog.Ring<>(5);
