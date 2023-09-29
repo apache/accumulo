@@ -33,7 +33,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -146,6 +148,8 @@ public class SelectedFilesTest {
     // construct a json from the given parameters
     String json = getJson(txid, selAll, paths);
 
+    System.out.println(json);
+
     // create a SelectedFiles object using the json
     SelectedFiles selectedFiles = SelectedFiles.from(json);
 
@@ -174,7 +178,9 @@ public class SelectedFilesTest {
    */
   private static String getJson(String txid, boolean selAll, List<String> paths) {
     String filesJsonArray =
-        paths.stream().map(path -> "'" + path + "'").collect(Collectors.joining(","));
+        paths.stream().map(path -> new ReferencedTabletFile(new Path(path)).insert().getMetadata())
+            .map(path -> path.replace("\"", "\\\"")).map(path -> "'" + path + "'")
+            .collect(Collectors.joining(","));
     return ("{'txid':'" + FateTxId.formatTid(Long.parseLong(txid, 16)) + "','selAll':" + selAll
         + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
   }
@@ -194,7 +200,8 @@ public class SelectedFilesTest {
    * Convert a list of file paths to StoredTabletFile objects
    */
   private Set<StoredTabletFile> filePathsToStoredTabletFiles(List<String> filePaths) {
-    return filePaths.stream().map(StoredTabletFile::new).collect(Collectors.toSet());
+    return filePaths.stream().map(Path::new).map(ReferencedTabletFile::new)
+        .map(ReferencedTabletFile::insert).collect(Collectors.toSet());
   }
 
   /**

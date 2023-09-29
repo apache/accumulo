@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -150,30 +151,22 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   public String getAddressString(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getAddress();
+    return sd == null ? null : sd.getAddress();
   }
 
   public HostAndPort getAddress(ThriftService service) {
-    return AddressUtil.parseAddress(getAddressString(service), false);
+    String s = getAddressString(service);
+    return s == null ? null : AddressUtil.parseAddress(s, false);
   }
 
   public String getGroup(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getGroup();
+    return sd == null ? null : sd.getGroup();
   }
 
   public UUID getServerUUID(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getUUID();
+    return sd == null ? null : sd.getUUID();
   }
 
   public byte[] serialize() {
@@ -194,10 +187,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ServiceLockData) {
-      return toString().equals(o.toString());
-    }
-    return false;
+    return o instanceof ServiceLockData ? Objects.equals(toString(), o.toString()) : false;
   }
 
   @Override
@@ -210,10 +200,8 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       return Optional.empty();
     }
     String data = new String(lockData, UTF_8);
-    if (data.isBlank()) {
-      return Optional.empty();
-    }
-    return Optional.of(new ServiceLockData(GSON.get().fromJson(data, ServiceDescriptors.class)));
+    return data.isBlank() ? Optional.empty()
+        : Optional.of(new ServiceLockData(GSON.get().fromJson(data, ServiceDescriptors.class)));
   }
 
 }

@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -101,7 +100,6 @@ public class MetadataConstraints implements Constraint {
           CurrentLocationColumnFamily.NAME,
           LastLocationColumnFamily.NAME,
           FutureLocationColumnFamily.NAME,
-          ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
           ExternalCompactionColumnFamily.NAME,
               CompactedColumnFamily.NAME);
@@ -264,8 +262,17 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
-          violations = validateDataFileMetadata(violations,
-              new String(columnUpdate.getColumnQualifier(), UTF_8));
+          /*
+           * This needs to be re-worked after Issue https://github.com/apache/accumulo/issues/3505
+           * is done.
+           *
+           * That issue will reorganizes this class and make things more efficient so we are not
+           * looping over the same mutation more than once like in this case. The below check is
+           * commented out for now because the violation check is already done when creating
+           * StoredTabletFiles so it isn't needed here anymore violations =
+           * validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(),
+           * UTF_8));
+           */
 
           // splits, which also write the time reference, are allowed to write this reference even
           // when
@@ -280,8 +287,8 @@ public class MetadataConstraints implements Constraint {
           // See ACCUMULO-1230.
           boolean isLocationMutation = false;
 
-          HashSet<Text> dataFiles = new HashSet<>();
-          HashSet<Text> loadedFiles = new HashSet<>();
+          HashSet<StoredTabletFile> dataFiles = new HashSet<>();
+          HashSet<StoredTabletFile> loadedFiles = new HashSet<>();
 
           String tidString = new String(columnUpdate.getValue(), UTF_8);
           int otherTidCount = 0;
@@ -293,9 +300,20 @@ public class MetadataConstraints implements Constraint {
                 .equals(CurrentLocationColumnFamily.NAME)) {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
-              dataFiles.add(new Text(update.getColumnQualifier()));
+              try {
+                // This actually validates for a second time as the loop already validates
+                // if a DataFileColumnFamily, this will likely be fixed as part of
+                // https://github.com/apache/accumulo/issues/3505
+                dataFiles.add(StoredTabletFile.of(new Text(update.getColumnQualifier())));
+              } catch (RuntimeException e) {
+                violations = addViolation(violations, 12);
+              }
             } else if (new Text(update.getColumnFamily()).equals(BulkFileColumnFamily.NAME)) {
-              loadedFiles.add(new Text(update.getColumnQualifier()));
+              try {
+                loadedFiles.add(StoredTabletFile.of(new Text(update.getColumnQualifier())));
+              } catch (RuntimeException e) {
+                violations = addViolation(violations, 12);
+              }
 
               if (!new String(update.getValue(), UTF_8).equals(tidString)) {
                 otherTidCount++;

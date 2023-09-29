@@ -26,10 +26,12 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.util.FileUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -37,8 +39,9 @@ import org.junit.jupiter.api.Test;
 public class UpdateTabletsTest {
 
   StoredTabletFile newSTF(int fileNum) {
-    return new StoredTabletFile(
-        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F00000" + fileNum + ".rf");
+    return new ReferencedTabletFile(new Path(
+        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F00000" + fileNum + ".rf"))
+        .insert();
   }
 
   FileUtil.FileInfo newFileInfo(String start, String end) {

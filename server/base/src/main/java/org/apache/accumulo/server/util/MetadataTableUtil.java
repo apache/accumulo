@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
@@ -70,7 +71,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -166,12 +166,13 @@ public class MetadataTableUtil {
   }
 
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock) {
+      TimeType timeType, ServiceLock zooLock, TabletHostingGoal goal) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
     tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
+    tablet.putHostingGoal(goal);
     tablet.mutate();
 
   }
@@ -210,7 +211,6 @@ public class MetadataTableUtil {
 
     TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
-    ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     ecids.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical()));
 
@@ -224,15 +224,14 @@ public class MetadataTableUtil {
     Mutation m = new Mutation(metadataEntry);
     TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
     TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-    ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaUpdateDeleteText(),
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
           new Value(entry.getValue().encode()));
     }
 
     for (StoredTabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetaUpdateDeleteText());
+      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
     }
 
     update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
@@ -326,8 +325,7 @@ public class MetadataTableUtil {
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-            bw.addMutation(
-                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
+            bw.addMutation(ample.createDeleteMutation(new ReferenceFile(tableId, stf)));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {

@@ -102,12 +102,11 @@ public class ExtCEnv implements CompactionEnv {
     switch (job.getKind()) {
       case USER:
         return TCompactionReason.USER;
-      case CHOP:
-        return TCompactionReason.CHOP;
       case SELECTOR:
       case SYSTEM:
-      default:
         return TCompactionReason.SYSTEM;
+      default:
+        throw new IllegalStateException("Unknown compaction kind " + job.getKind());
     }
   }
 

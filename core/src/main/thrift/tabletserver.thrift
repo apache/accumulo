@@ -66,7 +66,6 @@ enum TCompactionType {
 enum TCompactionReason {
   USER
   SYSTEM
-  CHOP
   IDLE
   CLOSE
 }
@@ -121,7 +120,6 @@ struct TExternalCompactionJob {
 }
 
 enum TCompactionKind {
-  CHOP
   SELECTOR
   SYSTEM
   USER

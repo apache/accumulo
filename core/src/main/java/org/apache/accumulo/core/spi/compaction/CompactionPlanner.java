@@ -141,25 +141,7 @@ public interface CompactionPlanner {
    * the candidates will contain the files it did not compact and the results of any previous
    * compactions it scheduled. The planner must eventually compact all of the files in the candidate
    * set down to a single file. The compaction service will keep calling the planner until it does.
-   * <li>CompactionKind.CHOP. The planner is required to eventually compact all candidates. One
-   * major difference with USER compactions is this kind is not required to compact all files to a
-   * single file. It is ok to return a compaction plan that compacts a subset of the candidates.
-   * When the planner compacts a subset, it will eventually be called later. When it is called later
-   * the candidates will contain the files it did not compact.
    * </ul>
-   *
-   * <p>
-   * For a chop compaction assume the following happens.
-   * <ol>
-   * <li>The candidate set passed to makePlan contains the files {@code [F1,F2,F3,F4]} and kind is
-   * CHOP
-   * <li>The planner returns a job to compact files {@code [F1,F2]} on executor E1
-   * <li>The compaction runs compacting {@code [F1,F2]} into file {@code [F5]}
-   * </ol>
-   *
-   * <p>
-   * For the case above, eventually the planner will called again with a candidate set of
-   * {@code [F3,F4]} and it must eventually compact those two files.
    *
    * <p>
    * For a user and selector compaction assume the same thing happens, it will result in a slightly
@@ -173,9 +155,7 @@ public interface CompactionPlanner {
    *
    * <p>
    * For the case above, eventually the planner will called again with a candidate set of
-   * {@code [F3,F4,F5]} and it must eventually compact those three files to one. The difference with
-   * CHOP compactions is that the result of intermediate compactions are included in the candidate
-   * set.
+   * {@code [F3,F4,F5]} and it must eventually compact those three files to one.
    *
    * <p>
    * When a planner returns a compactions plan, task will be queued on executors. Previously queued

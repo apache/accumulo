@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CHOPPED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACT_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
@@ -186,13 +185,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   @Override
   public TabletMetadataBuilder deleteBulkFile(StoredTabletFile bulkref) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public TabletMetadataBuilder putChopped() {
-    fetched.add(CHOPPED);
-    internalBuilder.putChopped();
-    return this;
   }
 
   @Override

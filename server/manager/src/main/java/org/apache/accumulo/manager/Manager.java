@@ -98,7 +98,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -755,18 +754,6 @@ public class Manager extends AbstractServer
             case COMPLETE:
               break;
             case STARTED:
-            case SPLITTING:
-              return TabletGoalState.HOSTED;
-            case WAITING_FOR_CHOPPED:
-              Set<TServerInstance> liveTServers = tserverSet.getCurrentServers();
-              if (TabletState.compute(tm, liveTServers).equals(TabletState.HOSTED)) {
-                if (tm.hasChopped()) {
-                  return TabletGoalState.UNASSIGNED;
-                }
-              } else if (tm.hasChopped() && tm.getLogs().isEmpty()) {
-                return TabletGoalState.UNASSIGNED;
-              }
-
               return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
             case MERGING:

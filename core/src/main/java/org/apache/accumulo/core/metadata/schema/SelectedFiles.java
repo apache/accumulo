@@ -66,7 +66,7 @@ public class SelectedFiles {
       out.name("selAll").value(selectedFiles.initiallySelectedAll());
       out.name("files").beginArray();
       // sort the data to make serialized json comparable
-      selectedFiles.getFiles().stream().map(StoredTabletFile::getMetaUpdateDelete).sorted()
+      selectedFiles.getFiles().stream().map(StoredTabletFile::getMetadata).sorted()
           .forEach(file -> {
             try {
               out.value(file);

@@ -399,7 +399,7 @@ public class TServerUtils {
           TSSLTransportFactory.getServerSocket(port, timeout, params.isClientAuth(), address);
     } else {
       tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, address,
-          params.getTTransportParams());
+          params.getTSSLTransportParameters());
     }
 
     final ServerSocket serverSock = tServerSock.getServerSocket();

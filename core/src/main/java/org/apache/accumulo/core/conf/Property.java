@@ -759,8 +759,8 @@ public enum Property {
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",
       "1.3.5"),
-  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "8M", PropertyType.BYTES,
-      "The batch size used for garbage collection.", "2.1.0"),
+  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "50%", PropertyType.MEMORY,
+      "The amount of memory used as the batch size for garbage collection.", "2.1.0"),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs.",
       "1.3.5"),
@@ -772,6 +772,11 @@ public enum Property {
       "The listening port for the garbage collector's monitor service", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
+  @Experimental
+  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
+      "GC will remove deletion candidates that are in-use from the metadata location. "
+          + "This is expected to increase the speed of subsequent GC runs",
+      "2.1.3"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,

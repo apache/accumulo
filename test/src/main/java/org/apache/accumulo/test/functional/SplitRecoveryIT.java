@@ -37,6 +37,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -165,7 +166,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String dirName = "dir_" + i;
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
-      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
+      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl,
+          TabletHostingGoal.ONDEMAND);
       SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));

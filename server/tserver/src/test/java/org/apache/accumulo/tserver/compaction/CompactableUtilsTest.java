@@ -32,7 +32,7 @@ public class CompactableUtilsTest {
     ReferencedTabletFile expected = new ReferencedTabletFile(
         new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
     ReferencedTabletFile tmpFile =
-        new ReferencedTabletFile(new Path(expected.getMetaInsert() + "_tmp"));
+        new ReferencedTabletFile(new Path(expected.getNormalizedPathStr() + "_tmp"));
     ReferencedTabletFile dest = TabletNameGenerator.computeCompactionFileDest(tmpFile);
     assertEquals(expected, dest);
   }
