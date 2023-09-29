@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -408,8 +407,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             failures.putAll(tsFailures);
           }
         }
-      } catch (EOFException e) {
-        fatalException = e;
+
       } catch (IOException e) {
         if (!TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
           synchronized (failures) {
@@ -912,13 +910,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());
       timeoutTracker.errorOccured();
-      if (e.getType() == TTransportException.END_OF_FILE) {
-        // END_OF_FILE is used in TEndpointTransport when the
-        // maxMessageSize has been reached.
-        EOFException eof = new EOFException(e.getMessage());
-        eof.addSuppressed(e);
-        throw eof;
-      }
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
