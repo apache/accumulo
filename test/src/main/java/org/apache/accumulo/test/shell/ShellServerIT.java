@@ -2333,7 +2333,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       if (tokens[1].startsWith("file")) {
         String[] parts = tokens[1].split("/");
         String dir = parts[parts.length - 2];
-        assertTrue(results.contains(dir), " Did not see " + dir);
+        assertTrue(results.contains(dir), "Did not see " + dir);
         String[] sizes = tokens[3].split(",");
         String size = String.format("%,d", Integer.parseInt(sizes[0]));
         String entries = String.format("%,d", Integer.parseInt(sizes[1]));
