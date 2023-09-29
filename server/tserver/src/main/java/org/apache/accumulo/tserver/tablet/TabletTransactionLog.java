@@ -479,8 +479,11 @@ public class TabletTransactionLog {
       int firstPos = first;
       // if either is over the threshold, then we must be in the middle of a modification
       // but before the overrun threshold is called. try again.
-      if (lastPos <= OVERRUN_THRESHOLD && firstPos <= OVERRUN_THRESHOLD) {
-        data = new Object[lastPos - firstPos + 1];
+      int size = lastPos - firstPos + 1;
+      if (size >= 0 && size <= ring.length && lastPos <= OVERRUN_THRESHOLD
+          && firstPos <= OVERRUN_THRESHOLD) {
+        data = new Object[size];
+
         int index = 0;
         for (int i = firstPos; i <= lastPos; i++) {
           data[index++] = ring[i % ring.length];
