@@ -86,7 +86,7 @@ public class MergeIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       var ntc = new NewTableConfiguration().withSplits(splits("a b c d e f g h i j k".split(" ")));
-      c.tableOperations().create(tableName, ntc);
+      createTableAndDisableCompactions(c, tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "a b c d e f g h i j k".split(" ")) {
           Mutation m = new Mutation(row);
@@ -106,7 +106,7 @@ public class MergeIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       NewTableConfiguration ntc = new NewTableConfiguration()
           .withSplits(splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
-      c.tableOperations().create(tableName, ntc);
+      createTableAndDisableCompactions(c, tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "c e f y".split(" ")) {
           Mutation m = new Mutation(row);
@@ -128,7 +128,7 @@ public class MergeIT extends AccumuloClusterHarness {
   public void noChopMergeTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
+      createTableAndDisableCompactions(c, tableName, new NewTableConfiguration());
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // First write 1000 rows to a file in the default tablet
@@ -196,7 +196,7 @@ public class MergeIT extends AccumuloClusterHarness {
   public void noChopMergeDeleteAcrossTablets() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
+      createTableAndDisableCompactions(c, tableName, new NewTableConfiguration());
       // disable compactions
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
@@ -392,6 +392,13 @@ public class MergeIT extends AccumuloClusterHarness {
     }
   }
 
+  private static void createTableAndDisableCompactions(AccumuloClient c, String tableName,
+      NewTableConfiguration ntc) throws Exception {
+    // disable compactions
+    ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "9999"));
+    c.tableOperations().create(tableName, ntc);
+  }
+
   public static void ingest(AccumuloClient accumuloClient, int rows, int offset, String tableName)
       throws Exception {
     IngestParams params = new IngestParams(accumuloClient.properties(), tableName, rows);
@@ -497,7 +504,7 @@ public class MergeIT extends AccumuloClusterHarness {
     if (!splitSet.isEmpty()) {
       ntc = ntc.withSplits(splitSet);
     }
-    client.tableOperations().create(table, ntc);
+    createTableAndDisableCompactions(client, table, ntc);
 
     HashSet<String> expected = new HashSet<>();
     try (BatchWriter bw = client.createBatchWriter(table)) {

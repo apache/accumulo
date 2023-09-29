@@ -111,8 +111,7 @@ class UnloadTabletHandler implements Runnable {
       TServerInstance instance = server.getTabletSession();
       TabletLocationState tls = null;
       try {
-        tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null,
-            false);
+        tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null);
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }

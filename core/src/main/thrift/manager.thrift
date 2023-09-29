@@ -46,7 +46,6 @@ enum TabletLoadState {
   UNLOADED
   UNLOAD_FAILURE_NOT_SERVING
   UNLOAD_ERROR
-  CHOPPED
 }
 
 enum FateOperation {

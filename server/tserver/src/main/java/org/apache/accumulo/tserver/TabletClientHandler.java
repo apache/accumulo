@@ -1163,23 +1163,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
-    try {
-      checkPermission(security, context, server, credentials, lock, "chop");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to chop extent", e);
-      throw new RuntimeException(e);
-    }
-
-    KeyExtent ke = KeyExtent.fromThrift(textent);
-
-    Tablet tablet = server.getOnlineTablet(ke);
-    if (tablet != null) {
-      tablet.chopFiles();
-    }
-  }
-
-  @Override
   public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {

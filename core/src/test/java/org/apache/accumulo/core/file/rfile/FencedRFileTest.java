@@ -35,14 +35,11 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class FencedRFileTest extends AbstractRFileTest {
-
-  private static final Configuration hadoopConf = new Configuration();
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {

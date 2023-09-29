@@ -85,12 +85,11 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
     switch (kind) {
       case USER:
         return TCompactionReason.USER;
-      case CHOP:
-        return TCompactionReason.CHOP;
       case SELECTOR:
       case SYSTEM:
-      default:
         return TCompactionReason.SYSTEM;
+      default:
+        throw new IllegalStateException("Unknown compaction kind " + kind);
     }
   }
 }

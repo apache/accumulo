@@ -36,7 +36,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -104,11 +103,8 @@ public class ExternalCompactionUtil {
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      if (sld.isEmpty()) {
-        return Optional.empty();
-      }
-      return Optional.ofNullable(sld.orElseThrow().getAddress(ThriftService.COORDINATOR));
+      return ServiceLock.getLockData(zk, ServiceLock.path(lockPath))
+          .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }

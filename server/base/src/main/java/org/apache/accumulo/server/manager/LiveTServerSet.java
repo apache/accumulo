@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -182,16 +181,6 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void chop(ServiceLock lock, KeyExtent extent) throws TException {
-      TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
-      try {
-        client.chop(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
     public void splitTablet(KeyExtent extent, Text splitPoint)
         throws TException, ThriftSecurityException, NotServingTabletException {
       TabletManagementClientService.Client client =
@@ -307,9 +296,10 @@ public class LiveTServerSet implements Watcher {
 
     final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    HostAndPort address = ServiceLock.getLockData(getZooCache(), zLockPath, stat)
+        .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV)).orElse(null);
 
-    if (sld.isEmpty()) {
+    if (address == null) {
       if (info != null) {
         doomed.add(info.instance);
         current.remove(zPath);
@@ -325,18 +315,17 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
+      TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
 
       if (info == null) {
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(address));
         current.put(zPath, tServerInfo);
         currentInstances.put(instance, tServerInfo);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(address));
         current.put(zPath, tServerInfo);
         currentInstances.remove(info.instance);
         currentInstances.put(instance, tServerInfo);

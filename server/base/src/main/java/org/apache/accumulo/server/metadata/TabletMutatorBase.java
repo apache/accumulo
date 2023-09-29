@@ -33,7 +33,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -206,13 +205,6 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator deleteBulkFile(StoredTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetadataText());
-    return this;
-  }
-
-  @Override
-  public Ample.TabletMutator putChopped() {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
     return this;
   }
 

@@ -379,9 +379,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
               serverName, tablet);
         }
         break;
-      case CHOPPED:
-        manager.nextEvent.event("tablet %s chopped", tablet);
-        break;
     }
   }
 

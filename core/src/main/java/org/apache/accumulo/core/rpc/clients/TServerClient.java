@@ -23,7 +23,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
@@ -47,8 +45,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
-
-import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
@@ -68,13 +64,9 @@ public interface TServerClient<C extends TServiceClient> {
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       var zLocPath =
           ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      Optional<ServiceLockData> sld = zc.getLockData(zLocPath);
-      if (sld.isPresent()) {
-        HostAndPort address = sld.orElseThrow().getAddress(ThriftService.TSERV);
-        if (address != null) {
-          servers.add(new ThriftTransportKey(address, rpcTimeout, context));
-        }
-      }
+      zc.getLockData(zLocPath).map(sld -> sld.getAddress(ThriftService.TSERV))
+          .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
+          .ifPresent(servers::add);
     }
 
     boolean opened = false;
