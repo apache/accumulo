@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -417,7 +418,7 @@ public class MetadataTableUtil {
   }
 
   private static Iterable<TabletMetadata> createCloneScanner(String testTableName, TableId tableId,
-      AccumuloClient client) throws TableNotFoundException {
+      AccumuloClient client) {
 
     String tableName;
     Range range;
@@ -434,13 +435,12 @@ public class MetadataTableUtil {
     }
 
     return TabletsMetadata.builder(client).scanTable(tableName).overRange(range).checkConsistency()
-        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME).build();
+        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME, HOSTING_GOAL).build();
   }
 
   @VisibleForTesting
   public static void initializeClone(String testTableName, TableId srcTableId, TableId tableId,
-      AccumuloClient client, BatchWriter bw)
-      throws TableNotFoundException, MutationsRejectedException {
+      AccumuloClient client, BatchWriter bw) throws MutationsRejectedException {
 
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
