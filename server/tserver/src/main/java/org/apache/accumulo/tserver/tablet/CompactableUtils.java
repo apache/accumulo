@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +52,6 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -63,19 +61,16 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.CompactionHelper;
 import org.apache.hadoop.conf.Configuration;
@@ -85,26 +80,6 @@ import org.apache.hadoop.fs.Path;
 import com.google.common.collect.Collections2;
 
 public class CompactableUtils {
-
-  public static Map<StoredTabletFile,Pair<Key,Key>> getFirstAndLastKeys(Tablet tablet,
-      Set<StoredTabletFile> allFiles) throws IOException {
-    final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
-    final FileOperations fileFactory = FileOperations.getInstance();
-    final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
-    final TableConfiguration tableConf = tablet.getTableConfiguration();
-    final CryptoService cs = tableConf.getCryptoService();
-    for (StoredTabletFile file : allFiles) {
-      FileSystem ns = fs.getFileSystemByPath(file.getPath());
-      try (FileSKVIterator openReader =
-          fileFactory.newReaderBuilder().forFile(file, ns, ns.getConf(), cs)
-              .withTableConfiguration(tableConf).seekToBeginning().build()) {
-        Key first = openReader.getFirstKey();
-        Key last = openReader.getLastKey();
-        result.put(file, new Pair<>(first, last));
-      }
-    }
-    return result;
-  }
 
   static Map<String,String> computeOverrides(Tablet tablet, Set<CompactableFile> files) {
     var tconf = tablet.getTableConfiguration();
