@@ -228,7 +228,7 @@ function start_all() {
     echo "Starting compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
     for compactor in ${!Q}; do
-      start_service "$compactor" compactor "-o" "compactor.group=$group"
+      start_service "$compactor" compactor "-o" "compactor.group=$group" "-o" "task.runner.worker.type=COMPACTION"
     done
   done
 
@@ -295,7 +295,7 @@ function start_here() {
       Q="COMPACTOR_HOSTS_${group}"
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
-          start_service "$compactor" compactor "-o" "compactor.group=$group"
+          start_service "$compactor" compactor "-o" "compactor.group=$group" "-o" "task.runner.worker.type=COMPACTION"
         fi
       done
     done
@@ -533,7 +533,7 @@ split_point_workers:
   default:
     - localhost
 
-compaction_workers:
+compactor:
   accumulo_meta:
     - localhost
   user_small:

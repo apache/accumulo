@@ -24,7 +24,7 @@
 NUM_EXPECTED=0
 ALLOWED=(
   server/compaction-coordinator/src/test/java/org/apache/accumulo/coordinator/CompactionCoordinatorTest.java
-  server/compactor/src/test/java/org/apache/accumulo/compactor/CompactorTest.java
+  server/compactor/src/test/java/org/apache/accumulo/tasks/CompactorTest.java
 )
 
 ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')
