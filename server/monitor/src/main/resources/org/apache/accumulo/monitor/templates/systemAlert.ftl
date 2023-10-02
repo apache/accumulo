@@ -19,8 +19,7 @@
 
 -->
 <div id="systemAlert" class="alert" style="display: none;" role="alert">
-    <h4>System-wide Notifications</h4>
-    <hr>
+    <h4><span class="bi bi-exclamation-triangle-fill"></span></h4>
     <ul id="alertMessages" class="mb-0">
         <!-- Messages will be appended here -->
     </ul>
