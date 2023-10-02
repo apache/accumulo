@@ -80,7 +80,7 @@
             <li class="dropdown">
               <a class="nav-link" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="../resources/external/bootstrap/fonts/three-dots-vertical.svg">
+                <span style="font-size: 1.2em;" class="bi bi-three-dots-vertical"></span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
