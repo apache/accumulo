@@ -525,7 +525,15 @@ tserver:
   default:
     - localhost
 
-compactor:
+log_sort_workers:
+  default:
+    - localhost
+
+split_point_workers:
+  default:
+    - localhost
+
+compaction_workers:
   accumulo_meta:
     - localhost
   user_small:

@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.compactor;
+package org.apache.accumulo.tasks;
 
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class CompactorExecutable implements KeywordExecutable {
+public class TaskRunnerExecutable implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "compactor";
+    return "task_runner";
   }
 
   @Override
@@ -37,13 +37,12 @@ public class CompactorExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Starts Accumulo Compactor";
+    return "Starts Accumulo TaskRunner";
   }
 
   @Override
   public void execute(final String[] args) throws Exception {
-    System.err.println("WARNING: External compaction processes are experimental");
-    Compactor.main(args);
+    TaskRunner.main(args);
   }
 
 }

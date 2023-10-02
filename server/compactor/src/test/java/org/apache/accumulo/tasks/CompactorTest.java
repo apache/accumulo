@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.compactor;
+package org.apache.accumulo.tasks;
 
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
@@ -27,9 +27,7 @@ import java.net.UnknownHostException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -39,11 +37,15 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.thrift.WorkerType;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AbstractServer;
@@ -52,6 +54,10 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceeded
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.rpc.ServerAddress;
+import org.apache.accumulo.tasks.jobs.CompactionJob;
+import org.apache.accumulo.tasks.jobs.Job;
+import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.Test;
@@ -67,121 +73,156 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.HostAndPort;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({Compactor.class})
+@PrepareForTest({TaskRunner.class})
 @SuppressStaticInitializationFor({"org.apache.log4j.LogManager"})
 @PowerMockIgnore({"org.slf4j.*", "org.apache.logging.*", "org.apache.log4j.*",
     "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
     "com.sun.org.apache.xerces.*"})
 public class CompactorTest {
 
-  public class SuccessfulCompaction implements Runnable {
+  public class SuccessfulCompaction extends CompactionJob {
 
     protected final Logger LOG = LoggerFactory.getLogger(this.getClass());
 
-    protected final LongAdder totalInputEntries;
-    protected final LongAdder totalInputBytes;
-    protected final CountDownLatch started;
-    protected final CountDownLatch stopped;
-    protected final AtomicReference<Throwable> err;
+    private volatile boolean completedCalled = false;
+    private volatile boolean failedCalled = false;
+    private TCompactionStatusUpdate latestState = null;
 
-    public SuccessfulCompaction(LongAdder totalInputEntries, LongAdder totalInputBytes,
-        CountDownLatch started, CountDownLatch stopped, AtomicReference<Throwable> err) {
-      this.totalInputEntries = totalInputEntries;
-      this.totalInputBytes = totalInputBytes;
-      this.err = err;
-      this.started = started;
-      this.stopped = stopped;
+    public SuccessfulCompaction(TaskRunnerProcess worker, CompactionTask msg,
+        AtomicReference<ExternalCompactionId> currentCompactionId) throws TException {
+      super(worker, msg, currentCompactionId);
     }
 
     @Override
-    public void run() {
-      try {
-        started.countDown();
-        UtilWaitThread.sleep(1000);
-      } catch (Exception e) {
-        err.set(e);
-      } finally {
-        stopped.countDown();
-      }
+    public Runnable createJob() throws TException {
+      return () -> {
+        try {
+          started.countDown();
+          UtilWaitThread.sleep(1000);
+        } catch (Exception e) {
+          errorRef.set(e);
+        } finally {
+          stopped.countDown();
+        }
+      };
     }
+
+    @Override
+    protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
+        throws RetriesExceededException {
+      latestState = update;
+    }
+
+    @Override
+    protected void updateCompactionFailed(TExternalCompactionJob job)
+        throws RetriesExceededException {
+      failedCalled = true;
+    }
+
+    @Override
+    protected void updateCompactionCompleted(TExternalCompactionJob job, TCompactionStats stats)
+        throws RetriesExceededException {
+      completedCalled = true;
+    }
+
+    public boolean isCompletedCalled() {
+      return completedCalled;
+    }
+
+    public boolean isFailedCalled() {
+      return failedCalled;
+    }
+
+    public TCompactionStatusUpdate getLatestState() {
+      return latestState;
+    }
+
   }
 
   public class FailedCompaction extends SuccessfulCompaction {
 
-    public FailedCompaction(LongAdder totalInputEntries, LongAdder totalInputBytes,
-        CountDownLatch started, CountDownLatch stopped, AtomicReference<Throwable> err) {
-      super(totalInputEntries, totalInputBytes, started, stopped, err);
+    public FailedCompaction(TaskRunnerProcess worker, CompactionTask msg,
+        AtomicReference<ExternalCompactionId> currentCompactionId) throws TException {
+      super(worker, msg, currentCompactionId);
     }
 
     @Override
-    public void run() {
-      try {
-        started.countDown();
-        UtilWaitThread.sleep(1000);
-        throw new RuntimeException();
-      } catch (Exception e) {
-        err.set(e);
-      } finally {
-        stopped.countDown();
-      }
+    public Runnable createJob() throws TException {
+      return () -> {
+        try {
+          started.countDown();
+          UtilWaitThread.sleep(1000);
+          throw new RuntimeException();
+        } catch (Exception e) {
+          errorRef.set(e);
+        } finally {
+          stopped.countDown();
+        }
+      };
     }
   }
 
   public class InterruptedCompaction extends SuccessfulCompaction {
 
-    public InterruptedCompaction(LongAdder totalInputEntries, LongAdder totalInputBytes,
-        CountDownLatch started, CountDownLatch stopped, AtomicReference<Throwable> err) {
-      super(totalInputEntries, totalInputBytes, started, stopped, err);
+    public InterruptedCompaction(TaskRunnerProcess worker, CompactionTask msg,
+        AtomicReference<ExternalCompactionId> currentCompactionId) throws TException {
+      super(worker, msg, currentCompactionId);
     }
 
     @Override
-    public void run() {
-      try {
-        started.countDown();
-        final Thread thread = Thread.currentThread();
-        Timer t = new Timer();
-        TimerTask task = new TimerTask() {
-          @Override
-          public void run() {
-            thread.interrupt();
-          }
-        };
-        t.schedule(task, 250);
-        Thread.sleep(1000);
-      } catch (Exception e) {
-        LOG.error("Compaction failed: {}", e.getMessage());
-        err.set(e);
-        throw new RuntimeException("Compaction failed", e);
-      } finally {
-        stopped.countDown();
-      }
+    public Runnable createJob() throws TException {
+      return () -> {
+        try {
+          started.countDown();
+          final Thread thread = Thread.currentThread();
+          Timer t = new Timer();
+          TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+              thread.interrupt();
+            }
+          };
+          t.schedule(task, 250);
+          Thread.sleep(1000);
+        } catch (Exception e) {
+          LOG.error("Compaction failed: {}", e.getMessage());
+          errorRef.set(e);
+          throw new RuntimeException("Compaction failed", e);
+        } finally {
+          stopped.countDown();
+        }
+      };
     }
 
   }
 
-  public class SuccessfulCompactor extends Compactor {
+  public class SuccessfulCompactor extends TaskRunner {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
     private final Supplier<UUID> uuid;
     private final ServerAddress address;
-    private final TExternalCompactionJob job;
+    protected final TExternalCompactionJob job;
     private final ServerContext context;
     private final ExternalCompactionId eci;
-    private volatile boolean completedCalled = false;
-    private volatile boolean failedCalled = false;
-    private TCompactionStatusUpdate latestState = null;
+    private SuccessfulCompaction compactionJob;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
       super(new ConfigOpts(),
-          new String[] {"-o", Property.COMPACTOR_GROUP_NAME.getKey() + "=testQ"},
+          new String[] {"-o", Property.TASK_RUNNER_GROUP_NAME.getKey() + "=testQ", "-o",
+              Property.TASK_RUNNER_WORKER_TYPE.getKey() + "=COMPACTION"},
           context.getConfiguration());
       this.uuid = uuid;
       this.address = address;
       this.job = job;
       this.context = context;
       this.eci = eci;
+    }
+
+    @Override
+    protected String getTaskWorkerTypePropertyValue() {
+      return WorkerType.COMPACTION.toString();
     }
 
     @Override
@@ -205,27 +246,28 @@ public class CompactorTest {
         throws KeeperException, InterruptedException {}
 
     @Override
-    protected ServerAddress startCompactorClientService() throws UnknownHostException {
+    protected ServerAddress startThriftClientService() throws UnknownHostException {
       return this.address;
     }
 
     @Override
-    protected TExternalCompactionJob getNextJob(Supplier<UUID> uuid)
-        throws RetriesExceededException {
-      LOG.info("Attempting to get next job, eci = {}", eci);
-      currentCompactionId.set(eci);
-      this.shutdown = true;
-      return job;
+    protected Job<?> getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
+      try {
+        LOG.info("Attempting to get next job, eci = {}", eci);
+        currentTaskId.set(eci);
+        compactionJob = createJobForTest();
+        return compactionJob;
+      } catch (TException e) {
+        throw new RuntimeException("Error creating CompactionJob", e);
+      } finally {
+        this.shutdown = true;
+      }
     }
 
-    @Override
-    protected synchronized void checkIfCanceled() {}
-
-    @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
-      return new SuccessfulCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
+    protected SuccessfulCompaction createJobForTest() throws TException {
+      CompactionTask task = new CompactionTask();
+      task.setCompactionJob(job);
+      return new SuccessfulCompaction(this, task, currentTaskId);
     }
 
     @Override
@@ -233,34 +275,16 @@ public class CompactorTest {
       return uuid;
     }
 
-    @Override
-    protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
-        throws RetriesExceededException {
-      latestState = update;
-    }
-
-    @Override
-    protected void updateCompactionFailed(TExternalCompactionJob job)
-        throws RetriesExceededException {
-      failedCalled = true;
-    }
-
-    @Override
-    protected void updateCompactionCompleted(TExternalCompactionJob job, TCompactionStats stats)
-        throws RetriesExceededException {
-      completedCalled = true;
-    }
-
     public TCompactionState getLatestState() {
-      return latestState.getState();
+      return compactionJob.getLatestState().getState();
     }
 
     public boolean isCompletedCalled() {
-      return completedCalled;
+      return compactionJob.isCompletedCalled();
     }
 
     public boolean isFailedCalled() {
-      return failedCalled;
+      return compactionJob.isFailedCalled();
     }
 
   }
@@ -273,10 +297,10 @@ public class CompactorTest {
     }
 
     @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
-      return new FailedCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
+    protected SuccessfulCompaction createJobForTest() throws TException {
+      CompactionTask task = new CompactionTask();
+      task.setCompactionJob(job);
+      return new FailedCompaction(this, task, currentTaskId);
     }
   }
 
@@ -288,21 +312,21 @@ public class CompactorTest {
     }
 
     @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
-      return new InterruptedCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
+    protected SuccessfulCompaction createJobForTest() throws TException {
+      CompactionTask task = new CompactionTask();
+      task.setCompactionJob(job);
+      return new InterruptedCompaction(this, task, currentTaskId);
     }
 
   }
 
   @Test
   public void testCheckTime() throws Exception {
-    assertEquals(1, Compactor.calculateProgressCheckTime(1024));
-    assertEquals(1, Compactor.calculateProgressCheckTime(1048576));
-    assertEquals(1, Compactor.calculateProgressCheckTime(10485760));
-    assertEquals(10, Compactor.calculateProgressCheckTime(104857600));
-    assertEquals(102, Compactor.calculateProgressCheckTime(1024 * 1024 * 1024));
+    assertEquals(1, CompactionJob.calculateProgressCheckTime(1024));
+    assertEquals(1, CompactionJob.calculateProgressCheckTime(1048576));
+    assertEquals(1, CompactionJob.calculateProgressCheckTime(10485760));
+    assertEquals(10, CompactionJob.calculateProgressCheckTime(104857600));
+    assertEquals(102, CompactionJob.calculateProgressCheckTime(1024 * 1024 * 1024));
   }
 
   @Test
@@ -321,11 +345,11 @@ public class CompactorTest {
     expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
-    TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
+    KeyExtent ke = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
+    TKeyExtent extent = ke.toThrift();
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     expect(job.getExtent()).andReturn(extent).anyTimes();
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
 
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");
@@ -369,9 +393,8 @@ public class CompactorTest {
     expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
-    TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
-
+    KeyExtent ke = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
+    TKeyExtent extent = ke.toThrift();
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     expect(job.getExtent()).andReturn(extent).anyTimes();
@@ -419,11 +442,11 @@ public class CompactorTest {
     expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
-    TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
+    KeyExtent ke = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
+    TKeyExtent extent = ke.toThrift();
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     expect(job.getExtent()).andReturn(extent).anyTimes();
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
 
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");

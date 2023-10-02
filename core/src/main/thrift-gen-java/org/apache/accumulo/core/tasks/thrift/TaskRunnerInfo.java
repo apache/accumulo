@@ -30,20 +30,31 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
 
   private static final org.apache.thrift.protocol.TField HOSTNAME_FIELD_DESC = new org.apache.thrift.protocol.TField("hostname", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField PORT_FIELD_DESC = new org.apache.thrift.protocol.TField("port", org.apache.thrift.protocol.TType.I32, (short)2);
-  private static final org.apache.thrift.protocol.TField RESOURCE_GROUP_FIELD_DESC = new org.apache.thrift.protocol.TField("resourceGroup", org.apache.thrift.protocol.TType.STRING, (short)3);
+  private static final org.apache.thrift.protocol.TField WORKER_TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("workerType", org.apache.thrift.protocol.TType.I32, (short)3);
+  private static final org.apache.thrift.protocol.TField RESOURCE_GROUP_FIELD_DESC = new org.apache.thrift.protocol.TField("resourceGroup", org.apache.thrift.protocol.TType.STRING, (short)4);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TaskRunnerInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TaskRunnerInfoTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.lang.String hostname; // required
   public int port; // required
+  /**
+   * 
+   * @see WorkerType
+   */
+  public @org.apache.thrift.annotation.Nullable WorkerType workerType; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String resourceGroup; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     HOSTNAME((short)1, "hostname"),
     PORT((short)2, "port"),
-    RESOURCE_GROUP((short)3, "resourceGroup");
+    /**
+     * 
+     * @see WorkerType
+     */
+    WORKER_TYPE((short)3, "workerType"),
+    RESOURCE_GROUP((short)4, "resourceGroup");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -63,7 +74,9 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
           return HOSTNAME;
         case 2: // PORT
           return PORT;
-        case 3: // RESOURCE_GROUP
+        case 3: // WORKER_TYPE
+          return WORKER_TYPE;
+        case 4: // RESOURCE_GROUP
           return RESOURCE_GROUP;
         default:
           return null;
@@ -117,6 +130,8 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.PORT, new org.apache.thrift.meta_data.FieldMetaData("port", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.WORKER_TYPE, new org.apache.thrift.meta_data.FieldMetaData("workerType", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, WorkerType.class)));
     tmpMap.put(_Fields.RESOURCE_GROUP, new org.apache.thrift.meta_data.FieldMetaData("resourceGroup", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -129,12 +144,14 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
   public TaskRunnerInfo(
     java.lang.String hostname,
     int port,
+    WorkerType workerType,
     java.lang.String resourceGroup)
   {
     this();
     this.hostname = hostname;
     this.port = port;
     setPortIsSet(true);
+    this.workerType = workerType;
     this.resourceGroup = resourceGroup;
   }
 
@@ -147,6 +164,9 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       this.hostname = other.hostname;
     }
     this.port = other.port;
+    if (other.isSetWorkerType()) {
+      this.workerType = other.workerType;
+    }
     if (other.isSetResourceGroup()) {
       this.resourceGroup = other.resourceGroup;
     }
@@ -162,6 +182,7 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     this.hostname = null;
     setPortIsSet(false);
     this.port = 0;
+    this.workerType = null;
     this.resourceGroup = null;
   }
 
@@ -213,6 +234,39 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __PORT_ISSET_ID, value);
   }
 
+  /**
+   * 
+   * @see WorkerType
+   */
+  @org.apache.thrift.annotation.Nullable
+  public WorkerType getWorkerType() {
+    return this.workerType;
+  }
+
+  /**
+   * 
+   * @see WorkerType
+   */
+  public TaskRunnerInfo setWorkerType(@org.apache.thrift.annotation.Nullable WorkerType workerType) {
+    this.workerType = workerType;
+    return this;
+  }
+
+  public void unsetWorkerType() {
+    this.workerType = null;
+  }
+
+  /** Returns true if field workerType is set (has been assigned a value) and false otherwise */
+  public boolean isSetWorkerType() {
+    return this.workerType != null;
+  }
+
+  public void setWorkerTypeIsSet(boolean value) {
+    if (!value) {
+      this.workerType = null;
+    }
+  }
+
   @org.apache.thrift.annotation.Nullable
   public java.lang.String getResourceGroup() {
     return this.resourceGroup;
@@ -257,6 +311,14 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       }
       break;
 
+    case WORKER_TYPE:
+      if (value == null) {
+        unsetWorkerType();
+      } else {
+        setWorkerType((WorkerType)value);
+      }
+      break;
+
     case RESOURCE_GROUP:
       if (value == null) {
         unsetResourceGroup();
@@ -278,6 +340,9 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     case PORT:
       return getPort();
 
+    case WORKER_TYPE:
+      return getWorkerType();
+
     case RESOURCE_GROUP:
       return getResourceGroup();
 
@@ -297,6 +362,8 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       return isSetHostname();
     case PORT:
       return isSetPort();
+    case WORKER_TYPE:
+      return isSetWorkerType();
     case RESOURCE_GROUP:
       return isSetResourceGroup();
     }
@@ -334,6 +401,15 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
         return false;
     }
 
+    boolean this_present_workerType = true && this.isSetWorkerType();
+    boolean that_present_workerType = true && that.isSetWorkerType();
+    if (this_present_workerType || that_present_workerType) {
+      if (!(this_present_workerType && that_present_workerType))
+        return false;
+      if (!this.workerType.equals(that.workerType))
+        return false;
+    }
+
     boolean this_present_resourceGroup = true && this.isSetResourceGroup();
     boolean that_present_resourceGroup = true && that.isSetResourceGroup();
     if (this_present_resourceGroup || that_present_resourceGroup) {
@@ -355,6 +431,10 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       hashCode = hashCode * 8191 + hostname.hashCode();
 
     hashCode = hashCode * 8191 + port;
+
+    hashCode = hashCode * 8191 + ((isSetWorkerType()) ? 131071 : 524287);
+    if (isSetWorkerType())
+      hashCode = hashCode * 8191 + workerType.getValue();
 
     hashCode = hashCode * 8191 + ((isSetResourceGroup()) ? 131071 : 524287);
     if (isSetResourceGroup())
@@ -387,6 +467,16 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     }
     if (isSetPort()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.port, other.port);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetWorkerType(), other.isSetWorkerType());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetWorkerType()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.workerType, other.workerType);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -435,6 +525,14 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     if (!first) sb.append(", ");
     sb.append("port:");
     sb.append(this.port);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("workerType:");
+    if (this.workerType == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.workerType);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("resourceGroup:");
@@ -507,7 +605,15 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // RESOURCE_GROUP
+          case 3: // WORKER_TYPE
+            if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+              struct.workerType = org.apache.accumulo.core.tasks.thrift.WorkerType.findByValue(iprot.readI32());
+              struct.setWorkerTypeIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 4: // RESOURCE_GROUP
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.resourceGroup = iprot.readString();
               struct.setResourceGroupIsSet(true);
@@ -539,6 +645,11 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       oprot.writeFieldBegin(PORT_FIELD_DESC);
       oprot.writeI32(struct.port);
       oprot.writeFieldEnd();
+      if (struct.workerType != null) {
+        oprot.writeFieldBegin(WORKER_TYPE_FIELD_DESC);
+        oprot.writeI32(struct.workerType.getValue());
+        oprot.writeFieldEnd();
+      }
       if (struct.resourceGroup != null) {
         oprot.writeFieldBegin(RESOURCE_GROUP_FIELD_DESC);
         oprot.writeString(struct.resourceGroup);
@@ -569,15 +680,21 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
       if (struct.isSetPort()) {
         optionals.set(1);
       }
-      if (struct.isSetResourceGroup()) {
+      if (struct.isSetWorkerType()) {
         optionals.set(2);
       }
-      oprot.writeBitSet(optionals, 3);
+      if (struct.isSetResourceGroup()) {
+        optionals.set(3);
+      }
+      oprot.writeBitSet(optionals, 4);
       if (struct.isSetHostname()) {
         oprot.writeString(struct.hostname);
       }
       if (struct.isSetPort()) {
         oprot.writeI32(struct.port);
+      }
+      if (struct.isSetWorkerType()) {
+        oprot.writeI32(struct.workerType.getValue());
       }
       if (struct.isSetResourceGroup()) {
         oprot.writeString(struct.resourceGroup);
@@ -587,7 +704,7 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TaskRunnerInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(3);
+      java.util.BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
         struct.hostname = iprot.readString();
         struct.setHostnameIsSet(true);
@@ -597,6 +714,10 @@ public class TaskRunnerInfo implements org.apache.thrift.TBase<TaskRunnerInfo, T
         struct.setPortIsSet(true);
       }
       if (incoming.get(2)) {
+        struct.workerType = org.apache.accumulo.core.tasks.thrift.WorkerType.findByValue(iprot.readI32());
+        struct.setWorkerTypeIsSet(true);
+      }
+      if (incoming.get(3)) {
         struct.resourceGroup = iprot.readString();
         struct.setResourceGroupIsSet(true);
       }

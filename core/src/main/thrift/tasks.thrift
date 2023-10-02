@@ -23,10 +23,17 @@ include "security.thrift"
 include "client.thrift"
 include "tabletserver.thrift"
 
+enum WorkerType {
+  COMPACTION
+  LOG_SORTING
+  SPLIT_POINT_CALCULATION
+}
+
 struct TaskRunnerInfo {
  1:string hostname
  2:i32 port
- 3:string resourceGroup
+ 3:WorkerType workerType
+ 4:string resourceGroup
 }
 
 struct Task {

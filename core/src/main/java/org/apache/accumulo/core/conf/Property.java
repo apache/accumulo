@@ -1104,41 +1104,6 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-  // Compactor properties
-  @Experimental
-  COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
-  @Experimental
-  COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client is in use, search higher ports until one is available",
-      "2.1.0"),
-  @Experimental
-  COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
-      "The port used for handling client connections on the compactor servers", "2.1.0"),
-  COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
-      "The minimum amount of time to wait between checks for the next compaction job, backing off"
-          + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
-      "4.0.0"),
-  COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
-      "Compactors do exponential backoff when their request for work repeatedly come back empty. "
-          + "This is the maximum amount of time to wait between checks for the next compaction job.",
-      "4.0.0"),
-  @Experimental
-  COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
-      "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
-  @Experimental
-  COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
-      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
-      "2.1.0"),
-  @Experimental
-  COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
-      "The time between adjustments of the server thread pool.", "2.1.0"),
-  @Experimental
-  COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
-  @Experimental
-  COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
-      PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
@@ -1162,7 +1127,40 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0");
+      "The interval at which to check the tservers for external compactions.", "2.1.0"),
+  // ELASTICITY_TODO: Deprecate Compactor properties in a 3.x release
+  TASK_RUNNER_PREFIX("task.runner.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the accumulo TaskRunner server.",
+      "4.0.0"),
+  TASK_RUNNER_CLIENTPORT("task.runner.port.client", "9133", PropertyType.PORT,
+      "The port used for handling client connections on the TaskRunner servers", "4.0.0"),
+  TASK_RUNNER_GROUP_NAME("task.runner.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
+      PropertyType.STRING, "Resource group name for this Compactor.", "4.0.0"),
+  TASK_RUNNER_MAX_MESSAGE_SIZE("task.runner.message.size.max", "10M", PropertyType.BYTES,
+      "The maximum size of a message that can be sent to a tablet server.", "4.0.0"),
+  TASK_RUNNER_MIN_JOB_WAIT_TIME("task.runner.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
+      "The minimum amount of time to wait between checks for the next job, backing off"
+          + "exponentially until TASK_RUNNER_MAX_JOB_WAIT_TIME is reached.",
+      "4.0.0"),
+  TASK_RUNNER_MAX_JOB_WAIT_TIME("task.runner.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
+      "TaskRunners do exponential backoff when their request for work repeatedly come back empty. "
+          + "This is the maximum amount of time to wait between checks for the next compaction job.",
+      "4.0.0"),
+  TASK_RUNNER_MINTHREADS("task.runner.threads.minimum", "1", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests.", "4.0.0"),
+  TASK_RUNNER_MINTHREADS_TIMEOUT("task.runner.threads.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
+      "4.0.0"),
+  TASK_RUNNER_PORTSEARCH("task.runner.port.search", "true", PropertyType.BOOLEAN,
+      "If the task.runner.port.client is in use, search higher ports until one is available",
+      "4.0.0"),
+  TASK_RUNNER_THREADCHECK("task.runner.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+      "The time between adjustments of the server thread pool.", "4.0.0"),
+  TASK_RUNNER_WORKER_TYPE("task.runner.worker.type", "", PropertyType.STRING,
+      "Property used by the TaskWorker "
+          + "processes that determines which type of tasks it will perform. Valid values are COMPACTION,"
+          + "LOG_SORTING, SPLIT_POINT_CALCULATION",
+      "4.0.0");
 
   private final String key;
   private final String defaultValue;

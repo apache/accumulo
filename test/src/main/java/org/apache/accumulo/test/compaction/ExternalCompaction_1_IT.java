@@ -47,7 +47,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -75,6 +74,7 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.tasks.jobs.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;

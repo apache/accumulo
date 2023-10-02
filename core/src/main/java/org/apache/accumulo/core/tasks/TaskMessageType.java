@@ -30,6 +30,7 @@ import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
 
 public enum TaskMessageType {
 
+  // Compaction Related Tasks
   COMPACTION_TASK(CompactionTask.class),
   COMPACTION_TASK_COMPLETED(CompactionTaskCompleted.class),
   COMPACTION_TASK_FAILED(CompactionTaskFailed.class),
@@ -37,6 +38,10 @@ public enum TaskMessageType {
   COMPACTION_TASK_STATUS(CompactionTaskStatus.class),
   COMPACTION_TASKS_COMPLETED(CompactionTasksCompleted.class),
   COMPACTION_TASKS_RUNNING(CompactionTasksRunning.class);
+
+  // TODO: Tasks for calculating split points
+
+  // TODO: Tasks for log sorting and recovery
 
   private Class<? extends TaskMessage> taskClass;
 

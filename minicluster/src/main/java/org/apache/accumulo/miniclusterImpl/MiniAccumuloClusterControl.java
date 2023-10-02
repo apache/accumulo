@@ -33,14 +33,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.tasks.thrift.WorkerType;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tasks.TaskRunner;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -145,7 +146,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     } else {
       switch (server) {
         case COMPACTOR:
-          classToUse = Compactor.class;
+          classToUse = TaskRunner.class;
           break;
         case SCAN_SERVER:
           classToUse = ScanServer.class;
@@ -233,7 +234,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
               processes.add(cluster._exec(classToUse, server, configOverrides, "-o",
-                  Property.COMPACTOR_GROUP_NAME.getKey() + "=" + e.getKey()).getProcess());
+                  Property.TASK_RUNNER_GROUP_NAME.getKey() + "=" + e.getKey(), "-o",
+                  Property.TASK_RUNNER_WORKER_TYPE.getKey() + "="
+                      + WorkerType.COMPACTION.toString())
+                  .getProcess());
             }
           }
         }

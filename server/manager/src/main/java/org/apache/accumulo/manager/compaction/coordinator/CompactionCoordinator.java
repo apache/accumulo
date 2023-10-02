@@ -109,6 +109,7 @@ import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
 import org.apache.accumulo.core.tasks.thrift.Task;
 import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
+import org.apache.accumulo.core.tasks.thrift.WorkerType;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -376,66 +377,87 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+
     final String compactorAddress = taskRunner.getHostname() + ":" + taskRunner.getPort();
     final String externalCompactionId = taskID;
+    final WorkerType workerType = taskRunner.getWorkerType();
     final String group = taskRunner.getResourceGroup().intern();
-    LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
 
-    TExternalCompactionJob result = null;
+    switch (workerType) {
+      case COMPACTION:
+        LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
+        TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
 
-    CompactionJobQueues.MetaJob metaJob =
-        jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
+        TExternalCompactionJob result = null;
 
-    while (metaJob != null) {
+        CompactionJobQueues.MetaJob metaJob =
+            jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
 
-      Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
+        while (metaJob != null) {
 
-      // this method may reread the metadata, do not use the metadata in metaJob for anything after
-      // this method
-      ExternalCompactionMetadata ecm = null;
+          Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
 
-      var kind = metaJob.getJob().getKind();
+          // this method may reread the metadata, do not use the metadata in metaJob for anything
+          // after
+          // this method
+          ExternalCompactionMetadata ecm = null;
 
-      // Only reserve user compactions when the config is present. When compactions are canceled the
-      // config is deleted.
-      if (kind == CompactionKind.SYSTEM
-          || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(metaJob, compactorAddress, externalCompactionId);
-      }
+          var kind = metaJob.getJob().getKind();
 
-      if (ecm != null) {
-        result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
-        // It is possible that by the time this added that the the compactor that made this request
-        // is dead. In this cases the compaction is not actually running.
-        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, compactorAddress, group));
-        LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
-            compactorAddress, ecm.getJobFiles().size());
-        break;
-      } else {
-        LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
-            metaJob.getTabletMetadata().getExtent());
-        metaJob = jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
-      }
+          // Only reserve user compactions when the config is present. When compactions are canceled
+          // the
+          // config is deleted.
+          if (kind == CompactionKind.SYSTEM
+              || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
+            ecm = reserveCompaction(metaJob, compactorAddress, externalCompactionId);
+          }
+
+          if (ecm != null) {
+            result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
+            // It is possible that by the time this added that the the compactor that made this
+            // request
+            // is dead. In this cases the compaction is not actually running.
+            RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
+                new RunningCompaction(result, compactorAddress, group));
+            LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
+                compactorAddress, ecm.getJobFiles().size());
+            break;
+          } else {
+            LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
+                metaJob.getTabletMetadata().getExtent());
+            metaJob = jobQueues.poll(CompactionExecutorIdImpl.externalId(group));
+          }
+        }
+
+        if (metaJob == null) {
+          LOG.debug("No jobs found in group {} ", group);
+        }
+
+        CompactionTask task = TaskMessageType.COMPACTION_TASK.getTaskMessage();
+        task.setTaskId(externalCompactionId);
+
+        if (result == null) {
+          LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
+              compactorAddress);
+          task.setCompactionJob(new TExternalCompactionJob());
+        } else {
+          task.setCompactionJob(result);
+        }
+
+        return task.toThriftTask();
+      case LOG_SORTING:
+        // ELASTICITY_TODO
+        // ResourceGroup is ignored for log sorting. Find the next log sorting task and return it
+        return null;
+      case SPLIT_POINT_CALCULATION:
+        // ELASTICITY_TODO
+        // ResourceGroup could be ignored for split point calculation. Find the next split point
+        // calculation task and return it
+        return null;
+      default:
+        return null;
     }
 
-    if (metaJob == null) {
-      LOG.debug("No jobs found in group {} ", group);
-    }
-
-    CompactionTask task = TaskMessageType.COMPACTION_TASK.getTaskMessage();
-    task.setTaskId(externalCompactionId);
-
-    if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
-          compactorAddress);
-      task.setCompactionJob(new TExternalCompactionJob());
-    } else {
-      task.setCompactionJob(result);
-    }
-
-    return task.toThriftTask();
   }
 
   // ELASTICITY_TODO unit test this code
