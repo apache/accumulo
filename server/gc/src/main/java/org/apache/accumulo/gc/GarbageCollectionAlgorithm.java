@@ -183,7 +183,11 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcTemp = candidateMap.remove(relativePath);
         if (gcTemp != null) {
           log.debug("File Candidate was still in use: {}", relativePath);
-          inUseCandidates.add(gcTemp);
+          // Intentionally not adding scan candidates to inUseCandidates as they are only added
+          // once.
+          if (!ref.isScan()) {
+            inUseCandidates.add(gcTemp);
+          }
         }
 
         String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));

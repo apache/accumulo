@@ -43,6 +43,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.gc.ReferenceScan;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -121,6 +122,9 @@ public class GarbageCollectionTest {
     public void deleteGcCandidates(Collection<GcCandidate> refCandidates, GcCandidateType type) {
       // Mimic ServerAmpleImpl behavior for root InUse Candidates
       if (type.equals(GcCandidateType.INUSE) && this.level.equals(Ample.DataLevel.ROOT)) {
+        // Since there is only a single root tablet, supporting INUSE candidate deletions would add
+        // additional code complexity without any substantial benefit.
+        // Therefore, deletion of root INUSE candidates is not supported.
         return;
       }
       refCandidates.forEach(gcCandidate -> deletedCandidates.put(gcCandidate, type));
@@ -164,6 +168,17 @@ public class GarbageCollectionTest {
 
     public void removeDirReference(String tableId, String endRow) {
       references.remove(tableId + ":" + endRow);
+      removeLastTableIdRef(TableId.of(tableId));
+    }
+
+    public void addScanReference(String tableId, String endRow, String scan) {
+      TableId tid = TableId.of(tableId);
+      references.put(tableId + ":" + endRow + ":scan:" + scan, new ReferenceScan(tid, scan));
+      tableIds.add(tid);
+    }
+
+    public void removeScanReference(String tableId, String endRow, String scan) {
+      references.remove(tableId + ":" + endRow + ":scan:" + scan);
       removeLastTableIdRef(TableId.of(tableId));
     }
 
@@ -1023,6 +1038,32 @@ public class GarbageCollectionTest {
     // Check and make sure the InUse directory candidates are not removed.
     assertEquals(1, gce.candidates.size());
     assertTrue(gce.candidates.contains(candidate));
+  }
+
+  @Test
+  public void testInUseScanReferenceCandidates() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    // InUse Scan Refs should not be removed.
+    var scanCandidate = gce.addCandidate("/4/t0/F010.rf");
+    var candOne = gce.addCandidate("/4/t0/F000.rf");
+    var candTwo = gce.addCandidate("/6/t0/F123.rf");
+    gce.addScanReference("4", null, "/t0/F010.rf");
+    gce.addFileReference("4", null, "/t0/F000.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gce.deleteInUseRefs = true;
+
+    gca.collect(gce);
+    assertRemoved(gce, candTwo);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne);
+    assertTrue(gce.candidates.contains(scanCandidate));
+
+    gce.removeScanReference("4", null, "/t0/F010.rf");
+    gca.collect(gce);
+    assertRemoved(gce, scanCandidate);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(0, gce.candidates.size());
   }
 
   // below are tests for potential failure conditions of the GC process. Some of these cases were

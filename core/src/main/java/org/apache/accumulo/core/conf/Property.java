@@ -894,7 +894,9 @@ public enum Property {
   @Experimental
   GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
-          + "This is expected to increase the speed of subsequent GC runs",
+          + "This is expected to increase the speed of subsequent GC runs."
+          + "WARNING: Enabling this property could cause gcCandidates to be prematurely removed if "
+          + "a major compaction runs at the same time and metadata write times are degraded.",
       "2.1.3"),
   @Deprecated(since = "2.1.1", forRemoval = true)
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,

@@ -44,6 +44,11 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
+  public boolean isScan() {
+    return false;
+  }
+
+  @Override
   public TableId getTableId() {
     return tableId;
   }
