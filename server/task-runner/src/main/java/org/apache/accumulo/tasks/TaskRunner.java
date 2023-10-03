@@ -216,9 +216,9 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
   }
 
   /**
-   * Set up nodes and locks in ZooKeeper for this Compactor
+   * Set up nodes and locks in ZooKeeper for this TaskRunner
    *
-   * @param clientAddress address of this Compactor
+   * @param clientAddress address of this TaskRunner
    * @throws KeeperException zookeeper error
    * @throws InterruptedException thread interrupted
    */
@@ -228,19 +228,37 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
     String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
 
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
-    String compactorQueuePath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.getResourceGroup();
-    String zPath = compactorQueuePath + "/" + hostPort;
+    String zPath = null;
+    switch (workerType) {
+      case COMPACTION:
+        String compactorQueuePath =
+            getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.getResourceGroup();
+        zPath = compactorQueuePath + "/" + hostPort;
 
-    try {
-      zoo.mkdirs(compactorQueuePath);
-      zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
-      throw e;
+        try {
+          zoo.mkdirs(compactorQueuePath);
+          zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+        } catch (KeeperException e) {
+          if (e.code() == KeeperException.Code.NOAUTH) {
+            LOG.error("Failed to write to ZooKeeper. Ensure that"
+                + " accumulo.properties, specifically instance.secret, is consistent.");
+          }
+          throw e;
+        }
+        break;
+      case LOG_SORTING:
+        // ELASTICITY_TODO
+        break;
+      case SPLIT_POINT_CALCULATION:
+        // ELASTICITY_TODO
+        break;
+      default:
+        throw new RuntimeException("Unknown worker type: " + workerType);
+
+    }
+
+    if (zPath == null) {
+      throw new RuntimeException("TaskRunner node not created in ZooKeeper");
     }
 
     taskRunnerLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
@@ -266,7 +284,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
 
         if (taskRunnerLock.tryLock(lw, new ServiceLockData(taskRunnerId, hostPort,
             ThriftService.TASK_RUNNER, this.getResourceGroup()))) {
-          LOG.debug("Obtained Compactor lock {}", taskRunnerLock.getLockPath());
+          LOG.debug("Obtained TaskRunner lock {}", taskRunnerLock.getLockPath());
           return;
         }
         LOG.info("Waiting for TaskRunner lock");
@@ -284,7 +302,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
   /**
    * Start this servers thrift service to handle incoming client requests
    *
-   * @return address of this compactor client service
+   * @return address of this TaskRunner client service
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startThriftClientService() throws UnknownHostException {
@@ -431,14 +449,14 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
     try {
       taskRunnerAddress = startThriftClientService();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the compactor client service", e1);
+      throw new RuntimeException("Failed to start the TaskRunner client service", e1);
     }
     final HostAndPort clientAddress = taskRunnerAddress.getAddress();
 
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Error registering compactor in ZooKeeper", e);
+      throw new RuntimeException("Error registering TaskRunner in ZooKeeper", e);
     }
 
     if (this.workerType == WorkerType.COMPACTION) {
@@ -504,7 +522,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
       }
 
     } catch (Exception e) {
-      LOG.error("Unhandled error occurred in Compactor", e);
+      LOG.error("Unhandled error occurred in TaskRunner", e);
     } finally {
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
@@ -529,15 +547,15 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
           taskRunnerLock.unlock();
         }
       } catch (Exception e) {
-        LOG.warn("Failed to release compactor lock", e);
+        LOG.warn("Failed to release TaskRunner lock", e);
       }
     }
 
   }
 
   public static void main(String[] args) throws Exception {
-    try (TaskRunner compactor = new TaskRunner(new ConfigOpts(), args)) {
-      compactor.runServer();
+    try (TaskRunner taskRunner = new TaskRunner(new ConfigOpts(), args)) {
+      taskRunner.runServer();
     }
   }
 
@@ -572,7 +590,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
 
     // Return what is currently running, does not wait for jobs in the process of reserving. This
     // method is called by a TaskManager starting up to determine what is currently running on all
-    // compactors.
+    // TaskRunners.
 
     Job<?> job = CURRENTLY_EXECUTING_TASK.get();
 

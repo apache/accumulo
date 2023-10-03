@@ -126,6 +126,7 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -377,14 +378,13 @@ public class TaskManager
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    final String compactorAddress = taskRunner.getHostname() + ":" + taskRunner.getPort();
-    final String externalCompactionId = taskID;
+    final String taskRunnerAddress = taskRunner.getHostname() + ":" + taskRunner.getPort();
     final WorkerType workerType = taskRunner.getWorkerType();
     final String group = taskRunner.getResourceGroup().intern();
 
     switch (workerType) {
       case COMPACTION:
-        LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
+        LOG.trace("getTask called for group {} by compactor {}", group, taskRunnerAddress);
         TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
 
         TExternalCompactionJob result = null;
@@ -397,29 +397,26 @@ public class TaskManager
           Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
 
           // this method may reread the metadata, do not use the metadata in metaJob for anything
-          // after
-          // this method
+          // after this method
           ExternalCompactionMetadata ecm = null;
 
           var kind = metaJob.getJob().getKind();
 
           // Only reserve user compactions when the config is present. When compactions are canceled
-          // the
-          // config is deleted.
+          // the config is deleted.
           if (kind == CompactionKind.SYSTEM
               || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-            ecm = reserveCompaction(metaJob, compactorAddress, externalCompactionId);
+            ecm = reserveCompaction(metaJob, taskRunnerAddress, taskID);
           }
 
           if (ecm != null) {
-            result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
+            result = createThriftJob(taskID, ecm, metaJob, compactionConfig);
             // It is possible that by the time this added that the the compactor that made this
-            // request
-            // is dead. In this cases the compaction is not actually running.
+            // request is dead. In this cases the compaction is not actually running.
             RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-                new RunningCompaction(result, compactorAddress, group));
+                new RunningCompaction(result, taskRunnerAddress, group));
             LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
-                compactorAddress, ecm.getJobFiles().size());
+                taskRunnerAddress, ecm.getJobFiles().size());
             break;
           } else {
             LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
@@ -433,11 +430,11 @@ public class TaskManager
         }
 
         CompactionTask task = TaskMessageType.COMPACTION_TASK.getTaskMessage();
-        task.setTaskId(externalCompactionId);
+        task.setTaskId(taskID);
 
         if (result == null) {
-          LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
-              compactorAddress);
+          LOG.trace("No compaction jobs found for group {}, returning empty job to compactor {}",
+              group, taskRunnerAddress);
           task.setCompactionJob(new TExternalCompactionJob());
         } else {
           task.setCompactionJob(result);
@@ -763,61 +760,74 @@ public class TaskManager
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    CompactionTaskCompleted compactionTask =
-        TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_COMPLETED);
-    final TExternalCompactionJob job = compactionTask.getCompactionJob();
-    final String externalCompactionId = job.getExternalCompactionId();
-    final TCompactionStats stats = compactionTask.getCompactionStats();
+    TaskMessageType messageType = TaskMessageType.valueOf(task.getMessageType());
+    switch (messageType) {
+      case COMPACTION_TASK_COMPLETED:
+        CompactionTaskCompleted compactionTask = TaskMessage.fromThiftTask(task, messageType);
+        final TExternalCompactionJob job = compactionTask.getCompactionJob();
+        final String externalCompactionId = job.getExternalCompactionId();
+        final TCompactionStats stats = compactionTask.getCompactionStats();
 
-    var extent = KeyExtent.fromThrift(job.getExtent());
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
-        extent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
+        var extent = KeyExtent.fromThrift(job.getExtent());
+        LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+            extent);
+        final var ecid = ExternalCompactionId.of(externalCompactionId);
 
-    var tabletMeta =
-        ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
+        var tabletMeta =
+            ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
-    if (!canCommitCompaction(ecid, tabletMeta)) {
-      return;
+        if (!canCommitCompaction(ecid, tabletMeta)) {
+          return;
+        }
+
+        ExternalCompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
+
+        // ELASTICITY_TODO this code does not handle race conditions or faults. Need to ensure
+        // refresh
+        // happens in the case of manager process death between commit and refresh.
+        ReferencedTabletFile newDatafile =
+            TabletNameGenerator.computeCompactionFileDest(ecm.getCompactTmpName());
+
+        Optional<ReferencedTabletFile> optionalNewFile;
+        try {
+          optionalNewFile = renameOrDeleteFile(stats, ecm, newDatafile);
+        } catch (IOException e) {
+          LOG.warn("Can not commit complete compaction {} because unable to delete or rename {} ",
+              ecid, ecm.getCompactTmpName(), e);
+          compactionFailed(Map.of(ecid, extent));
+          return;
+        }
+
+        RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
+
+        try {
+          tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
+        } catch (RuntimeException e) {
+          LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
+          compactionFailed(Map.of(ecid, extent));
+        }
+
+        if (ecm.getKind() != CompactionKind.USER) {
+          refreshTablet(tabletMeta);
+        }
+
+        // if a refresh entry was written, it can be removed after the tablet was refreshed
+        refreshWriter.deleteRefresh();
+
+        // It's possible that RUNNING might not have an entry for this ecid in the case
+        // of a TaskManager restart when the TaskManager can't find the TServer for the
+        // corresponding external compaction.
+        recordCompletion(ecid);
+        break;
+      case COMPACTION_TASKS_COMPLETED:
+      case COMPACTION_TASK:
+      case COMPACTION_TASKS_RUNNING:
+      case COMPACTION_TASK_FAILED:
+      case COMPACTION_TASK_LIST:
+      case COMPACTION_TASK_STATUS:
+      default:
+        throw new TApplicationException(TApplicationException.INVALID_MESSAGE_TYPE);
     }
-
-    ExternalCompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
-
-    // ELASTICITY_TODO this code does not handle race conditions or faults. Need to ensure refresh
-    // happens in the case of manager process death between commit and refresh.
-    ReferencedTabletFile newDatafile =
-        TabletNameGenerator.computeCompactionFileDest(ecm.getCompactTmpName());
-
-    Optional<ReferencedTabletFile> optionalNewFile;
-    try {
-      optionalNewFile = renameOrDeleteFile(stats, ecm, newDatafile);
-    } catch (IOException e) {
-      LOG.warn("Can not commit complete compaction {} because unable to delete or rename {} ", ecid,
-          ecm.getCompactTmpName(), e);
-      compactionFailed(Map.of(ecid, extent));
-      return;
-    }
-
-    RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
-
-    try {
-      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
-    } catch (RuntimeException e) {
-      LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
-      compactionFailed(Map.of(ecid, extent));
-    }
-
-    if (ecm.getKind() != CompactionKind.USER) {
-      refreshTablet(tabletMeta);
-    }
-
-    // if a refresh entry was written, it can be removed after the tablet was refreshed
-    refreshWriter.deleteRefresh();
-
-    // It's possible that RUNNING might not have an entry for this ecid in the case
-    // of a TaskManager restart when the TaskManager can't find the TServer for the
-    // corresponding external compaction.
-    recordCompletion(ecid);
   }
 
   private Optional<ReferencedTabletFile> renameOrDeleteFile(TCompactionStats stats,
@@ -1056,17 +1066,31 @@ public class TaskManager
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final CompactionTaskFailed compactionTask =
-        TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_FAILED);
-    final TExternalCompactionJob job = compactionTask.getCompactionJob();
 
-    LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
-    final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
-    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
+    TaskMessageType messageType = TaskMessageType.valueOf(task.getMessageType());
+    switch (messageType) {
+      case COMPACTION_TASK_FAILED:
+        final CompactionTaskFailed compactionTask = TaskMessage.fromThiftTask(task, messageType);
+        final TExternalCompactionJob job = compactionTask.getCompactionJob();
 
-    // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
-    // currently cleans up tmp files on tablet load. With tablets never loading possibly but still
-    // compacting dying compactors may still leave tmp files behind.
+        LOG.info("Compaction failed, id: {}", job.getExternalCompactionId());
+        final var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
+        compactionFailed(Map.of(ecid, KeyExtent.fromThrift(job.getExtent())));
+
+        // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
+        // currently cleans up tmp files on tablet load. With tablets never loading possibly but
+        // still
+        // compacting dying compactors may still leave tmp files behind.
+        break;
+      case COMPACTION_TASK:
+      case COMPACTION_TASKS_COMPLETED:
+      case COMPACTION_TASKS_RUNNING:
+      case COMPACTION_TASK_COMPLETED:
+      case COMPACTION_TASK_LIST:
+      case COMPACTION_TASK_STATUS:
+      default:
+        throw new TApplicationException(TApplicationException.INVALID_MESSAGE_TYPE);
+    }
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -1109,16 +1133,30 @@ public class TaskManager
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final CompactionTaskStatus statusMsg =
-        TaskMessage.fromThiftTask(taskUpdateObject, TaskMessageType.COMPACTION_TASK_STATUS);
-    final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
-    final String externalCompactionId = statusMsg.getTaskId();
+    TaskMessageType messageType = TaskMessageType.valueOf(taskUpdateObject.getMessageType());
+    switch (messageType) {
+      case COMPACTION_TASK_STATUS:
+        final CompactionTaskStatus statusMsg =
+            TaskMessage.fromThiftTask(taskUpdateObject, messageType);
+        final TCompactionStatusUpdate update = statusMsg.getCompactionStatus();
+        final String externalCompactionId = statusMsg.getTaskId();
 
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
-    final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    if (null != rc) {
-      rc.addUpdate(timestamp, update);
+        LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+            externalCompactionId, timestamp, update);
+        final RunningCompaction rc =
+            RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
+        if (null != rc) {
+          rc.addUpdate(timestamp, update);
+        }
+        break;
+      case COMPACTION_TASK:
+      case COMPACTION_TASKS_COMPLETED:
+      case COMPACTION_TASKS_RUNNING:
+      case COMPACTION_TASK_COMPLETED:
+      case COMPACTION_TASK_FAILED:
+      case COMPACTION_TASK_LIST:
+      default:
+        throw new TApplicationException(TApplicationException.INVALID_MESSAGE_TYPE);
     }
   }
 

@@ -525,11 +525,13 @@ tserver:
   default:
     - localhost
 
-log_sort_workers:
+# ELASTICITY_TODO: Add these new TaskRunner types to MAC, ClusterConfigParser, etc.
+log_sorters:
   default:
     - localhost
 
-split_point_workers:
+# ELASTICITY_TODO: Add these new TaskRunner types to MAC, ClusterConfigParser, etc.
+split_calculators:
   default:
     - localhost
 
