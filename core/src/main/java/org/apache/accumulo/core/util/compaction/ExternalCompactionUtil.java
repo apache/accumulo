@@ -104,7 +104,7 @@ public class ExternalCompactionUtil {
    *
    * @return Optional HostAndPort of Coordinator node if found
    */
-  public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
+  public static Optional<HostAndPort> findTaskManager(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),

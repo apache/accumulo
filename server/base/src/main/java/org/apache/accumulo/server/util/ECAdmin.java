@@ -203,7 +203,7 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private TaskManager.Client getCoordinatorClient(ServerContext context) {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+    var coordinatorHost = ExternalCompactionUtil.findTaskManager(context);
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
     }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.compaction.coordinator;
+package org.apache.accumulo.manager.tasks;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,11 +44,11 @@ public class DeadCompactionDetector {
   private static final Logger log = LoggerFactory.getLogger(DeadCompactionDetector.class);
 
   private final ServerContext context;
-  private final CompactionCoordinator coordinator;
+  private final TaskManager coordinator;
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
 
-  public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
+  public DeadCompactionDetector(ServerContext context, TaskManager coordinator,
       ScheduledThreadPoolExecutor stpe) {
     this.context = context;
     this.coordinator = coordinator;
@@ -126,7 +126,7 @@ public class DeadCompactionDetector {
 
   public void start() {
     long interval = this.context.getConfiguration()
-        .getTimeInMillis(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL);
+        .getTimeInMillis(Property.TASK_MANAGER_DEAD_COMPACTOR_CHECK_INTERVAL);
 
     ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(() -> {
       try {

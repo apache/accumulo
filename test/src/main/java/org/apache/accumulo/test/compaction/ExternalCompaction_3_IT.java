@@ -169,8 +169,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         TExternalCompactionList running = null;
         while (running == null) {
           try {
-            Optional<HostAndPort> coordinatorHost =
-                ExternalCompactionUtil.findCompactionCoordinator(ctx);
+            Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
             if (coordinatorHost.isEmpty()) {
               throw new TTransportException(
                   "Unable to get CompactionCoordinator address from ZooKeeper");

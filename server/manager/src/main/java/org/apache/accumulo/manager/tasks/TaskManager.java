@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.compaction.coordinator;
+package org.apache.accumulo.manager.tasks;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -107,7 +107,6 @@ import org.apache.accumulo.core.tasks.compaction.CompactionTaskStatus;
 import org.apache.accumulo.core.tasks.compaction.CompactionTasksCompleted;
 import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
 import org.apache.accumulo.core.tasks.thrift.Task;
-import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.tasks.thrift.TaskRunnerInfo;
 import org.apache.accumulo.core.tasks.thrift.WorkerType;
 import org.apache.accumulo.core.util.Retry;
@@ -142,10 +141,10 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class CompactionCoordinator
-    implements /* CompactionCoordinatorService.Iface, */ TaskManager.Iface, Runnable {
+public class TaskManager
+    implements org.apache.accumulo.core.tasks.thrift.TaskManager.Iface, Runnable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskManager.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
 
   /*
@@ -182,8 +181,8 @@ public class CompactionCoordinator
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> checked_tablet_dir_cache;
 
-  public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
-      SecurityOperation security, CompactionJobQueues jobQueues) {
+  public TaskManager(ServerContext ctx, LiveTServerSet tservers, SecurityOperation security,
+      CompactionJobQueues jobQueues) {
     this.ctx = ctx;
     this.tserverSet = tservers;
     this.schedExecutor = this.ctx.getScheduledExecutor();
@@ -265,7 +264,7 @@ public class CompactionCoordinator
           }
         });
 
-        String logId = "Coordinator:" + dataLevel;
+        String logId = "TaskManager:" + dataLevel;
         ThreadPoolExecutor threadPool =
             ctx.threadPools().createFixedThreadPool(10, "Tablet refresh " + logId, false);
         try {
@@ -292,7 +291,7 @@ public class CompactionCoordinator
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
 
-    // On a re-start of the coordinator it's possible that external compactions are in-progress.
+    // On a re-start of the TaskManager it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
@@ -305,7 +304,7 @@ public class CompactionCoordinator
       running.forEach(rc -> {
         TCompactionStatusUpdate update = new TCompactionStatusUpdate();
         update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage("Coordinator restarted, compaction found in progress");
+        update.setMessage("TaskManager restarted, compaction found in progress");
         rc.addUpdate(System.currentTimeMillis(), update);
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
@@ -326,7 +325,7 @@ public class CompactionCoordinator
         if ((now - v) > getMissingCompactorWarningTime()) {
           // ELASTICITY_TODO may want to consider of the group has any jobs queued OR if the group
           // still exist in configuration
-          LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", k,
+          LOG.warn("No compactors have checked in with TaskManager for group {} in {}ms", k,
               getMissingCompactorWarningTime());
         }
       });
@@ -352,7 +351,7 @@ public class CompactionCoordinator
 
   protected long getTServerCheckInterval() {
     return this.ctx.getConfiguration()
-        .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
+        .getTimeInMillis(Property.TASK_MANAGER_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 
   /**
@@ -816,7 +815,7 @@ public class CompactionCoordinator
     refreshWriter.deleteRefresh();
 
     // It's possible that RUNNING might not have an entry for this ecid in the case
-    // of a coordinator restart when the Coordinator can't find the TServer for the
+    // of a TaskManager restart when the TaskManager can't find the TServer for the
     // corresponding external compaction.
     recordCompletion(ecid);
   }

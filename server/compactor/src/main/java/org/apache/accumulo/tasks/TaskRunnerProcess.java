@@ -34,11 +34,12 @@ public interface TaskRunnerProcess {
 
   String getResourceGroup();
 
-  TaskManager.Client getCoordinatorClient() throws TTransportException;
+  TaskManager.Client getTaskManagerClient() throws TTransportException;
 
   CompactionWatcher getCompactionWatcher();
 
   PausedCompactionMetrics getPausedCompactionMetrics();
 
+  // Exposed for tests
   void shutdown();
 }

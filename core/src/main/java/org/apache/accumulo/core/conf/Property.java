@@ -1104,30 +1104,15 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-  // CompactionCoordinator properties
-  @Experimental
-  COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the accumulo compaction coordinator server.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
-      "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS(
-      "compaction.coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
-      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL(
-      "compaction.coordinator.compaction.finalizer.check.interval", "60s",
+  // ELASTICITY_TODO: Deprecate CompactionCoordinator properties in a 3.x release
+  TASK_MANAGER_PREFIX("task.manager.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the Accumulo TaskManager component.",
+      "4.0.0"),
+  TASK_MANAGER_DEAD_COMPACTOR_CHECK_INTERVAL("task.manager.compactor.dead.check.interval", "5m",
+      PropertyType.TIMEDURATION, "The interval at which to check for dead compactors.", "4.0.0"),
+  TASK_MANAGER_TSERVER_COMPACTION_CHECK_INTERVAL("task.manager.tserver.check.interval", "1m",
       PropertyType.TIMEDURATION,
-      "The interval at which to check for external compaction final state markers in the metadata table.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
-      "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0"),
+      "The interval at which to check the tservers for external compactions.", "4.0.0"),
   // ELASTICITY_TODO: Deprecate Compactor properties in a 3.x release
   TASK_RUNNER_PREFIX("task.runner.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo TaskRunner server.",

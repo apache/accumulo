@@ -132,7 +132,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   private void checkRunning() throws TException {
 
     ServerContext ctx = getCluster().getServerContext();
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }

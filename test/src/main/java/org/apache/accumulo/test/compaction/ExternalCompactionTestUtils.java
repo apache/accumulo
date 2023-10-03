@@ -232,9 +232,8 @@ public class ExternalCompactionTestUtils {
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP8 + "'}]");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
+    cfg.setProperty(Property.TASK_MANAGER_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
+    cfg.setProperty(Property.TASK_MANAGER_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.TASK_RUNNER_PORTSEARCH, "true");
     cfg.setProperty(Property.TASK_RUNNER_MIN_JOB_WAIT_TIME, "100ms");
     cfg.setProperty(Property.TASK_RUNNER_MAX_JOB_WAIT_TIME, "1s");
@@ -321,7 +320,7 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
@@ -346,7 +345,7 @@ public class ExternalCompactionTestUtils {
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
       TCompactionState expectedState) throws Exception {
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }

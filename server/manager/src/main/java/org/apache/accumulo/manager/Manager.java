@@ -115,13 +115,13 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
+import org.apache.accumulo.manager.tasks.TaskManager;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
@@ -350,7 +350,7 @@ public class Manager extends AbstractServer
 
   private FateServiceHandler fateServiceHandler;
   private ManagerClientServiceHandler managerClientHandler;
-  private CompactionCoordinator compactionCoordinator;
+  private TaskManager compactionCoordinator;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1171,8 +1171,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator =
-        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues);
+    compactionCoordinator = new TaskManager(context, tserverSet, security, compactionJobQueues);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =

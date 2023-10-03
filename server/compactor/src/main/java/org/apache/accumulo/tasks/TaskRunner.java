@@ -347,14 +347,14 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
 
     RetryableThriftCall<? extends Job<?>> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          Client taskManagerClient = getTaskManagerClient();
           try {
             // ELASTICITY_TODO: Change ExternalCompactionId to a more generic task id
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             TaskRunnerInfo runner = new TaskRunnerInfo(taskRunnerAddress.getAddress().getHost(),
                 taskRunnerAddress.getAddress().getPort(), this.workerType, this.getResourceGroup());
-            Task task = coordinatorClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            Task task = taskManagerClient.getTask(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 runner, eci.toString());
 
             switch (this.workerType) {
@@ -379,25 +379,25 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
             currentTaskId.set(null);
             throw e;
           } finally {
-            ThriftUtil.returnClient(coordinatorClient, getContext());
+            ThriftUtil.returnClient(taskManagerClient, getContext());
           }
         });
     return nextJobThriftCall.run();
   }
 
   /**
-   * Get the client to the CompactionCoordinator
+   * Get the client to the TaskManager
    *
-   * @return compaction coordinator client
+   * @return TaskManager client
    * @throws TTransportException when unable to get client
    */
-  public TaskManager.Client getCoordinatorClient() throws TTransportException {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (coordinatorHost.isEmpty()) {
+  public TaskManager.Client getTaskManagerClient() throws TTransportException {
+    var taskManagerHost = ExternalCompactionUtil.findTaskManager(getContext());
+    if (taskManagerHost.isEmpty()) {
       throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
-    return ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, coordinatorHost.orElseThrow(),
+    LOG.trace("TaskManager address is: {}", taskManagerHost.orElseThrow());
+    return ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, taskManagerHost.orElseThrow(),
         getContext());
   }
 
@@ -568,7 +568,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
     }
 
     // Return what is currently running, does not wait for jobs in the process of reserving. This
-    // method is called by a coordinator starting up to determine what is currently running on all
+    // method is called by a TaskManager starting up to determine what is currently running on all
     // compactors.
 
     Job<?> job = null;

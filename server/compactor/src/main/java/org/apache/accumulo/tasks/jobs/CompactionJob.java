@@ -382,7 +382,7 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getCoordinatorClient();
+          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskStatus status = TaskMessageType.COMPACTION_TASK_STATUS.getTaskMessage();
             status.setTaskId(job.getExternalCompactionId());
@@ -408,7 +408,7 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getCoordinatorClient();
+          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskFailed failedMsg =
                 TaskMessageType.COMPACTION_TASK_FAILED.getTaskMessage();
@@ -435,7 +435,7 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getCoordinatorClient();
+          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskCompleted completedMsg =
                 TaskMessageType.COMPACTION_TASK_COMPLETED.getTaskMessage();
