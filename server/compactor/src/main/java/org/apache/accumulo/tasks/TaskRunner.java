@@ -574,10 +574,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
     // method is called by a TaskManager starting up to determine what is currently running on all
     // compactors.
 
-    Job<?> job = null;
-    synchronized (CURRENTLY_EXECUTING_TASK) {
-      job = CURRENTLY_EXECUTING_TASK.get();
-    }
+    Job<?> job = CURRENTLY_EXECUTING_TASK.get();
 
     switch (workerType) {
       case COMPACTION:
