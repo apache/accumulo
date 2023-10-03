@@ -200,10 +200,12 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
             timeBetweenChecks, TimeUnit.MILLISECONDS));
   }
 
+  @Override
   public CompactionWatcher getCompactionWatcher() {
     return this.watcher;
   }
 
+  @Override
   public PausedCompactionMetrics getPausedCompactionMetrics() {
     return pausedMetrics;
   }
@@ -391,6 +393,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
    * @return TaskManager client
    * @throws TTransportException when unable to get client
    */
+  @Override
   public TaskManager.Client getTaskManagerClient() throws TTransportException {
     var taskManagerHost = ExternalCompactionUtil.findTaskManager(getContext());
     if (taskManagerHost.isEmpty()) {
