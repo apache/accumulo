@@ -153,6 +153,7 @@ public class CompactionJob extends Job<CompactionTask> {
         stopped, errorRef);
   }
 
+  @Override
   public void executeJob(Thread executionThread) throws InterruptedException {
     try {
       JOB_HOLDER.set(this.details, executionThread);
@@ -276,6 +277,7 @@ public class CompactionJob extends Job<CompactionTask> {
    *         executing compaction
    * @throws TException thrift error
    */
+  @Override
   public void cancel(String externalCompactionId) throws TException {
     if (JOB_HOLDER.cancel(externalCompactionId)) {
       LOG.info("Cancel requested for compaction job {}", externalCompactionId);
