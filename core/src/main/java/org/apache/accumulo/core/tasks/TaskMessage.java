@@ -43,7 +43,7 @@ public abstract class TaskMessage {
     Preconditions.checkState(type == expectedType,
         "Task is of type: " + type + ", expected: " + expectedType);
     T decodedMsg = (T) TaskMessage.GSON_FOR_TASKS.fromJson(task.getMessage(), type.getTaskClass());
-    LOG.debug("Received {}", TaskMessage.GSON_FOR_TASKS.toJson(decodedMsg));
+    LOG.trace("Received {}", TaskMessage.GSON_FOR_TASKS.toJson(decodedMsg));
     return decodedMsg;
   }
 
@@ -77,7 +77,7 @@ public abstract class TaskMessage {
     t.setTaskId(getTaskId());
     t.setMessageType(getMessageType().name());
     t.setMessage(TaskMessage.GSON_FOR_TASKS.toJson(this));
-    LOG.debug("Sending {}", TaskMessage.GSON_FOR_TASKS.toJson(this));
+    LOG.trace("Sending {}", TaskMessage.GSON_FOR_TASKS.toJson(this));
     return t;
   }
 

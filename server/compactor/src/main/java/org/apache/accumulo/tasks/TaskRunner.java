@@ -106,7 +106,6 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
     org.apache.accumulo.core.tasks.thrift.TaskRunner.Iface, TaskRunnerProcess {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskRunner.class);
-  private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
   private static final AtomicReference<Job<?>> CURRENTLY_EXECUTING_TASK = new AtomicReference<>();
 
   private final UUID taskRunnerId = UUID.randomUUID();
@@ -130,9 +129,8 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
   protected TaskRunner(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
     super("TaskRunner", opts, args);
     String runnerType = getTaskWorkerTypePropertyValue();
-    LOG.debug("Starting TaskRunner of type: {}", runnerType);
-    System.out.println("TYPE: " + runnerType);
     workerType = WorkerType.valueOf(runnerType);
+    LOG.debug("Starting TaskRunner of type: {}", workerType);
     aconf = conf == null ? super.getConfiguration() : conf;
     setupSecurity();
     switch (workerType) {
@@ -140,7 +138,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
         watcher = new CompactionWatcher(aconf);
         var schedExecutor =
             ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-        startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
+        startCancelChecker(schedExecutor, getTimeBetweenCancelChecks());
         break;
       case LOG_SORTING:
         break;
@@ -151,6 +149,10 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
 
     }
     printStartupMsg();
+  }
+
+  protected long getTimeBetweenCancelChecks() {
+    return MINUTES.toMillis(5);
   }
 
   @Override
@@ -192,6 +194,7 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
+    LOG.debug("Starting compaction job cancel checker at {}ms intervals", timeBetweenChecks);
     ThreadPools.watchCriticalScheduledTask(
         schedExecutor.scheduleWithFixedDelay(() -> CompactionJob.checkIfCanceled(getContext()), 0,
             timeBetweenChecks, TimeUnit.MILLISECONDS));
@@ -449,7 +452,8 @@ public class TaskRunner extends AbstractServer implements MetricsProducer,
       }
     }
 
-    LOG.info("TaskRunner started, waiting for {} work", workerType);
+    LOG.info("TaskRunner started, waiting for {} work, resource group: {}", workerType,
+        this.getResourceGroup());
     try {
 
       while (!shutdown) {

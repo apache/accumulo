@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.UUID;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -29,7 +28,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tasks.compaction.CompactionTask;
 import org.apache.accumulo.core.tasks.thrift.TaskRunner.Iface;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -53,33 +51,35 @@ public class ExternalDoNothingCompactor extends TaskRunner implements Iface {
     }
 
     @Override
-    public void executeJob(Thread executionThread) throws InterruptedException {
+    public Runnable createJob() throws TException {
       // Set this to true so that only 1 external compaction is run
       getTaskWorker().shutdown();
 
-      try {
-        LOG.info("Starting up compaction runnable for job: {}", this.getJobDetails());
-        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-        update.setState(TCompactionState.STARTED);
-        update.setMessage("Compaction started");
-        updateCompactionState(this.getJobDetails(), update);
+      return () -> {
+        try {
+          LOG.info("Starting up compaction runnable for job: {}", this.getJobDetails());
+          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+          update.setState(TCompactionState.STARTED);
+          update.setMessage("Compaction started");
+          updateCompactionState(this.getJobDetails(), update);
 
-        LOG.info("Starting compactor");
-        started.countDown();
+          LOG.info("Starting compactor");
+          started.countDown();
 
-        while (!JOB_HOLDER.isCancelled()) {
-          LOG.info("Sleeping while job is not cancelled");
-          UtilWaitThread.sleep(1000);
+          while (!JOB_HOLDER.isCancelled()) {
+            LOG.info("Sleeping while job is not cancelled");
+            UtilWaitThread.sleep(1000);
+          }
+          // Compactor throws this exception when cancelled
+          throw new CompactionCanceledException();
+
+        } catch (Exception e) {
+          LOG.error("Compaction failed", e);
+          errorRef.set(e);
+        } finally {
+          stopped.countDown();
         }
-        // Compactor throws this exception when cancelled
-        throw new CompactionCanceledException();
-
-      } catch (Exception e) {
-        LOG.error("Compaction failed", e);
-        errorRef.set(e);
-      } finally {
-        stopped.countDown();
-      }
+      };
     }
 
   }
@@ -91,20 +91,26 @@ public class ExternalDoNothingCompactor extends TaskRunner implements Iface {
   }
 
   @Override
-  protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
-      long timeBetweenChecks) {
-    @SuppressWarnings("unused")
-    var future = schedExecutor.scheduleWithFixedDelay(
-        () -> CompactionJob.checkIfCanceled(getContext()), 0, 5000, MILLISECONDS);
+  protected long getTimeBetweenCancelChecks() {
+    return SECONDS.toMillis(5);
   }
 
   @Override
   protected Job<?> getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
+
+    // Get the next job, use the parent class for this
+    CompactionJob cjob = null;
+    do {
+      cjob = (CompactionJob) super.getNextJob(uuid);
+      UtilWaitThread.sleep(1000);
+    } while (!cjob.getJobDetails().isSetExternalCompactionId());
+
+    // Take the job details and return a DoNothingCompactionJob
     try {
       CompactionTask task = new CompactionTask();
-      task.setCompactionJob(new TExternalCompactionJob());
+      task.setCompactionJob(cjob.getJobDetails());
       return new DoNothingCompactionJob(this, task, new AtomicReference<ExternalCompactionId>(
-          ExternalCompactionId.of(uuid.get().toString())));
+          ExternalCompactionId.from(cjob.getJobDetails().getExternalCompactionId())));
     } catch (TException e) {
       throw new RuntimeException("Error creating job", e);
     }
