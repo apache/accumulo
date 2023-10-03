@@ -78,7 +78,7 @@ import com.google.common.net.HostAndPort;
 @PowerMockIgnore({"org.slf4j.*", "org.apache.logging.*", "org.apache.log4j.*",
     "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
     "com.sun.org.apache.xerces.*"})
-public class CompactorTest {
+public class TaskRunnerTest {
 
   public class SuccessfulCompaction extends CompactionJob {
 

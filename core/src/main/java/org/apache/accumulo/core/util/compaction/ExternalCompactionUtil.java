@@ -102,7 +102,7 @@ public class ExternalCompactionUtil {
 
   /**
    *
-   * @return Optional HostAndPort of Coordinator node if found
+   * @return Optional HostAndPort of TaskManager node if found
    */
   public static Optional<HostAndPort> findTaskManager(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
@@ -228,8 +228,8 @@ public class ExternalCompactionUtil {
 
   /**
    * This method returns information from the Compactor about the job that is currently running. The
-   * RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
-   * on a restart to re-populate the set of running compactions on the compactors.
+   * RunningCompactions are not fully populated. This method is used from the TaskManager on a
+   * restart to re-populate the set of running compactions on the compactors.
    *
    * @param context server context
    * @return map of compactor and external compaction jobs

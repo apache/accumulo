@@ -181,13 +181,13 @@ public class CompactionJob extends Job<CompactionTask> {
                 info.getTimesPaused());
             getTaskWorker().getCompactionWatcher().run();
             try {
-              LOG.debug("Updating coordinator with compaction progress: {}.", message);
+              LOG.debug("Updating TaskManager with compaction progress: {}.", message);
               TCompactionStatusUpdate update =
                   new TCompactionStatusUpdate(TCompactionState.IN_PROGRESS, message, inputEntries,
                       info.getEntriesRead(), info.getEntriesWritten());
               updateCompactionState(details, update);
             } catch (RetriesExceededException e) {
-              LOG.warn("Error updating coordinator with compaction progress, error: {}",
+              LOG.warn("Error updating TaskManager with compaction progress, error: {}",
                   e.getMessage());
             }
           }
@@ -216,28 +216,28 @@ public class CompactionJob extends Job<CompactionTask> {
           updateCompactionState(details, update);
           updateCompactionFailed(details);
         } catch (RetriesExceededException e) {
-          LOG.error("Error updating coordinator with compaction cancellation.", e);
+          LOG.error("Error updating TaskManager with compaction cancellation.", e);
         } finally {
           currentCompactionId.set(null);
         }
       } else if (errorRef.get() != null) {
         try {
-          LOG.info("Updating coordinator with compaction failure.");
+          LOG.info("Updating TaskManager with compaction failure.");
           TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.FAILED,
               "Compaction failed due to: " + errorRef.get().getMessage(), -1, -1, -1);
           updateCompactionState(details, update);
           updateCompactionFailed(details);
         } catch (RetriesExceededException e) {
-          LOG.error("Error updating coordinator with compaction failure.", e);
+          LOG.error("Error updating TaskManager with compaction failure.", e);
         } finally {
           currentCompactionId.set(null);
         }
       } else {
         try {
-          LOG.trace("Updating coordinator with compaction completion.");
+          LOG.trace("Updating TaskManager with compaction completion.");
           updateCompactionCompleted(details, JOB_HOLDER.getStats());
         } catch (RetriesExceededException e) {
-          LOG.error("Error updating coordinator with compaction completion, cancelling compaction.",
+          LOG.error("Error updating TaskManager with compaction completion, cancelling compaction.",
               e);
           try {
             cancel(details.getExternalCompactionId());
@@ -305,7 +305,7 @@ public class CompactionJob extends Job<CompactionTask> {
     return () -> {
       // Its only expected that a single compaction runs at a time. Multiple compactions running
       // at a time could cause odd behavior like out of order and unexpected thrift calls to the
-      // coordinator. This is a sanity check to ensure the expectation is met. Should this check
+      // TaskManager. This is a sanity check to ensure the expectation is met. Should this check
       // ever fail, it means there is a bug elsewhere.
       Preconditions.checkState(compactionRunning.compareAndSet(false, true));
       try {
@@ -374,7 +374,7 @@ public class CompactionJob extends Job<CompactionTask> {
   }
 
   /**
-   * Send an update to the CompactionCoordinator for this job
+   * Send an update to the TaskManager for this job
    *
    * @param job compactionJob
    * @param update status update
@@ -384,24 +384,24 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
+          Client taskManagerClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskStatus status = TaskMessageType.COMPACTION_TASK_STATUS.getTaskMessage();
             status.setTaskId(job.getExternalCompactionId());
             status.setCompactionStatus(update);
-            coordinatorClient.taskStatus(TraceUtil.traceInfo(),
+            taskManagerClient.taskStatus(TraceUtil.traceInfo(),
                 getTaskWorker().getContext().rpcCreds(), System.currentTimeMillis(),
                 status.toThriftTask());
             return "";
           } finally {
-            ThriftUtil.returnClient(coordinatorClient, getTaskWorker().getContext());
+            ThriftUtil.returnClient(taskManagerClient, getTaskWorker().getContext());
           }
         });
     thriftCall.run();
   }
 
   /**
-   * Notify the CompactionCoordinator the job failed
+   * Notify the TaskManager the job failed
    *
    * @param job current compaction job
    * @throws RetriesExceededException thrown when retries have been exceeded
@@ -410,24 +410,24 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
+          Client taskManagerClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskFailed failedMsg =
                 TaskMessageType.COMPACTION_TASK_FAILED.getTaskMessage();
             failedMsg.setTaskId(job.getExternalCompactionId());
             failedMsg.setCompactionJob(job);
-            coordinatorClient.taskFailed(TraceUtil.traceInfo(),
+            taskManagerClient.taskFailed(TraceUtil.traceInfo(),
                 getTaskWorker().getContext().rpcCreds(), failedMsg.toThriftTask());
             return "";
           } finally {
-            ThriftUtil.returnClient(coordinatorClient, getTaskWorker().getContext());
+            ThriftUtil.returnClient(taskManagerClient, getTaskWorker().getContext());
           }
         });
     thriftCall.run();
   }
 
   /**
-   * Update the CompactionCoordinator with the stats from the completed job
+   * Update the TaskManager with the stats from the completed job
    *
    * @param job current compaction job
    * @param stats compaction stats
@@ -437,18 +437,18 @@ public class CompactionJob extends Job<CompactionTask> {
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getTaskWorker().getTaskManagerClient();
+          Client taskManagerClient = getTaskWorker().getTaskManagerClient();
           try {
             CompactionTaskCompleted completedMsg =
                 TaskMessageType.COMPACTION_TASK_COMPLETED.getTaskMessage();
             completedMsg.setTaskId(job.getExternalCompactionId());
             completedMsg.setCompactionJob(job);
             completedMsg.setCompactionStats(stats);
-            coordinatorClient.taskCompleted(TraceUtil.traceInfo(),
+            taskManagerClient.taskCompleted(TraceUtil.traceInfo(),
                 getTaskWorker().getContext().rpcCreds(), completedMsg.toThriftTask());
             return "";
           } finally {
-            ThriftUtil.returnClient(coordinatorClient, getTaskWorker().getContext());
+            ThriftUtil.returnClient(taskManagerClient, getTaskWorker().getContext());
           }
         });
     thriftCall.run();

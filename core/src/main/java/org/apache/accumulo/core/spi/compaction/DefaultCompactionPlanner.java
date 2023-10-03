@@ -99,8 +99,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * ]}
  * </pre>
  *
- * Note that the use of 'external' requires that the CompactionCoordinator and at least one
- * Compactor for Queue1 is running.
+ * Note that the use of 'external' at least one Compactor for Queue1 is running.
  * <li>{@code tserver.compaction.major.service.<service>.opts.maxOpen} This determines the maximum
  * number of files that will be included in a single compaction.
  * </ul>

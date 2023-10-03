@@ -245,9 +245,9 @@ public class ExternalCompactionTestUtils {
   }
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws TException {
+      Optional<HostAndPort> taskManagerHost) throws TException {
     TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
-        coordinatorHost.orElseThrow(), context);
+        taskManagerHost.orElseThrow(), context);
     try {
       Task task = client.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTasksRunning list =
@@ -259,9 +259,9 @@ public class ExternalCompactionTestUtils {
   }
 
   private static TExternalCompactionList getCompletedCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws Exception {
+      Optional<HostAndPort> taskManagerHost) throws Exception {
     TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
-        coordinatorHost.orElseThrow(), context);
+        taskManagerHost.orElseThrow(), context);
     try {
       Task task = client.getCompletedTasks(TraceUtil.traceInfo(), context.rpcCreds());
       final CompactionTasksCompleted list =
@@ -320,13 +320,13 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+    if (taskManagerHost.isEmpty()) {
+      throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
     while (matches == 0) {
       TExternalCompactionList running =
-          ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+          ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
       if (running.getCompactions() != null) {
         for (ExternalCompactionId ecid : ecids) {
           TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
@@ -345,24 +345,24 @@ public class ExternalCompactionTestUtils {
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
       TCompactionState expectedState) throws Exception {
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findTaskManager(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+    if (taskManagerHost.isEmpty()) {
+      throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
 
     // The running compaction should be removed
     TExternalCompactionList running =
-        ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+        ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
     while (running.getCompactions() != null && running.getCompactions().keySet().stream()
         .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
-      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
     }
     // The compaction should be in the completed list with the expected state
     TExternalCompactionList completed =
-        ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
+        ExternalCompactionTestUtils.getCompletedCompactions(ctx, taskManagerHost);
     while (completed.getCompactions() == null) {
       UtilWaitThread.sleep(50);
-      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
+      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, taskManagerHost);
     }
     for (ExternalCompactionId e : ecids) {
       TExternalCompaction tec = completed.getCompactions().get(e.canonical());

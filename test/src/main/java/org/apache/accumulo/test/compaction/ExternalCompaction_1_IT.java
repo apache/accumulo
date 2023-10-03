@@ -226,7 +226,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // Kill the compactor
       getCluster().getClusterControl().stop(ServerType.COMPACTOR);
 
-      // DeadCompactionDetector in the CompactionCoordinator should fail the compaction and delete
+      // DeadCompactionDetector in the TaskManager should fail the compaction and delete
       // it from the tablet.
       ExternalCompactionTestUtils.waitForRunningCompactions(getCluster().getServerContext(), tid,
           ecids);

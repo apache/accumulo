@@ -44,14 +44,14 @@ public class DeadCompactionDetector {
   private static final Logger log = LoggerFactory.getLogger(DeadCompactionDetector.class);
 
   private final ServerContext context;
-  private final TaskManager coordinator;
+  private final TaskManager taskManager;
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
 
-  public DeadCompactionDetector(ServerContext context, TaskManager coordinator,
+  public DeadCompactionDetector(ServerContext context, TaskManager taskManager,
       ScheduledThreadPoolExecutor stpe) {
     this.context = context;
-    this.coordinator = coordinator;
+    this.taskManager = taskManager;
     this.schedExecutor = stpe;
     this.deadCompactions = new ConcurrentHashMap<>();
   }
@@ -120,7 +120,7 @@ public class DeadCompactionDetector {
     tabletCompactions.forEach((eci, v) -> {
       log.warn("Compaction {} believed to be dead, failing it.", eci);
     });
-    coordinator.compactionFailed(tabletCompactions);
+    taskManager.compactionFailed(tabletCompactions);
     this.deadCompactions.keySet().removeAll(toFail);
   }
 
