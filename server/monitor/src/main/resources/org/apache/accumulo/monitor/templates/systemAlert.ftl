@@ -18,7 +18,8 @@
     under the License.
 
 -->
-<div id="systemAlert" class="alert" style="display: none;" role="alert">
+<div id="systemAlert" class="alert position-relative" style="display: none;" role="alert">
+    <button id="systemAlertCloseButton" type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close"></button>
     <h4><span class="bi bi-exclamation-triangle-fill"></span></h4>
     <ul id="alertMessages" class="mb-0">
         <!-- Messages will be appended here -->

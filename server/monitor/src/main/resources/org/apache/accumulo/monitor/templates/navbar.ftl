@@ -32,7 +32,7 @@
         <div class="collapse navbar-collapse" id="nav-items">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             <li class="navbar-text px-2">
-              <span id="alertStatus" class="bi bi-exclamation-triangle-fill" style="display: none;" title="System-wide alert. See top of page."></span>
+              <span id="alertStatus" class="bi bi-exclamation-triangle-fill" style="display: none; cursor: pointer;" title="System-wide alert. Click to display (if not already present)"></span>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
