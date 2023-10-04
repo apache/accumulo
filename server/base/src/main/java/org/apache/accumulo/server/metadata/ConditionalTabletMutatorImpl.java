@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
@@ -219,6 +220,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       case COMPACTED: {
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getCompacted(),
             ftid -> FateTxId.formatTid(ftid).getBytes(UTF_8), CompactedColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+        break;
+      case TIME: {
+        Condition c =
+            new Condition(TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier());
+        c = c.setValue(tabletMetadata.getTime().encode());
         mutation.addCondition(c);
       }
         break;

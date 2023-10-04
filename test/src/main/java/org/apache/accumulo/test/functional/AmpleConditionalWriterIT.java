@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -49,6 +50,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -61,6 +63,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -718,5 +721,36 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(RootTable.EXTENT).getStatus());
     assertEquals(7L, context.getAmple().readTablet(RootTable.EXTENT).getCompactId().getAsLong());
+  }
+
+  @Test
+  public void testTime() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      for (var time : List.of(new MetadataTime(100, TimeType.LOGICAL),
+          new MetadataTime(100, TimeType.MILLIS), new MetadataTime(0, TimeType.LOGICAL))) {
+        var ctmi = new ConditionalTabletsMutatorImpl(context);
+        var tabletMeta1 = TabletMetadata.builder(e1).putTime(time).build();
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
+            .putTime(new MetadataTime(101, TimeType.LOGICAL)).submit(tabletMetadata -> false);
+        var results = ctmi.process();
+        assertEquals(Status.REJECTED, results.get(e1).getStatus());
+        assertEquals(new MetadataTime(0, TimeType.MILLIS),
+            context.getAmple().readTablet(e1).getTime());
+      }
+
+      for (int i = 0; i < 10; i++) {
+        var ctmi = new ConditionalTabletsMutatorImpl(context);
+        var tabletMeta1 =
+            TabletMetadata.builder(e1).putTime(new MetadataTime(i, TimeType.MILLIS)).build();
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
+            .putTime(new MetadataTime(i + 1, TimeType.MILLIS)).submit(tabletMetadata -> false);
+        var results = ctmi.process();
+        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+        assertEquals(new MetadataTime(i + 1, TimeType.MILLIS),
+            context.getAmple().readTablet(e1).getTime());
+      }
+    }
   }
 }
