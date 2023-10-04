@@ -53,7 +53,6 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,34 +84,37 @@ class ScanDataSource implements DataSource {
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
     this.scanDataSourceId = nextSourceId.incrementAndGet();
-    if (log.isTraceEnabled()) {
-      log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
-          this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
-    }
+    log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
+        this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
   }
 
   @Override
   public DataSource getNewDataSource() {
-
-    if (isCurrent()) {
-      return this;
-    } else {
+    if (!isCurrent()) {
+      Throwable thrownException = null;
       try {
         returnIterators();
+      } catch (Exception e) {
+        thrownException = e;
+        throw e;
       } finally {
         try {
           if (fileManager != null) {
             tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
             fileManager.releaseOpenFiles(false);
           }
+        } catch (Exception e) {
+          if (thrownException != null) {
+            e.addSuppressed(thrownException);
+            throw e;
+          }
         } finally {
           expectedDeletionCount = tablet.getDataSourceDeletions();
           iter = null;
         }
       }
-
-      return this;
     }
+    return this;
   }
 
   @Override
@@ -153,7 +155,7 @@ class ScanDataSource implements DataSource {
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
         tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
-        log.trace("Adding active scan for  {}", tablet.getExtent());
+        log.trace("Adding active scan for  {}, scanId:{}", tablet.getExtent(), scanDataSourceId);
         tablet.addActiveScans(this);
       }
 
@@ -243,25 +245,18 @@ class ScanDataSource implements DataSource {
     if (memIters != null) {
       log.trace("Returning mem iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
           scanDataSourceId, fileReservationId);
+      tablet.returnMemIterators(memIters);
+      memIters = null;
       try {
-        tablet.returnMemIterators(memIters);
-      } finally {
-        memIters = null;
         log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
             scanDataSourceId, fileReservationId);
-        try {
-          tablet.returnFilesForScan(fileReservationId);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-          if (log.isWarnEnabled()) {
-            log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId,
-                e.getMessage());
-            log.warn("{}", ExceptionUtils.getStackTrace(e));
-          }
-          // Continue bubbling the exception up for handling.
-          throw e;
-        } finally {
-          fileReservationId = -1;
-        }
+        tablet.returnFilesForScan(fileReservationId);
+      } catch (Exception e) {
+        log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId, e);
+        // Continue bubbling the exception up for handling.
+        throw e;
+      } finally {
+        fileReservationId = -1;
       }
     }
   }
@@ -277,17 +272,13 @@ class ScanDataSource implements DataSource {
           tablet.notifyAll();
         }
       }
-
       try {
         if (fileManager != null) {
-          try {
-            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-            fileManager.releaseOpenFiles(sawErrors);
-          } finally {
-            fileManager = null;
-          }
+          tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+          fileManager.releaseOpenFiles(sawErrors);
         }
       } finally {
+        fileManager = null;
         if (statsIterator != null) {
           statsIterator.report();
         }

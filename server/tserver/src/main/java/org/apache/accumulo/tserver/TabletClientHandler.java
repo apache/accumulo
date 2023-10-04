@@ -968,9 +968,19 @@ public class TabletClientHandler implements TabletClientService.Iface {
       return results;
     } catch (IOException ioe) {
       throw new TException(ioe);
+    } catch (Exception e) {
+      log.error("Exception returned for conditionalUpdate {}", e);
+      // Continue throwing the exception so return doesn't error.
+      throw e;
     } finally {
-      writeTracker.finishWrite(opid);
-      server.sessionManager.unreserveSession(sessID);
+      try {
+        writeTracker.finishWrite(opid);
+        server.sessionManager.unreserveSession(sessID);
+      } catch (Exception e) {
+        log.error("Second Exception returned for conditionalUpdate {}", e);
+        // Continue throwing the exception so return doesn't error.
+        throw e;
+      }
     }
   }
 
