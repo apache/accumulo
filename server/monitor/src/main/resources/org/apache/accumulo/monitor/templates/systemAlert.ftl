@@ -20,8 +20,12 @@
 -->
 <div id="systemAlert" class="alert position-relative" style="display: none;" role="alert">
     <button id="systemAlertCloseButton" type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close"></button>
-    <h4><span class="bi bi-exclamation-triangle-fill"></span></h4>
-    <ul id="alertMessages" class="mb-0">
-        <!-- Messages will be appended here -->
-    </ul>
+    <div class="d-flex">
+        <h3 class="d-flex align-items-center me-3">
+            <span class="bi bi-exclamation-triangle-fill"></span>
+        </h3>
+        <ul id="alertMessages" class="mb-0 flex-grow-1">
+            <!-- Messages will be appended here -->
+        </ul>
+    </div>
 </div>
