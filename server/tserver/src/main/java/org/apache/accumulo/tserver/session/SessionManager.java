@@ -224,6 +224,31 @@ public class SessionManager {
     return session;
   }
 
+  public boolean removeIfNotReserved(long sessionId) {
+    Session session = sessions.get(sessionId);
+    if (session == null) {
+      // it was already removed
+      return true;
+    }
+
+    boolean removed = false;
+
+    synchronized (session) {
+      if (session.state == State.RESERVED) {
+        return false;
+      }
+
+      session.state = State.REMOVED;
+      removed = true;
+    }
+
+    if (removed) {
+      sessions.remove(sessionId);
+    }
+
+    return removed;
+  }
+
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
     if (!session.cleanup()) {
       var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)

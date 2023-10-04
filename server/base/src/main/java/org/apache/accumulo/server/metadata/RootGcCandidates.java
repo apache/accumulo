@@ -20,12 +20,14 @@ package org.apache.accumulo.server.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.security.SecureRandom;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
 
@@ -78,20 +80,23 @@ public class RootGcCandidates {
         .add(ref.getFileName()));
   }
 
-  public void remove(Stream<String> refs) {
-    refs.map(Path::new).forEach(
-        path -> data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
-          values.remove(path.getName());
-          return values.isEmpty() ? null : values;
-        }));
+  public void remove(Stream<GcCandidate> refs) {
+    refs.map(GcCandidate::getPath).map(Path::new).forEach(path -> {
+      data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
+        values.remove(path.getName());
+        return values.isEmpty() ? null : values;
+      });
+    });
   }
 
-  public Stream<String> sortedStream() {
+  public Stream<GcCandidate> sortedStream() {
+    var uidGen = new SecureRandom();
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-      return names.stream().map(name -> new Path(parent, name));
-    }).map(Path::toString).sorted();
+      return names.stream()
+          .map(name -> new GcCandidate(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+    }).sorted();
   }
 
   public String toJson() {

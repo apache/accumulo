@@ -115,6 +115,11 @@ public class NullTserver {
     }
 
     @Override
+    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+      return true;
+    }
+
+    @Override
     public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
         Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
       return null;
