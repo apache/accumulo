@@ -68,11 +68,12 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
-          - {name: 'qa-checks',     javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.5.10'}
-          - {name: 'errorprone',    javaver: 11, args: 'verify -Perrorprone,skipQA'}
-          - {name: 'jdk17',         javaver: 17, args: 'verify -DskipITs'}
+          - {name: 'unit-tests',    distribution: adopt,  javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
+          - {name: 'qa-checks',     distribution: adopt,  javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
+          - {name: 'compat',        distribution: adopt,  javaver: 11, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.5.10'}
+          - {name: 'errorprone',    distribution: adopt,  javaver: 11, args: 'verify -Perrorprone,skipQA'}
+          - {name: 'jdk17',         distribution: adopt,  javaver: 17, args: 'verify -DskipITs'}
+          - {name: 'jdk21',         distribution: oracle, javaver: 21, args: 'verify -DskipITs'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -80,7 +81,7 @@ jobs:
     - name: Set up JDK ${{ matrix.profile.javaver }}
       uses: actions/setup-java@v3
       with:
-        distribution: adopt
+        distribution: ${{ matrix.profile.distribution }}
         java-version: ${{ matrix.profile.javaver }}
     - name: Cache local maven repository
       uses: actions/cache@v3
