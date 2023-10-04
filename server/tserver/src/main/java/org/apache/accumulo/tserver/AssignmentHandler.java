@@ -285,6 +285,11 @@ class AssignmentHandler implements Runnable {
       return false;
     }
 
+    if (meta.getOperationId() != null) {
+      log.info(METADATA_ISSUE + "metadata entry has a FATE operation id");
+      return false;
+    }
+
     return true;
   }
 }

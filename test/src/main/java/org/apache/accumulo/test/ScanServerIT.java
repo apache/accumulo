@@ -23,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,14 +50,20 @@ import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
@@ -66,6 +74,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.opentest4j.AssertionFailedError;
 
 import com.google.common.collect.Iterables;
 
@@ -247,6 +256,51 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testScanTabletsWithOperationIds() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      setupTableWithHostingMix(client, tableName);
+
+      // Unload all tablets
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      client.tableOperations().setTabletHostingGoal(tableName, new Range((Text) null, (Text) null),
+          TabletHostingGoal.ONDEMAND);
+
+      // Wait for the tablets to be unloaded
+      Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tid.canonical()) == 0, 30_000,
+          1_000);
+
+      // Set operationIds on all the table's tablets so that they won't be loaded.
+      TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, 1234L);
+      Ample ample = getCluster().getServerContext().getAmple();
+      ServerAmpleImpl sai = (ServerAmpleImpl) ample;
+      try (TabletsMutator tm = sai.mutateTablets()) {
+        ample.readTablets().forTable(tid).build().forEach(meta -> {
+          tm.mutateTablet(meta.getExtent()).putOperation(opid).mutate();
+        });
+      }
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        // Confirm that the ScanServer will not complete the scan
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertThrows(AssertionFailedError.class,
+            () -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
+              Iterables.size(scanner);
+            }));
+
+        // Confirm that the TabletServer will not complete the scan
+        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        assertThrows(AssertionFailedError.class,
+            () -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
+              Iterables.size(scanner);
+            }));
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
   public void testBatchScanWithTabletHostingMix() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -268,6 +322,51 @@ public class ScanServerIT extends SharedMiniClusterBase {
         ranges.add(new Range("row_0000000008", null));
         scanner.setRanges(ranges);
         assertEquals(60, Iterables.size(scanner));
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
+  public void testBatchScanTabletsWithOperationIds() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      setupTableWithHostingMix(client, tableName);
+
+      // Unload all tablets
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      client.tableOperations().setTabletHostingGoal(tableName, new Range((Text) null, (Text) null),
+          TabletHostingGoal.ONDEMAND);
+
+      // Wait for the tablets to be unloaded
+      Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tid.canonical()) == 0, 30_000,
+          1_000);
+
+      // Set operationIds on all the table's tablets so that they won't be loaded.
+      TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, 1234L);
+      Ample ample = getCluster().getServerContext().getAmple();
+      ServerAmpleImpl sai = (ServerAmpleImpl) ample;
+      try (TabletsMutator tm = sai.mutateTablets()) {
+        ample.readTablets().forTable(tid).build().forEach(meta -> {
+          tm.mutateTablet(meta.getExtent()).putOperation(opid).mutate();
+        });
+      }
+
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singleton(new Range()));
+        // Confirm that the ScanServer will not complete the scan
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertThrows(AssertionFailedError.class,
+            () -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
+              Iterables.size(scanner);
+            }));
+
+        // Confirm that the TabletServer will not complete the scan
+        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        assertThrows(AssertionFailedError.class,
+            () -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
+              Iterables.size(scanner);
+            }));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
