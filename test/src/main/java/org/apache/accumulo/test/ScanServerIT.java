@@ -290,35 +290,39 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       final List<Future<?>> futures = new ArrayList<>();
       final ExecutorService executor = Executors.newFixedThreadPool(4);
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-          BatchScanner bscanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
+          Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY);
+          BatchScanner bscanner1 = client.createBatchScanner(tableName, Authorizations.EMPTY);
+          BatchScanner bscanner2 = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner1.setRange(new Range());
+        scanner2.setRange(new Range());
 
         // Confirm that the ScanServer will not complete the scan
-        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(scanner);
+          Iterables.size(scanner1);
         })));
 
         // Confirm that the TabletServer will not complete the scan
-        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        scanner2.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(scanner);
+          Iterables.size(scanner2);
         })));
 
         // Test the BatchScanner
-        bscanner.setRanges(Collections.singleton(new Range()));
+        bscanner1.setRanges(Collections.singleton(new Range()));
+        bscanner2.setRanges(Collections.singleton(new Range()));
 
         // Confirm that the ScanServer will not complete the scan
-        bscanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        bscanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(bscanner);
+          Iterables.size(bscanner1);
         })));
 
         // Confirm that the TabletServer will not complete the scan
-        bscanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        bscanner2.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(bscanner);
+          Iterables.size(bscanner2);
         })));
 
         UtilWaitThread.sleep(30_000);
