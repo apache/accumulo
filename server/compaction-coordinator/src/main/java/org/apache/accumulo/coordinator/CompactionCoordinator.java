@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.coordinator;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.lang.reflect.InvocationTargetException;
@@ -212,7 +213,7 @@ public class CompactionCoordinator extends AbstractServer
       CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
       coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
           ServiceLock.path(lockPath), zooLockUUID);
-      coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes());
+      coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();
       if (coordinatorLockWatcher.isAcquiredLock()) {
