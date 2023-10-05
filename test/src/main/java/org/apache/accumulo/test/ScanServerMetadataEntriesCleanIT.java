@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
 
   @BeforeAll

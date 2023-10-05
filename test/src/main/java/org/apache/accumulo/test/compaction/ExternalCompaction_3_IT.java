@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
@@ -59,10 +60,12 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
 
+@Tag(SUNNY_DAY)
 public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
   public static class ExternalCompaction3Config implements MiniClusterConfigurationCallback {

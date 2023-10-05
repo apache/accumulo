@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,8 +44,10 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ErrorThrowingIterator;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag(SUNNY_DAY)
 public class ExternalCompaction4_IT extends AccumuloClusterHarness {
 
   @Override

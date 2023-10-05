@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -69,6 +70,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.HostAndPort;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(ScanServerMetadataEntriesIT.class);
