@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -103,7 +105,7 @@ public class ExternalCompactionUtil {
     if (null == address) {
       return Optional.empty();
     }
-    return Optional.of(HostAndPort.fromString(new String(address)));
+    return Optional.of(HostAndPort.fromString(new String(address, UTF_8)));
   }
 
   /**
