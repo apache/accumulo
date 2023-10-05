@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -77,7 +76,6 @@ import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +87,6 @@ import com.google.common.collect.Sets;
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
-@Tag(SUNNY_DAY)
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
 

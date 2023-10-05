@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,10 +52,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ManagerAssignmentIT;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag(SUNNY_DAY)
 public class LocatorIT extends AccumuloClusterHarness {
 
   @Override
