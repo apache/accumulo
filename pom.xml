@@ -153,7 +153,6 @@
     <version.hadoop>3.3.6</version.hadoop>
     <version.maven-javadoc-plugin>3.6.0</version.maven-javadoc-plugin>
     <version.opentelemetry>1.27.0</version.opentelemetry>
-    <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.7</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
     <version.zookeeper>3.8.2</version.zookeeper>
@@ -630,32 +629,6 @@
         </exclusions>
       </dependency>
       <dependency>
-        <!-- converge transitive dependency version between powermock and easymock -->
-        <groupId>org.objenesis</groupId>
-        <artifactId>objenesis</artifactId>
-        <version>3.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-api-easymock</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-core</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-module-junit4</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-reflect</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${version.slf4j}</version>
@@ -981,8 +954,6 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
-                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
