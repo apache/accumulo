@@ -160,7 +160,7 @@ public class GroupBalancerTest {
 
       Map<String,Integer> expectedCounts = new HashMap<>();
 
-      int totalExtra = 0;
+      long totalExtra = 0;
       for (String group : groupCounts.keySet()) {
         long groupCount = groupCounts.get(group);
         totalExtra += groupCount % tservers.size();
@@ -168,12 +168,12 @@ public class GroupBalancerTest {
       }
 
       // The number of extra tablets from all groups that each tserver must have.
-      int expectedExtra = totalExtra / tservers.size();
-      int maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
+      long expectedExtra = totalExtra / tservers.size();
+      long maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
 
       for (Entry<TabletServerId,MapCounter<String>> entry : tserverGroupCounts.entrySet()) {
         MapCounter<String> tgc = entry.getValue();
-        int tserverExtra = 0;
+        long tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           assertTrue(tgc.get(group) >= expectedCounts.get(group));
           assertTrue(tgc.get(group) <= expectedCounts.get(group) + 1,
