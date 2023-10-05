@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -34,8 +36,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -98,17 +100,12 @@ public class ExternalCompactionUtil {
    */
   public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
-    try {
-      var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut());
-      byte[] address = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      if (null == address) {
-        return Optional.empty();
-      }
-      return Optional.of(HostAndPort.fromString(new String(address)));
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
+    byte[] address =
+        ServiceLock.getLockData(context.getZooCache(), ServiceLock.path(lockPath), new ZcStat());
+    if (null == address) {
+      return Optional.empty();
     }
+    return Optional.of(HostAndPort.fromString(new String(address, UTF_8)));
   }
 
   /**
