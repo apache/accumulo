@@ -1361,6 +1361,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("importdirectory " + importDir + " true", true);
     ts.exec("scan -r 00000000", true, "0-->" + nonce, true);
     ts.exec("scan -r 00000099", true, "99-->" + nonce, true);
+    ts.exec("scan -r 00000099", true, "99-->" + nonce+nonce, false);
     ts.exec("deletetable -f " + table);
   }
 
