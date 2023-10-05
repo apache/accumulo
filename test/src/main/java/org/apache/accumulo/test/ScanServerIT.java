@@ -290,39 +290,41 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       final List<Future<?>> futures = new ArrayList<>();
       final ExecutorService executor = Executors.newFixedThreadPool(4);
-      try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
-          Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY);
-          BatchScanner bscanner1 = client.createBatchScanner(tableName, Authorizations.EMPTY);
-          BatchScanner bscanner2 = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
-        scanner1.setRange(new Range());
-        scanner2.setRange(new Range());
+      try (Scanner eventualScanner = client.createScanner(tableName, Authorizations.EMPTY);
+          Scanner immediateScanner = client.createScanner(tableName, Authorizations.EMPTY);
+          BatchScanner eventualBScanner =
+              client.createBatchScanner(tableName, Authorizations.EMPTY);
+          BatchScanner immediateBScanner =
+              client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        eventualScanner.setRange(new Range());
+        immediateScanner.setRange(new Range());
 
         // Confirm that the ScanServer will not complete the scan
-        scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        eventualScanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(scanner1);
+          Iterables.size(eventualScanner);
         })));
 
         // Confirm that the TabletServer will not complete the scan
-        scanner2.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        immediateScanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(scanner2);
+          Iterables.size(immediateScanner);
         })));
 
         // Test the BatchScanner
-        bscanner1.setRanges(Collections.singleton(new Range()));
-        bscanner2.setRanges(Collections.singleton(new Range()));
+        eventualBScanner.setRanges(Collections.singleton(new Range()));
+        immediateBScanner.setRanges(Collections.singleton(new Range()));
 
         // Confirm that the ScanServer will not complete the scan
-        bscanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        eventualBScanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(bscanner1);
+          Iterables.size(eventualBScanner);
         })));
 
         // Confirm that the TabletServer will not complete the scan
-        bscanner2.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        immediateBScanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         futures.add(executor.submit(() -> assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
-          Iterables.size(bscanner2);
+          Iterables.size(immediateBScanner);
         })));
 
         UtilWaitThread.sleep(30_000);
