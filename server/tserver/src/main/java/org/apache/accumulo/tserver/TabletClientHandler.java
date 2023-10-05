@@ -943,6 +943,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     TableId tid = cs.tableId;
     long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
+    boolean errorThrown = false;
     try {
       // @formatter:off
       Map<KeyExtent, List<ServerConditionalMutation>> updates = mutations.entrySet().stream().collect(Collectors.toMap(
@@ -969,7 +970,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
     } catch (IOException ioe) {
       throw new TException(ioe);
     } catch (Exception e) {
-      log.error("Exception returned for conditionalUpdate {}", e);
+      log.warn("Exception returned for conditionalUpdate {}", e);
+      errorThrown = true;
       // Continue throwing the exception so return doesn't error.
       throw e;
     } finally {
@@ -977,7 +979,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
         writeTracker.finishWrite(opid);
         server.sessionManager.unreserveSession(sessID);
       } catch (Exception e) {
-        log.error("Second Exception returned for conditionalUpdate {}", e);
+        var message = errorThrown ? "Second Exception" : "Exception";
+        log.warn("{} returned for conditionalUpdate {}", message, e);
         // Continue throwing the exception so return doesn't error.
         throw e;
       }
