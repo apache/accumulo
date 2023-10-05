@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.apache.accumulo.test.ScanServerIT.setupTableWithHostingMix;
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
   // This is the same as ScanServerIT, but without any scan servers running.
