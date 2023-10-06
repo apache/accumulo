@@ -327,6 +327,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private static class TableMgmtStats {
     int[] counts = new int[TabletState.values().length];
     private int totalUnloaded;
+
+    Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
   }
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
@@ -337,7 +339,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TableMgmtStats tableMgmtStats = new TableMgmtStats();
     int unloaded = 0;
 
-    Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
     Map<TableId,MergeStats> currentMerges = new HashMap<>();
     for (MergeInfo merge : manager.merges()) {
       if (merge.getExtent() != null) {
@@ -396,7 +397,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
-      final MergeStats mergeStats = mergeStatsCache.computeIfAbsent(tableId, k -> {
+      final MergeStats mergeStats = tableMgmtStats.mergeStatsCache.computeIfAbsent(tableId, k -> {
         var mStats = currentMerges.get(k);
         return mStats != null ? mStats : new MergeStats(new MergeInfo());
       });
@@ -634,8 +635,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               tabletMgmtStats.totalUnloaded);
         }
 
-        // TODO
-        // updateMergeState(mergeStatsCache);
+        updateMergeState(tabletMgmtStats.mergeStatsCache);
 
         synchronized (this) {
           lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
