@@ -51,5 +51,4 @@ public class BatchWriterIT extends AccumuloClusterHarness {
       }
     }
   }
-
 }

@@ -293,14 +293,14 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
-      TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
+      TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
 
       if (info == null) {
         updates.add(instance);
         TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
+            new TServerInfo(instance, new TServerConnection(address), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.put(instance, tServerInfo);
         currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
@@ -308,7 +308,7 @@ public class LiveTServerSet implements Watcher {
         doomed.add(info.instance);
         updates.add(instance);
         TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
+            new TServerInfo(instance, new TServerConnection(address), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.remove(info.instance);
         currentGroups.getOrDefault(resourceGroup, new HashSet<>()).remove(instance);

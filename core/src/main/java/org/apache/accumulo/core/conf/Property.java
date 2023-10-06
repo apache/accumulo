@@ -51,6 +51,11 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also instance.ssl.enabled",
       "1.6.0"),
+  RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
+      "Configures the TCP backlog for the server side sockets created by Thrift."
+          + " This property is not used for SSL type server sockets. A value of zero"
+          + " will use the Thrift default value.",
+      "2.1.3"),
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
       "Path of the keystore file for the server's private SSL key", "1.6.0"),
   @Sensitive
@@ -212,6 +217,12 @@ public enum Property {
       "Name of classloader factory to be used to create classloaders for named contexts,"
           + " such as per-table contexts set by `table.class.loader.context`.",
       "2.1.0"),
+  GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN("general.file.name.allocation.batch.size.min", "100",
+      PropertyType.COUNT,
+      "The minimum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
+  GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX("general.file.name.allocation.batch.size.max", "200",
+      PropertyType.COUNT,
+      "The maximum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls", "1.3.5"),
   @Experimental
@@ -748,8 +759,8 @@ public enum Property {
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",
       "1.3.5"),
-  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "8M", PropertyType.BYTES,
-      "The batch size used for garbage collection.", "2.1.0"),
+  GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "50%", PropertyType.MEMORY,
+      "The amount of memory used as the batch size for garbage collection.", "2.1.0"),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION,
       "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs.",
       "1.3.5"),
@@ -761,6 +772,11 @@ public enum Property {
       "The listening port for the garbage collector's monitor service", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
+  @Experimental
+  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
+      "GC will remove deletion candidates that are in-use from the metadata location. "
+          + "This is expected to increase the speed of subsequent GC runs",
+      "2.1.3"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
@@ -1445,7 +1461,9 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
+        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey());
   }
 
   /**

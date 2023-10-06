@@ -49,7 +49,7 @@ public class ServiceLockDataTest {
     assertEquals(Constants.DEFAULT_RESOURCE_GROUP_NAME, ss.getGroup(ThriftService.TSERV));
     assertNull(ss.getServerUUID(ThriftService.TABLET_SCAN));
     assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertThrows(NullPointerException.class, () -> ss.getAddress(ThriftService.TABLET_SCAN));
+    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
     assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
   }
 
@@ -81,7 +81,7 @@ public class ServiceLockDataTest {
     assertEquals("meta", ss.getGroup(ThriftService.TSERV));
     assertNull(ss.getServerUUID(ThriftService.TABLET_SCAN));
     assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertThrows(NullPointerException.class, () -> ss.getAddress(ThriftService.TABLET_SCAN));
+    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
     assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
   }
 
@@ -94,7 +94,7 @@ public class ServiceLockDataTest {
     assertEquals("meta", ss.getGroup(ThriftService.TSERV));
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertThrows(NullPointerException.class, () -> ss.getAddress(ThriftService.TABLET_SCAN));
+    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
     assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
   }
 
@@ -115,6 +115,9 @@ public class ServiceLockDataTest {
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
         ss.getAddress(ThriftService.TABLET_SCAN));
     assertEquals("ns1", ss.getGroup(ThriftService.TABLET_SCAN));
+    assertNull(ss.getAddressString(ThriftService.COMPACTOR));
+    assertNull(ss.getAddress(ThriftService.COMPACTOR));
+    assertNull(ss.getGroup(ThriftService.COMPACTOR));
   }
 
   @Test

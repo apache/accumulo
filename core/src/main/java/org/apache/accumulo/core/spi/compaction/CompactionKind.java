@@ -36,9 +36,5 @@ public enum CompactionKind {
   /**
    * A user initiated a one time compaction using an Accumulo client.
    */
-  USER,
-  /**
-   * A compaction executed prior to merging tablets.
-   */
-  CHOP
+  USER
 }

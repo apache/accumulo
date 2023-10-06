@@ -320,8 +320,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       stats = getTabletStats(c, tableId);
       assertEquals(3, stats.size());
-      // Add 1 for the t tablet
-      assertEquals(hostingRequestCount + 1, ClientTabletCache
+      // No more tablets should have been brought online
+      assertEquals(hostingRequestCount, ClientTabletCache
           .getInstance((ClientContext) c, TableId.of(tableId)).getTabletHostingRequestCount());
 
     }

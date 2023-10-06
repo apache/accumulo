@@ -28,9 +28,8 @@ package org.apache.accumulo.core.tabletserver.thrift;
 public enum TCompactionReason implements org.apache.thrift.TEnum {
   USER(0),
   SYSTEM(1),
-  CHOP(2),
-  IDLE(3),
-  CLOSE(4);
+  IDLE(2),
+  CLOSE(3);
 
   private final int value;
 
@@ -58,10 +57,8 @@ public enum TCompactionReason implements org.apache.thrift.TEnum {
       case 1:
         return SYSTEM;
       case 2:
-        return CHOP;
-      case 3:
         return IDLE;
-      case 4:
+      case 3:
         return CLOSE;
       default:
         return null;

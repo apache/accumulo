@@ -112,6 +112,11 @@ public class NullTserver {
     }
 
     @Override
+    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+      return true;
+    }
+
+    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override
@@ -143,12 +148,6 @@ public class NullTserver {
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
         String classLoaderContext, Map<String,String> executionHints, long busyTimeout) {
       return null;
-    }
-
-    @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
-        TMutation mutation, TDurability durability) {
-
     }
 
     @Override
@@ -296,7 +295,8 @@ public class NullTserver {
 
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
         muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
-        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+        10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
+        HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

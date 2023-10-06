@@ -134,6 +134,9 @@ public class ZooReaderWriterTest {
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);
 
+    retry.waitForNextAttempt(anyObject(), anyObject());
+    expectLastCall().once();
+
     replay(zk, zrw, retryFactory, retry);
 
     assertArrayEquals(new byte[] {1}, zrw.mutateOrCreate(path, value, mutator));

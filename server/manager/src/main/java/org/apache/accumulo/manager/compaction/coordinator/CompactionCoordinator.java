@@ -602,8 +602,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     var files = ecm.getJobFiles().stream().map(storedTabletFile -> {
       var dfv = metaJob.getTabletMetadata().getFilesMap().get(storedTabletFile);
-      return new InputFile(storedTabletFile.getNormalizedPathStr(), dfv.getSize(),
-          dfv.getNumEntries(), dfv.getTime());
+      return new InputFile(storedTabletFile.getMetadata(), dfv.getSize(), dfv.getNumEntries(),
+          dfv.getTime());
     }).collect(Collectors.toList());
 
     long fateTxid = 0;

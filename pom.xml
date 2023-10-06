@@ -131,11 +131,11 @@
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
-    <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
+    <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.6.0</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-06-14T05:41:08Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-08-14T08:11:10Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -150,11 +150,12 @@
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.20.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
+    <version.maven-javadoc-plugin>3.6.0</version.maven-javadoc-plugin>
     <version.opentelemetry>1.27.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.7</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.8.1</version.zookeeper>
+    <version.zookeeper>3.8.2</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -629,6 +630,11 @@
         <version>3.3</version>
       </dependency>
       <dependency>
+        <groupId>org.opentest4j</groupId>
+        <artifactId>opentest4j</artifactId>
+        <version>1.2.0</version>
+      </dependency>
+      <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
         <version>${version.powermock}</version>
@@ -657,7 +663,7 @@
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.10.1</version>
+        <version>1.1.10.4</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>
@@ -746,7 +752,7 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.3.0</version>
           <configuration>
             <createBackupFile>false</createBackupFile>
             <expandEmptyElements>false</expandEmptyElements>
@@ -797,8 +803,7 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <!-- Automatic modules do not work with the javadoc plugin - see MJAVADOC-707 -->
-                <!-- Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name -->
+                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
                 <Sealed>true</Sealed>
               </manifestEntries>
@@ -815,6 +820,7 @@
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
             <doclint>all,-missing</doclint>
+            <legacyMode>true</legacyMode>
           </configuration>
         </plugin>
         <plugin>
@@ -1157,13 +1163,13 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java,**/HelpMojo.java</excludes>
+          <excludes>**/thrift/*.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.12.1</version>
+            <version>10.12.2</version>
           </dependency>
         </dependencies>
         <executions>

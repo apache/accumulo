@@ -1126,14 +1126,16 @@ public class Tablet extends TabletBase {
     }
   }
 
+  ReentrantLock getLogLock() {
+    return logLock;
+  }
+
   Set<String> beginClearingUnusedLogs() {
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<String> unusedLogs = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
-
-    // do not hold tablet lock while acquiring the log lock
-    logLock.lock();
 
     synchronized (this) {
       if (removingLogs) {
@@ -1150,12 +1152,6 @@ public class Tablet extends TabletBase {
         currentLogsCopy.add(logger.toString());
         unusedLogs.remove(logger.getMeta());
       }
-
-      otherLogs = Collections.emptySet();
-      // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
-      // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
-      // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
-      // rebuildReferencedLogs() for more info.
 
       if (!unusedLogs.isEmpty()) {
         removingLogs = true;
@@ -1179,9 +1175,10 @@ public class Tablet extends TabletBase {
   }
 
   synchronized void finishClearingUnusedLogs() {
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
     removingLogs = false;
+    otherLogs = Collections.emptySet();
     rebuildReferencedLogs();
-    logLock.unlock();
   }
 
   private boolean removingLogs = false;
@@ -1197,7 +1194,8 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // do not hold tablet lock while acquiring the log lock
+    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
+    // to deadlock. However there is a path in the code that does this. See #3759
     logLock.lock();
 
     try {
@@ -1401,10 +1399,18 @@ public class Tablet extends TabletBase {
     // This prevents a concurrent refresh operation from pulling in the new tablet file before the
     // in memory map reference related to the file is deactivated. Scans should use one of the in
     // memory map or the new file, never both.
+    Preconditions.checkState(!getLogLock().isHeldByCurrentThread());
     refreshLock.lock();
     try {
-      Set<String> unusedWalLogs = beginClearingUnusedLogs();
+      // Can not hold tablet lock while acquiring the log lock. The following check is there to
+      // prevent deadlock.
+      getLogLock().lock();
+      // do not place any code here between lock and try
       try {
+        // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
+        // moving where the following method is called, examine it and finishClearingUnusedLogs()
+        // before moving.
+        Set<String> unusedWalLogs = beginClearingUnusedLogs();
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
         // reverse order data could be lost... the minor compaction start event should be written
@@ -1412,8 +1418,10 @@ public class Tablet extends TabletBase {
 
         newFile = updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
             unusedWalLogs, flushId);
-      } finally {
+
         finishClearingUnusedLogs();
+      } finally {
+        getLogLock().unlock();
       }
 
       // Without the refresh lock, if a refresh happened here it could make the new file written to

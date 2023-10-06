@@ -191,8 +191,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     return extent;
   }
 
-  protected String getOutputFile() {
-    return outputFile.getMetaInsert();
+  protected StoredTabletFile getOutputFile() {
+    return outputFile.insert();
   }
 
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)

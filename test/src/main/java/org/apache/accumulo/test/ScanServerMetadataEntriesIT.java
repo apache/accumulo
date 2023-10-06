@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -69,6 +70,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.HostAndPort;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(ScanServerMetadataEntriesIT.class);
@@ -256,7 +258,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertTrue(refs.size() > fileCount * 2);
         List<Reference> tableRefs =
             refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())
-                .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataEntry())))
+                .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
                 .collect(Collectors.toList());
         log.info("Reference List:{}", tableRefs);
         // There should be 6 references here. 3 for the table file entries, and 3 for the scan
@@ -264,7 +266,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertEquals(fileCount * 2, tableRefs.size());
 
         Set<String> deduplicatedReferences =
-            tableRefs.stream().map(Reference::getMetadataEntry).collect(Collectors.toSet());
+            tableRefs.stream().map(Reference::getMetadataPath).collect(Collectors.toSet());
 
         assertEquals(fileCount, deduplicatedReferences.size());
       }

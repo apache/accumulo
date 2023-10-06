@@ -31,7 +31,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
-import org.apache.hadoop.fs.Path;
 
 public class ExternalCompactionMetadata {
 
@@ -105,8 +104,8 @@ public class ExternalCompactionMetadata {
   public String toJson() {
     GSonData jData = new GSonData();
 
-    jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetaUpdateDelete).collect(toList());
-    jData.tmp = compactTmpName.getMetaInsert();
+    jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
+    jData.tmp = compactTmpName.insert().getMetadata();
     jData.compactor = compactorId;
     jData.kind = kind.name();
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();
@@ -121,7 +120,7 @@ public class ExternalCompactionMetadata {
 
     return new ExternalCompactionMetadata(
         jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
-        new ReferencedTabletFile(new Path(jData.tmp)), jData.compactor,
+        StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority,
         CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.fateTxId);
   }

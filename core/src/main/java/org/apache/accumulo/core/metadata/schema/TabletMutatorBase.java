@@ -30,7 +30,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -90,36 +89,36 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putFile(ReferencedTabletFile path, DataFileValue dfv) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(DataFileColumnFamily.NAME, path.getMetaInsertText(), new Value(dfv.encode()));
+    mutation.put(DataFileColumnFamily.NAME, path.insert().getMetadataText(),
+        new Value(dfv.encode()));
     return getThis();
   }
 
   @Override
   public T putFile(StoredTabletFile path, DataFileValue dfv) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText(),
-        new Value(dfv.encode()));
+    mutation.put(DataFileColumnFamily.NAME, path.getMetadataText(), new Value(dfv.encode()));
     return getThis();
   }
 
   @Override
   public T deleteFile(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText());
+    mutation.putDelete(DataFileColumnFamily.NAME, path.getMetadataText());
     return getThis();
   }
 
   @Override
   public T putScan(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(ScanFileColumnFamily.NAME, path.getMetaUpdateDeleteText(), new Value());
+    mutation.put(ScanFileColumnFamily.NAME, path.getMetadataText(), new Value());
     return getThis();
   }
 
   @Override
   public T deleteScan(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(ScanFileColumnFamily.NAME, path.getMetaUpdateDeleteText());
+    mutation.putDelete(ScanFileColumnFamily.NAME, path.getMetadataText());
     return getThis();
   }
 
@@ -204,7 +203,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putBulkFile(ReferencedTabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
+    mutation.put(BulkFileColumnFamily.NAME, bulkref.insert().getMetadataText(),
         new Value(FateTxId.formatTid(tid)));
     return getThis();
   }
@@ -212,7 +211,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteBulkFile(StoredTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaUpdateDeleteText());
+    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetadataText());
     return getThis();
   }
 
@@ -230,13 +229,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(ServerColumnFamily.SELECTED_COLUMN.getColumnFamily(),
         ServerColumnFamily.SELECTED_COLUMN.getColumnQualifier());
-    return getThis();
-  }
-
-  @Override
-  public T putChopped() {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
     return getThis();
   }
 

@@ -37,12 +37,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -97,7 +97,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         scanner.forEach((k, v) -> {
           var row = k.getRowData().toString();
           var qual = k.getColumnQualifierData().toString();
-          var path = new Path(qual).toString();
+          var path = StoredTabletFile.of(k.getColumnQualifierData().toString()).getMetadataPath();
           var rowPath = row + "+" + path;
 
           log.debug("split test, inspecting {} {} {}", row, qual, v);
@@ -132,7 +132,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         Set<String> filenames = new HashSet<>();
 
         scanner.forEach((k, v) -> {
-          var path = new Path(k.getColumnQualifierData().toString());
+          var path = StoredTabletFile.of(k.getColumnQualifierData().toString()).getPath();
           assertFalse(filenames.contains(path.getName()));
           assertTrue(path.getName().startsWith("A"));
           filenames.add(path.getName());
@@ -174,7 +174,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         scanner.forEach((k, v) -> {
           var qual = k.getColumnQualifierData().toString();
           assertTrue(qual.contains("//tables//"));
-          filesBeforeMerge.add(qual);
+          filesBeforeMerge.add(StoredTabletFile.of(qual).getMetadataPath());
         });
       }
 
@@ -188,7 +188,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
         scanner.forEach((k, v) -> {
           // should only see the default tablet
           assertTrue(k.getRow().toString().endsWith("<"));
-          filesAfterMerge.add(k.getColumnQualifierData().toString());
+          filesAfterMerge.add(StoredTabletFile.of(k.getColumnQualifier()).getMetadataPath());
         });
       }
 

@@ -39,7 +39,13 @@ public class AccumuloDataVersion {
   /**
    * version (12) reflects On-Demand tablets starting with 4.0
    */
-  public static final int ONDEMAND_TABLETS_FOR_VERSION_4 = 12;
+  public static final int ONDEMAND_TABLETS_FOR_VERSION_4 = 13;
+
+  /**
+   * version (12) reflect changes to support no chop merges including json encoding of the file
+   * column family stored in root and metadata tables.
+   */
+  public static final int METADATA_FILE_JSON_ENCODING = 12;
 
   /**
    * version (11) reflects removal of replication starting with 3.0
@@ -71,8 +77,10 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN =
-      Set.of(REMOVE_DEPRECATIONS_FOR_VERSION_3, CURRENT_VERSION);
+  // TODO - this disables upgrades until https://github.com/apache/accumulo/issues/3768 is done
+  // public static final Set<Integer> CAN_RUN = Set.of(
+  // REMOVE_DEPRECATIONS_FOR_VERSION_3, METADATA_FILE_JSON_ENCODING, CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION);
 
   /**
    * Get the stored, current working version.
@@ -95,6 +103,8 @@ public class AccumuloDataVersion {
     switch (version) {
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
+      case METADATA_FILE_JSON_ENCODING:
+        return "3.1.0";
       case ONDEMAND_TABLETS_FOR_VERSION_4:
         return "4.0.0";
     }

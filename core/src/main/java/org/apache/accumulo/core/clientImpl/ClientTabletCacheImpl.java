@@ -600,7 +600,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       var currTablet = extent;
 
       for (int i = 0; i < hostAheadCount; i++) {
-        if (currTablet.endRow() == null || !hostAheadRange.contains(new Key(currTablet.endRow()))) {
+        if (currTablet.endRow() == null || hostAheadRange
+            .afterEndKey(new Key(currTablet.endRow()).followingKey(PartialKey.ROW))) {
           break;
         }
 

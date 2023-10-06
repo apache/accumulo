@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.PrintWriter;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
@@ -47,7 +47,6 @@ public class DropUserCommandTest {
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     LineReader reader = EasyMock.createMock(LineReader.class);
-    PrintWriter pw = EasyMock.createMock(PrintWriter.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
@@ -60,13 +59,7 @@ public class DropUserCommandTest {
 
     // Force option was not provided
     EasyMock.expect(cli.hasOption("f")).andReturn(false);
-    EasyMock.expect(shellState.getReader()).andReturn(reader);
-    EasyMock.expect(shellState.getWriter()).andReturn(pw);
-    pw.flush();
-    EasyMock.expectLastCall().once();
-
-    // Fake a "yes" response
-    EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("yes");
+    EasyMock.expect(shellState.confirm("dropuser { user }")).andReturn(Optional.of(true));
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     EasyMock.expect(client.securityOperations()).andReturn(secOps);

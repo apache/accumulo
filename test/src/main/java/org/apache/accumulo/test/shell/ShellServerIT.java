@@ -59,7 +59,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -1243,34 +1242,27 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("setgoal -t " + table + " -b c -e e -ee -g always");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      String tableId = client.tableOperations().tableIdMap().get(table);
+      String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
       s.fetchColumn(new Column(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
           HostingColumnFamily.GOAL_COLUMN.getColumnQualifier()));
       for (Entry<Key,Value> e : s) {
-        switch (e.getKey().getRow().toString()) {
-          case "1;c":
-          case "1;e":
-            assertEquals(TabletHostingGoal.ALWAYS.name(), e.getValue().toString());
-            break;
-          case "1;a":
-            assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
-            break;
-          case "1;g":
-          case "1<":
-            // this tablet was loaded ondemand when we executed
-            // the addsplits command
-            assertEquals(TabletHostingGoal.ONDEMAND.name(), e.getValue().toString());
-            break;
-          default:
-            fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());
+        var row = e.getKey().getRow().toString();
+        if (row.equals(tableId + ";c") || row.equals(tableId + ";e")) {
+          assertEquals(TabletHostingGoal.ALWAYS.name(), e.getValue().toString());
+        } else if (row.equals(tableId + ";a")) {
+          assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
+        } else if (row.equals(tableId + ";g") || row.equals(tableId + "<")) {
+          assertEquals(TabletHostingGoal.ONDEMAND.name(), e.getValue().toString());
+        } else {
+          fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());
         }
       }
     }
   }
 
   @Test
-  public void testGetGoalCommand() throws IOException, TableNotFoundException {
+  public void testGetGoalCommand() throws Exception {
 
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
@@ -1285,32 +1277,34 @@ public class ShellServerIT extends SharedMiniClusterBase {
       String result = ts.exec("getgoal -?");
       assertTrue(result.contains("usage: getgoal"));
 
+      String tableId = getTableId(tableName);
+
       result = ts.exec("getgoal");
       assertTrue(result.contains("TABLE: " + tableName));
       assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
-      assertTrue(result.contains("1;d<         ONDEMAND"));
-      assertTrue(result.contains("1;m;d        ONDEMAND"));
-      assertTrue(result.contains("1;s;m        ONDEMAND"));
-      assertTrue(result.contains("1<;s         ONDEMAND"));
+      assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
+      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
+      assertTrue(result.contains(tableId + ";s;m        ONDEMAND"));
+      assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
 
       ts.exec("setgoal -g ALWAYS -r p");
       result = ts.exec("getgoal -r p");
-      assertFalse(result.contains("1;d<         ONDEMAND"));
-      assertFalse(result.contains("1;m;d        ONDEMAND"));
-      assertTrue(result.contains("1;s;m        ALWAYS"));
-      assertFalse(result.contains("1<;s         ONDEMAND"));
+      assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
+      assertFalse(result.contains(tableId + ";m;d        ONDEMAND"));
+      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
+      assertFalse(result.contains(tableId + "<;s         ONDEMAND"));
 
       result = ts.exec("getgoal");
-      assertTrue(result.contains("1;d<         ONDEMAND"));
-      assertTrue(result.contains("1;m;d        ONDEMAND"));
-      assertTrue(result.contains("1;s;m        ALWAYS"));
-      assertTrue(result.contains("1<;s         ONDEMAND"));
+      assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
+      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
+      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
+      assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
 
       result = ts.exec("getgoal -b f -e p");
-      assertFalse(result.contains("1;d<         ONDEMAND"));
-      assertTrue(result.contains("1;m;d        ONDEMAND"));
-      assertTrue(result.contains("1;s;m        ALWAYS"));
-      assertFalse(result.contains("1<;s         ONDEMAND"));
+      assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
+      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
+      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
+      assertFalse(result.contains(tableId + "<;s         ONDEMAND"));
 
     } finally {
       if (splitsFilePath != null) {
@@ -1321,51 +1315,61 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   // Verify that when splits are added after table creation, hosting goals are set properly
   @Test
-  public void testGetGoalCommand_DelayedSplits() throws IOException {
+  public void testGetGoalCommand_DelayedSplits() throws Exception {
+
+    for (int i = 0; i < 40; i++) {
+      ts.exec("createtable tab" + i, true);
+    }
 
     final String[] tableName = getUniqueNames(2);
 
     ts.exec("createtable " + tableName[0], true);
+
+    String tableId = getTableId(tableName[0]);
+
     String result = ts.exec("getgoal");
+
     assertTrue(result.contains("TABLE: " + tableName[0]));
     assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
-    assertTrue(result.contains("1<<          ONDEMAND"));
+    assertTrue(result.matches("(?s).*" + tableId + "<<\\s+ONDEMAND.*"));
 
     // add the splits and check goals again
     ts.exec("addsplits d m s", true);
     result = ts.exec("getgoal");
-    assertTrue(result.contains("1;d<         ONDEMAND"));
-    assertTrue(result.contains("1;m;d        ONDEMAND"));
-    assertTrue(result.contains("1;s;m        ONDEMAND"));
-    assertTrue(result.contains("1<;s         ONDEMAND"));
+    assertTrue(result.matches("(?s).*" + tableId + "[;]d<\\s+ONDEMAND.*"));
+    assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+    assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ONDEMAND.*"));
+    assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
     // scan metadata table to be sure the hosting goals were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:goal", true);
-    assertTrue(result.contains("1;d hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains("1;m hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains("1;s hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains("1< hosting:goal []\tONDEMAND"));
+    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b " + tableId, true);
+    assertTrue(result.contains(tableId + ";d hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";m hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";s hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains(tableId + "< hosting:goal []\tONDEMAND"));
 
     ts.exec("createtable " + tableName[1] + " -g always", true);
+
+    String tableId2 = getTableId(tableName[1]);
+
     result = ts.exec("getgoal");
     assertTrue(result.contains("TABLE: " + tableName[1]));
     assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
-    assertTrue(result.contains("2<<          ALWAYS"));
+    assertTrue(result.matches("(?s).*" + tableId2 + "<<\\s+ALWAYS.*"));
 
     ts.exec("addsplits d m s", true);
     result = ts.exec("getgoal");
-    assertTrue(result.contains("2;d<         ALWAYS"));
-    assertTrue(result.contains("2;m;d        ALWAYS"));
-    assertTrue(result.contains("2;s;m        ALWAYS"));
-    assertTrue(result.contains("2<;s         ALWAYS"));
+    assertTrue(result.matches("(?s).*" + tableId2 + ";d<\\s+ALWAYS.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + ";m;d\\s+ALWAYS.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + ";s;m\\s+ALWAYS.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + "<;s\\s+ALWAYS.*"));
 
     // scan metadata table to be sure the hosting goals were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b 2", true);
-    assertTrue(result.contains("2;d hosting:goal []\tALWAYS"));
-    assertTrue(result.contains("2;m hosting:goal []\tALWAYS"));
-    assertTrue(result.contains("2;s hosting:goal []\tALWAYS"));
-    assertTrue(result.contains("2< hosting:goal []\tALWAYS"));
-
+    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b " + tableId2, true);
+    assertTrue(result.contains(tableId2 + ";d hosting:goal []\tALWAYS"));
+    assertTrue(result.contains(tableId2 + ";m hosting:goal []\tALWAYS"));
+    assertTrue(result.contains(tableId2 + ";s hosting:goal []\tALWAYS"));
+    assertTrue(result.contains(tableId2 + "< hosting:goal []\tALWAYS"));
   }
 
   @Test
@@ -1841,8 +1845,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g m t");
-    ts.exec("goal -t " + table + " -b a -e a -g never");
-    ts.exec("goal -t " + table + " -b c -e e -ee -g always");
+    ts.exec("setgoal -t " + table + " -b a -e a -g never");
+    ts.exec("setgoal -t " + table + " -b c -e e -ee -g always");
 
     ts.exec("scan -t " + table + " -np -b a -e c", false);
     ts.exec("scan -t " + table + " -np -b a -e e", false);
@@ -2263,7 +2267,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   // This test serves to verify the listtablets command as well as the getTabletInformation api,
   // which is used by listtablets.
   @Test
-  public void testListTablets() throws IOException, InterruptedException {
+  public void testListTablets() throws Exception {
 
     final var tables = getUniqueNames(2);
     final String table1 = tables[0];
@@ -2294,22 +2298,33 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     }
 
+    var tableId1 = getTableId(table1);
+    var tableId2 = getTableId(table2);
+
     String results = ts.exec("listtablets -np -p ShellServerIT_testListTablets.", true);
     assertTrue(results.contains("TABLE: ShellServerIT_testListTablets0"));
     assertTrue(results.contains("TABLE: ShellServerIT_testListTablets1"));
-    assertTrue(results.contains("1     -INF                 g                    ALWAYS"));
-    assertTrue(results.contains("1     g                    n                    ONDEMAND"));
-    assertTrue(results.contains("1     n                    u                    ALWAYS"));
-    assertTrue(results.contains("1     u                    +INF                 ONDEMAND"));
-    assertTrue(results.contains("2     -INF                 f                    ONDEMAND"));
-    assertTrue(results.contains("2     f                    m                    NEVER"));
-    assertTrue(results.contains("2     m                    t                    ALWAYS"));
-    assertTrue(results.contains("2     t                    +INF                 ONDEMAND"));
+    assertTrue(
+        results.contains(tableId1 + "     -INF                 g                    ALWAYS"));
+    assertTrue(
+        results.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertTrue(
+        results.contains(tableId1 + "     n                    u                    ALWAYS"));
+    assertTrue(
+        results.contains(tableId1 + "     u                    +INF                 ONDEMAND"));
+    assertTrue(
+        results.contains(tableId2 + "     -INF                 f                    ONDEMAND"));
+    assertTrue(results.contains(tableId2 + "     f                    m                    NEVER"));
+    assertTrue(
+        results.contains(tableId2 + "     m                    t                    ALWAYS"));
+    assertTrue(
+        results.contains(tableId2 + "     t                    +INF                 ONDEMAND"));
 
     // verify the sum of the tablets sizes, number of entries, and dir name match the data in a
     // metadata scan
-    String metadata = ts.exec("scan -np -t accumulo.metadata -b 1 -c loc,file");
+    String metadata = ts.exec("scan -np -t accumulo.metadata -b " + tableId1 + " -c loc,file");
     for (String line : metadata.split("\n")) {
+      System.out.println(line);
       String[] tokens = line.split("\\s+");
       if (tokens[1].startsWith("loc")) {
         String loc = tokens[3];
@@ -2318,7 +2333,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       if (tokens[1].startsWith("file")) {
         String[] parts = tokens[1].split("/");
         String dir = parts[parts.length - 2];
-        assertTrue(results.contains(dir));
+        assertTrue(results.contains(dir), "Did not see " + dir);
         String[] sizes = tokens[3].split(",");
         String size = String.format("%,d", Integer.parseInt(sizes[0]));
         String entries = String.format("%,d", Integer.parseInt(sizes[1]));
@@ -2349,61 +2364,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     }
     return path;
-  }
-
-  @Test
-  public void testFateCommandWithSlowCompaction() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    String orgProps = System.getProperty("accumulo.properties");
-
-    System.setProperty("accumulo.properties",
-        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
-    // compact
-    ts.exec("createtable " + table);
-
-    // setup SlowIterator to sleep for 10 seconds
-    ts.exec("config -t " + table
-        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
-    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
-
-    // make two files
-    ts.exec("insert a1 b c v_a1");
-    ts.exec("insert a2 b c v_a2");
-    ts.exec("flush -w");
-    ts.exec("insert x1 b c v_x1");
-    ts.exec("insert x2 b c v_x2");
-    ts.exec("flush -w");
-
-    // no transactions running
-    ts.exec("fate -print", true, "0 transactions", true);
-
-    // merge two files into one
-    ts.exec("compact -t " + table);
-    Thread.sleep(1_000);
-    // start 2nd transaction
-    ts.exec("compact -t " + table);
-    Thread.sleep(3_000);
-
-    // 2 compactions should be running so parse the output to get one of the transaction ids
-    log.info("Calling fate print for table = {}", table);
-    String result = ts.exec("fate -print", true, "txid:", true);
-    String[] resultParts = result.split("txid: ");
-    String[] parts = resultParts[1].split(" ");
-    String txid = parts[0];
-    // test filters
-    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
-    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
-    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
-    ts.exec("fate -print -t NEW", true, "0 transactions", true);
-    ts.exec("fate -print 1234", true, "0 transactions", true);
-    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
-
-    ts.exec("deletetable -f " + table);
-
-    if (orgProps != null) {
-      System.setProperty("accumulo.properties", orgProps);
-    }
   }
 
   @Test

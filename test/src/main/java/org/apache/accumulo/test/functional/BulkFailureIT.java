@@ -61,6 +61,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -347,7 +348,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     scanner.fetchColumnFamily(fam);
 
     for (Entry<Key,Value> entry : scanner) {
-      files.add(new Path(entry.getKey().getColumnQualifierData().toString()));
+      files.add(StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath());
     }
 
     return files;

@@ -38,14 +38,18 @@ import com.google.common.base.Preconditions;
 class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOptions {
 
   static class InputArgs extends FSConfArgs {
-    private Path[] paths;
+    private FencedPath[] rFiles;
     private RFileSource[] sources;
 
     InputArgs(String... files) {
-      this.paths = new Path[files.length];
+      this.rFiles = new FencedPath[files.length];
       for (int i = 0; i < files.length; i++) {
-        this.paths[i] = new Path(files[i]);
+        this.rFiles[i] = new FencedPath(new Path(files[i]), new Range());
       }
+    }
+
+    InputArgs(FencedPath... files) {
+      this.rFiles = files;
     }
 
     InputArgs(RFileSource... sources) {
@@ -54,16 +58,17 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
 
     RFileSource[] getSources() throws IOException {
       if (sources == null) {
-        sources = new RFileSource[paths.length];
-        for (int i = 0; i < paths.length; i++) {
-          sources[i] = new RFileSource(getFileSystem().open(paths[i]),
-              getFileSystem().getFileStatus(paths[i]).getLen());
+        sources = new RFileSource[rFiles.length];
+        for (int i = 0; i < rFiles.length; i++) {
+          final Path path = rFiles[i].getPath();
+          sources[i] = new RFileSource(getFileSystem().open(path),
+              getFileSystem().getFileStatus(path).getLen(), rFiles[i].getFence());
         }
       } else {
         for (int i = 0; i < sources.length; i++) {
           if (!(sources[i].getInputStream() instanceof FSDataInputStream)) {
             sources[i] = new RFileSource(new FSDataInputStream(sources[i].getInputStream()),
-                sources[i].getLength());
+                sources[i].getLength(), rFiles[i].getFence());
           }
         }
       }
@@ -128,6 +133,13 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
   }
 
   @Override
+  public ScannerFSOptions from(FencedPath... files) {
+    Objects.requireNonNull(files);
+    opts.in = new InputArgs(files);
+    return this;
+  }
+
+  @Override
   public ScannerOptions withTableProperties(Iterable<Entry<String,String>> tableConfig) {
     Objects.requireNonNull(tableConfig);
     this.opts.tableConfig = new HashMap<>();
@@ -150,4 +162,5 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     this.opts.bounds = range;
     return this;
   }
+
 }

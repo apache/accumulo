@@ -347,8 +347,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (compactionJobs.isEmpty()
-        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
-            || params.getKind() == CompactionKind.CHOP)
+        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
         && params.getRunningCompactions().stream()
             .noneMatch(job -> job.getKind() == params.getKind())) {
       // These kinds of compaction require files to compact even if none of the files meet the

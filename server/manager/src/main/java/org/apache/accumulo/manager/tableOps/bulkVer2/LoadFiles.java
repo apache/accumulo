@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -49,12 +50,11 @@ import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
@@ -101,8 +101,6 @@ class LoadFiles extends ManagerRepo {
     Ample.ConditionalTabletsMutator conditionalMutator;
 
     void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
-      // ELASTICITY_TODO handle setting time... handle case where tablets are hosted and unhosted
-      Preconditions.checkArgument(!setTime);
       this.bulkDir = bulkDir;
       this.manager = manager;
       this.tid = tid;
@@ -115,9 +113,24 @@ class LoadFiles extends ManagerRepo {
       for (TabletMetadata tablet : tablets) {
         Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>();
 
+        if (setTime && tablet.getLocation() != null) {
+          throw new IllegalStateException("Setting time on hosted tablet is not implemented");
+        }
+
+        var tabletTime = TabletTime.getInstance(tablet.getTime());
+
         for (final Bulk.FileInfo fileInfo : files) {
-          filesToLoad.put(new ReferencedTabletFile(new Path(bulkDir, fileInfo.getFileName())),
-              new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()));
+
+          DataFileValue dfv;
+
+          if (setTime) {
+            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
+                tabletTime.getAndUpdateTime());
+          } else {
+            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries());
+          }
+
+          filesToLoad.put(new ReferencedTabletFile(new Path(bulkDir, fileInfo.getFileName())), dfv);
         }
 
         // remove any files that were already loaded
@@ -127,12 +140,24 @@ class LoadFiles extends ManagerRepo {
 
         if (!filesToLoad.isEmpty()) {
           // ELASTICITY_TODO lets automatically call require prev end row
-          var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-              .requireAbsentOperation().requireSame(tablet, PREV_ROW, LOADED);
+          var tabletMutator =
+              conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
+
+          if (setTime) {
+            tabletMutator.requireSame(tablet, PREV_ROW, LOADED, TIME, LOCATION);
+          } else {
+            tabletMutator.requireSame(tablet, PREV_ROW, LOADED);
+          }
 
           filesToLoad.forEach((f, v) -> {
             tabletMutator.putBulkFile(f, tid);
             tabletMutator.putFile(f, v);
+
+            if (setTime) {
+              // ELASTICITY_TODO this is not the correct thing to do when the tablet is hosted and
+              // could be harmful
+              tabletMutator.putTime(tabletTime.getMetadataTime());
+            }
           });
 
           tabletMutator.submit(tm -> false);
@@ -179,7 +204,7 @@ class LoadFiles extends ManagerRepo {
 
     Iterator<TabletMetadata> tabletIter =
         TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
-            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build().iterator();
+            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED, TIME).build().iterator();
 
     Loader loader = new Loader();
 

@@ -20,20 +20,12 @@ package org.apache.accumulo.core.rpc;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.nio.channels.ClosedByInterruptException;
-import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
@@ -49,13 +41,10 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Factory methods for creating Thrift client objects
@@ -65,8 +54,8 @@ public class ThriftUtil {
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
-  private static final TFramedTransport.Factory transportFactory =
-      new TFramedTransport.Factory(Integer.MAX_VALUE);
+  private static final AccumuloTFramedTransportFactory transportFactory =
+      new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
@@ -187,7 +176,7 @@ public class ThriftUtil {
     int maxFrameSize1 = (int) maxFrameSize;
     TTransportFactory factory = factoryCache.get(maxFrameSize1);
     if (factory == null) {
-      factory = new TFramedTransport.Factory(maxFrameSize1);
+      factory = new AccumuloTFramedTransportFactory(maxFrameSize1);
       factoryCache.put(maxFrameSize1, factory);
     }
     return factory;
@@ -222,26 +211,10 @@ public class ThriftUtil {
           transport =
               TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(), timeout);
         } else {
-          // JDK6's factory doesn't appear to pass the protocol onto the Socket properly so we have
-          // to do some magic to make sure that happens. Not an issue in JDK7
-
-          // Taken from thrift-0.9.1 to make the SSLContext
-          SSLContext sslContext = createSSLContext(sslParams);
-
-          // Create the factory from it
-          SSLSocketFactory sslSockFactory = sslContext.getSocketFactory();
-
-          // Wrap the real factory with our own that will set the protocol on the Socket before
-          // returning it
-          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory =
-              new ProtocolOverridingSSLSocketFactory(sslSockFactory,
-                  new String[] {sslParams.getClientProtocol()});
-
-          // Create the TSocket from that
-          transport =
-              createClient(wrappingSslSockFactory, address.getHost(), address.getPort(), timeout);
-          // TSSLTransportFactory leaves transports open, so no need to open here
+          transport = TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(),
+              timeout, sslParams.getTSSLTransportParameters());
         }
+        // TSSLTransportFactory leaves transports open, so no need to open here
 
         transport = ThriftUtil.transportFactory().getTransport(transport);
       } else if (saslParams != null) {
@@ -340,12 +313,12 @@ public class ThriftUtil {
         transport = ThriftUtil.transportFactory().getTransport(transport);
       }
       success = true;
+      return transport;
     } finally {
       if (!success && transport != null) {
         transport.close();
       }
     }
-    return transport;
   }
 
   /**
@@ -399,80 +372,6 @@ public class ThriftUtil {
       // IO-like Exception.
       log.warn("Failed to check (and/or perform) Kerberos client re-login", e);
       throw new UncheckedIOException(e);
-    }
-  }
-
-  /**
-   * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an
-   * SSLContextFactory object is not visible to us. Have to use SslConnectionParams instead of
-   * TSSLTransportParameters because no getters exist on TSSLTransportParameters.
-   *
-   * @param params Parameters to use to create the SSLContext
-   */
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who providing the keystore files")
-  private static SSLContext createSSLContext(SslConnectionParams params)
-      throws TTransportException {
-    try {
-      SSLContext ctx = SSLContext.getInstance(params.getClientProtocol());
-      TrustManagerFactory tmf = null;
-      KeyManagerFactory kmf = null;
-
-      if (params.isTrustStoreSet()) {
-        tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
-        try (FileInputStream fis = new FileInputStream(params.getTrustStorePath())) {
-          ts.load(fis, params.getTrustStorePass().toCharArray());
-        }
-        tmf.init(ts);
-      }
-
-      if (params.isKeyStoreSet()) {
-        kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
-        try (FileInputStream fis = new FileInputStream(params.getKeyStorePath())) {
-          ks.load(fis, params.getKeyStorePass().toCharArray());
-        }
-        kmf.init(ks, params.getKeyStorePass().toCharArray());
-      }
-
-      if (params.isKeyStoreSet() && params.isTrustStoreSet()) {
-        ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-      } else if (params.isKeyStoreSet()) {
-        ctx.init(kmf.getKeyManagers(), null, null);
-      } else {
-        ctx.init(null, tmf.getTrustManagers(), null);
-      }
-      return ctx;
-    } catch (Exception e) {
-      throw new TTransportException("Error creating the transport", e);
-    }
-  }
-
-  /**
-   * Lifted from Thrift-0.9.1 because it was private. Create an SSLSocket with the given factory,
-   * host:port, and timeout.
-   *
-   * @param factory Factory to create the socket from
-   * @param host Destination host
-   * @param port Destination port
-   * @param timeout Socket timeout
-   */
-  private static TSocket createClient(SSLSocketFactory factory, String host, int port, int timeout)
-      throws TTransportException {
-    SSLSocket socket = null;
-    try {
-      socket = (SSLSocket) factory.createSocket(host, port);
-      socket.setSoTimeout(timeout);
-      return new TSocket(socket);
-    } catch (Exception e) {
-      try {
-        if (socket != null) {
-          socket.close();
-        }
-      } catch (IOException ioe) {}
-
-      throw new TTransportException("Could not connect to " + host + " on port " + port, e);
     }
   }
 
