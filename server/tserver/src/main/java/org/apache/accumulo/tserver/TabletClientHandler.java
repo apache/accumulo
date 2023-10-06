@@ -84,6 +84,7 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -92,6 +93,8 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -1060,6 +1063,26 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   @Override
   public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
     return server.statsKeeper.getTabletStats();
+  }
+
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException, TException {
+    try {
+      checkPermission(security, context, server, credentials, null, "getActiveCompactions");
+    } catch (ThriftSecurityException e) {
+      log.error("Caller doesn't have permission to get active compactions", e);
+      throw e;
+    }
+
+    List<CompactionInfo> compactions = FileCompactor.getRunningCompactions();
+    List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
+
+    for (CompactionInfo compactionInfo : compactions) {
+      ret.add(compactionInfo.toThrift());
+    }
+
+    return ret;
   }
 
   @Override

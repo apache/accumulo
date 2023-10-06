@@ -179,6 +179,13 @@ service TabletServerClientService {
     2:string lock
   )
 
+  list<ActiveCompaction> getActiveCompactions(
+    2:client.TInfo tinfo
+    1:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+
   oneway void removeLogs(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
