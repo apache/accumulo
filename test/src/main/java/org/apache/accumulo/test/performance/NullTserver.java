@@ -66,6 +66,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -192,6 +193,11 @@ public class NullTserver {
     public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
         ByteBuffer startRow, ByteBuffer endRow) {
 
+    }
+
+    @Override
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) {
+      return new ArrayList<>();
     }
 
     @Override
