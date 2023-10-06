@@ -118,7 +118,7 @@ public class ExternalCompactionUtil {
       ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
-        queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());
+        queuesAndAddresses.putIfAbsent(queue, new ArrayList<>());
         try {
           List<String> compactors = zooReader.getChildren(compactorQueuesPath + "/" + queue);
           for (String compactor : compactors) {
@@ -218,7 +218,7 @@ public class ExternalCompactionUtil {
    * on a restart to re-populate the set of running compactions on the compactors.
    *
    * @param context server context
-   * @return map of compactor and external compaction jobs
+   * @return list of compactor and external compaction jobs
    */
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
