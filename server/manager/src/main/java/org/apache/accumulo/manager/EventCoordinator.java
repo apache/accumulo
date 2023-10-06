@@ -82,9 +82,8 @@ public class EventCoordinator {
       this.extent = null;
     }
 
-    Event(EventScope scope) {
-      Preconditions.checkArgument(scope == EventScope.ALL);
-      this.scope = scope;
+    Event() {
+      this.scope = EventScope.ALL;
       this.level = null;
       this.extent = null;
     }
@@ -111,7 +110,7 @@ public class EventCoordinator {
 
   public void event(String msg, Object... args) {
     log.info(String.format(msg, args));
-    publish(new Event(EventScope.ALL));
+    publish(new Event());
   }
 
   public void event(Ample.DataLevel level, String msg, Object... args) {

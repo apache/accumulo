@@ -43,7 +43,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -169,7 +168,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     this.store = store;
     this.dependentWatcher = dependentWatcher;
     this.walStateManager = new WalStateManager(manager.getContext());
-    this.eventHandler = new EventHandler(manager::stillManager);
+    this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
   }
 
@@ -231,13 +230,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     private final BlockingQueue<Range> rangesToProcess;
 
-    private final BooleanSupplier keepRunningSupplier;
-
     class RangeProccessor implements Runnable {
       @Override
       public void run() {
         try {
-          while (keepRunningSupplier.getAsBoolean()) {
+          while (manager.stillManager()) {
             var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
             if (range == null) {
               // check to see if still the manager
@@ -278,12 +275,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
     }
 
-    EventHandler(BooleanSupplier keepRunningSupplier) {
+    EventHandler() {
       rangesToProcess = new ArrayBlockingQueue<>(3000);
 
-      this.keepRunningSupplier = keepRunningSupplier;
-
-      Threads.createThread("TGW event range processor", new RangeProccessor()).start();
+      Threads
+          .createThread("TGW [" + store.name() + "] event range processor", new RangeProccessor())
+          .start();
     }
 
     private synchronized void setNeedsFullScan() {
