@@ -749,7 +749,7 @@ public class Manager extends AbstractServer
         final boolean overlaps = mergeInfo.overlaps(extent);
 
         if (overlaps) {
-          log.debug("mergeInfo overlaps: {} true", extent);
+          log.debug("mergeInfo overlaps: {} true {}", extent, mergeInfo.getState());
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
