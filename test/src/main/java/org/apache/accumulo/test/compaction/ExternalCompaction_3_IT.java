@@ -142,7 +142,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testCoordinatorRestartsDuringCompaction() throws Exception {
+  public void testTaskManagerRestartsDuringCompaction() throws Exception {
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -158,7 +158,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> ecids =
           waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
 
-      // Stop the Manager (Coordinator)
+      // Stop the Manager (TaskManager)
       getCluster().getClusterControl().stop(ServerType.MANAGER);
 
       // Restart the Manager while the compaction is running
@@ -172,13 +172,11 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         TExternalCompactionList running = null;
         while (running == null) {
           try {
-            Optional<HostAndPort> coordinatorHost =
-                ExternalCompactionUtil.findCompactionCoordinator(ctx);
-            if (coordinatorHost.isEmpty()) {
-              throw new TTransportException(
-                  "Unable to get CompactionCoordinator address from ZooKeeper");
+            Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+            if (taskManagerHost.isEmpty()) {
+              throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
             }
-            running = getRunningCompactions(ctx, coordinatorHost);
+            running = getRunningCompactions(ctx, taskManagerHost);
           } catch (TException t) {
             running = null;
             Thread.sleep(2000);

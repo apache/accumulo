@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -64,6 +63,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksCompleted;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -227,12 +232,11 @@ public class ExternalCompactionTestUtils {
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP8 + "'}]");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
-    cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
-    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
-    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
+    cfg.setProperty(Property.TASK_MANAGER_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
+    cfg.setProperty(Property.TASK_MANAGER_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
+    cfg.setProperty(Property.TASK_RUNNER_PORTSEARCH, "true");
+    cfg.setProperty(Property.TASK_RUNNER_MIN_JOB_WAIT_TIME, "100ms");
+    cfg.setProperty(Property.TASK_RUNNER_MAX_JOB_WAIT_TIME, "1s");
     cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
@@ -241,26 +245,28 @@ public class ExternalCompactionTestUtils {
   }
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws TException {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+      Optional<HostAndPort> taskManagerHost) throws TException {
+    TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
+        taskManagerHost.orElseThrow(), context);
     try {
-      TExternalCompactionList running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return running;
+      Task task = client.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      final CompactionTasksRunning list =
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
+      return list.getRunning();
     } finally {
       ThriftUtil.returnClient(client, context);
     }
   }
 
   private static TExternalCompactionList getCompletedCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws Exception {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+      Optional<HostAndPort> taskManagerHost) throws Exception {
+    TaskManager.Client client = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER,
+        taskManagerHost.orElseThrow(), context);
     try {
-      TExternalCompactionList completed =
-          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return completed;
+      Task task = client.getCompletedTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      final CompactionTasksCompleted list =
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_COMPLETED);
+      return list.getCompleted();
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -314,13 +320,13 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+    if (taskManagerHost.isEmpty()) {
+      throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
     while (matches == 0) {
       TExternalCompactionList running =
-          ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+          ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
       if (running.getCompactions() != null) {
         for (ExternalCompactionId ecid : ecids) {
           TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
@@ -339,24 +345,24 @@ public class ExternalCompactionTestUtils {
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
       TCompactionState expectedState) throws Exception {
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+    if (taskManagerHost.isEmpty()) {
+      throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
 
     // The running compaction should be removed
     TExternalCompactionList running =
-        ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+        ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
     while (running.getCompactions() != null && running.getCompactions().keySet().stream()
         .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
-      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
+      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, taskManagerHost);
     }
     // The compaction should be in the completed list with the expected state
     TExternalCompactionList completed =
-        ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
+        ExternalCompactionTestUtils.getCompletedCompactions(ctx, taskManagerHost);
     while (completed.getCompactions() == null) {
       UtilWaitThread.sleep(50);
-      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
+      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, taskManagerHost);
     }
     for (ExternalCompactionId e : ecids) {
       TExternalCompaction tec = completed.getCompactions().get(e.canonical());

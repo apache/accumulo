@@ -115,13 +115,13 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
+import org.apache.accumulo.manager.tasks.TaskManager;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
@@ -350,7 +350,7 @@ public class Manager extends AbstractServer
 
   private FateServiceHandler fateServiceHandler;
   private ManagerClientServiceHandler managerClientHandler;
-  private CompactionCoordinator compactionCoordinator;
+  private TaskManager taskManager;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1171,16 +1171,15 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator =
-        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues);
+    taskManager = new TaskManager(context, tserverSet, security, compactionJobQueues);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, taskManager,
+        haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1238,10 +1237,9 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
     }
 
-    // Don't call run on the CompactionCoordinator until we have tservers.
-    Thread compactionCoordinatorThread =
-        Threads.createThread("CompactionCoordinator Thread", compactionCoordinator);
-    compactionCoordinatorThread.start();
+    // Don't call run on the TaskManager until we have tservers.
+    Thread taskManagerThread = Threads.createThread("TaskManager Thread", taskManager);
+    taskManagerThread.start();
 
     ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
 
@@ -1355,8 +1353,8 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE}) {
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.FATE,
+        ThriftService.TASK_MANAGER}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
@@ -1392,11 +1390,11 @@ public class Manager extends AbstractServer
 
     tableInformationStatusPool.shutdownNow();
 
-    compactionCoordinator.shutdown();
+    taskManager.shutdown();
     try {
-      compactionCoordinatorThread.join();
+      taskManagerThread.join();
     } catch (InterruptedException e) {
-      log.error("Exception compaction coordinator thread", e);
+      log.error("Exception TaskManager thread", e);
     }
 
     // Signal that we want it to stop, and wait for it to do so.
@@ -1619,7 +1617,7 @@ public class Manager extends AbstractServer
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
 
-    compactionCoordinator.updateTServerSet(current, deleted, added);
+    taskManager.updateTServerSet(current, deleted, added);
 
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {

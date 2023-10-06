@@ -85,6 +85,10 @@ struct ActiveCompaction {
   12:i64 timesPaused
 }
 
+struct ActiveCompactionList {
+  1:list<ActiveCompaction> compactions
+}
+
 struct TIteratorSetting {
   1:i32 priority
   2:string name

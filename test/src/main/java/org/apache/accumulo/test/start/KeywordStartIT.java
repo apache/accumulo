@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
@@ -67,6 +66,7 @@ import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.tasks.TaskRunnerExecutable;
 import org.apache.accumulo.tserver.ScanServerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
@@ -128,7 +128,7 @@ public class KeywordStartIT {
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
-    expectSet.put("compactor", CompactorExecutable.class);
+    expectSet.put("compactor", TaskRunnerExecutable.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("dump-zoo", DumpZookeeper.class);

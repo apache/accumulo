@@ -19,8 +19,6 @@
 package org.apache.accumulo.server.rpc;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -29,6 +27,8 @@ import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
+import org.apache.accumulo.core.tasks.thrift.TaskRunner;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -66,12 +66,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static final ThriftProcessorTypes<ClientService.Client> CLIENT =
       new ThriftProcessorTypes<>(ThriftClientTypes.CLIENT);
 
-  private static final ThriftProcessorTypes<CompactorService.Client> COMPACTOR =
-      new ThriftProcessorTypes<>(ThriftClientTypes.COMPACTOR);
-
-  private static final ThriftProcessorTypes<CompactionCoordinatorService.Client> COORDINATOR =
-      new ThriftProcessorTypes<>(ThriftClientTypes.COORDINATOR);
-
   private static final ThriftProcessorTypes<FateService.Client> FATE =
       new ThriftProcessorTypes<>(ThriftClientTypes.FATE);
 
@@ -95,11 +89,17 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static final ThriftProcessorTypes<TabletManagementClientService.Client> TABLET_MGMT =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_MGMT);
 
-  public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
+  public static final ThriftProcessorTypes<TaskRunner.Client> TASK_RUNNER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TASK_RUNNER);
+
+  public static final ThriftProcessorTypes<TaskManager.Client> TASK_MANAGER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TASK_MANAGER);
+
+  public static TMultiplexedProcessor getCompactorTProcessor(TaskRunner.Iface serviceHandler,
       ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(COMPACTOR.getServiceName(), COMPACTOR.getTProcessor(
-        CompactorService.Processor.class, CompactorService.Iface.class, serviceHandler, context));
+    muxProcessor.registerProcessor(TASK_RUNNER.getServiceName(), TASK_RUNNER.getTProcessor(
+        TaskRunner.Processor.class, TaskRunner.Iface.class, serviceHandler, context));
     return muxProcessor;
   }
 
@@ -112,14 +112,13 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   }
 
   public static TMultiplexedProcessor getManagerTProcessor(FateService.Iface fateServiceHandler,
-      CompactionCoordinatorService.Iface coordinatorServiceHandler,
-      ManagerClientService.Iface managerServiceHandler, ServerContext context) {
+      TaskManager.Iface taskMgrServiceHandler, ManagerClientService.Iface managerServiceHandler,
+      ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(FATE.getServiceName(), FATE.getTProcessor(
         FateService.Processor.class, FateService.Iface.class, fateServiceHandler, context));
-    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
-        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
-            CompactionCoordinatorService.Iface.class, coordinatorServiceHandler, context));
+    muxProcessor.registerProcessor(TASK_MANAGER.getServiceName(), TASK_MANAGER.getTProcessor(
+        TaskManager.Processor.class, TaskManager.Iface.class, taskMgrServiceHandler, context));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));

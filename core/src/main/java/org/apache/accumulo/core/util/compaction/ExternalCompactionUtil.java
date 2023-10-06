@@ -32,7 +32,6 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -41,7 +40,14 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompactionList;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.ActiveCompactionTasks;
+import org.apache.accumulo.core.tasks.compaction.CompactionTask;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskRunner;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
@@ -96,15 +102,15 @@ public class ExternalCompactionUtil {
 
   /**
    *
-   * @return Optional HostAndPort of Coordinator node if found
+   * @return Optional HostAndPort of TaskManager node if found
    */
-  public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
+  public static Optional<HostAndPort> findTaskManager(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
       return ServiceLock.getLockData(zk, ServiceLock.path(lockPath))
-          .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
+          .map(sld -> sld.getAddress(ThriftService.TASK_MANAGER));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -156,10 +162,14 @@ public class ExternalCompactionUtil {
    */
   public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
       ClientContext context) throws ThriftSecurityException {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactor, context);
-      return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactor, context);
+      Task task = client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      final ActiveCompactionTasks list =
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK_LIST);
+      final ActiveCompactionList acl = list.getActiveCompactions();
+      return acl.getCompactions();
     } catch (ThriftSecurityException e) {
       throw e;
     } catch (TException e) {
@@ -180,11 +190,13 @@ public class ExternalCompactionUtil {
   public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
       ClientContext context) {
 
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      TExternalCompactionJob job =
-          client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      Task task = client.getRunningTask(TraceUtil.traceInfo(), context.rpcCreds());
+      final CompactionTask compactionTask =
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASK);
+      TExternalCompactionJob job = compactionTask.getCompactionJob();
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
         return job;
@@ -199,10 +211,10 @@ public class ExternalCompactionUtil {
 
   private static ExternalCompactionId getRunningCompactionId(HostAndPort compactorAddr,
       ClientContext context) {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      String secid = client.getRunningTaskId(TraceUtil.traceInfo(), context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);
       }
@@ -216,8 +228,8 @@ public class ExternalCompactionUtil {
 
   /**
    * This method returns information from the Compactor about the job that is currently running. The
-   * RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
-   * on a restart to re-populate the set of running compactions on the compactors.
+   * RunningCompactions are not fully populated. This method is used from the TaskManager on a
+   * restart to re-populate the set of running compactions on the compactors.
    *
    * @param context server context
    * @return map of compactor and external compaction jobs
@@ -301,10 +313,10 @@ public class ExternalCompactionUtil {
 
   public static void cancelCompaction(ClientContext context, HostAndPort compactorAddr,
       String ecid) {
-    CompactorService.Client client = null;
+    TaskRunner.Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      client = ThriftUtil.getClient(ThriftClientTypes.TASK_RUNNER, compactorAddr, context);
+      client.cancelTask(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
     } catch (TException e) {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
     } finally {

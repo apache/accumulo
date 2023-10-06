@@ -164,7 +164,7 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
+      mergeProp(Property.TASK_RUNNER_PORTSEARCH.getKey(), "true");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.compaction;
 
+//ELASTICITY_TODO: Rename this to TaskManagerTest, put in
+// org.apache.accumulo.manager.tasks package
 public class CompactionCoordinatorTest {
   // ELASTICITY_TODO this test was no longer compiling with all the changes to
   // CompactionCoordinator. Its contents were deleted to get things compiling, however need to go

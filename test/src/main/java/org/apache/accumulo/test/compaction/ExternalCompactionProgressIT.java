@@ -58,7 +58,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Tests that external compactions report progress from start to finish. To prevent flaky test
  * failures, we only measure progress in quarter segments: STARTED, QUARTER, HALF, THREE_QUARTERS.
- * We can detect if the compaction finished without errors but the coordinator will never report
+ * We can detect if the compaction finished without errors but the TaskManager will never report
  * 100% progress since it will remove the ECID upon completion. The {@link SlowIterator} is used to
  * control the length of time it takes to complete the compaction.
  */
@@ -132,12 +132,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   private void checkRunning() throws TException {
 
     ServerContext ctx = getCluster().getServerContext();
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    Optional<HostAndPort> taskManagerHost = ExternalCompactionUtil.findTaskManager(ctx);
+    if (taskManagerHost.isEmpty()) {
+      throw new TTransportException("Unable to get TaskManager address from ZooKeeper");
     }
 
-    var ecList = getRunningCompactions(ctx, coordinatorHost);
+    var ecList = getRunningCompactions(ctx, taskManagerHost);
     var ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {

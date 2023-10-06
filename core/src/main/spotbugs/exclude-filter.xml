@@ -37,6 +37,7 @@
       <Package name="org.apache.accumulo.core.tabletingest.thrift" />
       <Package name="org.apache.accumulo.core.tabletscan.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
+      <Package name="org.apache.accumulo.core.tasks.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
     </Or>
   </Match>

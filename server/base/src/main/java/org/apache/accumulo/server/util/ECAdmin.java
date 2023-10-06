@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -26,6 +25,11 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.tasks.TaskMessage;
+import org.apache.accumulo.core.tasks.TaskMessageType;
+import org.apache.accumulo.core.tasks.compaction.CompactionTasksRunning;
+import org.apache.accumulo.core.tasks.thrift.Task;
+import org.apache.accumulo.core.tasks.thrift.TaskManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
@@ -131,16 +135,16 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void cancelCompaction(ServerContext context, String ecid) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    TaskManager.Client taskManagerClient = null;
     ecid = ExternalCompactionId.from(ecid).canonical();
     try {
-      coordinatorClient = getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
-      System.out.println("Cancel sent to coordinator for " + ecid);
+      taskManagerClient = getTaskManagerClient(context);
+      taskManagerClient.cancelTask(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      System.out.println("Cancel sent to TaskManager for " + ecid);
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
+      ThriftUtil.returnClient(taskManagerClient, context);
     }
   }
 
@@ -154,11 +158,14 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void runningCompactions(ServerContext context, boolean details) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    TaskManager.Client taskManagerClient = null;
     TExternalCompactionList running;
     try {
-      coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      taskManagerClient = getTaskManagerClient(context);
+      Task task = taskManagerClient.getRunningTasks(TraceUtil.traceInfo(), context.rpcCreds());
+      final CompactionTasksRunning list =
+          TaskMessage.fromThiftTask(task, TaskMessageType.COMPACTION_TASKS_RUNNING);
+      running = list.getRunning();
       if (running == null) {
         System.out.println("No running compactions found.");
         return;
@@ -191,23 +198,23 @@ public class ECAdmin implements KeywordExecutable {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
+      ThriftUtil.returnClient(taskManagerClient, context);
     }
   }
 
-  private CompactionCoordinatorService.Client getCoordinatorClient(ServerContext context) {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
+  private TaskManager.Client getTaskManagerClient(ServerContext context) {
+    var taskManagerHost = ExternalCompactionUtil.findTaskManager(context);
+    if (taskManagerHost.isEmpty()) {
+      throw new IllegalStateException("Unable to find TaskManager. Check that it is running.");
     }
-    HostAndPort address = coordinatorHost.orElseThrow();
-    CompactionCoordinatorService.Client coordinatorClient;
+    HostAndPort address = taskManagerHost.orElseThrow();
+    TaskManager.Client taskManagerClient;
     try {
-      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
+      taskManagerClient = ThriftUtil.getClient(ThriftClientTypes.TASK_MANAGER, address, context);
     } catch (Exception e) {
-      throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
+      throw new IllegalStateException("Unable to get TaskManager at " + address, e);
     }
-    System.out.println("Connected to coordinator at " + address);
-    return coordinatorClient;
+    System.out.println("Connected to TaskManager at " + address);
+    return taskManagerClient;
   }
 }

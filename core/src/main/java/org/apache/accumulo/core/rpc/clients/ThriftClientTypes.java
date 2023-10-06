@@ -34,12 +34,6 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ClientServiceThriftClient CLIENT = new ClientServiceThriftClient("client");
 
-  public static final CompactorServiceThriftClient COMPACTOR =
-      new CompactorServiceThriftClient("compactor");
-
-  public static final CompactionCoordinatorServiceThriftClient COORDINATOR =
-      new CompactionCoordinatorServiceThriftClient("coordinator");
-
   public static final FateThriftClient FATE = new FateThriftClient("fate");
 
   public static final GCMonitorServiceThriftClient GC = new GCMonitorServiceThriftClient("gc");
@@ -57,6 +51,12 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
       new TabletManagementClientServiceThriftClient("tablet");
+
+  public static final TaskRunnerThriftClient TASK_RUNNER =
+      new TaskRunnerThriftClient("task_runner");
+
+  public static final TaskManagerThriftClient TASK_MANAGER =
+      new TaskManagerThriftClient("task_mgr");
 
   /**
    * execute method with supplied client returning object of type R

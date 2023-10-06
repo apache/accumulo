@@ -228,7 +228,7 @@ function start_all() {
     echo "Starting compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
     for compactor in ${!Q}; do
-      start_service "$compactor" compactor "-o" "compactor.group=$group"
+      start_service "$compactor" compactor "-o" "compactor.group=$group" "-o" "task.runner.worker.type=COMPACTION"
     done
   done
 
@@ -295,7 +295,7 @@ function start_here() {
       Q="COMPACTOR_HOSTS_${group}"
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
-          start_service "$compactor" compactor "-o" "compactor.group=$group"
+          start_service "$compactor" compactor "-o" "compactor.group=$group" "-o" "task.runner.worker.type=COMPACTION"
         fi
       done
     done
@@ -522,6 +522,16 @@ gc:
   - localhost
 
 tserver:
+  default:
+    - localhost
+
+# ELASTICITY_TODO: Add these new TaskRunner types to MAC, ClusterConfigParser, etc.
+log_sorters:
+  default:
+    - localhost
+
+# ELASTICITY_TODO: Add these new TaskRunner types to MAC, ClusterConfigParser, etc.
+split_calculators:
   default:
     - localhost
 

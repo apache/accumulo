@@ -115,9 +115,9 @@ public class ServiceLockDataTest {
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
         ss.getAddress(ThriftService.TABLET_SCAN));
     assertEquals("ns1", ss.getGroup(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddressString(ThriftService.COMPACTOR));
-    assertNull(ss.getAddress(ThriftService.COMPACTOR));
-    assertNull(ss.getGroup(ThriftService.COMPACTOR));
+    assertNull(ss.getAddressString(ThriftService.TASK_RUNNER));
+    assertNull(ss.getAddress(ThriftService.TASK_RUNNER));
+    assertNull(ss.getGroup(ThriftService.TASK_RUNNER));
   }
 
   @Test

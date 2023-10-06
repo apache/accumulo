@@ -85,11 +85,11 @@
     <module>iterator-test-harness</module>
     <module>minicluster</module>
     <module>server/base</module>
-    <module>server/compactor</module>
     <module>server/gc</module>
     <module>server/manager</module>
     <module>server/monitor</module>
     <module>server/native</module>
+    <module>server/task-runner</module>
     <module>server/tserver</module>
     <module>shell</module>
     <module>start</module>
@@ -330,11 +330,6 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-compactor</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -387,6 +382,11 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-task-runner</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -167,8 +167,8 @@ public class CompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
-    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
-    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
+    cfg.setProperty(Property.TASK_RUNNER_MIN_JOB_WAIT_TIME, "100ms");
+    cfg.setProperty(Property.TASK_RUNNER_MAX_JOB_WAIT_TIME, "1s");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
