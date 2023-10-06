@@ -77,7 +77,7 @@ public enum Property {
       "1.6.0"),
   RPC_SSL_CIPHER_SUITES("rpc.ssl.cipher.suites", "", PropertyType.STRING,
       "Comma separated list of cipher suites that can be used by accepted connections", "1.6.1"),
-  RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.2,TLSv1.3",
+  RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.3",
       PropertyType.STRING,
       "Comma separated list of protocols that can be used to accept connections", "1.6.2"),
   RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1.3", PropertyType.STRING,
@@ -798,7 +798,7 @@ public enum Property {
       "A comma-separated list of disallowed SSL Ciphers, see"
           + " monitor.ssl.include.ciphers to allow ciphers",
       "1.6.1"),
-  MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.2,TLSv1.3",
+  MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.3",
       PropertyType.STRING, "A comma-separate list of allowed SSL protocols", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Monitor ZooKeeper lock", "1.5.1"),
