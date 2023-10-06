@@ -55,6 +55,7 @@ import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -132,7 +133,7 @@ public class SampleIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
-      client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+      createTable(client, tableName, new NewTableConfiguration().enableSampling(SC1));
 
       BatchWriter bw = client.createBatchWriter(tableName);
 
@@ -193,7 +194,7 @@ public class SampleIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
-      client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+      createTable(client, tableName, new NewTableConfiguration().enableSampling(SC1));
 
       BatchWriter bw = client.createBatchWriter(tableName);
 
@@ -378,7 +379,7 @@ public class SampleIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
-      client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+      createTable(client, tableName, new NewTableConfiguration().enableSampling(SC1));
 
       TreeMap<Key,Value> expected = new TreeMap<>();
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
@@ -502,7 +503,7 @@ public class SampleIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
-      client.tableOperations().create(tableName);
+      createTable(client, tableName, new NewTableConfiguration());
 
       TreeMap<Key,Value> expected = new TreeMap<>();
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
@@ -532,7 +533,6 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // configure sampling, however there exist an rfile w/o sample data... so should still see
         // sample not present exception
-
         updateSamplingConfig(client, tableName, SC1);
 
         // create clone with new config
@@ -624,5 +624,17 @@ public class SampleIT extends AccumuloClusterHarness {
     }
 
     return ranges;
+  }
+
+  // Create a table and disable compactions. This is important to prevent intermittent
+  // failures when testing if sampling is configured or not. Some of the tests first
+  // assert sampling is not available, then configures sampling and tests it still isn't
+  // available before triggering a compaction to confirm it is now available. Intermittent
+  // GCs can make these tests non-deterministic when there are a lot of files created
+  // during the fencing tests.
+  private void createTable(AccumuloClient client, String tableName, NewTableConfiguration ntc)
+      throws Exception {
+    ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "9999"));
+    client.tableOperations().create(tableName, ntc);
   }
 }
