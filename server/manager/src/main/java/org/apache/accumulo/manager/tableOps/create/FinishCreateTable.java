@@ -62,7 +62,8 @@ class FinishCreateTable extends ManagerRepo {
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
     Utils.unreserveTable(env, tableInfo.getTableId(), tid, true);
 
-    env.getEventCoordinator().event("Created table %s ", tableInfo.getTableName());
+    env.getEventCoordinator().event(tableInfo.getTableId(), "Created table %s ",
+        tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
       cleanupSplitFiles(env);

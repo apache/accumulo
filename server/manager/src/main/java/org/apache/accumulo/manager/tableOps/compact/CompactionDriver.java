@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -146,6 +147,9 @@ class CompactionDriver extends ManagerRepo {
 
       int selected = 0;
 
+      KeyExtent minSelected = null;
+      KeyExtent maxSelected = null;
+
       CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), tid);
 
       for (TabletMetadata tablet : tablets) {
@@ -211,6 +215,14 @@ class CompactionDriver extends ManagerRepo {
                 && tabletMetadata.getSelectedFiles().getMetadataValue()
                     .equals(selectedFiles.getMetadataValue()));
 
+            if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
+              minSelected = tablet.getExtent();
+            }
+
+            if (maxSelected == null || tablet.getExtent().compareTo(maxSelected) > 0) {
+              maxSelected = tablet.getExtent();
+            }
+
             selected++;
           }
 
@@ -239,10 +251,9 @@ class CompactionDriver extends ManagerRepo {
               result.getExtent()));
 
       if (selected > 0) {
-        // selected files for some tablets, send a notification to get the tablet group watcher to
-        // scan for tablets to compact
-        manager.getEventCoordinator().event("%s selected files for compaction for %d tablets",
-            FateTxId.formatTid(tid), selected);
+        manager.getEventCoordinator().event(
+            new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
+            "%s selected files for compaction for %d tablets", FateTxId.formatTid(tid), selected);
       }
 
       return total - complete;

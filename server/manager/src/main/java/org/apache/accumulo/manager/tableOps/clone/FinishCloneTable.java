@@ -62,8 +62,8 @@ class FinishCloneTable extends ManagerRepo {
     Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
 
-    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName,
-        cloneInfo.srcTableId);
+    environment.getEventCoordinator().event(cloneInfo.tableId, "Cloned table %s from %s",
+        cloneInfo.tableName, cloneInfo.srcTableId);
 
     LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId
         + " " + cloneInfo.tableId + " " + cloneInfo.tableName);

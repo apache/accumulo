@@ -543,7 +543,8 @@ public class Manager extends AbstractServer
       }
       mergeLock.notifyAll();
     }
-    nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
+    nextEvent.event(info.getExtent().tableId(), "Merge state of %s set to %s", info.getExtent(),
+        state);
   }
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
@@ -552,7 +553,7 @@ public class Manager extends AbstractServer
       getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
-    nextEvent.event("Merge state of %s cleared", tableId);
+    nextEvent.event(tableId, "Merge state of %s cleared", tableId);
   }
 
   void setManagerGoalState(ManagerGoalState state) {
@@ -614,7 +615,7 @@ public class Manager extends AbstractServer
       return txids;
     });
 
-    nextEvent.event("Unassignment requested %s", tablet);
+    nextEvent.event(tablet, "Unassignment requested %s", tablet);
   }
 
   public void cancelUnassignmentRequest(KeyExtent tablet, long fateTxid) {
@@ -627,7 +628,7 @@ public class Manager extends AbstractServer
       return v;
     });
 
-    nextEvent.event("Unassignment request canceled %s", tablet);
+    nextEvent.event(tablet, "Unassignment request canceled %s", tablet);
   }
 
   public boolean isUnassignmentRequested(KeyExtent extent) {
@@ -856,7 +857,7 @@ public class Manager extends AbstractServer
 
     @Override
     public void run() {
-      EventCoordinator.Listener eventListener = nextEvent.getListener();
+      EventCoordinator.Tracker eventTracker = nextEvent.getTracker();
       while (stillManager()) {
         long wait = DEFAULT_WAIT_FOR_WATCHER;
         try {
@@ -935,7 +936,7 @@ public class Manager extends AbstractServer
         Span span = TraceUtil.startSpan(this.getClass(), "run::updateStatus");
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
-          eventListener.waitForEvents(wait);
+          eventTracker.waitForEvents(wait);
         } catch (Exception t) {
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
@@ -1172,7 +1173,7 @@ public class Manager extends AbstractServer
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
     compactionCoordinator =
-        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues);
+        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues, nextEvent);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -1697,7 +1698,7 @@ public class Manager extends AbstractServer
 
   @Override
   public void stateChanged(TableId tableId, TableState state) {
-    nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+    nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
     if (state == TableState.OFFLINE) {
       clearMigrations(tableId);
     }

@@ -275,7 +275,7 @@ public class TabletManagementIterator extends SkippingIterator {
     final long sumOfFileSizes =
         tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
     final boolean shouldSplit = sumOfFileSizes > splitThreshold;
-    LOG.debug("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
+    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
         splitThreshold, shouldSplit);
     return shouldSplit;
   }
@@ -292,8 +292,8 @@ public class TabletManagementIterator extends SkippingIterator {
         onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
 
     TabletState state = TabletState.compute(tm, current, balancer, tserverResourceGroups);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
           tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
           tm.getHostingRequested());
     }
@@ -402,7 +402,6 @@ public class TabletManagementIterator extends SkippingIterator {
     balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
         TabletBalancer.class, new SimpleLoadBalancer());
     balancer.init(benv);
-    LOG.debug("Balancer is set to {}", balancer.getClass().getSimpleName());
   }
 
   @Override

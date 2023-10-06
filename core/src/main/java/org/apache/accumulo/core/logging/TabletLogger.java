@@ -93,7 +93,8 @@ public class TabletLogger {
   }
 
   public static void split(KeyExtent parent, SortedSet<Text> splits) {
-    locLog.debug("Split {} into {}", parent, splits);
+    locLog.debug("Split {} into {} tablets", parent, splits.size() + 1);
+    locLog.trace("Split {} into {}", parent, splits);
   }
 
   /**
