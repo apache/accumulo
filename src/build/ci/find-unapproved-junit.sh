@@ -23,8 +23,6 @@
 # APIs to new jupiter tests.
 NUM_EXPECTED=0
 ALLOWED=(
-  server/compaction-coordinator/src/test/java/org/apache/accumulo/coordinator/CompactionCoordinatorTest.java
-  server/compactor/src/test/java/org/apache/accumulo/compactor/CompactorTest.java
 )
 
 ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')
@@ -38,8 +36,10 @@ function findalljunitproblems() {
   fi
   # find any new classes using something other than the jupiter API, except those allowed
   grep "$opts" --include='*.java' 'org[.]junit[.](?!jupiter)' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
-  # find any uses of the jupiter API in the allowed vintage classes
-  grep "$opts" 'org[.]junit[.]jupiter' "${ALLOWED[@]}"
+  if ((${#ALLOWED[@]} != 0)); then
+    # find any uses of the jupiter API in the allowed vintage classes
+    grep "$opts" 'org[.]junit[.]jupiter' "${ALLOWED[@]}"
+  fi
 }
 
 function comparecounts() {
