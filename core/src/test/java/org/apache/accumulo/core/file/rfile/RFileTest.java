@@ -215,7 +215,7 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertNull(trf.reader.getLastKey());
+    assertNull(trf.reader.getLastRow());
 
     trf.closeReader();
   }
@@ -252,7 +252,7 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Text("r1"), trf.reader.getLastRow());
 
     trf.closeReader();
   }
@@ -388,7 +388,7 @@ public class RFileTest extends AbstractRFileTest {
       }
     }
 
-    assertEquals(expectedKeys.get(expectedKeys.size() - 1), trf.reader.getLastKey());
+    assertEquals(expectedKeys.get(expectedKeys.size() - 1).getRow(), trf.reader.getLastRow());
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
@@ -464,7 +464,7 @@ public class RFileTest extends AbstractRFileTest {
     assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
     assertEquals(newValue("foo1"), trf.iter.getTopValue());
 
-    assertEquals(newKey("r1", "cf1", "cq4", "L1", 56), trf.reader.getLastKey());
+    assertEquals(new Text("r1"), trf.reader.getLastRow());
 
     trf.closeReader();
   }
@@ -497,7 +497,7 @@ public class RFileTest extends AbstractRFileTest {
       assertFalse(trf.iter.hasTop());
     }
 
-    assertEquals(newKey(formatString("r_", 499), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Text(formatString("r_", 499)), trf.reader.getLastRow());
 
     trf.closeReader();
   }
@@ -563,7 +563,7 @@ public class RFileTest extends AbstractRFileTest {
         newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(newKey(formatString("r_", 49), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Text(formatString("r_", 49)), trf.reader.getLastRow());
 
     trf.reader.close();
   }
@@ -2181,7 +2181,7 @@ public class RFileTest extends AbstractRFileTest {
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertNotNull(testRfile.reader.getLastKey());
+    assertNotNull(testRfile.reader.getLastRow());
 
     testRfile.closeReader();
 

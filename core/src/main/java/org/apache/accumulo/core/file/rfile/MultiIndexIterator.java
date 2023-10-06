@@ -37,6 +37,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.HeapIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.hadoop.io.Text;
 
 class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
 
@@ -80,12 +81,12 @@ class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
   }
 
   @Override
-  public Key getFirstKey() throws IOException {
+  public Text getFirstRow() throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Key getLastKey() throws IOException {
+  public Text getLastRow() throws IOException {
     throw new UnsupportedOperationException();
   }
 

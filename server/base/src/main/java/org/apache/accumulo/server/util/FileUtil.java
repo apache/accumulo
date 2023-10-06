@@ -54,27 +54,26 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileUtil {
 
   public static class FileInfo {
-    Key firstKey = new Key();
-    Key lastKey = new Key();
+    final Text firstRow;
+    final Text lastRow;
 
-    public FileInfo(Key firstKey, Key lastKey) {
-      this.firstKey = firstKey;
-      this.lastKey = lastKey;
+    public FileInfo(Text firstRow, Text lastRow) {
+      this.firstRow = firstRow;
+      this.lastRow = lastRow;
     }
 
     public Text getFirstRow() {
-      return firstKey.getRow();
+      return firstRow;
     }
 
     public Text getLastRow() {
-      return lastKey.getRow();
+      return lastRow;
     }
   }
 
@@ -500,9 +499,9 @@ public class FileUtil {
             .forFile(dataFile, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
-        Key firstKey = reader.getFirstKey();
-        if (firstKey != null) {
-          dataFilesInfo.put(dataFile, new FileInfo(firstKey, reader.getLastKey()));
+        Text firstRow = reader.getFirstRow();
+        if (firstRow != null) {
+          dataFilesInfo.put(dataFile, new FileInfo(firstRow, reader.getLastRow()));
         }
 
       } catch (IOException ioe) {
@@ -527,10 +526,10 @@ public class FileUtil {
     return dataFilesInfo;
   }
 
-  public static <T extends TabletFile> WritableComparable<Key> findLastKey(ServerContext context,
+  public static <T extends TabletFile> Text findLastRow(ServerContext context,
       TableConfiguration tableConf, Collection<T> dataFiles) throws IOException {
 
-    Key lastKey = null;
+    Text lastRow = null;
 
     for (T file : dataFiles) {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
@@ -544,10 +543,10 @@ public class FileUtil {
           continue;
         }
 
-        Key key = reader.getLastKey();
+        Text row = reader.getLastRow();
 
-        if (lastKey == null || key.compareTo(lastKey) > 0) {
-          lastKey = key;
+        if (lastRow == null || row.compareTo(lastRow) > 0) {
+          lastRow = row;
         }
       } finally {
         try {
@@ -560,7 +559,7 @@ public class FileUtil {
       }
     }
 
-    return lastKey;
+    return lastRow;
 
   }
 

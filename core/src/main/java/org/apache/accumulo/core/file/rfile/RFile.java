@@ -79,6 +79,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1106,16 +1107,16 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() {
-      return firstKey;
+    public Text getFirstRow() {
+      return firstKey != null ? firstKey.getRow() : null;
     }
 
     @Override
-    public Key getLastKey() {
+    public Text getLastRow() {
       if (index.size() == 0) {
         return null;
       }
-      return index.getLastKey();
+      return index.getLastKey().getRow();
     }
 
     @Override
@@ -1340,47 +1341,47 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
+    public Text getFirstRow() throws IOException {
       if (currentReaders.length == 0) {
         return null;
       }
 
-      Key minKey = null;
+      Text minRow = null;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (minKey == null) {
-          minKey = currentReader.getFirstKey();
+        if (minRow == null) {
+          minRow = currentReader.getFirstRow();
         } else {
-          Key firstKey = currentReader.getFirstKey();
-          if (firstKey != null && firstKey.compareTo(minKey) < 0) {
-            minKey = firstKey;
+          Text firstRow = currentReader.getFirstRow();
+          if (firstRow != null && firstRow.compareTo(minRow) < 0) {
+            minRow = firstRow;
           }
         }
       }
 
-      return minKey;
+      return minRow;
     }
 
     @Override
-    public Key getLastKey() throws IOException {
+    public Text getLastRow() throws IOException {
       if (currentReaders.length == 0) {
         return null;
       }
 
-      Key maxKey = null;
+      Text maxRow = null;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (maxKey == null) {
-          maxKey = currentReader.getLastKey();
+        if (maxRow == null) {
+          maxRow = currentReader.getLastRow();
         } else {
-          Key lastKey = currentReader.getLastKey();
-          if (lastKey != null && lastKey.compareTo(maxKey) > 0) {
-            maxKey = lastKey;
+          Text lastRow = currentReader.getLastRow();
+          if (lastRow != null && lastRow.compareTo(maxRow) > 0) {
+            maxRow = lastRow;
           }
         }
       }
 
-      return maxKey;
+      return maxRow;
     }
 
     @Override
@@ -1617,20 +1618,20 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
-      var rfk = reader.getFirstKey();
-      if (fence.beforeStartKey(rfk)) {
-        return fencedStartKey;
+    public Text getFirstRow() throws IOException {
+      var rfk = reader.getFirstRow();
+      if (fence.beforeStartRow(rfk)) {
+        return fencedStartKey.getRow();
       } else {
         return rfk;
       }
     }
 
     @Override
-    public Key getLastKey() throws IOException {
-      var rlk = reader.getLastKey();
-      if (fence.afterEndKey(rlk)) {
-        return fencedEndKey.get();
+    public Text getLastRow() throws IOException {
+      var rlk = reader.getLastRow();
+      if (fence.afterEndRow(rlk)) {
+        return fencedEndKey.get().getRow();
       } else {
         return rlk;
       }
