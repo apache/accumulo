@@ -323,12 +323,6 @@
         <version>1.2</version>
       </dependency>
       <dependency>
-        <!-- legacy junit version specified here for dependency convergence -->
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-compaction-coordinator</artifactId>
         <version>${project.version}</version>
@@ -931,8 +925,6 @@
                 <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-core:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
-                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <undeclared>junit:junit:jar:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -1064,24 +1056,12 @@
                   <property name="message" value="Use commons-math3 (org.apache.commons.math3.*)" />
                 </module>
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="junit[.]framework[.]TestCase" />
-                  <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
-                </module>
-                <module name="RegexpSinglelineJava">
                   <property name="format" value="import org[.]apache[.]accumulo[.]core[.]util[.]LazySingletons;" />
                   <property name="message" value="Use static imports for LazySingletons for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="import org[.]junit[.]Assert;" />
-                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
-                </module>
-                <module name="RegexpSinglelineJava">
                   <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
                   <property name="message" value="Use static imports for Assertions.* methods for consistency" />
-                </module>
-                <module name="RegexpSinglelineJava">
-                  <property name="format" value="import org[.]junit[.]Assume;" />
-                  <property name="message" value="Use static imports for Assume.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assumptions;" />
