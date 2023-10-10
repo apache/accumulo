@@ -154,7 +154,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
           log.info(
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
-          SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+          var ctx = SSLContext.getInstance(Property.RPC_SSL_CLIENT_PROTOCOL.getDefaultValue());
           TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, RANDOM.get());
           SSLContext.setDefault(ctx);

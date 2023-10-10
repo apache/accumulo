@@ -153,7 +153,6 @@
     <version.hadoop>3.3.6</version.hadoop>
     <version.maven-javadoc-plugin>3.6.0</version.maven-javadoc-plugin>
     <version.opentelemetry>1.27.0</version.opentelemetry>
-    <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.7</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
     <version.zookeeper>3.8.2</version.zookeeper>
@@ -322,12 +321,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.2</version>
-      </dependency>
-      <dependency>
-        <!-- legacy junit version specified here for dependency convergence -->
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -628,32 +621,6 @@
             <artifactId>HdrHistogram</artifactId>
           </exclusion>
         </exclusions>
-      </dependency>
-      <dependency>
-        <!-- converge transitive dependency version between powermock and easymock -->
-        <groupId>org.objenesis</groupId>
-        <artifactId>objenesis</artifactId>
-        <version>3.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-api-easymock</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-core</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-module-junit4</artifactId>
-        <version>${version.powermock}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-reflect</artifactId>
-        <version>${version.powermock}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -958,8 +925,6 @@
                 <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-core:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
-                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <undeclared>junit:junit:jar:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -981,8 +946,6 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
-                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
@@ -1093,24 +1056,12 @@
                   <property name="message" value="Use commons-math3 (org.apache.commons.math3.*)" />
                 </module>
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="junit[.]framework[.]TestCase" />
-                  <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
-                </module>
-                <module name="RegexpSinglelineJava">
                   <property name="format" value="import org[.]apache[.]accumulo[.]core[.]util[.]LazySingletons;" />
                   <property name="message" value="Use static imports for LazySingletons for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="import org[.]junit[.]Assert;" />
-                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
-                </module>
-                <module name="RegexpSinglelineJava">
                   <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
                   <property name="message" value="Use static imports for Assertions.* methods for consistency" />
-                </module>
-                <module name="RegexpSinglelineJava">
-                  <property name="format" value="import org[.]junit[.]Assume;" />
-                  <property name="message" value="Use static imports for Assume.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assumptions;" />
