@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -82,6 +83,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -89,6 +91,7 @@ import org.junit.jupiter.api.Test;
  * It provides a quick test that verifies a lot of functionality is working for basic use. This test
  * does not provide deep coverage of the features it tests.
  */
+@Tag(SUNNY_DAY)
 public class ComprehensiveIT extends SharedMiniClusterBase {
 
   @BeforeAll
