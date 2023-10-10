@@ -81,7 +81,6 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -208,7 +207,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // test taking table offline and then back online
       client.tableOperations().offline(table, true);
-      Assertions.assertThrows(TableOfflineException.class, () -> {
+      assertThrows(TableOfflineException.class, () -> {
         try (var scanner = client.createScanner(table)) {
           assertEquals(0, scanner.stream().count());
         }
