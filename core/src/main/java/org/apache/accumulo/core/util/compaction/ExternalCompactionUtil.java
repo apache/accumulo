@@ -33,8 +33,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -100,14 +100,8 @@ public class ExternalCompactionUtil {
    */
   public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
-    try {
-      var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut());
-      return ServiceLock.getLockData(zk, ServiceLock.path(lockPath))
-          .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(e);
-    }
+    return ServiceLock.getLockData(context.getZooCache(), ServiceLock.path(lockPath), new ZcStat())
+        .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
   }
 
   /**
@@ -120,7 +114,7 @@ public class ExternalCompactionUtil {
       ZooReader zooReader = context.getZooReader();
       List<String> groups = zooReader.getChildren(compactorGroupsPath);
       for (String group : groups) {
-        groupsAndAddresses.putIfAbsent(group, new ArrayList<HostAndPort>());
+        groupsAndAddresses.putIfAbsent(group, new ArrayList<>());
         try {
           List<String> compactors = zooReader.getChildren(compactorGroupsPath + "/" + group);
           for (String compactor : compactors) {
@@ -220,7 +214,7 @@ public class ExternalCompactionUtil {
    * on a restart to re-populate the set of running compactions on the compactors.
    *
    * @param context server context
-   * @return map of compactor and external compaction jobs
+   * @return list of compactor and external compaction jobs
    */
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
