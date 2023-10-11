@@ -141,8 +141,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     if (DataLevel.of(tableId) == DataLevel.ROOT) {
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream().map(
-          reference -> StoredTabletFile.of(URI.create(reference.getMetadataPath()), new Range()))));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
+          .map(reference -> StoredTabletFile.of(URI.create(reference.getMetadataPath())))));
       return;
     }
 

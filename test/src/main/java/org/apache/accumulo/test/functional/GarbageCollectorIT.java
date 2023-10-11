@@ -32,7 +32,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -333,9 +332,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
             new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
 
-    List<StoredTabletFile> stfs = new LinkedList<>();
-    candidates.stream().forEach(
-        temp -> stfs.add(new StoredTabletFile(StoredTabletFile.serialize(temp.getPath()))));
+    List<StoredTabletFile> stfs = candidates.stream()
+        .map(temp -> StoredTabletFile.of(new Path(temp.getPath()))).collect(Collectors.toList());
 
     log.debug("Adding root table GcCandidates");
     ample.putGcCandidates(tableId, stfs);
@@ -347,7 +345,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     while (cIter.hasNext()) {
       // Duplicate these entries back into zookeeper
       ample.putGcCandidates(tableId,
-          List.of(new StoredTabletFile(StoredTabletFile.serialize(cIter.next().getPath()))));
+          List.of(StoredTabletFile.of(new Path(cIter.next().getPath()))));
       counter++;
     }
     // Ensure Zookeeper collapsed the entries and did not support duplicates.
@@ -473,11 +471,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     // Create multiple candidate entries
     List<StoredTabletFile> stfs = Stream
-        .of(new StoredTabletFile(
-            StoredTabletFile.serialize("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf")),
-            new StoredTabletFile(
-                StoredTabletFile.serialize("hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf")))
-        .collect(Collectors.toList());
+        .of("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf",
+            "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf")
+        .map(Path::new).map(StoredTabletFile::of).collect(Collectors.toList());
 
     log.debug("Adding candidates to table {}", tableId);
     ample.putGcCandidates(tableId, stfs);
@@ -494,7 +490,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     GcCandidate deleteCandidate = candidates.get(0);
     assertNotNull(deleteCandidate);
     ample.putGcCandidates(tableId,
-        List.of(new StoredTabletFile(StoredTabletFile.serialize(deleteCandidate.getPath()))));
+        List.of(StoredTabletFile.of(new Path(deleteCandidate.getPath()))));
 
     log.debug("Deleting Candidate {}", deleteCandidate);
     ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), Ample.GcCandidateType.INUSE);
