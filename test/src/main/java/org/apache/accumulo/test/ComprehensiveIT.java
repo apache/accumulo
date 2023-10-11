@@ -52,6 +52,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -77,6 +78,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -177,10 +179,14 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       verifyData(client, table, new Authorizations("CAT", "DOG"),
           generateKeys(300, 310, tr -> true));
       client.tableOperations().flush(table, null, null, true);
+
       // the attached iterator should be applied when the flush happens filtering out family 3.
-      // TODO its possible the iterator setting did not make it to the tserver
-      verifyData(client, table, new Authorizations("CAT", "DOG"),
-          generateKeys(300, 310, tr -> tr.row < 300 || tr.fam != 3));
+      var expected = generateKeys(300, 310, tr -> tr.row < 300 || tr.fam != 3);
+
+      // its possible the iterator setting did not make it to the tserver, so wait for that
+      Wait.waitFor(() -> expected.equals(scan(client, table, new Authorizations("CAT", "DOG"))));
+
+      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
     }
   }
 
@@ -266,18 +272,24 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       assertEquals(Map.of(), client.tableOperations().getTableProperties(table));
 
       client.tableOperations().setProperty(table, "table.custom.compit", "123");
+      Wait.waitFor(() -> Map.of("table.custom.compit", "123")
+          .equals(client.tableOperations().getTableProperties(table)));
       assertEquals(Map.of("table.custom.compit", "123"),
           client.tableOperations().getTableProperties(table));
       assertTrue(
           client.tableOperations().getConfiguration(table).containsKey("table.custom.compit"));
 
       client.tableOperations().setProperty(table, "table.custom.compit2", "abc");
+      Wait.waitFor(() -> Map.of("table.custom.compit", "123", "table.custom.compit2", "abc")
+          .equals(client.tableOperations().getTableProperties(table)));
       assertEquals(Map.of("table.custom.compit", "123", "table.custom.compit2", "abc"),
           client.tableOperations().getTableProperties(table));
       assertTrue(client.tableOperations().getConfiguration(table).keySet()
           .containsAll(Set.of("table.custom.compit", "table.custom.compit2")));
 
       client.tableOperations().removeProperty(table, "table.custom.compit");
+      Wait.waitFor(() -> Map.of("table.custom.compit2", "abc")
+          .equals(client.tableOperations().getTableProperties(table)));
       assertEquals(Map.of("table.custom.compit2", "abc"),
           client.tableOperations().getTableProperties(table));
       assertTrue(
@@ -432,10 +444,16 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // remove the iterator that is suppressing col fam 9
       client.tableOperations().removeIterator(everythingClone, "fam9",
           EnumSet.of(IteratorUtil.IteratorScope.scan));
+      Wait.waitFor(
+          () -> !client.tableOperations().listIterators(everythingClone).containsKey("fam9"));
       assertFalse(client.tableOperations().listIterators(everythingClone).containsKey("fam9"));
-      // TODO the iterator removal may not have made it to the tserver
-      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"),
-          generateKeys(0, 100, tr -> tr.fam != 3));
+
+      var expected = generateKeys(0, 100, tr -> tr.fam != 3);
+      // the iterator removal may not have made it to the tserver, so wait for it
+      Wait.waitFor(
+          () -> expected.equals(scan(client, everythingClone, new Authorizations("CAT", "DOG"))));
+
+      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"), expected);
 
       // test deleting a row ranges and scanning to verify its gone
       client.tableOperations().deleteRows(everythingClone, new Text(row(35)), new Text(row(40)));
@@ -527,7 +545,8 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // set multiple ranges on scanner
       scanner
           .setRanges(List.of(new Range(row(6), row(18)), new Range(row(27), true, row(37), false)));
-      verifyData(scanner, generateKeys(6, 37, tr -> tr.fam != 9 && (tr.row <= 18 || tr.row >= 27)));
+      assertEquals(generateKeys(6, 37, tr -> tr.fam != 9 && (tr.row <= 18 || tr.row >= 27)),
+          scan(scanner));
     }
 
     // test scanning sample data
@@ -577,12 +596,12 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   private static void verifyData(AccumuloClient client, String table, Authorizations auths,
       SortedMap<Key,Value> expectedData) throws Exception {
     try (var scanner = client.createScanner(table, auths)) {
-      verifyData(scanner, expectedData);
+      assertEquals(expectedData, scan(scanner));
     }
 
     try (var scanner = client.createBatchScanner(table, auths)) {
       scanner.setRanges(List.of(new Range()));
-      verifyData(scanner, expectedData);
+      assertEquals(expectedData, scan(scanner));
     }
   }
 
@@ -590,25 +609,30 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       SortedMap<Key,Value> expectedData, Consumer<ScannerBase> scannerConsumer) throws Exception {
     try (var scanner = client.createScanner(table, auths)) {
       scannerConsumer.accept(scanner);
-      verifyData(scanner, expectedData);
+      assertEquals(expectedData, scan(scanner));
     }
 
     try (var scanner = client.createBatchScanner(table, auths)) {
       scanner.setRanges(List.of(new Range()));
       scannerConsumer.accept(scanner);
-      verifyData(scanner, expectedData);
+      assertEquals(expectedData, scan(scanner));
     }
   }
 
-  private static void verifyData(ScannerBase scanner, SortedMap<Key,Value> expectedData) {
+  private SortedMap<Key,Value> scan(AccumuloClient client, String table, Authorizations auths)
+      throws TableNotFoundException {
+    try (var scanner = client.createScanner(table, auths)) {
+      return scan(scanner);
+    }
+  }
+
+  private static SortedMap<Key,Value> scan(ScannerBase scanner) {
     Map<Key,Value> seen = scanner.stream().map(e -> {
       Key nk = new Key(e.getKey());
       nk.setTimestamp(Long.MAX_VALUE);
       return new AbstractMap.SimpleEntry<>(nk, e.getValue());
     }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
-    seen = new TreeMap<>(seen);
-
-    assertEquals(expectedData, seen);
+    return new TreeMap<>(seen);
   }
 
   private static void bulkImport(AccumuloClient client, String table,
