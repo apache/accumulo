@@ -46,10 +46,12 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -483,6 +485,68 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       exportImport(client, everythingTable, everythingImport);
 
       verifyEverythingTable(client, everythingImport);
+    }
+  }
+
+  @Test
+  public void testNamespaces() throws Exception {
+    var namespace = "compns";
+    var uniq = getUniqueNames(1)[0];
+    String table = namespace + "." + uniq;
+    String table2 = namespace + "2." + uniq;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      assertFalse(client.namespaceOperations().exists(namespace));
+
+      // creation of table should fail when namespace does not exists
+      assertThrows(AccumuloException.class, () -> client.tableOperations().create(table));
+
+      client.namespaceOperations().create(namespace);
+
+      client.tableOperations().create(table, new NewTableConfiguration().withoutDefaultIterators());
+
+      assertTrue(client.namespaceOperations().list().contains(namespace));
+      assertTrue(client.namespaceOperations().exists(namespace));
+
+      client.namespaceOperations().setProperty(namespace, "table.custom.p1", "v1");
+      client.tableOperations().setProperty(table, "table.custom.p2", "v2");
+
+      Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
+          .containsKey("table.custom.p1"));
+
+      assertEquals(Map.of("table.custom.p1", "v1"),
+          client.namespaceOperations().getNamespaceProperties(namespace));
+      assertEquals(Map.of("table.custom.p2", "v2"),
+          client.tableOperations().getTableProperties(table));
+      assertTrue(client.tableOperations().getConfiguration(table).keySet()
+          .containsAll(Set.of("table.custom.p1", "table.custom.p2")));
+
+      client.namespaceOperations().removeProperty(namespace, "table.custom.p1");
+      // should not impact table prop
+      client.namespaceOperations().removeProperty(namespace, "table.custom.p2");
+
+      Wait.waitFor(() -> !client.namespaceOperations().getNamespaceProperties(namespace)
+          .containsKey("table.custom.p1"));
+
+      assertEquals(Map.of(), client.namespaceOperations().getNamespaceProperties(namespace));
+      assertEquals(Map.of("table.custom.p2", "v2"),
+          client.tableOperations().getTableProperties(table));
+      assertTrue(client.tableOperations().getConfiguration(table).containsKey("table.custom.p2"));
+
+      client.namespaceOperations().rename(namespace, namespace + "2");
+
+      assertFalse(client.namespaceOperations().exists(namespace));
+      assertTrue(client.namespaceOperations().exists(namespace + "2"));
+      assertFalse(client.tableOperations().exists(table));
+      assertTrue(client.tableOperations().exists(table2));
+
+      assertThrows(NamespaceNotEmptyException.class,
+          () -> client.namespaceOperations().delete(namespace + "2"));
+
+      client.tableOperations().delete(table2);
+      client.namespaceOperations().delete(namespace + "2");
+      assertFalse(client.namespaceOperations().exists(namespace + "2"));
     }
   }
 
