@@ -172,6 +172,14 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
   }
 
+  public static StoredTabletFile of(final URI path) {
+    return of(path, new Range());
+  }
+
+  public static StoredTabletFile of(final Path path) {
+    return of(path, new Range());
+  }
+
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
 
   private static TabletFileCq deserialize(String json) {
