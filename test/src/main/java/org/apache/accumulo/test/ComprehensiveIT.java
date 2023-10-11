@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -76,7 +77,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -173,8 +176,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       client.tableOperations().create(table);
 
       // test attaching an iterator to a table AND flushing a table
-      client.tableOperations().attachIterator(table,
-          new IteratorSetting(100, "fam3", FamThreeFilter.class),
+      var iterSetting = new IteratorSetting(200, "fam3", FamFilter.class);
+      iterSetting.addOption("family", "3");
+      client.tableOperations().attachIterator(table, iterSetting,
           EnumSet.of(IteratorUtil.IteratorScope.minc));
       write(client, table, generateMutations(300, 310, tr -> true));
       // prior to flushing fam3 should not be filtered by the attached iterator
@@ -433,8 +437,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // test compaction with an iterator that filters out col fam 3
       CompactionConfig compactionConfig = new CompactionConfig();
-      compactionConfig.setIterators(List.of(new IteratorSetting(200, FamThreeFilter.class)))
-          .setWait(true);
+      var iterSetting = new IteratorSetting(200, "fam3", FamFilter.class);
+      iterSetting.addOption("family", "3");
+      compactionConfig.setIterators(List.of(iterSetting)).setWait(true);
       client.tableOperations().compact(everythingClone, compactionConfig);
       // scans should not see col fam 3 now
       verifyData(client, everythingClone, new Authorizations("CAT", "DOG"),
@@ -565,8 +570,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
     ntc.enableSampling(everythingSampleConfig);
     ntc.setLocalityGroups(everythingLocalityGroups);
-    ntc.attachIterator(new IteratorSetting(100, "fam9", FamNineFilter.class),
-        EnumSet.of(IteratorUtil.IteratorScope.scan));
+    var iterSetting = new IteratorSetting(100, "fam9", FamFilter.class);
+    iterSetting.addOption("family", "9");
+    ntc.attachIterator(iterSetting, EnumSet.of(IteratorUtil.IteratorScope.scan));
     return ntc;
   }
 
@@ -581,8 +587,10 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     assertEquals(everythingLocalityGroups, client.tableOperations().getLocalityGroups(table));
     assertEquals(EnumSet.of(IteratorUtil.IteratorScope.scan),
         client.tableOperations().listIterators(table).get("fam9"));
-    assertEquals(new IteratorSetting(100, "fam9", FamNineFilter.class), client.tableOperations()
-        .getIteratorSetting(table, "fam9", IteratorUtil.IteratorScope.scan));
+    var iterSetting = new IteratorSetting(100, "fam9", FamFilter.class);
+    iterSetting.addOption("family", "9");
+    assertEquals(iterSetting, client.tableOperations().getIteratorSetting(table, "fam9",
+        IteratorUtil.IteratorScope.scan));
 
     verifyData(client, table, Authorizations.EMPTY,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.vis.isEmpty()));
@@ -634,6 +642,19 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     verifyData(client, table, new Authorizations("CAT", "DOG"),
         generateKeys(0, 100, tr -> tr.fam == 5),
         scanner -> scanner.fetchColumnFamily(new Text(family(5))));
+
+    // test setting an iterator on a scanner
+    var scanIter = new IteratorSetting(200, "fam7", FamFilter.class);
+    scanIter.addOption("family", "7");
+    verifyData(client, table, Authorizations.EMPTY,
+        generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7 && tr.vis.isEmpty()),
+        scanner -> scanner.addScanIterator(scanIter));
+    verifyData(client, table, new Authorizations("CAT"),
+        generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7 && !tr.vis.equals("DOG&CAT")),
+        scanner -> scanner.addScanIterator(scanIter));
+    verifyData(client, table, new Authorizations("CAT", "DOG"),
+        generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7),
+        scanner -> scanner.addScanIterator(scanIter));
 
     // summary data does not exist until flushed
     client.tableOperations().flush(table, null, null, true);
@@ -839,19 +860,20 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     client.tableOperations().online(srcTable, true);
   }
 
-  public static class FamNineFilter extends Filter {
+  public static class FamFilter extends Filter {
+
+    private String family = null;
 
     @Override
-    public boolean accept(Key k, Value v) {
-      return !k.getColumnFamilyData().toString().equals(family(9));
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      super.init(source, options, env);
+      family = family(Integer.parseInt(options.get("family")));
     }
-  }
-
-  public static class FamThreeFilter extends Filter {
 
     @Override
     public boolean accept(Key k, Value v) {
-      return !k.getColumnFamilyData().toString().equals(family(3));
+      return !k.getColumnFamilyData().toString().equals(family);
     }
   }
 
