@@ -972,7 +972,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
     } catch (Exception e) {
       log.warn("Exception returned for conditionalUpdate {}", e);
       errorThrown = true;
-      // Continue throwing the exception so return doesn't error.
       throw e;
     } finally {
       try {
@@ -981,7 +980,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
       } catch (Exception e) {
         var message = errorThrown ? "Second Exception" : "Exception";
         log.warn("{} returned for conditionalUpdate {}", message, e);
-        // Continue throwing the exception so return doesn't error.
         throw e;
       }
     }
