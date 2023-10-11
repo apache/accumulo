@@ -31,6 +31,9 @@
         </div>
         <div class="collapse navbar-collapse" id="nav-items">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="navbar-text px-2">
+              <span id="alertStatus" class="bi bi-exclamation-triangle-fill" style="display: none; cursor: pointer;" title="System-wide alert. Click to display (if not already present)"></span>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span id="statusNotification" class="icon-dot normal"></span>&nbspServers
@@ -77,7 +80,7 @@
             <li class="dropdown">
               <a class="nav-link" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="../resources/external/bootstrap/fonts/three-dots-vertical.svg">
+                <span style="font-size: 1.2em;" class="bi bi-three-dots-vertical"></span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>

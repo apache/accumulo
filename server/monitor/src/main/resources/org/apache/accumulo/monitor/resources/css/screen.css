@@ -325,6 +325,7 @@ pre.logevent {
 }
 
 .icon-dot {
+  position: relative;
   display: inline-block;
   min-width: 1em;
   height: 1em;
@@ -334,8 +335,6 @@ pre.logevent {
   text-align: center;
   border-radius: 1em;
 }
-
-
 
 .smalltext {
   font-size: 0.8em;

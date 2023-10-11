@@ -44,7 +44,7 @@
           <div class="col-xs-12">
             <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
               <caption><span class="table-caption">Compactors</span>&nbsp;&nbsp;
-                <a href="javascript:refreshCompactors();"><img src="../resources/external/bootstrap/fonts/arrow-repeat.svg"></a>
+                <a href="javascript:refreshCompactors();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
               </caption>
               <thead>
                 <tr>
@@ -61,7 +61,7 @@
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
               <caption><span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                <a href="javascript:refreshRunning();"><img src="../resources/external/bootstrap/fonts/arrow-repeat.svg"></a>
+                <a href="javascript:refreshRunning();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
               </caption>
               <thead>
                 <tr>
