@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -76,6 +75,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -184,14 +184,14 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var context = cluster.getServerContext();
 
-      var stf1 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-      var stf2 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
-      var stf3 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
-      var stf4 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+      var stf1 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+      var stf2 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+      var stf3 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+      var stf4 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
       var dfv = new DataFileValue(100, 100);
 
       System.out.println(context.getAmple().readTablet(e1).getLocation());
@@ -281,8 +281,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, 9L);
 
       // simulate a bulk import
-      var stf5 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
+      var stf5 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
       ctmi = new ConditionalTabletsMutatorImpl(context);
       var tm6 = TabletMetadata.builder(e1).build(LOADED);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
@@ -294,8 +294,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Set.of(stf4, stf5), context.getAmple().readTablet(e1).getFiles());
 
       // simulate a compaction
-      var stf6 = new StoredTabletFile(
-          serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf"));
+      var stf6 = StoredTabletFile
+          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf"));
       ctmi = new ConditionalTabletsMutatorImpl(context);
       var tm7 = TabletMetadata.builder(e1).putFile(stf4, dfv).putFile(stf5, dfv).build();
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm7, FILES)
@@ -322,14 +322,14 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   public void testSelectedFiles() throws Exception {
     var context = cluster.getServerContext();
 
-    var stf1 = new StoredTabletFile(
-        serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-    var stf2 = new StoredTabletFile(
-        serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
-    var stf3 = new StoredTabletFile(
-        serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
-    var stf4 = new StoredTabletFile(
-        serialize("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
     var dfv = new DataFileValue(100, 100);
 
     System.out.println(context.getAmple().readTablet(e1).getLocation());
@@ -412,9 +412,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var context = cluster.getServerContext();
 
       String pathPrefix = "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/";
-      StoredTabletFile stf1 = new StoredTabletFile(serialize(pathPrefix + "F0000070.rf"));
-      StoredTabletFile stf2 = new StoredTabletFile(serialize(pathPrefix + "F0000071.rf"));
-      StoredTabletFile stf3 = new StoredTabletFile(serialize(pathPrefix + "F0000072.rf"));
+      StoredTabletFile stf1 = StoredTabletFile.of(new Path(pathPrefix + "F0000070.rf"));
+      StoredTabletFile stf2 = StoredTabletFile.of(new Path(pathPrefix + "F0000071.rf"));
+      StoredTabletFile stf3 = StoredTabletFile.of(new Path(pathPrefix + "F0000072.rf"));
 
       final Set<StoredTabletFile> storedTabletFiles = Set.of(stf1, stf2, stf3);
       final boolean initiallySelectedAll = true;
@@ -486,7 +486,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       TabletMetadata tm1 =
           TabletMetadata.builder(e1).putSelectedFiles(selectedFiles).build(SELECTED);
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      StoredTabletFile stf4 = new StoredTabletFile(serialize(pathPrefix + "F0000073.rf"));
+      StoredTabletFile stf4 = StoredTabletFile.of(new Path(pathPrefix + "F0000073.rf"));
       // submit a mutation with the condition that the selected files match what was originally
       // written
       DataFileValue dfv = new DataFileValue(100, 100);
