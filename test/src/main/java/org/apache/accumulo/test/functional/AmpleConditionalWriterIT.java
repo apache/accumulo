@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -517,11 +518,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
    */
   public static String createSelectedFilesJson(Long txid, boolean selAll,
       Collection<String> paths) {
-    String filesJsonArray =
-        paths.stream().map(path -> "'" + path + "'").collect(Collectors.joining(","));
+    String filesJsonArray = GSON.get().toJson(paths);
     String formattedTxid = FateTxId.formatTid(Long.parseLong(Long.toString(txid), 16));
-    return ("{'txid':'" + formattedTxid + "','selAll':" + selAll + ",'files':[" + filesJsonArray
-        + "]}").replace('\'', '\"');
+    return ("{'txid':'" + formattedTxid + "','selAll':" + selAll + ",'files':" + filesJsonArray
+        + "}").replace('\'', '\"');
   }
 
   @Test
