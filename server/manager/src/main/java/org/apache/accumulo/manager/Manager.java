@@ -595,46 +595,6 @@ public class Manager extends AbstractServer
     }
   }
 
-  // ELASTICITY_TODO the following should probably be a cache w/ timeout so that things that are
-  // never removed will age off. Unsure about the approach, so want to hold on off on doing more
-  // work. It was a quick hack added so that splits could get the manager to unassign tablets.
-  private final Map<KeyExtent,Set<Long>> unassignmentRequest =
-      Collections.synchronizedMap(new HashMap<>());
-
-  @Override
-  public Set<KeyExtent> getUnassignmentRequest() {
-    synchronized (unassignmentRequest) {
-      return Set.copyOf(unassignmentRequest.keySet());
-    }
-  }
-
-  public void requestUnassignment(KeyExtent tablet, long fateTxId) {
-    unassignmentRequest.compute(tablet, (k, v) -> {
-      Set<Long> txids = v == null ? new HashSet<>() : v;
-      txids.add(fateTxId);
-      return txids;
-    });
-
-    nextEvent.event(tablet, "Unassignment requested %s", tablet);
-  }
-
-  public void cancelUnassignmentRequest(KeyExtent tablet, long fateTxid) {
-    unassignmentRequest.computeIfPresent(tablet, (k, v) -> {
-      v.remove(fateTxid);
-      if (v.isEmpty()) {
-        return null;
-      }
-
-      return v;
-    });
-
-    nextEvent.event(tablet, "Unassignment request canceled %s", tablet);
-  }
-
-  public boolean isUnassignmentRequested(KeyExtent extent) {
-    return unassignmentRequest.containsKey(extent);
-  }
-
   private Splitter splitter;
 
   public Splitter getSplitter() {
@@ -729,10 +689,6 @@ public class Manager extends AbstractServer
       if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
-        return TabletGoalState.UNASSIGNED;
-      }
-
-      if (unassignmentRequest.containsKey(extent)) {
         return TabletGoalState.UNASSIGNED;
       }
 
@@ -1911,5 +1867,4 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Unhandled DataLevel value: " + level);
     }
   }
-
 }

@@ -404,13 +404,22 @@ public interface Ample {
   interface OperationRequirements {
 
     /**
+     * This should be used to make changes to a hosted tablet and ensure the location is as
+     * expected. Hosted tablets should unload when an operation id set, but can update their
+     * metadata prior to unloading.
+     *
+     * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
+     */
+    ConditionalTabletMutator requireLocation(Location location);
+
+    /**
      * Require a specific operation with a unique id is present. This would be normally be called by
      * the code executing that operation.
      */
     ConditionalTabletMutator requireOperation(TabletOperationId operationId);
 
     /**
-     * Require that no mutually exclusive operations are runnnig against this tablet.
+     * Require that no mutually exclusive operations are running against this tablet.
      */
     ConditionalTabletMutator requireAbsentOperation();
 

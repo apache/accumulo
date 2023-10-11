@@ -86,6 +86,10 @@ public class UpdateTablets extends ManagerRepo {
         "Tablet %s does not have expected operation id %s it has %s", splitInfo.getOriginal(), opid,
         tabletMetadata.getOperationId());
 
+    Preconditions.checkState(tabletMetadata.getLocation() == null,
+        "Tablet %s unexpectedly has a location %s", splitInfo.getOriginal(),
+        tabletMetadata.getLocation());
+
     var newTablets = splitInfo.getTablets();
 
     var newTabletsFiles = getNewTabletFiles(newTablets, tabletMetadata,
@@ -213,7 +217,7 @@ public class UpdateTablets extends ManagerRepo {
       var newExtent = newTablets.last();
 
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
-          .requirePrevEndRow(splitInfo.getOriginal().prevEndRow());
+          .requirePrevEndRow(splitInfo.getOriginal().prevEndRow()).requireAbsentLocation();
 
       mutator.putPrevEndRow(newExtent.prevEndRow());
 
@@ -251,9 +255,11 @@ public class UpdateTablets extends ManagerRepo {
 
         var tabletMeta = manager.getContext().getAmple().readTablet(newExtent);
 
-        if (tabletMeta == null || !tabletMeta.getOperationId().equals(opid)) {
+        if (tabletMeta == null || !tabletMeta.getOperationId().equals(opid)
+            || tabletMeta.getLocation() != null) {
           throw new IllegalStateException("Failed to update existing tablet in split "
-              + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent());
+              + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent() + " "
+              + (tabletMeta == null ? null : tabletMeta.getLocation()));
         } else {
           // ELASTICITY_TODO
         }

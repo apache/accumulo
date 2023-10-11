@@ -122,7 +122,6 @@ public class TabletMetadata {
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
-  private boolean operationIdAndCurrentLocationSet = false;
   private Set<Long> compacted;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
@@ -408,8 +407,7 @@ public class TabletMetadata {
         .append("extCompactions", extCompactions).append("goal", goal)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
-        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
-        .append("operationIdAndCurrentLocationSet", operationIdAndCurrentLocationSet).toString();
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -438,10 +436,6 @@ public class TabletMetadata {
 
   public boolean isFutureAndCurrentLocationSet() {
     return futureAndCurrentLocationSet;
-  }
-
-  public boolean isOperationIdAndCurrentLocationSet() {
-    return operationIdAndCurrentLocationSet;
   }
 
   @VisibleForTesting
@@ -608,14 +602,6 @@ public class TabletMetadata {
       }
       futureAndCurrentLocationSet = true;
     }
-    if (operationId != null) {
-      if (!suppressError) {
-        throw new IllegalStateException(
-            "Attempted to set location for tablet with an operation id. table ID: " + tableId
-                + " endrow: " + endRow + " -- operation id: " + operationId);
-      }
-      operationIdAndCurrentLocationSet = true;
-    }
     location = new Location(val, qual, lt);
   }
 
@@ -628,15 +614,6 @@ public class TabletMetadata {
    */
   private void setOperationIdOnce(String val, boolean suppressError) {
     Preconditions.checkState(operationId == null);
-    // make sure there is not already a current location set
-    if (location != null) {
-      if (!suppressError) {
-        throw new IllegalStateException(
-            "Attempted to set operation id for tablet with current location. table ID: " + tableId
-                + " endrow: " + endRow + " -- location: " + location);
-      }
-      operationIdAndCurrentLocationSet = true;
-    }
     operationId = TabletOperationId.from(val);
   }
 

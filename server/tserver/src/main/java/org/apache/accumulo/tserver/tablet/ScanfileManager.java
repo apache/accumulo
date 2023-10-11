@@ -130,7 +130,7 @@ class ScanfileManager {
     }
 
     if (!filesToDelete.isEmpty()) {
-      // ELASTICTIY_TODO use conditional mutation
+      // ELASTICTIY_TODO use conditional mutation and require the tablet location
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
       MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());

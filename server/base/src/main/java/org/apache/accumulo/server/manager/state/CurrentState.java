@@ -45,11 +45,6 @@ public interface CurrentState {
    */
   Set<KeyExtent> migrationsSnapshot();
 
-  // ELASTICITY_TODO this approach to requesting unassignments was a quick hack
-  default Set<KeyExtent> getUnassignmentRequest() {
-    throw new UnsupportedOperationException();
-  }
-
   ManagerState getManagerState();
 
   // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only

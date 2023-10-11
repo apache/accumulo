@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +35,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
@@ -73,38 +76,48 @@ public class PreSplit extends ManagerRepo {
     // that have not completed their first step. Once splits starts running, would like it to move
     // through as quickly as possible.
 
-    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+    var tabletMetadata = manager.getContext().getAmple().readTablet(splitInfo.getOriginal(),
+        PREV_ROW, LOCATION, OPID);
 
-      tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
-          .requireAbsentLocation().requirePrevEndRow(splitInfo.getOriginal().prevEndRow())
-          .putOperation(opid).submit(tmeta -> opid.equals(tmeta.getOperationId()));
+    log.trace("Attempting tablet split {} {} {}", FateTxId.formatTid(tid), splitInfo.getOriginal(),
+        tabletMetadata == null ? null : tabletMetadata.getLocation());
 
-      Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
-
-      if (results.get(splitInfo.getOriginal()).getStatus() == Status.ACCEPTED) {
-        log.debug("{} reserved {} for split", FateTxId.formatTid(tid), splitInfo.getOriginal());
+    if (tabletMetadata == null || (tabletMetadata.getOperationId() != null
+        && !opid.equals(tabletMetadata.getOperationId()))) {
+      // tablet no longer exists or is reserved by another operation
+      return 0;
+    } else if (opid.equals(tabletMetadata.getOperationId())) {
+      if (tabletMetadata.getLocation() == null) {
+        // the operation id is set and there is no location, so can proceed to split
         return 0;
       } else {
-        var tabletMetadata = results.get(splitInfo.getOriginal()).readMetadata();
+        // the operation id was set, but a location is also set wait for it be unset
+        return 1000;
+      }
+    } else {
+      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
-        // its possible the tablet no longer exists
-        var optMeta = Optional.ofNullable(tabletMetadata);
+        tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
+            .requireSame(tabletMetadata, LOCATION, PREV_ROW).putOperation(opid)
+            .submit(tmeta -> opid.equals(tmeta.getOperationId()));
 
-        log.debug(
-            "{} Failed to set operation id (may have location or operationId). extent:{} location:{} opid:{}",
-            FateTxId.formatTid(tid), splitInfo.getOriginal(),
-            optMeta.map(TabletMetadata::getLocation).orElse(null),
-            optMeta.map(TabletMetadata::getOperationId).orElse(null));
-
-        if (tabletMetadata != null && tabletMetadata.getLocation() != null) {
-          // the tablet exists but has a location, lets try again later
-          manager.requestUnassignment(tabletMetadata.getExtent(), tid);
-          return 2000;
+        Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
+        if (results.get(splitInfo.getOriginal()).getStatus() == Status.ACCEPTED) {
+          log.trace("Successfully set operation id for split {}", FateTxId.formatTid(tid));
+          if (tabletMetadata.getLocation() == null) {
+            // the operation id was set and there is no location, so can move on
+            return 0;
+          } else {
+            // now that the operation id set, generate an event to unload the tablet
+            manager.getEventCoordinator().event(splitInfo.getOriginal(),
+                "Set operation id %s on tablet for split", FateTxId.formatTid(tid));
+            // the operation id was set, but a location is also set wait for it be unset
+            return 1000;
+          }
         } else {
-          // The tablet may no longer exists, another operation may have it reserved, or maybe we
-          // already reserved and a fault happened. In any case lets proceed, the tablet will be
-          // checked in the call() function and it will sort everything out.
-          return 0;
+          log.trace("Failed to set operation id for split {}", FateTxId.formatTid(tid));
+          // something changed with the tablet, so setting the operation id failed. Try again later
+          return 1000;
         }
       }
     }
@@ -112,13 +125,11 @@ public class PreSplit extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    // ELASTICITY_TODO need to make manager ignore tablet with an operation id for assignment
-    // purposes
-    manager.cancelUnassignmentRequest(splitInfo.getOriginal(), tid);
+
     manager.getSplitter().removeSplitStarting(splitInfo.getOriginal());
 
-    TabletMetadata tabletMetadata = manager.getContext().getAmple().readTablet(
-        splitInfo.getOriginal(), ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.OPID);
+    TabletMetadata tabletMetadata = manager.getContext().getAmple()
+        .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID);
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
 
@@ -132,6 +143,12 @@ public class PreSplit extends ManagerRepo {
           optMeta.map(TabletMetadata::getOperationId).orElse(null));
       return null;
     }
+
+    // Its expected that the tablet has no location at this point and if it does its an indication
+    // of a bug.
+    Preconditions.checkState(tabletMetadata.getLocation() == null,
+        "Tablet unexpectedly had location set %s %s %s", FateTxId.formatTid(tid),
+        tabletMetadata.getLocation(), tabletMetadata.getExtent());
 
     // Create the dir name here for the next step. If the next step fails it will always have the
     // same dir name each time it runs again making it idempotent.
@@ -150,8 +167,6 @@ public class PreSplit extends ManagerRepo {
   @Override
   public void undo(long tid, Manager manager) throws Exception {
     // TODO is this called if isReady fails?
-    // TODO should operation id be cleaned up? maybe not, tablet may be in an odd state
-    manager.cancelUnassignmentRequest(splitInfo.getOriginal(), tid);
     manager.getSplitter().removeSplitStarting(splitInfo.getOriginal());
   }
 }

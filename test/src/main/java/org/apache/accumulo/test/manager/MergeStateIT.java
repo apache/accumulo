@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -120,11 +121,6 @@ public class MergeStateIT extends ConfigurableMacBase {
       return Collections.emptySet();
     }
 
-    @Override
-    public Set<KeyExtent> getUnassignmentRequest() {
-      return Collections.emptySet();
-    }
-
   }
 
   private static void update(AccumuloClient c, Mutation m)
@@ -177,10 +173,12 @@ public class MergeStateIT extends ConfigurableMacBase {
       int count = 0;
       for (TabletManagement mti : metaDataStateStore) {
         if (mti != null) {
+          assertEquals(1, mti.actions.size());
+          assertEquals(ManagementAction.NEEDS_LOCATION_UPDATE, mti.getActions().iterator().next());
           count++;
         }
       }
-      assertEquals(0, count); // the normal case is to skip tablets in a good state
+      assertEquals(6, count);
 
       // Create the hole
       // Split the tablet at one end of the range

@@ -621,11 +621,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     manager.mustBeOnline(tableId);
 
-    log.info("Tablet hosting requested for: {} ", extents);
     final List<KeyExtent> success = new ArrayList<>();
     final Ample ample = manager.getContext().getAmple();
     try (var mutator = ample.conditionallyMutateTablets()) {
       extents.forEach(e -> {
+        log.info("Tablet hosting requested for: {} ", KeyExtent.fromThrift(e));
         KeyExtent ke = KeyExtent.fromThrift(e);
         if (recentHostingRequest.getIfPresent(ke) == null) {
           mutator.mutateTablet(ke).requireAbsentOperation()

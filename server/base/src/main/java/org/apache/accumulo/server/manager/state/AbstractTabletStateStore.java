@@ -50,7 +50,6 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
         var conditionalMutator = tabletsMutator.mutateTablet(assignment.tablet)
-            .requireAbsentOperation()
             .requireLocation(TabletMetadata.Location.future(assignment.server))
             .requirePrevEndRow(assignment.tablet.prevEndRow())
             .putLocation(TabletMetadata.Location.current(assignment.server))
@@ -124,11 +123,14 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
-        var tabletMutator = tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
-            .requirePrevEndRow(tm.getExtent().prevEndRow());
+        if (tm.getLocation() == null) {
+          continue;
+        }
+
+        var tabletMutator = tabletsMutator.mutateTablet(tm.getExtent())
+            .requireLocation(tm.getLocation()).requirePrevEndRow(tm.getExtent().prevEndRow());
 
         if (tm.hasCurrent()) {
-          tabletMutator.requireLocation(tm.getLocation());
 
           ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
               tm.getLocation().getServerInstance(), tm.getLast());
@@ -146,7 +148,6 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         if (tm.getLocation() != null && tm.getLocation().getType() != null
             && tm.getLocation().getType().equals(LocationType.FUTURE)) {
-          tabletMutator.requireLocation(tm.getLocation());
           tabletMutator.deleteLocation(tm.getLocation());
         }
 

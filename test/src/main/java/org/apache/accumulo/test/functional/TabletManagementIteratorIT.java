@@ -157,7 +157,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // w/o a location. Only one should need attention because of the operation id.
       setOperationId(client, metaCopy1, t1);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, state),
-          "Should have not tablets needing attention because of operation id");
+          "Should have tablets needing attention because of operation id");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
@@ -411,11 +411,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<TServerInstance> shutdownServers() {
-      return Collections.emptySet();
-    }
-
-    @Override
-    public Set<KeyExtent> getUnassignmentRequest() {
       return Collections.emptySet();
     }
 
