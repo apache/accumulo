@@ -34,7 +34,7 @@ public class GetTabletHostingGoalCommand extends TableOperation {
 
   @Override
   public String getName() {
-    return "getgoal";
+    return "gethostinggoal";
   }
 
   @Override

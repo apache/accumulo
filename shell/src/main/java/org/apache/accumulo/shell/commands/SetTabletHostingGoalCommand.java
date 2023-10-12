@@ -39,11 +39,11 @@ public class SetTabletHostingGoalCommand extends TableOperation {
   private Option goalOpt;
 
   private Range range;
-  private TabletHostingGoal goal;
+  private TabletHostingGoal hostingGoal;
 
   @Override
   public String getName() {
-    return "setgoal";
+    return "sethostinggoal";
   }
 
   @Override
@@ -54,8 +54,10 @@ public class SetTabletHostingGoalCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    shellState.getAccumuloClient().tableOperations().setTabletHostingGoal(tableName, range, goal);
-    Shell.log.debug("Set goal state: {} on table: {}, range: {}", goal, tableName, range);
+    shellState.getAccumuloClient().tableOperations().setTabletHostingGoal(tableName, range,
+        hostingGoal);
+    Shell.log.debug("Set hosting goal state: {} on table: {}, range: {}", hostingGoal, tableName,
+        range);
   }
 
   @Override
@@ -80,7 +82,7 @@ public class SetTabletHostingGoalCommand extends TableOperation {
       this.range = new Range(startRow, startInclusive, endRow, endInclusive);
     }
 
-    this.goal = TabletHostingGoal.valueOf(cl.getOptionValue(goalOpt).toUpperCase());
+    this.hostingGoal = TabletHostingGoal.valueOf(cl.getOptionValue(goalOpt).toUpperCase());
     return super.execute(fullCommand, cl, shellState);
   }
 
