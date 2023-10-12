@@ -100,13 +100,15 @@ import org.junit.jupiter.api.Test;
 @Tag(SUNNY_DAY)
 public class ComprehensiveIT extends SharedMiniClusterBase {
 
+  public static final String DOG_AND_CAT = "DOG&CAT";
+  static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
+
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.securityOperations().changeUserAuthorizations("root",
-          new Authorizations("CAT", "DOG"));
+      client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
     }
   }
 
@@ -121,15 +123,14 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
+      bulkImport(client, table, List.of(generateKeys(0, 100), generateKeys(100, 200)));
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200));
+
       bulkImport(client, table,
-          List.of(generateKeys(0, 100, tr -> true), generateKeys(100, 200, tr -> true)));
+          List.of(generateKeys(200, 300), generateKeys(300, 400), generateKeys(400, 500)));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 200, tr -> true));
-
-      bulkImport(client, table, List.of(generateKeys(200, 300, tr -> true),
-          generateKeys(300, 400, tr -> true), generateKeys(400, 500, tr -> true)));
-
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 500, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 500));
     }
   }
 
@@ -139,31 +140,33 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
+      final SortedMap<Key,Value> expectedData = generateKeys(0, 300);
+
       write(client, table, generateMutations(0, 300, tr -> true));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 300, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       // test adding splits to a table
       var splits = new TreeSet<>(List.of(new Text(row(75)), new Text(row(150))));
       client.tableOperations().addSplits(table, splits);
       assertEquals(splits, new TreeSet<>(client.tableOperations().listSplits(table)));
       // adding splits should not change data
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 300, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       // test merging splits away
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       // merging should not change data
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 300, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       splits = new TreeSet<>(List.of(new Text(row(33)), new Text(row(66))));
       client.tableOperations().addSplits(table, splits);
       assertEquals(splits, new TreeSet<>(client.tableOperations().listSplits(table)));
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 300, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 300, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
 
     }
   }
@@ -180,19 +183,20 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       iterSetting.addOption("family", "3");
       client.tableOperations().attachIterator(table, iterSetting,
           EnumSet.of(IteratorUtil.IteratorScope.minc));
-      write(client, table, generateMutations(300, 310, tr -> true));
+      final int minRow = 300;
+      final int maxRow = 310;
+      write(client, table, generateMutations(minRow, maxRow, tr -> true));
       // prior to flushing fam3 should not be filtered by the attached iterator
-      verifyData(client, table, new Authorizations("CAT", "DOG"),
-          generateKeys(300, 310, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(minRow, maxRow));
       client.tableOperations().flush(table, null, null, true);
 
       // the attached iterator should be applied when the flush happens filtering out family 3.
-      var expected = generateKeys(300, 310, tr -> tr.row < 300 || tr.fam != 3);
+      var expected = generateKeys(minRow, maxRow, tr -> tr.row < minRow || tr.fam != 3);
 
       // its possible the iterator setting did not make it to the tserver, so wait for that
-      Wait.waitFor(() -> expected.equals(scan(client, table, new Authorizations("CAT", "DOG"))));
+      Wait.waitFor(() -> expected.equals(scan(client, table, AUTHORIZATIONS)));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, table, AUTHORIZATIONS, expected);
     }
   }
 
@@ -306,50 +310,56 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   @Test
   public void testConditionalWriter() throws Exception {
     String table = getUniqueNames(1)[0];
+    String family = "f1";
+    String qualifier = "q1";
+    String value1 = "v1";
+    String value2 = "v2";
+    String row = row(5);
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
       // tests conditional writer
       try (var condWriter = client.createConditionalWriter(table)) {
         try (var scanner = client.createScanner(table)) {
-          scanner.setRange(new Range(row(5)));
-          scanner.fetchColumn("f1", "q1");
+          scanner.setRange(new Range(row));
+          scanner.fetchColumn(family, qualifier);
           assertEquals(0, scanner.stream().count());
         }
 
-        var cMutation = new ConditionalMutation(row(5));
-        cMutation.addCondition(new Condition("f1", "q1").setValue("v1"));
-        cMutation.put("f1", "q1", "v2");
+        var cMutation = new ConditionalMutation(row);
+        cMutation.addCondition(new Condition(family, qualifier).setValue(value1));
+        cMutation.put(family, qualifier, value2);
         assertEquals(ConditionalWriter.Status.REJECTED, condWriter.write(cMutation).getStatus());
 
         try (var scanner = client.createScanner(table)) {
-          scanner.setRange(new Range(row(5)));
-          scanner.fetchColumn("f1", "q1");
+          scanner.setRange(new Range(row));
+          scanner.fetchColumn(family, qualifier);
           assertEquals(0, scanner.stream().count());
         }
 
-        cMutation = new ConditionalMutation(row(5));
-        cMutation.addCondition(new Condition("f1", "q1"));
-        cMutation.put("f1", "q1", "v1");
+        cMutation = new ConditionalMutation(row);
+        cMutation.addCondition(new Condition(family, qualifier));
+        cMutation.put(family, qualifier, value1);
         assertEquals(ConditionalWriter.Status.ACCEPTED, condWriter.write(cMutation).getStatus());
 
         // ensure table was changed
         try (var scanner = client.createScanner(table)) {
-          scanner.setRange(new Range(row(5)));
+          scanner.setRange(new Range(row));
           // tests scanner method to fetch a column family and qualifier
-          scanner.fetchColumn("f1", "q1");
+          scanner.fetchColumn(family, qualifier);
           assertEquals(1, scanner.stream().count());
         }
 
-        cMutation = new ConditionalMutation(row(5));
-        cMutation.addCondition(new Condition("f1", "q1").setValue("v1"));
-        cMutation.putDelete("f1", "q1");
+        cMutation = new ConditionalMutation(row);
+        cMutation.addCondition(new Condition(family, qualifier).setValue(value1));
+        cMutation.putDelete(family, qualifier);
         assertEquals(ConditionalWriter.Status.ACCEPTED, condWriter.write(cMutation).getStatus());
 
         // ensure table was changed
         try (var scanner = client.createScanner(table)) {
-          scanner.setRange(new Range(row(5)));
-          scanner.fetchColumn("f1", "q1");
+          scanner.setRange(new Range(row));
+          scanner.fetchColumn(family, qualifier);
           assertEquals(0, scanner.stream().count());
         }
       }
@@ -364,18 +374,18 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       write(client, table, generateMutations(0, 100, tr -> true));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), generateKeys(0, 100, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100, tr -> true));
 
       write(client, table, generateMutations(0, 50, 0x7abc1234, tr -> true));
 
       // test the test
-      assertNotEquals(generateKeys(0, 50, 0x7abc1234, tr -> true), generateKeys(0, 50, tr -> true));
+      assertNotEquals(generateKeys(0, 50, 0x7abc1234, tr -> true), generateKeys(0, 50));
 
       TreeMap<Key,Value> expected = new TreeMap<>();
       expected.putAll(generateKeys(0, 50, 0x7abc1234, tr -> true));
-      expected.putAll(generateKeys(50, 100, tr -> true));
+      expected.putAll(generateKeys(50, 100));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, table, AUTHORIZATIONS, expected);
 
       bulkImport(client, table, List.of(generateKeys(25, 75, 0x12345678, tr -> true),
           generateKeys(90, 200, 0x76543210, tr -> true)));
@@ -383,12 +393,12 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       expected.putAll(generateKeys(25, 75, 0x12345678, tr -> true));
       expected.putAll(generateKeys(90, 200, 0x76543210, tr -> true));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, table, AUTHORIZATIONS, expected);
 
       Range delRange1 = new Range(row(20), row(59));
       Range delRange2 = new Range(row(65), row(91));
 
-      try (var deleter = client.createBatchDeleter(table, new Authorizations("CAT", "DOG"), 3)) {
+      try (var deleter = client.createBatchDeleter(table, AUTHORIZATIONS, 3)) {
         deleter.setRanges(List.of(delRange1, delRange2));
         deleter.delete();
       }
@@ -399,11 +409,11 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       assertTrue(sizeBefore > expected.size());
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, table, AUTHORIZATIONS, expected);
 
       client.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
-      verifyData(client, table, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, table, AUTHORIZATIONS, expected);
     }
   }
 
@@ -442,9 +452,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       compactionConfig.setIterators(List.of(iterSetting)).setWait(true);
       client.tableOperations().compact(everythingClone, compactionConfig);
       // scans should not see col fam 3 now
-      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"),
+      verifyData(client, everythingClone, AUTHORIZATIONS,
           generateKeys(0, 100, tr -> tr.fam != 3 && tr.fam != 9));
-      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"),
+      verifyData(client, everythingClone, AUTHORIZATIONS,
           generateKeys(3, 4, tr -> tr.fam != 3 && tr.fam != 9),
           scanner -> scanner.setSamplerConfiguration(everythingSampleConfig));
 
@@ -457,14 +467,13 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       var expected = generateKeys(0, 100, tr -> tr.fam != 3);
       // the iterator removal may not have made it to the tserver, so wait for it
-      Wait.waitFor(
-          () -> expected.equals(scan(client, everythingClone, new Authorizations("CAT", "DOG"))));
+      Wait.waitFor(() -> expected.equals(scan(client, everythingClone, AUTHORIZATIONS)));
 
-      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"), expected);
+      verifyData(client, everythingClone, AUTHORIZATIONS, expected);
 
       // test deleting a row ranges and scanning to verify its gone
       client.tableOperations().deleteRows(everythingClone, new Text(row(35)), new Text(row(40)));
-      verifyData(client, everythingClone, new Authorizations("CAT", "DOG"),
+      verifyData(client, everythingClone, AUTHORIZATIONS,
           generateKeys(0, 100, tr -> (tr.row <= 35 || tr.row > 40) && tr.fam != 3));
 
       // the changes to the clone should not have affected the source table so verify it again
@@ -476,7 +485,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       assertFalse(client.tableOperations().list().contains(everythingClone));
 
       // renaming a table should not affect its data
-      verifyData(client, everythingClone + "9", new Authorizations("CAT", "DOG"),
+      verifyData(client, everythingClone + "9", AUTHORIZATIONS,
           generateKeys(0, 100, tr -> (tr.row <= 35 || tr.row > 40) && tr.fam != 3));
       String tableIdAfterRename = client.tableOperations().tableIdMap().get(everythingClone + "9");
       assertEquals(tableIdBeforeRename, tableIdAfterRename);
@@ -595,9 +604,8 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     verifyData(client, table, Authorizations.EMPTY,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.vis.isEmpty()));
     verifyData(client, table, new Authorizations("CAT"),
-        generateKeys(0, 100, tr -> tr.fam != 9 && !tr.vis.equals("DOG&CAT")));
-    verifyData(client, table, new Authorizations("CAT", "DOG"),
-        generateKeys(0, 100, tr -> tr.fam != 9));
+        generateKeys(0, 100, tr -> tr.fam != 9 && !tr.vis.equals(DOG_AND_CAT)));
+    verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100, tr -> tr.fam != 9));
 
     // test setting range on scanner
     verifyData(client, table, Authorizations.EMPTY,
@@ -613,7 +621,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
           scanner.fetchColumnFamily(new Text(family(8)));
         });
 
-    try (var scanner = client.createBatchScanner(table, new Authorizations("CAT", "DOG"))) {
+    try (var scanner = client.createBatchScanner(table, AUTHORIZATIONS)) {
       // set multiple ranges on scanner
       scanner
           .setRanges(List.of(new Range(row(6), row(18)), new Range(row(27), true, row(37), false)));
@@ -626,10 +634,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         generateKeys(3, 4, tr -> tr.fam != 9 && tr.vis.isEmpty()),
         scanner -> scanner.setSamplerConfiguration(everythingSampleConfig));
     verifyData(client, table, new Authorizations("CAT"),
-        generateKeys(3, 4, tr -> tr.fam != 9 && !tr.vis.equals("DOG&CAT")),
+        generateKeys(3, 4, tr -> tr.fam != 9 && !tr.vis.equals(DOG_AND_CAT)),
         scanner -> scanner.setSamplerConfiguration(everythingSampleConfig));
-    verifyData(client, table, new Authorizations("CAT", "DOG"),
-        generateKeys(3, 4, tr -> tr.fam != 9),
+    verifyData(client, table, AUTHORIZATIONS, generateKeys(3, 4, tr -> tr.fam != 9),
         scanner -> scanner.setSamplerConfiguration(everythingSampleConfig));
 
     // test fetching column families
@@ -637,10 +644,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         generateKeys(0, 100, tr -> tr.fam == 5 && tr.vis.isEmpty()),
         scanner -> scanner.fetchColumnFamily(new Text(family(5))));
     verifyData(client, table, new Authorizations("CAT"),
-        generateKeys(0, 100, tr -> tr.fam == 5 && !tr.vis.equals("DOG&CAT")),
+        generateKeys(0, 100, tr -> tr.fam == 5 && !tr.vis.equals(DOG_AND_CAT)),
         scanner -> scanner.fetchColumnFamily(new Text(family(5))));
-    verifyData(client, table, new Authorizations("CAT", "DOG"),
-        generateKeys(0, 100, tr -> tr.fam == 5),
+    verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100, tr -> tr.fam == 5),
         scanner -> scanner.fetchColumnFamily(new Text(family(5))));
 
     // test setting an iterator on a scanner
@@ -650,9 +656,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7 && tr.vis.isEmpty()),
         scanner -> scanner.addScanIterator(scanIter));
     verifyData(client, table, new Authorizations("CAT"),
-        generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7 && !tr.vis.equals("DOG&CAT")),
+        generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7 && !tr.vis.equals(DOG_AND_CAT)),
         scanner -> scanner.addScanIterator(scanIter));
-    verifyData(client, table, new Authorizations("CAT", "DOG"),
+    verifyData(client, table, AUTHORIZATIONS,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.fam != 7),
         scanner -> scanner.addScanIterator(scanIter));
 
@@ -712,24 +718,23 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   }
 
   private static SortedMap<Key,Value> scan(ScannerBase scanner) {
-    Map<Key,Value> seen = scanner.stream().map(e -> {
+    return scanner.stream().map(e -> {
       Key nk = new Key(e.getKey());
       nk.setTimestamp(Long.MAX_VALUE);
       return new AbstractMap.SimpleEntry<>(nk, e.getValue());
-    }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
-    return new TreeMap<>(seen);
+    }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1, TreeMap::new));
   }
 
   private static void bulkImport(AccumuloClient client, String table,
       List<SortedMap<Key,Value>> data) throws Exception {
     String tmp = getCluster().getTemporaryPath().toString();
-    String dir = tmp + "/comp_bulk_" + UUID.randomUUID();
+    Path dir = new Path(tmp, "comp_bulk_" + UUID.randomUUID());
 
-    getCluster().getFileSystem().mkdirs(new Path(dir));
+    getCluster().getFileSystem().mkdirs(dir);
 
     int count = 0;
     for (var keyValues : data) {
-      try (var output = getCluster().getFileSystem().create(new Path(dir + "/f" + count + ".rf"));
+      try (var output = getCluster().getFileSystem().create(new Path(dir, "f" + count + ".rf"));
           var writer = RFile.newWriter().to(output).build()) {
         writer.startDefaultLocalityGroup();
         for (Map.Entry<Key,Value> entry : keyValues.entrySet()) {
@@ -739,7 +744,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       count++;
     }
 
-    client.tableOperations().importDirectory(dir).to(table).load();
+    client.tableOperations().importDirectory(dir.toString()).to(table).load();
   }
 
   static class TestRecord {
@@ -772,6 +777,10 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
   static String value(int v) {
     return String.format("%09d", v);
+  }
+
+  static SortedMap<Key,Value> generateKeys(int minRow, int maxRow) {
+    return generateKeys(minRow, maxRow, tr -> true);
   }
 
   static SortedMap<Key,Value> generateKeys(int minRow, int maxRow,
@@ -812,7 +821,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
           String vis = "";
           int unsaltedVal = r << 16 | f << 8 | q;
           if (unsaltedVal % 5 == 0) {
-            vis = "DOG&CAT";
+            vis = DOG_AND_CAT;
           } else if (unsaltedVal % 11 == 0) {
             vis = "DOG|CAT";
           }
@@ -845,12 +854,13 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     client.tableOperations().exportTable(srcTable, exportDir);
 
     fs.mkdirs(new Path(importDir));
-    try (var reader =
-        new BufferedReader(new InputStreamReader(fs.open(new Path(exportDir + "/distcp.txt"))))) {
+    try (var inputStream = fs.open(new Path(exportDir + "/distcp.txt"));
+        var inputStreamReader = new InputStreamReader(inputStream);
+        var reader = new BufferedReader(inputStreamReader)) {
       String line;
       while ((line = reader.readLine()) != null) {
         var srcPath = new Path(line);
-        Path destPath = new Path(importDir + "/" + srcPath.getName());
+        Path destPath = new Path(importDir, srcPath.getName());
         FileUtil.copy(fs, srcPath, fs, destPath, false, fs.getConf());
       }
     }
