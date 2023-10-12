@@ -115,6 +115,7 @@ class ActiveCompactionHelper {
       InstanceOperations instanceOps) {
     List<String> compactions = new ArrayList<>();
     try {
+      @SuppressWarnings("deprecation")
       List<ActiveCompaction> acl = new ArrayList<>(instanceOps.getActiveCompactions(tserver));
       acl.sort((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
       for (ActiveCompaction ac : acl) {

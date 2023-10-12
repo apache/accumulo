@@ -151,6 +151,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {

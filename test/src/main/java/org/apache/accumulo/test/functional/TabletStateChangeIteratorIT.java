@@ -300,6 +300,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     private Set<TServerInstance> tservers;
     private Set<TableId> onlineTables;
 
+    @SuppressWarnings("deprecation")
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       HashSet<TServerInstance> tservers = new HashSet<>();

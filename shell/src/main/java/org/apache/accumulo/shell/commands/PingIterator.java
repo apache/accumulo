@@ -39,6 +39,7 @@ class PingIterator implements Iterator<String> {
     return iter.hasNext();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public String next() {
     String tserver = iter.next();

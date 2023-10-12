@@ -47,6 +47,7 @@ import com.google.common.net.HostAndPort;
 public class TransportCachingIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testCachedTransport() throws InterruptedException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

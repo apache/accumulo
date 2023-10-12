@@ -18,13 +18,18 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerType;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -171,21 +176,35 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
+  @Deprecated(since = "3.1.0")
   List<String> getManagerLocations();
 
   /**
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
+  @Deprecated(since = "3.1.0")
   Set<String> getScanServers();
+
+  /**
+   * Returns the servers of a given type that match the given criteria
+   *
+   * @return stream of servers of the supplied types matching the supplied test
+   * @since 3.1.0
+   */
+  Stream<ServerId<?>> getServers(EnumSet<ServerType> types, Predicate<ServerId<?>> test);
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
+   * @deprecated see {@link #getServers(EnumSet, Predicate)}
    */
+  @Deprecated(since = "3.1.0")
   List<String> getTabletServers();
 
   /**
@@ -194,8 +213,22 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
+   * @deprecated see {@link #getActiveScans(ServerId)}
    */
+  @Deprecated(since = "3.1.0")
   List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active scans on a server.
+   *
+   * @param server server type and address
+   * @return A stream of active scans on server.
+   * @since 3.1.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
+   *         SCAN_SERVER
+   */
+  Stream<ActiveScan> getActiveScans(ServerId<?> server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -208,8 +241,24 @@ public interface InstanceOperations {
    *        {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
+   * @deprecated see {@link #getActiveCompactions(ServerId)}
    */
+  @Deprecated(since = "3.1.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a server. Using this method with
+   * {@link #getTabletServers()} will only show compactions running on tservers, leaving out any
+   * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
+   * of all compactions running on tservers and compactors.
+   *
+   * @param server server type and address
+   * @return stream of active compactions
+   * @since 3.1.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or COMPACTOR
+   */
+  Stream<ActiveCompaction> getActiveCompactions(ServerId<?> server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -226,8 +275,19 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @since 1.5.0
+   * @deprecated see {@link #ping(ServerId)}
    */
+  @Deprecated(since = "3.1.0")
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Throws an exception if server can not be contacted.
+   *
+   * @param server server type and address
+   * @since 3.1.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER
+   */
+  void ping(ServerId<?> server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not

@@ -107,6 +107,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         HostAndPortRegexTableLoadBalancer.class.getName());
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   @BeforeEach
   public void setUp() throws Exception {

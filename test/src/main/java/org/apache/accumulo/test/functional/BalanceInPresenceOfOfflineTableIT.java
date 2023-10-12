@@ -82,6 +82,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
 
+  @SuppressWarnings("deprecation")
   @BeforeEach
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {

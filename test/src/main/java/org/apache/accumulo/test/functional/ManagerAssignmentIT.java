@@ -112,6 +112,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testShutdownOnlyTServerWithUserTable() throws Exception {
 
@@ -204,6 +205,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testShutdownOnlyTServerWithoutUserTable() throws Exception {
 

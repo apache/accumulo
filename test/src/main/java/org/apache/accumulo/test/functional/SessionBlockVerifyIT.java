@@ -145,8 +145,10 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
         int sessionsFound = 0;
         // we have configured 1 tserver, so we can grab the one and only
+        @SuppressWarnings("deprecation")
         String tserver = getOnlyElement(c.instanceOperations().getTabletServers());
 
+        @SuppressWarnings("deprecation")
         final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
 
         for (ActiveScan scan : scans) {

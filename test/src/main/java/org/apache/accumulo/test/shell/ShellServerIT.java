@@ -1463,6 +1463,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(7, ts.output.get().split("\n").length - 1);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void listscans() throws Exception {
     final String table = getUniqueNames(1)[0];

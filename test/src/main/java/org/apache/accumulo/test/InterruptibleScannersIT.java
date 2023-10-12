@@ -66,6 +66,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         scanner.addScanIterator(cfg);
         // create a thread to interrupt the slow scan
         final Thread scanThread = Thread.currentThread();
+        @SuppressWarnings("deprecation")
         Thread thread = new Thread(() -> {
           try {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
