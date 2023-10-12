@@ -277,21 +277,6 @@ public class Range implements WritableComparable<Range> {
   }
 
   /**
-   * Determines if the given row is before the start row of this range.
-   *
-   * @param row row to check
-   * @return true if the given row is before the range, otherwise false
-   */
-  public boolean beforeStartRow(Text row) {
-    if (infiniteStartKey) {
-      return false;
-    }
-
-    return startKeyInclusive ? row.compareTo(start.getRow()) < 0
-        : row.compareTo(start.getRow()) <= 0;
-  }
-
-  /**
    * Gets the ending key, or null if the end is positive infinity.
    *
    * @return ending key
@@ -318,20 +303,6 @@ public class Range implements WritableComparable<Range> {
       return stop.compareTo(key) < 0;
     }
     return stop.compareTo(key) <= 0;
-  }
-
-  /**
-   * Determines if the given row is after the ending row of this range.
-   *
-   * @param row row to check
-   * @return true if the given row is after the range, otherwise false
-   */
-  public boolean afterEndRow(Text row) {
-    if (infiniteStopKey) {
-      return false;
-    }
-
-    return stopKeyInclusive ? stop.getRow().compareTo(row) < 0 : stop.getRow().compareTo(row) <= 0;
   }
 
   @Override

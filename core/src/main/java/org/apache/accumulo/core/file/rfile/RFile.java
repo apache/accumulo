@@ -1620,7 +1620,7 @@ public class RFile {
     @Override
     public Text getFirstRow() throws IOException {
       var rfk = reader.getFirstRow();
-      if (fence.beforeStartRow(rfk)) {
+      if (rfk != null && fence.beforeStartKey(new Key(rfk))) {
         return fencedStartKey.getRow();
       } else {
         return rfk;
@@ -1630,7 +1630,7 @@ public class RFile {
     @Override
     public Text getLastRow() throws IOException {
       var rlk = reader.getLastRow();
-      if (fence.afterEndRow(rlk)) {
+      if (rlk != null && fence.afterEndKey(new Key(rlk))) {
         return fencedEndKey.get().getRow();
       } else {
         return rlk;
