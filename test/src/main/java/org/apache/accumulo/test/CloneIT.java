@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URI;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
@@ -32,7 +31,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -410,6 +409,6 @@ public class CloneIT extends AccumuloClusterHarness {
   }
 
   private static String getMetadata(String file) {
-    return StoredTabletFile.of(URI.create(file), new Range()).getMetadata();
+    return StoredTabletFile.of(new Path(file)).getMetadata();
   }
 }
