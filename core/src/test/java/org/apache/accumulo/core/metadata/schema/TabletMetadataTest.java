@@ -101,8 +101,8 @@ public class TabletMetadataTest {
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    StoredTabletFile tf1 = new StoredTabletFile(serialize("hdfs://nn1/acc/tables/1/t-0001/df1.rf"));
-    StoredTabletFile tf2 = new StoredTabletFile(serialize("hdfs://nn1/acc/tables/1/t-0001/df2.rf"));
+    StoredTabletFile tf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/df1.rf"));
+    StoredTabletFile tf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/df2.rf"));
     mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetadata()).put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
     mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetadata()).put(dfv2.encode());
@@ -118,8 +118,8 @@ public class TabletMetadataTest {
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
-    StoredTabletFile sf1 = new StoredTabletFile(serialize("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
-    StoredTabletFile sf2 = new StoredTabletFile(serialize("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadata()).put("");
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadata()).put("");
 
