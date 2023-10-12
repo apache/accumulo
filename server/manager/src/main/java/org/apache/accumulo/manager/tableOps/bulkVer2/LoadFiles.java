@@ -41,7 +41,6 @@ import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -291,7 +290,7 @@ class LoadFiles extends ManagerRepo {
 
         for (final Bulk.FileInfo fileInfo : files) {
           StoredTabletFile fullPath =
-              StoredTabletFile.of(new Path(bulkDir, fileInfo.getFileName()).toUri(), new Range());
+              StoredTabletFile.of(new Path(bulkDir, fileInfo.getFileName()));
           byte[] val =
               new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()).encode();
           mutation.put(fam, fullPath.getMetadata().getBytes(UTF_8), val);
