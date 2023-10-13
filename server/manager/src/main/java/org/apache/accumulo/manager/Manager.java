@@ -524,7 +524,7 @@ public class Manager extends AbstractServer
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
-          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(),
+          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
@@ -536,7 +536,7 @@ public class Manager extends AbstractServer
       try {
         byte[] data = getContext().getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
-        return ManagerGoalState.valueOf(new String(data));
+        return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, SECONDS);
@@ -1233,7 +1233,7 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     log.info("Setting manager lock data to {}", address);
     try {
-      managerLock.replaceLockData(address.getBytes());
+      managerLock.replaceLockData(address.getBytes(UTF_8));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
@@ -1521,7 +1521,7 @@ public class Manager extends AbstractServer
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
       managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes());
+      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();
 

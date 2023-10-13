@@ -1095,7 +1095,7 @@ public class Mutation implements Writable {
      */
     @Override
     public TimestampOptions visibility(Text colVis) {
-      return visibility(colVis.toString().getBytes());
+      return visibility(colVis.copyBytes());
     }
 
     /**
@@ -1201,7 +1201,7 @@ public class Mutation implements Writable {
      */
     @Override
     public Mutation put(Text val) {
-      return put(val.toString().getBytes(), false);
+      return put(val.copyBytes(), false);
     }
 
     /**
