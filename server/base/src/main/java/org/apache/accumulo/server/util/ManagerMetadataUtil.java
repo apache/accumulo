@@ -204,6 +204,8 @@ public class ManagerMetadataUtil {
     tablet.putZooLock(zooLock);
 
     tablet.mutate();
+    // Write candidates twice to avoid a possible race condition when removing InUse candidates
+    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
   }
 
   /**
