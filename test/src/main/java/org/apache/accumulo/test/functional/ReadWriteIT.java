@@ -194,6 +194,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void largeTest() throws Exception {
+    // write a few large values
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      String table = getUniqueNames(1)[0];
+      ingest(accumuloClient, 2, 1, 500000, 0, table);
+      verify(accumuloClient, 2, 1, 500000, 0, table);
+    }
+  }
+
+  @Test
   public void interleaved() throws Exception {
     // read and write concurrently
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
@@ -233,16 +243,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     Mutation m = new Mutation(t(row));
     m.put(t(cf), t(cq), new Value(value));
     return m;
-  }
-
-  @Test
-  public void largeTest() throws Exception {
-    // write a few large values
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      String table = getUniqueNames(1)[0];
-      ingest(accumuloClient, 2, 1, 500000, 0, table);
-      verify(accumuloClient, 2, 1, 500000, 0, table);
-    }
   }
 
   @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER",
