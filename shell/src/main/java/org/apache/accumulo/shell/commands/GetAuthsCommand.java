@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +53,7 @@ public class GetAuthsCommand extends Command {
   protected List<String> sortAuthorizations(Authorizations auths) {
     List<String> list = new ArrayList<>();
     for (byte[] auth : auths) {
-      list.add(new String(auth));
+      list.add(new String(auth, UTF_8));
     }
     list.sort(String.CASE_INSENSITIVE_ORDER);
     return list;

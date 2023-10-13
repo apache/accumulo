@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -83,7 +85,7 @@ public class LogSorter {
 
     @Override
     public void process(String child, byte[] data) {
-      String work = new String(data);
+      String work = new String(data, UTF_8);
       String[] parts = work.split("\\|");
       String src = parts[0];
       String dest = parts[1];

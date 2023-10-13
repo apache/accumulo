@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -526,7 +527,7 @@ public class Manager extends AbstractServer
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
-          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(),
+          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
@@ -538,7 +539,7 @@ public class Manager extends AbstractServer
       try {
         byte[] data = getContext().getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
-        return ManagerGoalState.valueOf(new String(data));
+        return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, SECONDS);

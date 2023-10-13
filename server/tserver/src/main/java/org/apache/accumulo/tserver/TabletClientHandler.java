@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 
@@ -863,7 +864,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
       ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
 
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
+    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table), UTF_8));
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
 
     if (!security.canSplitTablet(credentials, tableId, namespaceId)) {
