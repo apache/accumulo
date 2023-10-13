@@ -1233,14 +1233,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testSetGoalCommand() throws Exception {
+  public void testSetHostingGoalCommand() throws Exception {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g");
-    String result = ts.exec("setgoal -?");
+    String result = ts.exec("sethostinggoal -?");
     assertTrue(result.contains("Sets the hosting goal"));
-    ts.exec("setgoal -t " + table + " -b a -e a -g never");
-    ts.exec("setgoal -t " + table + " -b c -e e -ee -g always");
+    ts.exec("sethostinggoal -t " + table + " -b a -e a -g never");
+    ts.exec("sethostinggoal -t " + table + " -b c -e e -ee -g always");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = getTableId(table);
@@ -1263,7 +1263,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testGetGoalCommand() throws Exception {
+  public void testGetHostingGoalCommand() throws Exception {
 
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
@@ -1275,12 +1275,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
       splitsFilePath = createSplitsFile("splitsFile", splits);
 
       ts.exec("createtable " + tableName + " -sf " + splitsFilePath.toAbsolutePath(), true);
-      String result = ts.exec("getgoal -?");
-      assertTrue(result.contains("usage: getgoal"));
+      String result = ts.exec("gethostinggoal -?");
+      assertTrue(result.contains("usage: gethostinggoal"));
 
       String tableId = getTableId(tableName);
 
-      result = ts.exec("getgoal");
+      result = ts.exec("gethostinggoal");
       assertTrue(result.contains("TABLE: " + tableName));
       assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
       assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
@@ -1288,20 +1288,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(result.contains(tableId + ";s;m        ONDEMAND"));
       assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
 
-      ts.exec("setgoal -g ALWAYS -r p");
-      result = ts.exec("getgoal -r p");
+      ts.exec("sethostinggoal -g ALWAYS -r p");
+      result = ts.exec("gethostinggoal -r p");
       assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
       assertFalse(result.contains(tableId + ";m;d        ONDEMAND"));
       assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
       assertFalse(result.contains(tableId + "<;s         ONDEMAND"));
 
-      result = ts.exec("getgoal");
+      result = ts.exec("gethostinggoal");
       assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
       assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
       assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
       assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
 
-      result = ts.exec("getgoal -b f -e p");
+      result = ts.exec("gethostinggoal -b f -e p");
       assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
       assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
       assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
@@ -1316,7 +1316,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   // Verify that when splits are added after table creation, hosting goals are set properly
   @Test
-  public void testGetGoalCommand_DelayedSplits() throws Exception {
+  public void testGetHostingGoalCommand_DelayedSplits() throws Exception {
 
     for (int i = 0; i < 40; i++) {
       ts.exec("createtable tab" + i, true);
@@ -1328,7 +1328,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     String tableId = getTableId(tableName[0]);
 
-    String result = ts.exec("getgoal");
+    String result = ts.exec("gethostinggoal");
 
     assertTrue(result.contains("TABLE: " + tableName[0]));
     assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
@@ -1336,7 +1336,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // add the splits and check goals again
     ts.exec("addsplits d m s", true);
-    result = ts.exec("getgoal");
+    result = ts.exec("gethostinggoal");
     assertTrue(result.matches("(?s).*" + tableId + "[;]d<\\s+ONDEMAND.*"));
     assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
     assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ONDEMAND.*"));
@@ -1353,13 +1353,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     String tableId2 = getTableId(tableName[1]);
 
-    result = ts.exec("getgoal");
+    result = ts.exec("gethostinggoal");
     assertTrue(result.contains("TABLE: " + tableName[1]));
     assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
     assertTrue(result.matches("(?s).*" + tableId2 + "<<\\s+ALWAYS.*"));
 
     ts.exec("addsplits d m s", true);
-    result = ts.exec("getgoal");
+    result = ts.exec("gethostinggoal");
     assertTrue(result.matches("(?s).*" + tableId2 + ";d<\\s+ALWAYS.*"));
     assertTrue(result.matches("(?s).*" + tableId2 + ";m;d\\s+ALWAYS.*"));
     assertTrue(result.matches("(?s).*" + tableId2 + ";s;m\\s+ALWAYS.*"));
@@ -1852,8 +1852,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g m t");
-    ts.exec("setgoal -t " + table + " -b a -e a -g never");
-    ts.exec("setgoal -t " + table + " -b c -e e -ee -g always");
+    ts.exec("sethostinggoal -t " + table + " -b a -e a -g never");
+    ts.exec("sethostinggoal -t " + table + " -b c -e e -ee -g always");
 
     ts.exec("scan -t " + table + " -np -b a -e c", false);
     ts.exec("scan -t " + table + " -np -b a -e e", false);
@@ -2282,19 +2282,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("createtable " + table1, true);
     ts.exec("addsplits g n u", true);
-    ts.exec("setgoal -g always -r g", true);
-    ts.exec("setgoal -g always -r u", true);
+    ts.exec("sethostinggoal -g always -r g", true);
+    ts.exec("sethostinggoal -g always -r u", true);
     insertData(table1, 1000, 3);
     ts.exec("compact -w -t " + table1);
     ts.exec("scan -t " + table1);
 
     ts.exec("createtable " + table2, true);
     ts.exec("addsplits f m t", true);
-    ts.exec("setgoal -g always -r n", true);
+    ts.exec("sethostinggoal -g always -r n", true);
     insertData(table2, 500, 5);
     ts.exec("compact -t " + table2);
     ts.exec("scan -t " + table1);
-    ts.exec("setgoal -r g -t " + table2 + " -g NEVER");
+    ts.exec("sethostinggoal -r g -t " + table2 + " -g NEVER");
 
     // give tablet time to become unassigned
     for (var i = 0; i < 15; i++) {
