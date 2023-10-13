@@ -48,6 +48,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -64,6 +65,8 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -76,12 +79,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.NamespacePermission;
+import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
@@ -91,6 +98,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.MoreCollectors;
 
 /**
  * The purpose of this test is to exercise a large amount of Accumulo's features in a single test.
@@ -417,6 +426,299 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void invalidInstanceName() {
+    try (var client = Accumulo.newClient().to("fake_instance_name", getCluster().getZooKeepers())
+        .as(getAdminPrincipal(), getToken()).build()) {
+      assertThrows(RuntimeException.class, () -> client.instanceOperations().getTabletServers());
+    }
+  }
+
+  @Test
+  public void testMultiTableWrite() throws Exception {
+    String[] tables = getUniqueNames(2);
+    String table1 = tables[0];
+    String table2 = tables[1];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      client.tableOperations().create(table2);
+
+      try (var writer = client.createMultiTableBatchWriter()) {
+        writer.getBatchWriter(table1).addMutations(generateMutations(0, 100, tr -> true));
+        writer.getBatchWriter(table2).addMutations(generateMutations(100, 200, tr -> true));
+        writer.getBatchWriter(table1).addMutations(generateMutations(200, 300, tr -> true));
+        writer.getBatchWriter(table2).addMutations(generateMutations(300, 400, tr -> true));
+      }
+
+      TreeMap<Key,Value> expected1 = new TreeMap<>();
+      expected1.putAll(generateKeys(0, 100));
+      expected1.putAll(generateKeys(200, 300));
+
+      TreeMap<Key,Value> expected2 = new TreeMap<>();
+      expected2.putAll(generateKeys(100, 200));
+      expected2.putAll(generateKeys(300, 400));
+
+      verifyData(client, table1, AUTHORIZATIONS, expected1);
+      verifyData(client, table2, AUTHORIZATIONS, expected2);
+
+      try (var writer = client.createMultiTableBatchWriter()) {
+        writer.getBatchWriter(table1)
+            .addMutations(generateMutations(0, 100, 0x12345678, tr -> true));
+        writer.getBatchWriter(table2)
+            .addMutations(generateMutations(100, 200, 0x12345678, tr -> true));
+        writer.getBatchWriter(table1)
+            .addMutations(generateMutations(200, 300, 0x12345678, tr -> true));
+        writer.getBatchWriter(table2)
+            .addMutations(generateMutations(300, 400, 0x12345678, tr -> true));
+      }
+
+      expected1.putAll(generateKeys(0, 100, 0x12345678, tr -> true));
+      expected1.putAll(generateKeys(200, 300, 0x12345678, tr -> true));
+      expected2.putAll(generateKeys(100, 200, 0x12345678, tr -> true));
+      expected2.putAll(generateKeys(300, 400, 0x12345678, tr -> true));
+
+      verifyData(client, table1, AUTHORIZATIONS, expected1);
+      verifyData(client, table2, AUTHORIZATIONS, expected2);
+    }
+  }
+
+  @Test
+  public void testSecurity() throws Exception {
+    String[] tables = getUniqueNames(2);
+    String rootsTable = tables[0];
+    String usersTable = tables[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.tableOperations().create(rootsTable);
+      write(client, rootsTable, generateMutations(0, 100, tr -> true));
+      verifyData(client, rootsTable, AUTHORIZATIONS, generateKeys(0, 100));
+
+      var password = new PasswordToken("bestpass1234");
+      client.securityOperations().createLocalUser("user1", password);
+
+      try (var userClient =
+          Accumulo.newClient().from(getClientProps()).as("user1", password).build()) {
+
+        // user1 should not be able to read table
+        var ise = assertThrows(IllegalStateException.class,
+            () -> verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 100)));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED,
+            ((AccumuloSecurityException) ise.getCause()).getSecurityErrorCode());
+
+        // user1 should not be able to grant theirself read access
+        var ase = assertThrows(AccumuloSecurityException.class, () -> userClient
+            .securityOperations().grantTablePermission("user1", rootsTable, TablePermission.READ));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+
+        // grant user1 read access
+        client.securityOperations().grantTablePermission("user1", rootsTable, TablePermission.READ);
+
+        // security changes take time to propagate, should eventually be able to scan table
+        Wait.waitFor(() -> {
+          try {
+            verifyData(userClient, rootsTable, Authorizations.EMPTY,
+                generateKeys(0, 100, tr -> tr.vis.isEmpty()));
+            return true;
+          } catch (IllegalStateException e) {
+            return false;
+          }
+        });
+        verifyData(userClient, rootsTable, Authorizations.EMPTY,
+            generateKeys(0, 100, tr -> tr.vis.isEmpty()));
+
+        // should not be able to scan with authorizations the user does not have
+        ise = assertThrows(IllegalStateException.class,
+            () -> verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 100)));
+        assertEquals(SecurityErrorCode.BAD_AUTHORIZATIONS,
+            ((AccumuloSecurityException) ise.getCause()).getSecurityErrorCode());
+
+        // scan w/o setting auths, should only return data w/o auths
+        try (Scanner scanner = userClient.createScanner(rootsTable)) {
+          assertEquals(generateKeys(0, 100, tr -> tr.vis.isEmpty()), scan(scanner));
+        }
+
+        // user should not have permission to write to table
+        var mre = assertThrows(MutationsRejectedException.class,
+            () -> write(userClient, rootsTable, generateMutations(100, 200, tr -> true)));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, mre.getSecurityErrorCodes().values()
+            .stream().flatMap(Set::stream).collect(MoreCollectors.onlyElement()));
+        // ensure no new data was written
+        assertEquals(new Text(row(99)), client.tableOperations().getMaxRow(rootsTable,
+            AUTHORIZATIONS, new Text(row(98)), true, new Text(row(110)), true));
+
+        client.securityOperations().grantTablePermission("user1", rootsTable,
+            TablePermission.WRITE);
+        // security changes take time to propagate, should eventually be able to write
+        Wait.waitFor(() -> {
+          try {
+            write(userClient, rootsTable, generateMutations(100, 200, tr -> true));
+            return true;
+          } catch (MutationsRejectedException e) {
+            return false;
+          }
+        });
+
+        // ensure newly written data is visible
+        verifyData(client, rootsTable, AUTHORIZATIONS, generateKeys(0, 200));
+
+        // allow user to write to table and verify can write
+        client.securityOperations().changeUserAuthorizations("user1", AUTHORIZATIONS);
+        Wait.waitFor(() -> {
+          try {
+            verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 200));
+            return true;
+          } catch (IllegalStateException e) {
+            return false;
+          }
+        });
+        verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 200));
+        // should scan with all of users granted auths since no auths were specified
+        try (Scanner scanner = userClient.createScanner(rootsTable)) {
+          assertEquals(generateKeys(0, 200), scan(scanner));
+        }
+
+        var splits = new TreeSet<>(List.of(new Text(row(50))));
+
+        // should not have permission to alter the table
+        ase = assertThrows(AccumuloSecurityException.class,
+            () -> userClient.tableOperations().addSplits(rootsTable, splits));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+        // ensure no splits were added
+        assertEquals(Set.of(), Set.copyOf(client.tableOperations().listSplits(rootsTable)));
+
+        client.securityOperations().grantTablePermission("user1", rootsTable,
+            TablePermission.ALTER_TABLE);
+        Wait.waitFor(() -> {
+          try {
+            userClient.tableOperations().addSplits(rootsTable, splits);
+            return true;
+          } catch (AccumuloSecurityException e) {
+            return false;
+          }
+        });
+        assertEquals(splits, Set.copyOf(userClient.tableOperations().listSplits(rootsTable)));
+
+        // user should not have permission to bulk import
+        ase = assertThrows(AccumuloSecurityException.class, () -> bulkImport(userClient, rootsTable,
+            List.of(generateKeys(200, 250, tr -> true), generateKeys(250, 300, tr -> true))));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+        verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 200));
+
+        // TODO open a bug about this, had to add this permission to get bulk import to work
+        client.securityOperations().grantSystemPermission("user1", SystemPermission.SYSTEM);
+        // give permission to bulk import and verify it works
+        client.securityOperations().grantTablePermission("user1", rootsTable,
+            TablePermission.BULK_IMPORT);
+        Wait.waitFor(() -> {
+          try {
+            bulkImport(userClient, rootsTable,
+                List.of(generateKeys(200, 250, tr -> true), generateKeys(250, 300, tr -> true)));
+            return true;
+          } catch (AccumuloSecurityException e) {
+            return false;
+          }
+        });
+        verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 300));
+        client.securityOperations().revokeSystemPermission("user1", SystemPermission.SYSTEM);
+
+        // user1 should not be able to delete the table
+        ase = assertThrows(AccumuloSecurityException.class,
+            () -> userClient.tableOperations().delete(rootsTable));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+        // table should still exists and be readable
+        verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 300));
+
+        // remove user1 table permission and veriy that eventually they can not read
+        client.securityOperations().revokeTablePermission("user1", rootsTable,
+            TablePermission.READ);
+        Wait.waitFor(() -> {
+          try {
+            verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 300));
+            return false;
+          } catch (IllegalStateException e) {
+            assertEquals(SecurityErrorCode.PERMISSION_DENIED,
+                ((AccumuloSecurityException) e.getCause()).getSecurityErrorCode());
+            return true;
+          }
+        });
+
+        // grant user1 permissions to drop table, delete the table and verify its deleted
+        client.securityOperations().grantTablePermission("user1", rootsTable,
+            TablePermission.DROP_TABLE);
+        Wait.waitFor(() -> {
+          try {
+            userClient.tableOperations().delete(rootsTable);
+            return true;
+          } catch (AccumuloSecurityException e) {
+            return false;
+          }
+        });
+        assertThrows(TableNotFoundException.class,
+            () -> verifyData(userClient, rootsTable, AUTHORIZATIONS, generateKeys(0, 300)));
+        assertFalse(userClient.tableOperations().list().contains(rootsTable));
+
+        // user1 should not be able to create a table
+        ase = assertThrows(AccumuloSecurityException.class,
+            () -> userClient.tableOperations().create(usersTable));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+
+        // create namespace and grant user1 access to create tables in the namespace
+        client.namespaceOperations().create("ns1");
+        client.securityOperations().grantNamespacePermission("user1", "ns1",
+            NamespacePermission.CREATE_TABLE);
+        var tableNS = "ns1." + usersTable;
+        Wait.waitFor(() -> {
+          try {
+            var ntc = new NewTableConfiguration()
+                .setProperties(Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "2",
+                    VisibilityConstraint.class.getName()));
+            userClient.tableOperations().create(tableNS, ntc);
+            return true;
+          } catch (AccumuloSecurityException e) {
+            return false;
+          }
+        });
+
+        // user1 should still not be able to create table in the default namepsace
+        ase = assertThrows(AccumuloSecurityException.class,
+            () -> userClient.tableOperations().create(usersTable));
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+
+        // verify user1 can interact with table they created
+        write(userClient, tableNS, generateMutations(0, 100, tr -> true));
+        verifyData(userClient, tableNS, AUTHORIZATIONS, generateKeys(0, 100, tr -> true));
+
+        // confirm user can not write data they can not see because visibility constraint was set on
+        // table
+        mre = assertThrows(MutationsRejectedException.class, () -> {
+          try (var writer = userClient.createBatchWriter(tableNS)) {
+            Mutation m = new Mutation("invisible");
+            m.put("f", "q", new ColumnVisibility("DOG&HAMSTER"), "v1");
+            writer.addMutation(m);
+          }
+        });
+        assertEquals(VisibilityConstraint.class.getName(), mre.getConstraintViolationSummaries()
+            .stream().map(cvs -> cvs.constrainClass).collect(MoreCollectors.onlyElement()));
+
+        // confirm user can delete table
+        userClient.tableOperations().delete(tableNS);
+        assertFalse(userClient.tableOperations().list().contains(tableNS));
+        assertFalse(userClient.tableOperations().list().contains(usersTable));
+      }
+
+      // attempt to perform operations with incorrect password
+      try (var userClient = Accumulo.newClient().from(getClientProps())
+          .as("user1", new PasswordToken("bestpass123")).build()) {
+        var ase = assertThrows(AccumuloSecurityException.class,
+            () -> userClient.tableOperations().create("ns1." + usersTable));
+        assertEquals(SecurityErrorCode.BAD_CREDENTIALS, ase.getSecurityErrorCode());
+      }
+
+    }
+  }
+
   /*
    * This test happens to cover a lot features in the Accumulo public API like sampling,
    * summarizations, and some table operations. Those features do not need to be tested elsewhere.
@@ -732,19 +1034,23 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
     getCluster().getFileSystem().mkdirs(dir);
 
-    int count = 0;
-    for (var keyValues : data) {
-      try (var output = getCluster().getFileSystem().create(new Path(dir, "f" + count + ".rf"));
-          var writer = RFile.newWriter().to(output).build()) {
-        writer.startDefaultLocalityGroup();
-        for (Map.Entry<Key,Value> entry : keyValues.entrySet()) {
-          writer.append(entry.getKey(), entry.getValue());
+    try {
+      int count = 0;
+      for (var keyValues : data) {
+        try (var output = getCluster().getFileSystem().create(new Path(dir, "f" + count + ".rf"));
+            var writer = RFile.newWriter().to(output).build()) {
+          writer.startDefaultLocalityGroup();
+          for (Map.Entry<Key,Value> entry : keyValues.entrySet()) {
+            writer.append(entry.getKey(), entry.getValue());
+          }
         }
+        count++;
       }
-      count++;
-    }
 
-    client.tableOperations().importDirectory(dir.toString()).to(table).load();
+      client.tableOperations().importDirectory(dir.toString()).to(table).load();
+    } finally {
+      getCluster().getFileSystem().delete(dir, true);
+    }
   }
 
   static class TestRecord {

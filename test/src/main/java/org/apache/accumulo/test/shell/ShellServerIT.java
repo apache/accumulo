@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -102,7 +101,6 @@ import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
