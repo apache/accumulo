@@ -1619,21 +1619,21 @@ public class RFile {
 
     @Override
     public Text getFirstRow() throws IOException {
-      var rfk = reader.getFirstRow();
-      if (rfk != null && fence.beforeStartKey(new Key(rfk))) {
+      var row = reader.getFirstRow();
+      if (row != null && fence.beforeStartKey(new Key(row))) {
         return fencedStartKey.getRow();
       } else {
-        return rfk;
+        return row;
       }
     }
 
     @Override
     public Text getLastRow() throws IOException {
-      var rlk = reader.getLastRow();
-      if (rlk != null && fence.afterEndKey(new Key(rlk))) {
+      var row = reader.getLastRow();
+      if (row != null && fence.afterEndKey(new Key(row))) {
         return fencedEndKey.get().getRow();
       } else {
-        return rlk;
+        return row;
       }
     }
 
