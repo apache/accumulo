@@ -20,21 +20,21 @@ package org.apache.accumulo.server.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.server.util.FileUtil.FileInfo;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class FileInfoTest {
-  private Key key1;
-  private Key key2;
+  private Text row1;
+  private Text row2;
   private FileInfo info;
 
   @BeforeEach
   public void setUp() {
-    key1 = new Key("row1");
-    key2 = new Key("row2");
-    info = new FileInfo(key1, key2);
+    row1 = new Text("row1");
+    row2 = new Text("row2");
+    info = new FileInfo(row1, row2);
   }
 
   @Test
