@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.conf.util;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 
 import java.time.Duration;
 
@@ -36,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ZooPropEditorIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditorIT.class);

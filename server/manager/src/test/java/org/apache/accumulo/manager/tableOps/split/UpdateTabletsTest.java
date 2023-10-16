@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -45,7 +44,7 @@ public class UpdateTabletsTest {
   }
 
   FileUtil.FileInfo newFileInfo(String start, String end) {
-    return new FileUtil.FileInfo(new Key(start), new Key(end));
+    return new FileUtil.FileInfo(new Text(start), new Text(end));
   }
 
   // When a tablet splits its files are partitioned among the new children tablets. This test

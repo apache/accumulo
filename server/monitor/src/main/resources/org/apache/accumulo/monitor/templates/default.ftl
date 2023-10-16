@@ -45,6 +45,7 @@
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
       <script src="/resources/external/flot/jquery.flot.resize.js"></script>
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
+      <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-icons.css" />
       <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap5.css" />
     </#if>
 
@@ -66,12 +67,14 @@
       <script src="/resources/js/${js}"></script>
     </#if>
     <script src="/resources/js/navbar.js"></script>
+    <script src="/resources/js/systemAlert.js"></script>
   </head>
 
   <body>
     <#include "navbar.ftl">
 
     <div id="main" class="container-fluid">
+      <#include "systemAlert.ftl">
       <#include "${template}">
     </div>
 

@@ -146,7 +146,7 @@
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- dependency and plugin versions managed with properties -->
     <version.auto-service>1.1.1</version.auto-service>
-    <version.bouncycastle>1.70</version.bouncycastle>
+    <version.bouncycastle>1.76</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.20.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
@@ -539,12 +539,12 @@
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk15on</artifactId>
+        <artifactId>bcpkix-jdk18on</artifactId>
         <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
+        <artifactId>bcprov-jdk18on</artifactId>
         <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>

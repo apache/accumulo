@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -40,20 +39,20 @@ import org.slf4j.LoggerFactory;
 public class FileUtil {
 
   public static class FileInfo {
-    private final Text firstKey;
-    private final Text lastKey;
+    final Text firstRow;
+    final Text lastRow;
 
-    public FileInfo(Key firstKey, Key lastKey) {
-      this.firstKey = firstKey.getRow();
-      this.lastKey = lastKey.getRow();
+    public FileInfo(Text firstRow, Text lastRow) {
+      this.firstRow = firstRow;
+      this.lastRow = lastRow;
     }
 
     public Text getFirstRow() {
-      return firstKey;
+      return firstRow;
     }
 
     public Text getLastRow() {
-      return lastKey;
+      return lastRow;
     }
   }
 
@@ -102,9 +101,9 @@ public class FileUtil {
             .forFile(dataFile, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
-        Key firstKey = reader.getFirstKey();
-        if (firstKey != null) {
-          dataFilesInfo.put(dataFile, new FileInfo(firstKey, reader.getLastKey()));
+        Text firstRow = reader.getFirstRow();
+        if (firstRow != null) {
+          dataFilesInfo.put(dataFile, new FileInfo(firstRow, reader.getLastRow()));
         }
 
       } catch (IOException ioe) {
