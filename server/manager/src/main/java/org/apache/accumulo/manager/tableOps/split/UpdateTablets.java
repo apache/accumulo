@@ -37,7 +37,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.DestructiveTabletManagerRepo;
 import org.apache.accumulo.server.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,50 +45,47 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
-public class UpdateTablets extends ManagerRepo {
+public class UpdateTablets extends DestructiveTabletManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(UpdateTablets.class);
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
   private final List<String> dirNames;
 
   public UpdateTablets(SplitInfo splitInfo, List<String> dirNames) {
+    super(TabletOperationType.SPLITTING, splitInfo.getOriginal());
     this.splitInfo = splitInfo;
     this.dirNames = dirNames;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
+
     TabletMetadata tabletMetadata =
         manager.getContext().getAmple().readTablet(splitInfo.getOriginal());
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
 
-    if (tabletMetadata == null) {
-      // check to see if this operation has already succeeded.
-      TabletMetadata newTabletMetadata =
-          manager.getContext().getAmple().readTablet(splitInfo.getTablets().last());
+    if (!canContinue(tid, manager)) {
 
-      if (newTabletMetadata != null && opid.equals(newTabletMetadata.getOperationId())) {
-        // have already created the new tablet and failed before we could return the next step, so
-        // lets go ahead and return the next step.
-        log.trace(
-            "{} creating new tablet was rejected because it existed, operation probably failed before.",
-            FateTxId.formatTid(tid));
-        return new DeleteOperationIds(splitInfo);
-      } else {
-        throw new IllegalStateException("Tablet is in an unexpected condition "
-            + splitInfo.getOriginal() + " " + (newTabletMetadata == null) + " "
-            + (newTabletMetadata == null ? null : newTabletMetadata.getOperationId()));
+      if (tabletMetadata == null) {
+        // check to see if this operation has already succeeded.
+        TabletMetadata newTabletMetadata =
+            manager.getContext().getAmple().readTablet(splitInfo.getTablets().last());
+
+        if (newTabletMetadata != null && opid.equals(newTabletMetadata.getOperationId())) {
+          // have already created the new tablet and failed before we could return the next step, so
+          // lets go ahead and return the next step.
+          log.trace(
+              "{} creating new tablet was rejected because it existed, operation probably failed before.",
+              FateTxId.formatTid(tid));
+          return new DeleteOperationIds(splitInfo);
+        } else {
+          throw new IllegalStateException("Tablet is in an unexpected condition "
+              + splitInfo.getOriginal() + " " + (newTabletMetadata == null) + " "
+              + (newTabletMetadata == null ? null : newTabletMetadata.getOperationId()));
+        }
       }
     }
-
-    Preconditions.checkState(tabletMetadata.getOperationId().equals(opid),
-        "Tablet %s does not have expected operation id %s it has %s", splitInfo.getOriginal(), opid,
-        tabletMetadata.getOperationId());
-
-    Preconditions.checkState(tabletMetadata.getLocation() == null,
-        "Tablet %s unexpectedly has a location %s", splitInfo.getOriginal(),
-        tabletMetadata.getLocation());
 
     var newTablets = splitInfo.getTablets();
 
