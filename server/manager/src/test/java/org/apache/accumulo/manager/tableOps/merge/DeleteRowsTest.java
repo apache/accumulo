@@ -24,7 +24,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
 import org.junit.jupiter.api.Test;
 
-public class TabletGroupWatcherTest {
+public class DeleteRowsTest {
 
   @Test
   public void testComputeNewDfvEven() {
