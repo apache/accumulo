@@ -1281,29 +1281,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
       result = ts.exec("gethostinggoal");
       assertTrue(result.contains("TABLE: " + tableName));
       assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
-      assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
-      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
-      assertTrue(result.contains(tableId + ";s;m        ONDEMAND"));
-      assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
+      assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
       ts.exec("sethostinggoal -g ALWAYS -r p");
       result = ts.exec("gethostinggoal -r p");
-      assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
-      assertFalse(result.contains(tableId + ";m;d        ONDEMAND"));
-      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
-      assertFalse(result.contains(tableId + "<;s         ONDEMAND"));
+      assertFalse(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertFalse(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
       result = ts.exec("gethostinggoal");
-      assertTrue(result.contains(tableId + ";d<         ONDEMAND"));
-      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
-      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
-      assertTrue(result.contains(tableId + "<;s         ONDEMAND"));
+      assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
       result = ts.exec("gethostinggoal -b f -e p");
-      assertFalse(result.contains(tableId + ";d<         ONDEMAND"));
-      assertTrue(result.contains(tableId + ";m;d        ONDEMAND"));
-      assertTrue(result.contains(tableId + ";s;m        ALWAYS"));
-      assertFalse(result.contains(tableId + "<;s         ONDEMAND"));
+      assertFalse(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
     } finally {
       if (splitsFilePath != null) {
