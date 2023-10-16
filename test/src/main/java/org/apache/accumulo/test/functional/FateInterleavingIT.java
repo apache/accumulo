@@ -62,7 +62,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class FateInterleavingIT extends SharedMiniClusterBase {
-  
+
   public static class FirstOp extends ManagerRepo {
 
     private static final long serialVersionUID = 1L;
@@ -137,7 +137,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
   public static void teardown() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
-  
+
   @BeforeEach
   public void before() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -215,7 +215,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
       Stream.generate(() -> null)
           .takeWhile(x -> (iter.hasNext() && remaining.getAndDecrement() > 0)).map(n -> iter.next())
           .forEach(e -> subset.put(e.getKey(), e.getValue()));
-      
+
       assertTrue(
           subset.values().stream().allMatch(v -> new String(v.get(), UTF_8).startsWith("FirstOp")));
       assertEquals(2, subset.keySet().stream()
@@ -261,7 +261,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
 
     }
   }
-  
+
   public static class FirstNonInterleavingOp extends FirstOp {
 
     private static final long serialVersionUID = 1L;
@@ -270,7 +270,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
     public boolean interleave() {
       return false;
     }
-    
+
     @Override
     public Repo<Manager> call(long tid, Manager manager) throws Exception {
       Thread.sleep(500);
@@ -278,7 +278,6 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
       return new SecondNonInterleavingOp();
     }
 
-    
   }
 
   public static class SecondNonInterleavingOp extends SecondOp {
@@ -289,15 +288,15 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
     public boolean interleave() {
       return false;
     }
-    
+
     @Override
     public Repo<Manager> call(long tid, Manager environment) throws Exception {
       super.call(tid, environment);
       return new LastNonInterleavingOp();
     }
-    
+
   }
-  
+
   public static class LastNonInterleavingOp extends LastOp {
 
     private static final long serialVersionUID = 1L;
@@ -306,9 +305,9 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
     public boolean interleave() {
       return false;
     }
-    
+
   }
-  
+
   @Test
   public void testNonInterleaving() throws Exception {
 
@@ -366,7 +365,8 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
           .forEach(e -> subset.put(e.getKey(), e.getValue()));
 
       Text firstTransactionId = subset.keySet().iterator().next().getColumnFamily();
-      assertTrue(subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(firstTransactionId)));
+      assertTrue(
+          subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(firstTransactionId)));
 
       subset.clear();
       remaining.set(6);
@@ -376,7 +376,8 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
           .forEach(e -> subset.put(e.getKey(), e.getValue()));
 
       Text secondTransactionId = subset.keySet().iterator().next().getColumnFamily();
-      assertTrue(subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(secondTransactionId)));
+      assertTrue(
+          subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(secondTransactionId)));
 
       subset.clear();
       remaining.set(6);
@@ -386,7 +387,8 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
           .forEach(e -> subset.put(e.getKey(), e.getValue()));
 
       Text thirdTransactionId = subset.keySet().iterator().next().getColumnFamily();
-      assertTrue(subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(thirdTransactionId)));
+      assertTrue(
+          subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(thirdTransactionId)));
 
       assertFalse(iter.hasNext());
 
