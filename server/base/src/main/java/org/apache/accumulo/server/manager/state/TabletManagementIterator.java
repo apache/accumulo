@@ -302,8 +302,7 @@ public class TabletManagementIterator extends SkippingIterator {
         // we always want data about assigned tablets
         return true;
       case HOSTED:
-        if (!shouldBeOnline || tm.getOperationId() != null
-            || tm.getHostingGoal() == TabletHostingGoal.NEVER
+        if (!shouldBeOnline || tm.getHostingGoal() == TabletHostingGoal.NEVER
             || (tm.getHostingGoal() == TabletHostingGoal.ONDEMAND && !tm.getHostingRequested())) {
           return true;
         }
@@ -313,8 +312,7 @@ public class TabletManagementIterator extends SkippingIterator {
         return true;
       case SUSPENDED:
       case UNASSIGNED:
-        if (shouldBeOnline && tm.getOperationId() == null && (tm.getHostingGoal()
-            == TabletHostingGoal.ALWAYS
+        if (shouldBeOnline && (tm.getHostingGoal() == TabletHostingGoal.ALWAYS
             || (tm.getHostingGoal() == TabletHostingGoal.ONDEMAND && tm.getHostingRequested()))) {
           return true;
         }
