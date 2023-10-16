@@ -405,6 +405,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.securityOperations().grantTablePermission(getPrincipal(), MetadataTable.NAME,
           TablePermission.WRITE);
 
+      // Set the OperationId on one tablet, which will cause that tablet
+      // to not be assigned
       try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
@@ -413,13 +415,37 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         writer.addMutation(m);
       }
 
+      // Host all tablets.
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
+      var ample = ((ClientContext) c).getAmple();
+      assertNull(
+          ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
-      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) >= 3);
+      // Delete the OperationId column, tablet should be assigned
+      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
+        Mutation m = new Mutation(extent.toMetaRow());
+        TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
+        writer.addMutation(m);
+      }
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 4);
 
-      // there are four tablets, but one has an operation id set and should not be assigned
-      assertEquals(3, countTabletsWithLocation(c, tableId));
+      // Set the OperationId on one tablet, which will cause that tablet
+      // to be unhosted
+      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
+        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+        Mutation m = new Mutation(extent.toMetaRow());
+        TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
+        writer.addMutation(m);
+      }
+      // there are four tablets, three should be assigned as one has a OperationId
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
+      assertNull(
+          ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
+      // Delete the OperationId column, tablet should be assigned again
       try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         Mutation m = new Mutation(extent.toMetaRow());
@@ -427,10 +453,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         writer.addMutation(m);
       }
 
-      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) >= 4);
-
       // after the operation id is deleted the tablet should be assigned
-      assertEquals(4, countTabletsWithLocation(c, tableId));
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 4);
     }
   }
 

@@ -85,10 +85,6 @@ public class SplitTask implements Runnable {
 
       long fateTxId = manager.fate().startTransaction();
 
-      if (tablet.getLocation() != null) {
-        manager.requestUnassignment(tablet.getExtent(), fateTxId);
-      }
-
       manager.fate().seedTransaction("SYSTEM_SPLIT", fateTxId, new PreSplit(extent, splits), true,
           "System initiated split of tablet " + extent + " into " + splits.size() + " splits");
     } catch (Exception e) {

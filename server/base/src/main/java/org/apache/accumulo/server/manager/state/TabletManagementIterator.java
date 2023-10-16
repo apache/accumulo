@@ -83,7 +83,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -293,9 +292,10 @@ public class TabletManagementIterator extends SkippingIterator {
 
     TabletState state = TabletState.compute(tm, current, balancer, tserverResourceGroups);
     if (LOG.isTraceEnabled()) {
-      LOG.trace("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
+      LOG.trace(
+          "{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}, opId: {}",
           tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
-          tm.getHostingRequested());
+          tm.getHostingRequested(), tm.getOperationId());
     }
     switch (state) {
       case ASSIGNED:
@@ -344,11 +344,7 @@ public class TabletManagementIterator extends SkippingIterator {
       TabletManagementIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletManagementIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletManagementIterator.setMerges(tabletChange, state.merges());
-      // ELASTICITY_TODO passing the unassignemnt request as part of the migrations is a hack. Was
-      // not sure of the entire unassignment request approach and did not want to push it further
-      // into the code.
-      TabletManagementIterator.setMigrations(tabletChange,
-          Sets.union(state.migrationsSnapshot(), state.getUnassignmentRequest()));
+      TabletManagementIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
       TabletManagementIterator.setTServerResourceGroups(tabletChange,
@@ -466,7 +462,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private void computeTabletManagementActions(final TabletMetadata tm,
       final Set<ManagementAction> reasonsToReturnThisTablet) {
 
-    if (tm.isFutureAndCurrentLocationSet() || tm.isOperationIdAndCurrentLocationSet()) {
+    if (tm.isFutureAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;

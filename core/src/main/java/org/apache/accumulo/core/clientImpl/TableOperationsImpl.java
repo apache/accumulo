@@ -487,9 +487,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           } catch (ExecutionException ee) {
             Throwable excep = ee.getCause();
             // Below all exceptions are wrapped and rethrown. This is done so that the user knows
-            // what
-            // code path got them here. If the wrapping was not done, the user would only have the
-            // stack trace for the background thread.
+            // what code path got them here. If the wrapping was not done, the user would only
+            // have the stack trace for the background thread.
             if (excep instanceof TableNotFoundException) {
               TableNotFoundException tnfe = (TableNotFoundException) excep;
               throw new TableNotFoundException(tableId.canonical(), tableName,

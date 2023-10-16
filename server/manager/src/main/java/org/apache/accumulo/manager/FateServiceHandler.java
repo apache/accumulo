@@ -771,8 +771,6 @@ class FateServiceHandler implements FateService.Iface {
               "Length of requested split exceeds tables configured max, see warning in logs for more information.");
         }
 
-        manager.requestUnassignment(extent, opid);
-
         goalMessage = "Splitting " + extent + " for user into " + (splits.size() + 1) + " tablets";
         manager.fate().seedTransaction(op.toString(), opid, new PreSplit(extent, splits),
             autoCleanup, goalMessage);

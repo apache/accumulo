@@ -253,13 +253,43 @@ public class MetadataSchema {
       public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text(LOCK_QUAL));
 
       /**
-       * This column is used to indicate an operation is running that needs exclusive access to read
-       * and write to a tablet. The value uniquely identifies a FATE operation that is running and
-       * needs the exclusive access. All tablet updates must either ensure this column is absent or
-       * in the case of a FATE operation that set it ensure the value contains their FATE
-       * transaction id. When a FATE operation wants to set this column it must ensure its absent
-       * before setting it. Once a FATE operation has successfully set the column then no other
-       * tablet update should succeed.
+       * This column is used to indicate a destructive tablet operation is running that needs
+       * exclusive access to read and write to a tablet. The value uniquely identifies a FATE
+       * operation that is running and needs the exclusive access. The following goes over three
+       * cases for how all metadata updates should use this column.
+       *
+       * <p>
+       * Destructive table FATE operations like split, merge and delete will use this column in the
+       * following way.
+       * </p>
+       *
+       * <ol>
+       * <li>A fate operation sets the operation id on a tablet only if its not set by another
+       * operation</li>
+       * <li>Setting the operation id will cause the tablet to be unhosted. The fate operation waits
+       * for the tablet to have no location before making any updates.</li>
+       * <li>For each update made by the fate operation it will require the operation id to be set
+       * and the location to be absent</li>
+       * <li>The fate operation will delete the operation id when it finishes successfully</li>
+       * </ol>
+       *
+       * <p>
+       * Modifications for a hosted tablet will do the following.
+       * </p>
+       *
+       * <ul>
+       * <li>Ensure their location is set on the tablet when making updates w/o considering if an
+       * operation id is set or not. Because fate operation will wait for the location to be absent
+       * before making updates, the tablet can make whatever updates it needs before unloading.</li>
+       * <li>The future location should never be set on a tablet with no location that has an
+       * operation id set. This is because FATE operations assume once the location is unset that
+       * they have exclusive access.</li>
+       * </ul>
+       *
+       * <p>
+       * Routine modification to non hosted tablets (like bulk import, compaction, etc) should
+       * require the operation to be absent when making their updates.
+       * </p>
        */
       public static final String OPID_QUAL = "opid";
       public static final ColumnFQ OPID_COLUMN = new ColumnFQ(NAME, new Text(OPID_QUAL));

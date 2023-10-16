@@ -374,12 +374,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
             tm.getExtent().toMetaRow());
       }
-      if (tm.isOperationIdAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent()
-                + " has both operation id and current location, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
-      }
 
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
@@ -426,6 +420,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (state == TabletState.ASSIGNED) {
         goal = TabletGoalState.HOSTED;
       } else if (state == TabletState.NEEDS_REASSIGNMENT) {
+        goal = TabletGoalState.UNASSIGNED;
+      }
+
+      if (tm.getOperationId() != null) {
         goal = TabletGoalState.UNASSIGNED;
       }
 

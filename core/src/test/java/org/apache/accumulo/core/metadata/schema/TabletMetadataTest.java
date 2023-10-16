@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
@@ -190,31 +189,6 @@ public class TabletMetadataTest {
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), false, true);
     assertTrue(tm.isFutureAndCurrentLocationSet());
-  }
-
-  @Test
-  public void testTableOpAndCurrentLocation() {
-    final long tableId = 5L;
-    final KeyExtent extent =
-        new KeyExtent(TableId.of(Long.toString(tableId)), new Text("df"), new Text("da"));
-
-    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-
-    // set a tablet operation as well as future location
-    mutation.at().family(MetadataSchema.TabletsSection.ServerColumnFamily.STR_NAME)
-        .qualifier(OPID_QUAL).put(TabletOperationType.DELETING + ":" + formatTid(tableId));
-    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
-
-    SortedMap<Key,Value> rowMap = toRowMap(mutation);
-
-    assertThrows(IllegalStateException.class,
-        () -> TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-            EnumSet.allOf(ColumnType.class), false, false),
-        "tablet should not have operation id and current location at the same time");
-
-    TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-        EnumSet.allOf(ColumnType.class), false, true);
-    assertTrue(tm.isOperationIdAndCurrentLocationSet());
   }
 
   @Test

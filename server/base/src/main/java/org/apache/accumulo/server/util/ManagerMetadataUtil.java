@@ -187,6 +187,7 @@ public class ManagerMetadataUtil {
       TServerInstance tServerInstance, ServiceLock zooLock, Set<String> unusedWalLogs,
       Location lastLocation, long flushId) {
 
+    // ELASTICITY_TODO use conditional mutation and require tablet location
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
     Optional<StoredTabletFile> newFile = Optional.empty();
