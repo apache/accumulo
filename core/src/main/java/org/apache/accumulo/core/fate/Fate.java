@@ -85,44 +85,80 @@ public class Fate<T> {
           if (status == FAILED_IN_PROGRESS) {
             processFailed(tid, op);
           } else {
-            Repo<T> prevOp = null;
-            try {
-              deferTime = op.isReady(tid, environment);
+            if (op.interleave()) {
+              Repo<T> prevOp = null;
+              try {
+                deferTime = op.isReady(tid, environment);
 
-              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
-              // proceeding on success and returning to the while loop on failure.
-              // The value of deferTime is only used as a wait time in ZooStore.unreserve
-              if (deferTime == 0) {
-                prevOp = op;
-                if (status == SUBMITTED) {
-                  store.setStatus(tid, IN_PROGRESS);
+                // Here, deferTime is only used to determine success (zero) or failure (non-zero),
+                // proceeding on success and returning to the while loop on failure.
+                // The value of deferTime is only used as a wait time in ZooStore.unreserve
+                if (deferTime == 0) {
+                  prevOp = op;
+                  if (status == SUBMITTED) {
+                    store.setStatus(tid, IN_PROGRESS);
+                  }
+                  op = op.call(tid, environment);
+                } else {
+                  continue;
                 }
-                op = op.call(tid, environment);
-              } else {
+
+              } catch (Exception e) {
+                blockIfHadoopShutdown(tid, e);
+                transitionToFailed(tid, e);
                 continue;
               }
 
-            } catch (Exception e) {
-              blockIfHadoopShutdown(tid, e);
-              transitionToFailed(tid, e);
-              continue;
-            }
-
-            if (op == null) {
-              // transaction is finished
-              String ret = prevOp.getReturn();
-              if (ret != null) {
-                store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
+              if (op == null) {
+                // transaction is finished
+                String ret = prevOp.getReturn();
+                if (ret != null) {
+                  store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
+                }
+                store.setStatus(tid, SUCCESSFUL);
+                doCleanUp(tid);
+              } else {
+                try {
+                  store.push(tid, op);
+                } catch (StackOverflowException e) {
+                  // the op that failed to push onto the stack was never executed, so no need to
+                  // undo
+                  // it just transition to failed and undo the ops that executed
+                  transitionToFailed(tid, e);
+                  continue;
+                }
               }
-              store.setStatus(tid, SUCCESSFUL);
-              doCleanUp(tid);
             } else {
+              // Run this transaction to completion.
+              Repo<T> prevOp = null;
               try {
-                store.push(tid, op);
-              } catch (StackOverflowException e) {
-                // the op that failed to push onto the stack was never executed, so no need to undo
-                // it
-                // just transition to failed and undo the ops that executed
+                while (op != null) {
+                  deferTime = op.isReady(tid, environment);
+                  while (deferTime != 0) {
+                    Thread.sleep(deferTime);
+                    deferTime = op.isReady(tid, environment);
+                  }
+                  prevOp = op;
+                  store.setStatus(tid, IN_PROGRESS);
+                  op = op.call(tid, environment);
+                  try {
+                    store.push(tid, op);
+                  } catch (StackOverflowException e) {
+                    // the op that failed to push onto the stack was never executed, so no need to
+                    // undo
+                    // it just transition to failed and undo the ops that executed
+                    transitionToFailed(tid, e);
+                    continue;
+                  }
+                }
+                String ret = prevOp.getReturn();
+                if (ret != null) {
+                  store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
+                }
+                store.setStatus(tid, SUCCESSFUL);
+                doCleanUp(tid);
+              } catch (Exception e) {
+                blockIfHadoopShutdown(tid, e);
                 transitionToFailed(tid, e);
                 continue;
               }
