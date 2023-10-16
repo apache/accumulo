@@ -61,8 +61,6 @@ public class WaitForOffline extends ManagerRepo {
     log.info("{} waiting for {} tablets with locations", FateTxId.formatTid(tid),
         tabletsWithLocations);
 
-    // TODO log something?
-
     if (tabletsWithLocations > 0) {
       return 1000;
     } else {
