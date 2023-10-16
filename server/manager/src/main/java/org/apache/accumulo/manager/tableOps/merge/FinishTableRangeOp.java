@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ELASTICITY_TODO edit these docs which are pre elasticity changes.  Best done after #3763
+ * ELASTICITY_TODO edit these docs which are pre elasticity changes. Best done after #3763
  *
  * Merge makes things hard.
  *
