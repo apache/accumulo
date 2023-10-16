@@ -418,6 +418,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // Host all tablets.
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
+      var ample = ((ClientContext) c).getAmple();
+      assertNull(
+          ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned
       try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
@@ -439,6 +442,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       }
       // there are four tablets, three should be assigned as one has a OperationId
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
+      assertNull(
+          ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned again
       try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
