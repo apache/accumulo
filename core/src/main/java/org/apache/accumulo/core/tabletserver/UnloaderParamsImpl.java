@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -38,12 +37,12 @@ public class UnloaderParamsImpl implements UnloaderParams {
   private final SortedMap<TabletId,Long> online;
   private final Set<KeyExtent> unloads;
 
-  public UnloaderParamsImpl(TableId tid, ServiceEnvironment env, Map<KeyExtent,AtomicLong> online,
+  public UnloaderParamsImpl(TableId tid, ServiceEnvironment env, Map<KeyExtent,Long> online,
       Set<KeyExtent> unload) {
     this.tid = tid;
     this.env = env;
     this.online = new TreeMap<>();
-    online.forEach((k, v) -> this.online.put(new TabletIdImpl(k), v.get()));
+    online.forEach((k, v) -> this.online.put(new TabletIdImpl(k), v));
     this.unloads = unload;
   }
 

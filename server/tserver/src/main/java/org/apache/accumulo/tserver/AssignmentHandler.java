@@ -27,7 +27,6 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -190,6 +189,7 @@ class AssignmentHandler implements Runnable {
           server.recentlyUnloadedCache.remove(tablet.getExtent());
         }
       }
+      tablet.setLastAccessTime();
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
@@ -208,9 +208,6 @@ class AssignmentHandler implements Runnable {
 
     if (successful) {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
-      if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND) {
-        server.insertOnDemandAccessTime(extent);
-      }
     } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {

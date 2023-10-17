@@ -156,8 +156,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
-import io.opentelemetry.context.Scope;
-
 public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -195,8 +193,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final AtomicLong syncCounter = new AtomicLong(0);
 
   final OnlineTablets onlineTablets = new OnlineTablets();
-  private final Map<KeyExtent,AtomicLong> onDemandTabletAccessTimes =
-      Collections.synchronizedMap(new HashMap<>());
   final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
   final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
@@ -1000,8 +996,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
     Tablet t = onlineTablets.snapshot().get(extent);
-    if (t != null && t.isOnDemand()) {
-      updateOnDemandAccessTime(extent);
+    if (t != null) {
+      t.setLastAccessTime();
     }
     return t;
   }
@@ -1142,28 +1138,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return onDemandUnloadedLowMemory.get();
   }
 
-  // called from AssignmentHandler
-  public void insertOnDemandAccessTime(KeyExtent extent) {
-    if (extent.isMeta()) {
-      return;
-    }
-    onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.nanoTime()));
-  }
-
-  // called from getOnlineExtent
-  private void updateOnDemandAccessTime(KeyExtent extent) {
-    final long currentTime = System.nanoTime();
-    AtomicLong l = onDemandTabletAccessTimes.get(extent);
-    if (l != null) {
-      l.set(currentTime);
-    }
-  }
-
-  // called from UnloadTabletHandler
-  public void removeOnDemandAccessTime(KeyExtent extent) {
-    onDemandTabletAccessTimes.remove(extent);
-  }
-
   private boolean isTabletInUse(KeyExtent extent) {
     // Don't call getOnlineTablet as that will update the last access time
     final Tablet t = onlineTablets.snapshot().get(extent);
@@ -1182,41 +1156,27 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     final SortedMap<KeyExtent,Tablet> online = getOnlineTablets();
 
-    // Find and remove access time entries for KeyExtents
-    // that are no longer in the onlineTablets collection
-    Set<KeyExtent> missing = onDemandTabletAccessTimes.keySet().stream()
-        .filter(k -> !online.containsKey(k)).collect(Collectors.toSet());
-    if (!missing.isEmpty()) {
-      log.debug("Removing onDemandAccessTimes for tablets as tablets no longer online: {}",
-          missing);
-      missing.forEach(onDemandTabletAccessTimes::remove);
-      if (onDemandTabletAccessTimes.isEmpty()) {
-        return;
-      }
-    }
-
-    // It's possible, from a tablet split or merge for example,
-    // that there is an on-demand tablet that is hosted for which
-    // we have no access time. Add any missing online on-demand
-    // tablets
-    online.forEach((k, v) -> {
-      if (v.isOnDemand() && !onDemandTabletAccessTimes.containsKey(k)) {
-        insertOnDemandAccessTime(k);
+    // Sort the extents so that we can process them by table.
+    final SortedMap<KeyExtent,Long> sortedOnDemandExtents = new TreeMap<>();
+    // We only want to operate on OnDemand Tablets
+    online.entrySet().forEach((e) -> {
+      if (e.getValue().isOnDemand()) {
+        sortedOnDemandExtents.put(e.getKey(), e.getValue().getLastAccessTime());
       }
     });
 
-    log.debug("Evaluating online on-demand tablets: {}", onDemandTabletAccessTimes);
-
-    if (onDemandTabletAccessTimes.isEmpty()) {
+    if (sortedOnDemandExtents.isEmpty()) {
       return;
     }
+
+    log.debug("Evaluating online on-demand tablets: {}", sortedOnDemandExtents);
 
     // If the TabletServer is running low on memory, don't call the SPI
     // plugin to evaluate which on-demand tablets to unload, just get the
     // on-demand tablet with the oldest access time and unload it.
     if (getContext().getLowMemoryDetector().isRunningLowOnMemory()) {
       final SortedMap<Long,KeyExtent> timeSortedOnDemandExtents = new TreeMap<>();
-      onDemandTabletAccessTimes.forEach((k, v) -> timeSortedOnDemandExtents.put(v.get(), k));
+      sortedOnDemandExtents.forEach((k, v) -> timeSortedOnDemandExtents.put(v, k));
       Long oldestAccessTime = timeSortedOnDemandExtents.firstKey();
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
@@ -1225,12 +1185,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
-
-    // onDemandTabletAccessTimes is a HashMap. Sort the extents
-    // so that we can process them by table.
-    final SortedMap<KeyExtent,AtomicLong> sortedOnDemandExtents =
-        new TreeMap<KeyExtent,AtomicLong>();
-    sortedOnDemandExtents.putAll(onDemandTabletAccessTimes);
 
     // The access times are updated when getOnlineTablet is called by other methods,
     // but may not necessarily capture whether or not the Tablet is currently being used.
@@ -1276,7 +1230,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     });
     tableIds.forEach(tid -> {
       Map<KeyExtent,
-          AtomicLong> subset = sortedOnDemandExtents.entrySet().stream()
+          Long> subset = sortedOnDemandExtents.entrySet().stream()
               .filter((e) -> e.getKey().tableId().equals(tid))
               .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
       Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();

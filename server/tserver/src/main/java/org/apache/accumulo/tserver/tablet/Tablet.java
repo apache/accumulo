@@ -178,6 +178,8 @@ public class Tablet extends TabletBase {
 
   private final int logId;
 
+  private volatile long lastAccessTime = 0;
+
   public int getLogId() {
     return logId;
   }
@@ -1501,4 +1503,13 @@ public class Tablet extends TabletBase {
       scanfileManager.removeFilesAfterScan(getMetadata().getScans());
     }
   }
+
+  public long getLastAccessTime() {
+    return lastAccessTime;
+  }
+
+  public void setLastAccessTime() {
+    this.lastAccessTime = System.nanoTime();
+  }
+
 }
