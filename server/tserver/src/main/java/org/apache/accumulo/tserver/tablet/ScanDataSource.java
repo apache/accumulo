@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -61,6 +62,7 @@ class ScanDataSource implements DataSource {
   // data source state
   private final TabletBase tablet;
   private ScanFileManager fileManager;
+  private static AtomicLong nextSourceId = new AtomicLong(0);
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
@@ -71,6 +73,7 @@ class ScanDataSource implements DataSource {
   private final ScanParameters scanParams;
   private final boolean loadIters;
   private final byte[] defaultLabels;
+  private final long scanDataSourceId;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
@@ -80,35 +83,38 @@ class ScanDataSource implements DataSource {
     this.interruptFlag = interruptFlag;
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
-    if (log.isTraceEnabled()) {
-      log.trace("new scan data source, tablet: {}, params: {}, loadIterators: {}", this.tablet,
-          this.scanParams, this.loadIters);
-    }
+    this.scanDataSourceId = nextSourceId.incrementAndGet();
+    log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
+        this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
   }
 
   @Override
   public DataSource getNewDataSource() {
-    if (isCurrent()) {
-      return this;
-    } else {
-      // log.debug("Switching data sources during a scan");
-      if (memIters != null) {
-        tablet.returnMemIterators(memIters);
-        memIters = null;
-        tablet.returnFilesForScan(fileReservationId);
-        fileReservationId = -1;
+    if (!isCurrent()) {
+      Throwable thrownException = null;
+      try {
+        returnIterators();
+      } catch (Exception e) {
+        thrownException = e;
+        throw e;
+      } finally {
+        try {
+          if (fileManager != null) {
+            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+            fileManager.releaseOpenFiles(false);
+          }
+        } catch (Exception e) {
+          if (thrownException != null) {
+            e.addSuppressed(thrownException);
+            throw e;
+          }
+        } finally {
+          expectedDeletionCount = tablet.getDataSourceDeletions();
+          iter = null;
+        }
       }
-
-      if (fileManager != null) {
-        tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-        fileManager.releaseOpenFiles(false);
-      }
-
-      expectedDeletionCount = tablet.getDataSourceDeletions();
-      iter = null;
-
-      return this;
     }
+    return this;
   }
 
   @Override
@@ -149,6 +155,7 @@ class ScanDataSource implements DataSource {
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
         tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
+        log.trace("Adding active scan for  {}, scanId:{}", tablet.getExtent(), scanDataSourceId);
         tablet.addActiveScans(this);
       }
 
@@ -234,32 +241,49 @@ class ScanDataSource implements DataSource {
     }
   }
 
-  @Override
-  public void close(boolean sawErrors) {
-
+  private void returnIterators() {
     if (memIters != null) {
+      log.trace("Returning mem iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+          scanDataSourceId, fileReservationId);
       tablet.returnMemIterators(memIters);
       memIters = null;
-      tablet.returnFilesForScan(fileReservationId);
-      fileReservationId = -1;
-    }
-
-    synchronized (tablet) {
-      if (tablet.removeScan(this) == 0) {
-        tablet.notifyAll();
+      try {
+        log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+            scanDataSourceId, fileReservationId);
+        tablet.returnFilesForScan(fileReservationId);
+      } catch (Exception e) {
+        log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId, e);
+        // Continue bubbling the exception up for handling.
+        throw e;
+      } finally {
+        fileReservationId = -1;
       }
     }
+  }
 
-    if (fileManager != null) {
-      tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
-      fileManager.releaseOpenFiles(sawErrors);
-      fileManager = null;
+  @Override
+  public void close(boolean sawErrors) {
+    try {
+      returnIterators();
+    } finally {
+      synchronized (tablet) {
+        log.trace("Removing active scan for {} scanID:{}", tablet.getExtent(), scanDataSourceId);
+        if (tablet.removeScan(this) == 0) {
+          tablet.notifyAll();
+        }
+      }
+      try {
+        if (fileManager != null) {
+          tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+          fileManager.releaseOpenFiles(sawErrors);
+        }
+      } finally {
+        fileManager = null;
+        if (statsIterator != null) {
+          statsIterator.report();
+        }
+      }
     }
-
-    if (statsIterator != null) {
-      statsIterator.report();
-    }
-
   }
 
   public void interrupt() {
