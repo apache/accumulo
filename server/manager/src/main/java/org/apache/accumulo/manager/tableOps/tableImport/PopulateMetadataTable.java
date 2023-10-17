@@ -184,7 +184,7 @@ class PopulateMetadataTable extends ManagerRepo {
               if (!sawHostingGoal) {
                 // add a default hosting goal
                 HostingColumnFamily.GOAL_COLUMN.put(m,
-                    new Value(TabletHostingGoal.ONDEMAND.name()));
+                    TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
               }
 
               mbw.addMutation(m);
