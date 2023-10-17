@@ -25,11 +25,12 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MergeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * ELASTICITY_TODO edit these docs which are pre elasticity changes. Best done after #3763
+ *
  * Merge makes things hard.
  *
  * Typically, a client will read the list of tablets, and begin an operation on that tablet at the
@@ -46,24 +47,16 @@ import org.slf4j.LoggerFactory;
  * Normal operations, like bulk imports, will grab the read lock and prevent merges (writes) while
  * they run. Merge operations will lock out some operations while they run.
  */
-class TableRangeOpWait extends ManagerRepo {
-  private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);
+class FinishTableRangeOp extends ManagerRepo {
+  private static final Logger log = LoggerFactory.getLogger(FinishTableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
   private TableId tableId;
   private NamespaceId namespaceId;
 
-  public TableRangeOpWait(NamespaceId namespaceId, TableId tableId) {
+  public FinishTableRangeOp(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-  }
-
-  @Override
-  public long isReady(long tid, Manager env) {
-    if (!env.getMergeInfo(tableId).getState().equals(MergeState.NONE)) {
-      return 50;
-    }
-    return 0;
   }
 
   @Override
