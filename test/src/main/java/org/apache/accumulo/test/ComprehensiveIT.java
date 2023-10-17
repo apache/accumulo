@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -736,6 +737,11 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // create a table with a lot of initial config
       client.tableOperations().create(everythingTable, getEverythingTableConfig());
 
+      // set last tablet in table to be always hosted, setting a hosting goal here will tests export
+      // and cloning tables with hosting goals
+      client.tableOperations().setTabletHostingGoal(everythingTable,
+          new Range(everythingSplits.last(), false, null, true), TabletHostingGoal.ALWAYS);
+
       write(client, everythingTable, generateMutations(0, 100, tr -> true));
 
       verifyEverythingTable(client, everythingTable);
@@ -902,6 +908,14 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     iterSetting.addOption("family", "9");
     assertEquals(iterSetting, client.tableOperations().getIteratorSetting(table, "fam9",
         IteratorUtil.IteratorScope.scan));
+
+    client.tableOperations().getTabletInformation(table, new Range()).forEach(tabletInformation -> {
+      if (tabletInformation.getTabletId().getEndRow() == null) {
+        assertEquals(TabletHostingGoal.ALWAYS, tabletInformation.getHostingGoal());
+      } else {
+        assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getHostingGoal());
+      }
+    });
 
     verifyData(client, table, Authorizations.EMPTY,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.vis.isEmpty()));
