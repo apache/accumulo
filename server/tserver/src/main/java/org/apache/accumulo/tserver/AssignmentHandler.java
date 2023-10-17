@@ -160,6 +160,13 @@ class AssignmentHandler implements Runnable {
       TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
 
+      Assignment assignment =
+          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
+      TabletStateStore.setLocation(server.getContext(), assignment);
+
+      // re-read the TabletMetadata (See #3358)
+      tabletMetadata = server.getContext().getAmple().readTablet(extent);
+
       tablet = new Tablet(server, extent, trm, tabletMetadata);
       // If a minor compaction starts after a tablet opens, this indicates a log recovery
       // occurred. This recovered data must be minor compacted.
@@ -178,9 +185,6 @@ class AssignmentHandler implements Runnable {
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
-      Assignment assignment =
-          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
-      TabletStateStore.setLocation(server.getContext(), assignment);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {
