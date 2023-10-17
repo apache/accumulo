@@ -207,8 +207,9 @@ public class ManagerMetadataUtil {
    * @param lastLocation The last location
    * @param tServerInstance The server address
    */
-  public static void updateLastForCompactionMode(ClientContext context, TabletMutator tabletMutator,
-      Location lastLocation, TServerInstance tServerInstance) {
+  public static void updateLastForCompactionMode(ClientContext context,
+      Ample.ConditionalTabletMutator tabletMutator, Location lastLocation,
+      TServerInstance tServerInstance) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {

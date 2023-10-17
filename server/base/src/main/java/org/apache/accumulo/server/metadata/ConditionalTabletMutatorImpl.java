@@ -22,6 +22,7 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -228,6 +229,15 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             new Condition(TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier());
         c = c.setValue(tabletMetadata.getTime().encode());
+        mutation.addCondition(c);
+      }
+        break;
+      case FLUSH_ID: {
+        Condition c =
+            new Condition(FLUSH_COLUMN.getColumnFamily(), FLUSH_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getFlushId().isPresent()) {
+          c = c.setValue(Long.toString(tabletMetadata.getFlushId().getAsLong()));
+        }
         mutation.addCondition(c);
       }
         break;

@@ -37,7 +37,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -425,10 +424,6 @@ public class Tablet extends TabletBase {
           return;
         }
 
-        if (getMetadata().getFlushId().orElse(-1) >= tableFlushID) {
-          return;
-        }
-
         if (isClosing() || isClosed() || isBeingDeleted()
             || getTabletMemory().memoryReservedForMinC()) {
           return;
@@ -446,20 +441,38 @@ public class Tablet extends TabletBase {
         refreshLock.lock();
         try {
           // if multiple threads were allowed to update this outside of a sync block, then it would
-          // be
-          // a race condition
-          // ELASTICITY_TODO use conditional mutations
-          Ample.TabletMutator tablet = context.getAmple().mutateTablet(extent);
-          tablet.putFlushId(tableFlushID);
-          tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
-          tablet.mutate();
-          // It is important the the refresh lock is held for the update above and the refresh below
-          // to avoid race conditions.
-          refreshMetadata(RefreshPurpose.FLUSH_ID_UPDATE);
+          // be a race condition
+
+          var lastTabletMetadata = getMetadata();
+
+          // Check flush id while holding refresh lock to prevent race condition with other threads
+          // in tablet reading and writing the tablets metadata.
+          if (lastTabletMetadata.getFlushId().orElse(-1) < tableFlushID) {
+            try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
+              var tablet = tabletsMutator.mutateTablet(extent)
+                  .requireLocation(Location.current(tabletServer.getTabletSession()))
+                  .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.FLUSH_ID);
+
+              tablet.putFlushId(tableFlushID);
+              tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
+              tablet
+                  .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == tableFlushID);
+
+              var result = tabletsMutator.process().get(extent);
+
+              if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+                throw new IllegalStateException("Failed to update flush id " + extent + " "
+                    + tabletServer.getTabletSession() + " " + tableFlushID);
+              }
+            }
+
+            // It is important the the refresh lock is held for the update above and the refresh
+            // below to avoid race conditions.
+            refreshMetadata(RefreshPurpose.FLUSH_ID_UPDATE);
+          }
         } finally {
           refreshLock.unlock();
         }
-
       } else if (initiateMinor) {
         initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
       }
@@ -1284,38 +1297,65 @@ public class Tablet extends TabletBase {
       ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
       long flushId) {
 
-    // expect time to only move forward from what was recently seen in metadata table
-    Preconditions.checkArgument(maxCommittedTime >= getMetadata().getTime().getTime());
+    Preconditions.checkState(refreshLock.isHeldByCurrentThread());
 
-    // ELASTICITY_TODO use conditional mutation, can check time and location
+    // Read these once in case of buggy race conditions will get consistent logging. If all other
+    // code is locking properly these should not change during this method.
+    var lastTabletMetadata = getMetadata();
+    var expectedTime = lastTabletMetadata.getTime();
 
-    // ELASTICITY_TODO minor compaction will need something like the bulk import loaded column
-    // to avoid : partial write, compact of file in partial write, and then another write of the
-    // file
-    // leading to the file being added twice.
+    // Expect time to only move forward from what was recently seen in metadata table.
+    Preconditions.checkArgument(maxCommittedTime >= expectedTime.getTime());
 
-    // ELASTICITY_TODO use conditional mutation and require tablet location
-    Ample.TabletMutator tablet = getContext().getAmple().mutateTablet(extent);
-    // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
-    Optional<StoredTabletFile> newFile = Optional.empty();
-
-    // if entries are present, write to path to metadata table
-    if (dfv.getNumEntries() > 0) {
-      tablet.putFile(newDatafile, dfv);
-      tablet.putTime(tabletTime.getMetadataTime(maxCommittedTime));
-      newFile = Optional.of(newDatafile.insert());
-
-      ManagerMetadataUtil.updateLastForCompactionMode(getContext(), tablet, lastLocation,
-          tabletServer.getTabletSession());
+    // The tablet time is used to determine if the write succeeded, in order to do this the tablet
+    // time needs to be different from what is currently stored in the metadata table.
+    while (maxCommittedTime == expectedTime.getTime()) {
+      var nextTime = tabletTime.getAndUpdateTime();
+      Preconditions.checkState(nextTime >= maxCommittedTime);
+      if (nextTime > maxCommittedTime) {
+        maxCommittedTime++;
+      }
     }
-    tablet.putFlushId(flushId);
 
-    unusedWalLogs.forEach(tablet::deleteWal);
+    try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
+      var tablet = tabletsMutator.mutateTablet(extent)
+          .requireLocation(Location.current(tabletServer.getTabletSession()))
+          .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.TIME);
 
-    tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
+      Optional<StoredTabletFile> newFile = Optional.empty();
 
-    tablet.mutate();
-    return newFile;
+      // if entries are present, write to path to metadata table
+      if (dfv.getNumEntries() > 0) {
+        tablet.putFile(newDatafile, dfv);
+        newFile = Optional.of(newDatafile.insert());
+
+        ManagerMetadataUtil.updateLastForCompactionMode(getContext(), tablet, lastLocation,
+            tabletServer.getTabletSession());
+      }
+
+      var newTime = tabletTime.getMetadataTime(maxCommittedTime);
+      tablet.putTime(newTime);
+
+      tablet.putFlushId(flushId);
+
+      unusedWalLogs.forEach(tablet::deleteWal);
+
+      tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
+
+      // When trying to determine if write was successful, check if the time was updated. Can not
+      // check if the new file exists because of two reasons. First, it could be compacted away
+      // between the write and check. Second, some flushes do not produce a file.
+      tablet.submit(tabletMetadata -> tabletMetadata.getTime().equals(newTime));
+
+      if (tabletsMutator.process().get(extent).getStatus()
+          != Ample.ConditionalResult.Status.ACCEPTED) {
+        // Include the things that could have caused the write to fail.
+        throw new IllegalStateException("Unable to write minor compaction.  " + extent + " "
+            + tabletServer.getTabletSession() + " " + expectedTime);
+      }
+
+      return newFile;
+    }
   }
 
   @Override
@@ -1379,7 +1419,7 @@ public class Tablet extends TabletBase {
 
   // The purpose of this lock is to prevent race conditions between concurrent refresh RPC calls and
   // between minor compactions and refresh calls.
-  private final Lock refreshLock = new ReentrantLock();
+  private final ReentrantLock refreshLock = new ReentrantLock();
 
   void bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
       ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
@@ -1486,6 +1526,12 @@ public class Tablet extends TabletBase {
       // do not want to hold tablet lock while doing metadata read as this could negatively impact
       // scans
       TabletMetadata tabletMetadata = getContext().getAmple().readTablet(getExtent());
+
+      Preconditions.checkState(tabletMetadata != null, "Tablet no longer exits %s", getExtent());
+      Preconditions.checkState(
+          Location.current(tabletServer.getTabletSession()).equals(tabletMetadata.getLocation()),
+          "Tablet location %s is not this tserver %s", tabletMetadata.getLocation(),
+          tabletServer.getTabletSession());
 
       synchronized (this) {
         latestMetadata = tabletMetadata;
