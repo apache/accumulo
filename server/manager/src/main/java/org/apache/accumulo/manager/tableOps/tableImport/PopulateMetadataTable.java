@@ -36,6 +36,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
@@ -156,7 +157,7 @@ class PopulateMetadataTable extends ManagerRepo {
                 if (!sawHostingGoal) {
                   // add a default hosting goal
                   HostingColumnFamily.GOAL_COLUMN.put(m,
-                      TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND);
+                      TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
                 }
                 mbw.addMutation(m);
               }
