@@ -63,6 +63,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -448,8 +449,10 @@ public class Tablet extends TabletBase {
           // be
           // a race condition
           // ELASTICITY_TODO use conditional mutations
-          MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, context,
-              getTabletServer().getLock());
+          Ample.TabletMutator tablet = context.getAmple().mutateTablet(extent);
+          tablet.putFlushId(tableFlushID);
+          tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
+          tablet.mutate();
           // It is important the the refresh lock is held for the update above and the refresh below
           // to avoid race conditions.
           refreshMetadata(RefreshPurpose.FLUSH_ID_UPDATE);
@@ -1291,10 +1294,28 @@ public class Tablet extends TabletBase {
     // file
     // leading to the file being added twice.
 
-    return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
-        newDatafile, dfv, tabletTime.getMetadataTime(maxCommittedTime),
-        tabletServer.getTabletSession(), tabletServer.getLock(), unusedWalLogs, lastLocation,
-        flushId);
+    // ELASTICITY_TODO use conditional mutation and require tablet location
+    Ample.TabletMutator tablet = getContext().getAmple().mutateTablet(extent);
+    // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
+    Optional<StoredTabletFile> newFile = Optional.empty();
+
+    // if entries are present, write to path to metadata table
+    if (dfv.getNumEntries() > 0) {
+      tablet.putFile(newDatafile, dfv);
+      tablet.putTime(tabletTime.getMetadataTime(maxCommittedTime));
+      newFile = Optional.of(newDatafile.insert());
+
+      ManagerMetadataUtil.updateLastForCompactionMode(getContext(), tablet, lastLocation,
+          tabletServer.getTabletSession());
+    }
+    tablet.putFlushId(flushId);
+
+    unusedWalLogs.forEach(tablet::deleteWal);
+
+    tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
+
+    tablet.mutate();
+    return newFile;
   }
 
   @Override
