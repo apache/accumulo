@@ -178,7 +178,7 @@ public class Tablet extends TabletBase {
 
   private final int logId;
 
-  private volatile long lastAccessTime = 0;
+  private volatile long lastAccessTime = System.nanoTime();
 
   public int getLogId() {
     return logId;

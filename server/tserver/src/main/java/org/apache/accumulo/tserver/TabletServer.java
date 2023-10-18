@@ -1176,8 +1176,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     // on-demand tablet with the oldest access time and unload it.
     if (getContext().getLowMemoryDetector().isRunningLowOnMemory()) {
       final SortedMap<Long,KeyExtent> timeSortedOnDemandExtents = new TreeMap<>();
-      sortedOnDemandExtents.forEach((k, v) -> timeSortedOnDemandExtents.put(v, k));
-      Long oldestAccessTime = timeSortedOnDemandExtents.firstKey();
+      long currTime = System.nanoTime();
+      sortedOnDemandExtents.forEach((k, v) -> timeSortedOnDemandExtents.put(v - currTime, k));
+      Long oldestAccessTime = timeSortedOnDemandExtents.lastKey();
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());

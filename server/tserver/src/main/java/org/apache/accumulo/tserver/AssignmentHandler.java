@@ -189,7 +189,7 @@ class AssignmentHandler implements Runnable {
           server.recentlyUnloadedCache.remove(tablet.getExtent());
         }
       }
-      tablet.setLastAccessTime();
+
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
