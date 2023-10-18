@@ -442,7 +442,6 @@ public class Tablet extends TabletBase {
         try {
           // if multiple threads were allowed to update this outside of a sync block, then it would
           // be a race condition
-
           var lastTabletMetadata = getMetadata();
 
           // Check flush id while holding refresh lock to prevent race condition with other threads
@@ -1530,7 +1529,7 @@ public class Tablet extends TabletBase {
       Preconditions.checkState(tabletMetadata != null, "Tablet no longer exits %s", getExtent());
       Preconditions.checkState(
           Location.current(tabletServer.getTabletSession()).equals(tabletMetadata.getLocation()),
-          "Tablet location %s is not this tserver %s", tabletMetadata.getLocation(),
+          "Tablet % location %s is not this tserver %s", getExtent(), tabletMetadata.getLocation(),
           tabletServer.getTabletSession());
 
       synchronized (this) {
