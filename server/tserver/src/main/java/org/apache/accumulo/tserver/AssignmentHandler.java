@@ -44,6 +44,7 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.Tablet.RefreshPurpose;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,9 +179,13 @@ class AssignmentHandler implements Runnable {
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
+
       Assignment assignment =
           new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
       TabletStateStore.setLocation(server.getContext(), assignment);
+
+      // refresh the tablet metadata after setting the location (See #3358)
+      tablet.refreshMetadata(RefreshPurpose.LOAD);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {

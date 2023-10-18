@@ -1455,7 +1455,7 @@ public class Tablet extends TabletBase {
   }
 
   public enum RefreshPurpose {
-    MINC_COMPLETION, REFRESH_RPC, FLUSH_ID_UPDATE
+    MINC_COMPLETION, REFRESH_RPC, FLUSH_ID_UPDATE, LOAD
   }
 
   public void refreshMetadata(RefreshPurpose refreshPurpose) {
