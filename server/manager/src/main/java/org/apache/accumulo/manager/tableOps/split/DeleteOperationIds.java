@@ -18,61 +18,32 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
-import java.util.stream.Collectors;
-
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.DestructiveTabletManagerRepo;
 
-public class DeleteOperationIds extends ManagerRepo {
+public class DeleteOperationIds extends DestructiveTabletManagerRepo {
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
 
   public DeleteOperationIds(SplitInfo splitInfo) {
+    super(TabletOperationType.SPLITTING, splitInfo.getOriginal());
     this.splitInfo = splitInfo;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
+    removeOperationIds(tid, manager, splitInfo.getTablets());
 
-    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+    // Get the tablets hosted ASAP if necessary.
+    manager.getEventCoordinator().event(splitInfo.getOriginal(), "Added %d splits to %s",
+        splitInfo.getSplits().size(), splitInfo.getOriginal());
 
-      // As long as the operation is not our operation id, then this step can be considered
-      // successful in the case of rejection. If this repo is running for a second time and has
-      // already deleted the operation id, then it could be absent or set by another fate operation.
-      Ample.RejectionHandler rejectionHandler =
-          tabletMetadata -> !opid.equals(tabletMetadata.getOperationId());
-
-      splitInfo.getTablets().forEach(extent -> {
-        tabletsMutator.mutateTablet(extent).requireOperation(opid).requireAbsentLocation()
-            .deleteOperation().submit(rejectionHandler);
-      });
-
-      var results = tabletsMutator.process();
-
-      boolean allAccepted =
-          results.values().stream().allMatch(result -> result.getStatus() == Status.ACCEPTED);
-
-      if (!allAccepted) {
-        throw new IllegalStateException(
-            "Failed to delete operation ids " + splitInfo.getOriginal() + " " + results.values()
-                .stream().map(Ample.ConditionalResult::getStatus).collect(Collectors.toSet()));
-      }
-
-      // Get the tablets hosted ASAP if necessary.
-      manager.getEventCoordinator().event(splitInfo.getOriginal(), "Added %d splits to %s",
-          splitInfo.getSplits().size(), splitInfo.getOriginal());
-
-      TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits());
-    }
+    TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits());
 
     return null;
   }
