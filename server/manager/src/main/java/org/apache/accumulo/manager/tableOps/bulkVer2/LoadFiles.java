@@ -140,13 +140,13 @@ class LoadFiles extends ManagerRepo {
 
         if (!filesToLoad.isEmpty()) {
           // ELASTICITY_TODO lets automatically call require prev end row
-          var tabletMutator =
-              conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
+          var tabletMutator = conditionalMutator
+              .mutateTablet(tablet.getExtent(), tablet.getPrevEndRow()).requireAbsentOperation();
 
           if (setTime) {
-            tabletMutator.requireSame(tablet, PREV_ROW, LOADED, TIME, LOCATION);
+            tabletMutator.requireSame(tablet, LOADED, TIME, LOCATION);
           } else {
-            tabletMutator.requireSame(tablet, PREV_ROW, LOADED);
+            tabletMutator.requireSame(tablet, LOADED);
           }
 
           filesToLoad.forEach((f, v) -> {

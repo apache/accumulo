@@ -67,8 +67,8 @@ public class CleanUp extends ManagerRepo {
       long t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
         if (tablet.getCompacted().contains(tid)) {
-          tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, PREV_ROW, COMPACTED).deleteCompacted(tid)
+          tabletsMutator.mutateTablet(tablet.getExtent(), tablet.getPrevEndRow())
+              .requireAbsentOperation().requireSame(tablet, COMPACTED).deleteCompacted(tid)
               .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(tid));
         }
       }

@@ -562,8 +562,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
         // any data that is read from the tablet to make a decision about if it can compact or not
         // must be included in the requireSame call
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireSame(tabletMetadata, PREV_ROW, FILES, SELECTED, ECOMP);
+        var tabletMutator = tabletsMutator.mutateTablet(extent, tabletMetadata.getPrevEndRow())
+            .requireAbsentOperation().requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
 
         var ecid = ExternalCompactionId.of(externalCompactionId);
         tabletMutator.putExternalCompaction(ecid, ecm);
@@ -925,8 +925,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       }
 
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireCompaction(ecid).requireSame(tablet, PREV_ROW, FILES, LOCATION);
+        var tabletMutator = tabletsMutator.mutateTablet(extent, tablet.getPrevEndRow())
+            .requireAbsentOperation().requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 
         if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
@@ -1049,8 +1049,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       compactions.forEach((ecid, extent) -> {
         try {
           ctx.requireNotDeleted(extent.tableId());
-          tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-              .requirePrevEndRow(extent.prevEndRow()).deleteExternalCompaction(ecid)
+          tabletsMutator.mutateTablet(extent, extent.prevEndRow()).requireAbsentOperation()
+              .requireCompaction(ecid).deleteExternalCompaction(ecid)
               .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
         } catch (TableDeletedException e) {
           LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",

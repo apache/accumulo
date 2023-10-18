@@ -70,7 +70,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   }
 
   @Override
-  public Ample.OperationRequirements mutateTablet(KeyExtent extent) {
+  public Ample.OperationRequirements mutateTablet(KeyExtent extent, Text prevEndRow) {
     Preconditions.checkState(active);
 
     var dataLevel = Ample.DataLevel.of(extent.tableId());
@@ -84,7 +84,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
     Preconditions.checkState(extents.putIfAbsent(extent.toMetaRow(), extent) == null,
         "Duplicate extents not handled");
-    return new ConditionalTabletMutatorImpl(this, context, extent, mutations::add,
+    return new ConditionalTabletMutatorImpl(this, context, extent, prevEndRow, mutations::add,
         rejectedHandlers::put);
   }
 

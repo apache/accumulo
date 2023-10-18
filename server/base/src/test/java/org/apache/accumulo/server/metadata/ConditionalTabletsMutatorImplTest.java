@@ -129,18 +129,19 @@ public class ConditionalTabletsMutatorImplTest {
     try (var mutator =
         new TestConditionalTabletsMutator(List.of(statuses1::get, statuses2::get), failedExtents)) {
 
-      mutator.mutateTablet(ke1).requireAbsentOperation().putDirName("dir1")
+      mutator.mutateTablet(ke1, ke1.prevEndRow()).requireAbsentOperation().putDirName("dir1")
           .submit(tmeta -> tmeta.getDirName().equals("dir1"));
 
-      mutator.mutateTablet(ke2).requireAbsentOperation().putDirName("dir3")
+      mutator.mutateTablet(ke2, ke2.prevEndRow()).requireAbsentOperation().putDirName("dir3")
           .submit(tmeta -> tmeta.getDirName().equals("dir3"));
 
-      mutator.mutateTablet(ke3).requireAbsentOperation().putDirName("dir4")
+      mutator.mutateTablet(ke3, ke3.prevEndRow()).requireAbsentOperation().putDirName("dir4")
           .submit(tmeta -> tmeta.getDirName().equals("dir4"));
 
-      mutator.mutateTablet(ke4).requireAbsentOperation().putDirName("dir5").submit(tmeta -> {
-        throw new IllegalStateException();
-      });
+      mutator.mutateTablet(ke4, ke4.prevEndRow()).requireAbsentOperation().putDirName("dir5")
+          .submit(tmeta -> {
+            throw new IllegalStateException();
+          });
 
       Map<KeyExtent,Ample.ConditionalResult> results = mutator.process();
 

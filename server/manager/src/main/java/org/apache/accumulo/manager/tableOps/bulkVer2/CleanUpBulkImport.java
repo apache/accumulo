@@ -107,8 +107,8 @@ public class CleanUpBulkImport extends ManagerRepo {
 
         for (var tablet : tablets) {
           if (tablet.getLoaded().values().stream().anyMatch(l -> l == tid)) {
-            var tabletMutator =
-                tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
+            var tabletMutator = tabletsMutator
+                .mutateTablet(tablet.getExtent(), tablet.getPrevEndRow()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue() == tid)
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false);

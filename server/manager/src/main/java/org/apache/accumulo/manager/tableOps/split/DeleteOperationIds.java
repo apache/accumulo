@@ -52,8 +52,8 @@ public class DeleteOperationIds extends ManagerRepo {
           tabletMetadata -> !opid.equals(tabletMetadata.getOperationId());
 
       splitInfo.getTablets().forEach(extent -> {
-        tabletsMutator.mutateTablet(extent).requireOperation(opid).requireAbsentLocation()
-            .deleteOperation().submit(rejectionHandler);
+        tabletsMutator.mutateTablet(extent, extent.prevEndRow()).requireOperation(opid)
+            .requireAbsentLocation().deleteOperation().submit(rejectionHandler);
       });
 
       var results = tabletsMutator.process();

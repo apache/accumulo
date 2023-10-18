@@ -296,7 +296,7 @@ public interface Ample {
      * @return A fluent interface to conditional mutating a tablet. Ensure you call
      *         {@link ConditionalTabletMutator#submit(RejectionHandler)} when finished.
      */
-    OperationRequirements mutateTablet(KeyExtent extent);
+    OperationRequirements mutateTablet(KeyExtent extent, Text prevEndRow);
 
     /**
      * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
@@ -447,11 +447,6 @@ public interface Ample {
      * Require that a tablet currently has the specified future or current location.
      */
     ConditionalTabletMutator requireLocation(Location location);
-
-    /**
-     * Require that a tablet has the specified previous end row.
-     */
-    ConditionalTabletMutator requirePrevEndRow(Text per);
 
     /**
      * Requires the tablet to have the specified hosting goal before any changes are made.
