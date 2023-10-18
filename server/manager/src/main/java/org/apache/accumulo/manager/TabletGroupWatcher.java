@@ -336,6 +336,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
+    final boolean shuttingDownAllTabletServers =
+        manager.serversToShutdown.equals(currentTServers.keySet());
+    if (shuttingDownAllTabletServers && !isFullScan) {
+      // If we are shutting down all of the TabletServers, then don't process any events
+      // from the EventCoordinator.
+      LOG.debug("Partial scan requested, but aborted due to shutdown of all TabletServers");
+      return null;
+    }
+
     TableMgmtStats tableMgmtStats = new TableMgmtStats();
     int unloaded = 0;
 
@@ -436,8 +445,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       // if we are shutting down all the tabletservers, we have to do it in order
-      if (isFullScan && (goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
-          && manager.serversToShutdown.equals(currentTServers.keySet())) {
+      if (shuttingDownAllTabletServers
+          && (goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)) {
         if (dependentWatcher != null) {
           // If the dependentWatcher is for the user tables, check to see
           // that user tables exist.
@@ -548,6 +557,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               TServerConnection client =
                   manager.tserverSet.getConnection(location.getServerInstance());
               if (client != null) {
+                LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
+                    tm.getExtent());
                 client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime());
                 tableMgmtStats.totalUnloaded++;
