@@ -24,10 +24,6 @@ public enum MergeState {
    */
   NONE,
   /**
-   * created, stored in zookeeper, other merges are prevented on the table
-   */
-  STARTED,
-  /**
    * when the number of chopped tablets in the range matches the number of online tablets in the
    * range, take the tablets offline
    */

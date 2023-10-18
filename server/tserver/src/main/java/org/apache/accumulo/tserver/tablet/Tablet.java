@@ -1469,6 +1469,7 @@ public class Tablet extends TabletBase {
       TabletMetadata tabletMetadata = getContext().getAmple().readTablet(getExtent());
 
       synchronized (this) {
+        var prevMetadata = latestMetadata;
         latestMetadata = tabletMetadata;
 
         if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {
@@ -1486,7 +1487,7 @@ public class Tablet extends TabletBase {
 
           // important to call this after updating latestMetadata and tabletMemory
           computeNumEntries();
-        } else if (!latestMetadata.getFilesMap().equals(tabletMetadata.getFilesMap())) {
+        } else if (!prevMetadata.getFilesMap().equals(latestMetadata.getFilesMap())) {
 
           // the files changed, incrementing this will cause scans to switch data sources
           dataSourceDeletions.incrementAndGet();

@@ -86,12 +86,14 @@ public class TableRangeOp extends ManagerRepo {
 
     MergeInfo info = env.getMergeInfo(tableId);
 
+    // ELASTICITY_TODO can remove MergeState and MergeInfo once opid is set, these only exists now
+    // to get tablets unassigned. Once an opid is set on a tablet it will be unassigned. See #3763
     if (info.getState() == MergeState.NONE) {
       KeyExtent range = new KeyExtent(tableId, end, start);
-      env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
+      env.setMergeState(new MergeInfo(range, op), MergeState.WAITING_FOR_OFFLINE);
     }
 
-    return new TableRangeOpWait(namespaceId, tableId);
+    return new WaitForOffline(namespaceId, tableId);
   }
 
   @Override
