@@ -450,9 +450,9 @@ public class Tablet extends TabletBase {
           // in tablet reading and writing the tablets metadata.
           if (lastTabletMetadata.getFlushId().orElse(-1) < tableFlushID) {
             try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-              var tablet = tabletsMutator.mutateTablet(extent)
+              var tablet = tabletsMutator.mutateTablet(extent, lastTabletMetadata.getPrevEndRow())
                   .requireLocation(Location.current(tabletServer.getTabletSession()))
-                  .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.FLUSH_ID);
+                  .requireSame(lastTabletMetadata, ColumnType.FLUSH_ID);
 
               tablet.putFlushId(tableFlushID);
               tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
@@ -1319,9 +1319,9 @@ public class Tablet extends TabletBase {
     }
 
     try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-      var tablet = tabletsMutator.mutateTablet(extent)
+      var tablet = tabletsMutator.mutateTablet(extent, lastTabletMetadata.getPrevEndRow())
           .requireLocation(Location.current(tabletServer.getTabletSession()))
-          .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.TIME);
+          .requireSame(lastTabletMetadata, ColumnType.TIME);
 
       Optional<StoredTabletFile> newFile = Optional.empty();
 

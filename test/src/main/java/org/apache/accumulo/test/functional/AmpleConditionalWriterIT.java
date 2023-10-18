@@ -782,8 +782,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var tabletMeta1 = TabletMetadata.builder(e1).putFlushId(42L).build();
       assertTrue(tabletMeta1.getFlushId().isPresent());
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, FLUSH_ID)
-          .putFlushId(43L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
+      ctmi.mutateTablet(e1, e1.prevEndRow()).requireAbsentOperation()
+          .requireSame(tabletMeta1, FLUSH_ID).putFlushId(43L)
+          .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
       var results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
       assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
@@ -791,8 +792,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       ctmi = new ConditionalTabletsMutatorImpl(context);
       var tabletMeta2 = TabletMetadata.builder(e1).build(FLUSH_ID);
       assertFalse(tabletMeta2.getFlushId().isPresent());
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, FLUSH_ID)
-          .putFlushId(43L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
+      ctmi.mutateTablet(e1, e1.prevEndRow()).requireAbsentOperation()
+          .requireSame(tabletMeta2, FLUSH_ID).putFlushId(43L)
+          .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(43L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
@@ -800,15 +802,17 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       ctmi = new ConditionalTabletsMutatorImpl(context);
       var tabletMeta3 = TabletMetadata.builder(e1).putFlushId(43L).build();
       assertTrue(tabletMeta1.getFlushId().isPresent());
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
-          .putFlushId(44L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 44L);
+      ctmi.mutateTablet(e1, e1.prevEndRow()).requireAbsentOperation()
+          .requireSame(tabletMeta3, FLUSH_ID).putFlushId(44L)
+          .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 44L);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
-          .putFlushId(45L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 45L);
+      ctmi.mutateTablet(e1, e1.prevEndRow()).requireAbsentOperation()
+          .requireSame(tabletMeta3, FLUSH_ID).putFlushId(45L)
+          .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 45L);
       results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
       assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
