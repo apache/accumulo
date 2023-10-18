@@ -76,7 +76,7 @@ public class MergeInfoTest {
     Text prevEndRow = new Text("begin");
     keyExtent = new KeyExtent(TableId.of(table), endRow, prevEndRow);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
-    mi.setState(MergeState.STARTED);
+    mi.setState(MergeState.WAITING_FOR_OFFLINE);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     mi.write(dos);
@@ -84,7 +84,7 @@ public class MergeInfoTest {
     DataInputStream dis = new DataInputStream(bais);
     mi = new MergeInfo();
     mi.readFields(dis);
-    assertSame(MergeState.STARTED, mi.getState());
+    assertSame(MergeState.WAITING_FOR_OFFLINE, mi.getState());
     assertEquals(keyExtent, mi.getExtent());
     assertSame(MergeInfo.Operation.DELETE, mi.getOperation());
   }

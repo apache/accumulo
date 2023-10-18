@@ -539,7 +539,7 @@ public class Manager extends AbstractServer
           throw new AssertionError("Unlikely", ex);
         }
         context.getZooReaderWriter().putPersistentData(path, out.getData(),
-            state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
+            state.equals(MergeState.WAITING_FOR_OFFLINE) ? ZooUtil.NodeExistsPolicy.FAIL
                 : ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
       mergeLock.notifyAll();
@@ -711,8 +711,6 @@ public class Manager extends AbstractServer
             case NONE:
             case COMPLETE:
               break;
-            case STARTED:
-              return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
             case MERGING:
               return TabletGoalState.UNASSIGNED;
