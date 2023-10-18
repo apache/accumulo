@@ -107,9 +107,6 @@ class UnloadTabletHandler implements Runnable {
     // exceptions
     server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
     server.onlineTablets.remove(extent);
-    if (t.isOnDemand()) {
-      server.removeOnDemandAccessTime(extent);
-    }
 
     try {
       TServerInstance instance = server.getTabletSession();
