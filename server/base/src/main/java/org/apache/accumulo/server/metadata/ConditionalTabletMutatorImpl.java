@@ -68,12 +68,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
   private final Ample.ConditionalTabletsMutator parent;
+  private final boolean prevEndRowSupplied;
 
   private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
 
   private final KeyExtent extent;
 
   private boolean sawOperationRequirement = false;
+  private boolean requireAbsentTabletCalled = false;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Text prevEndRow,
@@ -86,10 +88,17 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
     this.extent = extent;
 
-    Condition c =
-        new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
-            .setValue(TabletColumnFamily.encodePrevEndRow(prevEndRow).get());
-    mutation.addCondition(c);
+    // If prevEndRow is null, then we are creating a new Tablet in which case
+    // there is no prevEndRow.
+    if (prevEndRow != null) {
+      Condition c =
+          new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
+              .setValue(TabletColumnFamily.encodePrevEndRow(prevEndRow).get());
+      mutation.addCondition(c);
+      prevEndRowSupplied = true;
+    } else {
+      prevEndRowSupplied = false;
+    }
   }
 
   @Override
@@ -139,6 +148,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Condition c = new Condition("", "").setIterators(is);
     mutation.addCondition(c);
     sawOperationRequirement = true;
+    requireAbsentTabletCalled = true;
     return this;
   }
 
@@ -244,6 +254,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
+    if (!prevEndRowSupplied && !requireAbsentTabletCalled) {
+      requireAbsentTablet();
+    }
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);

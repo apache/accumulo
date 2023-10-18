@@ -177,8 +177,7 @@ public class UpdateTablets extends ManagerRepo {
           continue;
         }
 
-        var mutator =
-            tabletsMutator.mutateTablet(newExtent, newExtent.prevEndRow()).requireAbsentTablet();
+        var mutator = tabletsMutator.mutateTablet(newExtent, null).requireAbsentTablet();
 
         mutator.putOperation(opid);
         mutator.putDirName(dirNameIter.next());
