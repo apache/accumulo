@@ -207,6 +207,12 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> expected.equals(scan(client, table, AUTHORIZATIONS)));
 
       verifyData(client, table, AUTHORIZATIONS, expected);
+
+      // flush a table with no unflushed data, tablet servers take a different code path for this
+      // case
+      client.tableOperations().flush(table, null, null, true);
+
+      verifyData(client, table, AUTHORIZATIONS, expected);
     }
   }
 

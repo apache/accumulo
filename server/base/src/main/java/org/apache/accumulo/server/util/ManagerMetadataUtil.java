@@ -24,8 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -180,37 +178,6 @@ public class ManagerMetadataUtil {
   }
 
   /**
-   * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
-   */
-  public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
-      KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
-      TServerInstance tServerInstance, ServiceLock zooLock, Set<String> unusedWalLogs,
-      Location lastLocation, long flushId) {
-
-    // ELASTICITY_TODO use conditional mutation and require tablet location
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
-    Optional<StoredTabletFile> newFile = Optional.empty();
-
-    // if entries are present, write to path to metadata table
-    if (dfv.getNumEntries() > 0) {
-      tablet.putFile(newDatafile, dfv);
-      tablet.putTime(time);
-      newFile = Optional.of(newDatafile.insert());
-
-      updateLastForCompactionMode(context, tablet, lastLocation, tServerInstance);
-    }
-    tablet.putFlushId(flushId);
-
-    unusedWalLogs.forEach(tablet::deleteWal);
-
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-
-    tablet.mutate();
-    return newFile;
-  }
-
-  /**
    * Update the last location if the location mode is "assignment". This will delete the previous
    * last location if needed and set the new last location
    *
@@ -240,8 +207,9 @@ public class ManagerMetadataUtil {
    * @param lastLocation The last location
    * @param tServerInstance The server address
    */
-  public static void updateLastForCompactionMode(ClientContext context, TabletMutator tabletMutator,
-      Location lastLocation, TServerInstance tServerInstance) {
+  public static void updateLastForCompactionMode(ClientContext context,
+      Ample.ConditionalTabletMutator tabletMutator, Location lastLocation,
+      TServerInstance tServerInstance) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
