@@ -1163,10 +1163,10 @@ public class Manager extends AbstractServer
       managerUpgrading.set(true);
     }
 
+    ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
-      ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -1221,7 +1221,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1229,7 +1229,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1240,7 +1240,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.

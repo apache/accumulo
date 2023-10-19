@@ -72,6 +72,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
+import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.split.SplitTask;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
@@ -122,14 +123,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
   private final EventHandler eventHandler;
+  private final ManagerMetrics metrics;
 
   private WalStateManager walStateManager;
 
-  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
+  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
+      ManagerMetrics metrics) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
+    this.metrics = metrics;
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
@@ -329,6 +333,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final Set<ManagementAction> actions = mti.getActions();
       final TabletMetadata tm = mti.getTabletMetadata();
+
+      final String mtiError = mti.getErrorMessage();
+      if (mtiError != null) {
+        // An error happened on the TabletServer in the TabletManagementIterator
+        // when trying to process this extent.
+        LOG.warn(
+            "Error on TabletServer trying to get Tablet management information for extent: {}. Error message: {}",
+            tm.getExtent(), mtiError);
+        this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
+        continue;
+      }
 
       if (tm.isFutureAndCurrentLocationSet()) {
         throw new BadLocationStateException(

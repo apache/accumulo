@@ -47,6 +47,7 @@ public class TabletManagement {
           ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST,
           ColumnType.OPID, ColumnType.ECOMP, ColumnType.DIR, ColumnType.SELECTED);
 
+  private static final Text ERROR_COLUMN_NAME = new Text("ERROR");
   private static final Text REASONS_COLUMN_NAME = new Text("REASONS");
 
   private static final Text EMPTY = new Text("");
@@ -62,12 +63,20 @@ public class TabletManagement {
     decodedRow.put(reasonsKey, reasonsValue);
   }
 
-  public final Set<ManagementAction> actions;
-  public final TabletMetadata tabletMetadata;
+  public static void addError(final SortedMap<Key,Value> decodedRow, final Exception error) {
+    final Key errorKey = new Key(decodedRow.firstKey().getRow(), ERROR_COLUMN_NAME, EMPTY);
+    final Value errorValue = new Value(error.getMessage());
+    decodedRow.put(errorKey, errorValue);
+  }
 
-  public TabletManagement(Set<ManagementAction> actions, TabletMetadata tm) {
+  private final Set<ManagementAction> actions;
+  private final TabletMetadata tabletMetadata;
+  private final String errorMessage;
+
+  public TabletManagement(Set<ManagementAction> actions, TabletMetadata tm, String errorMessage) {
     this.actions = actions;
     this.tabletMetadata = tm;
+    this.errorMessage = errorMessage;
   }
 
   public TabletManagement(Key wholeRowKey, Value wholeRowValue) throws IOException {
@@ -77,9 +86,21 @@ public class TabletManagement {
   public TabletManagement(Key wholeRowKey, Value wholeRowValue, boolean saveKV) throws IOException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(wholeRowKey, wholeRowValue);
     Text row = decodedRow.firstKey().getRow();
-    Value val = decodedRow.remove(new Key(row, REASONS_COLUMN_NAME, EMPTY));
+    // Decode any errors that happened on the TabletServer
+    Value errorValue = decodedRow.remove(new Key(row, ERROR_COLUMN_NAME, EMPTY));
+    if (errorValue != null) {
+      this.errorMessage = errorValue.toString();
+    } else {
+      this.errorMessage = null;
+    }
+    // Decode the ManagementActions if it exists
+    Value actionValue = decodedRow.remove(new Key(row, REASONS_COLUMN_NAME, EMPTY));
     Set<ManagementAction> actions = new HashSet<>();
-    Splitter.on(',').split(val.toString()).forEach(a -> actions.add(ManagementAction.valueOf(a)));
+    if (actionValue != null) {
+      Splitter.on(',').split(actionValue.toString())
+          .forEach(a -> actions.add(ManagementAction.valueOf(a)));
+    }
+
     TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
         CONFIGURED_COLUMNS, saveKV, true);
     this.actions = actions;
@@ -92,6 +113,10 @@ public class TabletManagement {
 
   public TabletMetadata getTabletMetadata() {
     return tabletMetadata;
+  }
+
+  public String getErrorMessage() {
+    return errorMessage;
   }
 
   @Override
