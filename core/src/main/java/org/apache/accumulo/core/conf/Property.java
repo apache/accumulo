@@ -258,8 +258,8 @@ public enum Property {
           + " This does not equate to how often tickets are actually renewed (which is"
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
-  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a server.", "1.5.0"),
+  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", Integer.toString(Integer.MAX_VALUE),
+      PropertyType.BYTES, "The maximum size of a message that can be sent to a server.", "1.5.0"),
   @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
@@ -449,6 +449,8 @@ public enum Property {
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers", "2.1.0"),
   @Experimental
+  @Deprecated
+  @ReplacedBy(property = GENERAL_MAX_MESSAGE_SIZE)
   SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
   @Experimental
@@ -770,6 +772,8 @@ public enum Property {
       "2.1.0"),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "1.4.0"),
+  @Deprecated
+  @ReplacedBy(property = GENERAL_MAX_MESSAGE_SIZE)
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "1.6.0"),
   TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
@@ -1446,6 +1450,8 @@ public enum Property {
   COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "2.1.0"),
   @Experimental
+  @Deprecated
+  @ReplacedBy(property = GENERAL_MAX_MESSAGE_SIZE)
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   // CompactionCoordinator properties
@@ -1475,6 +1481,8 @@ public enum Property {
       PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool.",
       "2.1.0"),
   @Experimental
+  @Deprecated
+  @ReplacedBy(property = GENERAL_MAX_MESSAGE_SIZE)
   COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE("compaction.coordinator.message.size.max", "10M",
       PropertyType.BYTES, "The maximum size of a message that can be sent to a tablet server.",
       "2.1.0"),
