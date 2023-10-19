@@ -241,7 +241,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
-    if (checkPrevEndRow && extent.prevEndRow() != null) {
+    if (checkPrevEndRow) {
       Condition c =
           new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
               .setValue(encodePrevEndRow(extent.prevEndRow()).get());
