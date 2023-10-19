@@ -1531,7 +1531,7 @@ public class Tablet extends TabletBase {
       Preconditions.checkState(tabletMetadata != null, "Tablet no longer exits %s", getExtent());
       Preconditions.checkState(
           Location.current(tabletServer.getTabletSession()).equals(tabletMetadata.getLocation()),
-          "Tablet % location %s is not this tserver %s", getExtent(), tabletMetadata.getLocation(),
+          "Tablet %s location %s is not this tserver %s", getExtent(), tabletMetadata.getLocation(),
           tabletServer.getTabletSession());
 
       synchronized (this) {
