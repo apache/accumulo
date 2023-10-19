@@ -630,8 +630,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         if (recentHostingRequest.getIfPresent(ke) == null) {
           mutator.mutateTablet(ke).requireAbsentOperation()
               .requireHostingGoal(TabletHostingGoal.ONDEMAND).requireAbsentLocation()
-              .requirePrevEndRow(ke.prevEndRow()).setHostingRequested()
-              .submit(TabletMetadata::getHostingRequested);
+              .setHostingRequested().submit(TabletMetadata::getHostingRequested);
         } else {
           log.trace("Ignoring hosting request because it was recently requested {}", ke);
         }

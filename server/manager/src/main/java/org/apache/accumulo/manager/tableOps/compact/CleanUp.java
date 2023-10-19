@@ -68,7 +68,7 @@ public class CleanUp extends ManagerRepo {
       for (TabletMetadata tablet : tablets) {
         if (tablet.getCompacted().contains(tid)) {
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, PREV_ROW, COMPACTED).deleteCompacted(tid)
+              .requireSame(tablet, COMPACTED).deleteCompacted(tid)
               .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(tid));
         }
       }

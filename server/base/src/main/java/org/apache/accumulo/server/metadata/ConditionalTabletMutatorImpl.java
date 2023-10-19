@@ -56,7 +56,6 @@ import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -74,6 +73,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final KeyExtent extent;
 
   private boolean sawOperationRequirement = false;
+  private boolean checkPrevEndRow = true;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
@@ -108,16 +108,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requirePrevEndRow(Text per) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition c =
-        new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
-            .setValue(encodePrevEndRow(per).get());
-    mutation.addCondition(c);
-    return this;
-  }
-
-  @Override
   public Ample.ConditionalTabletMutator requireHostingGoal(TabletHostingGoal goal) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(GOAL_COLUMN.getColumnFamily(), GOAL_COLUMN.getColumnQualifier())
@@ -143,6 +133,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Condition c = new Condition("", "").setIterators(is);
     mutation.addCondition(c);
     sawOperationRequirement = true;
+    checkPrevEndRow = false;
     return this;
   }
 
@@ -168,8 +159,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private void requireSameSingle(TabletMetadata tabletMetadata, ColumnType type) {
     switch (type) {
       case PREV_ROW:
-        requirePrevEndRow(tabletMetadata.getPrevEndRow());
-        break;
+        throw new IllegalStateException("PREV_ROW already set from Extent");
       case COMPACT_ID: {
         Condition c =
             new Condition(COMPACT_COLUMN.getColumnFamily(), COMPACT_COLUMN.getColumnQualifier());
@@ -251,6 +241,12 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
+    if (checkPrevEndRow && extent.prevEndRow() != null) {
+      Condition c =
+          new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
+              .setValue(encodePrevEndRow(extent.prevEndRow()).get());
+      mutation.addCondition(c);
+    }
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);

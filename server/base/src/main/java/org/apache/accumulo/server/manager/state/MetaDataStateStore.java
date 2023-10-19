@@ -71,8 +71,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
         }
 
         // ELASTICITY_TODO pending #3314, add conditional mutation check that tls.suspend exists
-        tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
-            .requirePrevEndRow(tm.getExtent().prevEndRow()).deleteSuspension()
+        tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation().deleteSuspension()
             .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
       }
 

@@ -449,11 +449,6 @@ public interface Ample {
     ConditionalTabletMutator requireLocation(Location location);
 
     /**
-     * Require that a tablet has the specified previous end row.
-     */
-    ConditionalTabletMutator requirePrevEndRow(Text per);
-
-    /**
      * Requires the tablet to have the specified hosting goal before any changes are made.
      */
     ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);

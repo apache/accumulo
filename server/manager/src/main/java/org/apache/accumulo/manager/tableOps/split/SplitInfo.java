@@ -73,8 +73,6 @@ public class SplitInfo implements Serializable {
 
     TreeSet<KeyExtent> tablets = new TreeSet<>();
 
-    double sum = 0;
-
     for (var split : getSplits()) {
       var extent = new KeyExtent(getOriginal().tableId(), split, prev);
       prev = split;

@@ -171,7 +171,7 @@ class CompactionDriver extends ManagerRepo {
               FateTxId.formatTid(tid), tablet.getExtent());
           // this tablet has no files try to mark it as done
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, PREV_ROW, FILES, COMPACTED).putCompacted(tid)
+              .requireSame(tablet, FILES, COMPACTED).putCompacted(tid)
               .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(tid));
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
@@ -201,11 +201,11 @@ class CompactionDriver extends ManagerRepo {
           if (filesToCompact.isEmpty()) {
             // no files were selected so mark the tablet as compacted
             tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, PREV_ROW, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(tid)
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(tid)
                 .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(tid));
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, PREV_ROW, FILES, SELECTED, ECOMP, COMPACTED);
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
             var selectedFiles =
                 new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), tid);
 
@@ -309,7 +309,7 @@ class CompactionDriver extends ManagerRepo {
 
           if (needsUpdate.test(tablet)) {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, PREV_ROW, COMPACTED, SELECTED);
+                .requireSame(tablet, COMPACTED, SELECTED);
             if (tablet.getSelectedFiles() != null
                 && tablet.getSelectedFiles().getFateTxId() == tid) {
               mutator.deleteSelectedFiles();
