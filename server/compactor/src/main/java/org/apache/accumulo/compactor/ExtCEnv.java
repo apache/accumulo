@@ -27,8 +27,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.util.ratelimit.NullRateLimiter;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
@@ -72,16 +70,6 @@ public class ExtCEnv implements CompactionEnv {
   @Override
   public IteratorScope getIteratorScope() {
     return IteratorScope.majc;
-  }
-
-  @Override
-  public RateLimiter getReadLimiter() {
-    return NullRateLimiter.INSTANCE;
-  }
-
-  @Override
-  public RateLimiter getWriteLimiter() {
-    return NullRateLimiter.INSTANCE;
   }
 
   @Override

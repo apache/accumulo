@@ -58,8 +58,7 @@ public class RFileOperations extends FileOperations {
     CachableBuilder cb = new CachableBuilder()
         .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-        .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
-        .cryptoService(options.getCryptoService());
+        .cacheProvider(options.cacheProvider).cryptoService(options.getCryptoService());
     return RFile.getReader(cb, options.getFile());
   }
 
@@ -156,8 +155,7 @@ public class RFileOperations extends FileOperations {
       }
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.cryptoService);
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, compression, conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

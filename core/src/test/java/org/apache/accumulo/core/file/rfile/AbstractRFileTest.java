@@ -99,7 +99,7 @@ public abstract class AbstractRFileTest {
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
           accumuloConfiguration.getAllCryptoProperties());
 
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, cs);
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf, cs);
 
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);

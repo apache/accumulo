@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.client.rfile;
 
-import java.io.InputStream;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.fs.FSDataInputStream;
 
 /**
  * RFile metadata is stored at the end of the file. Inorder to read an RFile, its length must be
@@ -30,24 +30,24 @@ import org.apache.accumulo.core.data.Range;
  * @since 1.8.0
  */
 public class RFileSource {
-  private final InputStream in;
+  private final FSDataInputStream in;
   private final long len;
   private final Range range;
 
-  public RFileSource(InputStream in, long len) {
+  public RFileSource(FSDataInputStream in, long len) {
     this(in, len, new Range());
   }
 
   /**
    * @since 3.1.0
    */
-  public RFileSource(InputStream in, long len, Range range) {
+  public RFileSource(FSDataInputStream in, long len, Range range) {
     this.in = Objects.requireNonNull(in);
     this.len = len;
     this.range = Objects.requireNonNull(range);
   }
 
-  public InputStream getInputStream() {
+  public FSDataInputStream getInputStream() {
     return in;
   }
 
