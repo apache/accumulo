@@ -452,7 +452,7 @@ public class Tablet extends TabletBase {
             try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
               var tablet = tabletsMutator.mutateTablet(extent)
                   .requireLocation(Location.current(tabletServer.getTabletSession()))
-                  .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.FLUSH_ID);
+                  .requireSame(lastTabletMetadata, ColumnType.FLUSH_ID);
 
               tablet.putFlushId(tableFlushID);
               tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
@@ -1321,7 +1321,7 @@ public class Tablet extends TabletBase {
     try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
       var tablet = tabletsMutator.mutateTablet(extent)
           .requireLocation(Location.current(tabletServer.getTabletSession()))
-          .requireSame(lastTabletMetadata, ColumnType.PREV_ROW, ColumnType.TIME);
+          .requireSame(lastTabletMetadata, ColumnType.TIME);
 
       Optional<StoredTabletFile> newFile = Optional.empty();
 
