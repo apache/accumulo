@@ -257,7 +257,11 @@ public class FencedRFileTest extends AbstractRFileTest {
       // end row of range matches last key in file so that should be returned instead
       assertEquals(lastKeyInFile, reader.getLastKey());
     });
-
+    // Test case where rows in range are less than and greater than keys
+    assertReader(trf, new Range("a", "z"), (reader) -> {
+      assertEquals(firstKeyInFile, reader.getFirstKey());
+      assertEquals(lastKeyInFile, reader.getLastKey());
+    });
     // Test inclusive end key, usually a row range is required to be an exclusive key
     // for a tablet file but the fenced reader still supports any range type
     // Test infinite end key
