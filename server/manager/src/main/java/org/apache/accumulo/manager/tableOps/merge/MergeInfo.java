@@ -51,22 +51,6 @@ public class MergeInfo {
     return this.operation.equals(Operation.DELETE);
   }
 
-  public boolean needsToBeChopped(KeyExtent otherExtent) {
-    if (isDelete() && otherExtent.tableId().equals(extent.tableId())) {
-      return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
-    } else {
-      return false;
-    }
-  }
-
-  public boolean overlaps(KeyExtent otherExtent) {
-    boolean result = this.extent.overlaps(otherExtent);
-    if (!result && needsToBeChopped(otherExtent)) {
-      return true;
-    }
-    return result;
-  }
-
   @Override
   public String toString() {
     return "Merge " + operation + " of " + extent;
