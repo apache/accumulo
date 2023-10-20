@@ -102,7 +102,24 @@ public class FileMetadataUtil {
 
   public static void splitFilesIntoRanges(final ServerContext ctx, String tableName,
       Text tabletStartRow, Text tabletEndRow, Set<Range> fileRanges) throws Exception {
+
     Preconditions.checkArgument(!fileRanges.isEmpty(), "Ranges must not be empty");
+
+    mutateTabletFiles(ctx, tableName, tabletStartRow, tabletEndRow, (tm, mutator, file, value) -> {
+      // Create a mutation to delete the existing file metadata entry with infinite range
+      mutator.deleteFile(file);
+
+      fileRanges.forEach(range -> {
+        final DataFileValue newValue =
+            new DataFileValue(Integer.max(1, (int) (value.getSize() / fileRanges.size())),
+                Integer.max(1, (int) (value.getNumEntries() / fileRanges.size())));
+        mutator.putFile(StoredTabletFile.of(file.getPath(), range), newValue);
+      });
+    });
+  }
+
+  public static void mutateTabletFiles(final ServerContext ctx, String tableName,
+      Text tabletStartRow, Text tabletEndRow, FileMutator fileMutator) throws Exception {
 
     final TableId tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
 
@@ -113,35 +130,32 @@ public class FileMetadataUtil {
         ctx.getAmple().readTablets().forTable(tableId).overlapping(tabletStartRow, tabletEndRow)
             .fetch(ColumnType.FILES, ColumnType.PREV_ROW).build()) {
 
-      // Read each file and split to 10 ranges
+      // Process each tablet in the given start/end row range
       for (TabletMetadata tabletMetadata : tabletsMetadata) {
         final KeyExtent ke = tabletMetadata.getExtent();
 
-        // Create a mutation to delete the existing file metadata entry with infinite range
         TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
 
-        // Read each files and split into the given ranges
+        // Read each file and mutate
         for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()
             .entrySet()) {
           StoredTabletFile file = fileEntry.getKey();
           DataFileValue value = fileEntry.getValue();
 
-          // Create a mutation to delete the existing file metadata entry with infinite range
-          mutator.deleteFile(file);
-
-          fileRanges.forEach(range -> {
-            final DataFileValue newValue =
-                new DataFileValue(Integer.max(1, (int) (value.getSize() / fileRanges.size())),
-                    Integer.max(1, (int) (value.getNumEntries() / fileRanges.size())));
-            mutator.putFile(StoredTabletFile.of(file.getPath(), range), newValue);
-          });
+          // do any file mutations
+          fileMutator.mutate(tabletMetadata, mutator, file, value);
 
           mutator.mutate();
         }
       }
     }
 
+    // Bring back online after metadata updates
     ctx.tableOperations().online(tableName, true);
   }
 
+  public interface FileMutator {
+    void mutate(TabletMetadata tm, TabletMutator mutator, StoredTabletFile file,
+        DataFileValue value);
+  }
 }

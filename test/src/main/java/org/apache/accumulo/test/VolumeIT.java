@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
@@ -64,15 +65,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -80,6 +78,7 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -285,6 +284,11 @@ public class VolumeIT extends ConfigurableMacBase {
 
   private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
       Path... paths) throws Exception {
+    verifyVolumesUsed(client, tableName, shouldExist, false, paths);
+  }
+
+  private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
+      boolean rangedFiles, Path... paths) throws Exception {
 
     if (!client.tableOperations().exists(tableName)) {
       assertFalse(shouldExist);
@@ -353,7 +357,10 @@ public class VolumeIT extends ConfigurableMacBase {
         sum += count;
       }
 
-      assertEquals(100, sum);
+      // When ranged files exist we there should be twice as many
+      // as the test split each file into 2
+      int expectedCount = rangedFiles ? 200 : 100;
+      assertEquals(expectedCount, sum);
     }
   }
 
@@ -411,6 +418,13 @@ public class VolumeIT extends ConfigurableMacBase {
       writeData(tableNames[1], c2);
     }
 
+    // If flag is true then for each file split and create two files
+    // to verify volume replacement works on files with ranges
+    if (rangedFiles) {
+      splitFilesWithRange(client, tableNames[0]);
+      splitFilesWithRange(client, tableNames[1]);
+    }
+
     if (cleanShutdown) {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     }
@@ -436,20 +450,16 @@ public class VolumeIT extends ConfigurableMacBase {
     // start cluster and verify that volumes were replaced
     cluster.start();
 
-    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
-    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
-
-    if (rangedFiles) {
-      addRangesToFiles(client, tableNames[0]);
-      addRangesToFiles(client, tableNames[1]);
-    }
+    verifyVolumesUsed(client, tableNames[0], true, rangedFiles, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, rangedFiles, v8, v9);
 
     // verify writes to new dir
     client.tableOperations().compact(tableNames[0], null, null, true, true);
     client.tableOperations().compact(tableNames[1], null, null, true, true);
 
-    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
-    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
+    // Always pass false for ranged files as compaction will clean them up if exist
+    verifyVolumesUsed(client, tableNames[0], true, false, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, false, v8, v9);
 
     client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
 
@@ -519,52 +529,36 @@ public class VolumeIT extends ConfigurableMacBase {
   // Go through each tablet file in metadata and split the files into two files
   // by adding two new entries that covers half of the file. This will test that
   // files with ranges work properly with volume replacement
-  private void addRangesToFiles(AccumuloClient client, String tableName) throws Exception {
+  private void splitFilesWithRange(AccumuloClient client, String tableName) throws Exception {
     client.securityOperations().grantTablePermission(cluster.getConfig().getRootUserName(),
         MetadataTable.NAME, TablePermission.WRITE);
-    final ClientContext ctx = getServerContext();
+    final ServerContext ctx = getServerContext();
     ctx.setCredentials(new SystemCredentials(client.instanceOperations().getInstanceId(), "root",
         new PasswordToken(ROOT_PASSWORD)));
-    final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
-    // Bring tablet offline so we can modify file metadata
-    client.tableOperations().offline(tableName, true);
+    AtomicInteger i = new AtomicInteger();
+    FileMetadataUtil.mutateTabletFiles(ctx, tableName, null, null, (tm, mutator, file, value) -> {
+      i.incrementAndGet();
 
-    try (TabletsMetadata tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId)
-        .fetch(ColumnType.FILES, ColumnType.PREV_ROW).build()) {
+      // Create a mutation to delete the existing file metadata entry with infinite range
+      mutator.deleteFile(file);
 
-      // Read each file (should only be 1), and split into 4 ranges
-      for (TabletMetadata tabletMetadata : tabletsMetadata) {
-        final KeyExtent ke = tabletMetadata.getExtent();
-
-        // Create a mutation to delete the existing file metadata entry with infinite range
-        TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
-
-        // Read each files and split and create two new fenced files
-        for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()
-            .entrySet()) {
-          StoredTabletFile file = fileEntry.getKey();
-          DataFileValue value = fileEntry.getValue();
-          // Create a mutation to delete the existing file metadata entry with infinite range
-          mutator.deleteFile(file);
-
-          // Find the midpoint and create two new files, each with a range covering half the file
-          final Text tabletMidPoint = getTabletMidPoint(ke.endRow());
-          final DataFileValue newValue =
-              new DataFileValue(Integer.max(1, (int) (value.getSize() / 2)),
-                  Integer.max(1, (int) (value.getNumEntries() / 2)));
-          mutator.putFile(
-              StoredTabletFile.of(file.getPath(), new Range(ke.prevEndRow(), tabletMidPoint)),
-              newValue);
-          mutator.putFile(
-              StoredTabletFile.of(file.getPath(), new Range(tabletMidPoint, ke.endRow())),
-              newValue);
-          mutator.mutate();
-        }
+      // Find the midpoint and create two new files, each with a range covering half the file
+      Text tabletMidPoint = getTabletMidPoint(tm.getExtent().endRow());
+      // Handle edge case for last tablet
+      if (tabletMidPoint == null) {
+        tabletMidPoint = new Text(
+            String.format("%06d", Integer.parseInt(tm.getExtent().prevEndRow().toString()) + 50));
       }
-    }
 
-    client.tableOperations().online(tableName, true);
+      final DataFileValue newValue = new DataFileValue(Integer.max(1, (int) (value.getSize() / 2)),
+          Integer.max(1, (int) (value.getNumEntries() / 2)));
+      mutator.putFile(StoredTabletFile.of(file.getPath(),
+          new Range(tm.getExtent().prevEndRow(), tabletMidPoint)), newValue);
+      mutator.putFile(
+          StoredTabletFile.of(file.getPath(), new Range(tabletMidPoint, tm.getExtent().endRow())),
+          newValue);
+    });
   }
 
   private static Text getTabletMidPoint(Text row) {
