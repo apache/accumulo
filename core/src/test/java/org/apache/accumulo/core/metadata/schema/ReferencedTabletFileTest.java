@@ -22,8 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URI;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -113,10 +111,10 @@ public class ReferencedTabletFileTest {
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
     ReferencedTabletFile uglyFile =
         test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
-    ReferencedTabletFile niceFile = StoredTabletFile.of(
-        URI.create(
-            "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename),
-        new Range()).getTabletFile();
+    ReferencedTabletFile niceFile = StoredTabletFile
+        .of(new Path(
+            "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename))
+        .getTabletFile();
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }

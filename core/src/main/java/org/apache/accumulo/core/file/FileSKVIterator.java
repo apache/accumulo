@@ -21,15 +21,15 @@ package org.apache.accumulo.core.file;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.hadoop.io.Text;
 
 public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
-  Key getFirstKey() throws IOException;
+  Text getFirstRow() throws IOException;
 
-  Key getLastKey() throws IOException;
+  Text getLastRow() throws IOException;
 
   DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
 

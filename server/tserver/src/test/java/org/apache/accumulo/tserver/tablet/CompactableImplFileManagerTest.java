@@ -43,6 +43,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.FileSelectionStatus;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
@@ -385,8 +386,7 @@ public class CompactableImplFileManagerTest {
   }
 
   static StoredTabletFile newFile(String f) {
-    return new StoredTabletFile(
-        StoredTabletFile.serialize("hdfs://nn1/accumulo/tables/1/t-0001/" + f));
+    return StoredTabletFile.of(new Path("hdfs://nn1/accumulo/tables/1/t-0001/" + f));
   }
 
   static Set<StoredTabletFile> newFiles(String... strings) {

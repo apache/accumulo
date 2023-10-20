@@ -1441,8 +1441,7 @@ public class Tablet extends TabletBase {
         Text lastRow = null;
 
         if (extent.endRow() == null) {
-          Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
-          lastRow = lastKey.getRow();
+          lastRow = FileUtil.findLastRow(context, tableConfiguration, files);
         }
 
         newComputation = new SplitComputations(files, midpoint, lastRow);

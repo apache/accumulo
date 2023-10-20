@@ -23,7 +23,6 @@ import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -68,7 +67,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   private MockShell ts;
