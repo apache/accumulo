@@ -84,7 +84,6 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
-import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
@@ -300,13 +299,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TableMgmtStats tableMgmtStats = new TableMgmtStats();
     int unloaded = 0;
 
-    Map<TableId,MergeInfo> currentMerges = new HashMap<>();
-    for (MergeInfo merge : manager.merges()) {
-      if (merge.getExtent() != null) {
-        currentMerges.put(merge.getExtent().tableId(), merge);
-      }
-    }
-
     final Map<String,Set<TServerInstance>> currentTServerGrouping =
         manager.tserverSet.getCurrentServersGroups();
 
@@ -352,8 +344,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
-      TabletGoalState goal = manager.getGoalState(tm,
-          currentMerges.computeIfAbsent(tm.getTableId(), k -> new MergeInfo()));
+      TabletGoalState goal = manager.getGoalState(tm);
       TabletState state =
           TabletState.compute(tm, currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
@@ -456,8 +447,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // entries from the queue because we see nothing here for that case. After a full
       // metadata scan could remove any tablets that were not updated during the scan.
 
-      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)
-          || actions.contains(ManagementAction.IS_MERGING)) {
+      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
         if (goal == TabletGoalState.HOSTED) {
           if ((state != TabletState.HOSTED && !tm.getLogs().isEmpty())
               && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {

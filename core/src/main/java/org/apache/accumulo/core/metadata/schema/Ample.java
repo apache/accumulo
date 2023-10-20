@@ -22,12 +22,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -375,6 +377,14 @@ public interface Ample {
     T putSelectedFiles(SelectedFiles selectedFiles);
 
     T deleteSelectedFiles();
+
+    /**
+     * Deletes all the columns in the keys.
+     *
+     * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
+     *         is not empty
+     */
+    T deleteAll(Set<Key> keys);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

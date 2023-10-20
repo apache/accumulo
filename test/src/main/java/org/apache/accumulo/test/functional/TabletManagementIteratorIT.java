@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
-import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -163,18 +161,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       reassignLocation(client, metaCopy2, t3);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
           "Only 1 of 2 tablets in table t1 should be returned");
-
-      // test the cases where there is ongoing merges
-      state = new State(client) {
-        @Override
-        public Collection<MergeInfo> merges() {
-          TableId tableIdToModify = TableId.of(client.tableOperations().tableIdMap().get(t3));
-          return Collections.singletonList(
-              new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
-        }
-      };
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
-          "Should have 2 tablets that need to be chopped or unassigned");
 
       // test the bad tablet location state case (inconsistent metadata)
       state = new State(client);
@@ -397,11 +383,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     @Override
     public Map<String,Set<TServerInstance>> tServerResourceGroups() {
       return new HashMap<>();
-    }
-
-    @Override
-    public Collection<MergeInfo> merges() {
-      return Collections.emptySet();
     }
 
     @Override

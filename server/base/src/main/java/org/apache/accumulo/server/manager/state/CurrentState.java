@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,8 +35,6 @@ public interface CurrentState {
   Map<String,Set<TServerInstance>> tServerResourceGroups();
 
   Set<TServerInstance> shutdownServers();
-
-  Collection<MergeInfo> merges();
 
   /**
    * Provide an immutable snapshot view of migrating tablets. Objects contained in the set may still

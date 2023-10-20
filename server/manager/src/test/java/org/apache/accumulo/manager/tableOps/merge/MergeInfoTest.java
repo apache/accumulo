@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.manager.state;
+package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -24,19 +24,10 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,44 +40,6 @@ public class MergeInfoTest {
   @BeforeEach
   public void setUp() {
     keyExtent = createMock(KeyExtent.class);
-  }
-
-  @Test
-  public void testConstruction_NoArgs() {
-    mi = new MergeInfo();
-    assertEquals(MergeState.NONE, mi.getState());
-    assertNull(mi.getExtent());
-    assertEquals(MergeInfo.Operation.MERGE, mi.getOperation());
-    assertFalse(mi.isDelete());
-  }
-
-  @Test
-  public void testConstruction_2Args() {
-    mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
-    assertEquals(MergeState.NONE, mi.getState());
-    assertSame(keyExtent, mi.getExtent());
-    assertEquals(MergeInfo.Operation.DELETE, mi.getOperation());
-    assertTrue(mi.isDelete());
-  }
-
-  @Test
-  public void testSerialization() throws Exception {
-    String table = "table";
-    Text endRow = new Text("end");
-    Text prevEndRow = new Text("begin");
-    keyExtent = new KeyExtent(TableId.of(table), endRow, prevEndRow);
-    mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
-    mi.setState(MergeState.WAITING_FOR_OFFLINE);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(baos);
-    mi.write(dos);
-    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-    DataInputStream dis = new DataInputStream(bais);
-    mi = new MergeInfo();
-    mi.readFields(dis);
-    assertSame(MergeState.WAITING_FOR_OFFLINE, mi.getState());
-    assertEquals(keyExtent, mi.getExtent());
-    assertSame(MergeInfo.Operation.DELETE, mi.getOperation());
   }
 
   @Test
@@ -164,33 +117,9 @@ public class MergeInfoTest {
     assertTrue(mi.overlaps(keyExtent2));
   }
 
-  private static MergeInfo readWrite(MergeInfo info) throws Exception {
-    DataOutputBuffer buffer = new DataOutputBuffer();
-    info.write(buffer);
-    DataInputBuffer in = new DataInputBuffer();
-    in.reset(buffer.getData(), 0, buffer.getLength());
-    MergeInfo info2 = new MergeInfo();
-    info2.readFields(in);
-    assertEquals(info.getExtent(), info2.getExtent());
-    assertEquals(info.getState(), info2.getState());
-    assertEquals(info.getOperation(), info2.getOperation());
-    return info2;
-  }
-
   private static KeyExtent ke(String tableId, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(tableId), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
-  }
-
-  @Test
-  public void testWritable() throws Exception {
-    MergeInfo info;
-    info = readWrite(new MergeInfo(ke("a", null, "b"), MergeInfo.Operation.MERGE));
-    info = readWrite(new MergeInfo(ke("a", "b", null), MergeInfo.Operation.MERGE));
-    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE));
-    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE));
-    assertTrue(info.isDelete());
-    info.setState(MergeState.COMPLETE);
   }
 
   @Test

@@ -95,7 +95,6 @@ public class TabletManagementIterator extends SkippingIterator {
 
   private static final String SERVERS_OPTION = "servers";
   private static final String TABLES_OPTION = "tables";
-  private static final String MERGES_OPTION = "merges";
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
@@ -120,23 +119,6 @@ public class TabletManagementIterator extends SkippingIterator {
     if (onlineTables != null) {
       cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
     }
-  }
-
-  private static void setMerges(final IteratorSetting cfg, final Collection<MergeInfo> merges) {
-    DataOutputBuffer buffer = new DataOutputBuffer();
-    try {
-      for (MergeInfo info : merges) {
-        KeyExtent extent = info.getExtent();
-        if (extent != null && !info.getState().equals(MergeState.NONE)) {
-          info.write(buffer);
-        }
-      }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }
-    String encoded =
-        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-    cfg.addOption(MERGES_OPTION, encoded);
   }
 
   private static void setMigrations(final IteratorSetting cfg,
@@ -242,25 +224,6 @@ public class TabletManagementIterator extends SkippingIterator {
     return result;
   }
 
-  private static Map<TableId,MergeInfo> parseMerges(final String merges) {
-    Map<TableId,MergeInfo> result = new HashMap<>();
-    if (merges != null) {
-      try {
-        DataInputBuffer buffer = new DataInputBuffer();
-        byte[] data = Base64.getDecoder().decode(merges);
-        buffer.reset(data, data.length);
-        while (buffer.available() > 0) {
-          MergeInfo mergeInfo = new MergeInfo();
-          mergeInfo.readFields(buffer);
-          result.put(mergeInfo.extent.tableId(), mergeInfo);
-        }
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-    return result;
-  }
-
   private static Map<Long,Map<String,String>> parseCompactionHints(String json) {
     if (json == null) {
       return Map.of();
@@ -343,7 +306,6 @@ public class TabletManagementIterator extends SkippingIterator {
     if (state != null) {
       TabletManagementIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletManagementIterator.setOnlineTables(tabletChange, state.onlineTables());
-      TabletManagementIterator.setMerges(tabletChange, state.merges());
       TabletManagementIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
@@ -361,7 +323,6 @@ public class TabletManagementIterator extends SkippingIterator {
   private final Set<TServerInstance> current = new HashSet<>();
   private final Set<TableId> onlineTables = new HashSet<>();
   private final Map<TabletServerId,String> tserverResourceGroups = new HashMap<>();
-  private final Map<TableId,MergeInfo> merges = new HashMap<>();
   private final Set<KeyExtent> migrations = new HashSet<>();
   private ManagerState managerState = ManagerState.NORMAL;
   private IteratorEnvironment env;
@@ -376,7 +337,6 @@ public class TabletManagementIterator extends SkippingIterator {
     current.addAll(parseServers(options.get(SERVERS_OPTION)));
     onlineTables.addAll(parseTableIDs(options.get(TABLES_OPTION)));
     tserverResourceGroups.putAll(parseTServerResourceGroups(options));
-    merges.putAll(parseMerges(options.get(MERGES_OPTION)));
     migrations.addAll(parseMigrations(options.get(MIGRATIONS_OPTION)));
     String managerStateOptionValue = options.get(MANAGER_STATE_OPTION);
     try {
@@ -466,13 +426,6 @@ public class TabletManagementIterator extends SkippingIterator {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;
-    }
-
-    // we always want data about merges
-    final MergeInfo merge = merges.get(tm.getTableId());
-    if (merge != null) {
-      // could make this smarter by only returning if the tablet is involved in the merge
-      reasonsToReturnThisTablet.add(ManagementAction.IS_MERGING);
     }
 
     if (shouldReturnDueToLocation(tm, onlineTables, current)) {

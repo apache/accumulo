@@ -16,53 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.manager.state;
-
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+package org.apache.accumulo.manager.tableOps.merge;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.hadoop.io.Writable;
 
 /**
  * Information about the current merge/rangeDelete.
- *
- * Writable to serialize for zookeeper and the Tablet
  */
-public class MergeInfo implements Writable {
+public class MergeInfo {
+
+  // TODO need to open issue about ZK cleanup
 
   public enum Operation {
     MERGE, DELETE,
   }
 
-  MergeState state = MergeState.NONE;
-  KeyExtent extent;
-  Operation operation = Operation.MERGE;
-
-  public MergeInfo() {}
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    extent = KeyExtent.readFrom(in);
-    state = MergeState.values()[in.readInt()];
-    operation = Operation.values()[in.readInt()];
-  }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    extent.writeTo(out);
-    out.writeInt(state.ordinal());
-    out.writeInt(operation.ordinal());
-  }
+  private KeyExtent extent;
+  Operation operation;
 
   public MergeInfo(KeyExtent range, Operation op) {
     this.extent = range;
     this.operation = op;
-  }
-
-  public MergeState getState() {
-    return state;
   }
 
   public KeyExtent getExtent() {
@@ -71,10 +45,6 @@ public class MergeInfo implements Writable {
 
   public Operation getOperation() {
     return operation;
-  }
-
-  public void setState(MergeState state) {
-    this.state = state;
   }
 
   public boolean isDelete() {
@@ -99,9 +69,6 @@ public class MergeInfo implements Writable {
 
   @Override
   public String toString() {
-    if (!state.equals(MergeState.NONE)) {
-      return "Merge " + operation + " of " + extent + " State: " + state;
-    }
-    return "No Merge in progress";
+    return "Merge " + operation + " of " + extent;
   }
 }
