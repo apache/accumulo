@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -89,7 +90,7 @@ public class Upgrader11to12 implements Upgrader {
     var rootName = Ample.DataLevel.METADATA.metaTable();
     var filesToConvert = getFileReferences(context, rootName);
     convertFileReferences(context, rootName, filesToConvert);
-    deleteChoppedReferences(context, rootName);
+    deleteObsoleteReferences(context, rootName);
   }
 
   @Override
@@ -99,7 +100,7 @@ public class Upgrader11to12 implements Upgrader {
     var metaName = Ample.DataLevel.USER.metaTable();
     var filesToConvert = getFileReferences(context, metaName);
     convertFileReferences(context, metaName, filesToConvert);
-    deleteChoppedReferences(context, metaName);
+    deleteObsoleteReferences(context, metaName);
   }
 
   private Map<ComparablePair<KeyExtent,String>,Value>
@@ -169,23 +170,37 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  private void deleteChoppedReferences(ServerContext context, String tableName) {
+  /**
+   * Removes chopped and external compaction references that have obsolete encoding that is
+   * incompatible with StoredTabletFile json encoding. These references should be rare. If they are
+   * present, some operations likely terminated abnormally under the old version before shutdown.
+   * The deletions are logged so those operations may be re-run if desired.
+   */
+  private void deleteObsoleteReferences(ServerContext context, String tableName) {
+    log.debug("processing obsolete references for table: {}", tableName);
     try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
         BatchWriter batchWriter = c.createBatchWriter(tableName)) {
 
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(UpgraderDeprecatedConstants.ChoppedColumnFamily.STR_NAME);
+        scanner
+            .fetchColumnFamily(MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.NAME);
         scanner.forEach((k, v) -> {
-          Mutation delete = new Mutation(k.getRow());
-          delete.at().family(UpgraderDeprecatedConstants.ChoppedColumnFamily.STR_NAME)
-              .qualifier(UpgraderDeprecatedConstants.ChoppedColumnFamily.STR_NAME).delete();
-          log.warn(
-              "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
-              tableName, delete.prettyPrint());
+          Mutation delete;
+          var family = k.getColumnFamily();
+          if (family.equals(UpgraderDeprecatedConstants.ChoppedColumnFamily.NAME)) {
+            delete = buildChoppedDeleteMutation(k, tableName);
+          } else if (family
+              .equals(MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.NAME)) {
+            delete = buildExternalCompactionDelete(k, tableName);
+          } else {
+            throw new IllegalStateException(
+                "unexpected column Family: '{}' seen processing obsolete references");
+          }
           try {
             batchWriter.addMutation(delete);
           } catch (MutationsRejectedException ex) {
-            log.warn("Failed delete chopped reference for table: " + tableName + ". Ref: "
+            log.warn("Failed to delete obsolete reference for table: " + tableName + ". Ref: "
                 + delete.prettyPrint()
                 + ". Will try to continue. Ref may need to be manually removed");
             log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
@@ -193,14 +208,34 @@ public class Upgrader11to12 implements Upgrader {
         });
       }
     } catch (MutationsRejectedException ex) {
-      log.warn("Failed delete chopped reference for table: " + tableName + "on close");
+      log.warn("Failed to delete obsolete reference for table: " + tableName + " on close");
       log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
       throw new IllegalStateException(ex);
     } catch (Exception ex) {
       throw new IllegalStateException(
-          "Processing chopped referenced for table: " + tableName + " failed. Upgrade aborting",
+          "Processing obsolete referenced for table: " + tableName + " failed. Upgrade aborting",
           ex);
     }
+  }
+
+  private Mutation buildChoppedDeleteMutation(final Key k, final String tableName) {
+    Mutation delete = new Mutation(k.getRow()).at()
+        .family(UpgraderDeprecatedConstants.ChoppedColumnFamily.STR_NAME)
+        .qualifier(UpgraderDeprecatedConstants.ChoppedColumnFamily.STR_NAME).delete();
+    log.warn(
+        "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
+        tableName, delete.prettyPrint());
+    return delete;
+  }
+
+  private Mutation buildExternalCompactionDelete(Key k, String tableName) {
+    Mutation delete = new Mutation(k.getRow()).at()
+        .family(MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.NAME)
+        .qualifier(k.getColumnQualifier()).delete();
+    log.warn(
+        "Deleting external compaction reference from:{}. Previous compaction may not have completed. Ref: {}",
+        tableName, delete.prettyPrint());
+    return delete;
   }
 
   /**
