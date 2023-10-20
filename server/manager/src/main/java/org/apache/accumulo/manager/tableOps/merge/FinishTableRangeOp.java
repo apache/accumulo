@@ -60,17 +60,17 @@ class FinishTableRangeOp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private final TableRangeData data;
+  private final MergeInfo data;
 
-  public FinishTableRangeOp(TableRangeData data) {
+  public FinishTableRangeOp(MergeInfo data) {
     this.data = data;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    MergeInfo mergeInfo1 = data.getMergeInfo();
-    KeyExtent range = mergeInfo1.getExtent();
+    KeyExtent range = data.getReserveExtent();
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
+    log.debug("{} unreserving tablet in range {}", FateTxId.formatTid(tid), range);
 
     try (var tablets = manager.getContext().getAmple().readTablets().forTable(data.tableId)
         .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, OPID).build();
@@ -97,8 +97,7 @@ class FinishTableRangeOp extends ManagerRepo {
       log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
           deletesAccepted, opsDeleted, count);
 
-      MergeInfo mergeInfo = data.getMergeInfo();
-      manager.getEventCoordinator().event(mergeInfo.getExtent(), "Merge or deleterows completed %s",
+      manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
           FateTxId.formatTid(tid));
 
       DeleteRows.verifyAccepted(results, FateTxId.formatTid(tid));

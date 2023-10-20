@@ -27,7 +27,6 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,7 @@ public class TableRangeOp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private final TableRangeData data;
+  private final MergeInfo data;
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
@@ -49,13 +48,13 @@ public class TableRangeOp extends ManagerRepo {
       Text startRow, Text endRow) {
     byte[] start = startRow.getLength() == 0 ? null : TextUtil.getBytes(startRow);
     byte[] end = endRow.getLength() == 0 ? null : TextUtil.getBytes(endRow);
-    this.data = new TableRangeData(tableId, namespaceId, start, end, op);
+    this.data = new MergeInfo(tableId, namespaceId, start, end, op);
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
 
-    if (RootTable.ID.equals(data.tableId) && Operation.MERGE.equals(data.op)) {
+    if (RootTable.ID.equals(data.tableId) && MergeInfo.Operation.MERGE.equals(data.op)) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
           RootTable.NAME);
     }

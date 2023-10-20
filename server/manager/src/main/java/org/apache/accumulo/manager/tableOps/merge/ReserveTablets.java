@@ -40,16 +40,16 @@ public class ReserveTablets extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private final TableRangeData data;
+  private final MergeInfo data;
 
-  public ReserveTablets(TableRangeData data) {
+  public ReserveTablets(MergeInfo data) {
     this.data = data;
   }
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
-    MergeInfo mergeInfo = data.getMergeInfo();
-    var range = mergeInfo.getExtent();
+    var range = data.getReserveExtent();
+    log.debug("{} reserving tablets in range {}", FateTxId.formatTid(tid), range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
 
     try (
@@ -93,8 +93,8 @@ public class ReserveTablets extends ManagerRepo {
       if (locations > 0 && opsAccepted > 0) {
         // operation ids were set and tablets have locations, so lets send a signal to get them
         // unassigned
-        env.getEventCoordinator().event(data.getMergeInfo().getExtent(),
-            "Tablets %d were reserved for merge %s", opsAccepted, FateTxId.formatTid(tid));
+        env.getEventCoordinator().event(range, "Tablets %d were reserved for merge %s", opsAccepted,
+            FateTxId.formatTid(tid));
       }
 
       if (locations > 0 || otherOps > 0) {

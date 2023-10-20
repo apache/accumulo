@@ -64,22 +64,21 @@ public class MergeTablets extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(MergeTablets.class);
 
-  private final TableRangeData data;
+  private final MergeInfo data;
 
-  public MergeTablets(TableRangeData data) {
+  public MergeTablets(MergeInfo data) {
     this.data = data;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    mergeMetadataRecords(manager, tid, data.getMergeInfo());
+    mergeMetadataRecords(manager, tid);
     return new FinishTableRangeOp(data);
   }
 
-  private void mergeMetadataRecords(Manager manager, long tid, MergeInfo info)
-      throws AccumuloException {
+  private void mergeMetadataRecords(Manager manager, long tid) throws AccumuloException {
     var fateStr = FateTxId.formatTid(tid);
-    KeyExtent range = info.getExtent();
+    KeyExtent range = data.getMergeExtent();
     log.debug("{} Merging metadata for {}", fateStr, range);
 
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);

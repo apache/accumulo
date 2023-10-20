@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
@@ -62,27 +63,27 @@ public class DeleteRows extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRows.class);
 
-  private final TableRangeData data;
+  private final MergeInfo data;
 
-  public DeleteRows(TableRangeData data) {
+  public DeleteRows(MergeInfo data) {
     Preconditions.checkArgument(data.op == MergeInfo.Operation.DELETE);
     this.data = data;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    MergeInfo mergeInfo = data.getMergeInfo();
-
     // delete or fence files within the deletion range
-    deleteTabletFiles(manager, tid, mergeInfo);
+    var mergeRange = deleteTabletFiles(manager, tid);
 
     // merge away empty tablets in the deletion range
-    return new MergeTablets(data);
+    return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
   }
 
-  private void deleteTabletFiles(Manager manager, long tid, MergeInfo info) {
-    KeyExtent range = info.getExtent();
+  private Optional<KeyExtent> deleteTabletFiles(Manager manager, long tid) {
+    // Only delete data within the original extent specified by the user
+    KeyExtent range = data.getOriginalExtent();
     var fateStr = FateTxId.formatTid(tid);
+    log.debug("{} deleting tablet files in range {}", fateStr, range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
 
     try (
@@ -90,6 +91,9 @@ public class DeleteRows extends ManagerRepo {
             .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
             .fetch(OPID, LOCATION, FILES, PREV_ROW).checkConsistency().build();
         var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+
+      KeyExtent firstCompleteContained = null;
+      KeyExtent lastCompletelyContained = null;
 
       for (var tabletMetadata : tabletsMetadata) {
         MergeTablets.validateTablet(tabletMetadata, fateStr, opid);
@@ -101,6 +105,10 @@ public class DeleteRows extends ManagerRepo {
         Map<StoredTabletFile,DataFileValue> filesToAddMap = new HashMap<>();
 
         if (range.contains(tabletMetadata.getExtent())) {
+          if (firstCompleteContained == null) {
+            firstCompleteContained = tabletMetadata.getExtent();
+          }
+          lastCompletelyContained = tabletMetadata.getExtent();
           // delete range complete contains tablet, so want to delete all the tablets files
           filesToDelete.addAll(tabletMetadata.getFiles());
         } else {
@@ -189,7 +197,34 @@ public class DeleteRows extends ManagerRepo {
 
       var results = tabletsMutator.process();
       verifyAccepted(results, fateStr);
+
+      return computeMergeRange(range, firstCompleteContained, lastCompletelyContained);
     }
+  }
+
+  /**
+   * Tablets that are completely contained in the delete range can be merged away. Use the first and
+   * last tablet were completely contained in the delete range to create a merge range.
+   */
+  private Optional<KeyExtent> computeMergeRange(KeyExtent deleteRange,
+      KeyExtent firstCompleteContained, KeyExtent lastCompletelyContained) {
+    if (deleteRange.prevEndRow() == null && deleteRange.endRow() == null) {
+      return Optional.empty();
+    }
+
+    if (firstCompleteContained == null) {
+      return Optional.empty();
+    }
+
+    // Extend the merge range past the end of the last fully contained extent to merge that tablet
+    // away.
+    Text end = lastCompletelyContained.endRow();
+    if (end != null) {
+      end = new Key(end).followingKey(PartialKey.ROW).getRow();
+    }
+
+    return Optional
+        .of(new KeyExtent(deleteRange.tableId(), end, firstCompleteContained.prevEndRow()));
   }
 
   static void verifyAccepted(Map<KeyExtent,Ample.ConditionalResult> results, String fateStr) {
