@@ -208,66 +208,62 @@ public class FencedRFileTest extends AbstractRFileTest {
   }
 
   @Test
-  public void testFirstAndLastKey() throws IOException {
+  public void testFirstAndLastRow() throws IOException {
     final TestRFile trf = initTestFile();
 
-    Key firstKeyInFile =
-        newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", 0), "A", 4);
-    Key lastKeyInFile =
-        newKey(formatString("r_", 3), formatString("cf_", 3), formatString("cq_", 3), "D", 1);
-
-    // Todo: Some of thest tests may need to be changed after
-    // https://github.com/apache/accumulo/issues/3798 is completed
+    Text firstRowInFile = new Text(formatString("r_", 0));
+    Text lastRowInFile = new Text(formatString("r_", 3));
 
     // Infinite range fence
-    // Should just be first/last keys of file
+    // Should just be first/last rows of file
     assertReader(trf, new Range(), (reader) -> {
-      assertEquals(firstKeyInFile, reader.getFirstKey());
-      assertEquals(lastKeyInFile, reader.getLastKey());
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
     });
 
-    // Range inside of file so should return the keys of the fence
+    // Range inside of file so should return the rows of the fence
     assertReader(trf, new Range("r_000001", "r_000002"), (reader) -> {
-      assertEquals(new Key("r_000001"), reader.getFirstKey());
-      assertEquals(new Key("r_000002"), reader.getLastKey());
+      assertEquals(new Text("r_000001"), reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
     });
 
-    // Test infinite start key
+    // Test infinite start row
     assertReader(trf, new Range(null, "r_000001"), (reader) -> {
-      assertEquals(firstKeyInFile, reader.getFirstKey());
-      assertEquals(new Key("r_000001"), reader.getLastKey());
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(new Text("r_000001"), reader.getLastRow());
     });
 
-    // Test infinite end key
+    // Test infinite end row
     assertReader(trf, new Range("r_000002", null), (reader) -> {
-      assertEquals(new Key("r_000002"), reader.getFirstKey());
-      assertEquals(lastKeyInFile, reader.getLastKey());
+      assertEquals(new Text("r_000002"), reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
     });
 
-    // Test start key matches start of file
+    // Test start row matches start of file
     assertReader(trf, new Range("r_000000", "r_000002"), (reader) -> {
-      // start row of range matches first key in file so that should be returned instead
-      assertEquals(firstKeyInFile, reader.getFirstKey());
-      assertEquals(new Key("r_000002"), reader.getLastKey());
+      // start row of range matches first row in file so that should be returned instead
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
     });
 
-    // Test end key matches end of file
+    // Test end row matches end of file
     assertReader(trf, new Range("r_000001", "r_000003"), (reader) -> {
-      assertEquals(new Key("r_000001"), reader.getFirstKey());
-      // end row of range matches last key in file so that should be returned instead
-      assertEquals(lastKeyInFile, reader.getLastKey());
+      assertEquals(new Text("r_000001"), reader.getFirstRow());
+      // end row of range matches last row in file so that should be returned instead
+      assertEquals(lastRowInFile, reader.getLastRow());
     });
-    // Test case where rows in range are less than and greater than keys
+
+    // Test case where rows in range are less than and greater than rows in file
     assertReader(trf, new Range("a", "z"), (reader) -> {
-      assertEquals(firstKeyInFile, reader.getFirstKey());
-      assertEquals(lastKeyInFile, reader.getLastKey());
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
     });
+
     // Test inclusive end key, usually a row range is required to be an exclusive key
     // for a tablet file but the fenced reader still supports any range type
-    // Test infinite end key
     assertReader(trf, new Range(new Key("r_000002"), true, new Key("r_000002"), true), (reader) -> {
-      assertEquals(new Key("r_000002"), reader.getFirstKey());
-      assertEquals(new Key("r_000002"), reader.getLastKey());
+      assertEquals(new Text("r_000002"), reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
     });
 
   }
