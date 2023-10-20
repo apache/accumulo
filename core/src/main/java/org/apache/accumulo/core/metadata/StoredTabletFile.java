@@ -172,11 +172,27 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
   }
 
+  public static StoredTabletFile of(final URI path) {
+    return of(path, new Range());
+  }
+
+  public static StoredTabletFile of(final Path path) {
+    return of(path, new Range());
+  }
+
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
 
   private static TabletFileCq deserialize(String json) {
     final TabletFileCqMetadataGson metadata =
         gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
+
+    // Check each field and provide better error messages if null as all fields should be set
+    Objects.requireNonNull(metadata.path, "Serialized StoredTabletFile path must not be null");
+    Objects.requireNonNull(metadata.startRow,
+        "Serialized StoredTabletFile range startRow must not be null");
+    Objects.requireNonNull(metadata.endRow,
+        "Serialized StoredTabletFile range endRow must not be null");
+
     // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally
     // constructed with inclusive/exclusive for the start and end key inclusivity settings.
     // (Except for Ranges with no start/endkey as then the inclusivity flags do not matter)

@@ -217,7 +217,7 @@ public class LogReader implements KeywordExecutable {
         }
       } else {
         throw new IllegalArgumentException(
-            "Unsupported write ahead log version " + new String(magicBuffer));
+            "Unsupported write ahead log version " + new String(magicBuffer, UTF_8));
       }
     } catch (EOFException e) {
       log.warn("Could not read header for {} . Ignoring...", path);

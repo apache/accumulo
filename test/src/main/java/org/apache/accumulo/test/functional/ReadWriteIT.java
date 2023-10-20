@@ -21,31 +21,13 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.HostnameVerifier;
@@ -61,37 +43,23 @@ import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
-import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -120,14 +88,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static final int COLS = 1;
   static final String COLF = "colf";
 
-  @Test
-  public void invalidInstanceName() {
-    try (var client = Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
-        .as(getAdminPrincipal(), getAdminToken()).build()) {
-      assertThrows(RuntimeException.class, () -> client.instanceOperations().getTabletServers());
-    }
-  }
-
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
       justification = "path provided by test; url provided by test")
   @Test
@@ -154,7 +114,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
           log.info(
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
-          SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+          var ctx = SSLContext.getInstance(Property.RPC_SSL_CLIENT_PROTOCOL.getDefaultValue());
           TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, RANDOM.get());
           SSLContext.setDefault(ctx);
@@ -218,7 +178,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     verify(accumuloClient, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
+  public static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
       int offset, String colf, String tableName) throws Exception {
     VerifyParams params = new VerifyParams(accumuloClient.properties(), tableName, rows);
     params.rows = rows;
@@ -231,38 +191,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static String[] args(String... args) {
     return args;
-  }
-
-  @Test
-  public void multiTableTest() throws Exception {
-    // Write to multiple tables
-    final ClusterControl control = cluster.getClusterControl();
-    final String prefix = getClass().getSimpleName() + "_" + testName();
-    ExecutorService svc = Executors.newFixedThreadPool(2);
-    Future<Integer> p1 = svc.submit(() -> {
-      try {
-        return control.exec(TestMultiTableIngest.class, args("--count", Integer.toString(ROWS),
-            "-c", cluster.getClientPropsPath(), "--tablePrefix", prefix));
-      } catch (IOException e) {
-        log.error("Error running MultiTableIngest", e);
-        return -1;
-      }
-    });
-    Future<Integer> p2 = svc.submit(() -> {
-      try {
-        return control.exec(TestMultiTableIngest.class, args("--count", Integer.toString(ROWS),
-            "--readonly", "-c", cluster.getClientPropsPath(), "--tablePrefix", prefix));
-      } catch (IOException e) {
-        log.error("Error running MultiTableIngest", e);
-        return -1;
-      }
-    });
-    svc.shutdown();
-    while (!svc.isTerminated()) {
-      svc.awaitTermination(15, TimeUnit.SECONDS);
-    }
-    assertEquals(0, p1.get().intValue());
-    assertEquals(0, p2.get().intValue());
   }
 
   @Test
@@ -315,159 +243,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     Mutation m = new Mutation(t(row));
     m.put(t(cf), t(cq), new Value(value));
     return m;
-  }
-
-  @Test
-  public void localityGroupPerf() throws Exception {
-    // verify that locality groups can make look-ups faster
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
-      accumuloClient.tableOperations().setProperty(tableName, "table.group.g1", "colf");
-      accumuloClient.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-      ingest(accumuloClient, 2000, 1, 50, 0, tableName);
-      accumuloClient.tableOperations().compact(tableName, null, null, true, true);
-      try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
-        bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
-      }
-      long now = System.currentTimeMillis();
-      try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.fetchColumnFamily(new Text("colf"));
-        scanner.forEach((k, v) -> {});
-      }
-      long diff = System.currentTimeMillis() - now;
-      now = System.currentTimeMillis();
-
-      try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.fetchColumnFamily(new Text("colf2"));
-        scanner.forEach((k, v) -> {});
-      }
-      long diff2 = System.currentTimeMillis() - now;
-      assertTrue(diff2 < diff);
-    }
-  }
-
-  /**
-   * create a locality group, write to it and ensure it exists in the RFiles that result
-   */
-  @Test
-  public void sunnyLG() throws Exception {
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      final String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
-      Map<String,Set<Text>> groups = new TreeMap<>();
-      groups.put("g1", Collections.singleton(t("colf")));
-      accumuloClient.tableOperations().setLocalityGroups(tableName, groups);
-      verifyLocalityGroupsInRFile(accumuloClient, tableName);
-    }
-  }
-
-  /**
-   * Pretty much identical to sunnyLG, but verifies locality groups are created when configured in
-   * NewTableConfiguration prior to table creation.
-   */
-  @Test
-  public void sunnyLGUsingNewTableConfiguration() throws Exception {
-    // create a locality group, write to it and ensure it exists in the RFiles that result
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      final String tableName = getUniqueNames(1)[0];
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      Map<String,Set<Text>> groups = new HashMap<>();
-      groups.put("g1", Collections.singleton(t("colf")));
-      ntc.setLocalityGroups(groups);
-      accumuloClient.tableOperations().create(tableName, ntc);
-      verifyLocalityGroupsInRFile(accumuloClient, tableName);
-    }
-  }
-
-  private void verifyLocalityGroupsInRFile(final AccumuloClient accumuloClient,
-      final String tableName) throws Exception {
-    ingest(accumuloClient, 2000, 1, 50, 0, tableName);
-    verify(accumuloClient, 2000, 1, 50, 0, tableName);
-    accumuloClient.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner =
-        accumuloClient.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
-      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
-      bscanner.setRanges(
-          Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
-      bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      boolean foundFile = false;
-      for (Entry<Key,Value> entry : bscanner) {
-        foundFile = true;
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream oldOut = System.out;
-        try (PrintStream newOut = new PrintStream(baos)) {
-          System.setOut(newOut);
-          List<String> args = new ArrayList<>();
-          args.add(StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath());
-          args.add("--props");
-          args.add(getCluster().getAccumuloPropertiesPath());
-          if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
-            args.add("--config");
-            StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
-            String hadoopConfDir = sac.getHadoopConfDir();
-            args.add(new Path(hadoopConfDir, "core-site.xml").toString());
-            args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
-          }
-          log.info("Invoking PrintInfo with {}", args);
-          PrintInfo.main(args.toArray(new String[args.size()]));
-          newOut.flush();
-          String stdout = baos.toString();
-          assertTrue(stdout.contains("Locality group           : g1"));
-          assertTrue(stdout.contains("families        : [colf]"));
-        } finally {
-          System.setOut(oldOut);
-        }
-      }
-      assertTrue(foundFile);
-    }
-  }
-
-  @Test
-  public void localityGroupChange() throws Exception {
-    // Make changes to locality groups and ensure nothing is lost
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      String table = getUniqueNames(1)[0];
-      TableOperations to = accumuloClient.tableOperations();
-      to.create(table);
-      String[] config = {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf,xyz;lg2:c1,c2"};
-      int i = 0;
-      for (String cfg : config) {
-        to.setLocalityGroups(table, getGroups(cfg));
-        ingest(accumuloClient, ROWS * (i + 1), 1, 50, ROWS * i, table);
-        to.flush(table, null, null, true);
-        verify(accumuloClient, 0, 1, 50, ROWS * (i + 1), table);
-        i++;
-      }
-      to.delete(table);
-      to.create(table);
-      config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
-      i = 1;
-      for (String cfg : config) {
-        ingest(accumuloClient, ROWS * i, 1, 50, 0, table);
-        ingest(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table);
-        to.setLocalityGroups(table, getGroups(cfg));
-        to.flush(table, null, null, true);
-        verify(accumuloClient, ROWS * i, 1, 50, 0, table);
-        verify(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table);
-        i++;
-      }
-    }
-  }
-
-  private Map<String,Set<Text>> getGroups(String cfg) {
-    Map<String,Set<Text>> groups = new TreeMap<>();
-    if (cfg != null) {
-      for (String group : cfg.split(";")) {
-        String[] parts = group.split(":");
-        Set<Text> cols = new HashSet<>();
-        for (String col : parts[1].split(",")) {
-          cols.add(t(col));
-        }
-        groups.put(parts[1], cols);
-      }
-    }
-    return groups;
   }
 
   @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER",

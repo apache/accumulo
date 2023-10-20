@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACT_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -81,7 +82,7 @@ class CompactionDriver extends ManagerRepo {
     String zCancelID = createCompactionCancellationPath(manager.getInstanceID(), tableId);
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
-    if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
+    if (Long.parseLong(new String(zoo.getData(zCancelID), UTF_8)) >= compactId) {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,

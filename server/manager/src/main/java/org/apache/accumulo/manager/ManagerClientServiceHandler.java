@@ -125,7 +125,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.OTHER, null);
     }
-    return Long.parseLong(new String(fid));
+    return Long.parseLong(new String(fid, UTF_8));
   }
 
   @Override
