@@ -19,7 +19,10 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +37,13 @@ public class RootTabletMetadataTest {
 
     RootTabletMetadata rtm = RootTabletMetadata.upgrade(root21ZkData);
     LOG.debug("converted column values: {}", rtm.toTabletMetadata().getFiles());
-    assertEquals(1, rtm.toTabletMetadata().getFiles().size());
 
+    var files = rtm.toTabletMetadata().getFiles();
     LOG.info("FILES: {}", rtm.toTabletMetadata().getFilesMap());
+
+    assertEquals(1, files.size());
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A000000v.rf"))));
   }
 
   @Test
@@ -46,6 +53,14 @@ public class RootTabletMetadataTest {
 
     RootTabletMetadata rtm = RootTabletMetadata.upgrade(root212ZkData2Files);
     LOG.debug("converted column values: {}", rtm.toTabletMetadata());
-    assertEquals(2, rtm.toTabletMetadata().getFiles().size());
+
+    var files = rtm.toTabletMetadata().getFiles();
+    LOG.info("FILES: {}", rtm.toTabletMetadata().getFilesMap());
+
+    assertEquals(2, files.size());
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/00000_00000.rf"))));
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000c.rf"))));
   }
 }
