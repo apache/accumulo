@@ -61,7 +61,7 @@ public class RootTabletMetadata {
 
   // JSON Mapping Version 1. Released with Accumulo version 2.1.0
   private static final int VERSION_1 = 1;
-  // JSON Mapping Version 1. Released with Accumulo version 3,1
+  // JSON Mapping Version 2. Released with Accumulo version 3,1
   private static final int VERSION_2 = 2;
   private static final int VERSION = VERSION_2;
 
@@ -84,13 +84,6 @@ public class RootTabletMetadata {
 
     public int getVersion() {
       return version;
-    }
-
-    /**
-     * For external use, return a copy so the original remains immutable.
-     */
-    public TreeMap<String,TreeMap<String,String>> getColumnValues() {
-      return new TreeMap<>(columnValues);
     }
 
     public static boolean needsConversion(final String json) {
@@ -153,7 +146,7 @@ public class RootTabletMetadata {
   private static Mutation convert1To2(final Data data) {
     Mutation mutation =
         MetadataSchema.TabletsSection.TabletColumnFamily.createPrevRowMutation(RootTable.EXTENT);
-    data.getColumnValues().forEach((colFam, colQuals) -> {
+    data.columnValues.forEach((colFam, colQuals) -> {
       if (colFam.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME)) {
         colQuals.forEach((colQual, value) -> {
           mutation.put(colFam, StoredTabletFile.serialize(colQual), value);
