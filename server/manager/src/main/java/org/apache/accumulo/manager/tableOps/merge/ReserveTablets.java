@@ -87,7 +87,8 @@ public class ReserveTablets extends ManagerRepo {
           "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{}",
           FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted);
 
-      // TODO check if table was deleted?
+      // while there are table lock a tablet can be concurrently deleted, so should always see
+      // tablets
       Preconditions.checkState(count > 0);
 
       if (locations > 0 && opsAccepted > 0) {
@@ -99,12 +100,12 @@ public class ReserveTablets extends ManagerRepo {
 
       if (locations > 0 || otherOps > 0) {
         // need to wait on these tablets
-        return 1000; // TODO use a function of count.
+        return Math.max(1000, count);
       }
 
       if (opsSet != opsAccepted) {
         // not all operation ids were set
-        return 1000;
+        return Math.max(1000, count);
       }
 
       // operations ids were set on all tablets and no tablets have locations, so ready

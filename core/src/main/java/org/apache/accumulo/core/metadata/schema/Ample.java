@@ -444,7 +444,33 @@ public interface Ample {
   /**
    * Convenience interface for handling conditional mutations with a status of REJECTED.
    */
-  interface RejectionHandler extends Predicate<TabletMetadata> {}
+  interface RejectionHandler extends Predicate<TabletMetadata> {
+
+    /**
+     * @return true if the handler should be called when a tablet no longer exists
+     */
+    default boolean callWhenTabletDoesNotExists() {
+      return false;
+    }
+
+    /**
+     * @return a RejectionHandler that considers that case where the tablet no longer exists as
+     *         accepted.
+     */
+    static RejectionHandler acceptAbsentTablet() {
+      return new Ample.RejectionHandler() {
+        @Override
+        public boolean callWhenTabletDoesNotExists() {
+          return true;
+        }
+
+        @Override
+        public boolean test(TabletMetadata tabletMetadata) {
+          return tabletMetadata == null;
+        }
+      };
+    }
+  }
 
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
@@ -558,8 +584,9 @@ public interface Ample {
      *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
      *        return of {@link ConditionalTabletsMutator#process()}. The rejection handler is only
      *        called when a tablets metadata exists. If ample reads a tablet's metadata and the
-     *        tablet no longer exists, then ample will not call the rejectionHandler with null. It
-     *        will let the rejected status carry forward in this case.
+     *        tablet no longer exists, then ample will not call the rejectionHandler with null
+     *        (unless {@link RejectionHandler#callWhenTabletDoesNotExists()} returns true). It will
+     *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
   }

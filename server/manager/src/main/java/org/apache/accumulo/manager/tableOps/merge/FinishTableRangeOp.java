@@ -36,25 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-/**
- * ELASTICITY_TODO edit these docs which are pre elasticity changes. Best done after #3763
- *
- * Merge makes things hard.
- *
- * Typically, a client will read the list of tablets, and begin an operation on that tablet at the
- * location listed in the metadata table. When a tablet splits, the information read from the
- * metadata table doesn't match reality, so the operation fails, and must be retried. But the
- * operation will take place either on the parent, or at a later time on the children. It won't take
- * place on just half of the tablet.
- *
- * However, when a merge occurs, the operation may have succeeded on one section of the merged area,
- * and not on the others, when the merge occurs. There is no way to retry the request at a later
- * time on an unmodified tablet.
- *
- * The code below uses read-write lock to prevent some operations while a merge is taking place.
- * Normal operations, like bulk imports, will grab the read lock and prevent merges (writes) while
- * they run. Merge operations will lock out some operations while they run.
- */
 class FinishTableRangeOp extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(FinishTableRangeOp.class);
 

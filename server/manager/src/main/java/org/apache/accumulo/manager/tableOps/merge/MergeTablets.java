@@ -26,8 +26,10 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.manager.tableOps.merge.DeleteRows.verifyAccepted;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +55,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,23 +132,26 @@ public class MergeTablets extends ManagerRepo {
       }
 
       if (tabletsSeen == 1) {
-        // the merge range overlaps a single tablet, so there is nothing to do
+        // The merge range overlaps a single tablet, so there is nothing to do. This could be
+        // because there was only a single tablet before merge started or this operation completed
+        // but the process died and now its running again.
         return;
       }
 
       Preconditions.checkState(lastTabletMeta != null, "%s no tablets seen in range %s", opid,
           lastTabletMeta);
-
-      // TODO need to check for already completed merge
     }
 
     log.info("{} merge low tablet {}", fateStr, firstTabletMeta.getExtent());
     log.info("{} merge high tablet {}", fateStr, lastTabletMeta.getExtent());
 
-    // check if the last tablet was already update, this could happen if a process died and this
-    // code is running a 2nd time
-    if (!Objects.equals(firstTabletMeta.getExtent().prevEndRow(),
-        lastTabletMeta.getExtent().prevEndRow())) {
+    // Check if the last tablet was already updated, this could happen if a process died and this
+    // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
+    // only a subset of the other tablets were deleted. If the last tablet was never updated, then
+    // its prev row should be the greatest.
+    Comparator<Text> prevRowComparator = Comparator.nullsFirst(Text::compareTo);
+    if (prevRowComparator.compare(firstTabletMeta.getPrevEndRow(), lastTabletMeta.getPrevEndRow())
+        < 0) {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
         var lastExtent = lastTabletMeta.getExtent();
@@ -170,14 +176,11 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putHostingGoal(DeleteRows.getMergeHostingGoal(range, goals));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
 
-        // if the tablet no longer exists (because changed prev end row, it was probably
-        // successful). TODO does null work here. TODO should more be done to check in retry case.
-        tabletMutator.submit(Objects::isNull);
+        // if the tablet no longer exists (because changed prev end row, then the update was
+        // successful.
+        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
 
-        // TODO log info
-        Preconditions
-            .checkState(tabletsMutator.process().get(lastTabletMeta.getExtent()).getStatus()
-                == Ample.ConditionalResult.Status.ACCEPTED);
+        verifyAccepted(tabletsMutator.process(), fateStr);
       }
     }
 
@@ -208,12 +211,11 @@ public class MergeTablets extends ManagerRepo {
         });
 
         tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
-        // TODO does this submit condition work
-        tabletMutator.submit(Objects::isNull);
+        // if the tablet no longer exists, then it was successful
+        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
       }
 
-      // TODO check result
-      tabletsMutator.process();
+      verifyAccepted(tabletsMutator.process(), fateStr);
     }
   }
 
