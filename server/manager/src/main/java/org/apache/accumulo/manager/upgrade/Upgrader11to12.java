@@ -46,6 +46,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonSyntaxException;
 
 public class Upgrader11to12 implements Upgrader {
@@ -121,7 +122,8 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  private void upgradeDataFileCF(final Key key, final Value value, final BatchWriter batchWriter,
+  @VisibleForTesting
+  void upgradeDataFileCF(final Key key, final Value value, final BatchWriter batchWriter,
       final String tableName) {
     String file = key.getColumnQualifier().toString();
     // filter out references if they are in the correct format already.
@@ -147,8 +149,8 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  private void removeChoppedCF(final Key key, final BatchWriter batchWriter,
-      final String tableName) {
+  @VisibleForTesting
+  void removeChoppedCF(final Key key, final BatchWriter batchWriter, final String tableName) {
     Mutation delete = null;
     try {
       delete = new Mutation(key.getRow()).at().family(ChoppedColumnFamily.STR_NAME)
@@ -164,7 +166,8 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  private void removeExternalCompactionCF(final Key key, final BatchWriter batchWriter,
+  @VisibleForTesting
+  void removeExternalCompactionCF(final Key key, final BatchWriter batchWriter,
       final String tableName) {
     Mutation delete = null;
     try {
