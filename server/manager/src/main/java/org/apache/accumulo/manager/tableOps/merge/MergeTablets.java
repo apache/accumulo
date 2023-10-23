@@ -97,7 +97,8 @@ public class MergeTablets extends ManagerRepo {
 
       for (var tabletMeta : tabletsMetadata) {
         Preconditions.checkState(lastTabletMeta == null,
-            "%s unexpectedly saw multiple last tablets %s %s", tabletMeta.getExtent(), range);
+            "%s unexpectedly saw multiple last tablets %s %s", fateStr, tabletMeta.getExtent(),
+            range);
         validateTablet(tabletMeta, fateStr, opid);
 
         if (firstTabletMeta == null) {
