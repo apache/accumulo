@@ -109,7 +109,7 @@ public class DeleteRows extends ManagerRepo {
             firstCompleteContained = tabletMetadata.getExtent();
           }
           lastCompletelyContained = tabletMetadata.getExtent();
-          // delete range complete contains tablet, so want to delete all the tablets files
+          // delete range completely contains tablet, so want to delete all the tablets files
           filesToDelete.addAll(tabletMetadata.getFiles());
         } else {
           Preconditions.checkState(range.overlaps(tabletMetadata.getExtent()),
