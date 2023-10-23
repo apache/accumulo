@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
@@ -64,15 +65,20 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -278,6 +284,11 @@ public class VolumeIT extends ConfigurableMacBase {
 
   private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
       Path... paths) throws Exception {
+    verifyVolumesUsed(client, tableName, shouldExist, false, paths);
+  }
+
+  private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
+      boolean rangedFiles, Path... paths) throws Exception {
 
     if (!client.tableOperations().exists(tableName)) {
       assertFalse(shouldExist);
@@ -346,7 +357,10 @@ public class VolumeIT extends ConfigurableMacBase {
         sum += count;
       }
 
-      assertEquals(100, sum);
+      // When ranged files exist we there should be twice as many
+      // as the test split each file into 2
+      int expectedCount = rangedFiles ? 200 : 100;
+      assertEquals(expectedCount, sum);
     }
   }
 
@@ -392,7 +406,8 @@ public class VolumeIT extends ConfigurableMacBase {
     }
   }
 
-  private void testReplaceVolume(AccumuloClient client, boolean cleanShutdown) throws Exception {
+  private void testReplaceVolume(AccumuloClient client, boolean cleanShutdown, boolean rangedFiles)
+      throws Exception {
     String[] tableNames = getUniqueNames(3);
 
     verifyVolumesUsed(client, tableNames[0], false, v1, v2);
@@ -401,6 +416,13 @@ public class VolumeIT extends ConfigurableMacBase {
     try (AccumuloClient c2 =
         cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       writeData(tableNames[1], c2);
+    }
+
+    // If flag is true then for each file split and create two files
+    // to verify volume replacement works on files with ranges
+    if (rangedFiles) {
+      splitFilesWithRange(client, tableNames[0]);
+      splitFilesWithRange(client, tableNames[1]);
     }
 
     if (cleanShutdown) {
@@ -428,15 +450,16 @@ public class VolumeIT extends ConfigurableMacBase {
     // start cluster and verify that volumes were replaced
     cluster.start();
 
-    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
-    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[0], true, rangedFiles, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, rangedFiles, v8, v9);
 
     // verify writes to new dir
     client.tableOperations().compact(tableNames[0], null, null, true, true);
     client.tableOperations().compact(tableNames[1], null, null, true, true);
 
-    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
-    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
+    // Always pass false for ranged files as compaction will clean them up if exist
+    verifyVolumesUsed(client, tableNames[0], true, false, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, false, v8, v9);
 
     client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
 
@@ -465,14 +488,28 @@ public class VolumeIT extends ConfigurableMacBase {
   @Test
   public void testCleanReplaceVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      testReplaceVolume(client, true);
+      testReplaceVolume(client, true, false);
     }
   }
 
   @Test
   public void testDirtyReplaceVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      testReplaceVolume(client, false);
+      testReplaceVolume(client, false, false);
+    }
+  }
+
+  @Test
+  public void testCleanReplaceVolumesWithRangedFiles() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      testReplaceVolume(client, true, true);
+    }
+  }
+
+  @Test
+  public void testDirtyReplaceVolumesWithRangedFiles() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      testReplaceVolume(client, false, true);
     }
   }
 
@@ -487,5 +524,45 @@ public class VolumeIT extends ConfigurableMacBase {
     try (FileWriter out = new FileWriter(file, UTF_8)) {
       config.write(out);
     }
+  }
+
+  // Go through each tablet file in metadata and split the files into two files
+  // by adding two new entries that covers half of the file. This will test that
+  // files with ranges work properly with volume replacement
+  private void splitFilesWithRange(AccumuloClient client, String tableName) throws Exception {
+    client.securityOperations().grantTablePermission(cluster.getConfig().getRootUserName(),
+        MetadataTable.NAME, TablePermission.WRITE);
+    final ServerContext ctx = getServerContext();
+    ctx.setCredentials(new SystemCredentials(client.instanceOperations().getInstanceId(), "root",
+        new PasswordToken(ROOT_PASSWORD)));
+
+    AtomicInteger i = new AtomicInteger();
+    FileMetadataUtil.mutateTabletFiles(ctx, tableName, null, null, (tm, mutator, file, value) -> {
+      i.incrementAndGet();
+
+      // Create a mutation to delete the existing file metadata entry with infinite range
+      mutator.deleteFile(file);
+
+      // Find the midpoint and create two new files, each with a range covering half the file
+      Text tabletMidPoint = getTabletMidPoint(tm.getExtent().endRow());
+      // Handle edge case for last tablet
+      if (tabletMidPoint == null) {
+        tabletMidPoint = new Text(
+            String.format("%06d", Integer.parseInt(tm.getExtent().prevEndRow().toString()) + 50));
+      }
+
+      final DataFileValue newValue = new DataFileValue(Integer.max(1, (int) (value.getSize() / 2)),
+          Integer.max(1, (int) (value.getNumEntries() / 2)));
+      mutator.putFile(StoredTabletFile.of(file.getPath(),
+          new Range(tm.getExtent().prevEndRow(), tabletMidPoint)), newValue);
+      mutator.putFile(
+          StoredTabletFile.of(file.getPath(), new Range(tabletMidPoint, tm.getExtent().endRow())),
+          newValue);
+    });
+  }
+
+  private static Text getTabletMidPoint(Text row) {
+    return row != null ? new Text(String.format("%06d", Integer.parseInt(row.toString()) - 50))
+        : null;
   }
 }
