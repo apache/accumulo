@@ -41,7 +41,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,8 +171,7 @@ public class CachableBlockFile {
       }
     }
 
-    private <InputStreamType extends InputStream & Seekable> BCFile.Reader
-        getBCFile(byte[] serializedMetadata) throws IOException {
+    private BCFile.Reader getBCFile(byte[] serializedMetadata) throws IOException {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {

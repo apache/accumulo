@@ -21,6 +21,7 @@ package org.apache.accumulo.core.summary;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer.RowRange;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
@@ -177,7 +179,11 @@ public class SummaryReader {
   public static SummaryReader load(Configuration conf, RFileSource source, String cacheId,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory,
       CryptoService cryptoService) throws IOException {
-    CachableBuilder cb = new CachableBuilder().input(source.getInputStream(), cacheId)
+    InputStream input = source.getInputStream();
+    if (!(input instanceof FSDataInputStream)) {
+      throw new IllegalArgumentException("Input stream is not a FSDataInputStream");
+    }
+    CachableBuilder cb = new CachableBuilder().input((FSDataInputStream) input, cacheId)
         .length(source.getLength()).conf(conf).cryptoService(cryptoService);
     return load(new CachableBlockFile.Reader(cb), summarySelector, factory);
   }
