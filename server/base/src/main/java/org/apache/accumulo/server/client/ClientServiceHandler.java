@@ -64,20 +64,17 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.TableDiskUsage;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
-  protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
 
-  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
+  public ClientServiceHandler(ServerContext context) {
     this.context = context;
-    this.transactionWatcher = transactionWatcher;
     this.security = context.getSecurityOperation();
   }
 
@@ -397,11 +394,6 @@ public class ClientServiceHandler implements ClientService.Iface {
     return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
-  }
-
-  @Override
-  public boolean isActive(TInfo tinfo, long tid) {
-    return transactionWatcher.isActive(tid);
   }
 
   @Override

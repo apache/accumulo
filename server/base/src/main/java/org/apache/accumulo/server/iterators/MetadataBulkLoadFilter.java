@@ -27,7 +27,6 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,6 @@ public class MetadataBulkLoadFilter extends Filter {
   }
 
   Map<Long,Status> bulkTxStatusCache;
-  Arbitrator arbitrator;
 
   @Override
   public boolean accept(Key k, Value v) {

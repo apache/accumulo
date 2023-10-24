@@ -104,7 +104,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.SummarySession;
@@ -132,16 +131,13 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
   private final TabletServer server;
-  protected final TransactionWatcher watcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
   private final WriteTracker writeTracker;
   private final RowLocks rowLocks = new RowLocks();
 
-  public TabletClientHandler(TabletServer server, TransactionWatcher watcher,
-      WriteTracker writeTracker) {
+  public TabletClientHandler(TabletServer server, WriteTracker writeTracker) {
     this.context = server.getContext();
-    this.watcher = watcher;
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
     this.server = server;

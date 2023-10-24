@@ -128,7 +128,6 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
@@ -480,14 +479,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return null;
   }
 
-  protected ClientServiceHandler newClientHandler(TransactionWatcher watcher) {
-    return new ClientServiceHandler(context, watcher);
+  protected ClientServiceHandler newClientHandler() {
+    return new ClientServiceHandler(context);
   }
 
   // exists to be overridden in tests
-  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher,
-      WriteTracker writeTracker) {
-    return new TabletClientHandler(this, watcher, writeTracker);
+  protected TabletClientHandler newTabletClientHandler(WriteTracker writeTracker) {
+    return new TabletClientHandler(this, writeTracker);
   }
 
   protected ThriftScanClientHandler newThriftScanClientHandler(WriteTracker writeTracker) {
@@ -500,10 +498,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    TransactionWatcher watcher = new TransactionWatcher(context);
     WriteTracker writeTracker = new WriteTracker();
-    clientHandler = newClientHandler(watcher);
-    thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
+    clientHandler = newClientHandler();
+    thriftClientHandler = newTabletClientHandler(writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
     TProcessor processor =
