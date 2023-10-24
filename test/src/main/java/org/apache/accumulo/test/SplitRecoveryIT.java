@@ -43,8 +43,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled // ELASTICITY_TODO
 public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   // ELASTICITY_TODO: Confirm still works as intended

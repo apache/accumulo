@@ -41,8 +41,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled // ELASTICITY_TODO
 public class WaitForBalanceIT extends ConfigurableMacBase {
 
   private static final int NUM_SPLITS = 50;

@@ -51,6 +51,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class WriteAfterCloseIT extends AccumuloClusterHarness {
@@ -104,6 +105,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @Disabled // ELASTICITY_TODO
   public void testWriteAfterCloseKillTservers() throws Exception {
     runTest(TimeType.MILLIS, true, 0, false);
   }

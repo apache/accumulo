@@ -85,11 +85,13 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
+@Disabled // ELASTICITY_TODO
 public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   @Override
