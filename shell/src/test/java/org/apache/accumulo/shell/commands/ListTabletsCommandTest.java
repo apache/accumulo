@@ -150,8 +150,8 @@ public class ListTabletsCommandTest {
 
     KeyExtent extent = new KeyExtent(tableId, new Text("d"), null);
 
-    LogEntry le1 = new LogEntry(extent, 55, "lf1");
-    LogEntry le2 = new LogEntry(extent, 57, "lf2");
+    LogEntry le1 = new LogEntry(55, "lf1");
+    LogEntry le2 = new LogEntry(57, "lf2");
 
     TabletMetadata tm1 = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.ONDEMAND)
         .putLocation(TabletMetadata.Location.current(ser1)).putFile(sf11, dfv11)

@@ -25,9 +25,8 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -36,46 +35,20 @@ public class LogEntryTest {
   private static void compareLogEntries(LogEntry one, LogEntry two) throws IOException {
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getColumnFamily(), two.getColumnFamily());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
-    assertEquals(one.getRow(), two.getRow());
     assertEquals(one.getUniqueID(), two.getUniqueID());
     assertEquals(one.getValue(), two.getValue());
   }
 
   @Test
-  public void testPrevRowDoesntMatter() throws IOException {
-    long ts = 12345678L;
-    String filename = "default/foo";
-
-    // with no end row, different prev rows
-    LogEntry entry1 =
-        new LogEntry(new KeyExtent(TableId.of("1"), null, new Text("A")), ts, filename);
-    LogEntry entry2 =
-        new LogEntry(new KeyExtent(TableId.of("1"), null, new Text("B")), ts, filename);
-    assertEquals("1< default/foo", entry1.toString());
-    compareLogEntries(entry1, entry2);
-
-    // with same end row, different prev rows
-    LogEntry entry3 =
-        new LogEntry(new KeyExtent(TableId.of("2"), new Text("same"), new Text("A")), ts, filename);
-    LogEntry entry4 =
-        new LogEntry(new KeyExtent(TableId.of("2"), new Text("same"), new Text("B")), ts, filename);
-    assertEquals("2;same default/foo", entry3.toString());
-    compareLogEntries(entry3, entry4);
-  }
-
-  @Test
   public void test() throws Exception {
-    KeyExtent extent = new KeyExtent(TableId.of("1"), null, null);
     long ts = 12345678L;
     String filename = "default/foo";
-    LogEntry entry = new LogEntry(extent, ts, filename);
-    assertEquals(extent.toMetaRow(), entry.getRow());
-    assertEquals(filename, entry.filename);
-    assertEquals(ts, entry.timestamp);
-    assertEquals("1< default/foo", entry.toString());
-    assertEquals(new Text("log"), entry.getColumnFamily());
+    LogEntry entry = new LogEntry(ts, filename);
+    assertEquals(filename, entry.getFilePath());
+    assertEquals(ts, entry.getTimestamp());
+    assertEquals(ts + " " + filename, entry.toString());
+    assertEquals(new Text("log"), MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     assertEquals(new Text("-/default/foo"), entry.getColumnQualifier());
     Key key = new Key(new Text("1<"), new Text("log"), new Text("localhost:1234/default/foo"));
     key.setTimestamp(ts);
@@ -97,7 +70,7 @@ public class LogEntryTest {
     };
     LogEntry copy2 = LogEntry.fromMetaWalEntry(mapEntry);
     assertEquals(entry.toString(), copy2.toString());
-    assertEquals(entry.timestamp, copy2.timestamp);
+    assertEquals(entry.getTimestamp(), copy2.getTimestamp());
     assertEquals("foo", entry.getUniqueID());
     assertEquals("-/default/foo", entry.getColumnQualifier().toString());
     assertEquals(new Value("default/foo"), entry.getValue());
