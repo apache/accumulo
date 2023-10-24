@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -85,19 +84,12 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
-@Disabled // ELASTICITY_TODO
 public class ManagerAssignmentIT extends SharedMiniClusterBase {
-
-  @Override
-  protected Duration defaultTimeout() {
-    return Duration.ofMinutes(2);
-  }
 
   @BeforeAll
   public static void beforeAll() throws Exception {
@@ -114,13 +106,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @BeforeEach
   public void before() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      if (client.instanceOperations().getTabletServers().size() == 0) {
-        // There are a couple of tests in this class that kill tservers without
-        // clearing the list of processes for them. Calling stopAllServers in this
-        // case should clear out the list of processes. Then start the tablet servers.
-        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-      }
+      Wait.waitFor(() -> countTabletsWithLocation(client, RootTable.ID) > 0);
+      Wait.waitFor(() -> countTabletsWithLocation(client, MetadataTable.ID) > 0);
     }
   }
 
@@ -494,10 +481,6 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @Test
   public void testShutdownOnlyTServerWithUserTable() throws Exception {
 
-    // 2 TabletServers started for this test, shut them down so we only have 1.
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, Collections.emptyMap(), 1);
-
     String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -580,15 +563,17 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 
+      // restart the tablet server for the other tests. Need to call stopAllServers
+      // to clear out the process list because we shutdown the TabletServer outside
+      // of MAC control.
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
     }
   }
 
   @Test
   public void testShutdownOnlyTServerWithoutUserTable() throws Exception {
-
-    // 2 TabletServers started for this test, shut them down so we only have 1.
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, Collections.emptyMap(), 1);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -625,9 +610,14 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         }
 
       });
-
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 
+      // restart the tablet server for the other tests. Need to call stopAllServers
+      // to clear out the process list because we shutdown the TabletServer outside
+      // of MAC control.
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
     }
   }
 
