@@ -141,14 +141,6 @@ public class MetadataTableUtil {
     log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
   }
 
-  public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putFlushId(flushID);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-  }
-
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
       Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
       ServiceLock zooLock) {

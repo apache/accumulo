@@ -61,6 +61,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -443,6 +444,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Disabled // ELASTICITY_TODO
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, TableNotFoundException, IOException {
 

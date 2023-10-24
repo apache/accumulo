@@ -92,10 +92,9 @@ public class SplitLarge implements KeywordExecutable {
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
             Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cs), blockSize);
+                new BCFile.Writer(fs.create(new Path(smallName)), "gz", conf, cs), blockSize);
             Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cs),
-                blockSize)) {
+                new BCFile.Writer(fs.create(new Path(largeName)), "gz", conf, cs), blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 

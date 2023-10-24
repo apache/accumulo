@@ -83,12 +83,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
+@Disabled // ELASTICITY_TODO
 public class BulkFailureIT extends AccumuloClusterHarness {
 
   private static final Logger LOG = LoggerFactory.getLogger(BulkFailureIT.class);

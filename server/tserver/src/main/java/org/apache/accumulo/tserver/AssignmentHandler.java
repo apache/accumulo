@@ -27,7 +27,6 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -44,6 +43,7 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.Tablet.RefreshPurpose;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,9 +178,13 @@ class AssignmentHandler implements Runnable {
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
+
       Assignment assignment =
           new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
       TabletStateStore.setLocation(server.getContext(), assignment);
+
+      // refresh the tablet metadata after setting the location (See #3358)
+      tablet.refreshMetadata(RefreshPurpose.LOAD);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {
@@ -190,6 +194,7 @@ class AssignmentHandler implements Runnable {
           server.recentlyUnloadedCache.remove(tablet.getExtent());
         }
       }
+
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
@@ -208,9 +213,6 @@ class AssignmentHandler implements Runnable {
 
     if (successful) {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
-      if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND) {
-        server.insertOnDemandAccessTime(extent);
-      }
     } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {

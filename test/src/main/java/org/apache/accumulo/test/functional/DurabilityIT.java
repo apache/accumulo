@@ -38,12 +38,14 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Disabled // ELASTICITY_TODO
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override

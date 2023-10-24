@@ -144,9 +144,9 @@ class LoadFiles extends ManagerRepo {
               conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
 
           if (setTime) {
-            tabletMutator.requireSame(tablet, PREV_ROW, LOADED, TIME, LOCATION);
+            tabletMutator.requireSame(tablet, LOADED, TIME, LOCATION);
           } else {
-            tabletMutator.requireSame(tablet, PREV_ROW, LOADED);
+            tabletMutator.requireSame(tablet, LOADED);
           }
 
           filesToLoad.forEach((f, v) -> {

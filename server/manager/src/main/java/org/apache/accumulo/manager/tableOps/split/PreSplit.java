@@ -98,7 +98,7 @@ public class PreSplit extends ManagerRepo {
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
         tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
-            .requireSame(tabletMetadata, LOCATION, PREV_ROW).putOperation(opid)
+            .requireSame(tabletMetadata, LOCATION).putOperation(opid)
             .submit(tmeta -> opid.equals(tmeta.getOperationId()));
 
         Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();

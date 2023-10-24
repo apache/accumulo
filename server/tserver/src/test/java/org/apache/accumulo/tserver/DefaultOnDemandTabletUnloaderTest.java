@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -63,13 +62,13 @@ public class DefaultOnDemandTabletUnloaderTest {
     expect(tconf.get(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD))
         .andReturn(inactivityTimeSeconds);
     expect(tconf.newDeriver(anyObject())).andReturn(Map::of).anyTimes();
-    Map<KeyExtent,AtomicLong> online = new HashMap<>();
+    Map<KeyExtent,Long> online = new HashMap<>();
     // add an extent whose last access time is less than the currentTime - inactivityTime
     final KeyExtent activeExtent = new KeyExtent(tid, new Text("m"), new Text("a"));
-    online.put(activeExtent, new AtomicLong(currentTime - inactivityTime - 10));
+    online.put(activeExtent, currentTime - inactivityTime - 10);
     // add an extent whose last access time is greater than the currentTime - inactivityTime
     final KeyExtent inactiveExtent = new KeyExtent(tid, new Text("z"), new Text("m"));
-    online.put(inactiveExtent, new AtomicLong(currentTime - inactivityTime + 10));
+    online.put(inactiveExtent, currentTime - inactivityTime + 10);
     Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();
 
     replay(context, tconf);

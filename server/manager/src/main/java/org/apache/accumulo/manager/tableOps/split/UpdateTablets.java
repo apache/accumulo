@@ -217,7 +217,7 @@ public class UpdateTablets extends ManagerRepo {
       var newExtent = newTablets.last();
 
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
-          .requirePrevEndRow(splitInfo.getOriginal().prevEndRow()).requireAbsentLocation();
+          .requireAbsentLocation();
 
       mutator.putPrevEndRow(newExtent.prevEndRow());
 

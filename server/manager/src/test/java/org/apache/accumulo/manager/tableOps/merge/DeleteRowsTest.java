@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager;
+package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,12 +24,12 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
 import org.junit.jupiter.api.Test;
 
-public class TabletGroupWatcherTest {
+public class DeleteRowsTest {
 
   @Test
   public void testComputeNewDfvEven() {
     DataFileValue original = new DataFileValue(20, 10, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+    Pair<DataFileValue,DataFileValue> newValues = DeleteRows.computeNewDfv(original);
 
     assertEquals(10, newValues.getFirst().getSize());
     assertEquals(5, newValues.getFirst().getNumEntries());
@@ -42,7 +42,7 @@ public class TabletGroupWatcherTest {
   @Test
   public void testComputeNewDfvOdd() {
     DataFileValue original = new DataFileValue(21, 11, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+    Pair<DataFileValue,DataFileValue> newValues = DeleteRows.computeNewDfv(original);
 
     assertEquals(10, newValues.getFirst().getSize());
     assertEquals(5, newValues.getFirst().getNumEntries());
@@ -55,7 +55,7 @@ public class TabletGroupWatcherTest {
   @Test
   public void testComputeNewDfvSmall() {
     DataFileValue original = new DataFileValue(1, 2, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+    Pair<DataFileValue,DataFileValue> newValues = DeleteRows.computeNewDfv(original);
 
     assertEquals(1, newValues.getFirst().getSize());
     assertEquals(1, newValues.getFirst().getNumEntries());
