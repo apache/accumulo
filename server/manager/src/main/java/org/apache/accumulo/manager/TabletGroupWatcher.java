@@ -297,16 +297,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
+    TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
         manager.serversToShutdown.equals(currentTServers.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
       // If we are shutting down all of the TabletServers, then don't process any events
       // from the EventCoordinator.
       LOG.debug("Partial scan requested, but aborted due to shutdown of all TabletServers");
-      return null;
+      return tableMgmtStats;
     }
 
-    TableMgmtStats tableMgmtStats = new TableMgmtStats();
     int unloaded = 0;
 
     Map<TableId,MergeInfo> currentMerges = new HashMap<>();
