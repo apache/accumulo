@@ -117,7 +117,6 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void restartManagerRecovery() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -203,7 +202,6 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void killedTabletServer() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -218,7 +216,6 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void killedTabletServer2() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String[] names = getUniqueNames(2);
