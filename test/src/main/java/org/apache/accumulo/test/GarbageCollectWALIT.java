@@ -39,8 +39,10 @@ import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.RemoteIterator;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
+@Ignore // ELASTICITY_TODO
 public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   @Override

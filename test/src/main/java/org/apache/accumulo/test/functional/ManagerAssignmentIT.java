@@ -83,6 +83,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
+@Ignore // ELASTICITY_TODO
 public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   @Override

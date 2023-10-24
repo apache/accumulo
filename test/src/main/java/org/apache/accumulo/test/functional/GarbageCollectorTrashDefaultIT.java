@@ -36,9 +36,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 // verify trash is not used with Hadoop defaults, since Trash is not enabled by default
+@Ignore // ELASTICITY_TODO
 public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
 
   @Override

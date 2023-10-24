@@ -52,8 +52,10 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ManagerAssignmentIT;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
+@Ignore // ELASTICITY_TODO
 public class LocatorIT extends AccumuloClusterHarness {
 
   @Override

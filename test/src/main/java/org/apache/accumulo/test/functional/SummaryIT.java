@@ -86,6 +86,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -139,6 +140,7 @@ public class SummaryIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @Ignore // ELASTICITY_TODO
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

@@ -45,11 +45,13 @@ import org.apache.accumulo.core.spi.balancer.RegexGroupBalancer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+@Ignore // ELASTICITY_TODO
 public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override

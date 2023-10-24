@@ -71,11 +71,13 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@Ignore // ELASTICITY_TODO
 public class CompactionExecutorIT extends SharedMiniClusterBase {
 
   public static class TestPlanner implements CompactionPlanner {

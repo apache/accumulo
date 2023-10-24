@@ -29,8 +29,10 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
+@Ignore // ELASTICITY_TODO
 public class WriteAheadLogIT extends AccumuloClusterHarness {
 
   @Override

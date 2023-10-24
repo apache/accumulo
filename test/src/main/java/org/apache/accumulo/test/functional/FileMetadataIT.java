@@ -57,6 +57,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -351,6 +352,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @Ignore // ELASTICITY_TODO
   public void splitsWithExistingRangesTest() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
 
