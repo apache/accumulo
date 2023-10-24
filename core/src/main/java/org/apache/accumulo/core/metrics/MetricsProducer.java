@@ -696,9 +696,9 @@ public interface MetricsProducer {
   String METRICS_GC_RUN_CYCLE = METRICS_GC_PREFIX + "run.cycle";
 
   String METRICS_MANAGER_PREFIX = "accumulo.manager.";
-  String METRICS_MANAGER_ROOT_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tgw.root.errors";
-  String METRICS_MANAGER_META_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tgw.meta.errors";
-  String METRICS_MANAGER_USER_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tgw.user.errors";
+  String METRICS_MANAGER_ROOT_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.root.errors";
+  String METRICS_MANAGER_META_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.meta.errors";
+  String METRICS_MANAGER_USER_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.user.errors";
 
   String METRICS_MAJC_PREFIX = "accumulo.tserver.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";

@@ -115,6 +115,10 @@ public class TabletManagement {
     return tabletMetadata;
   }
 
+  /**
+   * @return exception message if an exception was thrown while computing this tablets management
+   *         actions OR null if no exception was seen
+   */
   public String getErrorMessage() {
     return errorMessage;
   }

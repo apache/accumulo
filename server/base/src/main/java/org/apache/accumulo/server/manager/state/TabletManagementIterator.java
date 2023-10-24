@@ -448,8 +448,7 @@ public class TabletManagementIterator extends SkippingIterator {
           // Insert the error into K,V pair representing
           // the tablet metadata.
           TabletManagement.addError(decodedRow, error);
-        }
-        if (!actions.isEmpty()) {
+        } else if (!actions.isEmpty()) {
           // If we simply returned here, then the client would get the encoded K,V
           // from the WholeRowIterator. However, it would not know the reason(s) why
           // it was returned. Insert a K,V pair to represent the reasons. The client

@@ -331,7 +331,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
       }
 
-      final Set<ManagementAction> actions = mti.getActions();
       final TabletMetadata tm = mti.getTabletMetadata();
 
       final String mtiError = mti.getErrorMessage();
@@ -345,6 +344,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         continue;
       }
 
+      final Set<ManagementAction> actions = mti.getActions();
       if (tm.isFutureAndCurrentLocationSet()) {
         throw new BadLocationStateException(
             tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
