@@ -43,7 +43,6 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.gc.ReferenceScan;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -151,7 +150,7 @@ public class GarbageCollectionTest {
 
     public void addFileReference(String tableId, String endRow, String file) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow + ":" + file, new ReferenceFile(tid, file));
+      references.put(tableId + ":" + endRow + ":" + file, ReferenceFile.forFile(tid, file));
       tableIds.add(tid);
     }
 
@@ -173,7 +172,7 @@ public class GarbageCollectionTest {
 
     public void addScanReference(String tableId, String endRow, String scan) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow + ":scan:" + scan, new ReferenceScan(tid, scan));
+      references.put(tableId + ":" + endRow + ":scan:" + scan, ReferenceFile.forScan(tid, scan));
       tableIds.add(tid);
     }
 
@@ -1057,7 +1056,7 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce, candTwo);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne);
-    assertTrue(gce.candidates.contains(scanCandidate));
+    assertEquals(Set.of(scanCandidate), gce.candidates);
 
     gce.removeScanReference("4", null, "/t0/F010.rf");
     gca.collect(gce);

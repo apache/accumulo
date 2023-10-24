@@ -144,7 +144,7 @@ public class GarbageCollectionAlgorithm {
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
       SortedMap<String,GcCandidate> candidateMap) throws InterruptedException {
 
-    List<GcCandidate> inUseCandidates = new ArrayList<>();
+    List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>();
     Iterator<Reference> iter = gce.getReferences().iterator();
@@ -163,8 +163,7 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcTemp = candidateMap.remove(dir);
         if (gcTemp != null) {
           log.debug("Directory Candidate was still in use by dir ref: {}", dir);
-          // Intentionally not adding dir candidates to inUseCandidates as they are only added once.
-          // If dir candidates are deleted, due to being in use, nothing will add them again.
+          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
         }
       } else {
         String reference = ref.getMetadataEntry();
@@ -183,10 +182,10 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcTemp = candidateMap.remove(relativePath);
         if (gcTemp != null) {
           log.debug("File Candidate was still in use: {}", relativePath);
-          // Intentionally not adding scan candidates to inUseCandidates as they are only added
-          // once.
+          // Prevent deletion of candidates that are still in use by scans, because they won't be
+          // recreated once the scan is finished.
           if (!ref.isScan()) {
-            inUseCandidates.add(gcTemp);
+            candidateEntriesToBeDeleted.add(gcTemp);
           }
         }
 
@@ -194,8 +193,7 @@ public class GarbageCollectionAlgorithm {
         GcCandidate gcT = candidateMap.remove(dir);
         if (gcT != null) {
           log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
-          // Intentionally not adding dir candidates to inUseCandidates as they are only added once.
-          // If dir candidates are deleted, due to being in use, nothing will add them again.
+          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
         }
       }
     }
@@ -203,7 +201,7 @@ public class GarbageCollectionAlgorithm {
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
         Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
     if (gce.canRemoveInUseCandidates()) {
-      gce.deleteGcCandidates(inUseCandidates, GcCandidateType.INUSE);
+      gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
     }
   }
 
