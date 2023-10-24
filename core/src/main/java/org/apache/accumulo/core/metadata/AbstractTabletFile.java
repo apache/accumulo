@@ -26,7 +26,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
-import org.apache.hadoop.io.Text;
 
 /**
  * A base class used to represent file references that are handled by code that processes tablet
@@ -85,8 +84,8 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   }
 
   private static String stripZeroTail(ByteSequence row) {
-    if(row.byteAt(row.length()-1) == (byte) 0x00) {
-      return row.subSequence(0, row.length()-1).toString();
+    if (row.byteAt(row.length() - 1) == (byte) 0x00) {
+      return row.subSequence(0, row.length() - 1).toString();
     }
     return row.toString();
   }
@@ -96,7 +95,8 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     if (hasRange()) {
       String startRow =
           range.isInfiniteStartKey() ? "-inf" : stripZeroTail(range.getStartKey().getRowData());
-      String endRow = range.isInfiniteStopKey() ? "+inf" : stripZeroTail(range.getEndKey().getRowData());
+      String endRow =
+          range.isInfiniteStopKey() ? "+inf" : stripZeroTail(range.getEndKey().getRowData());
       return getFileName() + " (" + startRow + "," + endRow + "]";
     } else {
       return getFileName();
