@@ -52,4 +52,9 @@ public interface TabletFile {
    *
    */
   boolean hasRange();
+
+  /**
+   * @return a string with the filename and row range if there is one.
+   */
+  String toMinimalString();
 }
