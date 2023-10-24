@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -61,7 +60,6 @@ public class SslWithClientAuthIT extends SslIT {
 
   @Override
   @Test
-  @Disabled // ELASTICITY_TODO
   public void adminStop() throws Exception {
     super.adminStop();
   }
