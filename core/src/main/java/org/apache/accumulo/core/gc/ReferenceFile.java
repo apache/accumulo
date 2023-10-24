@@ -32,33 +32,45 @@ import org.apache.hadoop.fs.Path;
 public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
+  public final boolean isScan;
 
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
-  protected ReferenceFile(TableId tableId, String metadataPath) {
+  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataPath = Objects.requireNonNull(metadataPath);
+    this.isScan = isScan;
   }
 
-  public ReferenceFile(TableId tableId, Path metadataPathPath) {
-    this.tableId = Objects.requireNonNull(tableId);
-    this.metadataPath = Objects.requireNonNull(metadataPathPath.toString());
+  public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false);
   }
 
-  public ReferenceFile(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    this.tableId = Objects.requireNonNull(tableId);
-    this.metadataPath = Objects.requireNonNull(tabletFile.getNormalizedPathStr());
+  public static ReferenceFile forFile(TableId tableId, Path metadataPathPath) {
+    return new ReferenceFile(tableId, metadataPathPath.toString(), false);
   }
 
-  public ReferenceFile(TableId tableId, StoredTabletFile tabletFile) {
-    this.tableId = Objects.requireNonNull(tableId);
-    this.metadataPath = Objects.requireNonNull(tabletFile.getMetadataPath());
+  public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, Path metadataPathPath) {
+    return new ReferenceFile(tableId, metadataPathPath.toString(), true);
   }
 
   @Override
   public boolean isDirectory() {
     return false;
+  }
+
+  @Override
+  public boolean isScan() {
+    return isScan;
   }
 
   @Override
