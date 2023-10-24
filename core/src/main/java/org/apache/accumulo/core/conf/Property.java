@@ -663,7 +663,7 @@ public enum Property {
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]"
           .replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
@@ -681,7 +681,7 @@ public enum Property {
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
           .replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
@@ -699,7 +699,7 @@ public enum Property {
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
           .replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   @Deprecated(since = "2.1.0", forRemoval = true)
   @ReplacedBy(property = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN)
@@ -1073,7 +1073,7 @@ public enum Property {
   @ReplacedBy(property = TABLE_COMPACTION_SELECTOR)
   TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
       "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction %}", "1.6.0"),
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction %}.", "1.6.0"),
   @Deprecated(since = "2.1.0", forRemoval = true)
   @ReplacedBy(property = TABLE_COMPACTION_SELECTOR_OPTS)
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
@@ -1090,7 +1090,7 @@ public enum Property {
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
-          + "classes must implement {% jlink " + ScanDispatcher.class.getName() + " %} See "
+          + "classes must implement {% jlink " + ScanDispatcher.class.getName() + " %}. See "
           + "[scan executors]({% durl administration/scan-executors %}) for an overview of why"
           + " and how to use this property. This property is ignored for the root and metadata"
           + " table.  The metadata table always dispatches to a scan executor named `meta`.",

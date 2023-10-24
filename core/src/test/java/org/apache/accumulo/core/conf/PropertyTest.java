@@ -70,13 +70,8 @@ public class PropertyTest {
           "Description not set for " + prop);
 
       // make sure property description ends with a period
-      boolean formattingCorrect = prop.getDescription().endsWith(".");
-      if (!formattingCorrect) {
-        assertTrue(prop.getDescription().matches("^See \\{% jlink -f [\\w\\.]* %\\}$"),
-            "Property: " + prop.getKey()
-                + " Either description does not end with period or it does not match the jlink "
-                + "description format: 'See {% jlink -f <class> %}'");
-      }
+      assertTrue(prop.getDescription().endsWith("."),
+          "Property: " + prop.getKey() + " description does not end with period.");
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
