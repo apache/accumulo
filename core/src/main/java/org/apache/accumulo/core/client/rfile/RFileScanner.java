@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -348,13 +347,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
-        InputStream inputStream = sources[i].getInputStream();
-        if (!(inputStream instanceof FSDataInputStream)) {
-          throw new IllegalArgumentException("Input stream " + i + " is not a FSDataInputStream");
-        }
         CachableBuilder cb = new CachableBuilder()
-            .input((FSDataInputStream) inputStream, "source-" + i).length(sources[i].getLength())
-            .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
+            .input((FSDataInputStream) sources[i].getInputStream(), "source-" + i)
+            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
+            .cryptoService(cryptoService);
         readers.add(RFile.getReader(cb, sources[i].getRange()));
       }
 
