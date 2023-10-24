@@ -69,10 +69,10 @@ import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +81,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.net.HostAndPort;
 
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
   private static ExecutorService THREAD_POOL;

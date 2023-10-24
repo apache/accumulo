@@ -40,11 +40,11 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.TrashPolicyDefault;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 // verify that trash is used if Hadoop is configured to use it and that using a custom policy works
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class GarbageCollectorTrashEnabledWithCustomPolicyIT extends GarbageCollectorTrashBase {
 
   public static class NoFlushFilesInTrashPolicy extends TrashPolicyDefault {

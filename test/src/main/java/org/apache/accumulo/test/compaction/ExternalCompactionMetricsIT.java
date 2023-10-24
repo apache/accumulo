@@ -50,12 +50,12 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
 
   public static class ExternalCompactionMetricsITConfig

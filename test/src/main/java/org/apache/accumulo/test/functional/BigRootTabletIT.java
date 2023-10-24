@@ -32,10 +32,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class BigRootTabletIT extends AccumuloClusterHarness {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan
   // buffers

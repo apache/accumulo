@@ -80,7 +80,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,7 +131,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void gcTest() throws Exception {
     killMacGc();
     final String table = "test_ingest";

@@ -54,10 +54,10 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
  * (original) and additional method without.</li>
  * </ul>
  */
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);

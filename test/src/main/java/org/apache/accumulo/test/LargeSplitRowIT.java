@@ -51,7 +51,7 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
@@ -75,7 +75,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
   // User added split
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void userAddedSplit() throws Exception {
 
     log.info("User added split");

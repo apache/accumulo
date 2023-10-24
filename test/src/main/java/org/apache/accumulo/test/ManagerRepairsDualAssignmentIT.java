@@ -51,10 +51,10 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Ignore // ELASTICITY_TODO
+@Disabled // ELASTICITY_TODO
 public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override

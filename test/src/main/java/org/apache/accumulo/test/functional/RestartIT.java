@@ -49,9 +49,9 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +117,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void restartManagerRecovery() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -203,7 +203,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void killedTabletServer() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -218,7 +218,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void killedTabletServer2() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String[] names = getUniqueNames(2);
@@ -235,7 +235,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Ignore // ELASTICITY_TODO
+  @Disabled // ELASTICITY_TODO
   public void killedTabletServerDuringShutdown() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
