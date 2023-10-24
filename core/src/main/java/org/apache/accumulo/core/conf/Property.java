@@ -573,6 +573,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service", "2.1.0"),
+  @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
@@ -591,6 +592,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table", "2.1.0"),
+  @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
@@ -609,6 +611,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "2.1.0"),
+  @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
       "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
