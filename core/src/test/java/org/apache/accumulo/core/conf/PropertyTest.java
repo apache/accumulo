@@ -69,6 +69,10 @@ public class PropertyTest {
       assertFalse(prop.getDescription() == null || prop.getDescription().isEmpty(),
           "Description not set for " + prop);
 
+      // make sure property description ends with a period
+      assertTrue(prop.getDescription().endsWith("."),
+          "Property: " + prop.getKey() + " description does not end with period.");
+
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
       for (String pre : validPrefixes) {
