@@ -20,21 +20,26 @@ package org.apache.accumulo.core.file.rfile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.crypto.CryptoTest;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.rfile.RFile.FencedIndex;
 import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -173,10 +178,7 @@ public class FencedRFileTest extends AbstractRFileTest {
 
   @Test
   public void testFencing12() throws IOException {
-    final TestRFile trf = new TestRFile(conf);
-    trf.openWriter();
-    writeTestFile(trf);
-    trf.closeWriter();
+    final TestRFile trf = initTestFile();
 
     // Fence off the file to contain only 1 row (r_00001)
     Range range = new Range(new Range("r_000001"));
@@ -203,6 +205,111 @@ public class FencedRFileTest extends AbstractRFileTest {
     seek(iter, new Key(new Text("r_000002")));
     // Verify hasTop() is now false
     assertFalse(iter.hasTop());
+  }
+
+  @Test
+  public void testFirstAndLastRow() throws IOException {
+    final TestRFile trf = initTestFile();
+
+    Text firstRowInFile = new Text(formatString("r_", 0));
+    Text lastRowInFile = new Text(formatString("r_", 3));
+
+    // Infinite range fence
+    // Should just be first/last rows of file
+    assertReader(trf, new Range(), (reader) -> {
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
+    });
+
+    // Range inside of file so should return the rows of the fence
+    assertReader(trf, new Range("r_000001", "r_000002"), (reader) -> {
+      assertEquals(new Text("r_000001"), reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
+    });
+
+    // Test infinite start row
+    assertReader(trf, new Range(null, "r_000001"), (reader) -> {
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(new Text("r_000001"), reader.getLastRow());
+    });
+
+    // Test infinite end row
+    assertReader(trf, new Range("r_000002", null), (reader) -> {
+      assertEquals(new Text("r_000002"), reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
+    });
+
+    // Test start row matches start of file
+    assertReader(trf, new Range("r_000000", "r_000002"), (reader) -> {
+      // start row of range matches first row in file so that should be returned instead
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
+    });
+
+    // Test end row matches end of file
+    assertReader(trf, new Range("r_000001", "r_000003"), (reader) -> {
+      assertEquals(new Text("r_000001"), reader.getFirstRow());
+      // end row of range matches last row in file so that should be returned instead
+      assertEquals(lastRowInFile, reader.getLastRow());
+    });
+
+    // Test case where rows in range are less than and greater than rows in file
+    assertReader(trf, new Range("a", "z"), (reader) -> {
+      assertEquals(firstRowInFile, reader.getFirstRow());
+      assertEquals(lastRowInFile, reader.getLastRow());
+    });
+
+    // Test inclusive end key, usually a row range is required to be an exclusive key
+    // for a tablet file but the fenced reader still supports any range type
+    assertReader(trf, new Range(new Key("r_000002"), true, new Key("r_000002"), true), (reader) -> {
+      assertEquals(new Text("r_000002"), reader.getFirstRow());
+      assertEquals(new Text("r_000002"), reader.getLastRow());
+    });
+
+  }
+
+  @Test
+  public void testUnsupportedMethods() throws IOException {
+    final TestRFile trf = initTestFile();
+    trf.openReader(new Range());
+    FencedReader reader = (FencedReader) trf.iter;
+    FencedIndex index = (FencedIndex) reader.getIndex();
+
+    assertThrows(UnsupportedOperationException.class, () -> reader.init(null, null, null));
+    assertThrows(UnsupportedOperationException.class,
+        () -> index.getSample(new SamplerConfigurationImpl()));
+    assertThrows(UnsupportedOperationException.class,
+        () -> index.seek(new Range(), List.of(), false));
+    assertThrows(UnsupportedOperationException.class, () -> index.deepCopy(null));
+  }
+
+  @Test
+  public void testSetInterrupted() throws IOException {
+    final TestRFile trf = initTestFile();
+    trf.openReader(new Range());
+    FencedReader reader = (FencedReader) trf.iter;
+
+    reader.setInterruptFlag(new AtomicBoolean(true));
+    assertThrows(IterationInterruptedException.class,
+        () -> reader.seek(new Range("r_000001"), List.of(), false));
+
+  }
+
+  @Test
+  public void testReset() throws IOException {
+    final TestRFile trf = initTestFile();
+    trf.openReader(new Range());
+    FencedReader reader = (FencedReader) trf.iter;
+
+    assertFalse(reader.hasTop());
+    reader.seek(new Range("r_000001"), List.of(), false);
+    assertTrue(reader.hasTop());
+    assertEquals(
+        newKey(formatString("r_", 1), formatString("cf_", 0), formatString("cq_", 0), "A", 4),
+        reader.getTopKey());
+
+    reader.reset();
+    assertFalse(reader.hasTop());
   }
 
   private int testFencing(List<Range> fencedRange, List<Range> expectedRange) throws IOException {
@@ -370,4 +477,33 @@ public class FencedRFileTest extends AbstractRFileTest {
       }
     }
   }
+
+  private TestRFile initTestFile() throws IOException {
+    final TestRFile trf = new TestRFile(conf);
+    trf.openWriter();
+    writeTestFile(trf);
+    trf.closeWriter();
+    return trf;
+  }
+
+  private static void assertReader(final TestRFile trf, Range range,
+      ThrowableConsumer<FencedReader,IOException> run) throws IOException {
+    FencedReader reader = null;
+    try {
+      trf.openReader(range);
+      reader = (FencedReader) trf.iter;
+      run.accept(reader);
+    } finally {
+      if (reader != null) {
+        reader.close();
+      }
+    }
+
+  }
+
+  // Similar to the java.util.function.Consumer interface but throws an exception
+  interface ThrowableConsumer<T,U extends Throwable> {
+    void accept(T t) throws U;
+  }
+
 }

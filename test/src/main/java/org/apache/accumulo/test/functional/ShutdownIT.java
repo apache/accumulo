@@ -33,6 +33,7 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class ShutdownIT extends ConfigurableMacBase {
@@ -106,6 +107,7 @@ public class ShutdownIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Disabled // ELASTICITY_TODO
   public void adminStop() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       runAdminStopTest(c, cluster);

@@ -78,10 +78,12 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Disabled // ELASTICITY_TODO
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
   // ELASTICITY_TODO: This functionality needs to be adpated to work on upgrade

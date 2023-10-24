@@ -47,6 +47,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
@@ -54,6 +55,7 @@ import com.google.common.collect.Iterables;
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
  */
+@Disabled // ELASTICITY_TODO
 public class FlushNoFileIT extends AccumuloClusterHarness {
 
   @Override

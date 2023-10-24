@@ -104,6 +104,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -1537,6 +1539,15 @@ public class Tablet extends TabletBase {
       synchronized (this) {
         var prevMetadata = latestMetadata;
         latestMetadata = tabletMetadata;
+
+        if (log.isDebugEnabled() && !prevMetadata.getFiles().equals(latestMetadata.getFiles())) {
+          SetView<StoredTabletFile> removed =
+              Sets.difference(prevMetadata.getFiles(), latestMetadata.getFiles());
+          SetView<StoredTabletFile> added =
+              Sets.difference(latestMetadata.getFiles(), prevMetadata.getFiles());
+          log.debug("Tablet {} was refreshed. Files removed: {} Files added: {}", this.getExtent(),
+              removed, added);
+        }
 
         if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {
           // Atomically replace the in memory map with the new file. Before this synch block a scan

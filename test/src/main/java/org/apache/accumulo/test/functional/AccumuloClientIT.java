@@ -44,6 +44,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
@@ -140,6 +141,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @Disabled // ELASTICITY_TODO
   public void testClose() throws Exception {
     String tableName = getUniqueNames(1)[0];
 

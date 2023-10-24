@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -87,7 +86,6 @@ import org.opentest4j.AssertionFailedError;
 import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ScanServerIT extends SharedMiniClusterBase {
 
   private static class ScanServerITConfiguration implements MiniClusterConfigurationCallback {
