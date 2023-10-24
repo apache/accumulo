@@ -67,10 +67,12 @@ public class GarbageCollectWriteAheadLogsTest {
     try {
       tabletAssignedToServer1 = new TabletManagement(Set.of(),
           TabletMetadata.builder(extent).putLocation(Location.current(server1))
-              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS));
+              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS),
+          "");
       tabletAssignedToServer2 = new TabletManagement(Set.of(),
           TabletMetadata.builder(extent).putLocation(Location.current(server2))
-              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS));
+              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS),
+          "");
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

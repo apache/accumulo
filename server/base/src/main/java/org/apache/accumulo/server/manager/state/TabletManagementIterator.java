@@ -429,20 +429,32 @@ public class TabletManagementIterator extends SkippingIterator {
           TabletManagement.CONFIGURED_COLUMNS, false, true);
 
       actions.clear();
-      if (managerState != ManagerState.NORMAL || current.isEmpty() || onlineTables.isEmpty()) {
-        // when manager is in the process of starting up or shutting down return everything.
-        actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-      } else {
-        LOG.trace("Evaluating extent: {}", tm);
-        computeTabletManagementActions(tm, actions);
+      Exception error = null;
+      try {
+        if (managerState != ManagerState.NORMAL || current.isEmpty() || onlineTables.isEmpty()) {
+          // when manager is in the process of starting up or shutting down return everything.
+          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+        } else {
+          LOG.trace("Evaluating extent: {}", tm);
+          computeTabletManagementActions(tm, actions);
+        }
+      } catch (Exception e) {
+        LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
+        error = e;
       }
 
-      if (!actions.isEmpty()) {
-        // If we simply returned here, then the client would get the encoded K,V
-        // from the WholeRowIterator. However, it would not know the reason(s) why
-        // it was returned. Insert a K,V pair to represent the reasons. The client
-        // can pull this K,V pair from the results by looking at the colf.
-        TabletManagement.addActions(decodedRow, actions);
+      if (!actions.isEmpty() || error != null) {
+        if (error != null) {
+          // Insert the error into K,V pair representing
+          // the tablet metadata.
+          TabletManagement.addError(decodedRow, error);
+        } else if (!actions.isEmpty()) {
+          // If we simply returned here, then the client would get the encoded K,V
+          // from the WholeRowIterator. However, it would not know the reason(s) why
+          // it was returned. Insert a K,V pair to represent the reasons. The client
+          // can pull this K,V pair from the results by looking at the colf.
+          TabletManagement.addActions(decodedRow, actions);
+        }
         topKey = decodedRow.firstKey();
         topValue = WholeRowIterator.encodeRow(new ArrayList<>(decodedRow.keySet()),
             new ArrayList<>(decodedRow.values()));
