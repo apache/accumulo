@@ -40,6 +40,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
@@ -102,7 +103,7 @@ public class MergeTablets extends ManagerRepo {
         Preconditions.checkState(lastTabletMeta == null,
             "%s unexpectedly saw multiple last tablets %s %s", fateStr, tabletMeta.getExtent(),
             range);
-        validateTablet(tabletMeta, fateStr, opid);
+        validateTablet(tabletMeta, fateStr, opid, data.tableId);
 
         if (firstTabletMeta == null) {
           firstTabletMeta = Objects.requireNonNull(tabletMeta);
@@ -134,7 +135,7 @@ public class MergeTablets extends ManagerRepo {
       if (tabletsSeen == 1) {
         // The merge range overlaps a single tablet, so there is nothing to do. This could be
         // because there was only a single tablet before merge started or this operation completed
-        // but the process died and now its running again.
+        // but the process died and now its running a 2nd time.
         return;
       }
 
@@ -196,7 +197,7 @@ public class MergeTablets extends ManagerRepo {
         var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
       for (var tabletMeta : tabletsMetadata) {
-        validateTablet(tabletMeta, fateStr, opid);
+        validateTablet(tabletMeta, fateStr, opid, data.tableId);
 
         // do not delete the last tablet
         if (Objects.equals(tabletMeta.getExtent().endRow(), lastTabletMeta.getExtent().endRow())) {
@@ -219,7 +220,8 @@ public class MergeTablets extends ManagerRepo {
     }
   }
 
-  static void validateTablet(TabletMetadata tabletMeta, String fateStr, TabletOperationId opid) {
+  static void validateTablet(TabletMetadata tabletMeta, String fateStr, TabletOperationId opid,
+      TableId expectedTableId) {
     // its expected at this point that tablets have our operation id and no location, so lets
     // check that
     Preconditions.checkState(tabletMeta.getLocation() == null,
@@ -228,6 +230,9 @@ public class MergeTablets extends ManagerRepo {
     Preconditions.checkState(opid.equals(tabletMeta.getOperationId()),
         "%s merging tablet %s had unexpected opid %s", fateStr, tabletMeta.getExtent(),
         tabletMeta.getOperationId());
+    Preconditions.checkState(expectedTableId.equals(tabletMeta.getTableId()),
+        "%s tablet %s has unexpected table id %s expected %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getTableId(), expectedTableId);
   }
 
   /**

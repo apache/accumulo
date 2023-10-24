@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.manager.tableOps.merge.MergeTablets.validateTablet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,7 +97,7 @@ public class DeleteRows extends ManagerRepo {
       KeyExtent lastCompletelyContained = null;
 
       for (var tabletMetadata : tabletsMetadata) {
-        MergeTablets.validateTablet(tabletMetadata, fateStr, opid);
+        validateTablet(tabletMetadata, fateStr, opid, data.tableId);
 
         var tabletMutator = tabletsMutator.mutateTablet(tabletMetadata.getExtent())
             .requireOperation(opid).requireAbsentLocation();
