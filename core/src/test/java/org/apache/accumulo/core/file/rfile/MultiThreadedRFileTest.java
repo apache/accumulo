@@ -153,7 +153,7 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf,
           CryptoFactoryLoader.getServiceForServer(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);

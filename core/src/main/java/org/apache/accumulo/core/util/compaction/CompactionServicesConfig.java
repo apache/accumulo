@@ -42,14 +42,8 @@ public class CompactionServicesConfig {
   private final Map<String,String> planners = new HashMap<>();
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
-  long defaultRateLimit;
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
-
-  private long getDefaultThroughput() {
-    return ConfigurationTypeHelper
-        .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
-  }
 
   private static Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
     return aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
@@ -84,18 +78,12 @@ public class CompactionServicesConfig {
       }
     });
 
-    defaultRateLimit = getDefaultThroughput();
-
     var diff = Sets.difference(options.keySet(), planners.keySet());
 
     if (!diff.isEmpty()) {
       throw new IllegalArgumentException(
           "Incomplete compaction service definitions, missing planner class " + diff);
     }
-  }
-
-  public long getRateLimit(String serviceName) {
-    return getRateLimits().getOrDefault(serviceName, defaultRateLimit);
   }
 
   @Override
