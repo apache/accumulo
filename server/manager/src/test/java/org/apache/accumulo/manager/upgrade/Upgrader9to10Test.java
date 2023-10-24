@@ -85,13 +85,13 @@ public class Upgrader9to10Test {
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/" + BULK_PREFIX + "0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005"), resolved);
-    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005");
+    ref1 = ReferenceFile.forFile(tableId5a, VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005");
     var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005/F0009.rf", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005/F0009.rf"), resolved);
-    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/t-0005/F0009.rf");
+    ref1 = ReferenceFile.forFile(tableId5a, VOL_PROP + "/tables/5a/t-0005/F0009.rf");
     ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
   }
@@ -123,14 +123,15 @@ public class Upgrader9to10Test {
 
     resolved = Upgrader9to10.resolveRelativeDelete(
         "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", VOL_PROP);
-    ref1 = new ReferenceFile(tableId5a,
+    ref1 = ReferenceFile.forFile(tableId5a,
         "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005");
     var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete(
         "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", VOL_PROP);
-    ref1 = new ReferenceFile(tableId5a, "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf");
+    ref1 = ReferenceFile.forFile(tableId5a,
+        "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf");
     ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
   }

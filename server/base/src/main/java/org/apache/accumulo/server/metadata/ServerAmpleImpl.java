@@ -216,7 +216,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     if (level == DataLevel.ROOT) {
       if (type == GcCandidateType.INUSE) {
-        // Deletion of INUSE candidates is not supported in 2.1.x.
+        // Since there is only a single root tablet, supporting INUSE candidate deletions would add
+        // additional code complexity without any substantial benefit.
+        // Therefore, deletion of root INUSE candidates is not supported.
         return;
       }
       mutateRootGcCandidates(rgcc -> rgcc.remove(candidates.stream()));

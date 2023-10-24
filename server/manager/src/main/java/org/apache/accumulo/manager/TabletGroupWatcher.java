@@ -703,7 +703,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           var stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-          datafilesAndDirs.add(new ReferenceFile(stf.getTableId(), stf.getMetaUpdateDelete()));
+          datafilesAndDirs.add(ReferenceFile.forFile(stf.getTableId(), stf.getMetaUpdateDelete()));
           if (datafilesAndDirs.size() > 1000) {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
             datafilesAndDirs.clear();

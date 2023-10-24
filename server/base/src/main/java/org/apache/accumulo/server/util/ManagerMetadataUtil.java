@@ -180,6 +180,8 @@ public class ManagerMetadataUtil {
       TServerInstance tServerInstance, Location lastLocation, ServiceLock zooLock,
       Optional<ExternalCompactionId> ecid) {
 
+    // Write candidates before the mutation to ensure that a process failure after a mutation would
+    // not affect candidate creation
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -204,6 +206,8 @@ public class ManagerMetadataUtil {
     tablet.putZooLock(zooLock);
 
     tablet.mutate();
+    // Write candidates again to avoid a possible race condition when removing InUse candidates
+    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
   }
 
   /**
