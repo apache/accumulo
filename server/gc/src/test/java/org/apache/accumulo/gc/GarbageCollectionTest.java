@@ -1054,13 +1054,13 @@ public class GarbageCollectionTest {
     gce.deleteInUseRefs = true;
 
     gca.collect(gce);
-    assertRemoved(gce, candTwo);
+    assertFileDeleted(gce, candTwo);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne);
     assertEquals(Set.of(scanCandidate), gce.candidates);
 
     gce.removeScanReference("4", null, "/t0/F010.rf");
     gca.collect(gce);
-    assertRemoved(gce, scanCandidate);
+    assertFileDeleted(gce, scanCandidate);
     assertNoCandidatesRemoved(gce);
     assertEquals(0, gce.candidates.size());
   }
