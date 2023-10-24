@@ -28,6 +28,7 @@ import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -65,7 +66,9 @@ public class Upgrader11to12 implements Upgrader {
 
       String json = new String(rootData, UTF_8);
       if (RootTabletMetadata.Data.needsConversion(json)) {
+        log.info("Root metadata in ZooKeeper before upgrade: {}", json);
         RootTabletMetadata rtm = RootTabletMetadata.upgrade(json);
+        log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
         zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
       }
     } catch (InterruptedException ex) {
@@ -95,8 +98,8 @@ public class Upgrader11to12 implements Upgrader {
   private void processReferences(ServerContext context, String tableName) {
     // not using ample to avoid StoredTabletFile because old file ref is incompatible
     try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
-        BatchWriter batchWriter = c.createBatchWriter(tableName);
-        Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+        BatchWriter batchWriter = c.createBatchWriter(tableName); Scanner scanner =
+            new IsolatedScanner(context.createScanner(tableName, Authorizations.EMPTY))) {
 
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
