@@ -199,8 +199,7 @@ public class Upgrader11to12Test {
 
     replay(bw);
 
-    // expect no exception, batch writer not updated (warn message in logs)
-    upgrader.removeChoppedCF(k, bw, "aTable");
+    assertThrows(IllegalStateException.class, () -> upgrader.removeChoppedCF(k, bw, "aTable"));
 
     verify(bw);
   }
@@ -250,8 +249,8 @@ public class Upgrader11to12Test {
 
     replay(bw);
 
-    // expect no exception thrown, batch writer not called. (Warn messages show in log)
-    upgrader.removeExternalCompactionCF(k, bw, "aTable");
+    assertThrows(IllegalStateException.class,
+        () -> upgrader.removeExternalCompactionCF(k, bw, "aTable"));
 
     verify(bw);
   }
