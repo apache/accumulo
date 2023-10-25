@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 public class AllVolumesDirectory extends ReferenceFile {
 
   public AllVolumesDirectory(TableId tableId, String dirName) {
-    super(tableId, getDeleteTabletOnAllVolumesUri(tableId, dirName));
+    super(tableId, getDeleteTabletOnAllVolumesUri(tableId, dirName), false);
   }
 
   private static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {

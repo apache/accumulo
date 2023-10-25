@@ -450,7 +450,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = URI.create(String.format("file:/%020d/%s", i, longpath));
         Mutation delFlag =
-            ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), new Path(path)));
+            ample.createDeleteMutation(ReferenceFile.forFile(TableId.of("1"), new Path(path)));
         bw.addMutation(delFlag);
       }
     }
