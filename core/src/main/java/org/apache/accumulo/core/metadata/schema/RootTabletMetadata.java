@@ -86,7 +86,7 @@ public class RootTabletMetadata {
       return version;
     }
 
-    public static boolean needsConversion(final String json) {
+    public static boolean needsUpgrade(final String json) {
       var rootData = GSON.get().fromJson(json, Data.class);
       int currVersion = rootData.getVersion();
       return currVersion < VERSION;

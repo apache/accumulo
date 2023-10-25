@@ -65,7 +65,7 @@ public class Upgrader11to12 implements Upgrader {
       byte[] rootData = zrw.getData(rootBase, stat);
 
       String json = new String(rootData, UTF_8);
-      if (RootTabletMetadata.Data.needsConversion(json)) {
+      if (RootTabletMetadata.Data.needsUpgrade(json)) {
         log.info("Root metadata in ZooKeeper before upgrade: {}", json);
         RootTabletMetadata rtm = RootTabletMetadata.upgrade(json);
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
@@ -113,7 +113,8 @@ public class Upgrader11to12 implements Upgrader {
         } else if (family.equals(ExternalCompactionColumnFamily.NAME)) {
           removeExternalCompactionCF(k, batchWriter, tableName);
         } else {
-          log.warn("Received unexpected column family processing references: " + family);
+          throw new IllegalStateException("Processing: " + tableName
+              + " Received unexpected column family processing references: " + family);
         }
       });
     } catch (MutationsRejectedException mex) {
@@ -166,6 +167,8 @@ public class Upgrader11to12 implements Upgrader {
       log.warn("Failed to delete obsolete chopped CF reference for table: " + tableName + ". Ref: "
           + delete.prettyPrint() + ". Will try to continue. Ref may need to be manually removed");
       log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
+      throw new IllegalStateException(
+          "Failed to delete obsolete chopped CF reference for table: " + tableName, ex);
     }
   }
 
@@ -185,6 +188,8 @@ public class Upgrader11to12 implements Upgrader {
           + ". Ref: " + delete.prettyPrint()
           + ". Will try to continue. Ref may need to be manually removed");
       log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
+      throw new IllegalStateException(
+          "Failed to delete obsolete external compaction CF reference for table: " + tableName, ex);
     }
   }
 
