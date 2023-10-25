@@ -89,6 +89,6 @@ public class CompactableFileImpl implements CompactableFile {
 
   @Override
   public String toString() {
-    return "[" + storedTabletFile.getFileName() + ", " + dataFileValue + "]";
+    return "[" + storedTabletFile.toMinimalString() + ", " + dataFileValue + "]";
   }
 }

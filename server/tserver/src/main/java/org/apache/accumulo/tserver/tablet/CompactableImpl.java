@@ -202,7 +202,7 @@ public class CompactableImpl implements Compactable {
         this.selectStatus = FileSelectionStatus.RESERVED;
 
         log.debug("Selected compaction status initialized from external compactions {} {} {} {}",
-            getExtent(), selectStatus, initiallySelectedAll, asFileNames(selectedFiles));
+            getExtent(), selectStatus, initiallySelectedAll, asMinimalString(selectedFiles));
       }
     }
 
@@ -261,7 +261,7 @@ public class CompactableImpl implements Compactable {
       selectedFiles.addAll(selected);
       initiallySelectedAll = allSelected;
       log.trace("Selected compaction status changed {} {} {} {}", getExtent(), selectStatus,
-          initiallySelectedAll, asFileNames(selectedFiles));
+          initiallySelectedAll, asMinimalString(selectedFiles));
       TabletLogger.selected(getExtent(), selectKind, selectedFiles);
     }
 
@@ -407,7 +407,8 @@ public class CompactableImpl implements Compactable {
             if (selectKind == job.getKind()) {
               if (!selectedFiles.containsAll(jobFiles)) {
                 log.trace("Ignoring {} compaction that does not contain selected files {} {} {}",
-                    job.getKind(), getExtent(), asFileNames(selectedFiles), asFileNames(jobFiles));
+                    job.getKind(), getExtent(), asMinimalString(selectedFiles),
+                    asMinimalString(jobFiles));
                 return false;
               }
             } else {
@@ -417,7 +418,7 @@ public class CompactableImpl implements Compactable {
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
             log.trace("Ingoing compaction that overlaps with selected files {} {} {}", getExtent(),
-                job.getKind(), asFileNames(Sets.intersection(selectedFiles, jobFiles)));
+                job.getKind(), asMinimalString(Sets.intersection(selectedFiles, jobFiles)));
             return false;
           }
           break;
@@ -486,7 +487,7 @@ public class CompactableImpl implements Compactable {
           selectedFiles.add(newFile.orElseThrow());
         }
         log.trace("Compacted subset of selected files {} {} -> {}", getExtent(),
-            asFileNames(jobFiles), newFile.orElse(null));
+            asMinimalString(jobFiles), newFile.orElse(null));
       } else {
         log.debug("Canceled selected compaction completed {} but others still running ",
             getExtent());
@@ -874,8 +875,8 @@ public class CompactableImpl implements Compactable {
 
   }
 
-  static Collection<String> asFileNames(Set<StoredTabletFile> files) {
-    return Collections2.transform(files, StoredTabletFile::getFileName);
+  static Collection<String> asMinimalString(Set<StoredTabletFile> files) {
+    return Collections2.transform(files, StoredTabletFile::toMinimalString);
   }
 
   @Override
