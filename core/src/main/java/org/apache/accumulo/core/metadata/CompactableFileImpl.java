@@ -22,6 +22,7 @@ import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 
 public class CompactableFileImpl implements CompactableFile {
@@ -34,6 +35,11 @@ public class CompactableFileImpl implements CompactableFile {
     this.dataFileValue = new DataFileValue(size, entries);
   }
 
+  public CompactableFileImpl(URI uri, Range range, long size, long entries) {
+    this.storedTabletFile = StoredTabletFile.of(uri, range);
+    this.dataFileValue = new DataFileValue(size, entries);
+  }
+
   public CompactableFileImpl(StoredTabletFile storedTabletFile, DataFileValue dataFileValue) {
     this.storedTabletFile = Objects.requireNonNull(storedTabletFile);
     this.dataFileValue = Objects.requireNonNull(dataFileValue);
@@ -42,6 +48,11 @@ public class CompactableFileImpl implements CompactableFile {
   @Override
   public URI getUri() {
     return storedTabletFile.getPath().toUri();
+  }
+
+  @Override
+  public Range getRange() {
+    return storedTabletFile.getRange();
   }
 
   @Override
@@ -89,6 +100,6 @@ public class CompactableFileImpl implements CompactableFile {
 
   @Override
   public String toString() {
-    return "[" + storedTabletFile.getFileName() + ", " + dataFileValue + "]";
+    return "[" + storedTabletFile.toMinimalString() + ", " + dataFileValue + "]";
   }
 }

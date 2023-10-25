@@ -44,6 +44,7 @@ public class CompactionServicesConfig {
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
+  @SuppressWarnings("removal")
   private long getDefaultThroughput() {
     return ConfigurationTypeHelper
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
