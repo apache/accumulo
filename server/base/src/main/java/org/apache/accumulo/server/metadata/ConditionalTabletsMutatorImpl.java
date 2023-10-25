@@ -231,7 +231,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
             var status = _getStatus();
             if (status == Status.REJECTED && rejectedHandlers.containsKey(extent)) {
               var tabletMetadata = readMetadata();
-              if (tabletMetadata != null && rejectedHandlers.get(extent).test(tabletMetadata)) {
+              var handler = rejectedHandlers.get(extent);
+              if (tabletMetadata == null && handler.callWhenTabletDoesNotExists()
+                  && handler.test(null)) {
+                return Status.ACCEPTED;
+              }
+              if (tabletMetadata != null && handler.test(tabletMetadata)) {
                 return Status.ACCEPTED;
               }
             }

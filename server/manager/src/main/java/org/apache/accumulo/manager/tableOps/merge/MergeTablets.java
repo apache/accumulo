@@ -18,36 +18,43 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.manager.tableOps.merge.DeleteRows.verifyAccepted;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
-import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -61,222 +68,180 @@ public class MergeTablets extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(MergeTablets.class);
 
-  private final NamespaceId namespaceId;
-  private final TableId tableId;
+  private final MergeInfo data;
 
-  public MergeTablets(NamespaceId namespaceId, TableId tableId) {
-    this.namespaceId = namespaceId;
-    this.tableId = tableId;
+  public MergeTablets(MergeInfo data) {
+    this.data = data;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    MergeInfo mergeInfo = manager.getMergeInfo(tableId);
-    Preconditions.checkState(mergeInfo.getState() == MergeState.MERGING);
-    Preconditions.checkState(!mergeInfo.isDelete());
-
-    var extent = mergeInfo.getExtent();
-    long tabletCount;
-
-    try (var tabletMeta = manager.getContext().getAmple().readTablets().forTable(extent.tableId())
-        .overlapping(extent.prevEndRow(), extent.endRow()).fetch(TabletMetadata.ColumnType.PREV_ROW)
-        .checkConsistency().build()) {
-      tabletCount = tabletMeta.stream().count();
-    }
-
-    if (tabletCount > 1) {
-      mergeMetadataRecords(manager, mergeInfo);
-    }
-
-    return new FinishTableRangeOp(namespaceId, tableId);
+    mergeMetadataRecords(manager, tid);
+    return new FinishTableRangeOp(data);
   }
 
-  private void mergeMetadataRecords(Manager manager, MergeInfo info) throws AccumuloException {
-    KeyExtent range = info.getExtent();
-    log.debug("Merging metadata for {}", range);
-    KeyExtent stop = DeleteRows.getHighTablet(manager, range);
-    log.debug("Highest tablet is {}", stop);
-    Value firstPrevRowValue = null;
-    Text stopRow = stop.toMetaRow();
-    Text start = range.prevEndRow();
-    if (start == null) {
-      start = new Text();
-    }
-    Range scanRange = new Range(MetadataSchema.TabletsSection.encodeRow(range.tableId(), start),
-        false, stopRow, false);
-    String targetSystemTable = MetadataTable.NAME;
-    if (range.isMeta()) {
-      targetSystemTable = RootTable.NAME;
-    }
+  private void mergeMetadataRecords(Manager manager, long tid) throws AccumuloException {
+    var fateStr = FateTxId.formatTid(tid);
+    KeyExtent range = data.getMergeExtent();
+    log.debug("{} Merging metadata for {}", fateStr, range);
+
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
     Set<TabletHostingGoal> goals = new HashSet<>();
+    MetadataTime maxLogicalTime = null;
+    List<ReferenceFile> dirs = new ArrayList<>();
+    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>();
+    TabletMetadata firstTabletMeta = null;
+    TabletMetadata lastTabletMeta = null;
 
-    AccumuloClient client = manager.getContext();
+    try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
+        .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
+        .fetch(OPID, LOCATION, HOSTING_GOAL, FILES, TIME, DIR, ECOMP, PREV_ROW).build()) {
 
-    KeyExtent stopExtent = KeyExtent.fromMetaRow(stop.toMetaRow());
-    KeyExtent previousKeyExtent = null;
-    KeyExtent lastExtent = null;
+      int tabletsSeen = 0;
 
-    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
-      long fileCount = 0;
-      // Make file entries in highest tablet
-      Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
-      // Update to set the range to include the highest tablet
-      scanner.setRange(new Range(MetadataSchema.TabletsSection.encodeRow(range.tableId(), start),
-          false, stopRow, true));
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      Mutation m = new Mutation(stopRow);
-      MetadataTime maxLogicalTime = null;
-      for (Map.Entry<Key,Value> entry : scanner) {
-        Key key = entry.getKey();
-        Value value = entry.getValue();
+      for (var tabletMeta : tabletsMetadata) {
+        Preconditions.checkState(lastTabletMeta == null,
+            "%s unexpectedly saw multiple last tablets %s %s", fateStr, tabletMeta.getExtent(),
+            range);
+        validateTablet(tabletMeta, fateStr, opid, data.tableId);
 
-        final KeyExtent keyExtent = KeyExtent.fromMetaRow(key.getRow());
-
-        // Keep track of the last Key Extent seen so we can use it to fence
-        // of RFiles when merging the metadata
-        if (lastExtent != null && !keyExtent.equals(lastExtent)) {
-          previousKeyExtent = lastExtent;
+        if (firstTabletMeta == null) {
+          firstTabletMeta = Objects.requireNonNull(tabletMeta);
         }
 
-        // Special case to handle the highest/stop tablet, which is where files are
-        // merged to. The existing merge code won't delete files from this tablet
-        // so we need to handle the deletes in this tablet when fencing files.
-        // We may be able to make this simpler in the future.
-        if (keyExtent.equals(stopExtent)) {
-          if (previousKeyExtent != null && key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        tabletsSeen++;
 
-            // Fence off existing files by the end row of the previous tablet and current tablet
-            final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
-            // The end row should be inclusive for the current tablet and the previous end row
-            // should be exclusive for the start row
-            Range fenced = new Range(previousKeyExtent.endRow(), false, keyExtent.endRow(), true);
+        // want to gather the following for all tablets, including the last tablet
+        maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, tabletMeta.getTime());
+        goals.add(tabletMeta.getHostingGoal());
 
-            // Clip range if exists
-            fenced = existing.hasRange() ? existing.getRange().clip(fenced) : fenced;
+        // determine if this is the last tablet in the merge range
+        boolean isLastTablet = (range.endRow() == null && tabletMeta.getExtent().endRow() == null)
+            || (range.endRow() != null && tabletMeta.getExtent().contains(range.endRow()));
+        if (isLastTablet) {
+          lastTabletMeta = tabletMeta;
+        } else {
+          // files for the last tablet need to specially handled, so only add other tablets files
+          // here
+          tabletMeta.getFilesMap().forEach((file, dfv) -> {
+            newFiles.put(fenceFile(tabletMeta.getExtent(), file), dfv);
+          });
 
-            final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-            // If the existing metadata does not match then we need to delete the old
-            // and replace with a new range
-            if (!existing.equals(newFile)) {
-              m.putDelete(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME,
-                  existing.getMetadataText());
-              m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
-            }
-
-            fileCount++;
-          }
-          // For the highest tablet we only care about the DataFileColumnFamily
-          continue;
-        }
-
-        // Handle metadata updates for all other tablets except the highest tablet
-        // Ranges are created for the files and then added to the highest tablet in
-        // the merge range. Deletes are handled later for the old files when the tablets
-        // are removed.
-        if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-          final StoredTabletFile existing = StoredTabletFile.of(key.getColumnQualifier());
-
-          // Fence off files by the previous tablet and current tablet that is being merged
-          // The end row should be inclusive for the current tablet and the previous end row should
-          // be exclusive for the start row.
-          Range fenced = new Range(previousKeyExtent != null ? previousKeyExtent.endRow() : null,
-              false, keyExtent.endRow(), true);
-
-          // Clip range with the tablet range if the range already exists
-          fenced = existing.hasRange() ? existing.getRange().clip(fenced) : fenced;
-
-          // Move the file and range to the last tablet
-          StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-          m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
-
-          fileCount++;
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
-            && firstPrevRowValue == null) {
-          log.debug("prevRow entry for lowest tablet is {}", value);
-          firstPrevRowValue = new Value(value);
-        } else if (MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
-          maxLogicalTime =
-              TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
-        } else if (MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-            .hasColumns(key)) {
-          var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
-          bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
-        } else if (MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
-          TabletHostingGoal thisGoal = TabletHostingGoalUtil.fromValue(value);
-          goals.add(thisGoal);
-        }
-
-        lastExtent = keyExtent;
-      }
-
-      // read the logical time from the last tablet in the merge range, it is not included in
-      // the loop above
-      scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
-      scanner.setRange(new Range(stopRow));
-      MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
-      MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.NAME);
-      Set<String> extCompIds = new HashSet<>();
-      for (Map.Entry<Key,Value> entry : scanner) {
-        if (MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN
-            .hasColumns(entry.getKey())) {
-          maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime,
-              MetadataTime.parse(entry.getValue().toString()));
-        } else if (MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.NAME
-            .equals(entry.getKey().getColumnFamily())) {
-          extCompIds.add(entry.getKey().getColumnQualifierData().toString());
-        } else if (MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN
-            .hasColumns(entry.getKey())) {
-          TabletHostingGoal thisGoal = TabletHostingGoalUtil.fromValue(entry.getValue());
-          goals.add(thisGoal);
+          // queue all tablets dirs except the last tablets to be added as GC candidates
+          dirs.add(new AllVolumesDirectory(range.tableId(), tabletMeta.getDirName()));
         }
       }
 
-      if (maxLogicalTime != null) {
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m,
-            new Value(maxLogicalTime.encode()));
-      }
-
-      // delete any entries for external compactions
-      extCompIds.forEach(ecid -> m
-          .putDelete(MetadataSchema.TabletsSection.ExternalCompactionColumnFamily.STR_NAME, ecid));
-
-      // Set the TabletHostingGoal for this tablet based on the goals of the other tablets in
-      // the merge range. Always takes priority over never.
-      TabletHostingGoal mergeHostingGoal = DeleteRows.getMergeHostingGoal(range, goals);
-      MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.put(m,
-          TabletHostingGoalUtil.toValue(mergeHostingGoal));
-
-      if (!m.getUpdates().isEmpty()) {
-        bw.addMutation(m);
-      }
-
-      bw.flush();
-
-      log.debug("Moved {} files to {}", fileCount, stop);
-
-      if (firstPrevRowValue == null) {
-        log.debug("tablet already merged");
+      if (tabletsSeen == 1) {
+        // The merge range overlaps a single tablet, so there is nothing to do. This could be
+        // because there was only a single tablet before merge started or this operation completed
+        // but the process died and now its running a 2nd time.
         return;
       }
 
-      stop = new KeyExtent(stop.tableId(), stop.endRow(),
-          MetadataSchema.TabletsSection.TabletColumnFamily.decodePrevEndRow(firstPrevRowValue));
-      Mutation updatePrevRow =
-          MetadataSchema.TabletsSection.TabletColumnFamily.createPrevRowMutation(stop);
-      log.debug("Setting the prevRow for last tablet: {}", stop);
-      bw.addMutation(updatePrevRow);
-      bw.flush();
-
-      DeleteRows.deleteTablets(info, scanRange, bw, client);
-
-    } catch (Exception ex) {
-      throw new AccumuloException(ex);
+      Preconditions.checkState(lastTabletMeta != null, "%s no tablets seen in range %s", opid,
+          lastTabletMeta);
     }
+
+    log.info("{} merge low tablet {}", fateStr, firstTabletMeta.getExtent());
+    log.info("{} merge high tablet {}", fateStr, lastTabletMeta.getExtent());
+
+    // Check if the last tablet was already updated, this could happen if a process died and this
+    // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
+    // only a subset of the other tablets were deleted. If the last tablet was never updated, then
+    // its prev row should be the greatest.
+    Comparator<Text> prevRowComparator = Comparator.nullsFirst(Text::compareTo);
+    if (prevRowComparator.compare(firstTabletMeta.getPrevEndRow(), lastTabletMeta.getPrevEndRow())
+        < 0) {
+      // update the last tablet
+      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+        var lastExtent = lastTabletMeta.getExtent();
+        var tabletMutator =
+            tabletsMutator.mutateTablet(lastExtent).requireOperation(opid).requireAbsentLocation();
+
+        // fence the files in the last tablet if needed
+        lastTabletMeta.getFilesMap().forEach((file, dfv) -> {
+          var fencedFile = fenceFile(lastExtent, file);
+          // If the existing metadata does not match then we need to delete the old
+          // and replace with a new range
+          if (!fencedFile.equals(file)) {
+            tabletMutator.deleteFile(file);
+            tabletMutator.putFile(fencedFile, dfv);
+          }
+        });
+
+        newFiles.forEach(tabletMutator::putFile);
+        tabletMutator.putTime(maxLogicalTime);
+        lastTabletMeta.getExternalCompactions().keySet()
+            .forEach(tabletMutator::deleteExternalCompaction);
+        tabletMutator.putHostingGoal(DeleteRows.getMergeHostingGoal(range, goals));
+        tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
+
+        // if the tablet no longer exists (because changed prev end row, then the update was
+        // successful.
+        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
+
+        verifyAccepted(tabletsMutator.process(), fateStr);
+      }
+    }
+
+    // add gc candidates for the tablet dirs that being merged away, once these dirs are empty the
+    // Accumulo GC will delete the dir
+    manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
+
+    // delete tablets
+    try (
+        var tabletsMetadata =
+            manager.getContext().getAmple().readTablets().forTable(range.tableId())
+                .overlapping(range.prevEndRow(), range.endRow()).saveKeyValues().build();
+        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+
+      for (var tabletMeta : tabletsMetadata) {
+        validateTablet(tabletMeta, fateStr, opid, data.tableId);
+
+        // do not delete the last tablet
+        if (Objects.equals(tabletMeta.getExtent().endRow(), lastTabletMeta.getExtent().endRow())) {
+          break;
+        }
+
+        var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
+            .requireOperation(opid).requireAbsentLocation();
+
+        tabletMeta.getKeyValues().keySet().forEach(key -> {
+          log.debug("{} deleting {}", fateStr, key);
+        });
+
+        tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
+        // if the tablet no longer exists, then it was successful
+        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
+      }
+
+      verifyAccepted(tabletsMutator.process(), fateStr);
+    }
+  }
+
+  static void validateTablet(TabletMetadata tabletMeta, String fateStr, TabletOperationId opid,
+      TableId expectedTableId) {
+    // its expected at this point that tablets have our operation id and no location, so lets
+    // check that
+    Preconditions.checkState(tabletMeta.getLocation() == null,
+        "%s merging tablet %s had location %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getLocation());
+    Preconditions.checkState(opid.equals(tabletMeta.getOperationId()),
+        "%s merging tablet %s had unexpected opid %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getOperationId());
+    Preconditions.checkState(expectedTableId.equals(tabletMeta.getTableId()),
+        "%s tablet %s has unexpected table id %s expected %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getTableId(), expectedTableId);
+  }
+
+  /**
+   * Fence a file to a tablets data range.
+   */
+  private static StoredTabletFile fenceFile(KeyExtent extent, StoredTabletFile file) {
+    Range fenced = extent.toDataRange();
+    // Clip range if exists
+    fenced = file.hasRange() ? file.getRange().clip(fenced) : fenced;
+    return StoredTabletFile.of(file.getPath(), fenced);
   }
 }

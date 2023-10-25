@@ -18,8 +18,13 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.Set;
+
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -305,6 +310,22 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteHostingRequested() {
     HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T deleteAll(Set<Key> keys) {
+    ByteSequence row = new ArrayByteSequence(mutation.getRow());
+    keys.forEach(key -> {
+      Preconditions.checkArgument(key.getRowData().equals(row), "Unexpected row %s %s", row, key);
+      Preconditions.checkArgument(key.getColumnVisibilityData().length() == 0,
+          "Non empty column visibility %s", key);
+    });
+
+    keys.forEach(key -> {
+      mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+    });
+
     return getThis();
   }
 

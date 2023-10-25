@@ -22,12 +22,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -375,6 +377,14 @@ public interface Ample {
     T putSelectedFiles(SelectedFiles selectedFiles);
 
     T deleteSelectedFiles();
+
+    /**
+     * Deletes all the columns in the keys.
+     *
+     * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
+     *         is not empty
+     */
+    T deleteAll(Set<Key> keys);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -434,7 +444,33 @@ public interface Ample {
   /**
    * Convenience interface for handling conditional mutations with a status of REJECTED.
    */
-  interface RejectionHandler extends Predicate<TabletMetadata> {}
+  interface RejectionHandler extends Predicate<TabletMetadata> {
+
+    /**
+     * @return true if the handler should be called when a tablet no longer exists
+     */
+    default boolean callWhenTabletDoesNotExists() {
+      return false;
+    }
+
+    /**
+     * @return a RejectionHandler that considers that case where the tablet no longer exists as
+     *         accepted.
+     */
+    static RejectionHandler acceptAbsentTablet() {
+      return new Ample.RejectionHandler() {
+        @Override
+        public boolean callWhenTabletDoesNotExists() {
+          return true;
+        }
+
+        @Override
+        public boolean test(TabletMetadata tabletMetadata) {
+          return tabletMetadata == null;
+        }
+      };
+    }
+  }
 
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
@@ -548,8 +584,9 @@ public interface Ample {
      *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
      *        return of {@link ConditionalTabletsMutator#process()}. The rejection handler is only
      *        called when a tablets metadata exists. If ample reads a tablet's metadata and the
-     *        tablet no longer exists, then ample will not call the rejectionHandler with null. It
-     *        will let the rejected status carry forward in this case.
+     *        tablet no longer exists, then ample will not call the rejectionHandler with null
+     *        (unless {@link RejectionHandler#callWhenTabletDoesNotExists()} returns true). It will
+     *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
   }
