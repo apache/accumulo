@@ -28,11 +28,11 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 /**
  * The interface for customizing major compactions.
  * <p>
- * Important: Compaction configurations should use one compaction scheme, either the new
- * compaction model introduced in 2.1 or a CompactionStrategy (see deprecation section).
- * Interactions between competing compaction schemes file selection and scheduling may provide
- * inconsistent results if both schemes are configured. The improvements with the new compaction
- * model should be preferred.
+ * Important: Compaction configurations should be migrated to use the new compaction model as soon
+ * as possible. Only one compaction model should be configured and used at a time. Interactions
+ * between competing compaction scheme's file selection and scheduling may provide inconsistent
+ * results if both schemes are configured. The legacy compaction scheme has been maintained to
+ * support migrations to the new model and will be removed in the next major release.
  * <p>
  * The tablet server has one thread to ask many tablets if they should compact. When the strategy
  * returns true, then tablet is added to the queue of tablets waiting for a compaction thread. Once
