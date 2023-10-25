@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -55,6 +56,8 @@ import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -73,10 +76,14 @@ import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -101,6 +108,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private static final String RESOURCE_GROUPS = "resourceGroups";
   private static final String TSERVER_GROUP_PREFIX = "serverGroups_";
   private static final String COMPACTION_HINTS_OPTIONS = "compactionHints";
+  private static final String VOLUME_REPLACEMENTS_OPTION = "replacements";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
 
@@ -161,6 +169,14 @@ public class TabletManagementIterator extends SkippingIterator {
     for (Entry<String,Set<TServerInstance>> entry : tServerResourceGroups.entrySet()) {
       cfg.addOption(TSERVER_GROUP_PREFIX + entry.getKey(), Joiner.on(",").join(entry.getValue()));
     }
+  }
+
+  private static void setVolumeReplacements(final IteratorSetting cfg,
+      List<Pair<Path,Path>> replacements) {
+    if (replacements == null || replacements.isEmpty()) {
+      return;
+    }
+    cfg.addOption(VOLUME_REPLACEMENTS_OPTION, GSON.get().toJson(replacements));
   }
 
   private static Map<TabletServerId,String> parseTServerResourceGroups(Map<String,String> options) {
@@ -229,6 +245,14 @@ public class TabletManagementIterator extends SkippingIterator {
       return Map.of();
     }
     Type tt = new TypeToken<Map<Long,Map<String,String>>>() {}.getType();
+    return GSON.get().fromJson(json, tt);
+  }
+
+  private static List<Pair<Path,Path>> parseVolumeReplacements(final String json) {
+    if (json == null) {
+      return List.of();
+    }
+    Type tt = new TypeToken<List<Pair<Path,Path>>>() {}.getType();
     return GSON.get().fromJson(json, tt);
   }
 
@@ -311,7 +335,8 @@ public class TabletManagementIterator extends SkippingIterator {
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
       TabletManagementIterator.setTServerResourceGroups(tabletChange,
           state.tServerResourceGroups());
-      setCompactionHints(tabletChange, state.getCompactionHints());
+      TabletManagementIterator.setCompactionHints(tabletChange, state.getCompactionHints());
+      TabletManagementIterator.setVolumeReplacements(tabletChange, state.getVolumeReplacements());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -324,6 +349,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private final Set<TableId> onlineTables = new HashSet<>();
   private final Map<TabletServerId,String> tserverResourceGroups = new HashMap<>();
   private final Set<KeyExtent> migrations = new HashSet<>();
+  private final List<Pair<Path,Path>> volumeReplacements = new ArrayList<>();
   private ManagerState managerState = ManagerState.NORMAL;
   private IteratorEnvironment env;
   private Key topKey = null;
@@ -338,6 +364,7 @@ public class TabletManagementIterator extends SkippingIterator {
     onlineTables.addAll(parseTableIDs(options.get(TABLES_OPTION)));
     tserverResourceGroups.putAll(parseTServerResourceGroups(options));
     migrations.addAll(parseMigrations(options.get(MIGRATIONS_OPTION)));
+    volumeReplacements.addAll(parseVolumeReplacements(options.get(VOLUME_REPLACEMENTS_OPTION)));
     String managerStateOptionValue = options.get(MANAGER_STATE_OPTION);
     try {
       managerState = ManagerState.valueOf(managerStateOptionValue);
@@ -388,6 +415,7 @@ public class TabletManagementIterator extends SkippingIterator {
       final TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
           TabletManagement.CONFIGURED_COLUMNS, false, true);
 
+      LOG.debug("TabletMetadata: {}", tm);
       actions.clear();
       Exception error = null;
       try {
@@ -427,6 +455,21 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
+  private boolean needsVolumeReplacement(final TabletMetadata tm) {
+    final List<LogEntry> logsToRemove = new ArrayList<>();
+    final List<LogEntry> logsToAdd = new ArrayList<>();
+    final List<StoredTabletFile> filesToRemove = new ArrayList<>();
+    final SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
+
+    VolumeUtil.volumeReplacementEvaluation(volumeReplacements, tm, logsToRemove, logsToAdd,
+        filesToRemove, filesToAdd);
+
+    if (logsToRemove.size() + filesToRemove.size() > 0) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
@@ -438,6 +481,10 @@ public class TabletManagementIterator extends SkippingIterator {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;
+    }
+
+    if (!volumeReplacements.isEmpty() && needsVolumeReplacement(tm)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 
     if (shouldReturnDueToLocation(tm, onlineTables, current)) {

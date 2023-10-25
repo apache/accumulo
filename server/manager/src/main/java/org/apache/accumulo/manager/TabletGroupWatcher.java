@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -58,16 +59,21 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -79,6 +85,7 @@ import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -88,6 +95,7 @@ import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -332,7 +340,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
       }
 
-      final TabletMetadata tm = mti.getTabletMetadata();
+      TabletMetadata tabletMeta = mti.getTabletMetadata();
 
       final String mtiError = mti.getErrorMessage();
       if (mtiError != null) {
@@ -340,19 +348,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // when trying to process this extent.
         LOG.warn(
             "Error on TabletServer trying to get Tablet management information for extent: {}. Error message: {}",
-            tm.getExtent(), mtiError);
+            tabletMeta.getExtent(), mtiError);
         this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
         continue;
       }
 
-      final Set<ManagementAction> actions = mti.getActions();
-      if (tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
+      if (tabletMeta.isFutureAndCurrentLocationSet()) {
+        throw new BadLocationStateException(tabletMeta.getExtent()
+            + " is both assigned and hosted, which should never happen: " + this,
+            tabletMeta.getExtent().toMetaRow());
       }
 
-      final TableId tableId = tm.getTableId();
+      final TableId tableId = tabletMeta.getTableId();
       // ignore entries for tables that do not exist in zookeeper
       if (manager.getTableManager().getTableState(tableId) == null) {
         continue;
@@ -368,11 +375,66 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
-      TabletGoalState goal = manager.getGoalState(tm);
-      TabletState state =
-          TabletState.compute(tm, currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
+      TabletGoalState goal = manager.getGoalState(tabletMeta);
+      TabletState state = TabletState.compute(tabletMeta, currentTServers.keySet(),
+          manager.tabletBalancer, resourceGroups);
 
-      final Location location = tm.getLocation();
+      final Set<ManagementAction> actions = mti.getActions();
+      final Location location = tabletMeta.getLocation();
+
+      if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+        LOG.debug("{} may need volume replacement", tabletMeta.getExtent());
+        final List<LogEntry> logsToRemove = new ArrayList<>();
+        final List<LogEntry> logsToAdd = new ArrayList<>();
+        final List<StoredTabletFile> filesToRemove = new ArrayList<>();
+        final SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
+
+        VolumeUtil.volumeReplacementEvaluation(manager.getVolumeReplacements(), tabletMeta,
+            logsToRemove, logsToAdd, filesToRemove, filesToAdd);
+
+        if (logsToRemove.size() + filesToRemove.size() > 0) {
+          // ELASTICITY_TODO: Is using the Manager lock here correct?
+          LOG.debug("Volume replacement needed for {}.", tabletMeta.getExtent());
+          MetadataTableUtil.updateTabletVolumes(tabletMeta.getExtent(), logsToRemove, logsToAdd,
+              filesToRemove, filesToAdd, manager.getManagerLock(), manager.getContext());
+          // We need to refresh the TabletMetadata
+          tabletMeta = manager.getContext().getAmple().readTablet(tabletMeta.getExtent(),
+              TabletManagement.CONFIGURED_COLUMNS.toArray(ColumnType.values()));
+          LOG.debug("Volume replacement completed for {}.", tabletMeta.getExtent());
+        } else {
+          LOG.debug("Volume replacement evaluation for {} returned no changes.",
+              tabletMeta.getExtent());
+        }
+        if (state == TabletState.HOSTED) {
+          try {
+            TServerConnection connection =
+                manager.tserverSet.getConnection(location.getServerInstance());
+            if (connection != null) {
+              List<TKeyExtent> unrefreshed = connection.refreshTablet(tabletMeta.getExtent());
+              if (unrefreshed != null && !unrefreshed.isEmpty()) {
+                // tablet was not refreshed, let's un-host it so that it
+                // can be re-hosted
+                goal = TabletGoalState.UNASSIGNED;
+              }
+            } else {
+              // We could not get connection to server, un-host the tablet
+              goal = TabletGoalState.UNASSIGNED;
+            }
+          } catch (TException e) {
+            // Error calling refreshTablet, let's un-host it so that it
+            // can be re-hosted.
+            goal = TabletGoalState.UNASSIGNED;
+          }
+        }
+        if (goal == TabletGoalState.UNASSIGNED) {
+          LOG.debug(
+              "Issue occurred telling Tablet Server to refresh tablet metadata for {} after volume replacement. Unhosting tablet.",
+              tabletMeta.getExtent());
+          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+        }
+      }
+      final TabletMetadata tm = tabletMeta;
+
       Location current = null;
       Location future = null;
       if (tm.hasCurrent()) {

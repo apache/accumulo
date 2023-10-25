@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,6 +26,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.fs.Path;
 
 public interface CurrentState {
 
@@ -43,6 +46,8 @@ public interface CurrentState {
   Set<KeyExtent> migrationsSnapshot();
 
   ManagerState getManagerState();
+
+  List<Pair<Path,Path>> getVolumeReplacements();
 
   // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only
   // retrieve information about compactions in that data level. Attempted this and a lot of

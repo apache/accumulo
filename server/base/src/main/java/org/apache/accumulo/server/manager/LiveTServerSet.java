@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy.
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -121,6 +123,17 @@ public class LiveTServerSet implements Watcher {
       try {
         client.unloadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             extent.toThrift(), goal, requestTime);
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
+
+    public List<TKeyExtent> refreshTablet(KeyExtent extent) throws TException {
+      TabletServerClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+      try {
+        return client.refreshTablets(TraceUtil.traceInfo(), context.rpcCreds(),
+            List.of(extent.toThrift()));
       } finally {
         ThriftUtil.returnClient(client, context);
       }

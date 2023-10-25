@@ -25,16 +25,13 @@ import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,43 +125,27 @@ public class VolumeUtil {
     }
   }
 
-  // ELASTICITY_TODO this method is no longer called because volume replacement needs to move from
-  // the tablet server to the manager. See #3625
-  /**
-   * This method does two things. First, it switches any volumes a tablet is using that are
-   * configured in instance.volumes.replacements. Second, if a tablet dir is no longer configured
-   * for use it chooses a new tablet directory.
-   */
-  public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
-      KeyExtent extent, TabletFiles tabletFiles) {
-    List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
-    if (replacements.isEmpty()) {
-      return tabletFiles;
+  public static void volumeReplacementEvaluation(final List<Pair<Path,Path>> replacements,
+      final TabletMetadata tm, final List<LogEntry> logsToRemove, final List<LogEntry> logsToAdd,
+      final List<StoredTabletFile> filesToRemove,
+      final SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd) {
+    if (replacements.isEmpty() || (tm.getFilesMap().isEmpty() && tm.getLogs().isEmpty())) {
+      return;
     }
-    log.trace("Using volume replacements: {}", replacements);
-
-    List<LogEntry> logsToRemove = new ArrayList<>();
-    List<LogEntry> logsToAdd = new ArrayList<>();
-
-    List<StoredTabletFile> filesToRemove = new ArrayList<>();
-    SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
-
-    TabletFiles ret = new TabletFiles();
-
-    for (LogEntry logEntry : tabletFiles.logEntries) {
+    log.debug("Using volume replacements: {}", replacements);
+    for (LogEntry logEntry : tm.getLogs()) {
+      log.debug("Evaluating walog {} for replacement.", logEntry);
       LogEntry switchedLogEntry = switchVolumes(logEntry, replacements);
       if (switchedLogEntry != null) {
         logsToRemove.add(logEntry);
         logsToAdd.add(switchedLogEntry);
-        ret.logEntries.add(switchedLogEntry);
-        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.filename,
+        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.filename,
             switchedLogEntry.filename);
-      } else {
-        ret.logEntries.add(logEntry);
       }
     }
 
-    for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : tm.getFilesMap().entrySet()) {
+      log.debug("Evaluating file {} for replacement.", entry.getKey().getPath());
       String metaPath = entry.getKey().getMetadata();
       Path switchedPath = switchVolume(entry.getKey().getPath(), FileType.TABLE, replacements);
       if (switchedPath != null) {
@@ -172,20 +153,9 @@ public class VolumeUtil {
         ReferencedTabletFile switchedFile =
             new ReferencedTabletFile(switchedPath, entry.getKey().getRange());
         filesToAdd.put(switchedFile, entry.getValue());
-        ret.datafiles.put(switchedFile.insert(), entry.getValue());
-        log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
-      } else {
-        ret.datafiles.put(entry.getKey(), entry.getValue());
+        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), metaPath, switchedPath);
       }
     }
-
-    if (logsToRemove.size() + filesToRemove.size() > 0) {
-      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
-          filesToAdd, zooLock, context);
-    }
-
-    // method this should return the exact strings that are in the metadata table
-    ret.dirName = tabletFiles.dirName;
-    return ret;
   }
+
 }
