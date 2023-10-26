@@ -21,7 +21,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -95,9 +94,88 @@ public class ScanCommand extends Command {
     }
   }
 
+  protected Options getScanCommandOptions(boolean includeShowFewOption) {
+    final Options o = new Options();
+
+    scanOptAuths = new Option("s", "scan-authorizations", true,
+        "scan authorizations (all user auths are used if this argument is not specified)");
+    optStartRowInclusive =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    optStartRowInclusive.setArgName("begin-row");
+    optStartRowExclusive = new Option("be", "begin-exclusive", false,
+        "make start row exclusive (by default it's inclusive)");
+    optStartRowExclusive.setArgName("begin-exclusive");
+    optEndRowExclusive = new Option("ee", "end-exclusive", false,
+        "make end row exclusive (by default it's inclusive)");
+    optEndRowExclusive.setArgName("end-exclusive");
+    scanOptRow = new Option("r", "row", true, "row to scan");
+    scanOptColumns = new Option("c", "columns", true,
+        "comma-separated columns. This option is mutually exclusive with cf and cq");
+    scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
+    scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
+    timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
+    showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
+    timeoutOption = new Option(null, "timeout", true,
+        "time before scan should fail if no data is returned. If no unit is given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s or 100ms");
+    outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
+    sampleOpt = new Option(null, "sample", false, "Show sample");
+    contextOpt = new Option("cc", "context", true, "name of the classloader context");
+    executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
+    scanServerOpt =
+        new Option("cl", "consistency-level", true, "set consistency level (experimental)");
+    profileOpt = new Option("pn", "profile", true, "iterator profile name");
+
+    scanOptAuths.setArgName("comma-separated-authorizations");
+    optStartRowInclusive.setArgName("begin-row");
+    scanOptRow.setArgName("row");
+    scanOptColumns
+        .setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
+    scanOptCf.setArgName("column-family");
+    scanOptCq.setArgName("column-qualifier");
+    showFewOpt.setRequired(false);
+    showFewOpt.setArgName("int");
+    timeoutOption.setArgName("timeout");
+    outputFileOpt.setArgName("file");
+    contextOpt.setArgName("context");
+    executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
+    sampleOpt.setArgName("sample");
+    scanServerOpt.setArgName("immediate|eventual");
+    profileOpt.setArgName("profile");
+
+    o.addOption(scanOptAuths);
+    o.addOption(scanOptRow);
+    o.addOption(optStartRowInclusive);
+    o.addOption(OptUtil.endRowOpt());
+    o.addOption(optStartRowExclusive);
+    o.addOption(optEndRowExclusive);
+    o.addOption(scanOptColumns);
+    o.addOption(scanOptCf);
+    o.addOption(scanOptCq);
+    o.addOption(timestampOpt);
+    o.addOption(disablePaginationOpt);
+    o.addOption(OptUtil.tableOpt("table to be scanned"));
+    o.addOption(timeoutOption);
+
+    if (includeShowFewOption) {
+      o.addOption(showFewOpt);
+    }
+
+    o.addOption(profileOpt);
+    o.addOption(sampleOpt);
+    o.addOption(contextOpt);
+    o.addOption(executionHintsOpt);
+    o.addOption(scanServerOpt);
+
+    return o;
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
+    boolean includeShowFewOption = getClass().getName().equals(ScanCommand.class.getName());
+    final Options scanCommandOptions = getScanCommandOptions(includeShowFewOption);
+
     try (final PrintFile printFile = getOutputFile(cl)) {
       final String tableName = OptUtil.getTableOpt(cl, shellState);
 
@@ -110,8 +188,7 @@ public class ScanCommand extends Command {
       if (cl.hasOption(contextOpt.getOpt())) {
         classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
       }
-      // handle first argument, if present, the authorizations list to
-      // scan with
+      // handle first argument, if present, the authorizations list to scan with
       final Authorizations auths = getAuths(cl, shellState);
       final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
       if (classLoaderContext != null) {
@@ -413,64 +490,15 @@ public class ScanCommand extends Command {
 
   @Override
   public Options getOptions() {
-    final Options o = new Options();
+    final Options o =
+        getScanCommandOptions(getClass().getName().equals(ScanCommand.class.getName()));
 
     scanOptAuths = new Option("s", "scan-authorizations", true,
         "scan authorizations (all user auths are used if this argument is not specified)");
-    optStartRowExclusive = new Option("be", "begin-exclusive", false,
-        "make start row exclusive (by default it's inclusive)");
-    optStartRowExclusive.setArgName("begin-exclusive");
-    optEndRowExclusive = new Option("ee", "end-exclusive", false,
-        "make end row exclusive (by default it's inclusive)");
-    optEndRowExclusive.setArgName("end-exclusive");
-    scanOptRow = new Option("r", "row", true, "row to scan");
-    scanOptColumns = new Option("c", "columns", true,
-        "comma-separated columns. This option is mutually exclusive with cf and cq");
-    scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
-    scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
-
-    timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
-    showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
-    formatterOpt =
-        new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
-    interpreterOpt = new Option("i", "interpreter", true,
-        "fully qualified name of the interpreter class to use");
-    formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true,
-        "fully qualified name of a class that is a formatter and interpreter");
-    timeoutOption = new Option(null, "timeout", true,
-        "time before scan should fail if no data is returned. If no unit is"
-            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s or 100ms");
-    outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
-    sampleOpt = new Option(null, "sample", false, "Show sample");
-    contextOpt = new Option("cc", "context", true, "name of the classloader context");
-    executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
-    scanServerOpt =
-        new Option("cl", "consistency-level", true, "set consistency level (experimental)");
-
-    scanOptAuths.setArgName("comma-separated-authorizations");
-    scanOptRow.setArgName("row");
-    scanOptColumns
-        .setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
-    scanOptCf.setArgName("column-family");
-    scanOptCq.setArgName("column-qualifier");
-    showFewOpt.setRequired(false);
-    showFewOpt.setArgName("int");
-    formatterOpt.setArgName("className");
-    timeoutOption.setArgName("timeout");
-    outputFileOpt.setArgName("file");
-    contextOpt.setArgName("context");
-    executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
-    scanServerOpt.setArgName("immediate|eventual");
-
-    profileOpt = new Option("pn", "profile", true, "iterator profile name");
-    profileOpt.setArgName("profile");
-
-    o.addOption(scanOptAuths);
-    o.addOption(scanOptRow);
     optStartRowInclusive =
         new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
-    optStartRowInclusive.setArgName("begin-row");
+
+    o.addOption(scanOptAuths);
     o.addOption(optStartRowInclusive);
     o.addOption(OptUtil.endRowOpt());
     o.addOption(optStartRowExclusive);
@@ -481,17 +509,14 @@ public class ScanCommand extends Command {
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
     o.addOption(OptUtil.tableOpt("table to be scanned"));
-    o.addOption(showFewOpt);
-    o.addOption(formatterOpt);
-    o.addOption(interpreterOpt);
-    o.addOption(formatterInterpeterOpt);
     o.addOption(timeoutOption);
-    if (Arrays.asList(ScanCommand.class.getName(), GrepCommand.class.getName(),
-        EGrepCommand.class.getName()).contains(this.getClass().getName())) {
-      // supported subclasses must handle the output file option properly
-      // only add this option to commands which handle it correctly
-      o.addOption(outputFileOpt);
+
+    if (getClass().getName().equals(ScanCommand.class.getName())) {
+      showFewOpt.setRequired(false);
+      showFewOpt.setArgName("int");
+      o.addOption(showFewOpt);
     }
+
     o.addOption(profileOpt);
     o.addOption(sampleOpt);
     o.addOption(contextOpt);
