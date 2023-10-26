@@ -114,6 +114,17 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
+    public boolean isHostingTablets(TableId tid) throws TException {
+      TabletServerClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+      try {
+        return !client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tid.canonical())
+            .isEmpty();
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
+
     public void unloadTablet(ServiceLock lock, KeyExtent extent, TUnloadTabletGoal goal,
         long requestTime) throws TException {
       TabletManagementClientService.Client client =

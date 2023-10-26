@@ -368,7 +368,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
-      TabletGoalState goal = manager.getGoalState(tm);
+      TabletGoalState goal = manager.getGoalState(tm, this);
       TabletState state =
           TabletState.compute(tm, currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
@@ -405,6 +405,60 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
             state, goal, actions);
+      }
+
+      // If the current tablet is hosted and the TabletServer that it's hosted on is being shut
+      // down, then we need to unhost tablets in order. We can't unassign the root tablet before
+      // moving any metadata table tablets that are on this host. We can't unassign metadata
+      // tablets before moving any user table tablets that are on this host.
+      if (current != null && state == TabletState.HOSTED
+          && (goal == TabletGoalState.SUSPENDED || goal == TabletGoalState.UNASSIGNED)
+          && manager.shutdownServers().contains(current.getServerInstance())) {
+
+        DataLevel thisLevel = store.getLevel();
+        switch (thisLevel) {
+          case ROOT: {
+            TServerConnection connection = manager.getConnection(current.getServerInstance());
+            try {
+              if (connection != null && connection.isHostingTablets(MetadataTable.ID)) {
+                LOG.debug(
+                    "Not setting root tablet state to {} as metadata tablets still on same host: {}",
+                    goal, current);
+                goal = TabletGoalState.HOSTED;
+              }
+            } catch (TException e) {
+              LOG.error(
+                  "Error trying to determine if {} is hosting metadata table tablets, proceeding as if TabletServer is down.",
+                  current);
+            }
+          }
+            break;
+          case METADATA: {
+            TServerConnection connection = manager.getConnection(current.getServerInstance());
+            if (connection != null) {
+              try {
+                boolean userTablesExistOnHost = connection.getTableMap(false).getTableMap().keySet()
+                    .stream().map(s -> TableId.of(s))
+                    .anyMatch(tid -> RootTable.ID != tid && MetadataTable.ID != tid);
+                if (userTablesExistOnHost) {
+                  LOG.debug(
+                      "Not setting metadata tablet state to {} as user table tablets still on same host: {}",
+                      goal, current);
+                  goal = TabletGoalState.HOSTED;
+                }
+              } catch (TException e) {
+                LOG.error(
+                    "Error trying to get tableMap from {}, proceeding as if TabletServer is down.",
+                    current);
+              }
+            }
+          }
+            break;
+          case USER:
+          default:
+            // For user tables, continue to unhost
+            break;
+        }
       }
 
       // if we are shutting down all the tabletservers, we have to do it in order

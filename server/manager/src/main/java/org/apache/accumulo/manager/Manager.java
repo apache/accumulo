@@ -615,7 +615,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getGoalState(TabletMetadata tm) {
+  TabletGoalState getGoalState(TabletMetadata tm, TabletGroupWatcher tgw) {
     KeyExtent extent = tm.getExtent();
     // Shutting down?
     TabletGoalState state = getSystemGoalState(tm);
@@ -632,7 +632,11 @@ public class Manager extends AbstractServer
       }
 
       if (tm.hasCurrent() && serversToShutdown.contains(tm.getLocation().getServerInstance())) {
-        return TabletGoalState.SUSPENDED;
+        if (tgw.canSuspendTablets()) {
+          return TabletGoalState.SUSPENDED;
+        } else {
+          return TabletGoalState.UNASSIGNED;
+        }
       }
 
       // taking table offline?
