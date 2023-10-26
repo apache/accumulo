@@ -372,7 +372,7 @@ public class Tablet extends TabletBase {
       try (Scope scope = span2.makeCurrent()) {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
-            flushId);
+            flushId, mincReason);
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
         throw e;
@@ -1297,8 +1297,8 @@ public class Tablet extends TabletBase {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
-      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
-      long flushId) {
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId,
+      MinorCompactionReason mincReason) {
 
     Preconditions.checkState(refreshLock.isHeldByCurrentThread());
 
@@ -1321,8 +1321,12 @@ public class Tablet extends TabletBase {
     }
 
     try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-      var tablet = tabletsMutator.mutateTablet(extent)
-          .requireLocation(Location.current(tabletServer.getTabletSession()))
+
+      var expectedLocation = mincReason == MinorCompactionReason.RECOVERY
+          ? Location.future(tabletServer.getTabletSession())
+          : Location.current(tabletServer.getTabletSession());
+
+      var tablet = tabletsMutator.mutateTablet(extent).requireLocation(expectedLocation)
           .requireSame(lastTabletMetadata, ColumnType.TIME);
 
       Optional<StoredTabletFile> newFile = Optional.empty();
@@ -1350,11 +1354,14 @@ public class Tablet extends TabletBase {
       // between the write and check. Second, some flushes do not produce a file.
       tablet.submit(tabletMetadata -> tabletMetadata.getTime().equals(newTime));
 
-      if (tabletsMutator.process().get(extent).getStatus()
-          != Ample.ConditionalResult.Status.ACCEPTED) {
+      var result = tabletsMutator.process().get(extent);
+      if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+
+        log.error("Metadata for failed tablet file update : {}", result.readMetadata());
+
         // Include the things that could have caused the write to fail.
         throw new IllegalStateException("Unable to write minor compaction.  " + extent + " "
-            + tabletServer.getTabletSession() + " " + expectedTime);
+            + expectedLocation + " " + expectedTime);
       }
 
       return newFile;
@@ -1426,7 +1433,7 @@ public class Tablet extends TabletBase {
 
   void bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
       ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
-      long flushId) {
+      long flushId, MinorCompactionReason mincReason) {
     Optional<StoredTabletFile> newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
@@ -1481,7 +1488,7 @@ public class Tablet extends TabletBase {
         // before the following metadata write is made
 
         newFile = updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
-            unusedWalLogs, flushId);
+            unusedWalLogs, flushId, mincReason);
 
         finishClearingUnusedLogs();
       } finally {
@@ -1532,7 +1539,7 @@ public class Tablet extends TabletBase {
 
       Preconditions.checkState(tabletMetadata != null, "Tablet no longer exits %s", getExtent());
       Preconditions.checkState(
-          Location.current(tabletServer.getTabletSession()).equals(tabletMetadata.getLocation()),
+          tabletServer.getTabletSession().equals(tabletMetadata.getLocation().getServerInstance()),
           "Tablet %s location %s is not this tserver %s", getExtent(), tabletMetadata.getLocation(),
           tabletServer.getTabletSession());
 

@@ -121,4 +121,9 @@ public final class MetadataTime implements Comparable<MetadataTime> {
           "Cannot compare different time types: " + this + " and " + mtime);
     }
   }
+
+  @Override
+  public String toString() {
+    return encode();
+  }
 }
