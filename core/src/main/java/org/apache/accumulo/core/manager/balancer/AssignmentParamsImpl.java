@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.slf4j.LoggerFactory;
 
 public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters {
   private final SortedMap<TabletServerId,TServerStatus> currentStatus;
@@ -56,7 +57,18 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
     Map<String,Set<TabletServerId>> tserverGroups = new HashMap<>();
     currentTServerGrouping.forEach((k, v) -> {
       Set<TabletServerId> servers = new HashSet<>();
-      v.forEach(tsi -> servers.add(TabletServerIdImpl.fromThrift(tsi)));
+      v.forEach(tsi -> {
+        var convertedTsi = TabletServerIdImpl.fromThrift(tsi);
+        // The set of current tserver and tservers groupings are not always in sync, lets force
+        // consistency so that the balancer does not have to deal with inconsistent sets
+        if (currentStatusNew.containsKey(convertedTsi)) {
+          servers.add(TabletServerIdImpl.fromThrift(tsi));
+        } else {
+          LoggerFactory.getLogger(AssignmentParamsImpl.class).debug(
+              "Ignoring tserver {} that is in grouped tservers but not in all tservers",
+              convertedTsi);
+        }
+      });
       tserverGroups.put(k, servers);
     });
 
