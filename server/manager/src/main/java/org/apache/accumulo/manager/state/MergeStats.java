@@ -52,6 +52,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -141,6 +144,9 @@ public class MergeStats {
 
   private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState manager)
       throws TableNotFoundException, IOException {
+    // The only expected state when this method is called is WAITING_FOR_OFFLINE
+    verifyState(info, MergeState.WAITING_FOR_OFFLINE);
+
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
@@ -168,6 +174,12 @@ public class MergeStats {
       log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
       if (!tls.extent.tableId().equals(tableId)) {
         break;
+      }
+
+      // Verify that no WALs exist
+      if (!verifyWalogs(tls)) {
+        log.debug("failing consistency: {} has walogs {}", tls.extent, tls.walogs.size());
+        return false;
       }
 
       if (prevExtent == null) {
@@ -202,6 +214,17 @@ public class MergeStats {
         verify.total);
 
     return unassigned == verify.unassigned && unassigned == verify.total;
+  }
+
+  @VisibleForTesting
+  void verifyState(MergeInfo info, MergeState expectedState) {
+    Preconditions.checkState(info.getState() == expectedState, "Unexpected merge state %s",
+        info.getState());
+  }
+
+  @VisibleForTesting
+  boolean verifyWalogs(TabletLocationState tls) {
+    return tls.walogs.isEmpty();
   }
 
   public static void main(String[] args) throws Exception {

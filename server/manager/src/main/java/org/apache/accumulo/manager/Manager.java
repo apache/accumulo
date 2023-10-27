@@ -650,6 +650,12 @@ public class Manager extends AbstractServer
             case STARTED:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
+              // If we have walogs we need to be HOSTED to recover
+              if (!tls.walogs.isEmpty()) {
+                return TabletGoalState.HOSTED;
+              } else {
+                return TabletGoalState.UNASSIGNED;
+              }
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }

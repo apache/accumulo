@@ -76,6 +76,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -739,6 +740,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
       Set<ReferenceFile> datafilesAndDirs = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
@@ -751,9 +754,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           metadataTime = MetadataTime.parse(entry.getValue().toString());
-        } else if (key.compareColumnFamily(CurrentLocationColumnFamily.NAME) == 0) {
+        } else if (isTabletAssigned(key)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
+          // Verify that Tablet has no WALs
+        } else if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
+          throw new IllegalStateException(
+              "Tablet " + key.getRow() + " has walogs during a delete!");
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           var allVolumesDirectory =
               new AllVolumesDirectory(extent.tableId(), entry.getValue().toString());
@@ -829,12 +836,25 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
       MetadataTime maxLogicalTime = null;
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         Value value = entry.getValue();
+
+        // Verify that Tablet is offline
+        if (isTabletAssigned(key)) {
+          throw new IllegalStateException(
+              "Tablet " + key.getRow() + " is assigned during a merge!");
+          // Verify that Tablet has no WALs
+        } else if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
+          throw new IllegalStateException("Tablet " + key.getRow() + " has walogs during a merge!");
+        }
 
         final KeyExtent keyExtent = KeyExtent.fromMetaRow(key.getRow());
 
@@ -1209,6 +1229,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     bw.flush();
+  }
+
+  private boolean isTabletAssigned(Key key) {
+    return key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)
+        || key.getColumnFamily().equals(FutureLocationColumnFamily.NAME);
   }
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
