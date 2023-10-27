@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.Text;
@@ -373,16 +374,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
+    public LiveTServerSet.LiveTServersSnapshot tserversSnapshot() {
+      return new LiveTServerSet.LiveTServersSnapshot(onlineTabletServers(), new HashMap<>());
+    }
+
+    @Override
     public Set<TableId> onlineTables() {
       Set<TableId> onlineTables = context.getTableIdToNameMap().keySet();
       this.onlineTables =
           Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
       return this.onlineTables;
-    }
-
-    @Override
-    public Map<String,Set<TServerInstance>> tServerResourceGroups() {
-      return new HashMap<>();
     }
 
     @Override

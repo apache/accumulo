@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,7 @@ import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.ClosableIterator;
@@ -173,10 +175,30 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers,
         Map<String,Set<TServerInstance>> grouping) {
-      var destinationsMod = new TreeMap<>(curTServers);
-      destinationsMod.keySet().removeAll(m.serversToShutdown);
-      this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
-      this.currentTServerGrouping = grouping;
+      synchronized (m.serversToShutdown) {
+        var destinationsMod = new TreeMap<>(curTServers);
+        if (!m.serversToShutdown.isEmpty()) {
+          // Remove servers that are in the process of shutting down from the lists of tablet
+          // servers.
+          destinationsMod.keySet().removeAll(m.serversToShutdown);
+          HashMap<String,Set<TServerInstance>> groupingCopy = new HashMap<>();
+          grouping.forEach((group, groupsServers) -> {
+            if (Collections.disjoint(groupsServers, m.serversToShutdown)) {
+              groupingCopy.put(group, groupsServers);
+            } else {
+              var serversCopy = new HashSet<>(groupsServers);
+              serversCopy.removeAll(m.serversToShutdown);
+              groupingCopy.put(group, Collections.unmodifiableSet(serversCopy));
+            }
+          });
+
+          this.currentTServerGrouping = Collections.unmodifiableMap(groupingCopy);
+        } else {
+          this.currentTServerGrouping = grouping;
+        }
+
+        this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
+      }
     }
 
     public void reset() {
@@ -218,15 +240,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               continue;
             }
 
-            var currentTservers = getCurrentTservers();
-            if (currentTservers.isEmpty()) {
+            LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
+            var tserversStatus = getTserversStatus(tservers.tservers);
+
+            if (tserversStatus.isEmpty()) {
               setNeedsFullScan();
               continue;
             }
 
             try (var iter = store.iterator(ranges)) {
               long t1 = System.currentTimeMillis();
-              manageTablets(iter, currentTservers, false);
+              manageTablets(iter, tserversStatus, tservers.tserverGroups, false);
               long t2 = System.currentTimeMillis();
               Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
                   store.name(), (t2 - t1) / 1000., ranges.size()));
@@ -296,13 +320,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
-      SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan)
+      SortedMap<TServerInstance,TabletServerStatus> tseversStatus,
+      Map<String,Set<TServerInstance>> tserverGroups, boolean isFullScan)
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
     TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
-        manager.serversToShutdown.equals(currentTServers.keySet());
+        manager.serversToShutdown.equals(tseversStatus.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
       // If we are shutting down all of the TabletServers, then don't process any events
       // from the EventCoordinator.
@@ -312,16 +337,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     int unloaded = 0;
 
-    final Map<String,Set<TServerInstance>> currentTServerGrouping =
-        manager.tserverSet.getCurrentServersGroups();
-
-    TabletLists tLists = new TabletLists(manager, currentTServers, currentTServerGrouping);
+    TabletLists tLists = new TabletLists(manager, tseversStatus, tserverGroups);
 
     CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
         new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
 
     final Map<TabletServerId,String> resourceGroups = new HashMap<>();
-    manager.tServerResourceGroups().forEach((group, tservers) -> {
+    tserverGroups.forEach((group, tservers) -> {
       tservers.stream().map(TabletServerIdImpl::new)
           .forEach(tabletServerId -> resourceGroups.put(tabletServerId, group));
     });
@@ -360,7 +382,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // Don't overwhelm the tablet servers with work
       if (tLists.unassigned.size() + unloaded
-          > Manager.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
+          > Manager.MAX_TSERVER_WORK_CHUNK * tseversStatus.size()) {
         flushChanges(tLists);
         tLists.reset();
         unloaded = 0;
@@ -370,7 +392,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       TabletGoalState goal = manager.getGoalState(tm);
       TabletState state =
-          TabletState.compute(tm, currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
+          TabletState.compute(tm, tseversStatus.keySet(), manager.tabletBalancer, resourceGroups);
 
       final Location location = tm.getLocation();
       Location current = null;
@@ -402,7 +424,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (Manager.log.isTraceEnabled()) {
         Manager.log.trace(
             "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{}",
-            store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
+            store.name(), manager.serversToShutdown.equals(tseversStatus.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
             state, goal, actions);
       }
@@ -541,10 +563,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return tableMgmtStats;
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> getCurrentTservers() {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      getTserversStatus(Set<TServerInstance> currentServers) {
     // Get the current status for the current list of tservers
     final SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
-    for (TServerInstance entry : manager.tserverSet.getCurrentServers()) {
+    for (TServerInstance entry : currentServers) {
       currentTServers.put(entry, manager.tserverStatus.get(entry));
     }
     return currentTServers;
@@ -563,11 +586,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final long waitTimeBetweenScans = manager.getConfiguration()
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
-      var currentTServers = getCurrentTservers();
+      LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
+      var tserversStatus = getTserversStatus(tservers.tservers);
 
       ClosableIterator<TabletManagement> iter = null;
       try {
-        if (currentTServers.isEmpty()) {
+        if (tserversStatus.isEmpty()) {
           eventHandler.waitForFullScan(waitTimeBetweenScans);
           synchronized (this) {
             lastScanServers = Collections.emptySortedSet();
@@ -584,7 +608,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         eventHandler.clearNeedsFullScan();
 
         iter = store.iterator();
-        var tabletMgmtStats = manageTablets(iter, currentTServers, true);
+        var tabletMgmtStats = manageTablets(iter, tserversStatus, tservers.tserverGroups, true);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
@@ -607,9 +631,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         synchronized (this) {
-          lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
+          lastScanServers = ImmutableSortedSet.copyOf(tserversStatus.keySet());
         }
-        if (manager.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
+        if (manager.tserverSet.getCurrentServers().equals(tserversStatus.keySet())) {
           Manager.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
               waitTimeBetweenScans / 1000.));
           eventHandler.waitForFullScan(waitTimeBetweenScans);

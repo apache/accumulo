@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -363,14 +364,29 @@ public class LiveTServerSet implements Watcher {
     return tServerInfo.connection;
   }
 
-  public synchronized Set<TServerInstance> getCurrentServers() {
-    return new HashSet<>(currentInstances.keySet());
+  public static class LiveTServersSnapshot {
+    public final Set<TServerInstance> tservers;
+    public final Map<String,Set<TServerInstance>> tserverGroups;
+
+    public LiveTServersSnapshot(Set<TServerInstance> currentServers,
+        Map<String,Set<TServerInstance>> serverGroups) {
+      this.tservers = Set.copyOf(currentServers);
+      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
+      this.tserverGroups = Collections.unmodifiableMap(copy);
+
+      // TODO could check consistency of tservers vs tserverGroups to ensure that every all tservers
+      // in one exists in the other
+    }
   }
 
-  public synchronized Map<String,Set<TServerInstance>> getCurrentServersGroups() {
-    Map<String,Set<TServerInstance>> copy = new HashMap<>();
-    currentGroups.forEach((k, v) -> copy.put(k, new HashSet<>(v)));
-    return copy;
+  public synchronized LiveTServersSnapshot getSnapshot() {
+    // TODO could precompute immutable snapshot on change instead of each time this is requested.
+    return new LiveTServersSnapshot(currentInstances.keySet(), currentGroups);
+  }
+
+  public synchronized Set<TServerInstance> getCurrentServers() {
+    return new HashSet<>(currentInstances.keySet());
   }
 
   public synchronized int size() {
