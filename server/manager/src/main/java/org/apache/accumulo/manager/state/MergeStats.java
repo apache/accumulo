@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -203,6 +204,10 @@ public class MergeStats {
 
   private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState manager)
       throws TableNotFoundException, IOException {
+
+    // The only expected state when this method is called is WAITING_FOR_OFFLINE
+    verifyState(info, MergeState.WAITING_FOR_OFFLINE);
+
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
@@ -230,13 +235,6 @@ public class MergeStats {
       log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
       if (!tls.extent.tableId().equals(tableId)) {
         break;
-      }
-
-      // verifyMergeConsistency() is currently only called in TGW when state is WAITING_FOR_OFFLINE
-      // but add this extra check to prevent future issues if something gets changed by mistake
-      if (!verifyState(info)) {
-        log.debug("failing consistency: {} is wrong state {}", tls.extent, info.getState());
-        return false;
       }
 
       // Verify that no WALs exist
@@ -282,11 +280,9 @@ public class MergeStats {
   }
 
   @VisibleForTesting
-  boolean verifyState(MergeInfo info) {
-    if (info.getState() != MergeState.WAITING_FOR_OFFLINE) {
-      return false;
-    }
-    return true;
+  void verifyState(MergeInfo info, MergeState expectedState) {
+    Preconditions.checkState(info.getState() == expectedState, "Unexpected merge state %",
+        info.getState());
   }
 
   @VisibleForTesting

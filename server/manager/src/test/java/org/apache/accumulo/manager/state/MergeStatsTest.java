@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.state;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
@@ -42,12 +42,15 @@ public class MergeStatsTest {
     KeyExtent keyExtent = new KeyExtent(TableId.of("table"), new Text("end"), new Text("begin"));
     MergeInfo mergeInfo = new MergeInfo(keyExtent, Operation.MERGE);
     MergeStats stats = new MergeStats(mergeInfo);
+    mergeInfo.setState(MergeState.WAITING_FOR_OFFLINE);
 
-    // Verify only WAITING_FOR_OFFLINE state returns true and is valid
-    for (MergeState value : MergeState.values()) {
-      mergeInfo.setState(value);
-      assertEquals(value == MergeState.WAITING_FOR_OFFLINE, stats.verifyState(mergeInfo));
-    }
+    // Verify WAITING_FOR_OFFLINE does not throw an exception
+    stats.verifyState(mergeInfo, MergeState.WAITING_FOR_OFFLINE);
+
+    // State is wrong so should throw exception
+    mergeInfo.setState(MergeState.WAITING_FOR_CHOPPED);
+    assertThrows(IllegalStateException.class,
+        () -> stats.verifyState(mergeInfo, MergeState.WAITING_FOR_OFFLINE));
   }
 
   @Test
@@ -64,4 +67,5 @@ public class MergeStatsTest {
       throws BadLocationStateException {
     return new TabletLocationState(keyExtent, null, null, null, null, walogs, true);
   }
+
 }

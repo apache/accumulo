@@ -699,6 +699,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
       Set<ReferenceFile> datafilesAndDirs = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
@@ -711,9 +713,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           metadataTime = MetadataTime.parse(entry.getValue().toString());
-        } else if (key.compareColumnFamily(CurrentLocationColumnFamily.NAME) == 0) {
+        } else if (isTabletAssigned(key)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
+          // Verify that Tablet has no WALs
+        } else if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
+          throw new IllegalStateException(
+              "Tablet " + key.getRow() + " has walogs during a delete!");
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           var allVolumesDirectory =
               new AllVolumesDirectory(extent.tableId(), entry.getValue().toString());
@@ -787,6 +793,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
       MetadataTime maxLogicalTime = null;
@@ -795,7 +802,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Value value = entry.getValue();
 
         // Verify that Tablet is offline
-        if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
+        if (isTabletAssigned(key)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
           // Verify that Tablet has no WALs
@@ -904,6 +911,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     bw.flush();
+  }
+
+  private boolean isTabletAssigned(Key key) {
+    return key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)
+        || key.getColumnFamily().equals(FutureLocationColumnFamily.NAME);
   }
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
