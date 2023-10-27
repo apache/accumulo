@@ -291,10 +291,7 @@ public class MergeStats {
 
   @VisibleForTesting
   boolean verifyWalogs(TabletLocationState tls) {
-    if (!tls.walogs.isEmpty()) {
-      return false;
-    }
-    return true;
+    return tls.walogs.isEmpty();
   }
 
   public static void main(String[] args) throws Exception {
