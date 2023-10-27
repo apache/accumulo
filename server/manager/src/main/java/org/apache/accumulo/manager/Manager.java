@@ -822,9 +822,9 @@ public class Manager extends AbstractServer
     private long updateStatus() {
       var tseversSnapshot = tserverSet.getSnapshot();
       TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
-      tserverStatus = gatherTableInformation(tseversSnapshot.tservers, temp);
+      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers(), temp);
       tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
-      tServerGroupingForBalancer = tseversSnapshot.tserverGroups;
+      tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -838,7 +838,7 @@ public class Manager extends AbstractServer
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
         for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.tservers)) {
+          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.getTservers())) {
             log.debug("not balancing just yet, as collection of live tservers is in flux");
             return DEFAULT_WAIT_FOR_WATCHER;
           }
@@ -1606,7 +1606,7 @@ public class Manager extends AbstractServer
 
   @Override
   public Set<TServerInstance> onlineTabletServers() {
-    return tserverSet.getSnapshot().tservers;
+    return tserverSet.getSnapshot().getTservers();
   }
 
   @Override

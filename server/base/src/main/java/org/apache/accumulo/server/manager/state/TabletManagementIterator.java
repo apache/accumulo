@@ -306,13 +306,13 @@ public class TabletManagementIterator extends SkippingIterator {
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
     if (state != null) {
       LiveTServersSnapshot tserversSnapshot = state.tserversSnapshot();
-      TabletManagementIterator.setCurrentServers(tabletChange, tserversSnapshot.tservers);
+      TabletManagementIterator.setCurrentServers(tabletChange, tserversSnapshot.getTservers());
       TabletManagementIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletManagementIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
       TabletManagementIterator.setTServerResourceGroups(tabletChange,
-          tserversSnapshot.tserverGroups);
+          tserversSnapshot.getTserverGroups());
       setCompactionHints(tabletChange, state.getCompactionHints());
     }
     scanner.addScanIterator(tabletChange);

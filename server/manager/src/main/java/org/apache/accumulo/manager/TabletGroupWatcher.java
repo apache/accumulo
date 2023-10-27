@@ -241,7 +241,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
-            var tserversStatus = getTserversStatus(tservers.tservers);
+            var tserversStatus = getTserversStatus(tservers.getTservers());
 
             if (tserversStatus.isEmpty()) {
               setNeedsFullScan();
@@ -250,7 +250,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
             try (var iter = store.iterator(ranges)) {
               long t1 = System.currentTimeMillis();
-              manageTablets(iter, tserversStatus, tservers.tserverGroups, false);
+              manageTablets(iter, tserversStatus, tservers.getTserverGroups(), false);
               long t2 = System.currentTimeMillis();
               Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
                   store.name(), (t2 - t1) / 1000., ranges.size()));
@@ -587,7 +587,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
       LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
-      var tserversStatus = getTserversStatus(tservers.tservers);
+      var tserversStatus = getTserversStatus(tservers.getTservers());
 
       ClosableIterator<TabletManagement> iter = null;
       try {
@@ -608,7 +608,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         eventHandler.clearNeedsFullScan();
 
         iter = store.iterator();
-        var tabletMgmtStats = manageTablets(iter, tserversStatus, tservers.tserverGroups, true);
+        var tabletMgmtStats =
+            manageTablets(iter, tserversStatus, tservers.getTserverGroups(), true);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
