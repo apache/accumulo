@@ -52,6 +52,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -230,8 +232,16 @@ public class MergeStats {
         break;
       }
 
-      if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
-        log.debug("failing consistency: needs to be chopped {}", tls.extent);
+      // verifyMergeConsistency() is currently only called in TGW when state is WAITING_FOR_OFFLINE
+      // but add this extra check to prevent future issues if something gets changed by mistake
+      if (!verifyState(info)) {
+        log.debug("failing consistency: {} is wrong state {}", tls.extent, info.getState());
+        return false;
+      }
+
+      // Verify that no WALs exist
+      if (!verifyWalogs(tls)) {
+        log.debug("failing consistency: {} has walogs {}", tls.extent, tls.walogs.size());
         return false;
       }
 
@@ -269,6 +279,22 @@ public class MergeStats {
 
     return chopped == verify.chopped && unassigned == verify.unassigned
         && unassigned == verify.total;
+  }
+
+  @VisibleForTesting
+  boolean verifyState(MergeInfo info) {
+    if (info.getState() != MergeState.WAITING_FOR_OFFLINE) {
+      return false;
+    }
+    return true;
+  }
+
+  @VisibleForTesting
+  boolean verifyWalogs(TabletLocationState tls) {
+    if (!tls.walogs.isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   public static void main(String[] args) throws Exception {
