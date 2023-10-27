@@ -206,7 +206,8 @@ public class LiveTServerSet implements Watcher {
     }
   }
 
-  // The set of active tservers with locks, indexed by their name in zookeeper
+  // The set of active tservers with locks, indexed by their name in zookeeper. When the contents of
+  // this map are modified, tServersSnapshot should be set to null.
   private final Map<String,TServerInfo> current = new HashMap<>();
 
   private LiveTServersSnapshot tServersSnapshot = null;
