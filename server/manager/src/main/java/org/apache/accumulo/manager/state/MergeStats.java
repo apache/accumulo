@@ -281,7 +281,7 @@ public class MergeStats {
 
   @VisibleForTesting
   void verifyState(MergeInfo info, MergeState expectedState) {
-    Preconditions.checkState(info.getState() == expectedState, "Unexpected merge state %",
+    Preconditions.checkState(info.getState() == expectedState, "Unexpected merge state %s",
         info.getState());
   }
 
