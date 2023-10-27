@@ -241,16 +241,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
-            var tserversStatus = getTserversStatus(tservers.getTservers());
+            var currentTservers = getTserversStatus(tservers.getTservers());
 
-            if (tserversStatus.isEmpty()) {
+            if (currentTservers.isEmpty()) {
               setNeedsFullScan();
               continue;
             }
 
             try (var iter = store.iterator(ranges)) {
               long t1 = System.currentTimeMillis();
-              manageTablets(iter, tserversStatus, tservers.getTserverGroups(), false);
+              manageTablets(iter, currentTservers, tservers.getTserverGroups(), false);
               long t2 = System.currentTimeMillis();
               Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
                   store.name(), (t2 - t1) / 1000., ranges.size()));
@@ -320,14 +320,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
-      SortedMap<TServerInstance,TabletServerStatus> tseversStatus,
+      SortedMap<TServerInstance,TabletServerStatus> currentTServers,
       Map<String,Set<TServerInstance>> tserverGroups, boolean isFullScan)
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
     TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
-        manager.serversToShutdown.equals(tseversStatus.keySet());
+        manager.serversToShutdown.equals(currentTServers.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
       // If we are shutting down all of the TabletServers, then don't process any events
       // from the EventCoordinator.
@@ -337,7 +337,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     int unloaded = 0;
 
-    TabletLists tLists = new TabletLists(manager, tseversStatus, tserverGroups);
+    TabletLists tLists = new TabletLists(manager, currentTServers, tserverGroups);
 
     CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
         new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
@@ -382,7 +382,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // Don't overwhelm the tablet servers with work
       if (tLists.unassigned.size() + unloaded
-          > Manager.MAX_TSERVER_WORK_CHUNK * tseversStatus.size()) {
+          > Manager.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
         flushChanges(tLists);
         tLists.reset();
         unloaded = 0;
@@ -392,7 +392,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       TabletGoalState goal = manager.getGoalState(tm);
       TabletState state =
-          TabletState.compute(tm, tseversStatus.keySet(), manager.tabletBalancer, resourceGroups);
+          TabletState.compute(tm, currentTServers.keySet(), manager.tabletBalancer, resourceGroups);
 
       final Location location = tm.getLocation();
       Location current = null;
@@ -424,7 +424,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (Manager.log.isTraceEnabled()) {
         Manager.log.trace(
             "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{}",
-            store.name(), manager.serversToShutdown.equals(tseversStatus.keySet()),
+            store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
             state, goal, actions);
       }
