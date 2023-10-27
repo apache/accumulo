@@ -798,7 +798,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
-        // Verify that Tablet has no WALs
+          // Verify that Tablet has no WALs
         } else if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
           throw new IllegalStateException("Tablet " + key.getRow() + " has walogs during a merge!");
         } else if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
