@@ -179,7 +179,7 @@ public class Upgrader11to12 implements Upgrader {
     try {
       delete = new Mutation(key.getRow()).at().family(ExternalCompactionColumnFamily.NAME)
           .qualifier(key.getColumnQualifier()).delete();
-      log.warn(
+      log.debug(
           "Deleting external compaction reference from:{}. Previous compaction may not have completed. Ref: {}",
           tableName, delete.prettyPrint());
       batchWriter.addMutation(delete);
