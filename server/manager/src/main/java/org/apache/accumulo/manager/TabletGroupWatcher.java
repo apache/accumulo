@@ -587,11 +587,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
       LiveTServerSet.LiveTServersSnapshot tservers = manager.tserverSet.getSnapshot();
-      var tserversStatus = getTserversStatus(tservers.getTservers());
+      var currentTServers = getTserversStatus(tservers.getTservers());
 
       ClosableIterator<TabletManagement> iter = null;
       try {
-        if (tserversStatus.isEmpty()) {
+        if (currentTServers.isEmpty()) {
           eventHandler.waitForFullScan(waitTimeBetweenScans);
           synchronized (this) {
             lastScanServers = Collections.emptySortedSet();
@@ -609,7 +609,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         iter = store.iterator();
         var tabletMgmtStats =
-            manageTablets(iter, tserversStatus, tservers.getTserverGroups(), true);
+            manageTablets(iter, currentTServers, tservers.getTserverGroups(), true);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
@@ -632,9 +632,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         synchronized (this) {
-          lastScanServers = ImmutableSortedSet.copyOf(tserversStatus.keySet());
+          lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
         }
-        if (manager.tserverSet.getCurrentServers().equals(tserversStatus.keySet())) {
+        if (manager.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Manager.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
               waitTimeBetweenScans / 1000.));
           eventHandler.waitForFullScan(waitTimeBetweenScans);
