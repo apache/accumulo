@@ -204,7 +204,6 @@ public class MergeStats {
 
   private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState manager)
       throws TableNotFoundException, IOException {
-
     // The only expected state when this method is called is WAITING_FOR_OFFLINE
     verifyState(info, MergeState.WAITING_FOR_OFFLINE);
 
