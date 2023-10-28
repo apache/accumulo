@@ -233,6 +233,9 @@ public class MergeTablets extends ManagerRepo {
     Preconditions.checkState(expectedTableId.equals(tabletMeta.getTableId()),
         "%s tablet %s has unexpected table id %s expected %s", fateStr, tabletMeta.getExtent(),
         tabletMeta.getTableId(), expectedTableId);
+    Preconditions.checkState(tabletMeta.getLogs().isEmpty(),
+        "%s merging tablet %s has unexpected walogs %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getLogs().size());
   }
 
   /**

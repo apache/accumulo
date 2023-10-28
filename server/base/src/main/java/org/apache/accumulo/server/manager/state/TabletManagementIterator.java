@@ -279,6 +279,11 @@ public class TabletManagementIterator extends SkippingIterator {
             || (tm.getHostingGoal() == TabletHostingGoal.ONDEMAND && tm.getHostingRequested()))) {
           return true;
         }
+        // If the Tablet has walogs and operation id then need to return so
+        // TGW can bring online to process the logs
+        if (tm.getLogs().isEmpty() && tm.getOperationId() != null) {
+          return true;
+        }
         break;
       default:
         throw new AssertionError("Inconceivable! The tablet is an unrecognized state: " + state);

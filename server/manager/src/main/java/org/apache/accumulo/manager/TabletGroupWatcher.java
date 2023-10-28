@@ -396,7 +396,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       if (tm.getOperationId() != null) {
-        goal = TabletGoalState.UNASSIGNED;
+        // If there are still wals the tablet needs to be hosted
+        // to process the wals before starting the op
+        if (tm.getLogs().isEmpty()) {
+          goal = TabletGoalState.UNASSIGNED;
+        } else {
+          goal = TabletGoalState.HOSTED;
+        }
       }
 
       if (Manager.log.isTraceEnabled()) {
