@@ -98,7 +98,6 @@ public class DeleteRows extends ManagerRepo {
 
       for (var tabletMetadata : tabletsMetadata) {
         validateTablet(tabletMetadata, fateStr, opid, data.tableId);
-
         var tabletMutator = tabletsMutator.mutateTablet(tabletMetadata.getExtent())
             .requireOperation(opid).requireAbsentLocation();
 

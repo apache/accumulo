@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -94,12 +95,13 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
-        for (TabletManagement mti : store) {
+        // ELASTICITY_TODO passed null here to make test compile
+        store.iterator(null).forEachRemaining(mti -> {
           if (mti.getTabletMetadata().hasCurrent()) {
             states.add(mti.getTabletMetadata().getLocation());
             oldLocations.add(mti.getTabletMetadata());
           }
-        }
+        });
       }
       assertEquals(2, states.size());
       // Kill a tablet server... we don't care which one... wait for everything to be reassigned
@@ -109,16 +111,17 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       while (true) {
         UtilWaitThread.sleep(1000);
         states.clear();
-        boolean allAssigned = true;
-        for (TabletManagement mti : store) {
+        AtomicBoolean allAssigned = new AtomicBoolean(true);
+        // ELASTICITY_TODO passed null here to make test compile
+        store.iterator(null).forEachRemaining(mti -> {
           if (mti.getTabletMetadata().hasCurrent()) {
             states.add(mti.getTabletMetadata().getLocation());
           } else {
-            allAssigned = false;
+            allAssigned.set(false);
           }
-        }
+        });
         System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
-        if (states.size() != 2 && allAssigned) {
+        if (states.size() != 2 && allAssigned.get()) {
           break;
         }
       }
@@ -148,7 +151,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
-      try (ClosableIterator<TabletManagement> iter = store.iterator()) {
+      // ELASTICITY_TODO passed null here to make test compile
+      try (ClosableIterator<TabletManagement> iter = store.iterator(null)) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);

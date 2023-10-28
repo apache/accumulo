@@ -25,14 +25,12 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -60,27 +58,25 @@ public class GarbageCollectWriteAheadLogsTest {
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
   private final List<LogEntry> walogs = Collections.emptyList();
-  private final TabletManagement tabletAssignedToServer1;
-  private final TabletManagement tabletAssignedToServer2;
+  private final TabletMetadata tabletAssignedToServer1;
+  private final TabletMetadata tabletAssignedToServer2;
 
   {
     try {
-      tabletAssignedToServer1 = new TabletManagement(Set.of(),
+      tabletAssignedToServer1 =
           TabletMetadata.builder(extent).putLocation(Location.current(server1))
-              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS),
-          "");
-      tabletAssignedToServer2 = new TabletManagement(Set.of(),
+              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS);
+      tabletAssignedToServer2 =
           TabletMetadata.builder(extent).putLocation(Location.current(server2))
-              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS),
-          "");
+              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  private final Iterable<TabletManagement> tabletOnServer1List =
+  private final Iterable<TabletMetadata> tabletOnServer1List =
       Collections.singletonList(tabletAssignedToServer1);
-  private final Iterable<TabletManagement> tabletOnServer2List =
+  private final Iterable<TabletMetadata> tabletOnServer2List =
       Collections.singletonList(tabletAssignedToServer2);
 
   @Test
