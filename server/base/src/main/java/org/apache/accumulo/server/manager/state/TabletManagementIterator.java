@@ -69,6 +69,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -281,7 +282,8 @@ public class TabletManagementIterator extends SkippingIterator {
         }
         // If the Tablet has walogs and operation id then need to return so
         // TGW can bring online to process the logs
-        if (tm.getLogs().isEmpty() && tm.getOperationId() != null) {
+        if (tm.getLogs().isEmpty() && tm.getOperationId() != null
+            && tm.getOperationId().getType() == TabletOperationType.MERGING) {
           return true;
         }
         break;

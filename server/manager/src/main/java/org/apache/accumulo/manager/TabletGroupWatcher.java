@@ -66,6 +66,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.util.TextUtil;
@@ -397,8 +398,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (tm.getOperationId() != null) {
         // If there are still wals the tablet needs to be hosted
-        // to process the wals before starting the op
-        if (tm.getLogs().isEmpty()) {
+        // to process the wals before starting the merge op
+        if (tm.getLogs().isEmpty()
+            && tm.getOperationId().getType() == TabletOperationType.MERGING) {
           goal = TabletGoalState.UNASSIGNED;
         } else {
           goal = TabletGoalState.HOSTED;
