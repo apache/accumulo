@@ -68,7 +68,9 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
               group);
         }
       });
-      tserverGroups.put(group, servers);
+      if (!servers.isEmpty()) {
+        tserverGroups.put(group, servers);
+      }
     });
 
     LOG.debug("TServer groups for balancer assignment: {}", tserverGroups);
