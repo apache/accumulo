@@ -282,7 +282,7 @@ public class TabletManagementIterator extends SkippingIterator {
         }
         // If the Tablet has walogs and operation id then need to return so
         // TGW can bring online to process the logs
-        if (tm.getLogs().isEmpty() && tm.getOperationId() != null
+        if (!tm.getLogs().isEmpty() && tm.getOperationId() != null
             && tm.getOperationId().getType() == TabletOperationType.MERGING) {
           return true;
         }
