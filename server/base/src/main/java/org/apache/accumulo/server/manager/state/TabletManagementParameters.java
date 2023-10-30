@@ -38,11 +38,9 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -56,7 +54,7 @@ import com.google.gson.GsonBuilder;
  * {@link TabletManagementIterator} to make decisions about tablets.
  */
 public class TabletManagementParameters {
-
+  // ELASTICITY_TODO need to unit test serialization and deserialization of this class.
   private final ManagerState managerState;
   private final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
   private final Set<TableId> onlineTables;
@@ -69,12 +67,14 @@ public class TabletManagementParameters {
   private final Map<String,Set<TServerInstance>> tserverGroups;
   private final Map<Long,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
+  private final boolean canSuspendTablets;
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
-      Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints) {
+      Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints,
+      boolean canSuspendTablets) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -94,6 +94,7 @@ public class TabletManagementParameters {
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
     });
+    this.canSuspendTablets = canSuspendTablets;
   }
 
   private TabletManagementParameters(JsonData jdata) {
@@ -118,6 +119,8 @@ public class TabletManagementParameters {
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
     });
+    this.canSuspendTablets = jdata.canSuspendTablets;
+    ;
   }
 
   public ManagerState getManagerState() {
@@ -152,7 +155,7 @@ public class TabletManagementParameters {
     return resourceGroups.get().get(tserver);
   }
 
-  public Map<String,Set<TServerInstance>> getGroupedTservers() {
+  public Map<String,Set<TServerInstance>> getGroupedTServers() {
     return tserverGroups;
   }
 
@@ -162,6 +165,10 @@ public class TabletManagementParameters {
 
   public Map<Long,Map<String,String>> getCompactionHints() {
     return compactionHints;
+  }
+
+  public boolean canSuspendTablets() {
+    return canSuspendTablets;
   }
 
   private static Map<Long,Map<String,String>>
@@ -184,6 +191,8 @@ public class TabletManagementParameters {
     final Map<String,Set<String>> tserverGroups;
 
     final Map<Long,Map<String,String>> compactionHints;
+
+    final boolean canSuspendTablets;
 
     private static String toString(KeyExtent extent) {
       DataOutputBuffer buffer = new DataOutputBuffer();
@@ -209,10 +218,6 @@ public class TabletManagementParameters {
       }
     }
 
-    private static String toString(TabletServerId tsi) {
-      return ((TabletServerIdImpl) tsi).getTServerInstance().getHostPortSession();
-    }
-
     JsonData(TabletManagementParameters params) {
       managerState = params.managerState;
       parentUpgradeMap = params.parentUpgradeMap;
@@ -224,10 +229,11 @@ public class TabletManagementParameters {
       migrations = params.migrations.entrySet().stream().collect(
           toMap(entry -> toString(entry.getKey()), entry -> entry.getValue().getHostPortSession()));
       level = params.level;
-      tserverGroups = params.getGroupedTservers().entrySet().stream()
+      tserverGroups = params.getGroupedTServers().entrySet().stream()
           .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
               .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints;
+      canSuspendTablets = params.canSuspendTablets;
     }
 
   }

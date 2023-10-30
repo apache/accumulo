@@ -334,7 +334,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-        store.getLevel(), manager.getCompactionHints());
+        store.getLevel(), manager.getCompactionHints(), canSuspendTablets());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -364,7 +364,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     int unloaded = 0;
 
-    TabletLists tLists = new TabletLists(currentTServers, tableMgmtParams.getGroupedTservers(),
+    TabletLists tLists = new TabletLists(currentTServers, tableMgmtParams.getGroupedTServers(),
         tableMgmtParams.getServersToShutdown());
 
     CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(

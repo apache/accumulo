@@ -65,35 +65,35 @@ public enum TabletGoalState {
 
     KeyExtent extent = tm.getExtent();
     // Shutting down?
-    TabletGoalState state = getSystemGoalState(tm, params);
+    TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
-    if (state == TabletGoalState.HOSTED) {
+    if (systemGoalState == TabletGoalState.HOSTED) {
       if (!params.isParentLevelUpgraded()) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       }
 
       if (tm.getOperationId() != null) {
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       }
 
       if (!params.isTableOnline(tm.getTableId())) {
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       }
 
       switch (tm.getHostingGoal()) {
         case NEVER:
-          return TabletGoalState.UNASSIGNED;
+          return UNASSIGNED;
         case ONDEMAND:
           if (!tm.getHostingRequested()) {
-            return TabletGoalState.UNASSIGNED;
+            return UNASSIGNED;
           }
       }
 
       TServerInstance dest = params.getMigrations().get(extent);
       if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       }
 
       if (currentState == TabletState.HOSTED && balancer != null) {
@@ -141,33 +141,36 @@ public enum TabletGoalState {
 
       if (tm.hasCurrent()
           && params.getServersToShutdown().contains(tm.getLocation().getServerInstance())) {
-        return TabletGoalState.SUSPENDED;
+        if (params.canSuspendTablets()) {
+          return SUSPENDED;
+        } else {
+          return UNASSIGNED;
+        }
       }
     }
-    return state;
+    return systemGoalState;
   }
 
   private static TabletGoalState getSystemGoalState(TabletMetadata tm,
       TabletManagementParameters params) {
     switch (params.getManagerState()) {
       case NORMAL:
-        return TabletGoalState.HOSTED;
+        return HOSTED;
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
         if (tm.getExtent().isMeta()) {
-          return TabletGoalState.HOSTED;
+          return HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
         if (tm.getExtent().isRootTablet()) {
-          return TabletGoalState.HOSTED;
+          return HOSTED;
         }
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
       case STOP:
-        return TabletGoalState.UNASSIGNED;
+        return UNASSIGNED;
       default:
         throw new IllegalStateException("Unknown Manager State");
     }
