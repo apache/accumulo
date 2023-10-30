@@ -399,11 +399,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (tm.getOperationId() != null) {
         // If there are still wals the tablet needs to be hosted
         // to process the wals before starting the merge op
-        if (tm.getLogs().isEmpty()
+        if (!tm.getLogs().isEmpty()
             && tm.getOperationId().getType() == TabletOperationType.MERGING) {
-          goal = TabletGoalState.UNASSIGNED;
-        } else {
           goal = TabletGoalState.HOSTED;
+        } else {
+          goal = TabletGoalState.UNASSIGNED;
         }
       }
 
