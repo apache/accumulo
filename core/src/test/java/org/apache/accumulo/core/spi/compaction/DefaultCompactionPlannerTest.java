@@ -20,6 +20,7 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -239,6 +240,20 @@ public class DefaultCompactionPlannerTest {
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
 
+  @Test
+  public void testQueueCreation() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    String queues = "[{\"name\": \"midsize\", \"maxSize\":\"32M\"},{\"name\":\"small\"}]";
+    planner.init(getInitParamQueues(senv, queues));
+  }
+
   /**
    * Tests internal type executor with no numThreads set throws error
    */
@@ -303,6 +318,60 @@ public class DefaultCompactionPlannerTest {
   }
 
   /**
+   * Tests queue with missing name throws error
+   */
+  @Test
+  public void testErrorQueueNoName() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    String queues =
+        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"type\":\"internal\", \"queue\":\"broken\"}]";
+
+    var params = getInitParamQueues(senv, queues);
+    assertNotNull(params);
+
+    var e = assertThrows(NullPointerException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals(e.getMessage(), "'name' must be specified", "Error message didn't contain 'name'");
+  }
+
+  /**
+   * Tests not having executors or queues throws errors
+   */
+  @Test
+  public void testErrorNoExecutors() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    var execParams = getInitParams(senv, "");
+    assertNotNull(execParams);
+
+    var e = assertThrows(IllegalStateException.class, () -> planner.init(execParams),
+        "Failed to throw error");
+    assertEquals("No defined executors for this planner", e.getMessage(),
+        "Error message was not equal");
+
+    var params = getInitParamQueues(senv, "");
+    assertNotNull(params);
+
+    var err = assertThrows(IllegalStateException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals("No defined executors for this planner", e.getMessage(),
+        "Error message was not equal");
+  }
+
+  /**
    * Tests executors can only have one without a max size.
    */
   @Test
@@ -360,7 +429,44 @@ public class DefaultCompactionPlannerTest {
       @Override
       public String getFullyQualifiedOption(String key) {
         assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+      }
+
+      @Override
+      public ExecutorManager getExecutorManager() {
+        return new ExecutorManager() {
+          @Override
+          public CompactionExecutorId createExecutor(String name, int threads) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+
+          @Override
+          public CompactionExecutorId getExternalExecutor(String name) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+        };
+      }
+    };
+  }
+
+  private CompactionPlanner.InitParameters getInitParamQueues(ServiceEnvironment senv,
+      String queues) {
+    return new CompactionPlanner.InitParameters() {
+
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return senv;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return Map.of("queues", queues, "maxOpen", "15");
+      }
+
+      @Override
+      public String getFullyQualifiedOption(String key) {
+        assertEquals("maxOpen", key);
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
       }
 
       @Override
@@ -521,7 +627,7 @@ public class DefaultCompactionPlannerTest {
       @Override
       public String getFullyQualifiedOption(String key) {
         assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
       }
 
       @Override

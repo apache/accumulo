@@ -48,8 +48,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * <li>{@code tserver.compaction.major.service.<service>.opts.executors} This is a json array of
- * objects where each object has the fields:
+ * <li>{@code compaction.major.service.<service>.opts.executors} This is a json array of objects
+ * where each object has the fields:
  * <table>
  * <caption>Default Compaction Planner Executor options</caption>
  * <tr>
@@ -80,6 +80,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * </table>
  * <br>
+ * Note: The "executors" option has been deprecated in 3.1 and will be removed in a future release.
  * The maxSize field determines the maximum size of compaction that will run on an executor. The
  * maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and represents
  * the sum of the input files for a given compaction. One executor can have no max size and it will
@@ -101,11 +102,31 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * Note that the use of 'external' requires that the CompactionCoordinator and at least one
  * Compactor for Queue1 is running.
- * <li>{@code tserver.compaction.major.service.<service>.opts.maxOpen} This determines the maximum
- * number of files that will be included in a single compaction.
+ * <li>{@code compaction.major.service.<service>.opts.maxOpen} This determines the maximum number of
+ * files that will be included in a single compaction.
+ * <li>{@code compaction.major.service.<service>.opts.queues} This is a json array of queue objects
+ * which have the following fields:
+ * <table>
+ * <caption>Default Compaction Planner Queue options</caption>
+ * <tr>
+ * <th>Field Name</th>
+ * <th>Description</th>
+ * </tr>
+ * <tr>
+ * <td>name</td>
+ * <td>name or alias of the queue (required)</td>
+ * </tr>
+ * <tr>
+ * <td>maxSize</td>
+ * <td>threshold sum of the input files (required for all but one of the configs)</td>
+ * </tr>
+ * </table>
+ * <br>
+ * This 'queues' object is used for defining external compaction queues without needing to use the
+ * thread-based 'executors' property.
  * </ul>
  *
- * @since 2.1.0
+ * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
 
@@ -117,6 +138,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     String maxSize;
     Integer numThreads;
     String queue;
+  }
+
+  private static class QueueConfig {
+    String name;
+    String maxSize;
   }
 
   private static class Executor {
@@ -146,15 +172,25 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    ExecutorConfig[] execConfigs =
-        GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
-
     List<Executor> tmpExec = new ArrayList<>();
+    ExecutorConfig[] execConfigs = null;
+    QueueConfig[] queueConfigs = null;
+
+    try {
+      execConfigs =
+          GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+    } catch (NullPointerException npe) {
+      // npe could result from executors not being set as properties.
+    } finally {
+      // Generated a zero-length array to avoid a npe thrown by forEach
+      if (execConfigs == null) {
+        execConfigs = new ExecutorConfig[0];
+      }
+    }
 
     for (ExecutorConfig executorConfig : execConfigs) {
       Long maxSize = executorConfig.maxSize == null ? null
           : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
-
       CompactionExecutorId ceid;
 
       // If not supplied, GSON will leave type null. Default to internal
@@ -181,6 +217,30 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           throw new IllegalArgumentException("type must be 'internal' or 'external'");
       }
       tmpExec.add(new Executor(ceid, maxSize));
+    }
+
+    try {
+      queueConfigs = GSON.get().fromJson(params.getOptions().get("queues"), QueueConfig[].class);
+    } catch (NullPointerException npe) {
+      // Valid state where no "queues" property may have been set.
+    }
+    if (queueConfigs == null) {
+      // Generated a zero-length array to avoid a npe thrown by forEach
+      queueConfigs = new QueueConfig[0];
+    }
+
+    for (QueueConfig queueConfig : queueConfigs) {
+      Long maxSize = queueConfig.maxSize == null ? null
+          : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
+
+      CompactionExecutorId ceid;
+      String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
+      ceid = params.getExecutorManager().getExternalExecutor(queue);
+      tmpExec.add(new Executor(ceid, maxSize));
+    }
+
+    if (tmpExec.size() < 1) {
+      throw new IllegalStateException("No defined executors for this planner");
     }
 
     Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,

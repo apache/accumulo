@@ -33,7 +33,7 @@ import com.google.common.collect.Sets;
  * This class serves to configure compaction services from an {@link AccumuloConfiguration} object.
  *
  * Specifically, compaction service properties (those prefixed by "tserver.compaction.major
- * .service") are used.
+ * .service" or "compaction.major.service") are used.
  */
 public class CompactionServicesConfig {
 
@@ -50,16 +50,32 @@ public class CompactionServicesConfig {
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
+  @SuppressWarnings("deprecation")
   private Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
-    return aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
+    Map<String,String> properties = new HashMap<>();
+    properties.putAll(aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX));
+    properties.putAll(aconf.getAllPropertiesWithPrefix(Property.COMPACTION_SERVICE_PREFIX));
+    // Return unmodifiable map
+    return Map.copyOf(properties);
   }
 
+  @SuppressWarnings("deprecation")
   public CompactionServicesConfig(AccumuloConfiguration aconf) {
     Map<String,String> configs = getConfiguration(aconf);
 
+    String oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
+    String newPrefix = Property.COMPACTION_SERVICE_PREFIX.getKey();
+
     configs.forEach((prop, val) -> {
 
-      var suffix = prop.substring(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey().length());
+      int prefixLength = 0;
+      if (prop.startsWith(oldPrefix)) {
+        prefixLength = oldPrefix.length();
+      } else if (prop.startsWith(newPrefix)) {
+        prefixLength = newPrefix.length();
+      }
+
+      var suffix = prop.substring(prefixLength);
       String[] tokens = suffix.split("\\.");
       if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
         options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
