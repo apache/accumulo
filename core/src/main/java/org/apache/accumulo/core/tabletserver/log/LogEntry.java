@@ -20,12 +20,13 @@ package org.apache.accumulo.core.tabletserver.log;
 
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 public class LogEntry {
 
@@ -46,10 +47,38 @@ public class LogEntry {
     return this.filePath;
   }
 
+  /**
+   * Validates the expected format of the file path. We expect the path to contain a tserver
+   * (host:port) followed by a UUID as the file name. For example,
+   * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
+   *
+   * @param filePath path to validate
+   * @throws IllegalArgumentException if the filepath is invalid
+   */
   private static void validateFilePath(String filePath) {
-    boolean pathIsValid = true; // TODO. check file path
-    Preconditions.checkArgument(pathIsValid,
-        "Invalid filePath format. Expected format: tserver/UUID");
+    String[] parts = filePath.split("/");
+
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "Invalid filePath format. The path should at least contain tserver/UUID.");
+    }
+
+    String tserverPart = parts[parts.length - 2];
+    String uuidPart = parts[parts.length - 1];
+
+    try {
+      var ignored = HostAndPort.fromString(tserverPart);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
+              + "'");
+    }
+
+    try {
+      var ignored = UUID.fromString(uuidPart);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Expected valid UUID. Found '" + uuidPart + "'");
+    }
   }
 
   /**
