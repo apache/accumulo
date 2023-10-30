@@ -64,7 +64,7 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
           currentStatusNew.put(id, TServerStatusImpl.fromThrift(currentStatus.get(tsi)));
           servers.add(id);
         } else {
-          LOG.debug("Dropping tserver {} from group as it's not in set of all servers", id, group);
+          LOG.debug("Dropping tserver {} from group {} as it's not in set of all servers", id, group);
         }
       });
       tserverGroups.put(group, servers);
