@@ -116,6 +116,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     if (p.exitValue() != 0) {
       throw new IOException("Failed to run `accumulo admin stopAll`");
     }
+    stopAllServers(ServerType.COMPACTOR);
+    stopAllServers(ServerType.SCAN_SERVER);
   }
 
   @Override

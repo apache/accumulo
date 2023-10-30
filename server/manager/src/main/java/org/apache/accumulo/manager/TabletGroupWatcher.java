@@ -174,10 +174,29 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public TabletLists(SortedMap<TServerInstance,TabletServerStatus> curTServers,
         Map<String,Set<TServerInstance>> grouping, Set<TServerInstance> serversToShutdown) {
+
       var destinationsMod = new TreeMap<>(curTServers);
-      destinationsMod.keySet().removeAll(serversToShutdown);
+      if (!serversToShutdown.isEmpty()) {
+        // Remove servers that are in the process of shutting down from the lists of tablet
+        // servers.
+        destinationsMod.keySet().removeAll(serversToShutdown);
+        HashMap<String,Set<TServerInstance>> groupingCopy = new HashMap<>();
+        grouping.forEach((group, groupsServers) -> {
+          if (Collections.disjoint(groupsServers, serversToShutdown)) {
+            groupingCopy.put(group, groupsServers);
+          } else {
+            var serversCopy = new HashSet<>(groupsServers);
+            serversCopy.removeAll(serversToShutdown);
+            groupingCopy.put(group, Collections.unmodifiableSet(serversCopy));
+          }
+        });
+
+        this.currentTServerGrouping = Collections.unmodifiableMap(groupingCopy);
+      } else {
+        this.currentTServerGrouping = grouping;
+      }
+
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
-      this.currentTServerGrouping = grouping;
     }
 
     public void reset() {
@@ -311,9 +330,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       shutdownServers = dependentWatcher.getFilteredServersToShutdown();
     }
 
+    var tServersSnapshot = manager.tserversSnapshot();
+
     return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
-        manager.onlineTables(), manager.tserverSet.getCurrentServers(), shutdownServers,
-        manager.migrationsSnapshot(), manager.tserverSet.getCurrentServersGroups(),
+        manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints());
   }
 

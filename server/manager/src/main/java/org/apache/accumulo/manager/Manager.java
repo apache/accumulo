@@ -127,6 +127,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.manager.state.DeadServerList;
@@ -716,12 +717,11 @@ public class Manager extends AbstractServer
     }
 
     private long updateStatus() {
-      Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+      var tseversSnapshot = tserverSet.getSnapshot();
       TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
-      tserverStatus = gatherTableInformation(currentServers, temp);
+      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers(), temp);
       tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
-      tServerGroupingForBalancer =
-          Collections.unmodifiableMap(tserverSet.getCurrentServersGroups());
+      tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -735,7 +735,7 @@ public class Manager extends AbstractServer
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
         for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(currentServers)) {
+          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.getTservers())) {
             log.debug("not balancing just yet, as collection of live tservers is in flux");
             return DEFAULT_WAIT_FOR_WATCHER;
           }
@@ -1501,11 +1501,11 @@ public class Manager extends AbstractServer
   }
 
   public Set<TServerInstance> onlineTabletServers() {
-    return tserverSet.getCurrentServers();
+    return tserverSet.getSnapshot().getTservers();
   }
 
-  public Map<String,Set<TServerInstance>> tServerResourceGroups() {
-    return tserverSet.getCurrentServersGroups();
+  public LiveTServersSnapshot tserversSnapshot() {
+    return tserverSet.getSnapshot();
   }
 
   // recovers state from the persistent transaction to shutdown a server

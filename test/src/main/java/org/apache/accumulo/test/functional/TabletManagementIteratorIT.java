@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.hadoop.io.Text;
@@ -363,6 +364,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     return new TabletManagementParameters(ManagerState.NORMAL,
         Map.of(Ample.DataLevel.ROOT, true, Ample.DataLevel.USER, true, Ample.DataLevel.METADATA,
             true),
-        onlineTables, tservers, Set.of(), Map.of(), Map.of(), Ample.DataLevel.USER, Map.of());
+        onlineTables, new LiveTServerSet.LiveTServersSnapshot(tservers, Map.of()), Set.of(),
+        Map.of(), Ample.DataLevel.USER, Map.of());
   }
 }

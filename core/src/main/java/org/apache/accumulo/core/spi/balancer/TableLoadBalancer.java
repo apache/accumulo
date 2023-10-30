@@ -149,10 +149,12 @@ public class TableLoadBalancer implements TabletBalancer {
     tserversInGroup.forEach(tsid -> {
       TServerStatus tss = allTServers.get(tsid);
       if (tss == null) {
-        throw new IllegalStateException("TabletServer " + tsid + " in " + groupNameInUse
-            + " TabletServer group, but not in set of all TabletServers");
+        log.warn(
+            "Excluding TabletServer {}  from group {} because TabletServerStatus is null, likely that Manager.StatusThread.updateStatus has not discovered it yet.",
+            tsid, groupNameInUse);
+      } else {
+        group.put(tsid, tss);
       }
-      group.put(tsid, tss);
     });
     return group;
   }

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 
@@ -71,20 +72,21 @@ public class TabletManagementParameters {
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
-      Set<TServerInstance> onlineTservers, Set<TServerInstance> serversToShutdown,
-      Map<KeyExtent,TServerInstance> migrations, Map<String,Set<TServerInstance>> tserverGroups,
+      LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
+      Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
       Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
     this.onlineTables = Set.copyOf(onlineTables);
-    this.onlineTservers = Set.copyOf(onlineTservers);
+    // This is already immutable, so no need to copy
+    this.onlineTservers = liveTServersSnapshot.getTservers();
     this.serversToShutdown = Set.copyOf(serversToShutdown);
     // TODO could filter by level
     this.migrations = Map.copyOf(migrations);
     this.level = level;
-    this.tserverGroups = tserverGroups.entrySet().stream()
-        .collect(toUnmodifiableMap(Map.Entry::getKey, entry -> Set.copyOf(entry.getValue())));
+    // This is already immutable, so no need to copy
+    this.tserverGroups = liveTServersSnapshot.getTserverGroups();
     this.compactionHints = makeImmutable(compactionHints);
     this.resourceGroups = Suppliers.memoize(() -> {
       Map<TServerInstance,String> resourceGroups = new HashMap<>();
@@ -215,16 +217,16 @@ public class TabletManagementParameters {
       managerState = params.managerState;
       parentUpgradeMap = params.parentUpgradeMap;
       onlineTables = params.onlineTables.stream().map(AbstractId::canonical).collect(toList());
-      onlineTservers =
-          params.onlineTservers.stream().map(TServerInstance::getHostPortSession).collect(toList());
+      onlineTservers = params.getOnlineTsevers().stream().map(TServerInstance::getHostPortSession)
+          .collect(toList());
       serversToShutdown = params.serversToShutdown.stream().map(TServerInstance::getHostPortSession)
           .collect(toList());
       migrations = params.migrations.entrySet().stream().collect(
           toMap(entry -> toString(entry.getKey()), entry -> entry.getValue().getHostPortSession()));
       level = params.level;
-      tserverGroups =
-          params.tserverGroups.entrySet().stream().collect(toMap(Map.Entry::getKey, entry -> entry
-              .getValue().stream().map(TServerInstance::getHostPortSession).collect(toSet())));
+      tserverGroups = params.getGroupedTservers().entrySet().stream()
+          .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
+              .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints;
     }
 
