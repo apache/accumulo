@@ -356,6 +356,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
+    if (params.currentStatus().isEmpty()) {
+      log.debug("No known TabletServers, skipping tablet assignment for now.");
+      return;
+    }
     params.unassignedTablets().forEach((tabletId, tserverId) -> params.addAssignment(tabletId,
         getAssignment(params.currentStatus(), tserverId)));
   }

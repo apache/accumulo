@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -60,6 +61,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class LiveTServerSet implements Watcher {
@@ -204,12 +206,11 @@ public class LiveTServerSet implements Watcher {
     }
   }
 
-  // The set of active tservers with locks, indexed by their name in zookeeper
+  // The set of active tservers with locks, indexed by their name in zookeeper. When the contents of
+  // this map are modified, tServersSnapshot should be set to null.
   private final Map<String,TServerInfo> current = new HashMap<>();
-  // as above, indexed by TServerInstance
-  private final Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
-  // as above, grouped by resource group name
-  private final Map<String,Set<TServerInstance>> currentGroups = new HashMap<>();
+
+  private LiveTServersSnapshot tServersSnapshot = null;
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<String,Long> locklessServers = new HashMap<>();
@@ -270,6 +271,9 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> doomed, final String path, final String zPath)
       throws InterruptedException, KeeperException {
 
+    // invalidate the snapshot forcing it to be recomputed the next time its requested
+    tServersSnapshot = null;
+
     TServerInfo info = current.get(zPath);
 
     final var zLockPath = ServiceLock.path(path + "/" + zPath);
@@ -280,8 +284,6 @@ public class LiveTServerSet implements Watcher {
       if (info != null) {
         doomed.add(info.instance);
         current.remove(zPath);
-        currentInstances.remove(info.instance);
-        currentGroups.get(info.resourceGroup).remove(info.instance);
       }
 
       Long firstSeen = locklessServers.get(zPath);
@@ -302,18 +304,12 @@ public class LiveTServerSet implements Watcher {
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
         current.put(zPath, tServerInfo);
-        currentInstances.put(instance, tServerInfo);
-        currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
         current.put(zPath, tServerInfo);
-        currentInstances.remove(info.instance);
-        currentGroups.getOrDefault(resourceGroup, new HashSet<>()).remove(instance);
-        currentInstances.put(instance, tServerInfo);
-        currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
       }
     }
   }
@@ -356,21 +352,64 @@ public class LiveTServerSet implements Watcher {
     if (server == null) {
       return null;
     }
-    TServerInfo tServerInfo = currentInstances.get(server);
+    TServerInfo tServerInfo = getSnapshot().tserversInfo.get(server);
     if (tServerInfo == null) {
       return null;
     }
     return tServerInfo.connection;
   }
 
-  public synchronized Set<TServerInstance> getCurrentServers() {
-    return new HashSet<>(currentInstances.keySet());
+  public static class LiveTServersSnapshot {
+    private final Set<TServerInstance> tservers;
+    private final Map<String,Set<TServerInstance>> tserverGroups;
+
+    // TServerInfo is only for internal use, so this field is private w/o a getter.
+    private final Map<TServerInstance,TServerInfo> tserversInfo;
+
+    @VisibleForTesting
+    public LiveTServersSnapshot(Set<TServerInstance> currentServers,
+        Map<String,Set<TServerInstance>> serverGroups) {
+      this.tserversInfo = null;
+      this.tservers = Set.copyOf(currentServers);
+      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
+      this.tserverGroups = Collections.unmodifiableMap(copy);
+    }
+
+    public LiveTServersSnapshot(Map<TServerInstance,TServerInfo> currentServers,
+        Map<String,Set<TServerInstance>> serverGroups) {
+      this.tserversInfo = Map.copyOf(currentServers);
+      this.tservers = this.tserversInfo.keySet();
+      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
+      this.tserverGroups = Collections.unmodifiableMap(copy);
+    }
+
+    public Set<TServerInstance> getTservers() {
+      return tservers;
+    }
+
+    public Map<String,Set<TServerInstance>> getTserverGroups() {
+      return tserverGroups;
+    }
   }
 
-  public synchronized Map<String,Set<TServerInstance>> getCurrentServersGroups() {
-    Map<String,Set<TServerInstance>> copy = new HashMap<>();
-    currentGroups.forEach((k, v) -> copy.put(k, new HashSet<>(v)));
-    return copy;
+  public synchronized LiveTServersSnapshot getSnapshot() {
+    if (tServersSnapshot == null) {
+      HashMap<TServerInstance,TServerInfo> tServerInstances = new HashMap<>();
+      Map<String,Set<TServerInstance>> tserversGroups = new HashMap<>();
+      current.values().forEach(tServerInfo -> {
+        tServerInstances.put(tServerInfo.instance, tServerInfo);
+        tserversGroups.computeIfAbsent(tServerInfo.resourceGroup, rg -> new HashSet<>())
+            .add(tServerInfo.instance);
+      });
+      tServersSnapshot = new LiveTServersSnapshot(tServerInstances, tserversGroups);
+    }
+    return tServersSnapshot;
+  }
+
+  public synchronized Set<TServerInstance> getCurrentServers() {
+    return getSnapshot().getTservers();
   }
 
   public synchronized int size() {
@@ -407,6 +446,10 @@ public class LiveTServerSet implements Watcher {
   }
 
   public synchronized void remove(TServerInstance server) {
+
+    // invalidate the snapshot forcing it to be recomputed the next time its requested
+    tServersSnapshot = null;
+
     String zPath = null;
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
@@ -418,7 +461,6 @@ public class LiveTServerSet implements Watcher {
       return;
     }
     current.remove(zPath);
-    currentInstances.remove(server);
 
     log.info("Removing zookeeper lock for {}", server);
     String fullpath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + zPath;
