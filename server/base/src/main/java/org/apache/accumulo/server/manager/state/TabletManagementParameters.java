@@ -50,6 +50,10 @@ import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+/**
+ * An immutable snapshot of the information needed by the TabletGroupWatcher and the
+ * {@link TabletManagementIterator} to make decisions about tablets.
+ */
 public class TabletManagementParameters {
 
   private final ManagerState managerState;

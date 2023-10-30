@@ -92,7 +92,7 @@ public class TabletManagementIterator extends SkippingIterator {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
       // be returned. However, the Manager/TGW currently needs everything in the migrating set
       // returned so it can update in memory maps it has. If this were improved then this case would
-      // need be needed.
+      // not be needed.
       return true;
     }
 
