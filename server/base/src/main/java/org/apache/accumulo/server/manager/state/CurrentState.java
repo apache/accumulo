@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 
 public interface CurrentState {
 
@@ -32,7 +33,7 @@ public interface CurrentState {
 
   Set<TServerInstance> onlineTabletServers();
 
-  Map<String,Set<TServerInstance>> tServerResourceGroups();
+  LiveTServersSnapshot tserversSnapshot();
 
   Set<TServerInstance> shutdownServers();
 

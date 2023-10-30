@@ -76,6 +76,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -304,13 +305,14 @@ public class TabletManagementIterator extends SkippingIterator {
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
     if (state != null) {
-      TabletManagementIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
+      LiveTServersSnapshot tserversSnapshot = state.tserversSnapshot();
+      TabletManagementIterator.setCurrentServers(tabletChange, tserversSnapshot.getTservers());
       TabletManagementIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletManagementIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
       TabletManagementIterator.setTServerResourceGroups(tabletChange,
-          state.tServerResourceGroups());
+          tserversSnapshot.getTserverGroups());
       setCompactionHints(tabletChange, state.getCompactionHints());
     }
     scanner.addScanIterator(tabletChange);
