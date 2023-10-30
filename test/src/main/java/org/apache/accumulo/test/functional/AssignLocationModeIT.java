@@ -66,7 +66,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       TabletMetadata newTablet;
       do {
         UtilWaitThread.sleep(250);
-        newTablet = ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+        newTablet = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
       assertEquals(newTablet.getLocation().getHostPort(), newTablet.getLast().getHostPort());
@@ -82,24 +82,21 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
-      TabletMetadata unflushed =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
       assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletMetadata offline =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
       assertEquals(newTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
-      TabletMetadata online =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());

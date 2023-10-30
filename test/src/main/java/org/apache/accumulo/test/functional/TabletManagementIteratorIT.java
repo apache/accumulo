@@ -362,9 +362,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
 
     return new TabletManagementParameters(ManagerState.NORMAL,
-        Map.of(Ample.DataLevel.ROOT, true, Ample.DataLevel.USER, true, Ample.DataLevel.METADATA,
-            true),
-        onlineTables, new LiveTServerSet.LiveTServersSnapshot(tservers, Map.of()), Set.of(),
-        Map.of(), Ample.DataLevel.USER, Map.of(), true);
+        Map.of(
+            Ample.DataLevel.ROOT, true, Ample.DataLevel.USER, true, Ample.DataLevel.METADATA, true),
+        onlineTables,
+        new LiveTServerSet.LiveTServersSnapshot(tservers,
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
+        Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true);
   }
 }

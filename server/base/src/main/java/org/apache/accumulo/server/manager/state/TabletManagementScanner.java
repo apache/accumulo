@@ -48,8 +48,6 @@ import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class TabletManagementScanner implements ClosableIterator<TabletManagement> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletManagementScanner.class);
@@ -95,16 +93,6 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     TabletManagementIterator.configureScanner(mdScanner, tmgmtParams);
     mdScanner.setRanges(ranges);
     iter = mdScanner.iterator();
-  }
-
-  // This constructor is called from utilities and tests
-  @SuppressFBWarnings(value = {"NP_NULL_PARAM_DEREF_NONVIRTUAL"})
-  public TabletManagementScanner(ClientContext context, Range range, String tableName) {
-    // ELASTICITY_TOD this constructor was broken by passing null below. Should probably remove this
-    // constructor and migrate code away from using the TabletManagmentIterator which is tightly
-    // coupled to the TabletGroupWatcher. Using the TabletManagmentIterator outside of the TGW makes
-    // Accumulo's code harder to maintain.
-    this(context, List.of(range), null, tableName);
   }
 
   @Override
