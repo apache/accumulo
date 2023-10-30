@@ -64,7 +64,7 @@ public class TabletManagementParameters {
 
   private final Ample.DataLevel level;
 
-  private final Supplier<Map<TabletServerId,String>> resourceGroups;
+  private final Supplier<Map<TServerInstance,String>> resourceGroups;
   private final Map<String,Set<TServerInstance>> tserverGroups;
   private final Map<Long,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
@@ -87,9 +87,9 @@ public class TabletManagementParameters {
         .collect(toUnmodifiableMap(Map.Entry::getKey, entry -> Set.copyOf(entry.getValue())));
     this.compactionHints = makeImmutable(compactionHints);
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TabletServerId,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,String> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
-          .forEach(tserver -> resourceGroups.put(new TabletServerIdImpl(tserver), resourceGroup)));
+          .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
     });
   }
@@ -111,9 +111,9 @@ public class TabletManagementParameters {
         Map.Entry::getKey,
         entry -> entry.getValue().stream().map(TServerInstance::new).collect(toUnmodifiableSet())));
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TabletServerId,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,String> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
-          .forEach(tserver -> resourceGroups.put(new TabletServerIdImpl(tserver), resourceGroup)));
+          .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
     });
   }
