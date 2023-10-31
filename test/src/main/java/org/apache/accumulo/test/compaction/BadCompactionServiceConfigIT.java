@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -43,19 +46,22 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.MoreCollectors;
 
 public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
+  private static final String CSP = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
+
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    var csp = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
     Map<String,String> siteCfg = new HashMap<>();
-    siteCfg.put(csp + "cs1.planner", DefaultCompactionPlanner.class.getName());
+    siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
     // place invalid json in the planners config
-    siteCfg.put(csp + "cs1.planner.opts.executors", "{{'name]");
+    siteCfg.put(CSP + "cs1.planner.opts.executors", "{{'name]");
     cfg.setSiteConfig(siteCfg);
   }
 
@@ -64,6 +70,18 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
     public boolean accept(Key k, Value v) {
       return false;
     }
+  }
+
+  private ExecutorService executorService;
+
+  @BeforeEach
+  public void setup() {
+    executorService = Executors.newCachedThreadPool();
+  }
+
+  @AfterEach
+  public void teardown() {
+    executorService.shutdownNow();
   }
 
   @Test
@@ -87,8 +105,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
             .collect(MoreCollectors.onlyElement()));
       }
 
-      // Create a thread to fix the compaction config after a bit.
-      Thread fixerThread = new Thread(() -> {
+      Future<?> fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
 
@@ -98,15 +115,13 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
                 .collect(MoreCollectors.onlyElement()));
           }
 
-          var csp = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
           var value =
               "[{'name':'small', 'type': 'internal', 'numThreads':1}]".replaceAll("'", "\"");
-          client.instanceOperations().setProperty(csp + "cs1.planner.opts.executors", value);
+          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
       });
-      fixerThread.start();
 
       List<IteratorSetting> iterators =
           Collections.singletonList(new IteratorSetting(100, EverythingFilter.class));
@@ -118,7 +133,39 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
         assertEquals(0, scanner.stream().count());
       }
 
-      fixerThread.join();
+      fixerFuture.get();
+
+      // misconfigure the service, test how going from good config to bad config works. The test
+      // started with an initial state of bad config.
+      client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", "]o.o[");
+      try (var writer = client.createBatchWriter(table)) {
+        writer.addMutation(new Mutation("0").at().family("f").qualifier("q").put("v"));
+      }
+      client.tableOperations().flush(table, null, null, true);
+      try (var scanner = client.createScanner(table)) {
+        assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(MoreCollectors.onlyElement()));
+      }
+      fixerFuture = executorService.submit(() -> {
+        try {
+          Thread.sleep(2000);
+          var value =
+              "[{'name':'small', 'type': 'internal', 'numThreads':1}]".replaceAll("'", "\"");
+          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+
+      client.tableOperations().compact(table,
+          new CompactionConfig().setIterators(iterators).setWait(true));
+
+      // Verify compaction ran.
+      try (var scanner = client.createScanner(table)) {
+        assertEquals(0, scanner.stream().count());
+      }
+
+      fixerFuture.get();
 
     }
   }
@@ -151,7 +198,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       }
 
       // Create a thread to fix the compaction config after a bit.
-      Thread fixerThread = new Thread(() -> {
+      Future<?> fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
 
@@ -168,7 +215,6 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           throw new RuntimeException(e);
         }
       });
-      fixerThread.start();
 
       List<IteratorSetting> iterators =
           Collections.singletonList(new IteratorSetting(100, EverythingFilter.class));
@@ -180,7 +226,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
         assertEquals(0, scanner.stream().count());
       }
 
-      fixerThread.join();
+      fixerFuture.get();
 
     }
   }
