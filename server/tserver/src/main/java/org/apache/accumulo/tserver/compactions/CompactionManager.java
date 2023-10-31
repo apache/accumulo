@@ -85,7 +85,7 @@ public class CompactionManager {
   private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
 
   // use to limit logging of unknown compaction services
-  private Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
+  private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
 
   static class ExtCompInfo {
     final KeyExtent extent;
