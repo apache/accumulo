@@ -50,7 +50,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
@@ -353,6 +352,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private static class TableMgmtStats {
     int[] counts = new int[TabletState.values().length];
     private int totalUnloaded;
+    private long totalVolumeReplacements;
   }
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
@@ -382,6 +382,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
+    long volReplacements = 0;
     while (iter.hasNext()) {
       final TabletManagement mti = iter.next();
       if (mti == null) {
@@ -434,6 +435,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final Location location = tabletMeta.getLocation();
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+        volReplacements++;
         LOG.debug("{} may need volume replacement", tabletMeta.getExtent());
         final List<LogEntry> logsToRemove = new ArrayList<>();
         final List<LogEntry> logsToAdd = new ArrayList<>();
@@ -451,37 +453,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // We need to refresh the TabletMetadata
           tabletMeta = manager.getContext().getAmple().readTablet(tabletMeta.getExtent(),
               TabletManagement.CONFIGURED_COLUMNS.toArray(ColumnType.values()));
-          LOG.debug("Volume replacement completed for {}.", tabletMeta.getExtent());
+          goal = TabletGoalState.UNASSIGNED;
+          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+          LOG.debug("Volume replacement completed for {}. Requesting un-assignment.",
+              tabletMeta.getExtent());
         } else {
           LOG.debug("Volume replacement evaluation for {} returned no changes.",
               tabletMeta.getExtent());
-        }
-        if (state == TabletState.HOSTED) {
-          try {
-            TServerConnection connection =
-                manager.tserverSet.getConnection(location.getServerInstance());
-            if (connection != null) {
-              List<TKeyExtent> unrefreshed = connection.refreshTablet(tabletMeta.getExtent());
-              if (unrefreshed != null && !unrefreshed.isEmpty()) {
-                // tablet was not refreshed, let's un-host it so that it
-                // can be re-hosted
-                goal = TabletGoalState.UNASSIGNED;
-              }
-            } else {
-              // We could not get connection to server, un-host the tablet
-              goal = TabletGoalState.UNASSIGNED;
-            }
-          } catch (TException e) {
-            // Error calling refreshTablet, let's un-host it so that it
-            // can be re-hosted.
-            goal = TabletGoalState.UNASSIGNED;
-          }
-        }
-        if (goal == TabletGoalState.UNASSIGNED) {
-          LOG.debug(
-              "Issue occurred telling Tablet Server to refresh tablet metadata for {} after volume replacement. Unhosting tablet.",
-              tabletMeta.getExtent());
-          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
         }
       }
       final TabletMetadata tm = tabletMeta;
@@ -606,6 +584,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         tableMgmtStats.counts[state.ordinal()]++;
       }
     }
+    tableMgmtStats.totalVolumeReplacements = volReplacements;
 
     flushChanges(tLists);
 
@@ -629,7 +608,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   @Override
   public void run() {
     int[] oldCounts = new int[TabletState.values().length];
-    boolean firstCall = true;
+    boolean lookForTabletsNeedingVolReplacement = true;
 
     while (manager.stillManager()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
@@ -640,8 +619,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final long waitTimeBetweenScans = manager.getConfiguration()
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
-      TabletManagementParameters tableMgmtParams = createTabletManagementParameters(firstCall);
-      firstCall = false;
+      TabletManagementParameters tableMgmtParams =
+          createTabletManagementParameters(lookForTabletsNeedingVolReplacement);
       var currentTServers = getCurrentTservers(tableMgmtParams.getOnlineTsevers());
 
       ClosableIterator<TabletManagement> iter = null;
@@ -664,6 +643,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         iter = store.iterator(tableMgmtParams);
         var tabletMgmtStats = manageTablets(iter, tableMgmtParams, currentTServers, true);
+        lookForTabletsNeedingVolReplacement = tabletMgmtStats.totalVolumeReplacements != 0;
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
