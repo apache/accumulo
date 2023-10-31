@@ -319,7 +319,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private TabletManagementParameters createTabletManagementParameters(boolean firstTime) {
+  private TabletManagementParameters
+      createTabletManagementParameters(boolean lookForTabletsNeedingVolReplacement) {
 
     HashMap<Ample.DataLevel,Boolean> parentLevelUpgrade = new HashMap<>();
     UpgradeCoordinator.UpgradeStatus upgradeStatus = manager.getUpgradeStatus();
@@ -342,7 +343,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(), canSuspendTablets(),
-        firstTime ? manager.getContext().getVolumeReplacements() : List.of());
+        lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
+            : List.of());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
