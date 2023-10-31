@@ -26,6 +26,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
@@ -74,8 +75,12 @@ public enum TabletGoalState {
         return UNASSIGNED;
       }
 
-      if (tm.getOperationId() != null) {
-        return UNASSIGNED;
+      // When an operation id is set tablets need to be unassigned unless there are still wals. When
+      // there are wals the tablet needs to be hosted to recover data in them. However, deleting
+      // tablets do not need to recover wals.
+      if (tm.getOperationId() != null && (tm.getLogs().isEmpty()
+          || tm.getOperationId().getType() == TabletOperationType.DELETING)) {
+        return TabletGoalState.UNASSIGNED;
       }
 
       if (!params.isTableOnline(tm.getTableId())) {
