@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,6 +27,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -107,17 +107,22 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       // to BinaryIT.runTest, but before the scan, to give the Manager a chance to split
       // the table.
       BinaryIT.runTest(c, tableName);
-      Thread.sleep(20_000);
       String id = c.tableOperations().tableIdMap().get(tableName);
-      Set<Text> tablets = new HashSet<>();
-      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(Range.prefix(id));
-        for (Entry<Key,Value> entry : s) {
-          tablets.add(entry.getKey().getRow());
-        }
-      }
-      assertTrue(tablets.size() > 7, "Expected at least 8 tablets, saw " + tablets.size());
+      Wait.waitFor(() -> getTabletCount(c, id) > 7, Wait.MAX_WAIT_MILLIS, Wait.SLEEP_MILLIS,
+          "Expected at least 8 tablets");
     }
+  }
+
+  private int getTabletCount(AccumuloClient c, String tableId) throws TableNotFoundException {
+    Set<Text> tablets = new HashSet<>();
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(Range.prefix(tableId));
+      for (Entry<Key,Value> entry : s) {
+        tablets.add(entry.getKey().getRow());
+      }
+    }
+    return tablets.size();
+
   }
 
 }
