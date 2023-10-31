@@ -26,6 +26,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+
 public final class PropUtil {
 
   private PropUtil() {}
@@ -70,6 +73,14 @@ public final class PropUtil {
           && !ClassLoaderUtil.isValidContext(prop.getValue())) {
         throw new IllegalArgumentException(
             "Unable to resolve classloader for context: " + prop.getValue());
+      } else if (prop.getKey().startsWith(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey())
+          && prop.getKey().endsWith("planner.opts.executors")) {
+        try {
+          JsonParser.parseString(prop.getValue());
+        } catch (JsonSyntaxException e) {
+          throw new IllegalArgumentException(
+              Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + " contains invalid JSON.");
+        }
       }
     }
   }

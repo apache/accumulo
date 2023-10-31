@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
@@ -98,6 +99,38 @@ public class CompactionManager {
     }
   }
 
+  @FunctionalInterface
+  private interface ConfigurationFailure {
+    boolean execute();
+  }
+
+  private static class RetryBackoffModifier {
+    private final AtomicBoolean failure;
+    private final Retry retry;
+
+    public RetryBackoffModifier(AtomicBoolean failure, Retry retry) {
+      super();
+      this.failure = failure;
+      this.retry = retry;
+    }
+
+    public void execute(ConfigurationFailure method) {
+      if (!method.execute()) {
+        // False is returned when checkForConfigChange runs into
+        // an error. Change the backOffFactor so that we don't
+        // spam the logs. It's likely a human needs to intervene
+        // to fix the configuration.
+        log.warn("Setting backoff factor to 10 due to configuration error");
+        retry.setBackOffFactor(10);
+        failure.set(true);
+      } else if (failure.get()) {
+        log.info("Re-setting backoff factor to original value due to configuration error recovery");
+        retry.setBackOffFactor(1.07);
+        failure.set(false);
+      }
+    }
+  }
+
   private void mainLoop() {
     long lastCheckAllTime = System.nanoTime();
 
@@ -108,6 +141,8 @@ public class CompactionManager {
         .backOffFactor(1.07).logInterval(1, MINUTES).createFactory();
     var retry = retryFactory.createRetry();
     Compactable last = null;
+    AtomicBoolean configurationFailure = new AtomicBoolean(false);
+    RetryBackoffModifier retryModifier = new RetryBackoffModifier(configurationFailure, retry);
 
     while (true) {
       try {
@@ -118,7 +153,7 @@ public class CompactionManager {
               new HashSet<>(runningExternalCompactions.keySet());
           for (Compactable compactable : compactables) {
             last = compactable;
-            submitCompaction(compactable);
+            retryModifier.execute(() -> submitCompaction(compactable));
             // remove anything from snapshot that tablets know are running
             compactable.getExternalCompactionIds(runningEcids::remove);
           }
@@ -130,7 +165,7 @@ public class CompactionManager {
           var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
           if (compactable != null) {
             last = compactable;
-            submitCompaction(compactable);
+            retryModifier.execute(() -> submitCompaction(compactable));
           }
         }
 
@@ -139,8 +174,7 @@ public class CompactionManager {
           retry = retryFactory.createRetry();
         }
 
-        checkForConfigChanges(false);
-
+        retryModifier.execute(() -> checkForConfigChanges(false));
       } catch (Exception e) {
         var extent = last == null ? null : last.getExtent();
         log.warn("Failed to compact {} ", extent, e);
@@ -155,14 +189,17 @@ public class CompactionManager {
   }
 
   /**
-   * Get each configured service for the compactable tablet and submit for compaction
+   * Get each configured service for the compactable tablet and submit for compaction return submit
+   * success / failure
    */
-  private void submitCompaction(Compactable compactable) {
+  private boolean submitCompaction(Compactable compactable) {
     for (CompactionKind ctype : CompactionKind.values()) {
       var csid = compactable.getConfiguredService(ctype);
       var service = services.get(csid);
       if (service == null) {
-        checkForConfigChanges(true);
+        if (!checkForConfigChanges(true)) {
+          return false;
+        }
         service = services.get(csid);
         if (service == null) {
           log.error(
@@ -178,6 +215,7 @@ public class CompactionManager {
         service.submitCompaction(ctype, compactable, compactablesToCheck::add);
       }
     }
+    return true;
   }
 
   public CompactionManager(Iterable<Compactable> compactables, ServerContext context,
@@ -222,12 +260,15 @@ public class CompactionManager {
     compactablesToCheck.add(compactable);
   }
 
-  private synchronized void checkForConfigChanges(boolean force) {
+  /*
+   * return success / failure
+   */
+  private synchronized boolean checkForConfigChanges(boolean force) {
     try {
       final long secondsSinceLastCheck =
           NANOSECONDS.toSeconds(System.nanoTime() - lastConfigCheckTime);
       if (!force && (secondsSinceLastCheck < 1)) {
-        return;
+        return true;
       }
 
       lastConfigCheckTime = System.nanoTime();
@@ -276,8 +317,10 @@ public class CompactionManager {
         externalExecutors.keySet().retainAll(activeExternalExecs);
 
       }
+      return true;
     } catch (RuntimeException e) {
       log.error("Failed to reconfigure compaction services ", e);
+      return false;
     }
   }
 

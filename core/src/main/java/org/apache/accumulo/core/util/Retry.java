@@ -73,8 +73,6 @@ public class Retry {
 
   }
 
-  // Visible for testing
-  @VisibleForTesting
   public void setBackOffFactor(double baskOffFactor) {
     this.backOffFactor = baskOffFactor;
     this.currentBackOffFactor = this.backOffFactor;
