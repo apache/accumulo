@@ -34,8 +34,13 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AssignmentParamsImpl.class);
+
   private final SortedMap<TabletServerId,TServerStatus> currentStatus;
   private final Map<TabletId,TabletServerId> unassigned;
   private final Map<TabletId,TabletServerId> assignmentsOut;
@@ -50,15 +55,25 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignmentsOut) {
 
     SortedMap<TabletServerId,TServerStatus> currentStatusNew = new TreeMap<>();
-    currentStatus.forEach((tsi, status) -> currentStatusNew.put(new TabletServerIdImpl(tsi),
-        TServerStatusImpl.fromThrift(status)));
-
     Map<String,Set<TabletServerId>> tserverGroups = new HashMap<>();
-    currentTServerGrouping.forEach((k, v) -> {
+    currentTServerGrouping.forEach((group, serversInGroup) -> {
       Set<TabletServerId> servers = new HashSet<>();
-      v.forEach(tsi -> servers.add(TabletServerIdImpl.fromThrift(tsi)));
-      tserverGroups.put(k, servers);
+      serversInGroup.forEach(tsi -> {
+        TabletServerIdImpl id = TabletServerIdImpl.fromThrift(tsi);
+        if (currentStatus.containsKey(tsi)) {
+          currentStatusNew.put(id, TServerStatusImpl.fromThrift(currentStatus.get(tsi)));
+          servers.add(id);
+        } else {
+          LOG.debug("Dropping tserver {} from group {} as it's not in set of all servers", id,
+              group);
+        }
+      });
+      if (!servers.isEmpty()) {
+        tserverGroups.put(group, servers);
+      }
     });
+
+    LOG.debug("TServer groups for balancer assignment: {}", tserverGroups);
 
     Map<TabletId,TabletServerId> unassignedNew = new HashMap<>();
     unassigned.forEach(

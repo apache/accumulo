@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  */
-public interface TabletStateStore extends ClosableIterable<TabletManagement> {
+public interface TabletStateStore {
 
   /**
    * Get the level for this state store
@@ -52,14 +52,14 @@ public interface TabletStateStore extends ClosableIterable<TabletManagement> {
    * Scan the information about the tablets covered by this store that have end row in the specified
    * ranges.
    */
-  ClosableIterator<TabletManagement> iterator(List<Range> ranges);
+  ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters);
 
   /**
    * Scan the information about all tablets covered by this store..
    */
-  @Override
-  default ClosableIterator<TabletManagement> iterator() {
-    return iterator(List.of(MetadataSchema.TabletsSection.getRange()));
+  default ClosableIterator<TabletManagement> iterator(TabletManagementParameters parameters) {
+    return iterator(List.of(MetadataSchema.TabletsSection.getRange()), parameters);
   }
 
   /**
@@ -118,11 +118,6 @@ public interface TabletStateStore extends ClosableIterable<TabletManagement> {
   }
 
   public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context) {
-    return getStoreForLevel(level, context, null);
-  }
-
-  public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context,
-      CurrentState state) {
 
     TabletStateStore tss;
     switch (level) {
@@ -130,10 +125,10 @@ public interface TabletStateStore extends ClosableIterable<TabletManagement> {
         tss = new ZooTabletStateStore(level, context);
         break;
       case METADATA:
-        tss = new RootTabletStateStore(level, context, state);
+        tss = new RootTabletStateStore(level, context);
         break;
       case USER:
-        tss = new MetaDataStateStore(level, context, state);
+        tss = new MetaDataStateStore(level, context);
         break;
       default:
         throw new IllegalArgumentException("Unknown level " + level);

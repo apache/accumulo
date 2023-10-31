@@ -26,15 +26,19 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 
+import com.google.common.base.Preconditions;
+
 class RootTabletStateStore extends MetaDataStateStore {
 
-  RootTabletStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    super(level, context, state, RootTable.NAME);
+  RootTabletStateStore(DataLevel level, ClientContext context) {
+    super(level, context, RootTable.NAME);
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
-    return new TabletManagementScanner(context, ranges, state, RootTable.NAME);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    Preconditions.checkArgument(parameters.getLevel() == getLevel());
+    return new TabletManagementScanner(context, ranges, parameters, RootTable.NAME);
   }
 
   @Override

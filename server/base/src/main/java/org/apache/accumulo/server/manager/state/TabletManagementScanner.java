@@ -59,8 +59,8 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
   // This constructor is called from TabletStateStore implementations
-  public TabletManagementScanner(ClientContext context, List<Range> ranges, CurrentState state,
-      String tableName) {
+  public TabletManagementScanner(ClientContext context, List<Range> ranges,
+      TabletManagementParameters tmgmtParams, String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
@@ -90,14 +90,9 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       throw new RuntimeException("Error obtaining locations for table: " + tableName);
     }
     cleanable = CleanerUtil.unclosed(this, TabletManagementScanner.class, closed, log, mdScanner);
-    TabletManagementIterator.configureScanner(mdScanner, state);
+    TabletManagementIterator.configureScanner(mdScanner, tmgmtParams);
     mdScanner.setRanges(ranges);
     iter = mdScanner.iterator();
-  }
-
-  // This constructor is called from utilities and tests
-  public TabletManagementScanner(ClientContext context, Range range, String tableName) {
-    this(context, List.of(range), null, tableName);
   }
 
   @Override

@@ -63,7 +63,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       TabletMetadata newTablet;
       do {
         UtilWaitThread.sleep(250);
-        newTablet = ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+        newTablet = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       } while (!newTablet.hasCurrent());
       assertNull(newTablet.getLast());
       assertNotNull(newTablet.getLocation());
@@ -79,8 +79,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // no last location should be set yet
-      TabletMetadata unflushed =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
       assertNull(unflushed.getLast());
       assertTrue(newTablet.hasCurrent());
@@ -88,23 +87,20 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       // This should give it a last location if the mode is being used correctly
       c.tableOperations().flush(tableName, null, null, true);
 
-      TabletMetadata flushed =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata flushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertEquals(newTablet.getLocation().getHostPort(), flushed.getLocation().getHostPort());
       assertEquals(flushed.getLocation().getHostPort(), flushed.getLast().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletMetadata offline =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertNull(offline.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), offline.getLast().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
-      TabletMetadata online =
-          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(offline.getLast().getHostPort(), online.getLast().getHostPort());

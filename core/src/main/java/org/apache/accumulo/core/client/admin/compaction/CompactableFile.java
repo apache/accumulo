@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin.compaction;
 
 import java.net.URI;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
 /**
@@ -33,6 +34,16 @@ public interface CompactableFile {
 
   public URI getUri();
 
+  /**
+   * @return A range associated with the file. If a file has an associated range then Accumulo will
+   *         limit reads to within the range. Not all files have an associated range, it a file does
+   *         not have a range then an infinite range is returned. The URI plus this range uniquely
+   *         identify a file.
+   *
+   * @since 3.1.0
+   */
+  public Range getRange();
+
   public long getEstimatedSize();
 
   public long getEstimatedEntries();
@@ -41,4 +52,12 @@ public interface CompactableFile {
     return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);
   }
 
+  /**
+   * Creates a new CompactableFile object that implements this interface.
+   *
+   * @since 3.1.0
+   */
+  static CompactableFile create(URI uri, Range range, long estimatedSize, long estimatedEntries) {
+    return new CompactableFileImpl(uri, range, estimatedSize, estimatedEntries);
+  }
 }

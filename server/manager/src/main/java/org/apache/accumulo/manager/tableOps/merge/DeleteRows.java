@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.manager.tableOps.merge.MergeTablets.validateTablet;
@@ -90,7 +91,7 @@ public class DeleteRows extends ManagerRepo {
     try (
         var tabletsMetadata = manager.getContext().getAmple().readTablets()
             .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-            .fetch(OPID, LOCATION, FILES, PREV_ROW).checkConsistency().build();
+            .fetch(OPID, LOCATION, FILES, PREV_ROW, LOGS).checkConsistency().build();
         var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
       KeyExtent firstCompleteContained = null;
@@ -98,7 +99,6 @@ public class DeleteRows extends ManagerRepo {
 
       for (var tabletMetadata : tabletsMetadata) {
         validateTablet(tabletMetadata, fateStr, opid, data.tableId);
-
         var tabletMutator = tabletsMutator.mutateTablet(tabletMetadata.getExtent())
             .requireOperation(opid).requireAbsentLocation();
 

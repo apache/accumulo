@@ -26,15 +26,14 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -45,8 +44,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.manager.state.ClosableIterator;
-import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -74,7 +71,6 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
   public void test() throws Exception {
     // make some tablets, spread 'em around
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      ClientContext context = (ClientContext) c;
       ServerContext serverContext = cluster.getServerContext();
       String table = this.getUniqueNames(1)[0];
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
@@ -90,16 +86,19 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // scan the metadata table and get the two table location states
       Set<TabletMetadata.Location> states = new HashSet<>();
       Set<TabletMetadata> oldLocations = new HashSet<>();
-      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, serverContext);
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
-        for (TabletManagement mti : store) {
-          if (mti.getTabletMetadata().hasCurrent()) {
-            states.add(mti.getTabletMetadata().getLocation());
-            oldLocations.add(mti.getTabletMetadata());
-          }
+        try (
+            var tablets = serverContext.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+          tablets.iterator().forEachRemaining(tm -> {
+            if (tm.hasCurrent()) {
+              states.add(tm.getLocation());
+              oldLocations.add(tm);
+            }
+          });
         }
+
       }
       assertEquals(2, states.size());
       // Kill a tablet server... we don't care which one... wait for everything to be reassigned
@@ -109,16 +108,19 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       while (true) {
         UtilWaitThread.sleep(1000);
         states.clear();
-        boolean allAssigned = true;
-        for (TabletManagement mti : store) {
-          if (mti.getTabletMetadata().hasCurrent()) {
-            states.add(mti.getTabletMetadata().getLocation());
-          } else {
-            allAssigned = false;
-          }
+        AtomicBoolean allAssigned = new AtomicBoolean(true);
+        try (
+            var tablets = serverContext.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+          tablets.iterator().forEachRemaining(tm -> {
+            if (tm.hasCurrent()) {
+              states.add(tm.getLocation());
+            } else {
+              allAssigned.set(false);
+            }
+          });
         }
         System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
-        if (states.size() != 2 && allAssigned) {
+        if (states.size() != 2 && allAssigned.get()) {
           break;
         }
       }
@@ -136,20 +138,20 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       // wait for the manager to fix the problem
-      waitForCleanStore(store);
+      waitForCleanStore(serverContext, DataLevel.USER);
       // now jam up the metadata table
       tabletMutator =
           serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
-      waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, serverContext));
+      waitForCleanStore(serverContext, DataLevel.METADATA);
     }
   }
 
-  private void waitForCleanStore(TabletStateStore store) {
+  private void waitForCleanStore(ServerContext serverContext, DataLevel level) {
     while (true) {
-      try (ClosableIterator<TabletManagement> iter = store.iterator()) {
-        iter.forEachRemaining(t -> {});
+      try (var tablets = serverContext.getAmple().readTablets().forLevel(level).build()) {
+        tablets.iterator().forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

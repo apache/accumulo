@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
@@ -54,7 +55,7 @@ public class ReserveTablets extends ManagerRepo {
 
     try (
         var tablets = env.getContext().getAmple().readTablets().forTable(data.tableId)
-            .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, OPID)
+            .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, LOGS, OPID)
             .checkConsistency().build();
         var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets();) {
 
@@ -62,6 +63,7 @@ public class ReserveTablets extends ManagerRepo {
       int otherOps = 0;
       int opsSet = 0;
       int locations = 0;
+      int wals = 0;
 
       for (var tabletMeta : tablets) {
 
@@ -77,6 +79,8 @@ public class ReserveTablets extends ManagerRepo {
           locations++;
         }
 
+        wals += tabletMeta.getLogs().size();
+
         count++;
       }
 
@@ -84,8 +88,8 @@ public class ReserveTablets extends ManagerRepo {
           .filter(conditionalResult -> conditionalResult.getStatus() == Status.ACCEPTED).count();
 
       log.debug(
-          "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{}",
-          FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted);
+          "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",
+          FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted, wals);
 
       // while there are table lock a tablet can be concurrently deleted, so should always see
       // tablets
@@ -98,7 +102,7 @@ public class ReserveTablets extends ManagerRepo {
             FateTxId.formatTid(tid));
       }
 
-      if (locations > 0 || otherOps > 0) {
+      if (locations > 0 || otherOps > 0 || wals > 0) {
         // need to wait on these tablets
         return Math.max(1000, count);
       }
