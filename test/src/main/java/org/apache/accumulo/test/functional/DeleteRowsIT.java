@@ -220,6 +220,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
+
     c.tableOperations().deleteRows(table, startText, endText);
     Collection<Text> remainingSplits = c.tableOperations().listSplits(table);
     StringBuilder sb = new StringBuilder();

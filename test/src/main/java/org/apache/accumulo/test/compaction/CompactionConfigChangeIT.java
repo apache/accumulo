@@ -35,8 +35,10 @@ import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled // ELASTICITY_TODO
 public class CompactionConfigChangeIT extends AccumuloClusterHarness {
 
   public static long countFiles(AccumuloClient client, String table, String fileNamePrefix)

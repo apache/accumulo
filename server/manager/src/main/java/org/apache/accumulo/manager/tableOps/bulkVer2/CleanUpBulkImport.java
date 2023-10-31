@@ -66,7 +66,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     ample.putGcFileAndDirCandidates(info.tableId,
-        Collections.singleton(new ReferenceFile(info.tableId, bulkDir)));
+        Collections.singleton(ReferenceFile.forFile(info.tableId, bulkDir)));
 
     Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
     Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);

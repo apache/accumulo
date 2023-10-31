@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -60,10 +59,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag(SUNNY_DAY)
 public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
   private static final int managerTabletGroupWatcherInterval = 5;

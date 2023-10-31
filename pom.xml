@@ -154,7 +154,7 @@
     <version.opentelemetry>1.27.0</version.opentelemetry>
     <version.slf4j>2.0.7</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.8.2</version.zookeeper>
+    <version.zookeeper>3.8.3</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -600,10 +600,9 @@
         <version>2.2.1.Final</version>
       </dependency>
       <dependency>
-        <!-- stay on 3.21.0 for now due to https://github.com/apache/accumulo/issues/3446 -->
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.21.0</version>
+        <version>3.24.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>

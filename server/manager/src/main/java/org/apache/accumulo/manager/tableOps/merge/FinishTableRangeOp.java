@@ -18,54 +18,75 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * ELASTICITY_TODO edit these docs which are pre elasticity changes. Best done after #3763
- *
- * Merge makes things hard.
- *
- * Typically, a client will read the list of tablets, and begin an operation on that tablet at the
- * location listed in the metadata table. When a tablet splits, the information read from the
- * metadata table doesn't match reality, so the operation fails, and must be retried. But the
- * operation will take place either on the parent, or at a later time on the children. It won't take
- * place on just half of the tablet.
- *
- * However, when a merge occurs, the operation may have succeeded on one section of the merged area,
- * and not on the others, when the merge occurs. There is no way to retry the request at a later
- * time on an unmodified tablet.
- *
- * The code below uses read-write lock to prevent some operations while a merge is taking place.
- * Normal operations, like bulk imports, will grab the read lock and prevent merges (writes) while
- * they run. Merge operations will lock out some operations while they run.
- */
+import com.google.common.base.Preconditions;
+
 class FinishTableRangeOp extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(FinishTableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
 
-  public FinishTableRangeOp(NamespaceId namespaceId, TableId tableId) {
-    this.tableId = tableId;
-    this.namespaceId = namespaceId;
+  private final MergeInfo data;
+
+  public FinishTableRangeOp(MergeInfo data) {
+    this.data = data;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    MergeInfo mergeInfo = manager.getMergeInfo(tableId);
-    log.info("removing merge information " + mergeInfo);
-    manager.clearMergeState(tableId);
-    Utils.unreserveTable(manager, tableId, tid, true);
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
+    KeyExtent range = data.getReserveExtent();
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
+    log.debug("{} unreserving tablet in range {}", FateTxId.formatTid(tid), range);
+
+    try (var tablets = manager.getContext().getAmple().readTablets().forTable(data.tableId)
+        .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, OPID).build();
+        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets();) {
+      int opsDeleted = 0;
+      int count = 0;
+
+      for (var tabletMeta : tablets) {
+        if (opid.equals(tabletMeta.getOperationId())) {
+          tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireOperation(opid)
+              .deleteOperation().submit(tm -> !opid.equals(tm.getOperationId()));
+          opsDeleted++;
+        }
+        count++;
+      }
+
+      Preconditions.checkState(count > 0);
+
+      var results = tabletsMutator.process();
+      var deletesAccepted =
+          results.values().stream().filter(conditionalResult -> conditionalResult.getStatus()
+              == Ample.ConditionalResult.Status.ACCEPTED).count();
+
+      log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
+          deletesAccepted, opsDeleted, count);
+
+      manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
+          FateTxId.formatTid(tid));
+
+      DeleteRows.verifyAccepted(results, FateTxId.formatTid(tid));
+      Preconditions.checkState(deletesAccepted == opsDeleted);
+    }
+
+    Utils.unreserveTable(manager, data.tableId, tid, true);
+    Utils.unreserveNamespace(manager, data.namespaceId, tid, false);
     return null;
   }
 

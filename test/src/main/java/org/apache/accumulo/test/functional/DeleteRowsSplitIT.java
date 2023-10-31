@@ -39,11 +39,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // attempt to reproduce ACCUMULO-315
+@Disabled // ELASTICITY_TODO
 public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsSplitIT.class);

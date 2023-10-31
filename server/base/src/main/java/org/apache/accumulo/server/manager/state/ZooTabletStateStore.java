@@ -40,6 +40,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStateStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
@@ -60,7 +62,9 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
     return new ClosableIterator<>() {
       boolean finished = false;
@@ -73,19 +77,24 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       @Override
       public TabletManagement next() {
         finished = true;
-        TabletMetadata tm = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
 
-        var actions = EnumSet.of(ManagementAction.NEEDS_LOCATION_UPDATE);
-
-        CompactionJobGenerator cjg =
-            new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx), Map.of());
-        var jobs = cjg.generateJobs(tm,
-            EnumSet.of(CompactionKind.SYSTEM, CompactionKind.USER, CompactionKind.SELECTOR));
-        if (!jobs.isEmpty()) {
-          actions.add(ManagementAction.NEEDS_COMPACTING);
+        final var actions = EnumSet.of(ManagementAction.NEEDS_LOCATION_UPDATE);
+        final TabletMetadata tm = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
+        String error = null;
+        try {
+          CompactionJobGenerator cjg =
+              new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx), Map.of());
+          var jobs = cjg.generateJobs(tm,
+              EnumSet.of(CompactionKind.SYSTEM, CompactionKind.USER, CompactionKind.SELECTOR));
+          if (!jobs.isEmpty()) {
+            actions.add(ManagementAction.NEEDS_COMPACTING);
+          }
+        } catch (Exception e) {
+          log.error("Error computing tablet management actions for Root extent", e);
+          error = e.getMessage();
         }
+        return new TabletManagement(actions, tm, error);
 
-        return new TabletManagement(actions, tm);
       }
 
       @Override

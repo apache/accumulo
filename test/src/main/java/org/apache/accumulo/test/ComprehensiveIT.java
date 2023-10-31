@@ -177,7 +177,6 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
-
     }
   }
 

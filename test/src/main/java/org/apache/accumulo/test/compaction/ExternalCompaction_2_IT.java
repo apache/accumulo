@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
@@ -66,11 +65,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-@Tag(SUNNY_DAY)
 public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
   public static class ExternalCompaction2Config implements MiniClusterConfigurationCallback {

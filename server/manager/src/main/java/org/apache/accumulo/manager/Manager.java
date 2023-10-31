@@ -74,9 +74,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
@@ -101,7 +99,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -110,7 +107,6 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
-import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
@@ -131,12 +127,10 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
-import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.DeadServerList;
-import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
@@ -152,8 +146,6 @@ import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
@@ -179,7 +171,7 @@ import io.opentelemetry.context.Scope;
  * The manager will also coordinate log recoveries and reports general status.
  */
 public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
+    implements LiveTServerSet.Listener, TableObserver, HighlyAvailableService {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -203,7 +195,6 @@ public class Manager extends AbstractServer
   final SortedMap<KeyExtent,TServerInstance> migrations =
       Collections.synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
-  private final Object mergeLock = new Object();
   RecoveryManager recoveryManager = null;
   private final ManagerTime timeKeeper;
 
@@ -242,12 +233,14 @@ public class Manager extends AbstractServer
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
 
-  @Override
   public synchronized ManagerState getManagerState() {
     return state;
   }
 
-  @Override
+  // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only
+  // retrieve information about compactions in that data level. Attempted this and a lot of
+  // refactoring was needed to get that small bit of information to this method. Would be best to
+  // address this after issue. May be best to attempt this after #3576.
   public Map<Long,Map<String,String>> getCompactionHints() {
     Map<Long,CompactionConfig> allConfig = null;
     try {
@@ -461,9 +454,9 @@ public class Manager extends AbstractServer
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
-    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context, this);
-    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this);
-    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context, this);
+    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context);
+    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context);
+    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -496,65 +489,6 @@ public class Manager extends AbstractServer
 
   public TServerConnection getConnection(TServerInstance server) {
     return tserverSet.getConnection(server);
-  }
-
-  public MergeInfo getMergeInfo(TableId tableId) {
-    ServerContext context = getContext();
-    synchronized (mergeLock) {
-      try {
-        String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-        if (!context.getZooReaderWriter().exists(path)) {
-          return new MergeInfo();
-        }
-        byte[] data = context.getZooReaderWriter().getData(path);
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(data, data.length);
-        MergeInfo info = new MergeInfo();
-        info.readFields(in);
-        return info;
-      } catch (KeeperException.NoNodeException ex) {
-        log.info("Error reading merge state, it probably just finished");
-        return new MergeInfo();
-      } catch (Exception ex) {
-        log.warn("Unexpected error reading merge state", ex);
-        return new MergeInfo();
-      }
-    }
-  }
-
-  public void setMergeState(MergeInfo info, MergeState state)
-      throws KeeperException, InterruptedException {
-    ServerContext context = getContext();
-    synchronized (mergeLock) {
-      String path =
-          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().tableId() + "/merge";
-      info.setState(state);
-      if (state.equals(MergeState.NONE)) {
-        context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      } else {
-        DataOutputBuffer out = new DataOutputBuffer();
-        try {
-          info.write(out);
-        } catch (IOException ex) {
-          throw new AssertionError("Unlikely", ex);
-        }
-        context.getZooReaderWriter().putPersistentData(path, out.getData(),
-            state.equals(MergeState.WAITING_FOR_OFFLINE) ? ZooUtil.NodeExistsPolicy.FAIL
-                : ZooUtil.NodeExistsPolicy.OVERWRITE);
-      }
-      mergeLock.notifyAll();
-    }
-    nextEvent.event(info.getExtent().tableId(), "Merge state of %s set to %s", info.getExtent(),
-        state);
-  }
-
-  public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    synchronized (mergeLock) {
-      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-      getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      mergeLock.notifyAll();
-    }
-    nextEvent.event(tableId, "Merge state of %s cleared", tableId);
   }
 
   void setManagerGoalState(ManagerGoalState state) {
@@ -608,129 +542,8 @@ public class Manager extends AbstractServer
     return compactionJobQueues;
   }
 
-  enum TabletGoalState {
-    HOSTED(TUnloadTabletGoal.UNKNOWN),
-    UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
-    DELETED(TUnloadTabletGoal.DELETED),
-    SUSPENDED(TUnloadTabletGoal.SUSPENDED);
-
-    private final TUnloadTabletGoal unloadGoal;
-
-    TabletGoalState(TUnloadTabletGoal unloadGoal) {
-      this.unloadGoal = unloadGoal;
-    }
-
-    /** The purpose of unloading this tablet. */
-    public TUnloadTabletGoal howUnload() {
-      return unloadGoal;
-    }
-  }
-
-  TabletGoalState getSystemGoalState(TabletMetadata tm) {
-    switch (getManagerState()) {
-      case NORMAL:
-        return TabletGoalState.HOSTED;
-      case HAVE_LOCK: // fall-through intended
-      case INITIAL: // fall-through intended
-      case SAFE_MODE:
-        if (tm.getExtent().isMeta()) {
-          return TabletGoalState.HOSTED;
-        }
-        return TabletGoalState.UNASSIGNED;
-      case UNLOAD_METADATA_TABLETS:
-        if (tm.getExtent().isRootTablet()) {
-          return TabletGoalState.HOSTED;
-        }
-        return TabletGoalState.UNASSIGNED;
-      case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
-      case STOP:
-        return TabletGoalState.UNASSIGNED;
-      default:
-        throw new IllegalStateException("Unknown Manager State");
-    }
-  }
-
-  TabletGoalState getTableGoalState(TabletMetadata tm) {
-    TableState tableState = getContext().getTableManager().getTableState(tm.getTableId());
-    if (tableState == null) {
-      return TabletGoalState.DELETED;
-    }
-    switch (tableState) {
-      case DELETING:
-        return TabletGoalState.DELETED;
-      case OFFLINE:
-      case NEW:
-        return TabletGoalState.UNASSIGNED;
-      default:
-        switch (tm.getHostingGoal()) {
-          case ALWAYS:
-            return TabletGoalState.HOSTED;
-          case NEVER:
-            return TabletGoalState.UNASSIGNED;
-          case ONDEMAND:
-            if (tm.getHostingRequested()) {
-              return TabletGoalState.HOSTED;
-            } else {
-              return TabletGoalState.UNASSIGNED;
-            }
-          default:
-            throw new IllegalStateException(
-                "Tablet Hosting Goal is unhandled: " + tm.getHostingGoal());
-        }
-    }
-  }
-
-  TabletGoalState getGoalState(TabletMetadata tm, MergeInfo mergeInfo) {
-    KeyExtent extent = tm.getExtent();
-    // Shutting down?
-    TabletGoalState state = getSystemGoalState(tm);
-
-    if (state == TabletGoalState.HOSTED) {
-      if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
-        // The place where this tablet stores its metadata was not upgraded, so do not assign this
-        // tablet yet.
-        return TabletGoalState.UNASSIGNED;
-      }
-
-      if (tm.getOperationId() != null) {
-        return TabletGoalState.UNASSIGNED;
-      }
-
-      if (tm.hasCurrent() && serversToShutdown.contains(tm.getLocation().getServerInstance())) {
-        return TabletGoalState.SUSPENDED;
-      }
-      // Handle merge transitions
-      if (mergeInfo.getExtent() != null) {
-
-        final boolean overlaps = mergeInfo.overlaps(extent);
-
-        if (overlaps) {
-          log.debug("mergeInfo overlaps: {} true {}", extent, mergeInfo.getState());
-          switch (mergeInfo.getState()) {
-            case NONE:
-            case COMPLETE:
-              break;
-            case WAITING_FOR_OFFLINE:
-            case MERGING:
-              return TabletGoalState.UNASSIGNED;
-          }
-        } else {
-          log.trace("mergeInfo overlaps: {} false", extent);
-        }
-      }
-
-      // taking table offline?
-      state = getTableGoalState(tm);
-      if (state == TabletGoalState.HOSTED) {
-        // Maybe this tablet needs to be migrated
-        TServerInstance dest = migrations.get(extent);
-        if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
-          return TabletGoalState.UNASSIGNED;
-        }
-      }
-    }
-    return state;
+  public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
+    return upgradeCoordinator.getStatus();
   }
 
   private class MigrationCleanupThread implements Runnable {
@@ -904,12 +717,11 @@ public class Manager extends AbstractServer
     }
 
     private long updateStatus() {
-      Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+      var tseversSnapshot = tserverSet.getSnapshot();
       TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
-      tserverStatus = gatherTableInformation(currentServers, temp);
+      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers(), temp);
       tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
-      tServerGroupingForBalancer =
-          Collections.unmodifiableMap(tserverSet.getCurrentServersGroups());
+      tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -923,7 +735,7 @@ public class Manager extends AbstractServer
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
         for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(currentServers)) {
+          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.getTservers())) {
             log.debug("not balancing just yet, as collection of live tservers is in flux");
             return DEFAULT_WAIT_FOR_WATCHER;
           }
@@ -963,7 +775,7 @@ public class Manager extends AbstractServer
 
     private long balanceTablets() {
       BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
-          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot());
+          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot().keySet());
       long wait = tabletBalancer.balance(params);
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
@@ -1163,10 +975,10 @@ public class Manager extends AbstractServer
       managerUpgrading.set(true);
     }
 
+    ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
-      ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -1221,7 +1033,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1229,7 +1041,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1240,7 +1052,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
@@ -1665,7 +1477,6 @@ public class Manager extends AbstractServer
   @Override
   public void sessionExpired() {}
 
-  @Override
   public Set<TableId> onlineTables() {
     Set<TableId> result = new HashSet<>();
     if (getManagerState() != ManagerState.NORMAL) {
@@ -1689,23 +1500,12 @@ public class Manager extends AbstractServer
     return result;
   }
 
-  @Override
   public Set<TServerInstance> onlineTabletServers() {
-    return tserverSet.getCurrentServers();
+    return tserverSet.getSnapshot().getTservers();
   }
 
-  @Override
-  public Map<String,Set<TServerInstance>> tServerResourceGroups() {
-    return tserverSet.getCurrentServersGroups();
-  }
-
-  @Override
-  public Collection<MergeInfo> merges() {
-    List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
-      result.add(getMergeInfo(tableId));
-    }
-    return result;
+  public LiveTServersSnapshot tserversSnapshot() {
+    return tserverSet.getSnapshot();
   }
 
   // recovers state from the persistent transaction to shutdown a server
@@ -1789,19 +1589,15 @@ public class Manager extends AbstractServer
     return delegationTokensAvailable;
   }
 
-  @Override
-  public Set<KeyExtent> migrationsSnapshot() {
-    Set<KeyExtent> migrationKeys;
+  public Map<KeyExtent,TServerInstance> migrationsSnapshot() {
     synchronized (migrations) {
-      migrationKeys = new HashSet<>(migrations.keySet());
+      return Map.copyOf(migrations);
     }
-    return Collections.unmodifiableSet(migrationKeys);
   }
 
-  @Override
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
-      return new HashSet<>(serversToShutdown);
+      return Set.copyOf(serversToShutdown);
     }
   }
 

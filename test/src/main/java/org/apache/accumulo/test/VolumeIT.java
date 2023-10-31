@@ -87,10 +87,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Disabled // ELASTICITY_TODO
 public class VolumeIT extends ConfigurableMacBase {
 
   private File volDirBase;

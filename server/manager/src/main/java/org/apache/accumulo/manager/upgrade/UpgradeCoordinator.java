@@ -32,9 +32,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
@@ -59,7 +59,7 @@ public class UpgradeCoordinator {
      */
     INITIAL {
       @Override
-      public boolean isParentLevelUpgraded(KeyExtent extent) {
+      public boolean isParentLevelUpgraded(Ample.DataLevel level) {
         return false;
       }
     },
@@ -68,8 +68,8 @@ public class UpgradeCoordinator {
      */
     UPGRADED_ZOOKEEPER {
       @Override
-      public boolean isParentLevelUpgraded(KeyExtent extent) {
-        return extent.isRootTablet();
+      public boolean isParentLevelUpgraded(Ample.DataLevel level) {
+        return level == Ample.DataLevel.ROOT;
       }
     },
     /**
@@ -77,8 +77,8 @@ public class UpgradeCoordinator {
      */
     UPGRADED_ROOT {
       @Override
-      public boolean isParentLevelUpgraded(KeyExtent extent) {
-        return extent.isMeta();
+      public boolean isParentLevelUpgraded(Ample.DataLevel level) {
+        return level == Ample.DataLevel.METADATA || level == Ample.DataLevel.ROOT;
       }
     },
     /**
@@ -86,7 +86,7 @@ public class UpgradeCoordinator {
      */
     COMPLETE {
       @Override
-      public boolean isParentLevelUpgraded(KeyExtent extent) {
+      public boolean isParentLevelUpgraded(Ample.DataLevel level) {
         return true;
       }
     },
@@ -95,7 +95,7 @@ public class UpgradeCoordinator {
      */
     FAILED {
       @Override
-      public boolean isParentLevelUpgraded(KeyExtent extent) {
+      public boolean isParentLevelUpgraded(Ample.DataLevel level) {
         return false;
       }
     };
@@ -104,7 +104,7 @@ public class UpgradeCoordinator {
      * Determines if the place where this extent stores its metadata was upgraded for a given
      * upgrade status.
      */
-    public abstract boolean isParentLevelUpgraded(KeyExtent extent);
+    public abstract boolean isParentLevelUpgraded(Ample.DataLevel level);
   }
 
   private static final Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);

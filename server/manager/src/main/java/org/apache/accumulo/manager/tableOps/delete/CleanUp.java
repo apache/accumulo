@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -27,17 +31,14 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -49,7 +50,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -92,23 +92,20 @@ class CleanUp extends ManagerRepo {
     }
 
     boolean done = true;
-    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
-    Scanner scanner = manager.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    TabletManagementIterator.configureScanner(scanner, manager);
-    scanner.setRange(tableRange);
 
-    for (Entry<Key,Value> entry : scanner) {
-      final TabletManagement mti = TabletManagementIterator.decode(entry);
-      final TabletMetadata tm = mti.getTabletMetadata();
+    try (var tablets = manager.getContext().getAmple().readTablets().forTable(tableId)
+        .fetch(LOCATION, PREV_ROW, SUSPEND).checkConsistency().build()) {
       Set<TServerInstance> liveTServers = manager.onlineTabletServers();
-      TabletState state = TabletState.compute(tm, liveTServers);
-      if (!state.equals(TabletState.UNASSIGNED)) {
-        // This code will even wait on tablets that are assigned to dead tablets servers. This is
-        // intentional because the manager may make metadata writes for these tablets. See #587
-        log.debug("Still waiting for table({}) to be deleted; Target tablet state: UNASSIGNED, "
-            + "Current tablet state: {}, locationState: {}", tableId, state, tm);
-        done = false;
-        break;
+      for (TabletMetadata tm : tablets) {
+        TabletState state = TabletState.compute(tm, liveTServers);
+        if (!state.equals(TabletState.UNASSIGNED)) {
+          // This code will even wait on tablets that are assigned to dead tablets servers. This is
+          // intentional because the manager may make metadata writes for these tablets. See #587
+          log.debug("Still waiting for table({}) to be deleted; Target tablet state: UNASSIGNED, "
+              + "Current tablet state: {}, locationState: {}", tableId, state, tm);
+          done = false;
+          break;
+        }
       }
     }
 

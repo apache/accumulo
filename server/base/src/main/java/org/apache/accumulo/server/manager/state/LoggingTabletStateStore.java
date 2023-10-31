@@ -55,8 +55,9 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
-    return wrapped.iterator(ranges);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    return wrapped.iterator(ranges, parameters);
   }
 
   @Override

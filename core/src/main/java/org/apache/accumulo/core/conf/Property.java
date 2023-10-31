@@ -49,7 +49,7 @@ public enum Property {
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
       "Properties in this category related to the configuration of SSL keys for"
-          + " RPC. See also instance.ssl.enabled",
+          + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
       "Configures the TCP backlog for the server side sockets created by Thrift."
@@ -57,36 +57,36 @@ public enum Property {
           + " will use the Thrift default value.",
       "2.1.3"),
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
-      "Path of the keystore file for the server's private SSL key", "1.6.0"),
+      "Path of the keystore file for the server's private SSL key.", "1.6.0"),
   @Sensitive
   RPC_SSL_KEYSTORE_PASSWORD("rpc.javax.net.ssl.keyStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL private keystore. "
-          + "Leave blank to use the Accumulo instance secret",
+          + "Leave blank to use the Accumulo instance secret.",
       "1.6.0"),
   RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING,
-      "Type of SSL keystore", "1.6.0"),
+      "Type of SSL keystore.", "1.6.0"),
   RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "", PropertyType.PATH,
-      "Path of the truststore file for the root cert", "1.6.0"),
+      "Path of the truststore file for the root cert.", "1.6.0"),
   @Sensitive
   RPC_SSL_TRUSTSTORE_PASSWORD("rpc.javax.net.ssl.trustStorePassword", "", PropertyType.STRING,
-      "Password used to encrypt the SSL truststore. Leave blank to use no password", "1.6.0"),
+      "Password used to encrypt the SSL truststore. Leave blank to use no password.", "1.6.0"),
   RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING,
-      "Type of SSL truststore", "1.6.0"),
+      "Type of SSL truststore.", "1.6.0"),
   RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN,
       "Use JSSE system properties to configure SSL rather than the " + RPC_PREFIX.getKey()
-          + "javax.net.ssl.* Accumulo properties",
+          + "javax.net.ssl.* Accumulo properties.",
       "1.6.0"),
   RPC_SSL_CIPHER_SUITES("rpc.ssl.cipher.suites", "", PropertyType.STRING,
-      "Comma separated list of cipher suites that can be used by accepted connections", "1.6.1"),
+      "Comma separated list of cipher suites that can be used by accepted connections.", "1.6.1"),
   RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.3", PropertyType.STRING,
-      "Comma separated list of protocols that can be used to accept connections", "1.6.2"),
+      "Comma separated list of protocols that can be used to accept connections.", "1.6.2"),
   RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1.3", PropertyType.STRING,
-      "The protocol used to connect to a secure server, must be in the list of enabled protocols "
-          + "on the server side (rpc.ssl.server.enabled.protocols)",
+      "The protocol used to connect to a secure server. Must be in the list of enabled protocols "
+          + "on the server side `rpc.ssl.server.enabled.protocols`.",
       "1.6.2"),
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
-          + " and 'auth-conf'",
+          + " and 'auth-conf'.",
       "1.7.0"),
 
   // instance properties (must be the same for every node in an instance)
@@ -95,11 +95,11 @@ public enum Property {
           + "This is enforced and servers won't be able to communicate if these differ.",
       "1.3.5"),
   INSTANCE_ZK_HOST("instance.zookeeper.host", "localhost:2181", PropertyType.HOSTLIST,
-      "Comma separated list of zookeeper servers", "1.3.5"),
+      "Comma separated list of zookeeper servers.", "1.3.5"),
   INSTANCE_ZK_TIMEOUT("instance.zookeeper.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout; "
           + "max value when represented as milliseconds should be no larger than "
-          + Integer.MAX_VALUE,
+          + Integer.MAX_VALUE + ".",
       "1.3.5"),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
@@ -109,8 +109,8 @@ public enum Property {
           + " initialized, use the ChangeSecret tool and then update accumulo.properties"
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
-          + " HDFS. To use the ChangeSecret tool, run the command: ./bin/accumulo"
-          + " org.apache.accumulo.server.util.ChangeSecret",
+          + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
+          + " org.apache.accumulo.server.util.ChangeSecret`.",
       "1.3.5"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
@@ -157,26 +157,26 @@ public enum Property {
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
-          + "has privilege to perform an action",
+          + "has privilege to perform an action.",
       "1.5.0"),
   @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
       "The authorizor class that accumulo will use to determine what labels a "
-          + "user has privilege to see",
+          + "user has privilege to see.",
       "1.5.0"),
   @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
       "The permission handler class that accumulo will use to determine if a "
-          + "user has privilege to perform an action",
+          + "user has privilege to perform an action.",
       "1.5.0"),
   INSTANCE_RPC_SSL_ENABLED("instance.rpc.ssl.enabled", "false", PropertyType.BOOLEAN,
       "Use SSL for socket connections from clients and among accumulo services. "
           + "Mutually exclusive with SASL RPC configuration.",
       "1.6.0"),
   INSTANCE_RPC_SSL_CLIENT_AUTH("instance.rpc.ssl.clientAuth", "false", PropertyType.BOOLEAN,
-      "Require clients to present certs signed by a trusted root", "1.6.0"),
+      "Require clients to present certs signed by a trusted root.", "1.6.0"),
   INSTANCE_RPC_SASL_ENABLED("instance.rpc.sasl.enabled", "false", PropertyType.BOOLEAN,
       "Configures Thrift RPCs to require SASL with GSSAPI which supports "
           + "Kerberos authentication. Mutually exclusive with SSL RPC configuration.",
@@ -184,12 +184,12 @@ public enum Property {
   INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION("instance.rpc.sasl.allowed.user.impersonation", "",
       PropertyType.STRING,
       "One-line configuration property controlling what users are allowed to "
-          + "impersonate other users",
+          + "impersonate other users.",
       "1.7.1"),
   INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION("instance.rpc.sasl.allowed.host.impersonation", "",
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
-          + "(hostnames) that are allowed to impersonate other users",
+          + "(hostnames) that are allowed to impersonate other users.",
       "1.7.1"),
   // Crypto-related properties
   @Experimental
@@ -224,19 +224,19 @@ public enum Property {
       PropertyType.COUNT,
       "The maximum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
-      "Time to wait on I/O for simple, short RPC calls", "1.3.5"),
+      "Time to wait on I/O for simple, short RPC calls.", "1.3.5"),
   @Experimental
   GENERAL_RPC_SERVER_TYPE("general.rpc.server.type", "", PropertyType.STRING,
       "Type of Thrift server to instantiate, see "
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
-          + "Only useful for benchmarking thrift servers",
+          + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
-      "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs", "1.4.1"),
+      "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
       "Name of the kerberos principal to use. _HOST will automatically be "
           + "replaced by the machines hostname in the hostname portion of the "
-          + "principal. Leave blank if not using kerberoized hdfs",
+          + "principal. Leave blank if not using kerberoized hdfs.",
       "1.4.1"),
   GENERAL_KERBEROS_RENEWAL_PERIOD("general.kerberos.renewal.period", "30s",
       PropertyType.TIMEDURATION,
@@ -251,7 +251,7 @@ public enum Property {
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
-      "The number of threads to use for server-internal scheduled tasks", "2.1.0"),
+      "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental
@@ -260,7 +260,7 @@ public enum Property {
       "The class that will be used to select which volume will be used to create new files.",
       "1.6.0"),
   GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "",
-      PropertyType.STRING, "Comma-separated list of paths to CredentialProviders", "1.6.1"),
+      PropertyType.STRING, "Comma-separated list of paths to CredentialProviders.", "1.6.1"),
   GENERAL_ARBITRARY_PROP_PREFIX("general.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined system-wide properties. This may be"
           + " particularly useful for system-wide configuration for various"
@@ -269,54 +269,54 @@ public enum Property {
       "2.0.0"),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
-      "The length of time that delegation tokens and secret keys are valid", "1.7.0"),
+      "The length of time that delegation tokens and secret keys are valid.", "1.7.0"),
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d",
-      PropertyType.TIMEDURATION, "The length of time between generation of new secret keys",
+      PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
-      PropertyType.TIMEDURATION, "The time interval between low memory checks", "3.0.0"),
+      PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
       PropertyType.FRACTION,
-      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory.",
       "3.0.0"),
   GENERAL_LOW_MEM_SCAN_PROTECTION("general.low.mem.protection.scan", "false", PropertyType.BOOLEAN,
       "Scans may be paused or return results early when the server "
           + "is low on memory and this property is set to true. Enabling this property will incur a slight "
-          + "scan performance penalty when the server is not low on memory",
+          + "scan performance penalty when the server is not low on memory.",
       "3.0.0"),
   GENERAL_LOW_MEM_MINC_PROTECTION("general.low.mem.protection.compaction.minc", "false",
       PropertyType.BOOLEAN,
       "Minor compactions may be paused when the server "
           + "is low on memory and this property is set to true. Enabling this property will incur a slight "
-          + "compaction performance penalty when the server is not low on memory",
+          + "compaction performance penalty when the server is not low on memory.",
       "3.0.0"),
   GENERAL_LOW_MEM_MAJC_PROTECTION("general.low.mem.protection.compaction.majc", "false",
       PropertyType.BOOLEAN,
       "Major compactions may be paused when the server "
           + "is low on memory and this property is set to true. Enabling this property will incur a slight "
-          + "compaction performance penalty when the server is not low on memory",
+          + "compaction performance penalty when the server is not low on memory.",
       "3.0.0"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
-      "The maximum amount of time that a Scanner should wait before retrying a failed RPC",
+      "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer",
+      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
       "4.0.0"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics functionality using Micrometer", "2.1.0"),
+      "Enables metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer", "2.1.0"),
+      PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
-      "Name of class that implements MeterRegistryFactory", "2.1.0"),
+      "Name of class that implements MeterRegistryFactory.", "2.1.0"),
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
-      "The local IP address to which this server should bind for sending and receiving network traffic",
+      "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
-      "The port used for handling client connections on the manager", "1.3.5"),
+      "The port used for handling client connections on the manager.", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
@@ -329,10 +329,10 @@ public enum Property {
   MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS("manager.tablet.watcher.scan.threads.max", "16",
       PropertyType.COUNT,
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
-          + " look for tablets that need maintenance",
+          + " look for tablets that need maintenance.",
       "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
-      "The time to wait for a tablet server to process a bulk import request", "1.4.3"),
+      "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest.",
       "2.1.0"),
@@ -352,12 +352,12 @@ public enum Property {
       "Amount of time that the existence of recovery write-ahead logs is cached.", "2.1.2"),
   MANAGER_LEASE_RECOVERY_WAITING_PERIOD("manager.lease.recovery.interval", "5s",
       PropertyType.TIMEDURATION,
-      "The amount of time to wait after requesting a write-ahead log to be recovered", "1.5.0"),
+      "The amount of time to wait after requesting a write-ahead log to be recovered.", "1.5.0"),
   MANAGER_WAL_CLOSER_IMPLEMENTATION("manager.wal.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
-      "A class that implements a mechanism to steal write access to a write-ahead log", "2.1.0"),
+      "A class that implements a mechanism to steal write access to a write-ahead log.", "2.1.0"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
-      PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval",
+      PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
   MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run fault-tolerant executions (FATE)."
@@ -376,24 +376,24 @@ public enum Property {
       "Minimum number of tservers that need to be registered before manager will "
           + "start tablet assignment - checked at manager initialization, when manager gets lock. "
           + " When set to 0 or less, no blocking occurs. Default is 0 (disabled) to keep original "
-          + " behaviour. Added with version 1.10",
+          + " behaviour.",
       "1.10.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT("manager.startup.tserver.avail.max.wait", "0",
       PropertyType.TIMEDURATION,
       "Maximum time manager will wait for tserver available threshold "
           + "to be reached before continuing. When set to 0 or less, will block "
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
-          + "threshold is set greater than 0. Added with version 1.10",
+          + "threshold is set greater than 0.",
       "1.10.0"),
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
-      "10000", PropertyType.COUNT, "The max size of the priority queue", "4.0"),
+      "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the scan servers", "2.1.0"),
+      "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
   @Experimental
   SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
@@ -405,7 +405,7 @@ public enum Property {
       "Specifies the size of the cache for summary data on each scan server.", "2.1.0"),
   @Experimental
   SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
-      "Specifies a default blocksize for the scan server caches", "2.1.0"),
+      "Specifies a default blocksize for the scan server caches.", "2.1.0"),
   @Experimental
   SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
       PropertyType.STRING,
@@ -420,10 +420,10 @@ public enum Property {
       "2.1.0"),
   @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available", "2.1.0"),
+      "if the ports above are in use, search higher ports until one is available.", "2.1.0"),
   @Experimental
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
-      "The port used for handling client connections on the tablet servers", "2.1.0"),
+      "The port used for handling client connections on the tablet servers.", "2.1.0"),
   @Experimental
   SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
@@ -443,7 +443,7 @@ public enum Property {
           + "`sserver.scan.executors.<name>.threads=<number>`.  Optionally, can also set "
           + "`sserver.scan.executors.<name>.priority=<number 1 to 10>`, "
           + "`sserver.scan.executors.<name>.prioritizer=<class name>`, and "
-          + "`sserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`",
+          + "`sserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`.",
       "2.1.0"),
   @Experimental
   SSERV_SCAN_EXECUTORS_DEFAULT_THREADS("sserver.scan.executors.default.threads", "16",
@@ -461,23 +461,23 @@ public enum Property {
   @Experimental
   SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
       PropertyType.TIMEDURATION,
-      "The amount of time a scan reference is unused before its deleted from metadata table ",
+      "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
   @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the tablet servers", "1.3.5"),
+      "Properties in this category affect the behavior of the tablet servers.", "1.3.5"),
   TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION,
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
-      "Specifies a default blocksize for the tserver caches", "1.3.5"),
+      "Specifies a default blocksize for the tserver caches.", "1.3.5"),
   TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class",
       "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
       "Specifies the class name of the block cache factory implementation."
           + " Alternative implementation is"
-          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager",
+          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager.",
       "2.0.0"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
@@ -486,9 +486,9 @@ public enum Property {
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each tablet server.", "2.0.0"),
   TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available", "1.3.5"),
+      "if the ports above are in use, search higher ports until one is available.", "1.3.5"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
-      "The port used for handling client connections on the tablet servers", "1.3.5"),
+      "The port used for handling client connections on the tablet servers.", "1.3.5"),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
       "1.7.0"),
@@ -507,7 +507,7 @@ public enum Property {
       "2.1.0"),
   TSERV_WAL_MAX_SIZE("tserver.wal.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
-          + " tserver.memory.maps.max",
+          + " `tserver.memory.maps.max`.",
       "2.1.0"),
   TSERV_WAL_MAX_AGE("tserver.wal.max.age", "24h", PropertyType.TIMEDURATION,
       "The maximum age for each write-ahead log.", "2.1.0"),
@@ -527,7 +527,7 @@ public enum Property {
       "The maximum amount of time to wait after a failure to create or write a write-ahead log.",
       "2.1.0"),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
-      "Maximum total RFiles that all tablets in a tablet server can open for scans. ", "1.4.0"),
+      "Maximum total RFiles that all tablets in a tablet server can open for scans.", "1.4.0"),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
       "Tablet servers leave previously used RFiles open for future queries."
           + " This setting determines how much time an unused RFile should be kept open"
@@ -540,19 +540,19 @@ public enum Property {
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
       "Maximum amount of memory that can be used to buffer data written to a"
           + " tablet server. There are two other properties that can effectively limit"
-          + " memory usage table.compaction.minor.logs.threshold and"
-          + " tserver.wal.max.size. Ensure that table.compaction.minor.logs.threshold"
-          + " * tserver.wal.max.size >= this property.",
+          + " memory usage `table.compaction.minor.logs.threshold` and"
+          + " `tserver.wal.max.size`. Ensure that `table.compaction.minor.logs.threshold`"
+          + " * `tserver.wal.max.size` >= this property.",
       "1.3.5"),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate scan sessions"
-          + " to determine if they can be closed due to inactivity",
+          + " to determine if they can be closed due to inactivity.",
       "1.3.5"),
   TSERV_UPDATE_SESSION_MAXIDLE("tserver.session.update.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate update"
-          + " sessions to determine if they can be closed due to inactivity",
+          + " sessions to determine if they can be closed due to inactivity.",
       "1.6.5"),
   TSERV_SCAN_EXECUTORS_PREFIX("tserver.scan.executors.", null, PropertyType.PREFIX,
       "Prefix for defining executors to service scans. See "
@@ -562,7 +562,7 @@ public enum Property {
           + "`tserver.scan.executors.<name>.threads=<number>`.  Optionally, can also set "
           + "`tserver.scan.executors.<name>.priority=<number 1 to 10>`, "
           + "`tserver.scan.executors.<name>.prioritizer=<class name>`, and "
-          + "`tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`",
+          + "`tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`.",
       "2.0.0"),
   TSERV_SCAN_EXECUTORS_DEFAULT_THREADS("tserver.scan.executors.default.threads", "16",
       PropertyType.COUNT, "The number of threads for the scan executor that tables use by default.",
@@ -580,7 +580,7 @@ public enum Property {
       "Max time for the thrift client handler to wait for scan results before timing out.",
       "2.1.0"),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
-      "The maximum number of concurrent tablet migrations for a tablet server", "1.3.5"),
+      "The maximum number of concurrent tablet migrations for a tablet server.", "1.3.5"),
   // ELASTICITY_TODO look into removing this prop, may need to deprecate in 3.0
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction.", "1.3.5"),
@@ -588,60 +588,45 @@ public enum Property {
       "Prefix for compaction services.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
-      PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
-      "2.1.0"),
+      "Compaction planner for root tablet service.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open", "2.1.0"),
+      "The maximum number of files a compaction will open.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
       "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
-      PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
-      "2.1.0"),
+      "Compaction planner for metadata table.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open", "2.1.0"),
+      "The maximum number of files a compaction will open.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "2.1.0"),
-  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
-      "0B", PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
-      "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
-      "The maximum number of files a compaction will open", "2.1.0"),
+      "The maximum number of files a compaction will open.", "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
       ("[{'name':'small','type':'external','maxSize':'128M','group':'user_small'}, {'name':'large','type':'external','group':'user_large'}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
-      "The maximum number of concurrent minor compactions for a tablet server", "1.3.5"),
+      "The maximum number of concurrent minor compactions for a tablet server.", "1.3.5"),
   TSERV_COMPACTION_WARN_TIME("tserver.compaction.warn.time", "10m", PropertyType.TIMEDURATION,
-      "When a compaction has not made progress for this time period, a warning will be logged",
+      "When a compaction has not made progress for this time period, a warning will be logged.",
       "1.6.0"),
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
@@ -665,7 +650,7 @@ public enum Property {
       "The maximum size of a message that can be sent to a tablet server.", "1.6.0"),
   TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
       "Number of busiest tablets to log. Logged at interval controlled by "
-          + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled",
+          + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled.",
       "1.10.0"),
   TSERV_LOG_BUSY_TABLETS_INTERVAL("tserver.log.busy.tablets.interval", "1h",
       PropertyType.TIMEDURATION, "Time interval between logging out busy tablets information.",
@@ -678,21 +663,21 @@ public enum Property {
       "1.4.0"),
   TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.BYTES,
       "The size of the HDFS blocks used to write to the Write-Ahead log. If"
-          + " zero, it will be 110% of tserver.wal.max.size (that is, try to use just"
-          + " one block)",
+          + " zero, it will be 110% of `tserver.wal.max.size` (that is, try to use just"
+          + " one block).",
       "1.5.0"),
   TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
       "The replication to use when writing the Write-Ahead log to HDFS. If"
           + " zero, it will use the HDFS default replication setting.",
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
-      "The maximum number of threads to use to sort logs during recovery", "2.1.0"),
+      "The maximum number of threads to use to sort logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
       "The rfile properties to use when sorting logs during recovery. Most of the properties"
           + " that begin with 'table.file' can be used here. For example, to set the compression"
-          + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'",
+          + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'.",
       "2.1.0"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
@@ -706,7 +691,7 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The amount of time an assignment can run before the server will print a"
           + " warning along with the current stack trace. Meant to help debug stuck"
-          + " assignments",
+          + " assignments.",
       "1.6.2"),
   TSERV_ASSIGNMENT_MAXCONCURRENT("tserver.assignment.concurrent.max", "2", PropertyType.COUNT,
       "The number of threads available to load tablets. Recoveries are still performed serially.",
@@ -748,11 +733,11 @@ public enum Property {
       "2.1.1"),
   TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
       PropertyType.TIMEDURATION,
-      "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
+      "The interval at which the TabletServer will check if on-demand tablets can be unloaded.",
       "4.0.0"),
   TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
-          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer)",
+          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer).",
       "4.0.0"),
 
   // accumulo garbage collector properties
@@ -769,35 +754,35 @@ public enum Property {
           + "no longer in use are removed from the filesystem.",
       "1.3.5"),
   GC_PORT("gc.port.client", "9998", PropertyType.PORT,
-      "The listening port for the garbage collector's monitor service", "1.3.5"),
+      "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
-      "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
+      "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
   @Experimental
   GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
-          + "This is expected to increase the speed of subsequent GC runs",
+          + "This is expected to increase the speed of subsequent GC runs.",
       "2.1.3"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
-      "Provides listing of files to be deleted but does not delete any files", "2.1.0"),
+      "Provides listing of files to be deleted but does not delete any files.", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
       "When the gc runs it can make a lot of changes to the metadata, on completion, "
           + " to force the changes to be written to disk, the metadata and root tables can be flushed"
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
-          + " metadata; flush - which flushes only (compactions may be triggered if required); or none",
+          + " metadata; flush - which flushes only (compactions may be triggered if required); or none.",
       "1.10.0"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the monitor web server.", "1.3.5"),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
-      "The listening port for the monitor's http service", "1.3.5"),
+      "The listening port for the monitor's http service.", "1.3.5"),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL.", "1.5.0"),
   @Sensitive
   MONITOR_SSL_KEYSTOREPASS("monitor.ssl.keyStorePassword", "", PropertyType.STRING,
       "The keystore password for enabling monitor SSL.", "1.5.0"),
   MONITOR_SSL_KEYSTORETYPE("monitor.ssl.keyStoreType", "jks", PropertyType.STRING,
-      "Type of SSL keystore", "1.7.0"),
+      "Type of SSL keystore.", "1.7.0"),
   @Sensitive
   MONITOR_SSL_KEYPASS("monitor.ssl.keyPassword", "", PropertyType.STRING,
       "Optional: the password for the private key in the keyStore. When not provided, this "
@@ -809,19 +794,19 @@ public enum Property {
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING,
       "The truststore password for enabling monitor SSL.", "1.5.0"),
   MONITOR_SSL_TRUSTSTORETYPE("monitor.ssl.trustStoreType", "jks", PropertyType.STRING,
-      "Type of SSL truststore", "1.7.0"),
+      "Type of SSL truststore.", "1.7.0"),
   MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING,
       "A comma-separated list of allows SSL Ciphers, see"
-          + " monitor.ssl.exclude.ciphers to disallow ciphers",
+          + " monitor.ssl.exclude.ciphers to disallow ciphers.",
       "1.6.1"),
   MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING,
       "A comma-separated list of disallowed SSL Ciphers, see"
-          + " monitor.ssl.include.ciphers to allow ciphers",
+          + " monitor.ssl.include.ciphers to allow ciphers.",
       "1.6.1"),
   MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.3", PropertyType.STRING,
-      "A comma-separate list of allowed SSL protocols", "1.5.3"),
+      "A comma-separate list of allowed SSL protocols.", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
-      "The amount of time to sleep between checking for the Monitor ZooKeeper lock", "1.5.1"),
+      "The amount of time to sleep between checking for the Monitor ZooKeeper lock.", "1.5.1"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
@@ -829,7 +814,7 @@ public enum Property {
           + " in the `<head>` tag of the Monitor will be replaced with the tags set here."
           + " Be sure the jquery tag is first since other scripts will depend on it."
           + " The resources that are used by default can be seen in"
-          + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
+          + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
@@ -857,12 +842,12 @@ public enum Property {
       "2.1.1"),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
       "Minimum ratio of total input size to maximum input RFile size for"
-          + " running a major compaction. ",
+          + " running a major compaction.",
       "1.3.5"),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
-      "Maximum size of end row", "1.7.0"),
+      "Maximum size of end row.", "1.7.0"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
@@ -873,7 +858,7 @@ public enum Property {
       "A configurable dispatcher that decides what compaction service a table should use.",
       "2.1.0"),
   TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
-      "Options for the table compaction dispatcher", "2.1.0"),
+      "Options for the table compaction dispatcher.", "2.1.0"),
   TABLE_COMPACTION_SELECTION_EXPIRATION("table.compaction.selection.expiration.ms", "2m",
       PropertyType.TIMEDURATION,
       "User compactions select files and are then queued for compaction, preventing these files "
@@ -887,12 +872,12 @@ public enum Property {
           + "compaction, even if the files do not meet the compaction ratio.",
       "2.1.0"),
   TABLE_COMPACTION_SELECTOR_OPTS("table.compaction.selector.opts.", null, PropertyType.PREFIX,
-      "Options for the table compaction dispatcher", "2.1.0"),
+      "Options for the table compaction dispatcher.", "2.1.0"),
   TABLE_COMPACTION_CONFIGURER("table.compaction.configurer", "", PropertyType.CLASSNAME,
       "A plugin that can dynamically configure compaction output files based on input files.",
       "2.1.0"),
   TABLE_COMPACTION_CONFIGURER_OPTS("table.compaction.configurer.opts.", null, PropertyType.PREFIX,
-      "Options for the table compaction configuror", "2.1.0"),
+      "Options for the table compaction configuror.", "2.1.0"),
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
@@ -908,27 +893,27 @@ public enum Property {
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
-          + "classes must implement {% jlink " + ScanDispatcher.class.getName() + " %} See "
+          + "classes must implement {% jlink " + ScanDispatcher.class.getName() + " %}. See "
           + "[scan executors]({% durl administration/scan-executors %}) for an overview of why"
           + " and how to use this property. This property is ignored for the root and metadata"
           + " table.  The metadata table always dispatches to a scan executor named `meta`.",
       "2.0.0"),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
-      "Options for the table scan dispatcher", "2.0.0"),
+      "Options for the table scan dispatcher.", "2.0.0"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
-      "Change the type of file a table writes", "1.3.5"),
+      "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
       PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer"
-          + " to change the called Load Balancer for this table",
+          + " to change the called Load Balancer for this table.",
       "1.3.5"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
-          + " written. Possible values: zstd, gz, snappy, bzip2, lzo, lz4, none",
+          + " written. Possible values: zstd, gz, snappy, bzip2, lzo, lz4, none.",
       "1.3.5"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100k", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written.", "1.3.5"),
@@ -977,13 +962,13 @@ public enum Property {
           + " org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and"
           + " org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are"
           + " allowable values. One can extend any of the above mentioned classes to"
-          + " perform specialized parsing of the key. ",
+          + " perform specialized parsing of the key.",
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
-      "The bloom filter hash type", "1.3.5"),
+      "The bloom filter hash type.", "1.3.5"),
   TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
       "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
-          + "This property is only enforced in the new bulk import API",
+          + "This property is only enforced in the new bulk import API.",
       "2.1.0"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
@@ -1019,7 +1004,7 @@ public enum Property {
           + " prefix, followed by a number, and their values correspond to a fully"
           + " qualified Java class that implements the Constraint interface.\nFor example:\n"
           + "table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
-          + "and:\n table.constraint.2 = my.package.constraints.MySecondConstraint",
+          + "and:\n table.constraint.2 = my.package.constraints.MySecondConstraint.",
       "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),
@@ -1037,16 +1022,16 @@ public enum Property {
           + "These iterators can take options if additional properties are set that"
           + " look like this property, but are suffixed with a period, followed by 'opt'"
           + " followed by another period, and a property name.\n"
-          + "For example, table.iterator.minc.vers.opt.maxVersions = 3",
+          + "For example, table.iterator.minc.vers.opt.maxVersions = 3.",
       "1.3.5"),
   TABLE_ITERATOR_SCAN_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.scan.name() + ".", null,
-      PropertyType.PREFIX, "Convenience prefix to find options for the scan iterator scope",
+      PropertyType.PREFIX, "Convenience prefix to find options for the scan iterator scope.",
       "1.5.2"),
   TABLE_ITERATOR_MINC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.minc.name() + ".", null,
-      PropertyType.PREFIX, "Convenience prefix to find options for the minc iterator scope",
+      PropertyType.PREFIX, "Convenience prefix to find options for the minc iterator scope.",
       "1.5.2"),
   TABLE_ITERATOR_MAJC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.majc.name() + ".", null,
-      PropertyType.PREFIX, "Convenience prefix to find options for the majc iterator scope",
+      PropertyType.PREFIX, "Convenience prefix to find options for the majc iterator scope.",
       "1.5.2"),
   TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
       "Properties in this category are per-table properties that define"
@@ -1060,7 +1045,7 @@ public enum Property {
           + " `table.group.<name>.opt.<key>=<value>`.",
       "1.3.5"),
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
-      "The Formatter class to apply on results in the shell", "1.4.0"),
+      "The Formatter class to apply on results in the shell.", "1.4.0"),
   TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
       "The context to use for loading per-table resources, such as iterators"
           + " from the configured factory in `general.context.class.loader.factory`.",
@@ -1110,11 +1095,11 @@ public enum Property {
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client is in use, search higher ports until one is available",
+      "If the compactor.port.client is in use, search higher ports until one is available.",
       "2.1.0"),
   @Experimental
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
-      "The port used for handling client connections on the compactor servers", "2.1.0"),
+      "The port used for handling client connections on the compactor servers.", "2.1.0"),
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
           + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",

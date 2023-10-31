@@ -31,6 +31,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +65,9 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       c.instanceOperations().waitForBalance();
       assertTrue(isBalanced(c));
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+      c.tableOperations().create(tableName, ntc);
       c.instanceOperations().waitForBalance();
       final SortedSet<Text> partitionKeys = new TreeSet<>();
       for (int i = 0; i < NUM_SPLITS; i++) {
@@ -71,7 +76,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       c.tableOperations().addSplits(tableName, partitionKeys);
       assertFalse(isBalanced(c));
       c.instanceOperations().waitForBalance();
-      assertTrue(isBalanced(c));
+      Wait.waitFor(() -> isBalanced(c));
     }
   }
 

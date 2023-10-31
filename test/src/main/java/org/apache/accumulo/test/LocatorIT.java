@@ -127,10 +127,8 @@ public class LocatorIT extends AccumuloClusterHarness {
       ranges.clear();
 
       tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-      Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull.test(
-              ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
-          60000, 250);
+      Wait.waitFor(() -> alwaysHostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ranges.add(r1);
       Locations ret = tableOps.locate(tableName, ranges);
@@ -145,13 +143,8 @@ public class LocatorIT extends AccumuloClusterHarness {
       splits.add(new Text("r"));
       tableOps.addSplits(tableName, splits);
 
-      // ELASTICITY_TODO split does not set hosting goal, so this throws exception
-      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
-      tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-      Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull.test(
-              ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
-          60000, 250);
+      Wait.waitFor(() -> alwaysHostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),
@@ -163,15 +156,9 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       tableOps.online(tableName, true);
 
-      // ELASTICITY_TODO Split does not set hosting goal
-      tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-
-      // TabletGroupWatcher interval set to 5s
-      Thread.sleep(7000);
-
       Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull.test(ManagerAssignmentIT
-              .getManagerTabletInfo(client, tableId, new Text("r")).getTabletMetadata()),
+          () -> alwaysHostedAndCurrentNotNull
+              .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, new Text("r"))),
           60000, 250);
 
       ArrayList<Range> ranges2 = new ArrayList<>();

@@ -144,6 +144,26 @@ public class TabletManagementTest {
   }
 
   @Test
+  public void testEncodeDecodeWithErrors() throws Exception {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
+
+    TabletManagement.addError(entries, new UnsupportedOperationException("Not supported."));
+    Key key = entries.firstKey();
+    Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
+        new ArrayList<>(entries.values()));
+
+    // Remove the ERROR column from the entries map for the comparison check
+    // below
+    entries.remove(new Key(key.getRow().toString(), "ERROR", ""));
+
+    TabletManagement tmi = new TabletManagement(key, val, true);
+    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals("Not supported.", tmi.getErrorMessage());
+  }
+
+  @Test
   public void testBinary() throws Exception {
     // test end row with non ascii data
     Text endRow = new Text(new byte[] {'m', (byte) 0xff});
