@@ -432,8 +432,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       TabletGoalState goal =
           TabletGoalState.compute(tabletMeta, state, manager.tabletBalancer, tableMgmtParams);
 
-      final Location location = tabletMeta.getLocation();
-
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         volReplacements++;
         LOG.debug("{} may need volume replacement", tabletMeta.getExtent());
@@ -464,6 +462,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
       final TabletMetadata tm = tabletMeta;
 
+      final Location location = tabletMeta.getLocation();
       Location current = null;
       Location future = null;
       if (tm.hasCurrent()) {

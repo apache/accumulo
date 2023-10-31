@@ -198,7 +198,6 @@ public class TabletManagementIterator extends SkippingIterator {
       final TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
           TabletManagement.CONFIGURED_COLUMNS, false, true);
 
-      LOG.debug("TabletMetadata: {}", tm);
       actions.clear();
       Exception error = null;
       try {
