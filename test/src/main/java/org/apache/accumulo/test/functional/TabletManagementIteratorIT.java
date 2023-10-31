@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +62,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
@@ -72,8 +72,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
+import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -123,15 +123,15 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, MetadataTable.NAME, metaCopy1);
 
-      State state = new State(client);
-      int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
+      TabletManagementParameters tabletMgmtParams = createParameters(client);
+      int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       while (tabletsInFlux > 0) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
         copyTable(client, MetadataTable.NAME, metaCopy1);
-        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
+        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       }
-      assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "No tables should need attention");
 
       // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
@@ -143,30 +143,30 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoal.ALWAYS.name());
       // t3 is hosted, setting to never will generate a change to unhost tablets
       setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoal.NEVER.name());
-      state = new State(client);
-      assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, state),
+      tabletMgmtParams = createParameters(client);
+      assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have four tablets with hosting goal changes");
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
-      assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, state),
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have two tablets without a loc");
 
       // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
       // w/o a location. Only one should need attention because of the operation id.
       setOperationId(client, metaCopy1, t1);
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, state),
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have tablets needing attention because of operation id");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
 
       // test the bad tablet location state case (inconsistent metadata)
-      state = new State(client);
+      tabletMgmtParams = createParameters(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, tabletMgmtParams),
           "Should have 1 tablet that needs a metadata repair");
 
       // clean up
@@ -252,13 +252,12 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     deleter.close();
   }
 
-  private int findTabletsNeedingAttention(AccumuloClient client, String table, State state)
-      throws TableNotFoundException, IOException {
+  private int findTabletsNeedingAttention(AccumuloClient client, String table,
+      TabletManagementParameters tabletMgmtParams) throws TableNotFoundException, IOException {
     int results = 0;
     List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      TabletManagementIterator.configureScanner(scanner, state);
-      log.debug("Current state = {}", state);
+      TabletManagementIterator.configureScanner(scanner, tabletMgmtParams);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
@@ -345,71 +344,29 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private static class State implements CurrentState {
+  private static TabletManagementParameters createParameters(AccumuloClient client) {
+    var context = (ClientContext) client;
+    Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
+        tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
-    final ClientContext context;
-
-    State(AccumuloClient client) {
-      this.context = (ClientContext) client;
-    }
-
-    private Set<TServerInstance> tservers;
-    private Set<TableId> onlineTables;
-
-    @Override
-    public Set<TServerInstance> onlineTabletServers() {
-      HashSet<TServerInstance> tservers = new HashSet<>();
-      for (String tserver : context.instanceOperations().getTabletServers()) {
-        try {
-          var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
-              + Constants.ZTSERVERS + "/" + tserver);
-          long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
-          tservers.add(new TServerInstance(tserver, sessionId));
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+    HashSet<TServerInstance> tservers = new HashSet<>();
+    for (String tserver : context.instanceOperations().getTabletServers()) {
+      try {
+        var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
+            + Constants.ZTSERVERS + "/" + tserver);
+        long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
+        tservers.add(new TServerInstance(tserver, sessionId));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
-      this.tservers = Collections.unmodifiableSet(tservers);
-      return tservers;
     }
 
-    @Override
-    public LiveTServerSet.LiveTServersSnapshot tserversSnapshot() {
-      return new LiveTServerSet.LiveTServersSnapshot(onlineTabletServers(), new HashMap<>());
-    }
-
-    @Override
-    public Set<TableId> onlineTables() {
-      Set<TableId> onlineTables = context.getTableIdToNameMap().keySet();
-      this.onlineTables =
-          Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
-      return this.onlineTables;
-    }
-
-    @Override
-    public Set<KeyExtent> migrationsSnapshot() {
-      return Collections.emptySet();
-    }
-
-    @Override
-    public Set<TServerInstance> shutdownServers() {
-      return Collections.emptySet();
-    }
-
-    @Override
-    public ManagerState getManagerState() {
-      return ManagerState.NORMAL;
-    }
-
-    @Override
-    public Map<Long,Map<String,String>> getCompactionHints() {
-      return Map.of();
-    }
-
-    @Override
-    public String toString() {
-      return "tservers: " + tservers + " onlineTables: " + onlineTables;
-    }
+    return new TabletManagementParameters(ManagerState.NORMAL,
+        Map.of(
+            Ample.DataLevel.ROOT, true, Ample.DataLevel.USER, true, Ample.DataLevel.METADATA, true),
+        onlineTables,
+        new LiveTServerSet.LiveTServersSnapshot(tservers,
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
+        Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true);
   }
-
 }

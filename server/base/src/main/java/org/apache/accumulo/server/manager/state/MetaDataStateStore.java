@@ -30,26 +30,25 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
+import com.google.common.base.Preconditions;
+
 class MetaDataStateStore extends AbstractTabletStateStore implements TabletStateStore {
 
   protected final ClientContext context;
-  protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
   private final DataLevel level;
 
-  protected MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state,
-      String targetTableName) {
+  protected MetaDataStateStore(DataLevel level, ClientContext context, String targetTableName) {
     super(context);
     this.level = level;
     this.context = context;
-    this.state = state;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    this(level, context, state, MetadataTable.NAME);
+  MetaDataStateStore(DataLevel level, ClientContext context) {
+    this(level, context, MetadataTable.NAME);
   }
 
   @Override
@@ -58,8 +57,10 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   @Override
-  public ClosableIterator<TabletManagement> iterator(List<Range> ranges) {
-    return new TabletManagementScanner(context, ranges, state, targetTableName);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    Preconditions.checkArgument(parameters.getLevel() == getLevel());
+    return new TabletManagementScanner(context, ranges, parameters, targetTableName);
   }
 
   @Override

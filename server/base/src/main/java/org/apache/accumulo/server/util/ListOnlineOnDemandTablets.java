@@ -24,19 +24,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
-import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,27 +77,24 @@ public class ListOnlineOnDemandTablets {
 
     System.out.println("Scanning " + MetadataTable.NAME);
 
-    Range range = TabletsSection.getRange();
-
-    try (TabletManagementScanner metaScanner =
-        new TabletManagementScanner(context, range, MetadataTable.NAME)) {
-      return checkTablets(context, metaScanner, tservers);
+    try (TabletsMetadata metaScanner =
+        context.getAmple().readTablets().forLevel(Ample.DataLevel.USER).build()) {
+      return checkTablets(context, metaScanner.iterator(), tservers);
     }
   }
 
-  private static int checkTablets(ServerContext context, Iterator<TabletManagement> scanner,
+  private static int checkTablets(ServerContext context, Iterator<TabletMetadata> scanner,
       LiveTServerSet tservers) {
     int online = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
-      final TabletManagement mti = scanner.next();
-      TabletMetadata tabletMetadata = mti.getTabletMetadata();
+      TabletMetadata tabletMetadata = scanner.next();
       Set<TServerInstance> liveTServers = tservers.getCurrentServers();
       TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state == TabletState.HOSTED
-          && mti.getTabletMetadata().getHostingGoal() == TabletHostingGoal.ONDEMAND) {
-        System.out.println(
-            mti + " is " + state + "  #walogs:" + mti.getTabletMetadata().getLogs().size());
+          && tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND) {
+        System.out.println(tabletMetadata.getExtent() + " is " + state + "  #walogs:"
+            + tabletMetadata.getLogs().size());
         online++;
       }
     }

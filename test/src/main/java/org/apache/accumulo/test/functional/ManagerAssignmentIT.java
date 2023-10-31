@@ -63,7 +63,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -79,7 +78,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
@@ -133,10 +131,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // wait for the tablet to exist in the metadata table. The tablet
       // will not be hosted so the current location will be empty.
-      Wait.waitFor(
-          () -> getManagerTabletInfo(c, tableId, null).getTabletMetadata().getExtent() != null,
-          10000, 250);
-      TabletMetadata newTablet = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      Wait.waitFor(() -> getTabletMetadata(c, tableId, null) != null, 10000, 250);
+      TabletMetadata newTablet = getTabletMetadata(c, tableId, null);
       assertNotNull(newTablet.getExtent());
       assertFalse(newTablet.hasCurrent());
       assertNull(newTablet.getLast());
@@ -152,7 +148,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // give it a last location
       c.tableOperations().flush(tableName, null, null, true);
 
-      TabletMetadata flushed = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata flushed = getTabletMetadata(c, tableId, null);
       assertTrue(flushed.hasCurrent());
       assertNotNull(flushed.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), flushed.getLast().getHostPort());
@@ -161,7 +157,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletMetadata offline = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata offline = getTabletMetadata(c, tableId, null);
       assertFalse(offline.hasCurrent());
       assertNull(offline.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), offline.getLast().getHostPort());
@@ -169,7 +165,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // put it back online
       c.tableOperations().online(tableName, true);
-      TabletMetadata online = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      TabletMetadata online = getTabletMetadata(c, tableId, null);
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(online.getLocation().getHostPort(), online.getLast().getHostPort());
@@ -181,10 +177,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       Predicate<TabletMetadata> alwaysHostedOrCurrentNotNull =
           t -> (t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent());
 
-      Wait.waitFor(() -> alwaysHostedOrCurrentNotNull
-          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250);
+      Wait.waitFor(() -> alwaysHostedOrCurrentNotNull.test(getTabletMetadata(c, tableId, null)),
+          60000, 250);
 
-      final TabletMetadata always = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      final TabletMetadata always = getTabletMetadata(c, tableId, null);
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
       assertTrue(always.hasCurrent());
       assertEquals(flushed.getLocation().getHostPort(), always.getLast().getHostPort());
@@ -194,10 +190,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
       Predicate<TabletMetadata> neverHostedOrCurrentNull =
           t -> (t.getHostingGoal() == TabletHostingGoal.NEVER && !t.hasCurrent());
-      Wait.waitFor(() -> neverHostedOrCurrentNull
-          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250);
+      Wait.waitFor(() -> neverHostedOrCurrentNull.test(getTabletMetadata(c, tableId, null)), 60000,
+          250);
 
-      final TabletMetadata never = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      final TabletMetadata never = getTabletMetadata(c, tableId, null);
       assertTrue(neverHostedOrCurrentNull.test(never));
       assertNull(never.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), never.getLast().getHostPort());
@@ -207,10 +203,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
       Predicate<TabletMetadata> ondemandHosted =
           t -> t.getHostingGoal() == TabletHostingGoal.ONDEMAND;
-      Wait.waitFor(
-          () -> ondemandHosted.test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()),
-          60000, 250);
-      final TabletMetadata ondemand = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
+      Wait.waitFor(() -> ondemandHosted.test(getTabletMetadata(c, tableId, null)), 60000, 250);
+      final TabletMetadata ondemand = getTabletMetadata(c, tableId, null);
       assertTrue(ondemandHosted.test(ondemand));
       assertNull(ondemand.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), ondemand.getLast().getHostPort());
@@ -621,11 +615,16 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     }
   }
 
-  public static TabletManagement getManagerTabletInfo(AccumuloClient c, String tableId,
-      Text endRow) {
-    try (TabletManagementScanner s = new TabletManagementScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), endRow)), MetadataTable.NAME)) {
-      return s.next();
+  public static TabletMetadata getTabletMetadata(AccumuloClient c, String tableId, Text endRow) {
+    var ctx = (ClientContext) c;
+    try (var tablets = ctx.getAmple().readTablets().forTable(TableId.of(tableId))
+        .overlapping(endRow, null).build()) {
+      var iter = tablets.iterator();
+      if (iter.hasNext()) {
+        return iter.next();
+      }
     }
+
+    return null;
   }
 }

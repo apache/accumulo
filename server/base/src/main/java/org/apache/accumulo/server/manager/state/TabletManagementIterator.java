@@ -18,19 +18,11 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
-
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -38,24 +30,19 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -69,23 +56,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
-import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
-import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Joiner;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Iterator used by the TabletGroupWatcher threads in the Manager. This iterator returns
@@ -94,145 +72,9 @@ import com.google.gson.reflect.TypeToken;
  */
 public class TabletManagementIterator extends SkippingIterator {
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
-
-  private static final String SERVERS_OPTION = "servers";
-  private static final String TABLES_OPTION = "tables";
-  private static final String MIGRATIONS_OPTION = "migrations";
-  private static final String MANAGER_STATE_OPTION = "managerState";
-  private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
-  private static final String RESOURCE_GROUPS = "resourceGroups";
-  private static final String TSERVER_GROUP_PREFIX = "serverGroups_";
-  private static final String COMPACTION_HINTS_OPTIONS = "compactionHints";
+  private static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
-
-  private static void setCurrentServers(final IteratorSetting cfg,
-      final Set<TServerInstance> goodServers) {
-    if (goodServers != null) {
-      List<String> servers = new ArrayList<>();
-      for (TServerInstance server : goodServers) {
-        servers.add(server.getHostPortSession());
-      }
-      cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
-    }
-  }
-
-  private static void setOnlineTables(final IteratorSetting cfg, final Set<TableId> onlineTables) {
-    if (onlineTables != null) {
-      cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
-    }
-  }
-
-  private static void setMigrations(final IteratorSetting cfg,
-      final Collection<KeyExtent> migrations) {
-    DataOutputBuffer buffer = new DataOutputBuffer();
-    try {
-      for (KeyExtent extent : migrations) {
-        extent.writeTo(buffer);
-      }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }
-    String encoded =
-        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-    cfg.addOption(MIGRATIONS_OPTION, encoded);
-  }
-
-  private static void setManagerState(final IteratorSetting cfg, final ManagerState state) {
-    cfg.addOption(MANAGER_STATE_OPTION, state.toString());
-  }
-
-  private static void setShuttingDown(final IteratorSetting cfg,
-      final Set<TServerInstance> servers) {
-    if (servers != null) {
-      cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
-    }
-  }
-
-  private static void setCompactionHints(final IteratorSetting cfg,
-      Map<Long,Map<String,String>> allHints) {
-    cfg.addOption(COMPACTION_HINTS_OPTIONS, GSON.get().toJson(allHints));
-  }
-
-  private static void setTServerResourceGroups(final IteratorSetting cfg,
-      Map<String,Set<TServerInstance>> tServerResourceGroups) {
-    if (tServerResourceGroups == null) {
-      return;
-    }
-    cfg.addOption(RESOURCE_GROUPS, Joiner.on(",").join(tServerResourceGroups.keySet()));
-    for (Entry<String,Set<TServerInstance>> entry : tServerResourceGroups.entrySet()) {
-      cfg.addOption(TSERVER_GROUP_PREFIX + entry.getKey(), Joiner.on(",").join(entry.getValue()));
-    }
-  }
-
-  private static Map<TabletServerId,String> parseTServerResourceGroups(Map<String,String> options) {
-    Map<TabletServerId,String> resourceGroups = new HashMap<>();
-    String groups = options.get(RESOURCE_GROUPS);
-    if (groups != null) {
-      for (String groupName : groups.split(",")) {
-        String groupServers = options.get(TSERVER_GROUP_PREFIX + groupName);
-        if (groupServers != null) {
-          Set<TServerInstance> servers = parseServers(groupServers);
-          servers.forEach(server -> resourceGroups.put(new TabletServerIdImpl(server), groupName));
-        }
-      }
-    }
-    return resourceGroups;
-  }
-
-  private static Set<KeyExtent> parseMigrations(final String migrations) {
-    Set<KeyExtent> result = new HashSet<>();
-    if (migrations != null) {
-      try {
-        DataInputBuffer buffer = new DataInputBuffer();
-        byte[] data = Base64.getDecoder().decode(migrations);
-        buffer.reset(data, data.length);
-        while (buffer.available() > 0) {
-          result.add(KeyExtent.readFrom(buffer));
-        }
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-    return result;
-  }
-
-  private static Set<TableId> parseTableIDs(final String tableIDs) {
-    Set<TableId> result = new HashSet<>();
-    if (tableIDs != null) {
-      for (String tableID : tableIDs.split(",")) {
-        result.add(TableId.of(tableID));
-      }
-    }
-    return result;
-  }
-
-  private static Set<TServerInstance> parseServers(final String servers) {
-    Set<TServerInstance> result = new HashSet<>();
-    if (servers != null) {
-      // parse "host:port[INSTANCE]"
-      if (!servers.isEmpty()) {
-        for (String part : servers.split(",")) {
-          String[] parts = part.split("\\[", 2);
-          String hostport = parts[0];
-          String instance = parts[1];
-          if (instance != null && instance.endsWith("]")) {
-            instance = instance.substring(0, instance.length() - 1);
-          }
-          result.add(new TServerInstance(AddressUtil.parseAddress(hostport, false), instance));
-        }
-      }
-    }
-    return result;
-  }
-
-  private static Map<Long,Map<String,String>> parseCompactionHints(String json) {
-    if (json == null) {
-      return Map.of();
-    }
-    Type tt = new TypeToken<Map<Long,Map<String,String>>>() {}.getType();
-    return GSON.get().fromJson(json, tt);
-  }
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
       final long splitThreshold) {
@@ -244,57 +86,38 @@ public class TabletManagementIterator extends SkippingIterator {
     return shouldSplit;
   }
 
-  private boolean shouldReturnDueToLocation(final TabletMetadata tm,
-      final Set<TableId> onlineTables, final Set<TServerInstance> current) {
+  private boolean shouldReturnDueToLocation(final TabletMetadata tm) {
 
-    if (migrations.contains(tm.getExtent())) {
+    if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
+      // Ideally only the state and goalState would need to be used to determine if a tablet should
+      // be returned. However, the Manager/TGW currently needs everything in the migrating set
+      // returned so it can update in memory maps it has. If this were improved then this case would
+      // not be needed.
       return true;
     }
 
-    // is the table supposed to be online or offline?
-    final boolean shouldBeOnline =
-        onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
-
-    TabletState state = TabletState.compute(tm, current, balancer, tserverResourceGroups);
+    TabletState state = TabletState.compute(tm, tabletMgmtParams.getOnlineTsevers());
+    TabletGoalState goalState = TabletGoalState.compute(tm, state, balancer, tabletMgmtParams);
     if (LOG.isTraceEnabled()) {
-      LOG.trace(
-          "{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}, opId: {}",
-          tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
-          tm.getHostingRequested(), tm.getOperationId());
+      LOG.trace("extent:{} state:{} goalState:{} hostingGoal:{}, hostingRequested: {}, opId: {}",
+          tm.getExtent(), state, goalState, tm.getHostingGoal(), tm.getHostingRequested(),
+          tm.getOperationId());
     }
-    switch (state) {
-      case ASSIGNED:
-        // we always want data about assigned tablets
-        return true;
+
+    switch (goalState) {
       case HOSTED:
-        if (!shouldBeOnline || tm.getHostingGoal() == TabletHostingGoal.NEVER
-            || (tm.getHostingGoal() == TabletHostingGoal.ONDEMAND && !tm.getHostingRequested())) {
-          return true;
-        }
-        break;
-      case ASSIGNED_TO_DEAD_SERVER:
-      case NEEDS_REASSIGNMENT:
-        return true;
+        return state != TabletState.HOSTED;
       case SUSPENDED:
+        return state != TabletState.SUSPENDED;
       case UNASSIGNED:
-        if (shouldBeOnline && (tm.getHostingGoal() == TabletHostingGoal.ALWAYS
-            || (tm.getHostingGoal() == TabletHostingGoal.ONDEMAND && tm.getHostingRequested()))) {
-          return true;
-        }
-        // If the Tablet has walogs and operation id then need to return so
-        // TGW can bring online to process the logs
-        if (!tm.getLogs().isEmpty() && tm.getOperationId() != null
-            && tm.getOperationId().getType() == TabletOperationType.MERGING) {
-          return true;
-        }
-        break;
+        return state != TabletState.UNASSIGNED;
       default:
-        throw new AssertionError("Inconceivable! The tablet is an unrecognized state: " + state);
+        throw new IllegalStateException("unknown goal state " + goalState);
     }
-    return false;
   }
 
-  public static void configureScanner(final ScannerBase scanner, final CurrentState state) {
+  public static void configureScanner(final ScannerBase scanner,
+      final TabletManagementParameters tabletMgmtParams) {
     // TODO so many columns are being fetch it may not make sense to fetch columns
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
@@ -311,17 +134,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
-    if (state != null) {
-      LiveTServersSnapshot tserversSnapshot = state.tserversSnapshot();
-      TabletManagementIterator.setCurrentServers(tabletChange, tserversSnapshot.getTservers());
-      TabletManagementIterator.setOnlineTables(tabletChange, state.onlineTables());
-      TabletManagementIterator.setMigrations(tabletChange, state.migrationsSnapshot());
-      TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
-      TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
-      TabletManagementIterator.setTServerResourceGroups(tabletChange,
-          tserversSnapshot.getTserverGroups());
-      setCompactionHints(tabletChange, state.getCompactionHints());
-    }
+    tabletChange.addOption(TABLET_GOAL_STATE_PARAMS_OPTION, tabletMgmtParams.serialize());
     scanner.addScanIterator(tabletChange);
   }
 
@@ -329,38 +142,20 @@ public class TabletManagementIterator extends SkippingIterator {
     return new TabletManagement(e.getKey(), e.getValue());
   }
 
-  private final Set<TServerInstance> current = new HashSet<>();
-  private final Set<TableId> onlineTables = new HashSet<>();
-  private final Map<TabletServerId,String> tserverResourceGroups = new HashMap<>();
-  private final Set<KeyExtent> migrations = new HashSet<>();
-  private ManagerState managerState = ManagerState.NORMAL;
   private IteratorEnvironment env;
   private Key topKey = null;
   private Value topValue = null;
+  private TabletManagementParameters tabletMgmtParams = null;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.env = env;
-    current.addAll(parseServers(options.get(SERVERS_OPTION)));
-    onlineTables.addAll(parseTableIDs(options.get(TABLES_OPTION)));
-    tserverResourceGroups.putAll(parseTServerResourceGroups(options));
-    migrations.addAll(parseMigrations(options.get(MIGRATIONS_OPTION)));
-    String managerStateOptionValue = options.get(MANAGER_STATE_OPTION);
-    try {
-      managerState = ManagerState.valueOf(managerStateOptionValue);
-    } catch (RuntimeException ex) {
-      if (managerStateOptionValue != null) {
-        LOG.error("Unable to decode managerState {}", managerStateOptionValue);
-      }
-    }
-    Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
-    if (shuttingDown != null) {
-      current.removeAll(shuttingDown);
-    }
-    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
-        parseCompactionHints(options.get(COMPACTION_HINTS_OPTIONS)));
+    tabletMgmtParams =
+        TabletManagementParameters.deserialize(options.get(TABLET_GOAL_STATE_PARAMS_OPTION));
+    compactionGenerator =
+        new CompactionJobGenerator(env.getPluginEnv(), tabletMgmtParams.getCompactionHints());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
         new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());
@@ -400,7 +195,9 @@ public class TabletManagementIterator extends SkippingIterator {
       actions.clear();
       Exception error = null;
       try {
-        if (managerState != ManagerState.NORMAL || current.isEmpty() || onlineTables.isEmpty()) {
+        if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
+            || tabletMgmtParams.getOnlineTsevers().isEmpty()
+            || tabletMgmtParams.getOnlineTables().isEmpty()) {
           // when manager is in the process of starting up or shutting down return everything.
           actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
         } else {
@@ -449,7 +246,7 @@ public class TabletManagementIterator extends SkippingIterator {
       return;
     }
 
-    if (shouldReturnDueToLocation(tm, onlineTables, current)) {
+    if (shouldReturnDueToLocation(tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 

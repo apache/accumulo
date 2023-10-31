@@ -36,23 +36,20 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
-import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.hadoop.io.Text;
 
 /**
  * Generates a tables list from the Monitor as a JSON object
@@ -145,25 +142,20 @@ public class TablesResource {
     if (RootTable.ID.equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
-      String systemTableName =
-          MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
-      TabletManagementScanner scanner = new TabletManagementScanner(monitor.getContext(),
-          new Range(TabletsSection.encodeRow(tableId, new Text()),
-              TabletsSection.encodeRow(tableId, null)),
-          systemTableName);
+      var level = Ample.DataLevel.of(tableId);
+      try (TabletsMetadata tablets =
+          monitor.getContext().getAmple().readTablets().forLevel(level).build()) {
 
-      while (scanner.hasNext()) {
-        final TabletMetadata tm = scanner.next().getTabletMetadata();
-        if (tm.hasCurrent()) {
-          try {
-            locs.add(tm.getLocation().getHostPort());
-          } catch (Exception ex) {
-            scanner.close();
-            return tabletServers;
+        for (TabletMetadata tm : tablets) {
+          if (tm.hasCurrent()) {
+            try {
+              locs.add(tm.getLocation().getHostPort());
+            } catch (Exception ex) {
+              return tabletServers;
+            }
           }
         }
       }
-      scanner.close();
     }
 
     List<TabletServerStatus> tservers = new ArrayList<>();
