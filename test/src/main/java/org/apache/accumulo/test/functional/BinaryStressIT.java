@@ -103,9 +103,8 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       // eventually split based on the 10k split threshold set above. However, that may
       // not occur before the scanner below checks that there are 8 metadata tablets for
       // the table. This is because the TabletGroupWatcher runs every 5 seconds, so there
-      // is a race condition that makes this test flaky. Introduce a sleep after the call
-      // to BinaryIT.runTest, but before the scan, to give the Manager a chance to split
-      // the table.
+      // is a race condition that makes this test flaky. Run the scan in a Wait.waitFor
+      // loop to give the Manager a chance to split the table.
       BinaryIT.runTest(c, tableName);
       String id = c.tableOperations().tableIdMap().get(tableName);
       Wait.waitFor(() -> getTabletCount(c, id) > 7, Wait.MAX_WAIT_MILLIS, Wait.SLEEP_MILLIS,
