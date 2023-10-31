@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -101,10 +102,10 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(55, "lf1");
+    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
         .timestamp(le1.getTimestamp()).put(le1.getValue());
-    LogEntry le2 = new LogEntry(57, "lf2");
+    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
         .timestamp(le2.getTimestamp()).put(le2.getValue());
 

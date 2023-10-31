@@ -111,10 +111,10 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(55, "lf1");
+    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
         .timestamp(le1.getTimestamp()).put(le1.getValue());
-    LogEntry le2 = new LogEntry(57, "lf2");
+    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
         .timestamp(le2.getTimestamp()).put(le2.getValue());
 
@@ -357,8 +357,8 @@ public class TabletMetadataTest {
     ExternalCompactionMetadata ecm = new ExternalCompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
         CompactionKind.USER, (short) 3, CompactionExecutorIdImpl.externalId("Q1"), true, 99L);
 
-    LogEntry le1 = new LogEntry(55, "lf1");
-    LogEntry le2 = new LogEntry(57, "lf2");
+    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
+    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
 
     SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, 159L);
 
