@@ -76,7 +76,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       c.tableOperations().addSplits(tableName, partitionKeys);
       assertFalse(isBalanced(c));
       c.instanceOperations().waitForBalance();
-      Wait.waitFor(() -> isBalanced(c) == true);
+      Wait.waitFor(() -> isBalanced(c));
     }
   }
 
