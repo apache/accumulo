@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +43,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.MoreCollectors;
@@ -82,7 +83,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       client.tableOperations().flush(table, null, null, true);
 
       try (var scanner = client.createScanner(table)) {
-        Assertions.assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
+        assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
             .collect(MoreCollectors.onlyElement()));
       }
 
@@ -93,9 +94,8 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
           // Verify the compaction has not run yet, it should not be able to with the bad config.
           try (var scanner = client.createScanner(table)) {
-            Assertions.assertEquals("0",
-                scanner.stream().map(e -> e.getKey().getRowData().toString())
-                    .collect(MoreCollectors.onlyElement()));
+            assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
+                .collect(MoreCollectors.onlyElement()));
           }
 
           var csp = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
@@ -115,7 +115,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
       // Verify compaction ran.
       try (var scanner = client.createScanner(table)) {
-        Assertions.assertEquals(0, scanner.stream().count());
+        assertEquals(0, scanner.stream().count());
       }
 
       fixerThread.join();
@@ -146,7 +146,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       client.tableOperations().flush(table, null, null, true);
 
       try (var scanner = client.createScanner(table)) {
-        Assertions.assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
+        assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
             .collect(MoreCollectors.onlyElement()));
       }
 
@@ -157,9 +157,8 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
           // Verify the compaction has not run yet, it should not be able to with the bad config.
           try (var scanner = client.createScanner(table)) {
-            Assertions.assertEquals("0",
-                scanner.stream().map(e -> e.getKey().getRowData().toString())
-                    .collect(MoreCollectors.onlyElement()));
+            assertEquals("0", scanner.stream().map(e -> e.getKey().getRowData().toString())
+                .collect(MoreCollectors.onlyElement()));
           }
 
           // fix the compaction dispatcher config
@@ -178,7 +177,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
       // Verify compaction ran.
       try (var scanner = client.createScanner(table)) {
-        Assertions.assertEquals(0, scanner.stream().count());
+        assertEquals(0, scanner.stream().count());
       }
 
       fixerThread.join();
