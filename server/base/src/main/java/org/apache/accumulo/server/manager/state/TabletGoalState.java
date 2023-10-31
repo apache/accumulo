@@ -133,13 +133,14 @@ public enum TabletGoalState {
             return UNASSIGNED;
           }
         } else {
-          // A tablet server should always have a resource group, however there is a race
-          // conditions where the resource group map was read before a tablet server came into
-          // existence. Another possible cause for an absent resource group is a bug in accumulo.
-          // In either case do not call the balancer for now with the assumption that the resource
-          // group will be available later. Log a message in case it is a bug.
-          log.trace(
-              "Could not find resource group for tserver {}, so did not consult balancer.  Assuming this is a temporary race condition.",
+          // ELASTICITY_TODO this log level was set to error so that this case can be examined for
+          // bugs. A tablet server should always have a resource group. If there are unavoidable
+          // race conditions for getting tablet servers and their RGs, that that should be handled
+          // in the TabletManagementParameters data acquisition phase so that not all code has to
+          // deal with it. Eventually this log level should possibly be adjusted or converted to an
+          // exception.
+          log.error(
+              "Could not find resource group for tserver {}, so did not consult balancer.  Need to determine the cause of this.",
               tm.getLocation().getServerInstance());
         }
       }
