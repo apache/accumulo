@@ -157,8 +157,8 @@ public class MergeTablets extends ManagerRepo {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
         var lastExtent = lastTabletMeta.getExtent();
-        var tabletMutator =
-            tabletsMutator.mutateTablet(lastExtent).requireOperation(opid).requireAbsentLocation();
+        var tabletMutator = tabletsMutator.mutateTablet(lastExtent).requireOperation(opid)
+            .requireAbsentLocation().requireAbsentLogs();
 
         // fence the files in the last tablet if needed
         lastTabletMeta.getFilesMap().forEach((file, dfv) -> {
@@ -206,7 +206,7 @@ public class MergeTablets extends ManagerRepo {
         }
 
         var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
-            .requireOperation(opid).requireAbsentLocation();
+            .requireOperation(opid).requireAbsentLocation().requireAbsentLogs();
 
         tabletMeta.getKeyValues().keySet().forEach(key -> {
           log.debug("{} deleting {}", fateStr, key);

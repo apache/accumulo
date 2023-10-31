@@ -90,6 +90,10 @@ public class UpdateTablets extends ManagerRepo {
         "Tablet %s unexpectedly has a location %s", splitInfo.getOriginal(),
         tabletMetadata.getLocation());
 
+    Preconditions.checkState(tabletMetadata.getLogs().isEmpty(),
+        "Tablet unexpectedly had walogs %s %s %s", FateTxId.formatTid(tid),
+        tabletMetadata.getLogs(), tabletMetadata.getExtent());
+
     var newTablets = splitInfo.getTablets();
 
     var newTabletsFiles = getNewTabletFiles(newTablets, tabletMetadata,
@@ -99,7 +103,6 @@ public class UpdateTablets extends ManagerRepo {
 
     // Only update the original tablet after successfully creating the new tablets, this is
     // important for failure cases where this operation partially runs a then runs again.
-
     updateExistingTablet(tid, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
 
     return new DeleteOperationIds(splitInfo);
@@ -217,7 +220,7 @@ public class UpdateTablets extends ManagerRepo {
       var newExtent = newTablets.last();
 
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
-          .requireAbsentLocation();
+          .requireAbsentLocation().requireAbsentLogs();
 
       mutator.putPrevEndRow(newExtent.prevEndRow());
 

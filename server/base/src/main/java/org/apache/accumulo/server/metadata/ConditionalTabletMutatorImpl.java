@@ -231,6 +231,10 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         mutation.addCondition(c);
       }
         break;
+      case LOGS: {
+        // TODO implement
+      }
+        break;
       default:
         throw new UnsupportedOperationException("Column type " + type + " is not supported.");
     }
@@ -244,6 +248,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     for (var ct : otherTypes) {
       requireSameSingle(tabletMetadata, ct);
     }
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireAbsentLogs() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    // create a tablet metadata with an empty set of logs and require the same as that
+    requireSameSingle(TabletMetadata.builder(extent).build(ColumnType.LOGS), ColumnType.LOGS);
     return this;
   }
 

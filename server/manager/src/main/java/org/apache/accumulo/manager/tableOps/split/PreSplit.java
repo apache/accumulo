@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.split;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
@@ -77,7 +78,7 @@ public class PreSplit extends ManagerRepo {
     // through as quickly as possible.
 
     var tabletMetadata = manager.getContext().getAmple().readTablet(splitInfo.getOriginal(),
-        PREV_ROW, LOCATION, OPID);
+        PREV_ROW, LOCATION, OPID, LOGS);
 
     log.trace("Attempting tablet split {} {} {}", FateTxId.formatTid(tid), splitInfo.getOriginal(),
         tabletMetadata == null ? null : tabletMetadata.getLocation());
@@ -87,28 +88,30 @@ public class PreSplit extends ManagerRepo {
       // tablet no longer exists or is reserved by another operation
       return 0;
     } else if (opid.equals(tabletMetadata.getOperationId())) {
-      if (tabletMetadata.getLocation() == null) {
-        // the operation id is set and there is no location, so can proceed to split
+      if (tabletMetadata.getLocation() == null && tabletMetadata.getLogs().isEmpty()) {
+        // the operation id is set and there is no location or wals, so can proceed to split
         return 0;
       } else {
-        // the operation id was set, but a location is also set wait for it be unset
+        // the operation id was set, but a location or wals are also set, so wait for them to be
+        // unset
         return 1000;
       }
     } else {
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
         tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
-            .requireSame(tabletMetadata, LOCATION).putOperation(opid)
+            .requireSame(tabletMetadata, LOCATION, LOGS).putOperation(opid)
             .submit(tmeta -> opid.equals(tmeta.getOperationId()));
 
         Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
         if (results.get(splitInfo.getOriginal()).getStatus() == Status.ACCEPTED) {
           log.trace("Successfully set operation id for split {}", FateTxId.formatTid(tid));
-          if (tabletMetadata.getLocation() == null) {
-            // the operation id was set and there is no location, so can move on
+          if (tabletMetadata.getLocation() == null && tabletMetadata.getLogs().isEmpty()) {
+            // the operation id was set and there is no location or wals, so can move on
             return 0;
           } else {
-            // now that the operation id set, generate an event to unload the tablet
+            // now that the operation id set, generate an event to unload the tablet or recover the
+            // logs
             manager.getEventCoordinator().event(splitInfo.getOriginal(),
                 "Set operation id %s on tablet for split", FateTxId.formatTid(tid));
             // the operation id was set, but a location is also set wait for it be unset
@@ -129,7 +132,7 @@ public class PreSplit extends ManagerRepo {
     manager.getSplitter().removeSplitStarting(splitInfo.getOriginal());
 
     TabletMetadata tabletMetadata = manager.getContext().getAmple()
-        .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID);
+        .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID, LOGS);
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
 
@@ -149,6 +152,10 @@ public class PreSplit extends ManagerRepo {
     Preconditions.checkState(tabletMetadata.getLocation() == null,
         "Tablet unexpectedly had location set %s %s %s", FateTxId.formatTid(tid),
         tabletMetadata.getLocation(), tabletMetadata.getExtent());
+
+    Preconditions.checkState(tabletMetadata.getLogs().isEmpty(),
+        "Tablet unexpectedly had walogs %s %s %s", FateTxId.formatTid(tid),
+        tabletMetadata.getLogs(), tabletMetadata.getExtent());
 
     // Create the dir name here for the next step. If the next step fails it will always have the
     // same dir name each time it runs again making it idempotent.

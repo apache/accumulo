@@ -53,7 +53,7 @@ public class DeleteOperationIds extends ManagerRepo {
 
       splitInfo.getTablets().forEach(extent -> {
         tabletsMutator.mutateTablet(extent).requireOperation(opid).requireAbsentLocation()
-            .deleteOperation().submit(rejectionHandler);
+            .requireAbsentLogs().deleteOperation().submit(rejectionHandler);
       });
 
       var results = tabletsMutator.process();
