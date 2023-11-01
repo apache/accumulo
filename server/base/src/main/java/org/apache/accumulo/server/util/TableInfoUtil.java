@@ -32,19 +32,12 @@ public class TableInfoUtil {
     if (total.minors == null) {
       total.minors = new Compacting();
     }
-    if (total.majors == null) {
-      total.majors = new Compacting();
-    }
     if (total.scans == null) {
       total.scans = new Compacting();
     }
     if (more.minors != null) {
       total.minors.running += more.minors.running;
       total.minors.queued += more.minors.queued;
-    }
-    if (more.majors != null) {
-      total.majors.running += more.majors.running;
-      total.majors.queued += more.majors.queued;
     }
     if (more.scans != null) {
       total.scans.running += more.scans.running;
@@ -63,7 +56,6 @@ public class TableInfoUtil {
 
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
     TableInfo summary = new TableInfo();
-    summary.majors = new Compacting();
     summary.minors = new Compacting();
     summary.scans = new Compacting();
     for (TableInfo rates : status.tableMap.values()) {

@@ -252,17 +252,6 @@ public class StatisticsResource {
   }
 
   /**
-   * Generates a list with the major compactions over time
-   *
-   * @return Major compactions over time
-   */
-  @GET
-  @Path("time/majorCompactions")
-  public List<Pair<Long,Integer>> getMajorCompactions() {
-    return monitor.getMajorCompactionsOverTime();
-  }
-
-  /**
    * Generates a list with the lookups over time
    *
    * @return Lookups over time
