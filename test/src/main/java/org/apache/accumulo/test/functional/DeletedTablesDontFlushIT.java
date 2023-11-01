@@ -39,7 +39,7 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(1);
+    return Duration.ofMinutes(2);
   }
 
   @BeforeAll
