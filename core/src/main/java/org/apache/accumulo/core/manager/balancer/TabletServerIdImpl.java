@@ -44,6 +44,10 @@ public class TabletServerIdImpl implements TabletServerId {
     this.tServerInstance = requireNonNull(tServerInstance);
   }
 
+  public TServerInstance getTServerInstance() {
+    return tServerInstance;
+  }
+
   @Override
   public String getHost() {
     return tServerInstance.getHostAndPort().getHost();

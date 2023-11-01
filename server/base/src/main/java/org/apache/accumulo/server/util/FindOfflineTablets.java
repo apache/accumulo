@@ -23,25 +23,18 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
-import org.apache.accumulo.server.manager.state.TabletManagementScanner;
-import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +75,8 @@ public class FindOfflineTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    Iterator<TabletManagement> zooScanner =
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator();
+    Iterator<TabletMetadata> zooScanner =
+        context.getAmple().readTablets().forLevel(DataLevel.ROOT).build().iterator();
 
     int offline = 0;
 
@@ -97,8 +90,8 @@ public class FindOfflineTablets {
     }
 
     System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletManagement> rootScanner =
-        new TabletManagementScanner(context, TabletsSection.getRange(), RootTable.NAME);
+    Iterator<TabletMetadata> rootScanner =
+        context.getAmple().readTablets().forLevel(DataLevel.METADATA).build().iterator();
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
       return offline;
     }
@@ -109,32 +102,24 @@ public class FindOfflineTablets {
 
     System.out.println("Scanning " + MetadataTable.NAME);
 
-    Range range = TabletsSection.getRange();
-    if (tableName != null) {
-      TableId tableId = context.getTableId(tableName);
-      range = new KeyExtent(tableId, null, null).toMetaRange();
-    }
-
-    try (TabletManagementScanner metaScanner =
-        new TabletManagementScanner(context, range, MetadataTable.NAME)) {
-      return checkTablets(context, metaScanner, tservers);
+    try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+      return checkTablets(context, metaScanner.iterator(), tservers);
     }
   }
 
-  private static int checkTablets(ServerContext context, Iterator<TabletManagement> scanner,
+  private static int checkTablets(ServerContext context, Iterator<TabletMetadata> scanner,
       LiveTServerSet tservers) {
     int offline = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
-      TabletManagement mti = scanner.next();
-      TabletMetadata tabletMetadata = mti.getTabletMetadata();
+      TabletMetadata tabletMetadata = scanner.next();
       Set<TServerInstance> liveTServers = tservers.getCurrentServers();
       TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state != null && state != TabletState.HOSTED
-          && context.getTableManager().getTableState(mti.getTabletMetadata().getTableId())
+          && context.getTableManager().getTableState(tabletMetadata.getTableId())
               != TableState.OFFLINE) {
-        System.out.println(
-            mti + " is " + state + "  #walogs:" + mti.getTabletMetadata().getLogs().size());
+        System.out.println(tabletMetadata.getExtent() + " is " + state + "  #walogs:"
+            + tabletMetadata.getLogs().size());
         offline++;
       }
     }

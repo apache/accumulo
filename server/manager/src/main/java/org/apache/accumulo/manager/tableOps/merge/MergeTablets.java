@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
@@ -95,7 +96,7 @@ public class MergeTablets extends ManagerRepo {
 
     try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
         .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-        .fetch(OPID, LOCATION, HOSTING_GOAL, FILES, TIME, DIR, ECOMP, PREV_ROW).build()) {
+        .fetch(OPID, LOCATION, HOSTING_GOAL, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS).build()) {
 
       int tabletsSeen = 0;
 
@@ -233,6 +234,9 @@ public class MergeTablets extends ManagerRepo {
     Preconditions.checkState(expectedTableId.equals(tabletMeta.getTableId()),
         "%s tablet %s has unexpected table id %s expected %s", fateStr, tabletMeta.getExtent(),
         tabletMeta.getTableId(), expectedTableId);
+    Preconditions.checkState(tabletMeta.getLogs().isEmpty(),
+        "%s merging tablet %s has unexpected walogs %s", fateStr, tabletMeta.getExtent(),
+        tabletMeta.getLogs().size());
   }
 
   /**

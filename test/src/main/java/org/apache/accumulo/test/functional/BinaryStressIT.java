@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,6 +27,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -99,17 +99,29 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+      // The call below to BinaryIT.runTest will insert enough data that the table will
+      // eventually split based on the 10k split threshold set above. However, that may
+      // not occur before the scanner below checks that there are 8 metadata tablets for
+      // the table. This is because the TabletGroupWatcher runs every 5 seconds, so there
+      // is a race condition that makes this test flaky. Run the scan in a Wait.waitFor
+      // loop to give the Manager a chance to split the table.
       BinaryIT.runTest(c, tableName);
       String id = c.tableOperations().tableIdMap().get(tableName);
-      Set<Text> tablets = new HashSet<>();
-      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(Range.prefix(id));
-        for (Entry<Key,Value> entry : s) {
-          tablets.add(entry.getKey().getRow());
-        }
-      }
-      assertTrue(tablets.size() > 7, "Expected at least 8 tablets, saw " + tablets.size());
+      Wait.waitFor(() -> getTabletCount(c, id) > 7, Wait.MAX_WAIT_MILLIS, Wait.SLEEP_MILLIS,
+          "Expected at least 8 tablets");
     }
+  }
+
+  private int getTabletCount(AccumuloClient c, String tableId) throws TableNotFoundException {
+    Set<Text> tablets = new HashSet<>();
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(Range.prefix(tableId));
+      for (Entry<Key,Value> entry : s) {
+        tablets.add(entry.getKey().getRow());
+      }
+    }
+    return tablets.size();
+
   }
 
 }
