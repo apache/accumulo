@@ -1597,4 +1597,12 @@ public class Tablet extends TabletBase {
     this.lastAccessTime = System.nanoTime();
   }
 
+  public boolean isInUse() {
+    // We can't use the lastAccessTime to determine if a Tablet is in use
+    // because it is only set when TabletServer.getOnlineTablet is called
+    // **and** that method is not called in every case where the Tablet
+    // is used.
+    return !activeScans.isEmpty() || writesInProgress > 0;
+  }
+
 }
