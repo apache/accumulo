@@ -116,10 +116,7 @@ public class LogEntry {
     final Key key = entry.getKey();
     final Value value = entry.getValue();
 
-    // the older format seems to split on "|", and then on ";".
-    // We're only interested in the last part after splitting on ";", which seems to be the filePath
-    String[] parts = value.toString().split("\\|")[0].split(";");
-    String filePath = parts[parts.length - 1];
+    String filePath = value.toString();
 
     validateFilePath(filePath);
 
