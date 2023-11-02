@@ -46,7 +46,6 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -75,7 +74,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
@@ -277,9 +275,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
-
-      // without this the metadata constraint will not allow the bulk file to be added to metadata
-      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, 9L);
 
       // simulate a bulk import
       var stf5 = StoredTabletFile

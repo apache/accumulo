@@ -86,9 +86,6 @@ public class Constants {
 
   public static final String ZPROBLEMS = "/problems";
 
-  // ELASTICITY_TODO remove
-  public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
-
   public static final String ZFATE = "/fate";
 
   public static final String ZNEXT_FILE = "/next_file";

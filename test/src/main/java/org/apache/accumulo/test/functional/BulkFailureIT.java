@@ -75,7 +75,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -226,7 +225,6 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       KeyExtent extent = new KeyExtent(TableId.of(tableId), null, null);
 
       ServerContext asCtx = getServerContext();
-      ZooArbitrator.start(asCtx, Constants.BULK_ARBITRATOR_TYPE, fateTxid);
 
       VolumeManager vm = asCtx.getVolumeManager();
 
@@ -272,9 +270,6 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       assertEquals(tabletFiles, getFiles(c, extent));
       assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
-
-      // After this, all load request should fail.
-      ZooArbitrator.stop(asCtx, Constants.BULK_ARBITRATOR_TYPE, fateTxid);
 
       c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
           TablePermission.WRITE);
