@@ -30,7 +30,6 @@ public class BulkImport {
 
   // Variable names become JSON key
   public List<BulkImportInformation> bulkImport = new ArrayList<>();
-  public List<TabletServerBulkImportInformation> tabletServerBulkImport = new ArrayList<>();
 
   /**
    * Adds a new bulk import to the array
@@ -41,12 +40,4 @@ public class BulkImport {
     this.bulkImport.add(bulkImport);
   }
 
-  /**
-   * Adds a new tserver bulk import to the array
-   *
-   * @param tabletServerBulkImport new tserver bulk import to add
-   */
-  public void addTabletServerBulkImport(TabletServerBulkImportInformation tabletServerBulkImport) {
-    this.tabletServerBulkImport.add(tabletServerBulkImport);
-  }
 }
