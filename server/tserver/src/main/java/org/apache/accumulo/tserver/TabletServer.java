@@ -840,7 +840,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       if (table == null) {
         table = new TableInfo();
         table.minors = new Compacting();
-        table.majors = new Compacting();
         tables.put(tableId, table);
       }
       long recs = tablet.getNumEntries();
