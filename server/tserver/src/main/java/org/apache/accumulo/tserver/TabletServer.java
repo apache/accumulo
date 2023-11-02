@@ -1141,12 +1141,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (t == null) {
       return false;
     }
-    t.updateRates(System.currentTimeMillis());
-    if (t.ingestRate() != 0.0 && t.queryRate() != 0.0 && t.scanRate() != 0.0) {
-      // tablet is ingesting or scanning
-      return true;
-    }
-    return false;
+    return t.isInUse();
   }
 
   public void evaluateOnDemandTabletsForUnload() {

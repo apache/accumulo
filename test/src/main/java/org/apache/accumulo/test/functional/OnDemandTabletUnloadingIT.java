@@ -160,17 +160,11 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       assertEquals(4, stats.size());
       assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
           .getTabletHostingRequestCount() > 0);
-
-      while (ONDEMAND_ONLINE_COUNT != 4) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 4);
 
       // Waiting for tablets to be unloaded due to inactivity
-      while (stats.size() != 0) {
-        Thread.sleep(1000);
-        stats = ManagerAssignmentIT.getTabletStats(c, tableId);
-      }
-
+      Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 0);
+      Wait.waitFor(() -> ManagerAssignmentIT.getTabletStats(c, tableId).size() == 0);
     }
   }
 
