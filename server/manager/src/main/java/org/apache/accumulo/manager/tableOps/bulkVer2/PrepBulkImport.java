@@ -53,7 +53,6 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -283,7 +282,5 @@ public class PrepBulkImport extends ManagerRepo {
     // unreserve sourceDir/error directories
     Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
     Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();
-    TransactionWatcher.ZooArbitrator.cleanup(environment.getContext(),
-        Constants.BULK_ARBITRATOR_TYPE, tid);
   }
 }

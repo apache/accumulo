@@ -155,7 +155,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
   private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
   private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
   private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
@@ -294,7 +293,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
       }
       if (mmi != null) {
-        int majorCompactions = 0;
         int minorCompactions = 0;
 
         lookupRateTracker.startingUpdates();
@@ -313,7 +311,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          majorCompactions += summary.majors.running;
           minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
@@ -360,7 +357,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         loadOverTime.add(new Pair<>(currentTime, totalLoad));
 
         minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
-        majorCompactionsOverTime.add(new Pair<>(currentTime, majorCompactions));
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
@@ -969,10 +965,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
     return new ArrayList<>(minorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    return new ArrayList<>(majorCompactionsOverTime);
   }
 
   public List<Pair<Long,Double>> getLookupsOverTime() {

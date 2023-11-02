@@ -101,7 +101,6 @@ struct TableInfo {
   7:double queryRate
   8:double queryByteRate
   9:Compacting minors
-  10:Compacting majors
   11:Compacting scans
   12:double scanRate
 }

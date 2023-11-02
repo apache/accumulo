@@ -76,7 +76,6 @@ import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
 
@@ -276,7 +275,7 @@ public class NullTserver {
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
     ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
-    ClientServiceHandler csh = new ClientServiceHandler(context, new TransactionWatcher(context));
+    ClientServiceHandler csh = new ClientServiceHandler(context);
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
