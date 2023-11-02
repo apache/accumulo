@@ -54,8 +54,8 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             .putLocation(TabletMetadata.Location.current(assignment.server))
             .deleteLocation(TabletMetadata.Location.future(assignment.server)).deleteSuspension();
 
-        ManagerMetadataUtil.updateLastForAssignmentMode(context, conditionalMutator,
-            assignment.server, assignment.lastLocation);
+        ManagerMetadataUtil.updateLastLocation(context, conditionalMutator, assignment.server,
+            assignment.lastLocation);
 
         conditionalMutator.submit(tabletMetadata -> {
           Preconditions.checkArgument(tabletMetadata.getExtent().equals(assignment.tablet));
@@ -131,7 +131,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         if (tm.hasCurrent()) {
 
-          ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
+          ManagerMetadataUtil.updateLastLocation(context, tabletMutator,
               tm.getLocation().getServerInstance(), tm.getLast());
           tabletMutator.deleteLocation(tm.getLocation());
           if (logsForDeadServers != null) {

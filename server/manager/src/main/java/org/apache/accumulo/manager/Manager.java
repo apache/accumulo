@@ -1645,7 +1645,10 @@ public class Manager extends AbstractServer
     AssignmentParamsImpl params =
         AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,
             unassigned.entrySet().stream().collect(HashMap::new,
-                (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
+                (m, e) -> m.put(e.getKey(),
+                    e.getValue().getLastLocation() == null ? null
+                        : e.getValue().getLastLocation().getServerInstance()),
+                Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
   }

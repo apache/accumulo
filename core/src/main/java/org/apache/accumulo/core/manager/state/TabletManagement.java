@@ -53,7 +53,11 @@ public class TabletManagement {
   private static final Text EMPTY = new Text("");
 
   public static enum ManagementAction {
-    BAD_STATE, NEEDS_COMPACTING, NEEDS_LOCATION_UPDATE, NEEDS_SPLITTING;
+    BAD_STATE,
+    NEEDS_COMPACTING,
+    NEEDS_LOCATION_UPDATE,
+    NEEDS_SPLITTING,
+    NEEDS_LAST_LOCATION_DELETED;
   }
 
   public static void addActions(final SortedMap<Key,Value> decodedRow,

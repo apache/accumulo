@@ -37,10 +37,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class AssignLocationModeIT extends ConfigurableMacBase {
 
   @Override
@@ -100,6 +98,23 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
+
+      c.instanceOperations().setProperty(Property.TSERV_LAST_LOCATION_MODE.getKey(), "none");
+      // Wait for property to sync across servers and wait 2x TabletGroupWatcher interval (5s)
+      // to ensure that TGW did *not* update TabletMetadata (because the Tablet is hosted)
+      UtilWaitThread.sleep(1000);
+      online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
+      assertTrue(online.hasCurrent());
+      assertNotNull(online.getLocation());
+      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
+
+      // Unload the Tablet
+      c.tableOperations().offline(tableName, true);
+      offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
+      assertNull(offline.getLocation());
+      assertFalse(offline.hasCurrent());
+      // Check that last is null
+      assertNull(offline.getLast());
     }
   }
 

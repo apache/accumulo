@@ -246,6 +246,12 @@ public class TabletManagementIterator extends SkippingIterator {
       return;
     }
 
+    if (tm.getLast() != null && tm.getLast().getServerInstance() != null && tm.hasCurrent()
+        && env.getPluginEnv().getConfiguration(tm.getTableId())
+            .get(Property.TSERV_LAST_LOCATION_MODE.getKey()).equals("none")) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LAST_LOCATION_DELETED);
+    }
+
     if (shouldReturnDueToLocation(tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }

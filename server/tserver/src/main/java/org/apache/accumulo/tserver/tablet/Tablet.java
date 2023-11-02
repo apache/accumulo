@@ -82,7 +82,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -1335,9 +1334,6 @@ public class Tablet extends TabletBase {
       if (dfv.getNumEntries() > 0) {
         tablet.putFile(newDatafile, dfv);
         newFile = Optional.of(newDatafile.insert());
-
-        ManagerMetadataUtil.updateLastForCompactionMode(getContext(), tablet, lastLocation,
-            tabletServer.getTabletSession());
       }
 
       var newTime = tabletTime.getMetadataTime(maxCommittedTime);

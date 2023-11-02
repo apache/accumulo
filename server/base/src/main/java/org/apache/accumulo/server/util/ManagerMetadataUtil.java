@@ -177,44 +177,30 @@ public class ManagerMetadataUtil {
     }
   }
 
-  /**
-   * Update the last location if the location mode is "assignment". This will delete the previous
-   * last location if needed and set the new last location
-   *
-   * @param context The server context
-   * @param tabletMutator The mutator being built
-   * @param location The new location
-   * @param lastLocation The previous last location, which may be null
-   */
-  public static void updateLastForAssignmentMode(ClientContext context,
-      Ample.TabletUpdates<?> tabletMutator, TServerInstance location, Location lastLocation) {
+  public static void updateLastLocation(ClientContext context, Ample.TabletUpdates<?> tabletMutator,
+      TServerInstance location, Location lastLocation) {
     Preconditions.checkArgument(
         lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
 
-    // if the location mode is assignment, then preserve the current location in the last
-    // location value
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
-    }
-  }
-
-  /**
-   * Update the last location if the location mode is "compaction". This will delete the previous
-   * last location if needed and set the new last location
-   *
-   * @param context The server context
-   * @param tabletMutator The mutator being built
-   * @param lastLocation The last location
-   * @param tServerInstance The server address
-   */
-  public static void updateLastForCompactionMode(ClientContext context,
-      Ample.ConditionalTabletMutator tabletMutator, Location lastLocation,
-      TServerInstance tServerInstance) {
-    // if the location mode is 'compaction', then preserve the current compaction location in the
-    // last location value
-    if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      Location newLocation = Location.last(tServerInstance);
-      updateLocation(tabletMutator, lastLocation, newLocation);
+    String assignmentMode = context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE);
+    log.debug("setting last location, mode: {}, last: {}", assignmentMode, lastLocation);
+    if ("assignment".equals(assignmentMode)) {
+      // if the location mode is assignment, then preserve the current location in the last
+      // location value
+      updateLocation(tabletMutator, lastLocation, Location.last(location));
+    } else if ("none".equals(assignmentMode)) {
+      Location currentLocationAsLast = null;
+      if (location != null) {
+        currentLocationAsLast = Location.last(location);
+        tabletMutator.deleteLocation(currentLocationAsLast);
+      }
+      if (lastLocation != null
+          && (currentLocationAsLast == null || !lastLocation.equals(currentLocationAsLast))) {
+        tabletMutator.deleteLocation(lastLocation);
+      }
+    } else {
+      log.warn("{} is an invalid value for property {}", assignmentMode,
+          Property.TSERV_LAST_LOCATION_MODE.getKey());
     }
   }
 
