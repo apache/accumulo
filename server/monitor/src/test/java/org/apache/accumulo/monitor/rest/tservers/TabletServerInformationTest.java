@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -39,7 +38,6 @@ public class TabletServerInformationTest {
   @Test
   public void testFromThrift() {
     TabletServerStatus ts = new TabletServerStatus();
-    ts.setBulkImports(Collections.singletonList(new BulkImportStatus()));
     ts.setDataCacheHits(11);
     ts.setDataCacheRequest(22);
     ts.setFlushs(33);
