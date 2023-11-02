@@ -281,7 +281,7 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ClientServiceHandler clientHandler = new ClientServiceHandler(context, null);
+    ClientServiceHandler clientHandler = new ClientServiceHandler(context);
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS

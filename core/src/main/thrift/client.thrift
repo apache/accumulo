@@ -135,12 +135,6 @@ service ClientService {
   string getInstanceId()
   string getZooKeepers()
 
-  // ensures that nobody is working on the transaction id above
-  bool isActive(
-    1:TInfo tinfo
-    2:i64 tid
-  )
-
   void ping(
     2:security.TCredentials credentials
   ) throws (

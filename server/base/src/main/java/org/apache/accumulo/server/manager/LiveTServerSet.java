@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -177,16 +176,6 @@ public class LiveTServerSet implements Watcher {
         client.flush(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             tableId.canonical(), startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-
-    public boolean isActive(long tid) throws TException {
-      ClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.CLIENT, address, context);
-      try {
-        return client.isActive(TraceUtil.traceInfo(), tid);
       } finally {
         ThriftUtil.returnClient(client, context);
       }
