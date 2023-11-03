@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -108,16 +109,31 @@ public class PropertyTest {
 
   @Test
   public void testJson() {
-    // JsonParser.parseString("not json");
-
-    var p1 = TSERV_COMPACTION_SERVICE_META_EXECUTORS;
     assertFalse(TSERV_COMPACTION_SERVICE_META_EXECUTORS.getType().isValidFormat("notJson"));
 
-    String json =
+    // use "real" example
+    String json1 =
         "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
             .replaceAll("'", "\"");
-    assertTrue(Property.isValidProperty(p1.getKey(), json));
+    // use synthetic, but valid json
+    String json2 =
+        "[{'foo':'bar','type':'test','fooBar':'32'},{'foo':'bar','type':'test','fooBar':32}]"
+            .replaceAll("'", "\"");
 
+    List<String> valids = List.of(json1, json2);
+
+    List<String> invalids = List.of("not json", "{\"x}", "{\"y\"", "{name:value}",
+        "{ \"foo\" : \"bar\", \"foo\" : \"baz\" }", "{\"y\":123}extra");
+
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.JSON)) {
+        valids.forEach(j -> assertTrue(Property.isValidProperty(prop.getKey(), j)));
+        valids.forEach(j -> assertTrue(prop.getType().isValidFormat(j)));
+
+        invalids.forEach(j -> assertFalse(Property.isValidProperty(prop.getKey(), j)));
+        invalids.forEach(j -> assertFalse(prop.getType().isValidFormat(j)));
+      }
+    }
   }
 
   @Test
