@@ -162,7 +162,7 @@ public class RecoveryManager {
     boolean recoveryNeeded = false;
 
     for (LogEntry entry : walogs) {
-      String walog = entry.filename;
+      String walog = entry.getFilePath();
 
       Path switchedWalog = VolumeUtil.switchVolume(new Path(walog), FileType.WAL,
           manager.getContext().getVolumeReplacements());
