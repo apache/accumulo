@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -209,11 +210,31 @@ public interface Ample {
   }
 
   /**
-   * An entry point for updating tablets metadata using a conditional writer.
+   * An entry point for updating tablets metadata using a conditional writer. The returned mutator
+   * will buffer everything in memory until {@link ConditionalTabletsMutator#process()} is called.
+   * If buffering everything in memory is undesirable, then consider using
+   * {@link #conditionallyMutateTablets(BiConsumer)}
    *
    * @see ConditionalTabletMutator#submit(RejectionHandler)
    */
   default ConditionalTabletsMutator conditionallyMutateTablets() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * An entry point for updating tablets metadata using a conditional writer asynchronously. This
+   * will process conditional mutations in the background as they are added. The benefit of this
+   * method over {@link #conditionallyMutateTablets()} is that it can avoid buffering everything in
+   * memory. Using this method may also be faster as it allows tablet metadata scans and conditional
+   * updates of tablets to run concurrently.
+   *
+   * @param resultsConsumer as conditional mutations are processed in the background their result is
+   *        passed to this consumer. This consumer should be thread safe as it may be called from a
+   *        different thread.
+   * @see ConditionalTabletMutator#submit(RejectionHandler)
+   */
+  default AsyncConditionalTabletsMutator
+      conditionallyMutateTablets(BiConsumer<KeyExtent,ConditionalResult> resultsConsumer) {
     throw new UnsupportedOperationException();
   }
 
@@ -264,7 +285,7 @@ public interface Ample {
     void close();
   }
 
-  public interface ConditionalResult {
+  interface ConditionalResult {
 
     /**
      * This enum was created instead of using {@link ConditionalWriter.Status} because Ample has
@@ -292,13 +313,18 @@ public interface Ample {
     TabletMetadata readMetadata();
   }
 
-  public interface ConditionalTabletsMutator extends AutoCloseable {
-
+  interface AsyncConditionalTabletsMutator extends AutoCloseable {
     /**
      * @return A fluent interface to conditional mutating a tablet. Ensure you call
      *         {@link ConditionalTabletMutator#submit(RejectionHandler)} when finished.
      */
     OperationRequirements mutateTablet(KeyExtent extent);
+
+    @Override
+    void close();
+  }
+
+  interface ConditionalTabletsMutator extends AsyncConditionalTabletsMutator {
 
     /**
      * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
@@ -307,9 +333,6 @@ public interface Ample {
      * @return The result from the {@link ConditionalWriter} of processing each tablet.
      */
     Map<KeyExtent,ConditionalResult> process();
-
-    @Override
-    void close();
   }
 
   /**

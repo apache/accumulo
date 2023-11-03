@@ -49,7 +49,7 @@ public class DeleteTable extends ManagerRepo {
   public Repo<Manager> call(long tid, Manager env) {
     env.getTableManager().transitionTableState(tableId, TableState.DELETING);
     env.getEventCoordinator().event(tableId, "deleting table %s ", tableId);
-    return new CleanUp(tableId, namespaceId);
+    return new ReserveTablets(tableId, namespaceId);
   }
 
   @Override
