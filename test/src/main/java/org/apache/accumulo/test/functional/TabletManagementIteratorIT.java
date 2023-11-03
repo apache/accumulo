@@ -248,6 +248,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
   }
 
+  // Sets an operation type on all tablets up to the end row
   private void setOperationId(AccumuloClient client, String table, String tableNameToModify,
       Text end, TabletOperationType opType) throws TableNotFoundException {
     var opid = TabletOperationId.from(opType, 42L);
@@ -259,7 +260,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
             .fetch(ColumnType.PREV_ROW).build()) {
       for (TabletMetadata tabletMetadata : tabletsMetadata) {
         Mutation m = new Mutation(tabletMetadata.getExtent().toMetaRow());
-        System.out.println("Set Op Extent: " + tabletMetadata.getExtent().toMetaRow());
         MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m,
             new Value(opid.canonical()));
         try (BatchWriter bw = client.createBatchWriter(table)) {
@@ -375,13 +375,14 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
   }
 
+  // Creates a log entry on the "some split" extent, this could be modified easily to support
+  // other extents
   private void createLogEntry(AccumuloClient client, String table, String tableNameToModify)
       throws MutationsRejectedException, TableNotFoundException {
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    System.out.println("Create Log Extent: " + extent.toMetaRow());
     LogEntry logEntry = new LogEntry(extent, 55, "lf1");
     m.at().family(logEntry.getColumnFamily()).qualifier(logEntry.getColumnQualifier())
         .timestamp(logEntry.timestamp).put(logEntry.getValue());
