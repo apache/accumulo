@@ -77,7 +77,7 @@ public class PropertyTypeTest extends WithTestNames {
         .collect(Collectors.toSet());
 
     Set<String> types =
-        Stream.of(PropertyType.values()).map(Enum<PropertyType>::name).collect(Collectors.toSet());
+        Stream.of(PropertyType.values()).map(Enum::name).collect(Collectors.toSet());
 
     assertEquals(types, typesTested, "Expected to see a test method for each property type");
   }
@@ -187,6 +187,15 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypePORT() {
     valid(null, "0", "1024", "30000", "65535");
     invalid("65536", "-65535", "-1", "1023");
+  }
+
+  @Test
+  public void testTypeJSON() {
+    valid("{\"y\":123}",
+        "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]"
+            .replaceAll("'", "\""));
+    invalid("not json", "{\"x}", "{\"y\"", "{name:value}",
+        "{ \"foo\" : \"bar\", \"foo\" : \"baz\" }", "{\"y\":123}extra");
   }
 
   @Test

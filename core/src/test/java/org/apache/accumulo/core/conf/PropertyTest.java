@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -106,6 +107,20 @@ public class PropertyTest {
   }
 
   @Test
+  public void testJson() {
+    // JsonParser.parseString("not json");
+
+    var p1 = TSERV_COMPACTION_SERVICE_META_EXECUTORS;
+    assertFalse(TSERV_COMPACTION_SERVICE_META_EXECUTORS.getType().isValidFormat("notJson"));
+
+    String json =
+        "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
+            .replaceAll("'", "\"");
+    assertTrue(Property.isValidProperty(p1.getKey(), json));
+
+  }
+
+  @Test
   public void testPropertyValidation() {
 
     for (Property property : Property.values()) {
@@ -161,6 +176,9 @@ public class PropertyTest {
           break;
         case BOOLEAN:
           invalidValue = "fooFalse";
+          break;
+        case JSON:
+          invalidValue = "not json";
           break;
         default:
           LOG.debug("Property type: {} has no defined test case", propertyType);
