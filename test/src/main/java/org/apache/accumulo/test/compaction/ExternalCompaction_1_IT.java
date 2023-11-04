@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.harness.AccumuloClusterHarness.getServerContext;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -36,6 +35,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.ro
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
+import static org.apache.accumulo.test.util.FileMetadataUtil.splitFilesIntoRanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -95,7 +95,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -471,13 +470,13 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table2);
 
       // Split file in table1 into two files each fenced off by 100 rows for a total of 200
-      FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), table1,
+      splitFilesIntoRanges(getCluster().getServerContext(), table1,
           Set.of(new Range(new Text(row(100)), new Text(row(199))),
               new Range(new Text(row(300)), new Text(row(399)))));
       assertEquals(2, countFencedFiles(getCluster().getServerContext(), table1));
 
       // Fence file in table2 to 600 rows
-      FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), table2,
+      splitFilesIntoRanges(getCluster().getServerContext(), table2,
           Set.of(new Range(new Text(row(200)), new Text(row(799)))));
       assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
 
