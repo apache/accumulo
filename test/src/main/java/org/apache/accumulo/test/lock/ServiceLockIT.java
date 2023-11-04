@@ -20,6 +20,7 @@ package org.apache.accumulo.test.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -637,12 +638,13 @@ public class ServiceLockIT {
         String first = children.get(0);
         int workerWithLock = parseLockWorkerName(first);
         LockWorker worker = workers.get(workerWithLock);
-        assertTrue(worker.holdsLock());
-        workers.forEach(w -> {
-          if (w != worker) {
-            assertFalse(w.holdsLock());
-          }
-        });
+        assertAll(() -> assertTrue(worker.holdsLock(),
+            "Expected worker, " + worker + " did not hold lock"), () -> workers.forEach(w -> {
+              if (w != worker) {
+                assertFalse(w.holdsLock(),
+                    "Expected worker, " + worker + " to hold lock. Instead " + w + " holds lock");
+              }
+            }));
         worker.unlock();
         Thread.sleep(100); // need to wait here so that the watchers fire.
       }
