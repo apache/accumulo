@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.harness.AccumuloClusterHarness.getServerContext;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -34,6 +35,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.ge
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,6 +48,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +72,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DevNull;
@@ -91,6 +95,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -447,6 +452,52 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(table3);
+    }
+  }
+
+  @Test
+  public void testExternalCompactionWithFencedFiles() throws Exception {
+    String[] names = this.getUniqueNames(2);
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      String table1 = names[0];
+      createTable(client, table1, "cs1");
+
+      String table2 = names[1];
+      createTable(client, table2, "cs2");
+
+      writeData(client, table1);
+      writeData(client, table2);
+
+      // Split file in table1 into two files each fenced off by 100 rows for a total of 200
+      FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), table1,
+          Set.of(new Range(new Text(row(100)), new Text(row(199))),
+              new Range(new Text(row(300)), new Text(row(399)))));
+      assertEquals(2, countFencedFiles(getCluster().getServerContext(), table1));
+
+      // Fence file in table2 to 600 rows
+      FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), table2,
+          Set.of(new Range(new Text(row(200)), new Text(row(799)))));
+      assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
+
+      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+
+      compact(client, table1, 2, QUEUE1, true);
+      verify(client, table1, 2, 200);
+
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(row(MAX_DATA / 2)));
+      client.tableOperations().addSplits(table2, splits);
+
+      compact(client, table2, 3, QUEUE2, true);
+      verify(client, table2, 3, 600);
+
+      // should be no more fenced files after compaction
+      assertEquals(0, countFencedFiles(getCluster().getServerContext(), table1));
+      assertEquals(0, countFencedFiles(getCluster().getServerContext(), table2));
     }
   }
 
