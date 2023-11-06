@@ -18,15 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
-
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -40,11 +35,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -87,29 +79,8 @@ class CleanUp extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
+    // ELASTICITY_TODO investigate this, what is it for and is it still needed?
     if (!manager.hasCycled(creationTime)) {
-      return 50;
-    }
-
-    boolean done = true;
-
-    try (var tablets = manager.getContext().getAmple().readTablets().forTable(tableId)
-        .fetch(LOCATION, PREV_ROW, SUSPEND).checkConsistency().build()) {
-      Set<TServerInstance> liveTServers = manager.onlineTabletServers();
-      for (TabletMetadata tm : tablets) {
-        TabletState state = TabletState.compute(tm, liveTServers);
-        if (!state.equals(TabletState.UNASSIGNED)) {
-          // This code will even wait on tablets that are assigned to dead tablets servers. This is
-          // intentional because the manager may make metadata writes for these tablets. See #587
-          log.debug("Still waiting for table({}) to be deleted; Target tablet state: UNASSIGNED, "
-              + "Current tablet state: {}, locationState: {}", tableId, state, tm);
-          done = false;
-          break;
-        }
-      }
-    }
-
-    if (!done) {
       return 50;
     }
 
