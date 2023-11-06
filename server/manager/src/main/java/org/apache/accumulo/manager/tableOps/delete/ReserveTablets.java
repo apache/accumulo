@@ -76,8 +76,9 @@ public class ReserveTablets extends ManagerRepo {
             .fetch(OPID, PREV_ROW, LOCATION).checkConsistency().build();
         var conditionalMutator =
             manager.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
-      tabletsSeen++;
+
       for (var tabletMeta : tablets) {
+        tabletsSeen++;
         if (tabletMeta.getLocation() != null) {
           locations++;
         }

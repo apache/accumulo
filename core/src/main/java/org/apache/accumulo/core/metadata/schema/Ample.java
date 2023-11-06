@@ -231,6 +231,9 @@ public interface Ample {
    * @param resultsConsumer as conditional mutations are processed in the background their result is
    *        passed to this consumer. This consumer should be thread safe as it may be called from a
    *        different thread.
+   * @return A conditional tablet mutator that will asynchronously report results. Closing this
+   *         object will force everything to be processed and reported. The returned object is not
+   *         thread safe and is only intended to be used by a single thread.
    * @see ConditionalTabletMutator#submit(RejectionHandler)
    */
   default AsyncConditionalTabletsMutator
@@ -320,6 +323,9 @@ public interface Ample {
      */
     OperationRequirements mutateTablet(KeyExtent extent);
 
+    /**
+     * Closing ensures that all mutations are processed and their results are reported.
+     */
     @Override
     void close();
   }
