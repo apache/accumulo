@@ -178,13 +178,26 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       removeLocation(client, metaCopy4, t4);
       assertEquals(2, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Tablets have no location and a hosting goal of always, so they should need attention");
+
+      // Test MERGING and SPLITTING do not need attention with no location or wals
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have no tablets needing attention for merge as they have no location");
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have no tablets needing attention for merge as they have no location");
+
       // Create a log entry for one of the tablets, this tablet will now need attention
+      // for both MERGING and SPLITTING
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       createLogEntry(client, metaCopy4, t4);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have a tablet needing attention because of wals");
+      // Switch op to SPLITTING which should also need attention like MERGING
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have a tablet needing attention because of wals");
+
       // Switch op to delete, no tablets should need attention even with WALs
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.DELETING);
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
