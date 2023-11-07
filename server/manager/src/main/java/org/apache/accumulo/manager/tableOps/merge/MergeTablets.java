@@ -263,8 +263,8 @@ public class MergeTablets extends ManagerRepo {
     }
 
     Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
-            "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,
-            rejectedCount.get());
+        "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,
+        rejectedCount.get());
   }
 
   private void addFilesToLastTablet(ServerContext context, KeyExtent lastExtent,

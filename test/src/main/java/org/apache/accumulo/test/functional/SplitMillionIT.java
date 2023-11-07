@@ -107,7 +107,8 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       assertEquals(1_000_000, count);
       log.info("Time to scan all tablets : {}ms", t2 - t1);
 
-      // clone the table to test cloning with lots of tablets and also to give merge its own table to work on
+      // clone the table to test cloning with lots of tablets and also to give merge its own table
+      // to work on
       var cloneName = tableName + "_clone";
       t1 = System.currentTimeMillis();
       c.tableOperations().clone(tableName, cloneName, CloneConfiguration.builder().build());
