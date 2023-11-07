@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +28,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,10 +40,13 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -171,9 +177,25 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   // This verifies all the entries can still be read after splits/merges
   // when ranged files are used
   private void verifyMetadataTableScan(AccumuloClient client) throws Exception {
-    // There should be 50 entries, 5 entries per Tablet
-    assertEquals(50,
-        client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).stream().count());
+    var tables = client.tableOperations().tableIdMap();
+    var expectedExtents = tables.entrySet().stream()
+        .filter(e -> !e.getKey().startsWith("accumulo.")).map(Map.Entry::getValue).map(TableId::of)
+        .map(tid -> new KeyExtent(tid, null, null)).collect(Collectors.toSet());
+    // Verify we have 10 tablets for metadata
+    assertEquals(10, expectedExtents.size());
+
+    // Scan each tablet to verify data exists
+    var ample = ((ClientContext) client).getAmple();
+    try (var tablets = ample.readTablets().forLevel(Ample.DataLevel.USER).build()) {
+      for (var tablet : tablets) {
+        assertTrue(expectedExtents.remove(tablet.getExtent()));
+        assertNotNull(tablet.getDirName());
+        assertNotNull(tablet.getLocation());
+      }
+    }
+
+    // ensure all expected extents were seen
+    assertEquals(0, expectedExtents.size());
   }
 
   private static void checkMetadataSplits(int numSplits, TableOperations opts)
