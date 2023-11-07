@@ -158,6 +158,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
         opts.compact(MetadataTable.NAME, new CompactionConfig());
         // Should be no more fenced files after compaction
         assertEquals(0, countFencedFiles(getServerContext(), MetadataTable.NAME));
+        verifyMetadataTableScan(client);
       } finally {
         for (int i = 1; i <= 10; i++) {
           opts.delete(Integer.toString(i));
