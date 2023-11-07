@@ -469,6 +469,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
+      // Verify that all data can be seen
+      verify(client, table1, 1, MAX_DATA);
+      verify(client, table2, 1, MAX_DATA);
+
       // Split file in table1 into two files each fenced off by 100 rows for a total of 200
       splitFilesIntoRanges(getCluster().getServerContext(), table1,
           Set.of(new Range(new Text(row(100)), new Text(row(199))),
@@ -480,10 +484,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           Set.of(new Range(new Text(row(200)), new Text(row(799)))));
       assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
 
+      // Verify that a subset of the data is now seen after fencing
+      verify(client, table1, 1, 200);
+      verify(client, table2, 1, 600);
+
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
 
+      // Compact and verify previousy fenced data didn't come back
       compact(client, table1, 2, QUEUE1, true);
       verify(client, table1, 2, 200);
 
@@ -491,6 +500,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       splits.add(new Text(row(MAX_DATA / 2)));
       client.tableOperations().addSplits(table2, splits);
 
+      // Compact and verify previousy fenced data didn't come back
       compact(client, table2, 3, QUEUE2, true);
       verify(client, table2, 3, 600);
 
