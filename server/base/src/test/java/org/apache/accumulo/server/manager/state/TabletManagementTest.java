@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -100,12 +102,12 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(extent, 55, "lf1");
-    mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())
-        .timestamp(le1.timestamp).put(le1.getValue());
-    LogEntry le2 = new LogEntry(extent, 57, "lf2");
-    mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
-        .timestamp(le2.timestamp).put(le2.getValue());
+    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
+        .timestamp(le1.getTimestamp()).put(le1.getValue());
+    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
+        .timestamp(le2.getTimestamp()).put(le2.getValue());
 
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();

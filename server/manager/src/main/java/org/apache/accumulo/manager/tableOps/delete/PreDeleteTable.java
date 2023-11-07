@@ -57,6 +57,7 @@ public class PreDeleteTable extends ManagerRepo {
 
   private void preventFutureCompactions(Manager environment)
       throws KeeperException, InterruptedException {
+    // ELASTICITY_TODO investigate this. Is still needed? Is it still working as expected?
     String deleteMarkerPath = createDeleteMarkerPath(environment.getInstanceID(), tableId);
     ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
     zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
