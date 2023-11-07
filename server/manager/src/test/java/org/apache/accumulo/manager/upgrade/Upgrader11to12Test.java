@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -297,5 +298,20 @@ public class Upgrader11to12Test {
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
     verify(context, zrw);
+  }
+
+  @Test
+  public void fileConversionTest() {
+    String s21 = "hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf";
+    String s31 =
+        "{\"path\":\"hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf\",\"startRow\":\"\",\"endRow\":\"\"}";
+    String s31_untrimmed =
+        "   {  \"path\":\"hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf\",\"startRow\":\"\",\"endRow\":\"\"  }   ";
+
+    Upgrader11to12 upgrader = new Upgrader11to12();
+
+    assertTrue(upgrader.fileNeedsConversion(s21));
+    assertFalse(upgrader.fileNeedsConversion(s31));
+    assertFalse(upgrader.fileNeedsConversion(s31_untrimmed));
   }
 }

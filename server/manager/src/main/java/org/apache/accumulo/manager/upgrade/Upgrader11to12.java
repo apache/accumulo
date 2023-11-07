@@ -48,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.gson.JsonSyntaxException;
 
 public class Upgrader11to12 implements Upgrader {
 
@@ -194,23 +193,17 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   /**
-   * Quick validation to see if value has been converted by checking the candidate can be parsed
-   * into a StoredTabletFile. If parsing does not throw a parsing exception. then assume it has been
-   * converted. If validate cannot parse the candidate a JSON, then it is assumed that it has not
-   * been converted. Other parsing errors will propagate as IllegalArgumentExceptions.
+   * Quick validation to see if value has been converted by checking if the candidate looks like
+   * json by checking the candidate starts with "{" and ends with "}".
    *
    * @param candidate a possible file: reference.
-   * @return false if a valid StoredTabletFile, true if it cannot be parsed as JSON. Otherwise,
-   *         propagate an IllegalArgumentException
+   * @return false if a likely a json object, true if not a likely json object
    */
-  private boolean fileNeedsConversion(@NonNull final String candidate) {
-    try {
-      StoredTabletFile.validate(candidate);
-      log.trace("file reference does not need conversion: {}", candidate);
-      return false;
-    } catch (JsonSyntaxException ex) {
-      log.trace("file reference needs conversion: {}", candidate);
-      return true;
-    }
+  @VisibleForTesting
+  boolean fileNeedsConversion(@NonNull final String candidate) {
+    String trimmed = candidate.trim();
+    boolean needsConversion = !trimmed.startsWith("{") || !trimmed.endsWith("}");
+    log.trace("file: {} needs conversion: {}", candidate, needsConversion);
+    return needsConversion;
   }
 }
