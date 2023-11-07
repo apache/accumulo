@@ -176,6 +176,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // These tablets should not need attention as they have no WALs
       setTabletHostingGoal(client, metaCopy4, t4, TabletHostingGoal.ALWAYS.name());
       removeLocation(client, metaCopy4, t4);
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+              "Tablets have no location and a hosting goal of always, so they should need attention");
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have no tablets needing attention for merge as they have no location");
