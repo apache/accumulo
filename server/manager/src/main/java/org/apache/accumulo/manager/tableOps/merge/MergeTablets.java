@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -33,28 +34,39 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.io.Text;
@@ -94,6 +106,8 @@ public class MergeTablets extends ManagerRepo {
     TabletMetadata firstTabletMeta = null;
     TabletMetadata lastTabletMeta = null;
 
+    KeyExtent lastExtent = getHighTablet(manager.getContext(), range);
+
     try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
         .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
         .fetch(OPID, LOCATION, HOSTING_GOAL, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS).build()) {
@@ -120,6 +134,8 @@ public class MergeTablets extends ManagerRepo {
         boolean isLastTablet = (range.endRow() == null && tabletMeta.getExtent().endRow() == null)
             || (range.endRow() != null && tabletMeta.getExtent().contains(range.endRow()));
         if (isLastTablet) {
+          Preconditions.checkState(tabletMeta.getExtent().equals(lastExtent),
+              "Last extents not equals %s != %s", tabletMeta.getExtent(), lastExtent);
           lastTabletMeta = tabletMeta;
         } else {
           // files for the last tablet need to specially handled, so only add other tablets files
@@ -128,8 +144,22 @@ public class MergeTablets extends ManagerRepo {
             newFiles.put(fenceFile(tabletMeta.getExtent(), file), dfv);
           });
 
+          // Avoid buffering too many files in memory
+          if (newFiles.size() > 1000) {
+            // Do not want to make an updates when there is only a single tablet, however should not
+            // get to this code of there is a single tablet.
+            Preconditions.checkState(tabletsSeen > 1);
+            addFilesToLastTablet(manager.getContext(), lastExtent, newFiles, opid, fateStr);
+            newFiles.clear();
+          }
+
           // queue all tablets dirs except the last tablets to be added as GC candidates
           dirs.add(new AllVolumesDirectory(range.tableId(), tabletMeta.getDirName()));
+          if (dirs.size() > 1000) {
+            Preconditions.checkState(tabletsSeen > 1);
+            manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
+            dirs.clear();
+          }
         }
       }
 
@@ -156,7 +186,6 @@ public class MergeTablets extends ManagerRepo {
         < 0) {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-        var lastExtent = lastTabletMeta.getExtent();
         var tabletMutator =
             tabletsMutator.mutateTablet(lastExtent).requireOperation(opid).requireAbsentLocation();
 
@@ -190,12 +219,26 @@ public class MergeTablets extends ManagerRepo {
     // Accumulo GC will delete the dir
     manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
 
+    AtomicLong acceptedCount = new AtomicLong();
+    AtomicLong rejectedCount = new AtomicLong();
     // delete tablets
+    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+      if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+        acceptedCount.incrementAndGet();
+      } else {
+        log.error("{} failed to update {}", fateStr, extent);
+        rejectedCount.incrementAndGet();
+      }
+    };
+
+    long submitted = 0;
+
     try (
         var tabletsMetadata =
             manager.getContext().getAmple().readTablets().forTable(range.tableId())
                 .overlapping(range.prevEndRow(), range.endRow()).saveKeyValues().build();
-        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+        var tabletsMutator =
+            manager.getContext().getAmple().conditionallyMutateTablets(resultConsumer)) {
 
       for (var tabletMeta : tabletsMetadata) {
         validateTablet(tabletMeta, fateStr, opid, data.tableId);
@@ -209,15 +252,52 @@ public class MergeTablets extends ManagerRepo {
             .requireOperation(opid).requireAbsentLocation();
 
         tabletMeta.getKeyValues().keySet().forEach(key -> {
-          log.debug("{} deleting {}", fateStr, key);
+          log.trace("{} deleting {}", fateStr, key);
         });
 
         tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
         // if the tablet no longer exists, then it was successful
         tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
+        submitted++;
       }
+    }
 
+    Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
+            "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,
+            rejectedCount.get());
+  }
+
+  private void addFilesToLastTablet(ServerContext context, KeyExtent lastExtent,
+      Map<StoredTabletFile,DataFileValue> newFiles, TabletOperationId opid, String fateStr) {
+
+    try (var tabletsMutator = context.getAmple().conditionallyMutateTablets()) {
+      var tabletMutator =
+          tabletsMutator.mutateTablet(lastExtent).requireOperation(opid).requireAbsentLocation();
+      newFiles.forEach(tabletMutator::putFile);
+      tabletMutator.submit(tm -> tm.getFiles().containsAll(newFiles.keySet()));
       verifyAccepted(tabletsMutator.process(), fateStr);
+    }
+  }
+
+  private KeyExtent getHighTablet(ServerContext context, KeyExtent range) throws AccumuloException {
+    try (Scanner scanner = context.createScanner(
+        range.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY)) {
+      PREV_ROW_COLUMN.fetch(scanner);
+      var metaRow = MetadataSchema.TabletsSection.encodeRow(range.tableId(), range.endRow());
+      scanner.setRange(new Range(metaRow, null));
+      Iterator<Map.Entry<Key,Value>> iterator = scanner.iterator();
+      if (!iterator.hasNext()) {
+        throw new AccumuloException("No last tablet for a merge " + range);
+      }
+      Map.Entry<Key,Value> entry = iterator.next();
+      KeyExtent highTablet = KeyExtent.fromMetaPrevRow(entry);
+      if (!highTablet.tableId().equals(range.tableId())) {
+        throw new AccumuloException("No last tablet for merge " + range + " " + highTablet);
+      }
+      return highTablet;
+    } catch (Exception ex) {
+      throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range,
+          ex);
     }
   }
 
