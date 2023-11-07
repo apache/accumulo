@@ -65,11 +65,11 @@ public class Upgrader11to12 implements Upgrader {
       byte[] rootData = zrw.getData(rootBase, stat);
 
       String json = new String(rootData, UTF_8);
-      if (RootTabletMetadata.Data.needsUpgrade(json)) {
+      if (RootTabletMetadata.needsUpgrade(json)) {
         log.info("Root metadata in ZooKeeper before upgrade: {}", json);
         RootTabletMetadata rtm = RootTabletMetadata.upgrade(json);
-        log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
         zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -77,7 +77,7 @@ public class Upgrader11to12 implements Upgrader {
           "Could not read root metadata from ZooKeeper due to interrupt", ex);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
-          "Could not read root metadata from ZooKeeper because of ZooKeeper exception", ex);
+          "Could not read or write root metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
 
@@ -194,7 +194,7 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   /**
-   * Quick sanity check to see if value has been converted by checking the candidate can be parsed
+   * Quick validation to see if value has been converted by checking the candidate can be parsed
    * into a StoredTabletFile. If parsing does not throw a parsing exception. then assume it has been
    * converted. If validate cannot parse the candidate a JSON, then it is assumed that it has not
    * been converted. Other parsing errors will propagate as IllegalArgumentExceptions.

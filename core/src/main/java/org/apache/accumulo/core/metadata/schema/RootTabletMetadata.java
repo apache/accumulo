@@ -67,7 +67,7 @@ public class RootTabletMetadata {
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
-  public static class Data {
+  private static class Data {
     private final int version;
 
     /*
@@ -207,6 +207,10 @@ public class RootTabletMetadata {
                 new Value(qualVal.getValue()))));
     return TabletMetadata.convertRow(entries.iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+  }
+
+  public static boolean needsUpgrade(final String json) {
+    return Data.needsUpgrade(json);
   }
 
   /**

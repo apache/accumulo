@@ -70,12 +70,12 @@ public class RootTabletMetadataTest {
   public void needsUpgradeTest() {
     String root212ZkData2Files =
         "{\"version\":1,\"columnValues\":{\"file\":{\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/00000_00000.rf\":\"0,0\",\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000c.rf\":\"926,18\"},\"last\":{\"10001a84d7d0005\":\"localhost:9997\"},\"loc\":{\"10001a84d7d0005\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"2\",\"lock\":\"tservers/localhost:9997/zlock#d21adaa4-0f97-4004-9ff8-cce9dbb6687f#0000000000$10001a84d7d0005\",\"time\":\"L6\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}\n";
-    assertTrue(RootTabletMetadata.Data.needsUpgrade(root212ZkData2Files));
+    assertTrue(RootTabletMetadata.needsUpgrade(root212ZkData2Files));
 
     String converted =
         "{\"version\":2,\"columnValues\":{\"file\":{\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A0000013.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"974,19\",\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F0000014.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"708,8\"},\"last\":{\"100024ec6110005\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"6\",\"lock\":\"tservers/localhost:9997/zlock#0f3000c9-ecf9-4bcd-8790-066c3f7a3818#0000000000$100024ec6110005\",\"time\":\"L43\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
 
-    assertFalse(RootTabletMetadata.Data.needsUpgrade(converted));
+    assertFalse(RootTabletMetadata.needsUpgrade(converted));
   }
 
   @Test
@@ -83,7 +83,7 @@ public class RootTabletMetadataTest {
     String converted =
         "{\"version\":2,\"columnValues\":{\"file\":{\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A0000013.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"974,19\",\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F0000014.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"708,8\"},\"last\":{\"100024ec6110005\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"6\",\"lock\":\"tservers/localhost:9997/zlock#0f3000c9-ecf9-4bcd-8790-066c3f7a3818#0000000000$100024ec6110005\",\"time\":\"L43\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
 
-    assertFalse(RootTabletMetadata.Data.needsUpgrade(converted));
+    assertFalse(RootTabletMetadata.needsUpgrade(converted));
 
     RootTabletMetadata rtm = RootTabletMetadata.upgrade(converted);
     var files = rtm.toTabletMetadata().getFiles();
@@ -103,7 +103,7 @@ public class RootTabletMetadataTest {
     String invalid =
         "{\"version\":-1,\"columnValues\":{\"file\":{\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A000000v.rf\":\"1368,61\"},\"last\":{\"100025091780006\":\"localhost:9997\"},\"loc\":{\"100025091780006\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"3\",\"lock\":\"tservers/localhost:9997/zlock#9db8961a-4ee9-400e-8e80-3353148baadd#0000000000$100025091780006\",\"time\":\"L53\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
 
-    assertTrue(RootTabletMetadata.Data.needsUpgrade(valid));
+    assertTrue(RootTabletMetadata.needsUpgrade(valid));
 
     RootTabletMetadata rtm = RootTabletMetadata.upgrade(valid);
     var files = rtm.toTabletMetadata().getFiles();
@@ -112,7 +112,7 @@ public class RootTabletMetadataTest {
         .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A000000v.rf"))));
 
     // valid json with files, so try conversion
-    assertTrue(RootTabletMetadata.Data.needsUpgrade(invalid));
+    assertTrue(RootTabletMetadata.needsUpgrade(invalid));
 
     assertThrows(IllegalArgumentException.class, () -> RootTabletMetadata.upgrade(invalid));
   }
