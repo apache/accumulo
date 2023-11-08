@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -138,8 +137,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry =
-          new LogEntry(new KeyExtent(tableId, null, null), 0, emptyWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(0, emptyWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -148,7 +146,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
-      m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+      m.put(TabletsSection.LogColumnFamily.NAME, logEntry.getColumnQualifier(),
+          logEntry.getValue());
 
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(m);
@@ -197,7 +196,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = new LogEntry(null, 0, partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(0, partialHeaderWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -206,7 +205,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
-      m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+      m.put(TabletsSection.LogColumnFamily.NAME, logEntry.getColumnQualifier(),
+          logEntry.getValue());
 
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(m);

@@ -19,67 +19,121 @@
 package org.apache.accumulo.core.tabletserver.log;
 
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 
-public class LogEntry {
-  private final KeyExtent extent;
-  public final long timestamp;
-  public final String filename;
+import com.google.common.net.HostAndPort;
 
-  public LogEntry(KeyExtent extent, long timestamp, String filename) {
-    // note the prevEndRow in the extent does not matter, and is not used by LogEntry
-    this.extent = extent;
+public class LogEntry {
+
+  private final long timestamp;
+  private final String filePath;
+
+  public LogEntry(long timestamp, String filePath) {
+    validateFilePath(filePath);
     this.timestamp = timestamp;
-    this.filename = filename;
+    this.filePath = filePath;
   }
 
-  // make copy, but with a different filename
-  public LogEntry switchFile(String filename) {
-    return new LogEntry(extent, timestamp, filename);
+  public long getTimestamp() {
+    return this.timestamp;
+  }
+
+  public String getFilePath() {
+    return this.filePath;
+  }
+
+  /**
+   * Validates the expected format of the file path. We expect the path to contain a tserver
+   * (host:port) followed by a UUID as the file name. For example,
+   * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
+   *
+   * @param filePath path to validate
+   * @throws IllegalArgumentException if the filepath is invalid
+   */
+  private static void validateFilePath(String filePath) {
+    String[] parts = filePath.split("/");
+
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "Invalid filePath format. The path should at least contain tserver/UUID.");
+    }
+
+    String tserverPart = parts[parts.length - 2];
+    String uuidPart = parts[parts.length - 1];
+
+    try {
+      var ignored = HostAndPort.fromString(tserverPart);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
+              + "'");
+    }
+
+    try {
+      var ignored = UUID.fromString(uuidPart);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Expected valid UUID. Found '" + uuidPart + "'");
+    }
+  }
+
+  /**
+   * Make a copy of this LogEntry but replace the file path.
+   *
+   * @param filePath path to use
+   */
+  public LogEntry switchFile(String filePath) {
+    return new LogEntry(timestamp, filePath);
   }
 
   @Override
   public String toString() {
-    return extent.toMetaRow() + " " + filename;
+    return filePath;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (!(other instanceof LogEntry)) {
+      return false;
+    }
+    LogEntry logEntry = (LogEntry) other;
+    return this.timestamp == logEntry.timestamp && this.filePath.equals(logEntry.filePath);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(timestamp, filePath);
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
     final Key key = entry.getKey();
     final Value value = entry.getValue();
-    KeyExtent extent = KeyExtent.fromMetaRow(key.getRow());
-    // qualifier.split("/")[0] used to store the server, but this is no longer used, and the
-    // qualifier can be ignored
-    // the following line handles old-style log entry values that specify log sets
-    String[] parts = value.toString().split("\\|")[0].split(";");
-    String filename = parts[parts.length - 1];
-    long timestamp = key.getTimestamp();
-    return new LogEntry(extent, timestamp, filename);
-  }
 
-  public Text getRow() {
-    return extent.toMetaRow();
-  }
+    String filePath = value.toString();
 
-  public Text getColumnFamily() {
-    return LogColumnFamily.NAME;
+    validateFilePath(filePath);
+
+    return new LogEntry(key.getTimestamp(), filePath);
   }
 
   public String getUniqueID() {
-    String[] parts = filename.split("/");
+    String[] parts = filePath.split("/");
     return parts[parts.length - 1];
   }
 
   public Text getColumnQualifier() {
-    return new Text("-/" + filename);
+    return new Text("-/" + filePath);
   }
 
   public Value getValue() {
-    return new Value(filename);
+    return new Value(filePath);
   }
 
 }
