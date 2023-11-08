@@ -55,7 +55,7 @@ public class ListVolumesUsed {
   }
 
   private static void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
-    volumes.add(getLogURI(logEntry.filename));
+    volumes.add(getLogURI(logEntry.getFilePath()));
   }
 
   private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {

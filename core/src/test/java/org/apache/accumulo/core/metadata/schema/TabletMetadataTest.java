@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -99,12 +101,12 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(extent, 55, "lf1");
-    mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())
-        .timestamp(le1.timestamp).put(le1.getValue());
-    LogEntry le2 = new LogEntry(extent, 57, "lf2");
-    mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
-        .timestamp(le2.timestamp).put(le2.getValue());
+    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
+        .timestamp(le1.getTimestamp()).put(le1.getValue());
+    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
+        .timestamp(le2.getTimestamp()).put(le2.getValue());
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
@@ -134,8 +136,10 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(Set.of(le1.getValue() + " " + le1.timestamp, le2.getValue() + " " + le2.timestamp),
-        tm.getLogs().stream().map(le -> le.getValue() + " " + le.timestamp).collect(toSet()));
+    assertEquals(
+        Set.of(le1.getValue() + " " + le1.getTimestamp(),
+            le2.getValue() + " " + le2.getTimestamp()),
+        tm.getLogs().stream().map(le -> le.getValue() + " " + le.getTimestamp()).collect(toSet()));
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());

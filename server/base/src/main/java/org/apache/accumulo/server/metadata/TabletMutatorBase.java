@@ -175,14 +175,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putWal(LogEntry logEntry) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+    mutation.put(LogColumnFamily.NAME, logEntry.getColumnQualifier(), logEntry.getValue());
     return this;
   }
 
   @Override
   public Ample.TabletMutator deleteWal(LogEntry logEntry) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(logEntry.getColumnFamily(), logEntry.getColumnQualifier());
+    mutation.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier());
     return this;
   }
 
