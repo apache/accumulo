@@ -147,7 +147,7 @@ public class CompactionService {
       log.error(
           "Failed to create compaction planner for {} using class:{} options:{}.  Compaction service will not start any new compactions until its configuration is fixed.",
           myId, plannerClass, options, e);
-      return new NullCompactionPlanner();
+      return new ProvisionalCompactionPlanner(myId);
     }
   }
 
