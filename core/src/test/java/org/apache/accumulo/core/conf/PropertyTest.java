@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -109,9 +108,7 @@ public class PropertyTest {
 
   @Test
   public void testJson() {
-    assertFalse(TSERV_COMPACTION_SERVICE_META_EXECUTORS.getType().isValidFormat("notJson"));
-
-    // use "real" example
+    // using "real" example
     String json1 =
         "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
             .replaceAll("'", "\"");
@@ -119,10 +116,11 @@ public class PropertyTest {
     String json2 =
         "[{'foo':'bar','type':'test','fooBar':'32'},{'foo':'bar','type':'test','fooBar':32}]"
             .replaceAll("'", "\"");
+    String json3 = "{'foo':'bar','type':'test','fooBar':'32'}".replaceAll("'", "\"");
 
-    List<String> valids = List.of(json1, json2);
+    List<String> valids = List.of(json1, json2, json3);
 
-    List<String> invalids = List.of("not json", "{\"x}", "{\"y\"", "{name:value}",
+    List<String> invalids = List.of("notJson", "also not json", "{\"x}", "{\"y\"", "{name:value}",
         "{ \"foo\" : \"bar\", \"foo\" : \"baz\" }", "{\"y\":123}extra");
 
     for (Property prop : Property.values()) {

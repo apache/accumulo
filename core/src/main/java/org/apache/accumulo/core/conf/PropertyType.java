@@ -195,6 +195,12 @@ public enum PropertyType {
     return predicate.test(value);
   }
 
+  // ObjectMapper is thread-safe, but uses synchronization. If this causes contention, ThreadLocal
+  // may be an option.
+  private static final ObjectMapper jsonMapper =
+      new ObjectMapper().enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY)
+          .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+
   /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
    * jackson databind because it is less permissive that GSON for what is considered valid. This
@@ -205,7 +211,7 @@ public enum PropertyType {
   private static class ValidJson implements Predicate<String> {
     private static final Logger log = LoggerFactory.getLogger(ValidJson.class);
 
-    // set a limit of 1 million characters on the string as rough sanity check
+    // set a limit of 1 million characters on the string as rough guard on invalid input
     private static final int ONE_MILLION = 1024 * 1024;
 
     @Override
@@ -216,11 +222,7 @@ public enum PropertyType {
               value.length(), ONE_MILLION);
           return false;
         }
-        ObjectMapper mapper =
-            new ObjectMapper().enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY)
-                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
-        mapper.readTree(value);
+        jsonMapper.readTree(value);
         return true;
       } catch (IOException ex) {
         return false;
