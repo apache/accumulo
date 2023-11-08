@@ -79,7 +79,6 @@ public class ReserveTablets extends ManagerRepo {
             env.getContext().getAmple().conditionallyMutateTablets(resultConsumer)) {
 
       for (var tabletMeta : tablets) {
-
         if (tabletMeta.getOperationId() == null) {
           tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
               .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
@@ -129,10 +128,6 @@ public class ReserveTablets extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    if (data.op == MergeInfo.Operation.MERGE) {
-      return new MergeTablets(data);
-    } else {
-      return new DeleteRows(data);
-    }
+    return new CountFiles(data);
   }
 }
