@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A compaction planner that makes no plans and is intended to be used temporarily when a compaction
- * service has no compaction planner because it is misconfiguration.
+ * service has no compaction planner because it is misconfigured.
  */
 public class ProvisionalCompactionPlanner implements CompactionPlanner {
 
