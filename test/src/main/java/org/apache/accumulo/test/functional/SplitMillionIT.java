@@ -29,6 +29,7 @@ import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -95,14 +96,7 @@ public class SplitMillionIT extends AccumuloClusterHarness {
         }
 
         long t3 = System.currentTimeMillis();
-
-        try (var scanner = c.createScanner(tableName)) {
-          scanner.setRange(new Range(row));
-          Map<String,String> coords = scanner.stream().collect(Collectors.toMap(
-              e -> e.getKey().getColumnQualifier().toString(), e -> e.getValue().toString()));
-          assertEquals(Map.of("x", "200", "y", "900", "z", "300"), coords);
-        }
-
+        verifyRow(c, tableName, row);
         long t4 = System.currentTimeMillis();
         log.info("Row: {} scan1: {}ms write: {}ms scan2: {}ms", row, t2 - t1, t3 - t2, t4 - t3);
       }
@@ -113,11 +107,39 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       assertEquals(1_000_000, count);
       log.info("Time to scan all tablets : {}ms", t2 - t1);
 
+      // clone the table to test cloning with lots of tablets and also to give merge its own table
+      // to work on
+      var cloneName = tableName + "_clone";
+      t1 = System.currentTimeMillis();
+      c.tableOperations().clone(tableName, cloneName, CloneConfiguration.builder().build());
+      t2 = System.currentTimeMillis();
+      log.info("Time to clone table : {}ms", t2 - t1);
+
+      // merge the clone, so that delete table can run later on tablet with lots and lots of tablets
+      t1 = System.currentTimeMillis();
+      c.tableOperations().merge(cloneName, null, null);
+      t2 = System.currentTimeMillis();
+      log.info("Time to merge all tablets : {}ms", t2 - t1);
+
+      // verify data after merge
+      for (var rowInt : rows) {
+        var row = String.format("%010d", rowInt);
+        verifyRow(c, cloneName, row);
+      }
+
       t1 = System.currentTimeMillis();
       c.tableOperations().delete(tableName);
       t2 = System.currentTimeMillis();
       log.info("Time to delete table : {}ms", t2 - t1);
+    }
+  }
 
+  private void verifyRow(AccumuloClient c, String tableName, String row) throws Exception {
+    try (var scanner = c.createScanner(tableName)) {
+      scanner.setRange(new Range(row));
+      Map<String,String> coords = scanner.stream().collect(Collectors
+          .toMap(e -> e.getKey().getColumnQualifier().toString(), e -> e.getValue().toString()));
+      assertEquals(Map.of("x", "200", "y", "900", "z", "300"), coords);
     }
   }
 
