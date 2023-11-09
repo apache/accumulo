@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -103,8 +102,7 @@ public class CompactionService {
 
     var initParams =
         new CompactionPlannerInitParams(myId, plannerOpts, new ServiceEnvironmentImpl(context));
-    planner = createPlanner(plannerClass);
-    planner.init(initParams);
+    planner = createPlanner(myId, plannerClass, plannerOptions, initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
@@ -138,11 +136,18 @@ public class CompactionService {
         myId, maxRate, plannerClass, plannerOptions);
   }
 
-  private CompactionPlanner createPlanner(String plannerClass) {
+  private static CompactionPlanner createPlanner(CompactionServiceId myId, String plannerClass,
+      Map<String,String> options, CompactionPlannerInitParams initParams) {
     try {
-      return ConfigurationTypeHelper.getClassInstance(null, plannerClass, CompactionPlanner.class);
-    } catch (IOException | ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+      var planner =
+          ConfigurationTypeHelper.getClassInstance(null, plannerClass, CompactionPlanner.class);
+      planner.init(initParams);
+      return planner;
+    } catch (Exception e) {
+      log.error(
+          "Failed to create compaction planner for {} using class:{} options:{}.  Compaction service will not start any new compactions until its configuration is fixed.",
+          myId, plannerClass, options, e);
+      return new ProvisionalCompactionPlanner(myId);
     }
   }
 
@@ -368,8 +373,7 @@ public class CompactionService {
 
     var initParams =
         new CompactionPlannerInitParams(myId, plannerOptions, new ServiceEnvironmentImpl(context));
-    var tmpPlanner = createPlanner(plannerClassName);
-    tmpPlanner.init(initParams);
+    var tmpPlanner = createPlanner(myId, plannerClassName, plannerOptions, initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
