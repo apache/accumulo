@@ -42,30 +42,38 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.MoreCollectors;
 
-//ELASTICITY_TODO
-@Disabled
-public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
+public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
 
   private static final String CSP = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteCfg = new HashMap<>();
-    siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
-    // place invalid json in the planners config
-    siteCfg.put(CSP + "cs1.planner.opts.executors", "{{'name]");
-    cfg.setSiteConfig(siteCfg);
+  @BeforeAll
+  public static void beforeTests() throws Exception {
+    startMiniClusterWithConfig(new ClusterConfig());
+  }
+
+  static class ClusterConfig implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+      Map<String,String> siteCfg = new HashMap<>();
+      siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
+      // place invalid json in the planners config
+      siteCfg.put(CSP + "cs1.planner.opts.executors", "{{'name]");
+      cfg.setSiteConfig(siteCfg);
+    }
   }
 
   public static class EverythingFilter extends Filter {
@@ -118,9 +126,13 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
                 .collect(MoreCollectors.onlyElement()));
           }
 
-          var value =
-              "[{'name':'small', 'type': 'internal', 'numThreads':1}]".replaceAll("'", "\"");
+          var value = "[{'name':'all', 'type': 'external', 'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
+
+          // start the compactor, it was not started initially because of bad config
+          getCluster().getConfig().getClusterServerConfiguration()
+              .addCompactorResourceGroup("cs1q1", 1);
+          getCluster().getClusterControl().start(ServerType.COMPACTOR);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -152,8 +164,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
-          var value =
-              "[{'name':'small', 'type': 'internal', 'numThreads':1}]".replaceAll("'", "\"");
+          var value = "[{'name':'all', 'type': 'external', 'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
         } catch (Exception e) {
           throw new RuntimeException(e);
@@ -169,7 +180,6 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       }
 
       fixerFuture.get();
-
     }
   }
 
@@ -214,6 +224,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           // fix the compaction dispatcher config
           client.tableOperations().setProperty(table,
               Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "default");
+
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
