@@ -142,7 +142,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
-    String expectedErrorMsg = "Incomplete compaction service definitions, missing planner class";
+    String expectedErrorMsg = "Incomplete compaction service definition, missing planner class";
 
     String filePath = writeToFileAndReturnPath(inputString);
 

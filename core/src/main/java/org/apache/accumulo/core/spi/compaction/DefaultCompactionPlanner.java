@@ -175,17 +175,17 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     List<Executor> tmpExec = new ArrayList<>();
     ExecutorConfig[] execConfigs = null;
     QueueConfig[] queueConfigs = null;
+    String values = "";
 
-    try {
-      execConfigs =
-          GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
-    } catch (NullPointerException npe) {
-      // npe could result from executors not being set as properties.
-    } finally {
+    if (params.getOptions().containsKey("executors")) {
+      values = params.getOptions().get("executors");
+    }
+
+    if (!values.isBlank()) {
+      execConfigs = GSON.get().fromJson(values, ExecutorConfig[].class);
+    } else {
       // Generated a zero-length array to avoid a npe thrown by forEach
-      if (execConfigs == null) {
-        execConfigs = new ExecutorConfig[0];
-      }
+      execConfigs = new ExecutorConfig[0];
     }
 
     for (ExecutorConfig executorConfig : execConfigs) {
@@ -219,12 +219,14 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       tmpExec.add(new Executor(ceid, maxSize));
     }
 
-    try {
-      queueConfigs = GSON.get().fromJson(params.getOptions().get("queues"), QueueConfig[].class);
-    } catch (NullPointerException npe) {
-      // Valid state where no "queues" property may have been set.
+    values = "";
+    if (params.getOptions().containsKey("queues")) {
+      values = params.getOptions().get("queues");
     }
-    if (queueConfigs == null) {
+
+    if (!values.isBlank()) {
+      queueConfigs = GSON.get().fromJson(values, QueueConfig[].class);
+    } else {
       // Generated a zero-length array to avoid a npe thrown by forEach
       queueConfigs = new QueueConfig[0];
     }

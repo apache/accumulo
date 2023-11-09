@@ -26,6 +26,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -35,11 +37,15 @@ import com.google.common.collect.Sets;
  * Specifically, compaction service properties (those prefixed by "tserver.compaction.major
  * .service" or "compaction.major.service") are used.
  */
+@SuppressWarnings("deprecation")
 public class CompactionServicesConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(CompactionServicesConfig.class);
   private final Map<String,String> planners = new HashMap<>();
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
+  private final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
+  private final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
   long defaultRateLimit;
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
@@ -47,50 +53,80 @@ public class CompactionServicesConfig {
   @SuppressWarnings("removal")
   private long getDefaultThroughput() {
     return ConfigurationTypeHelper
-        .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
+        .getMemoryAsBytes(Property.COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
-  @SuppressWarnings("deprecation")
-  private Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
-    Map<String,String> properties = new HashMap<>();
-    properties.putAll(aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX));
-    properties.putAll(aconf.getAllPropertiesWithPrefix(Property.COMPACTION_SERVICE_PREFIX));
+  private Map<String,Map<String,String>> getConfiguration(AccumuloConfiguration aconf) {
+    Map<String,Map<String,String>> properties = new HashMap<>();
+    properties.put(newPrefix.getKey(), aconf.getAllPropertiesWithPrefixStripped(newPrefix));
+
+    Map<String,String> oldProps = new HashMap<>();
+    for (Map.Entry<String,String> entry : aconf.getAllPropertiesWithPrefixStripped(oldPrefix)
+        .entrySet()) {
+      // Discard duplicate property definitions
+      if (properties.get(newPrefix.getKey()).containsKey(entry.getKey())) {
+        log.warn("Duplicate property exists for compaction planner: '{}'. "
+            + "Using the value of property '{}'", entry.getKey(), newPrefix + entry.getKey());
+      } else {
+        oldProps.put(entry.getKey(), entry.getValue());
+      }
+    }
+    properties.put(oldPrefix.getKey(), oldProps);
     // Return unmodifiable map
     return Map.copyOf(properties);
   }
 
-  @SuppressWarnings("deprecation")
   public CompactionServicesConfig(AccumuloConfiguration aconf) {
-    Map<String,String> configs = getConfiguration(aconf);
+    Map<String,Map<String,String>> configs = getConfiguration(aconf);
 
-    String oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
-    String newPrefix = Property.COMPACTION_SERVICE_PREFIX.getKey();
+    Map<String,String> validOpts = new HashMap<>();
 
-    configs.forEach((prop, val) -> {
-
-      int prefixLength = 0;
-      if (prop.startsWith(oldPrefix)) {
-        prefixLength = oldPrefix.length();
-      } else if (prop.startsWith(newPrefix)) {
-        prefixLength = newPrefix.length();
-      }
-
-      var suffix = prop.substring(prefixLength);
-      String[] tokens = suffix.split("\\.");
-      if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
-        options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
-      } else if (tokens.length == 2 && tokens[1].equals("planner")) {
-        planners.put(tokens[0], val);
-      } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
-        var eprop = Property.getPropertyByKey(prop);
-        if (eprop == null || aconf.isPropertySet(eprop)) {
-          rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
+    // Find compaction planner defs first.
+    configs.forEach((prefix, props) -> {
+      props.forEach((prop, val) -> {
+        String[] tokens = prop.split("\\.");
+        if (tokens.length == 2 && tokens[1].equals("planner")) {
+          if (prefix.equals(oldPrefix.getKey())) {
+            log.warn(
+                "Found compaction planner '{}' using a deprecated prefix. Please update property to use the '{}' prefix",
+                tokens[0], newPrefix);
+          }
+          validOpts.put(tokens[0], prefix);
+          planners.put(tokens[0], val);
         }
-      } else {
-        throw new IllegalArgumentException("Malformed compaction service property " + prop);
-      }
+      });
     });
 
+    // Now find all compaction planner options.
+    configs.forEach((prefix, props) -> {
+      props.forEach((prop, val) -> {
+        String[] tokens = prop.split("\\.");
+        if (!validOpts.containsKey(tokens[0])) {
+          throw new IllegalArgumentException(
+              "Incomplete compaction service definition, missing planner class" + prop);
+        }
+        // Only add the compaction options if defined with the new prefix
+        // or match the planner's defined prefix.
+        if (prefix.equals(newPrefix.getKey()) || validOpts.get(tokens[0]).equals(prefix)) {
+          if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
+            options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
+          } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
+            var eprop = Property.getPropertyByKey(prop);
+            if (eprop == null || aconf.isPropertySet(eprop)) {
+              rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
+            }
+          } else if (!(tokens.length == 2 && tokens[1].equals("planner"))) {
+            throw new IllegalArgumentException(
+                "Malformed compaction service property " + prefix + prop);
+          }
+        } else {
+          log.warn(
+              "Ignoring compaction property {}, property either uses a deprecated prefix"
+                  + " or does not match the prefix used by the referenced planner definition",
+              prop);
+        }
+      });
+    });
     defaultRateLimit = getDefaultThroughput();
 
     var diff = Sets.difference(options.keySet(), planners.keySet());
