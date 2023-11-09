@@ -320,9 +320,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     /**
-     * Set the range to the table range that stores the provided level's metadata. For example
-     * {@link DataLevel#USER} will set the range to the metadata table. {@link DataLevel#METADATA}
-     * will set the range to the root table.
+     * For a given data level, read all of its tablets metadata. For {@link DataLevel#USER} this
+     * will read tablet metadata from the accumulo.metadata table for all user tables. For
+     * {@link DataLevel#METADATA} this will read tablet metadata from the accumulo.root table. For
+     * {@link DataLevel#ROOT} this will read tablet metadata from Zookeeper.
      */
     @Override
     public Options forLevel(DataLevel level) {
@@ -332,10 +333,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     /**
-     * Set the range to the data level that contains the metadata references for the provided
-     * TableId. For example, if the TableId is the metadata table id, then the table range will be
-     * root metadata that points to the metadata. Likewise, if the TableId is a user table, then the
-     * table range will be the metadata table range that points to the user table.
+     * For a given table read all of its tablet metadata. If the table id is for a user table, then
+     * its metadata will be read from its section in the accumulo.metadata table. If the table id is
+     * for the accumulo.metadata table, then its metadata will be read from the accumulo.root table.
+     * If the table id is for the accumulo.root table, then its metadata will be read from
+     * zookeeper.
      */
     @Override
     public TableRangeOptions forTable(TableId tableId) {
