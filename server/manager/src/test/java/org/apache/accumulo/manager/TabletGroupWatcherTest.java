@@ -19,9 +19,19 @@
 package org.apache.accumulo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.manager.TabletGroupWatcher.HighTablet;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class TabletGroupWatcherTest {
@@ -63,5 +73,34 @@ public class TabletGroupWatcherTest {
     assertEquals(1, newValues.getSecond().getSize());
     assertEquals(1, newValues.getSecond().getNumEntries());
     assertEquals(original.getTime(), newValues.getSecond().getTime());
+  }
+
+  @Test
+  public void testHighTablet() {
+    HighTablet nullFirstPrevRow =
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true, null);
+    assertTrue(nullFirstPrevRow.isMerged());
+    assertFalse(nullFirstPrevRow.hasFirstPrevRowValue());
+    assertEquals(HighTablet.EMPTY_VALUE, nullFirstPrevRow.getFirstPrevRowValue());
+
+    HighTablet emptyFirstPrevRow =
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true, new Value());
+    assertTrue(emptyFirstPrevRow.isMerged());
+    assertFalse(emptyFirstPrevRow.hasFirstPrevRowValue());
+    assertEquals(HighTablet.EMPTY_VALUE, emptyFirstPrevRow.getFirstPrevRowValue());
+
+    HighTablet nullTextFirstPrevRow =
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true,
+            TabletColumnFamily.encodePrevEndRow(null));
+    assertTrue(nullTextFirstPrevRow.hasFirstPrevRowValue());
+    assertNotEquals(HighTablet.EMPTY_VALUE, nullTextFirstPrevRow.getFirstPrevRowValue());
+    assertNull(TabletColumnFamily.decodePrevEndRow(nullTextFirstPrevRow.getFirstPrevRowValue()));
+
+    HighTablet prevFirstPrevRow =
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true,
+            TabletColumnFamily.encodePrevEndRow(new Text("prevEnd")));
+    assertTrue(prevFirstPrevRow.hasFirstPrevRowValue());
+    assertEquals(new Text("prevEnd"),
+        TabletColumnFamily.decodePrevEndRow(prevFirstPrevRow.getFirstPrevRowValue()));
   }
 }
