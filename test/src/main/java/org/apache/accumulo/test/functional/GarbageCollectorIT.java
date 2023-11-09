@@ -291,7 +291,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testMetadataUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.USER.tableId();
+    TableId tableId = DataLevel.USER.metaTableId();
     log.info("Metadata GcCandidate Deletion test");
     log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
@@ -306,7 +306,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testRootUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.METADATA.tableId();
+    TableId tableId = DataLevel.METADATA.metaTableId();
     log.info("Root GcCandidate Deletion test");
     log.info("GcCandidates will be added but not removed from Zookeeper");
 

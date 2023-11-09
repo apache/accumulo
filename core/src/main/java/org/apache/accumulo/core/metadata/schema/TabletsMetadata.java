@@ -319,6 +319,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       return this;
     }
 
+    /**
+     * Set the range to the table range that stores the provided level's metadata. For example
+     * {@link DataLevel#USER} will set the range to the metadata table. {@link DataLevel#METADATA}
+     * will set the range to the root table.
+     */
     @Override
     public Options forLevel(DataLevel level) {
       this.level = level;
@@ -326,6 +331,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       return this;
     }
 
+    /**
+     * Set the range to the data level that contains the metadata references for the provided
+     * TableId. For example, if the TableId is the metadata table id, then the table range will be
+     * root metadata that points to the metadata. Likewise, if the TableId is a user table, then the
+     * table range will be the metadata table range that points to the user table.
+     */
     @Override
     public TableRangeOptions forTable(TableId tableId) {
       this.level = DataLevel.of(tableId);
