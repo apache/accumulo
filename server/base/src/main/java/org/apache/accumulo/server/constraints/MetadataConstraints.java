@@ -51,6 +51,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -96,7 +97,9 @@ public class MetadataConstraints implements Constraint {
           LastLocationColumnFamily.NAME,
           FutureLocationColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME,
+          UpgraderDeprecatedConstants.ChoppedColumnFamily.NAME
+      );
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {

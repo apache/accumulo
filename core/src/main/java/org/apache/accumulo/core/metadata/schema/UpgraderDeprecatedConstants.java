@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.upgrade;
+package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
 
-public class UpgraderConstants {
+/**
+ * MetadataSchema constants that are deprecated and should only be used to support removals during
+ * the upgrade process.
+ */
+public class UpgraderDeprecatedConstants {
 
   /**
    * ChoppedColumnFamily kept around for cleaning up old entries on upgrade. Currently not used,
