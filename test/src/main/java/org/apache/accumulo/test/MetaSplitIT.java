@@ -189,8 +189,9 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     try (var tablets = ample.readTablets().forLevel(Ample.DataLevel.USER).build()) {
       for (var tablet : tablets) {
         assertTrue(expectedExtents.remove(tablet.getExtent()));
+        // check a few fields that should always be present in tablet metadata
         assertNotNull(tablet.getDirName());
-        assertNotNull(tablet.getLocation());
+        assertNotNull(tablet.getTime());
       }
     }
 
