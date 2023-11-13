@@ -202,9 +202,9 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Add a walog which should keep the state from transitioning to MERGING
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
-      LogEntry logEntry = new LogEntry(100, "f1");
+      LogEntry logEntry = new LogEntry("f1");
       m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-          .timestamp(logEntry.getTimestamp()).put(logEntry.getValue());
+          .put(logEntry.getValue());
       update(accumuloClient, m);
 
       // Verify state is still WAITING_FOR_OFFLINE
@@ -214,7 +214,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // Delete the walog which will now allow a transition to MERGING
       m = new Mutation(ke.toMetaRow());
-      m.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier(), logEntry.getTimestamp());
+      m.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier());
       update(accumuloClient, m);
 
       // now we can split
