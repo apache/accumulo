@@ -405,9 +405,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
     LogEntry logEntry =
-        new LogEntry(55, Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
+        new LogEntry(Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
     m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-        .timestamp(logEntry.getTimestamp()).put(logEntry.getValue());
+        .put(logEntry.getValue());
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }

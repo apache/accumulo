@@ -102,12 +102,12 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(55, "localhost:8020/" + UUID.randomUUID());
+    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
-        .timestamp(le1.getTimestamp()).put(le1.getValue());
-    LogEntry le2 = new LogEntry(57, "localhost:8020/" + UUID.randomUUID());
+        .put(le1.getValue());
+    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
-        .timestamp(le2.getTimestamp()).put(le2.getValue());
+        .put(le2.getValue());
 
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();

@@ -30,17 +30,11 @@ import com.google.common.net.HostAndPort;
 
 public class LogEntry {
 
-  private final long timestamp;
   private final String filePath;
 
-  public LogEntry(long timestamp, String filePath) {
+  public LogEntry(String filePath) {
     validateFilePath(filePath);
-    this.timestamp = timestamp;
     this.filePath = filePath;
-  }
-
-  public long getTimestamp() {
-    return this.timestamp;
   }
 
   public String getFilePath() {
@@ -87,7 +81,7 @@ public class LogEntry {
    * @param filePath path to use
    */
   public LogEntry switchFile(String filePath) {
-    return new LogEntry(timestamp, filePath);
+    return new LogEntry(filePath);
   }
 
   @Override
@@ -104,23 +98,22 @@ public class LogEntry {
       return false;
     }
     LogEntry logEntry = (LogEntry) other;
-    return this.timestamp == logEntry.timestamp && this.filePath.equals(logEntry.filePath);
+    return this.filePath.equals(logEntry.filePath);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(timestamp, filePath);
+    return Objects.hash(filePath);
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    final Key key = entry.getKey();
     final Value value = entry.getValue();
 
     String filePath = value.toString();
 
     validateFilePath(filePath);
 
-    return new LogEntry(key.getTimestamp(), filePath);
+    return new LogEntry(filePath);
   }
 
   public String getUniqueID() {
