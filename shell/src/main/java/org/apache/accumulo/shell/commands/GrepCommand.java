@@ -49,6 +49,20 @@ public class GrepCommand extends ScanCommand {
       if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No terms specified");
       }
+      // Configure formatting options
+      final FormatterConfig config = new FormatterConfig();
+      config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
+      if (cl.hasOption(showFewOpt.getOpt())) {
+        final String showLength = cl.getOptionValue(showFewOpt.getOpt());
+        try {
+          final int length = Integer.parseInt(showLength);
+          config.setShownLength(length);
+        } catch (NumberFormatException nfe) {
+          Shell.log.error("Arg must be an integer.", nfe);
+        } catch (IllegalArgumentException iae) {
+          Shell.log.error("Arg must be greater than one.", iae);
+        }
+      }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
       @SuppressWarnings("deprecation")
       final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
@@ -87,7 +101,6 @@ public class GrepCommand extends ScanCommand {
         fetchColumns(cl, scanner, interpeter);
 
         // output the records
-        final FormatterConfig config = new FormatterConfig();
         config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
         printRecords(cl, shellState, config, scanner, formatter, printFile);
       } finally {
@@ -123,6 +136,7 @@ public class GrepCommand extends ScanCommand {
     negateOpt = new Option("v", "negate", false, "only include rows without search term");
     opts.addOption(numThreadsOpt);
     opts.addOption(negateOpt);
+    opts.addOption(showFewOpt);
     return opts;
   }
 
