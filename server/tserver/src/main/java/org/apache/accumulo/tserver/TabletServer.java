@@ -399,9 +399,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     public void run() {
       while (true) {
         try {
-          // TODO this property is misnamed, opened #3606
-          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
-              TimeUnit.MILLISECONDS);
+          // TODO Should there be a delay here? If so, what property should
+          // be used since TSERV_MAJC_DELAY is no longer available.
 
           final List<DfsLogger> closedCopy;
 

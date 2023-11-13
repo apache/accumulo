@@ -44,7 +44,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -54,7 +53,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
 
-  private String majcDelay, walSize;
+  private String walSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -63,7 +62,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     // idle compactions may addess the problem this test is creating, however they will not prevent
     // lots of closed WALs for all write patterns. This test ensures code that directly handles many
@@ -81,24 +79,9 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
-      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
       walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
       iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    }
-  }
-
-  @AfterEach
-  public void resetConfig() throws Exception {
-    if (majcDelay != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        InstanceOperations iops = client.instanceOperations();
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), walSize);
-      }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }

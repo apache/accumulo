@@ -69,7 +69,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
 
-    Map<String,String> siteConfig = Map.of(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
+    Map<String,String> siteConfig = Map.of();
     cfg.setSiteConfig(siteConfig);
   }
 

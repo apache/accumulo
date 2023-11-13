@@ -154,9 +154,6 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_MAXMEM.getKey(), "40M");
       mergeProp(Property.TSERV_WAL_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      // since there is a small amount of memory, check more frequently for majc... setting may not
-      // be needed in 1.5
-      mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
