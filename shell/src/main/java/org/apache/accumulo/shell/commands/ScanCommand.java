@@ -447,6 +447,7 @@ public class ScanCommand extends Command {
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
     scanServerOpt =
         new Option("cl", "consistency-level", true, "set consistency level (experimental)");
+
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
     scanOptColumns
