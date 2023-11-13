@@ -136,7 +136,6 @@ public class GrepCommand extends ScanCommand {
     negateOpt = new Option("v", "negate", false, "only include rows without search term");
     opts.addOption(numThreadsOpt);
     opts.addOption(negateOpt);
-    opts.addOption(showFewOpt);
     return opts;
   }
 
