@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
@@ -40,11 +41,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -78,6 +81,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
@@ -319,6 +323,59 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
     }
+  }
+
+  @Test
+  public void testWALs() {
+    var context = cluster.getServerContext();
+
+    // Test adding a WAL to a tablet and verifying its presence
+    String walFilePath =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry originalLogEntry = new LogEntry(walFilePath);
+    ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().putWal(originalLogEntry).submit(tm -> false);
+    var results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+    assertEquals(List.of(originalLogEntry), context.getAmple().readTablet(e1).getLogs(),
+        "The original LogEntry should be present.");
+
+    // Test adding another WAL and verifying the update
+    String walFilePath2 =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry newLogEntry = new LogEntry(walFilePath2);
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().putWal(newLogEntry).submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+    // Verify that both the original and new WALs are present
+    Set<LogEntry> expectedLogs = Set.of(originalLogEntry, newLogEntry);
+    HashSet<LogEntry> actualLogs = new HashSet<>(context.getAmple().readTablet(e1).getLogs());
+    assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
+
+    // Test that requireSame with just one of the two WALs fails
+    TabletMetadata tm1 = TabletMetadata.builder(e1).putWal(originalLogEntry).build(LOGS);
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, LOGS)
+        .deleteWal(originalLogEntry).submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.REJECTED, results.get(e1).getStatus());
+
+    // Test that requiring the current WALs gets accepted when making an update (deleting a WAL in
+    // this example)
+    TabletMetadata tm2 =
+        TabletMetadata.builder(e1).putWal(originalLogEntry).putWal(newLogEntry).build(LOGS);
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOGS)
+        .deleteWal(originalLogEntry).submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus(),
+        "Requiring the current WALs should result in acceptance when making an update.");
+
+    // Verify that the update went through as expected
+    assertEquals(List.of(newLogEntry), context.getAmple().readTablet(e1).getLogs(),
+        "Only the new LogEntry should remain after deleting the original.");
   }
 
   @Test
