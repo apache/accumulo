@@ -57,9 +57,10 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
 
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, interpreterOpt,
-      formatterInterpeterOpt, outputFileOpt, scanOptCf, scanOptCq;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, formatterOpt,
+      interpreterOpt, formatterInterpeterOpt, outputFileOpt, scanOptCf, scanOptCq;
 
+  protected Option showFewOpt;
   protected Option timestampOpt;
   protected Option profileOpt;
   private Option optStartRowExclusive;
@@ -70,8 +71,6 @@ public class ScanCommand extends Command {
   private Option contextOpt;
   private Option executionHintsOpt;
   private Option scanServerOpt;
-  protected Option showFewOpt;
-  private Option formatterOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -448,11 +447,6 @@ public class ScanCommand extends Command {
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
     scanServerOpt =
         new Option("cl", "consistency-level", true, "set consistency level (experimental)");
-    // Options specific to ScanCommand
-    showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
-    formatterOpt =
-        new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
-
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
     scanOptColumns
@@ -486,7 +480,6 @@ public class ScanCommand extends Command {
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
     o.addOption(OptUtil.tableOpt("table to be scanned"));
-    o.addOption(showFewOpt);
     o.addOption(formatterOpt);
     o.addOption(interpreterOpt);
     o.addOption(formatterInterpeterOpt);
@@ -496,6 +489,7 @@ public class ScanCommand extends Command {
       // supported subclasses must handle the output file option properly
       // only add this option to commands which handle it correctly
       o.addOption(outputFileOpt);
+      o.addOption(showFewOpt);
     }
     o.addOption(profileOpt);
     o.addOption(sampleOpt);
