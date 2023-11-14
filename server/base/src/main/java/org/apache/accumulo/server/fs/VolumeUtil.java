@@ -181,7 +181,7 @@ public class VolumeUtil {
       if (switchedLogEntry != null) {
         logsToRemove.accept(logEntry);
         logsToAdd.accept(switchedLogEntry);
-        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getFilePath(),
+        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getFilePath(),
             switchedLogEntry.getFilePath());
       }
     }
@@ -195,7 +195,7 @@ public class VolumeUtil {
         ReferencedTabletFile switchedFile =
             new ReferencedTabletFile(switchedPath, entry.getKey().getRange());
         filesToAdd.accept(switchedFile, entry.getValue());
-        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), metaPath, switchedPath);
+        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), metaPath, switchedPath);
       }
     }
   }
