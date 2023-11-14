@@ -23,12 +23,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -45,8 +43,6 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -63,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
@@ -239,21 +234,6 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
-  private boolean needsVolumeReplacement(final TabletMetadata tm) {
-    final List<LogEntry> logsToRemove = new ArrayList<>();
-    final List<LogEntry> logsToAdd = new ArrayList<>();
-    final List<StoredTabletFile> filesToRemove = new ArrayList<>();
-    final SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
-
-    VolumeUtil.volumeReplacementEvaluation(tabletMgmtParams.getVolumeReplacements(), tm,
-        logsToRemove, logsToAdd, filesToRemove, filesToAdd);
-
-    if (logsToRemove.size() + filesToRemove.size() > 0) {
-      return true;
-    }
-    return false;
-  }
-
   /**
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
@@ -267,7 +247,7 @@ public class TabletManagementIterator extends SkippingIterator {
       return;
     }
 
-    if (!tabletMgmtParams.getVolumeReplacements().isEmpty() && needsVolumeReplacement(tm)) {
+    if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 

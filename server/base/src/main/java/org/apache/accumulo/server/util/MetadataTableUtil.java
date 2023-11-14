@@ -170,23 +170,6 @@ public class MetadataTableUtil {
 
   }
 
-  public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
-      List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
-      SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd, ServiceLock zooLock,
-      ServerContext context) {
-
-    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
-    logsToRemove.forEach(tabletMutator::deleteWal);
-    logsToAdd.forEach(tabletMutator::putWal);
-
-    filesToRemove.forEach(tabletMutator::deleteFile);
-    filesToAdd.forEach(tabletMutator::putFile);
-
-    tabletMutator.putZooLock(context.getZooKeeperRoot(), zooLock);
-
-    tabletMutator.mutate();
-  }
-
   public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
       ServiceLock zooLock) {
     KeyExtent ke = KeyExtent.fromMetaRow(metadataEntry, oldPrevEndRow);
