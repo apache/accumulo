@@ -152,7 +152,8 @@ public class ScanCommand extends Command {
         } catch (NumberFormatException nfe) {
           Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
-          Shell.log.error("Arg must be greater than one.", iae);
+          Shell.log.error("{}", iae.getMessage(), iae);
+
         }
       }
       printRecords(cl, shellState, config, scanner, formatter, printFile);
