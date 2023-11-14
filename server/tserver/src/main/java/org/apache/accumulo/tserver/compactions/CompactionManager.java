@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.compactions;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.accumulo.core.util.compaction.CompactionServicesConfig.DEFAULT_SERVICE;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,6 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
@@ -42,6 +42,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -54,6 +55,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
 public class CompactionManager {
@@ -80,6 +83,9 @@ public class CompactionManager {
   private Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
 
   private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
+
+  // use to limit logging of unknown compaction services
+  private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
 
   static class ExtCompInfo {
     final KeyExtent extent;
@@ -165,12 +171,18 @@ public class CompactionManager {
         checkForConfigChanges(true);
         service = services.get(csid);
         if (service == null) {
-          log.error(
-              "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
-                  + " the table compaction dispatcher configuration. Attempting to fall back to "
-                  + "{} service.",
-              compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
-          service = services.get(DEFAULT_SERVICE);
+          var cacheKey = new Pair<>(compactable.getTableId(), csid);
+          var last = unknownCompactionServiceErrorCache.getIfPresent(cacheKey);
+          if (last == null) {
+            // have not logged an error recently for this, so lets log one
+            log.error(
+                "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
+                    + " the table compaction dispatcher configuration. No compactions will happen"
+                    + " until the configuration is fixed. This log message is temporarily suppressed for the"
+                    + " entire table.",
+                compactable.getExtent(), csid, ctype);
+            unknownCompactionServiceErrorCache.put(cacheKey, System.currentTimeMillis());
+          }
         }
       }
 
@@ -196,6 +208,9 @@ public class CompactionManager {
     this.runningExternalCompactions = new ConcurrentHashMap<>();
 
     Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
+
+    unknownCompactionServiceErrorCache =
+        CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     currentCfg.getPlanners().forEach((serviceName, plannerClassName) -> {
       try {
