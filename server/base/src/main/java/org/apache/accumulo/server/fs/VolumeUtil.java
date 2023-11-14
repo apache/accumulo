@@ -19,11 +19,15 @@
 package org.apache.accumulo.server.fs;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -32,6 +36,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,37 +130,73 @@ public class VolumeUtil {
     }
   }
 
+  public static boolean needsVolumeReplacement(final List<Pair<Path,Path>> replacements,
+      final TabletMetadata tm) {
+    if (replacements.isEmpty()) {
+      return false;
+    }
+
+    MutableBoolean needsReplacement = new MutableBoolean(false);
+
+    Consumer<LogEntry> consumer = le -> needsReplacement.setTrue();
+
+    volumeReplacementEvaluation(replacements, tm, consumer, consumer,
+        f -> needsReplacement.setTrue(), (f, dfv) -> needsReplacement.setTrue());
+
+    return needsReplacement.booleanValue();
+  }
+
+  public static class VolumeReplacements {
+    public final TabletMetadata tabletMeta;
+    public final List<LogEntry> logsToRemove = new ArrayList<>();
+    public final List<LogEntry> logsToAdd = new ArrayList<>();
+    public final List<StoredTabletFile> filesToRemove = new ArrayList<>();
+    public final Map<ReferencedTabletFile,DataFileValue> filesToAdd = new HashMap<>();
+
+    public VolumeReplacements(TabletMetadata tabletMeta) {
+      this.tabletMeta = tabletMeta;
+    }
+  }
+
+  public static VolumeReplacements
+      computeVolumeReplacements(final List<Pair<Path,Path>> replacements, final TabletMetadata tm) {
+    var vr = new VolumeReplacements(tm);
+    volumeReplacementEvaluation(replacements, tm, vr.logsToRemove::add, vr.logsToAdd::add,
+        vr.filesToRemove::add, vr.filesToAdd::put);
+    return vr;
+  }
+
   public static void volumeReplacementEvaluation(final List<Pair<Path,Path>> replacements,
-      final TabletMetadata tm, final List<LogEntry> logsToRemove, final List<LogEntry> logsToAdd,
-      final List<StoredTabletFile> filesToRemove,
-      final SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd) {
+      final TabletMetadata tm, final Consumer<LogEntry> logsToRemove,
+      final Consumer<LogEntry> logsToAdd, final Consumer<StoredTabletFile> filesToRemove,
+      final BiConsumer<ReferencedTabletFile,DataFileValue> filesToAdd) {
     if (replacements.isEmpty() || (tm.getFilesMap().isEmpty() && tm.getLogs().isEmpty())) {
       return;
     }
-    log.debug("Using volume replacements: {}", replacements);
+
+    log.trace("Using volume replacements: {}", replacements);
     for (LogEntry logEntry : tm.getLogs()) {
-      log.debug("Evaluating walog {} for replacement.", logEntry);
+      log.trace("Evaluating walog {} for replacement.", logEntry);
       LogEntry switchedLogEntry = switchVolumes(logEntry, replacements);
       if (switchedLogEntry != null) {
-        logsToRemove.add(logEntry);
-        logsToAdd.add(switchedLogEntry);
+        logsToRemove.accept(logEntry);
+        logsToAdd.accept(switchedLogEntry);
         log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.filename,
             switchedLogEntry.filename);
       }
     }
 
     for (Entry<StoredTabletFile,DataFileValue> entry : tm.getFilesMap().entrySet()) {
-      log.debug("Evaluating file {} for replacement.", entry.getKey().getPath());
+      log.trace("Evaluating file {} for replacement.", entry.getKey().getPath());
       String metaPath = entry.getKey().getMetadata();
       Path switchedPath = switchVolume(entry.getKey().getPath(), FileType.TABLE, replacements);
       if (switchedPath != null) {
-        filesToRemove.add(entry.getKey());
+        filesToRemove.accept(entry.getKey());
         ReferencedTabletFile switchedFile =
             new ReferencedTabletFile(switchedPath, entry.getKey().getRange());
-        filesToAdd.put(switchedFile, entry.getValue());
+        filesToAdd.accept(switchedFile, entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), metaPath, switchedPath);
       }
     }
   }
-
 }
