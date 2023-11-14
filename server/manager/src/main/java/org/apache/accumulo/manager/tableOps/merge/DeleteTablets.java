@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
@@ -31,39 +28,40 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-class FinishTableRangeOp extends ManagerRepo {
-  private static final Logger log = LoggerFactory.getLogger(FinishTableRangeOp.class);
+/**
+ * Delete tablets that were merged into another tablet.
+ */
+public class DeleteTablets extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
   private final MergeInfo data;
 
-  public FinishTableRangeOp(MergeInfo data) {
-    this.data = data;
+  private final byte[] lastTabletEndRow;
+
+  private static final Logger log = LoggerFactory.getLogger(DeleteTablets.class);
+
+  DeleteTablets(MergeInfo mergeInfo, Text lastTabletEndRow) {
+    this.data = mergeInfo;
+    this.lastTabletEndRow = lastTabletEndRow == null ? null : TextUtil.getBytes(lastTabletEndRow);
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    removeOperationIds(log, data, tid, manager);
 
-    Utils.unreserveTable(manager, data.tableId, tid, true);
-    Utils.unreserveNamespace(manager, data.namespaceId, tid, false);
-    return null;
-  }
-
-  static void removeOperationIds(Logger log, MergeInfo data, long tid, Manager manager) {
-    KeyExtent range = data.getReserveExtent();
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
-    log.debug("{} unreserving tablet in range {}", FateTxId.formatTid(tid), range);
     var fateStr = FateTxId.formatTid(tid);
+    KeyExtent range = data.getMergeExtent();
+    log.debug("{} Deleting tablets for {}", fateStr, range);
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
 
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();
@@ -77,35 +75,45 @@ class FinishTableRangeOp extends ManagerRepo {
       }
     };
 
-    int submitted = 0;
-    int count = 0;
+    long submitted = 0;
 
-    try (var tablets = manager.getContext().getAmple().readTablets().forTable(data.tableId)
-        .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, OPID).build();
+    try (
+        var tabletsMetadata =
+            manager.getContext().getAmple().readTablets().forTable(range.tableId())
+                .overlapping(range.prevEndRow(), range.endRow()).saveKeyValues().build();
         var tabletsMutator =
             manager.getContext().getAmple().conditionallyMutateTablets(resultConsumer)) {
 
-      for (var tabletMeta : tablets) {
-        if (opid.equals(tabletMeta.getOperationId())) {
-          tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireOperation(opid)
-              .deleteOperation().submit(tm -> !opid.equals(tm.getOperationId()));
-          submitted++;
+      var lastEndRow = lastTabletEndRow == null ? null : new Text(lastTabletEndRow);
+
+      for (var tabletMeta : tabletsMetadata) {
+        MergeTablets.validateTablet(tabletMeta, fateStr, opid, data.tableId);
+
+        // do not delete the last tablet
+        if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {
+          break;
         }
-        count++;
+
+        var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
+            .requireOperation(opid).requireAbsentLocation();
+
+        tabletMeta.getKeyValues().keySet().forEach(key -> {
+          log.trace("{} deleting {}", fateStr, key);
+        });
+
+        tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
+        // if the tablet no longer exists, then it was successful
+        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
+        submitted++;
       }
-
-      Preconditions.checkState(count > 0);
     }
-
-    log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
-        acceptedCount.get(), submitted, count);
-
-    manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
-        FateTxId.formatTid(tid));
 
     Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
         "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,
         rejectedCount.get());
-  }
 
+    log.debug("{} deleted {} tablets", fateStr, submitted);
+
+    return new FinishTableRangeOp(data);
+  }
 }

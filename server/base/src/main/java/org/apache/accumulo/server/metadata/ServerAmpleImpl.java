@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -91,6 +92,12 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
     return new ConditionalTabletsMutatorImpl(context);
+  }
+
+  @Override
+  public AsyncConditionalTabletsMutator
+      conditionallyMutateTablets(BiConsumer<KeyExtent,ConditionalResult> resultsConsumer) {
+    return new AsyncConditionalTabletsMutatorImpl(context, resultsConsumer);
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

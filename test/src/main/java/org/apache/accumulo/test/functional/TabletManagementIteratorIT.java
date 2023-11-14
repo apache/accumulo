@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -66,12 +67,18 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -86,6 +93,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -93,6 +101,8 @@ import com.google.common.collect.Sets;
  */
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
+
+  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
 
   @Override
   protected Duration defaultTimeout() {
@@ -163,7 +173,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
       // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
       // w/o a location. Only one should need attention because of the operation id.
-      setOperationId(client, metaCopy1, t1);
+      setOperationId(client, metaCopy1, t1, new Text("some split"), TabletOperationType.SPLITTING);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have tablets needing attention because of operation id");
 
@@ -171,6 +181,37 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       reassignLocation(client, metaCopy2, t3);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
+
+      // Remove location and set merge operation id on both tablets
+      // These tablets should not need attention as they have no WALs
+      setTabletHostingGoal(client, metaCopy4, t4, TabletHostingGoal.ALWAYS.name());
+      removeLocation(client, metaCopy4, t4);
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Tablets have no location and a hosting goal of always, so they should need attention");
+
+      // Test MERGING and SPLITTING do not need attention with no location or wals
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have no tablets needing attention for merge as they have no location");
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have no tablets needing attention for merge as they have no location");
+
+      // Create a log entry for one of the tablets, this tablet will now need attention
+      // for both MERGING and SPLITTING
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
+      createLogEntry(client, metaCopy4, t4);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have a tablet needing attention because of wals");
+      // Switch op to SPLITTING which should also need attention like MERGING
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have a tablet needing attention because of wals");
+
+      // Switch op to delete, no tablets should need attention even with WALs
+      setOperationId(client, metaCopy4, t4, null, TabletOperationType.DELETING);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+          "Should have no tablets needing attention for delete");
 
       // test the bad tablet location state case (inconsistent metadata)
       tabletMgmtParams = createParameters(client);
@@ -270,19 +311,25 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void setOperationId(AccumuloClient client, String table, String tableNameToModify)
-      throws TableNotFoundException, MutationsRejectedException {
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+  // Sets an operation type on all tablets up to the end row
+  private void setOperationId(AccumuloClient client, String table, String tableNameToModify,
+      Text end, TabletOperationType opType) throws TableNotFoundException {
+    var opid = TabletOperationId.from(opType, 42L);
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
-    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
-      Entry<Key,Value> entry = scanner.iterator().next();
-      Mutation m = new Mutation(entry.getKey().getRow());
-      MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m,
-          new Value(opid.canonical()));
-      try (BatchWriter bw = client.createBatchWriter(table)) {
-        bw.addMutation(m);
+    try (TabletsMetadata tabletsMetadata =
+        getServerContext().getAmple().readTablets().forTable(tableIdToModify)
+            .overlapping(null, end != null ? TabletsSection.encodeRow(tableIdToModify, end) : null)
+            .fetch(ColumnType.PREV_ROW).build()) {
+      for (TabletMetadata tabletMetadata : tabletsMetadata) {
+        Mutation m = new Mutation(tabletMetadata.getExtent().toMetaRow());
+        MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m,
+            new Value(opid.canonical()));
+        try (BatchWriter bw = client.createBatchWriter(table)) {
+          bw.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
   }
@@ -389,6 +436,23 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     for (String t : tables) {
       client.tableOperations().delete(t);
+    }
+  }
+
+  // Creates a log entry on the "some split" extent, this could be modified easily to support
+  // other extents
+  private void createLogEntry(AccumuloClient client, String table, String tableNameToModify)
+      throws MutationsRejectedException, TableNotFoundException {
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
+    Mutation m = new Mutation(extent.toMetaRow());
+    LogEntry logEntry = new LogEntry(
+        java.nio.file.Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
+    m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
+        .put(logEntry.getValue());
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      bw.addMutation(m);
     }
   }
 

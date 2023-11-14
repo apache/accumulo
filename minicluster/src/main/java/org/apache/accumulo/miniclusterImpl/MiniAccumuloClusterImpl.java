@@ -679,9 +679,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             groupNames.add(id);
           }
         });
-      } catch (IllegalArgumentException | SecurityException | ReflectiveOperationException e) {
-        throw new RuntimeException(
-            "Error creating instance of " + plannerClass + " with no-arg constructor", e);
+      } catch (Exception e) {
+        log.error("For compaction service {}, failed to get compaction queues from planner {}.",
+            serviceId, plannerClass, e);
       }
     }
     return groupNames;

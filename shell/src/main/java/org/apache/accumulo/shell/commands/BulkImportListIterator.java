@@ -24,27 +24,16 @@ import java.util.List;
 
 import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.DurationFormat;
 
 public class BulkImportListIterator implements Iterator<String> {
 
   private final Iterator<String> iter;
 
-  public BulkImportListIterator(List<String> tservers, ManagerMonitorInfo stats) {
+  public BulkImportListIterator(ManagerMonitorInfo stats) {
     List<String> result = new ArrayList<>();
     for (BulkImportStatus status : stats.getBulkImports()) {
       result.add(format(status));
-    }
-    if (!tservers.isEmpty()) {
-      for (TabletServerStatus tserver : stats.getTServerInfo()) {
-        if (tservers.contains(tserver.name)) {
-          result.add(tserver.name + ":");
-          for (BulkImportStatus status : tserver.bulkImports) {
-            result.add(format(status));
-          }
-        }
-      }
     }
     iter = result.iterator();
   }

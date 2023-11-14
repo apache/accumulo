@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -40,10 +41,10 @@ public class ClientServiceThriftClient extends ThriftClientTypes<Client>
   }
 
   @Override
-  public Pair<String,Client> getTabletServerConnection(ClientContext context,
+  public Pair<String,Client> getThriftServerConnection(ClientContext context,
       boolean preferCachedConnections) throws TTransportException {
-    return getTabletServerConnection(LOG, this, context, preferCachedConnections,
-        warnedAboutTServersBeingDown);
+    return getThriftServerConnection(LOG, this, context, preferCachedConnections,
+        warnedAboutTServersBeingDown, ThriftService.CLIENT);
   }
 
   @Override

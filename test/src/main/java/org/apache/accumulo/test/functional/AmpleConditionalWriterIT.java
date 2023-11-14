@@ -26,6 +26,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
@@ -43,8 +45,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -62,6 +67,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -73,6 +79,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -794,4 +801,74 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
     }
   }
+
+  @Test
+  public void testAsyncMutator() throws Exception {
+    var table = getUniqueNames(2)[1];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      // The AsyncConditionalTabletsMutatorImpl processes batches of conditional mutations. Run
+      // tests where more than the batch size is processed an ensure this handled correctly.
+
+      TreeSet<Text> splits =
+          IntStream.range(1, (int) (AsyncConditionalTabletsMutatorImpl.BATCH_SIZE * 2.5))
+              .mapToObj(i -> new Text(String.format("%06d", i)))
+              .collect(Collectors.toCollection(TreeSet::new));
+
+      assertTrue(splits.size() > AsyncConditionalTabletsMutatorImpl.BATCH_SIZE);
+
+      c.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
+
+      var ample = cluster.getServerContext().getAmple();
+
+      AtomicLong accepted = new AtomicLong(0);
+      AtomicLong total = new AtomicLong(0);
+      BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer = (extent, result) -> {
+        if (result.getStatus() == Status.ACCEPTED) {
+          accepted.incrementAndGet();
+        }
+        total.incrementAndGet();
+      };
+
+      // run a test where a subset of tablets are modified, all modifications should be accepted
+      var opid1 = TabletOperationId.from(TabletOperationType.MERGING, 50);
+
+      int expected = 0;
+      try (var tablets = ample.readTablets().forTable(tableId).fetch(OPID, PREV_ROW).build();
+          var mutator = ample.conditionallyMutateTablets(resultsConsumer)) {
+        for (var tablet : tablets) {
+          if (tablet.getEndRow() != null
+              && Integer.parseInt(tablet.getEndRow().toString()) % 2 == 0) {
+            mutator.mutateTablet(tablet.getExtent()).requireAbsentOperation().putOperation(opid1)
+                .submit(tm -> opid1.equals(tm.getOperationId()));
+            expected++;
+          }
+        }
+      }
+
+      assertTrue(expected > 0);
+      assertEquals(expected, accepted.get());
+      assertEquals(total.get(), accepted.get());
+
+      // run test where some will be accepted and some will be rejected and ensure the counts come
+      // out as expected.
+      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, 51);
+
+      accepted.set(0);
+      total.set(0);
+
+      try (var tablets = ample.readTablets().forTable(tableId).fetch(OPID, PREV_ROW).build();
+          var mutator = ample.conditionallyMutateTablets(resultsConsumer)) {
+        for (var tablet : tablets) {
+          mutator.mutateTablet(tablet.getExtent()).requireAbsentOperation().putOperation(opid2)
+              .submit(tm -> opid2.equals(tm.getOperationId()));
+        }
+      }
+
+      var numTablets = splits.size() + 1;
+      assertEquals(numTablets - expected, accepted.get());
+      assertEquals(numTablets, total.get());
+    }
+  }
+
 }

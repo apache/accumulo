@@ -133,14 +133,17 @@ public class FunctionalTestUtils {
       }
 
       if (tabletFileCounts.size() < minTablets || tabletFileCounts.size() > maxTablets) {
-        throw new Exception("Did not find expected number of tablets " + tabletFileCounts.size());
+        throw new Exception("table " + tableName + " has unexpected number of tablets. Found: "
+            + tabletFileCounts.size() + ". expected " + minTablets + " < numTablets < "
+            + maxTablets);
       }
 
       Set<Entry<Text,Integer>> es = tabletFileCounts.entrySet();
       for (Entry<Text,Integer> entry : es) {
         if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
           throw new Exception(
-              "tablet " + entry.getKey() + " has " + entry.getValue() + " data files");
+              "tablet " + entry.getKey() + " has unexpected number of data files. Found: "
+                  + entry.getValue() + ". expected " + minTablets + " < numFiles < " + maxTablets);
         }
       }
     }

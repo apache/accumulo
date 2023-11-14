@@ -90,14 +90,14 @@ public class VolumeUtil {
   }
 
   private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    Path switchedPath = switchVolume(new Path(le.filename), FileType.WAL, replacements);
+    Path switchedPath = switchVolume(new Path(le.getFilePath()), FileType.WAL, replacements);
     String switchedString;
     int numSwitched = 0;
     if (switchedPath != null) {
       switchedString = switchedPath.toString();
       numSwitched++;
     } else {
-      switchedString = le.filename;
+      switchedString = le.getFilePath();
     }
 
     if (numSwitched == 0) {
@@ -181,8 +181,8 @@ public class VolumeUtil {
       if (switchedLogEntry != null) {
         logsToRemove.accept(logEntry);
         logsToAdd.accept(switchedLogEntry);
-        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.filename,
-            switchedLogEntry.filename);
+        log.debug("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getFilePath(),
+            switchedLogEntry.getFilePath());
       }
     }
 
