@@ -137,7 +137,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = new LogEntry(0, emptyWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(emptyWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -196,7 +196,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = new LogEntry(0, partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(partialHeaderWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);

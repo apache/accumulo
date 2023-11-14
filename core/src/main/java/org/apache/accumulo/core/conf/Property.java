@@ -758,7 +758,7 @@ public enum Property {
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
   @Experimental
-  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
+  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "true", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
           + "This is expected to increase the speed of subsequent GC runs.",
       "2.1.3"),
@@ -937,6 +937,13 @@ public enum Property {
           + " from having more RFiles than can be opened. Setting this property low may"
           + " throttle ingest and increase query performance.",
       "1.4.0"),
+  TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
+      "The maximum number of files that a merge operation will process.  Before "
+          + "merging a sum of the number of files in the merge range is computed and if it "
+          + "exceeds this configuration then the merge will error and fail.  For example if "
+          + "there are 100 tablets each having 10 files in the merge range, then the sum would "
+          + "be 1000 and the merge will only proceed if this property is greater than 1000.",
+      "4.0.0"),
   TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256k", PropertyType.BYTES,
       "The maximum size summary that will be stored. The number of RFiles that"
           + " had summary data exceeding this threshold is reported by"

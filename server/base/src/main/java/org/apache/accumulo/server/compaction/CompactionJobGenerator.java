@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
@@ -42,23 +43,28 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class CompactionJobGenerator {
-
+  private static final Logger log = LoggerFactory.getLogger(CompactionJobGenerator.class);
   private final CompactionServicesConfig servicesConfig;
   private final Map<CompactionServiceId,CompactionPlanner> planners = new HashMap<>();
   private final Cache<TableId,CompactionDispatcher> dispatchers;
   private final Set<CompactionServiceId> serviceIds;
   private final PluginEnvironment env;
   private final Map<Long,Map<String,String>> allExecutionHints;
+  private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
 
   public CompactionJobGenerator(PluginEnvironment env,
       Map<Long,Map<String,String>> executionHints) {
@@ -78,6 +84,8 @@ public class CompactionJobGenerator {
       executionHints.forEach((k, v) -> allExecutionHints.put(k,
           v.isEmpty() ? Map.of() : Collections.unmodifiableMap(v)));
     }
+    unknownCompactionServiceErrorCache =
+        Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).build();
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
@@ -151,6 +159,23 @@ public class CompactionJobGenerator {
 
   private Collection<CompactionJob> planCompactions(CompactionServiceId serviceId,
       CompactionKind kind, TabletMetadata tablet, Map<String,String> executionHints) {
+
+    if (!servicesConfig.getPlanners().containsKey(serviceId.canonical())) {
+      var cacheKey = new Pair<>(tablet.getTableId(), serviceId);
+      var last = unknownCompactionServiceErrorCache.getIfPresent(cacheKey);
+      if (last == null) {
+        // have not logged an error recently for this, so lets log one
+        log.error(
+            "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
+                + " the table compaction dispatcher configuration. No compactions will happen"
+                + " until the configuration is fixed. This log message is temporarily suppressed for the"
+                + " entire table.",
+            tablet.getExtent(), serviceId, kind);
+        unknownCompactionServiceErrorCache.put(cacheKey, System.currentTimeMillis());
+      }
+
+      return Set.of();
+    }
 
     CompactionPlanner planner =
         planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), serviceId));
@@ -262,20 +287,22 @@ public class CompactionJobGenerator {
 
   private CompactionPlanner createPlanner(TableId tableId, CompactionServiceId serviceId) {
 
-    String plannerClassName = servicesConfig.getPlanners().get(serviceId.canonical());
-
-    CompactionPlanner planner = null;
+    CompactionPlanner planner;
+    String plannerClassName = null;
+    Map<String,String> options = null;
     try {
+      plannerClassName = servicesConfig.getPlanners().get(serviceId.canonical());
+      options = servicesConfig.getOptions().get(serviceId.canonical());
       planner = env.instantiate(tableId, plannerClassName, CompactionPlanner.class);
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+      CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
+          servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
+      planner.init(initParameters);
+    } catch (Exception e) {
+      log.error(
+          "Failed to create compaction planner for {} using class:{} options:{}.  Compaction service will not start any new compactions until its configuration is fixed.",
+          serviceId, plannerClassName, options, e);
+      planner = new ProvisionalCompactionPlanner(serviceId);
     }
-
-    CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
-        servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
-
-    planner.init(initParameters);
-
     return planner;
   }
 }

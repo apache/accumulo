@@ -138,7 +138,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tm.getLocation().getServerInstance());
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(0, log.toString());
+                LogEntry entry = new LogEntry(log.toString());
                 tabletMutator.putWal(entry);
               }
             }

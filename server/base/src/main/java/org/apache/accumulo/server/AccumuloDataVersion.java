@@ -77,9 +77,7 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  // TODO - this disables upgrades until https://github.com/apache/accumulo/issues/3768 is done
-  // public static final Set<Integer> CAN_RUN = Set.of(
-  // REMOVE_DEPRECATIONS_FOR_VERSION_3, METADATA_FILE_JSON_ENCODING, CURRENT_VERSION);
+  // ELASTICITY_TODO get upgrade working
   public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION);
 
   /**
