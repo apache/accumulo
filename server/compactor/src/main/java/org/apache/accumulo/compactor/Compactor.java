@@ -70,6 +70,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -93,6 +95,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
@@ -279,8 +282,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       for (int i = 0; i < 25; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
-        if (compactorLock.tryLock(lw, new ServiceLockData(compactorId, hostPort,
-            ThriftService.COMPACTOR, this.getResourceGroup()))) {
+        ServiceDescriptors descriptors = new ServiceDescriptors();
+        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
+            ThriftService.COMPACTOR}) {
+          descriptors.addService(
+              new ServiceDescriptor(compactorId, svc, hostPort, this.getResourceGroup()));
+        }
+
+        if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }
@@ -303,7 +312,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, getContext());
+
+    ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(clientHandler, this, getContext());
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
