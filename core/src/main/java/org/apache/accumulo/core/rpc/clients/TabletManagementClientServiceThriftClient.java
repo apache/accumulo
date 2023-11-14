@@ -29,5 +29,4 @@ public class TabletManagementClientServiceThriftClient extends ThriftClientTypes
   public TabletManagementClientServiceThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
   }
-
 }
