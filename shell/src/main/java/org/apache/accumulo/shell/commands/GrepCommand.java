@@ -101,7 +101,6 @@ public class GrepCommand extends ScanCommand {
         fetchColumns(cl, scanner, interpeter);
 
         // output the records
-        config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
         printRecords(cl, shellState, config, scanner, formatter, printFile);
       } finally {
         scanner.close();
