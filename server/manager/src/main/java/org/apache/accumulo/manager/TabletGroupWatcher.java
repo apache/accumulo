@@ -404,8 +404,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final Set<ManagementAction> actions = mti.getActions();
       if (tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(tm.getExtent()
-            + " is both assigned and hosted, which should never happen: " + this,
+        throw new BadLocationStateException(
+            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
             tm.getExtent().toMetaRow());
       }
 
@@ -435,15 +435,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         tableMgmtStats.totalVolumeReplacements++;
-        var volRep = VolumeUtil.computeVolumeReplacements(tableMgmtParams.getVolumeReplacements(),
-            tm);
+        var volRep =
+            VolumeUtil.computeVolumeReplacements(tableMgmtParams.getVolumeReplacements(), tm);
 
         if (volRep.logsToRemove.size() + volRep.filesToRemove.size() > 0) {
           if (tm.getLocation() != null) {
             // since the totalVolumeReplacements counter was incremented, should try this again
             // later after its unassigned
-            LOG.debug("Volume replacement needed for {} but it has a location {}.",
-                tm.getExtent(), tm.getLocation());
+            LOG.debug("Volume replacement needed for {} but it has a location {}.", tm.getExtent(),
+                tm.getLocation());
           } else if (tm.getOperationId() != null) {
             LOG.debug("Volume replacement needed for {} but it has an active operation {}.",
                 tm.getExtent(), tm.getOperationId());
@@ -453,8 +453,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tLists.volumeReplacements.add(volRep);
           }
         } else {
-          LOG.debug("Volume replacement evaluation for {} returned no changes.",
-              tm.getExtent());
+          LOG.debug("Volume replacement evaluation for {} returned no changes.", tm.getExtent());
         }
       }
 
