@@ -21,7 +21,6 @@ package org.apache.accumulo.test.shell;
 import static org.apache.accumulo.core.conf.Property.MONITOR_RESOURCES_EXTERNAL;
 import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ConfigSetIT extends SharedMiniClusterBase {
   @BeforeAll
   public static void setup() throws Exception {

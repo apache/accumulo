@@ -141,7 +141,7 @@ public enum PropertyType {
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),
 
-  JSON("json", x -> new ValidJson().test(x),
+  JSON("json", new ValidJson(),
       "An arbitrary string that is represents a valid, parsable generic json object."
           + "The validity of the json object in the context of the property usage is not checked by this type."),
   BOOLEAN("boolean", in(false, null, "true", "false"),
@@ -195,12 +195,6 @@ public enum PropertyType {
     return predicate.test(value);
   }
 
-  // ObjectMapper is thread-safe, but uses synchronization. If this causes contention, ThreadLocal
-  // may be an option.
-  private static final ObjectMapper jsonMapper =
-      new ObjectMapper().enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY)
-          .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-
   /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
    * jackson databind because it is less permissive that GSON for what is considered valid. This
@@ -210,6 +204,12 @@ public enum PropertyType {
    */
   private static class ValidJson implements Predicate<String> {
     private static final Logger log = LoggerFactory.getLogger(ValidJson.class);
+
+    // ObjectMapper is thread-safe, but uses synchronization. If this causes contention, ThreadLocal
+    // may be an option.
+    private final ObjectMapper jsonMapper =
+        new ObjectMapper().enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY)
+            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
     // set a limit of 1 million characters on the string as rough guard on invalid input
     private static final int ONE_MILLION = 1024 * 1024;
