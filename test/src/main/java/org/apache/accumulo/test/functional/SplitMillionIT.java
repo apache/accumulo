@@ -49,7 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitMillionIT extends AccumuloClusterHarness {
 
-  private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
+  private static final Logger log = LoggerFactory.getLogger(SplitMillionIT.class);
 
   public static class XFilter extends Filter {
 

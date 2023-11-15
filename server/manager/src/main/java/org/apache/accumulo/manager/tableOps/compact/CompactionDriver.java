@@ -176,16 +176,15 @@ class CompactionDriver extends ManagerRepo {
 
         if (tablet.getCompacted().contains(tid)) {
           // this tablet is already considered done
-          log.trace("{} compaction for {} is complete", FateTxId.formatTid(tid),
-              tablet.getExtent());
+          log.trace("{} compaction for {} is complete", fateStr, tablet.getExtent());
           complete++;
         } else if (tablet.getOperationId() != null) {
-          log.trace("{} ignoring tablet {} with active operation {} ", FateTxId.formatTid(tid),
-              tablet.getExtent(), tablet.getOperationId());
+          log.trace("{} ignoring tablet {} with active operation {} ", fateStr, tablet.getExtent(),
+              tablet.getOperationId());
           opidsSeen++;
         } else if (tablet.getFiles().isEmpty()) {
-          log.trace("{} tablet {} has no files, attempting to mark as compacted ",
-              FateTxId.formatTid(tid), tablet.getExtent());
+          log.trace("{} tablet {} has no files, attempting to mark as compacted ", fateStr,
+              tablet.getExtent());
           // this tablet has no files try to mark it as done
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
               .requireSame(tablet, FILES, COMPACTED).putCompacted(tid)
@@ -193,23 +192,23 @@ class CompactionDriver extends ManagerRepo {
           noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
-          log.trace("{} selecting {} files compaction for {}", FateTxId.formatTid(tid),
-              tablet.getFiles().size(), tablet.getExtent());
+          log.trace("{} selecting {} files compaction for {}", fateStr, tablet.getFiles().size(),
+              tablet.getExtent());
 
           Set<StoredTabletFile> filesToCompact;
           try {
             filesToCompact = CompactionPluginUtils.selectFiles(manager.getContext(),
                 tablet.getExtent(), config, tablet.getFilesMap());
           } catch (Exception e) {
-            log.warn("{} failed to select files for {} using {}", FateTxId.formatTid(tid),
-                tablet.getExtent(), config.getSelector(), e);
+            log.warn("{} failed to select files for {} using {}", fateStr, tablet.getExtent(),
+                config.getSelector(), e);
             throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
                 TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Failed to select files");
           }
 
           if (log.isTraceEnabled()) {
-            log.trace("{} selected {} of {} files for {}", FateTxId.formatTid(tid),
+            log.trace("{} selected {} of {} files for {}", fateStr,
                 filesToCompact.stream().map(AbstractTabletFile::getFileName)
                     .collect(Collectors.toList()),
                 tablet.getFiles().stream().map(AbstractTabletFile::getFileName)
@@ -250,14 +249,12 @@ class CompactionDriver extends ManagerRepo {
           if (tablet.getSelectedFiles().getFateTxId() == tid) {
             log.trace(
                 "{} tablet {} already has {} selected files for this compaction, waiting for them be processed",
-                FateTxId.formatTid(tid), tablet.getExtent(),
-                tablet.getSelectedFiles().getFiles().size());
+                fateStr, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size());
             alreadySelected++;
           } else {
             log.trace(
                 "{} tablet {} already has {} selected files by another compaction {}, waiting for them be processed",
-                FateTxId.formatTid(tid), tablet.getExtent(),
-                tablet.getSelectedFiles().getFiles().size(),
+                fateStr, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size(),
                 FateTxId.formatTid(tablet.getSelectedFiles().getFateTxId()));
             otherSelected++;
           }
@@ -281,7 +278,7 @@ class CompactionDriver extends ManagerRepo {
     if (selected > 0) {
       manager.getEventCoordinator().event(
           new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
-          "%s selected files for compaction for %d tablets", FateTxId.formatTid(tid), selected);
+          "%s selected files for compaction for %d tablets", fateStr, selected);
     }
 
     return total - complete;
@@ -362,8 +359,7 @@ class CompactionDriver extends ManagerRepo {
       allCleanedUp = rejectedCount.get() == 0;
 
       if (!allCleanedUp) {
-        retry.waitForNextAttempt(log,
-            "Cleanup metadata for failed compaction " + FateTxId.formatTid(tid));
+        retry.waitForNextAttempt(log, "Cleanup metadata for failed compaction " + fateStr);
       }
     }
   }
