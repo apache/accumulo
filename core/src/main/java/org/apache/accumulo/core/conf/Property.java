@@ -680,7 +680,7 @@ public enum Property {
       "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
           .replaceAll("'", "\""),
-      PropertyType.STRING,
+      PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
@@ -950,7 +950,7 @@ public enum Property {
       "A comma-separate list of allowed SSL protocols.", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Monitor ZooKeeper lock.", "1.5.1"),
-  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
+  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.JSON,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
           + " with CDATA tags. If this value is set, all of the external resources"
