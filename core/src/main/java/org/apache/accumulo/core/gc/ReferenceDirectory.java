@@ -28,7 +28,7 @@ public class ReferenceDirectory extends ReferenceFile {
   private final String tabletDir; // t-0003
 
   public ReferenceDirectory(TableId tableId, String dirName) {
-    super(tableId, dirName);
+    super(tableId, dirName, false);
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
     this.tabletDir = dirName;
   }
@@ -46,11 +46,11 @@ public class ReferenceDirectory extends ReferenceFile {
    * A Tablet directory should have a metadata entry equal to the dirName.
    */
   @Override
-  public String getMetadataEntry() {
-    if (!tabletDir.equals(metadataEntry)) {
+  public String getMetadataPath() {
+    if (!tabletDir.equals(metadataPath)) {
       throw new IllegalStateException(
-          "Tablet dir " + tabletDir + " is not equal to metadataEntry: " + metadataEntry);
+          "Tablet dir " + tabletDir + " is not equal to metadataPath: " + metadataPath);
     }
-    return metadataEntry;
+    return metadataPath;
   }
 }

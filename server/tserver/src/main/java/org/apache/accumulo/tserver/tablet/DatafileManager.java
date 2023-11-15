@@ -119,35 +119,42 @@ class DatafileManager {
 
     final Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
-    synchronized (tablet) {
-      Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
+    try {
+      synchronized (tablet) {
+        Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-      if (absFilePaths == null) {
-        throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
-      }
+        if (absFilePaths == null) {
+          throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
+        }
 
-      boolean notify = false;
-      for (StoredTabletFile path : absFilePaths) {
-        long refCount = fileScanReferenceCounts.decrement(path, 1);
-        if (refCount == 0) {
-          if (filesToDeleteAfterScan.remove(path)) {
-            filesToDelete.add(path);
+        boolean notify = false;
+        try {
+          for (StoredTabletFile path : absFilePaths) {
+            long refCount = fileScanReferenceCounts.decrement(path, 1);
+            if (refCount == 0) {
+              if (filesToDeleteAfterScan.remove(path)) {
+                filesToDelete.add(path);
+              }
+              notify = true;
+            } else if (refCount < 0) {
+              throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+            }
           }
-          notify = true;
-        } else if (refCount < 0) {
-          throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+        } finally {
+          if (notify) {
+            tablet.notifyAll();
+          }
         }
       }
-
-      if (notify) {
-        tablet.notifyAll();
+    } finally {
+      // Remove scan files even if the loop above did not fully complete because once a
+      // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
+      // and would never be added back.
+      if (!filesToDelete.isEmpty()) {
+        log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
+        MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
+            tablet.getTabletServer().getLock());
       }
-    }
-
-    if (!filesToDelete.isEmpty()) {
-      log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
-          tablet.getTabletServer().getLock());
     }
   }
 
@@ -338,18 +345,28 @@ class DatafileManager {
 
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
-    // do not place any code here between above stmt and try{}finally
+    // do not place any code here between above stmt and following try{}finally
     try {
-      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+      // Should not hold the tablet lock while trying to acquire the log lock because this could
+      // lead to deadlock. However there is a path in the code that does this. See #3759
+      tablet.getLogLock().lock();
+      // do not place any code here between lock and try
       try {
+        // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
+        // moving where the following method is called, examine it and finishClearingUnusedLogs()
+        // before moving.
+        Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
         // reverse order data could be lost... the minor compaction start even should be written
         // before the following metadata write is made
         newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
             unusedWalLogs, flushId);
-      } finally {
+
         tablet.finishClearingUnusedLogs();
+      } finally {
+        tablet.getLogLock().unlock();
       }
 
       do {

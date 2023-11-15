@@ -70,12 +70,11 @@ public class SessionManager {
   private final long maxUpdateIdle;
   private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
   private final Long expiredSessionMarker = (long) -1;
-  private final AccumuloConfiguration aconf;
   private final ServerContext ctx;
 
   public SessionManager(ServerContext context) {
     this.ctx = context;
-    this.aconf = context.getConfiguration();
+    final AccumuloConfiguration aconf = context.getConfiguration();
     maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
     maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
@@ -223,6 +222,25 @@ public class SessionManager {
     return session;
   }
 
+  public boolean removeIfNotReserved(long sessionId) {
+    Session session = sessions.get(sessionId);
+    if (session == null) {
+      // it was already removed
+      return true;
+    }
+
+    synchronized (session) {
+      if (session.state == State.RESERVED) {
+        return false;
+      }
+      session.state = State.REMOVED;
+    }
+
+    sessions.remove(sessionId);
+
+    return true;
+  }
+
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
     if (!session.cleanup()) {
       var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
@@ -326,7 +344,7 @@ public class SessionManager {
 
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    /**
+    /*
      * Add sessions so that get the list returned in the active scans call
      */
     for (Session session : deferredCleanupQueue) {
@@ -366,7 +384,7 @@ public class SessionManager {
     final long ct = System.currentTimeMillis();
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    /**
+    /*
      * Add sessions so that get the list returned in the active scans call
      */
     for (Session session : deferredCleanupQueue) {

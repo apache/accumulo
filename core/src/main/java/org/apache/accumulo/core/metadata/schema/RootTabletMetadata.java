@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.hadoop.io.Text;
@@ -59,7 +60,10 @@ public class RootTabletMetadata {
   };
 
   // JSON Mapping Version 1. Released with Accumulo version 2.1.0
-  private static final int VERSION = 1;
+  private static final int VERSION_1 = 1;
+  // JSON Mapping Version 2. Released with Accumulo version 3,1
+  private static final int VERSION_2 = 2;
+  private static final int VERSION = VERSION_2;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
@@ -73,9 +77,19 @@ public class RootTabletMetadata {
      */
     private final TreeMap<String,TreeMap<String,String>> columnValues;
 
-    public Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
+    private Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
       this.version = version;
       this.columnValues = columnValues;
+    }
+
+    public int getVersion() {
+      return version;
+    }
+
+    public static boolean needsUpgrade(final String json) {
+      var rootData = GSON.get().fromJson(json, Data.class);
+      int currVersion = rootData.getVersion();
+      return currVersion < VERSION;
     }
   }
 
@@ -95,8 +109,11 @@ public class RootTabletMetadata {
   private final Data data;
 
   public RootTabletMetadata(String json) {
-    log.trace("Creating root tablet metadata from stored JSON: {}", json);
-    this.data = GSON.get().fromJson(json, Data.class);
+    this(GSON.get().fromJson(json, Data.class));
+  }
+
+  private RootTabletMetadata(final Data data) {
+    this.data = data;
     checkArgument(data.version == VERSION, "Invalid Root Table Metadata JSON version %s",
         data.version);
     data.columnValues.forEach((fam, qualVals) -> {
@@ -106,7 +123,41 @@ public class RootTabletMetadata {
   }
 
   public RootTabletMetadata() {
-    this.data = new Data(VERSION, new TreeMap<>());
+    data = new Data(VERSION, new TreeMap<>());
+  }
+
+  public static RootTabletMetadata upgrade(final String json) {
+    Data data = GSON.get().fromJson(json, Data.class);
+    int currVersion = data.getVersion();
+    switch (currVersion) {
+      case VERSION_1:
+        RootTabletMetadata rtm = new RootTabletMetadata();
+        Mutation m = convert1To2(data);
+        rtm.update(m);
+        return rtm;
+      case VERSION_2:
+        log.debug("no metadata version conversion required for {}", currVersion);
+        return new RootTabletMetadata(data);
+      default:
+        throw new IllegalArgumentException("Unsupported data version: " + currVersion);
+    }
+  }
+
+  private static Mutation convert1To2(final Data data) {
+    Mutation mutation =
+        MetadataSchema.TabletsSection.TabletColumnFamily.createPrevRowMutation(RootTable.EXTENT);
+    data.columnValues.forEach((colFam, colQuals) -> {
+      if (colFam.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME)) {
+        colQuals.forEach((colQual, value) -> {
+          mutation.put(colFam, StoredTabletFile.serialize(colQual), value);
+        });
+      } else {
+        colQuals.forEach((colQual, value) -> {
+          mutation.put(colFam, colQual, value);
+        });
+      }
+    });
+    return mutation;
   }
 
   /**
@@ -156,6 +207,10 @@ public class RootTabletMetadata {
                 new Value(qualVal.getValue()))));
     return TabletMetadata.convertRow(entries.iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+  }
+
+  public static boolean needsUpgrade(final String json) {
+    return Data.needsUpgrade(json);
   }
 
   /**

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -55,12 +57,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -79,37 +83,35 @@ public class TabletMetadataTest {
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
-    String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1";
-    String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2";
+    String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
+    String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxId.formatTid(56));
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxId.formatTid(59));
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    StoredTabletFile tf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf");
-    StoredTabletFile tf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf");
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetaUpdateDelete())
-        .put(dfv1.encode());
+    StoredTabletFile tf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/df1.rf"));
+    StoredTabletFile tf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/df2.rf"));
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetadata()).put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetaUpdateDelete())
-        .put(dfv2.encode());
+    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetadata()).put(dfv2.encode());
 
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry(extent, 55, "lf1");
-    mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())
-        .timestamp(le1.timestamp).put(le1.getValue());
-    LogEntry le2 = new LogEntry(extent, 57, "lf2");
-    mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
-        .timestamp(le2.timestamp).put(le2.getValue());
+    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
+        .put(le1.getValue());
+    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
+        .put(le2.getValue());
 
-    StoredTabletFile sf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
-    StoredTabletFile sf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetaUpdateDelete()).put("");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetaUpdateDelete()).put("");
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadata()).put("");
+    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadata()).put("");
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -134,8 +136,8 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(Set.of(le1.getValue() + " " + le1.timestamp, le2.getValue() + " " + le2.timestamp),
-        tm.getLogs().stream().map(le -> le.getValue() + " " + le.timestamp).collect(toSet()));
+    assertEquals(Set.of(le1.getValue(), le2.getValue()),
+        tm.getLogs().stream().map(LogEntry::getValue).collect(toSet()));
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());

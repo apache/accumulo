@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -54,7 +55,7 @@ public class ListVolumesUsed {
   }
 
   private static void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
-    volumes.add(getLogURI(logEntry.filename));
+    volumes.add(getLogURI(logEntry.getFilePath()));
   }
 
   private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
@@ -79,9 +80,9 @@ public class ListVolumesUsed {
         + " deletes section (volume replacement occurs at deletion time)");
     volumes.clear();
 
-    Iterator<String> delPaths = context.getAmple().getGcCandidates(level);
+    Iterator<GcCandidate> delPaths = context.getAmple().getGcCandidates(level);
     while (delPaths.hasNext()) {
-      volumes.add(getTableURI(delPaths.next()));
+      volumes.add(getTableURI(delPaths.next().getPath()));
     }
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);

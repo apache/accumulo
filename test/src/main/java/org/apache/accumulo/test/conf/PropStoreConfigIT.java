@@ -21,7 +21,6 @@ package org.apache.accumulo.test.conf;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,7 +64,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class PropStoreConfigIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreConfigIT.class);

@@ -262,7 +262,7 @@ public class Tablet extends TabletBase {
   ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
     String tmpFileName = getNextDataFilename(
         !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
-        .getMetaInsert() + "_tmp";
+        .insert().getMetadataPath() + "_tmp";
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 
@@ -370,7 +370,7 @@ public class Tablet extends TabletBase {
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
-            logEntry.filename, logEntry.getColumnQualifier().toString()));
+            logEntry.getFilePath(), logEntry.getColumnQualifier().toString()));
       }
 
       rebuildReferencedLogs();
@@ -483,7 +483,7 @@ public class Tablet extends TabletBase {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-        storedFile.ifPresent(stf -> compactable.filesAdded(true, List.of(stf)));
+        storedFile.ifPresent(stf -> compactable.filesAdded());
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
         throw e;
@@ -1441,8 +1441,7 @@ public class Tablet extends TabletBase {
         Text lastRow = null;
 
         if (extent.endRow() == null) {
-          Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
-          lastRow = lastKey.getRow();
+          lastRow = FileUtil.findLastRow(context, tableConfiguration, files);
         }
 
         newComputation = new SplitComputations(files, midpoint, lastRow);
@@ -1771,13 +1770,13 @@ public class Tablet extends TabletBase {
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
 
-      var storedTabletFile = getDatafileManager().importDataFiles(tid, entries, setTime);
+      getDatafileManager().importDataFiles(tid, entries, setTime);
       lastDataFileImportTime = System.currentTimeMillis();
 
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
       } else {
-        compactable.filesAdded(false, storedTabletFile);
+        compactable.filesAdded();
       }
     } finally {
       synchronized (this) {
@@ -1870,14 +1869,16 @@ public class Tablet extends TabletBase {
     }
   }
 
+  ReentrantLock getLogLock() {
+    return logLock;
+  }
+
   Set<String> beginClearingUnusedLogs() {
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<String> unusedLogs = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
-
-    // do not hold tablet lock while acquiring the log lock
-    logLock.lock();
 
     synchronized (this) {
       if (removingLogs) {
@@ -1894,12 +1895,6 @@ public class Tablet extends TabletBase {
         currentLogsCopy.add(logger.toString());
         unusedLogs.remove(logger.getMeta());
       }
-
-      otherLogs = Collections.emptySet();
-      // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
-      // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
-      // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
-      // rebuildReferencedLogs() for more info.
 
       if (!unusedLogs.isEmpty()) {
         removingLogs = true;
@@ -1923,9 +1918,10 @@ public class Tablet extends TabletBase {
   }
 
   synchronized void finishClearingUnusedLogs() {
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
     removingLogs = false;
+    otherLogs = Collections.emptySet();
     rebuildReferencedLogs();
-    logLock.unlock();
   }
 
   private boolean removingLogs = false;
@@ -1941,7 +1937,8 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // do not hold tablet lock while acquiring the log lock
+    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
+    // to deadlock. However there is a path in the code that does this. See #3759
     logLock.lock();
 
     try {
@@ -2006,10 +2003,6 @@ public class Tablet extends TabletBase {
 
   public void finishUpdatingLogsUsed() {
     logLock.unlock();
-  }
-
-  public void chopFiles() {
-    compactable.initiateChop();
   }
 
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {

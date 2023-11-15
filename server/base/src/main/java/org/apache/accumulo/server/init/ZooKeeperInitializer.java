@@ -34,6 +34,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -174,8 +175,8 @@ public class ZooKeeperInitializer {
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation,
         new Value(dirName));
 
-    mutation.put(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME, file,
-        new DataFileValue(0, 0).encodeAsValue());
+    mutation.put(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME,
+        StoredTabletFile.serialize(file), new DataFileValue(0, 0).encodeAsValue());
 
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));

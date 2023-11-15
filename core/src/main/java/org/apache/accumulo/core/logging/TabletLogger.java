@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -117,32 +118,33 @@ public class TabletLogger {
    * Lazily converts TableFile to file names. The lazy part is really important because when it is
    * not called with log.isDebugEnabled().
    */
-  private static Collection<String> asFileNames(Collection<CompactableFile> files) {
-    return Collections2.transform(files, CompactableFile::getFileName);
+  private static Collection<String> asMinimalString(Collection<CompactableFile> files) {
+    return Collections2.transform(files,
+        cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
   public static void selected(KeyExtent extent, CompactionKind kind,
       Collection<StoredTabletFile> inputs) {
     fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
-        Collections2.transform(inputs, StoredTabletFile::getFileName));
+        Collections2.transform(inputs, StoredTabletFile::toMinimalString));
   }
 
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
     if (fileLog.isDebugEnabled()) {
       if (config == null) {
         fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getExecutor(),
-            job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()));
+            job.getKind(), asMinimalString(job.getFiles()), getSize(job.getFiles()));
       } else {
         fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
-            job.getExecutor(), job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()),
-            config);
+            job.getExecutor(), job.getKind(), asMinimalString(job.getFiles()),
+            getSize(job.getFiles()), config);
       }
     }
   }
 
   public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
-        asFileNames(job.getFiles()));
+        asMinimalString(job.getFiles()));
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {

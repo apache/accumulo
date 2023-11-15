@@ -66,11 +66,4 @@ service TabletManagementClientService {
     4:data.TKeyExtent extent
   )
 
-  oneway void chop(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string lock
-    4:data.TKeyExtent extent
-  )
-
 }

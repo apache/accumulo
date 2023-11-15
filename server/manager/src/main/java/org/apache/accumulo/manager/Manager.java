@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -95,7 +96,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -527,7 +527,7 @@ public class Manager extends AbstractServer
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
-          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(),
+          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
@@ -539,7 +539,7 @@ public class Manager extends AbstractServer
       try {
         byte[] data = getContext().getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
-        return ManagerGoalState.valueOf(new String(data));
+        return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, SECONDS);
@@ -648,19 +648,14 @@ public class Manager extends AbstractServer
             case COMPLETE:
               break;
             case STARTED:
-            case SPLITTING:
-              return TabletGoalState.HOSTED;
-            case WAITING_FOR_CHOPPED:
-              if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
-                if (tls.chopped) {
-                  return TabletGoalState.UNASSIGNED;
-                }
-              } else if (tls.chopped && tls.walogs.isEmpty()) {
-                return TabletGoalState.UNASSIGNED;
-              }
-
               return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
+              // If we have walogs we need to be HOSTED to recover
+              if (!tls.walogs.isEmpty()) {
+                return TabletGoalState.HOSTED;
+              } else {
+                return TabletGoalState.UNASSIGNED;
+              }
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }

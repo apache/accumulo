@@ -21,9 +21,11 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -35,7 +37,6 @@ import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
@@ -48,32 +49,34 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 
-import com.google.common.net.HostAndPort;
-
 public interface TServerClient<C extends TServiceClient> {
 
-  Pair<String,C> getTabletServerConnection(ClientContext context, boolean preferCachedConnections)
+  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
 
-  default Pair<String,C> getTabletServerConnection(Logger LOG, ThriftClientTypes<C> type,
-      ClientContext context, boolean preferCachedConnections, AtomicBoolean warned)
-      throws TTransportException {
+  default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
+      ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
+      ThriftService service) throws TTransportException {
     checkArgument(context != null, "context is null");
     long rpcTimeout = context.getClientTimeoutInMillis();
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
+    List<String> serverPaths = new ArrayList<>();
+    serverPaths.add(context.getZooKeeperRoot() + Constants.ZTSERVERS);
+    if (type == ThriftClientTypes.CLIENT) {
+      serverPaths.add(context.getZooKeeperRoot() + Constants.ZCOMPACTORS);
+      serverPaths.add(context.getZooKeeperRoot() + Constants.ZSSERVERS);
+      Collections.shuffle(serverPaths, RANDOM.get());
+    }
     ZooCache zc = context.getZooCache();
-    for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-      var zLocPath =
-          ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      Optional<ServiceLockData> sld = zc.getLockData(zLocPath);
-      if (sld.isPresent()) {
-        HostAndPort address = sld.orElseThrow().getAddress(ThriftService.TSERV);
-        if (address != null) {
-          servers.add(new ThriftTransportKey(address, rpcTimeout, context));
-        }
+    for (String serverPath : serverPaths) {
+      for (String server : zc.getChildren(serverPath)) {
+        var zLocPath = ServiceLock.path(serverPath + "/" + server);
+        zc.getLockData(zLocPath).map(sld -> sld.getAddress(service))
+            .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
+            .ifPresent(servers::add);
       }
     }
 
@@ -104,7 +107,7 @@ public interface TServerClient<C extends TServiceClient> {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getTabletServerConnection(context, true);
+        Pair<String,C> pair = getThriftServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -131,7 +134,7 @@ public interface TServerClient<C extends TServiceClient> {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getTabletServerConnection(context, true);
+        Pair<String,C> pair = getThriftServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);

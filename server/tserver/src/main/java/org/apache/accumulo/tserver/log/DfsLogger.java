@@ -376,7 +376,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         decryptingInput = input;
       } else {
         throw new IllegalArgumentException(
-            "Unsupported write ahead log version " + new String(magicBuffer));
+            "Unsupported write ahead log version " + new String(magicBuffer, UTF_8));
       }
     } catch (EOFException e) {
       // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException

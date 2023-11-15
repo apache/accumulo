@@ -55,7 +55,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -105,7 +104,6 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private boolean chopped = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -127,7 +125,6 @@ public class TabletMetadata {
     COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
-    CHOPPED,
     ECOMP
   }
 
@@ -348,11 +345,6 @@ public class TabletMetadata {
     return splitRatio;
   }
 
-  public boolean hasChopped() {
-    ensureFetched(ColumnType.CHOPPED);
-    return chopped;
-  }
-
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -371,7 +363,7 @@ public class TabletMetadata {
         future = location;
       }
       // only care about the state so don't need walogs and chopped params
-      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
+      var tls = new TabletLocationState(extent, future, current, last, suspend, null);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {
       throw new IllegalArgumentException("Error creating TabletLocationState", blse);
@@ -487,9 +479,6 @@ public class TabletMetadata {
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
           break;
-        case ChoppedColumnFamily.STR_NAME:
-          te.chopped = true;
-          break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
       }
@@ -549,18 +538,11 @@ public class TabletMetadata {
    */
   private static Optional<TServerInstance> checkServer(ClientContext context, String path,
       String zPath) {
-    Optional<TServerInstance> server = Optional.empty();
     final var lockPath = ServiceLock.path(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
-
-    if (sld.isPresent()) {
-      log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      if (client != null) {
-        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
-      }
-    }
-    return server;
+    log.trace("Checking server at ZK path = " + lockPath);
+    return ServiceLock.getLockData(context.getZooCache(), lockPath, stat)
+        .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
+        .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
   }
 }

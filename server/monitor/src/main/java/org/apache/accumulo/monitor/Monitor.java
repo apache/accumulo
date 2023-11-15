@@ -428,10 +428,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
-        Optional<ServiceLockData> sld =
-            ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)));
-        if (sld.isPresent()) {
-          address = sld.orElseThrow().getAddress(ThriftService.GC);
+        address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
+            .map(sld -> sld.getAddress(ThriftService.GC)).orElse(null);
+        if (address == null) {
+          log.warn("Unable to contact the garbage collector (no address)");
+          return null;
         }
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);

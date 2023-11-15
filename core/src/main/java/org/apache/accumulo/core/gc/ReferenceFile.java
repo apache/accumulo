@@ -21,6 +21,9 @@ package org.apache.accumulo.core.gc;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.hadoop.fs.Path;
 
 /**
  * A GC reference used for streaming and delete markers. This type is a file. Subclass is a
@@ -29,13 +32,35 @@ import org.apache.accumulo.core.data.TableId;
 public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
+  public final boolean isScan;
 
-  // the exact string that is stored in the metadata
-  protected final String metadataEntry;
+  // the exact path from the file reference string that is stored in the metadata
+  protected final String metadataPath;
 
-  public ReferenceFile(TableId tableId, String metadataEntry) {
+  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan) {
     this.tableId = Objects.requireNonNull(tableId);
-    this.metadataEntry = Objects.requireNonNull(metadataEntry);
+    this.metadataPath = Objects.requireNonNull(metadataPath);
+    this.isScan = isScan;
+  }
+
+  public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false);
+  }
+
+  public static ReferenceFile forFile(TableId tableId, Path metadataPathPath) {
+    return new ReferenceFile(tableId, metadataPathPath.toString(), false);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, Path metadataPathPath) {
+    return new ReferenceFile(tableId, metadataPathPath.toString(), true);
   }
 
   @Override
@@ -44,13 +69,18 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
+  public boolean isScan() {
+    return isScan;
+  }
+
+  @Override
   public TableId getTableId() {
     return tableId;
   }
 
   @Override
-  public String getMetadataEntry() {
-    return metadataEntry;
+  public String getMetadataPath() {
+    return metadataPath;
   }
 
   @Override
@@ -58,7 +88,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     if (equals(that)) {
       return 0;
     } else {
-      return this.metadataEntry.compareTo(that.metadataEntry);
+      return this.metadataPath.compareTo(that.metadataPath);
     }
   }
 
@@ -74,17 +104,17 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
       return false;
     }
     ReferenceFile other = (ReferenceFile) obj;
-    return metadataEntry.equals(other.metadataEntry);
+    return metadataPath.equals(other.metadataPath);
   }
 
   @Override
   public int hashCode() {
-    return this.metadataEntry.hashCode();
+    return this.metadataPath.hashCode();
   }
 
   @Override
   public String toString() {
-    return "Reference [id=" + tableId + ", ref=" + metadataEntry + "]";
+    return "Reference [id=" + tableId + ", ref=" + metadataPath + "]";
   }
 
 }

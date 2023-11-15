@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
@@ -57,6 +59,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -81,7 +84,9 @@ import com.google.common.annotations.VisibleForTesting;
  * A single garbage collection performed on a table (Root, MD) or all User tables.
  */
 public class GCRun implements GarbageCollectionEnvironment {
+  // loggers are not static to support unique naming by level
   private final Logger log;
+  private static final String fileActionPrefix = "FILE-ACTION:";
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
@@ -91,28 +96,52 @@ public class GCRun implements GarbageCollectionEnvironment {
   private long errors = 0;
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
-    this.log = LoggerFactory.getLogger(level.name() + GCRun.class);
+    this.log = LoggerFactory.getLogger(GCRun.class.getName() + "." + level.name());
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
   }
 
   @Override
-  public Iterator<String> getCandidates() {
+  public Iterator<GcCandidate> getCandidates() {
     return context.getAmple().getGcCandidates(level);
   }
 
+  /**
+   * Removes gcCandidates from the metadata location depending on type.
+   *
+   * @param gcCandidates Collection of deletion reference candidates to remove.
+   * @param type type of deletion reference candidates.
+   */
   @Override
-  public List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
+  public void deleteGcCandidates(Collection<GcCandidate> gcCandidates, GcCandidateType type) {
+    if (inSafeMode()) {
+      System.out.println("SAFEMODE: There are " + gcCandidates.size()
+          + " reference file gcCandidates entries marked for deletion from " + level + " of type: "
+          + type + ".\n          Examine the log files to identify them.\n");
+      log.info("SAFEMODE: Listing all ref file gcCandidates for deletion");
+      for (GcCandidate gcCandidate : gcCandidates) {
+        log.info("SAFEMODE: {}", gcCandidate);
+      }
+      log.info("SAFEMODE: End reference candidates for deletion");
+      return;
+    }
+
+    log.info("Attempting to delete gcCandidates of type {} from metadata", type);
+    context.getAmple().deleteGcCandidates(level, gcCandidates, type);
+  }
+
+  @Override
+  public List<GcCandidate> readCandidatesThatFitInMemory(Iterator<GcCandidate> candidates) {
     long candidateLength = 0;
     // Converting the bytes to approximate number of characters for batch size.
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
-    List<String> candidatesBatch = new ArrayList<>();
+    List<GcCandidate> candidatesBatch = new ArrayList<>();
 
     while (candidates.hasNext()) {
-      String candidate = candidates.next();
-      candidateLength += candidate.length();
+      GcCandidate candidate = candidates.next();
+      candidateLength += candidate.getPath().length();
       candidatesBatch.add(candidate);
       if (candidateLength > candidateBatchSize) {
         log.info("Candidate batch of size {} has exceeded the threshold. Attempting to delete "
@@ -154,26 +183,39 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     // there is a lot going on in this "one line" so see below for more info
     var tabletReferences = tabletStream.flatMap(tm -> {
+      var tableId = tm.getTableId();
+
+      // verify that dir and prev row entries present for to check for complete row scan
+      log.trace("tablet metadata table id: {}, end row:{}, dir:{}, saw: {}, prev row: {}", tableId,
+          tm.getEndRow(), tm.getDirName(), tm.sawPrevEndRow(), tm.getPrevEndRow());
+      if (tm.getDirName() == null || tm.getDirName().isEmpty() || !tm.sawPrevEndRow()) {
+        throw new IllegalStateException("possible incomplete metadata scan for table id: " + tableId
+            + ", end row: " + tm.getEndRow() + ", dir: " + tm.getDirName() + ", saw prev row: "
+            + tm.sawPrevEndRow());
+      }
+
       // combine all the entries read from file and scan columns in the metadata table
-      Stream<StoredTabletFile> fileStream = tm.getFiles().stream();
+      Stream<StoredTabletFile> stfStream = tm.getFiles().stream();
+      // map the files to Reference objects
+      var fileStream = stfStream.map(f -> ReferenceFile.forFile(tableId, f));
+
       // scans are normally empty, so only introduce a layer of indirection when needed
       final var tmScans = tm.getScans();
       if (!tmScans.isEmpty()) {
-        fileStream = Stream.concat(fileStream, tmScans.stream());
+        var scanStream = tmScans.stream().map(s -> ReferenceFile.forScan(tableId, s));
+        fileStream = Stream.concat(fileStream, scanStream);
       }
-      // map the files to Reference objects
-      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
-      // if dirName is populated then we have a tablet directory aka srv:dir
+      // if dirName is populated, then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
-        var tabletDir = new ReferenceDirectory(tm.getTableId(), tm.getDirName());
-        stream = Stream.concat(stream, Stream.of(tabletDir));
+        var tabletDir = new ReferenceDirectory(tableId, tm.getDirName());
+        fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
       }
-      return stream;
+      return fileStream;
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getNormalizedPathStr()));
+        .map(sfr -> ReferenceFile.forScan(sfr.getTableId(), sfr));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }
@@ -220,7 +262,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void deleteConfirmedCandidates(SortedMap<String,String> confirmedDeletes)
+  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes)
       throws TableNotFoundException {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
@@ -230,15 +272,15 @@ public class GCRun implements GarbageCollectionEnvironment {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
           + " data file candidates marked for deletion in " + metadataLocation + ".\n"
           + "          Examine the log files to identify them.\n");
-      log.info("SAFEMODE: Listing all data file candidates for deletion");
-      for (String s : confirmedDeletes.values()) {
-        log.info("SAFEMODE: {}", s);
+      log.info("{} SAFEMODE: Listing all data file candidates for deletion", fileActionPrefix);
+      for (GcCandidate candidate : confirmedDeletes.values()) {
+        log.info("{} SAFEMODE: {}", fileActionPrefix, candidate);
       }
       log.info("SAFEMODE: End candidates for deletion");
       return;
     }
 
-    List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
+    List<GcCandidate> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
     minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
 
@@ -247,15 +289,15 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
 
-    for (final String delete : confirmedDeletes.values()) {
+    for (final GcCandidate delete : confirmedDeletes.values()) {
 
       Runnable deleteTask = () -> {
         boolean removeFlag = false;
 
         try {
           Path fullPath;
-          Path switchedDelete =
-              VolumeUtil.switchVolume(delete, VolumeManager.FileType.TABLE, replacements);
+          Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
+              VolumeManager.FileType.TABLE, replacements);
           if (switchedDelete != null) {
             // actually replacing the volumes in the metadata table would be tricky because the
             // entries would be different rows. So it could not be
@@ -265,14 +307,14 @@ public class GCRun implements GarbageCollectionEnvironment {
             // uses suffixes to compare delete entries, there is no danger
             // of deleting something that should not be deleted. Must not change value of delete
             // variable because that's what's stored in metadata table.
-            log.debug("Volume replaced {} -> {}", delete, switchedDelete);
+            log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
             fullPath = ValidationUtil.validate(switchedDelete);
           } else {
-            fullPath = new Path(ValidationUtil.validate(delete));
+            fullPath = new Path(ValidationUtil.validate(delete.getPath()));
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            log.debug("Deleting {}", pathToDel);
+            log.debug("{} Deleting {}", fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
@@ -282,7 +324,8 @@ public class GCRun implements GarbageCollectionEnvironment {
               // leave the entry in the metadata; we'll try again later
               removeFlag = false;
               errors++;
-              log.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
+              log.warn("{} File exists, but was not deleted for an unknown reason: {}",
+                  fileActionPrefix, pathToDel);
               break;
             } else {
               // this failure, we still want to remove the metadata entry
@@ -297,11 +340,12 @@ public class GCRun implements GarbageCollectionEnvironment {
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist
                   if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("File doesn't exist: {}", pathToDel);
+                    log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
                   }
                 }
               } else {
-                log.warn("Very strange path name: {}", delete);
+                log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
+                    delete.getPath());
               }
             }
           }
@@ -312,7 +356,7 @@ public class GCRun implements GarbageCollectionEnvironment {
             processedDeletes.add(delete);
           }
         } catch (Exception e) {
-          log.error("{}", e.getMessage(), e);
+          log.error("{} Exception while deleting files ", fileActionPrefix, e);
         }
 
       };
@@ -329,7 +373,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       log.error("{}", e1.getMessage(), e1);
     }
 
-    context.getAmple().deleteGcCandidates(level, processedDeletes);
+    deleteGcCandidates(processedDeletes, GcCandidateType.VALID);
   }
 
   @Override
@@ -347,7 +391,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
       if (tabletDirs.length == 0) {
         Path p = new Path(dir + "/" + tableID);
-        log.debug("Removing table dir {}", p);
+        log.debug("{} Removing table dir {}", fileActionPrefix, p);
         if (!moveToTrash(p)) {
           fs.delete(p);
         }
@@ -366,21 +410,21 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @VisibleForTesting
-  static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
-      List<String> processedDeletes, VolumeManager fs, Logger logger) {
+  static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
+      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger) {
     Set<Path> seenVolumes = new HashSet<>();
 
     // when deleting a dir and all files in that dir, only need to delete the dir.
     // The dir will sort right before the files... so remove the files in this case
     // to minimize namenode ops
-    Iterator<Map.Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
+    Iterator<Map.Entry<String,GcCandidate>> cdIter = confirmedDeletes.entrySet().iterator();
 
     String lastDirRel = null;
     Path lastDirAbs = null;
     while (cdIter.hasNext()) {
-      Map.Entry<String,String> entry = cdIter.next();
+      Map.Entry<String,GcCandidate> entry = cdIter.next();
       String relPath = entry.getKey();
-      Path absPath = new Path(entry.getValue());
+      Path absPath = new Path(entry.getValue().getPath());
 
       if (SimpleGarbageCollector.isDir(relPath)) {
         lastDirRel = relPath;
@@ -407,7 +451,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           if (sameVol) {
-            logger.info("Ignoring {} because {} exist", entry.getValue(), lastDirAbs);
+            logger.info("{} Ignoring {} because {} exist", fileActionPrefix,
+                entry.getValue().getPath(), lastDirAbs);
             processedDeletes.add(entry.getValue());
             cdIter.remove();
           }
@@ -422,10 +467,20 @@ public class GCRun implements GarbageCollectionEnvironment {
   /**
    * Checks if safemode is set - files will not be deleted.
    *
-   * @return number of delete threads
+   * @return value of {@link Property#GC_SAFEMODE}
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);
+  }
+
+  /**
+   * Checks if InUse Candidates can be removed.
+   *
+   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
+   */
+  @Override
+  public boolean canRemoveInUseCandidates() {
+    return context.getConfiguration().getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES);
   }
 
   /**

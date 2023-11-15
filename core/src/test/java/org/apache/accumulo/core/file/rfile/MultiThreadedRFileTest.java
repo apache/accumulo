@@ -80,9 +80,9 @@ public class MultiThreadedRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstKey().compareTo(lastKey) > 0) {
+      if (reader.getFirstRow().compareTo(lastKey.getRow()) > 0) {
         throw new IllegalStateException(
-            "First key out of order " + reader.getFirstKey() + " " + lastKey);
+            "First key out of order " + reader.getFirstRow() + " " + lastKey);
       }
 
       indexIter.next();
@@ -98,9 +98,9 @@ public class MultiThreadedRFileTest {
 
       }
 
-      if (!reader.getLastKey().equals(lastKey)) {
+      if (!reader.getLastRow().equals(lastKey.getRow())) {
         throw new IllegalStateException(
-            "Last key out of order " + reader.getLastKey() + " " + lastKey);
+            "Last key out of order " + reader.getLastRow() + " " + lastKey);
       }
     }
   }
@@ -134,7 +134,7 @@ public class MultiThreadedRFileTest {
     public TestRFile deepCopy() throws IOException {
       TestRFile copy = new TestRFile(accumuloConfiguration);
       // does not copy any writer resources. This would be for read only.
-      copy.reader = (Reader) reader.deepCopy(null);
+      copy.reader = reader.deepCopy(null);
       copy.rfile = rfile;
       copy.iter = new ColumnFamilySkippingIterator(copy.reader);
       copy.deepCopy = true;

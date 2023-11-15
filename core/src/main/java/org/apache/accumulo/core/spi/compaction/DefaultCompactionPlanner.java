@@ -93,9 +93,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * <pre>
  * {@code
- * [{"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
+ * [
+ *  {"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
  *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
- *  {"name: "large", "type": "external", "queue", "Queue1"}
+ *  {"name": "large", "type": "external", "queue", "Queue1"}
  * ]}
  * </pre>
  *
@@ -272,8 +273,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (group.isEmpty()
-        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
-            || params.getKind() == CompactionKind.CHOP)
+        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
         && params.getRunningCompactions().stream()
             .noneMatch(job -> job.getKind() == params.getKind())) {
       group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);

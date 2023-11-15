@@ -28,14 +28,6 @@ public enum MergeState {
    */
   STARTED,
   /**
-   * put all matching tablets online, split tablets if we are deleting
-   */
-  SPLITTING,
-  /**
-   * after the tablet server chops the file, it marks the metadata table with a chopped marker
-   */
-  WAITING_FOR_CHOPPED,
-  /**
    * when the number of chopped tablets in the range matches the number of online tablets in the
    * range, take the tablets offline
    */

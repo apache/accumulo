@@ -88,7 +88,6 @@ import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
@@ -143,7 +142,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
-  private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
+  private static final long RECENTLY_SPLIT_MILLIS = MINUTES.toMillis(1);
   private final TabletServer server;
   protected final TransactionWatcher watcher;
   protected final ServerContext context;
@@ -264,7 +263,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
       server.updateMetrics.addUnknownTabletErrors(0);
-      return;
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
           e);
@@ -273,7 +271,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
       server.updateMetrics.addPermissionErrors(0);
-      return;
     }
   }
 
@@ -540,100 +537,16 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           us.authFailures.entrySet().stream()
               .collect(Collectors.toMap(e -> e.getKey().toThrift(), Entry::getValue)));
     } finally {
-      // Atomically unreserve and delete the session. If there any write stragglers, they will fail
+      // Atomically unreserve and delete the session. If there are any write stragglers, they will
+      // fail
       // after this point.
       server.sessionManager.removeSession(updateID, true);
     }
   }
 
   @Override
-  public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
-      TMutation tmutation, TDurability tdurability)
-      throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
-
-    final TableId tableId = TableId.of(new String(tkeyExtent.getTable(), UTF_8));
-    NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-    if (!security.canWrite(credentials, tableId, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    final KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
-    final Tablet tablet = server.getOnlineTablet(KeyExtent.copyOf(keyExtent));
-    if (tablet == null) {
-      throw new NotServingTabletException(tkeyExtent);
-    }
-    Durability tabletDurability = tablet.getDurability();
-
-    if (!keyExtent.isMeta()) {
-      try {
-        server.resourceManager.waitUntilCommitsAreEnabled();
-      } catch (HoldTimeoutException hte) {
-        // Major hack. Assumption is that the client has timed out and is gone. If that's not the
-        // case, then throwing the following will let client know there
-        // was a failure and it should retry.
-        throw new NotServingTabletException(tkeyExtent);
-      }
-    }
-
-    final long opid = writeTracker.startWrite(TabletType.type(keyExtent));
-
-    try {
-      final Mutation mutation = new ServerMutation(tmutation);
-      final List<Mutation> mutations = Collections.singletonList(mutation);
-
-      PreparedMutations prepared;
-      Span span = TraceUtil.startSpan(this.getClass(), "update::prep");
-      try (Scope scope = span.makeCurrent()) {
-        prepared = tablet.prepareMutationsForCommit(
-            new TservConstraintEnv(server.getContext(), security, credentials), mutations);
-      } catch (Exception e) {
-        TraceUtil.setException(span, e, true);
-        throw e;
-      } finally {
-        span.end();
-      }
-
-      if (prepared.tabletClosed()) {
-        throw new NotServingTabletException(tkeyExtent);
-      } else if (!prepared.getViolators().isEmpty()) {
-        throw new ConstraintViolationException(prepared.getViolations().asList().stream()
-            .map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()));
-      } else {
-        CommitSession session = prepared.getCommitSession();
-        Durability durability = DurabilityImpl
-            .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
-
-        // Instead of always looping on true, skip completely when durability is NONE.
-        while (durability != Durability.NONE) {
-          try {
-            Span span2 = TraceUtil.startSpan(this.getClass(), "update::wal");
-            try (Scope scope = span2.makeCurrent()) {
-              server.logger.log(session, mutation, durability);
-            } catch (Exception e) {
-              TraceUtil.setException(span2, e, true);
-              throw e;
-            } finally {
-              span2.end();
-            }
-            break;
-          } catch (IOException ex) {
-            log.warn("Error writing mutations to log", ex);
-          }
-        }
-
-        Span span3 = TraceUtil.startSpan(this.getClass(), "update::commit");
-        try (Scope scope = span3.makeCurrent()) {
-          session.commit(mutations);
-        } catch (Exception e) {
-          TraceUtil.setException(span3, e, true);
-          throw e;
-        } finally {
-          span3.end();
-        }
-      }
-    } finally {
-      writeTracker.finishWrite(opid);
-    }
+  public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+    return server.sessionManager.removeIfNotReserved(updateID);
   }
 
   private NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
@@ -847,7 +760,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       String classLoaderContext) throws ThriftSecurityException, TException {
 
     TableId tableId = TableId.of(tableIdStr);
-    Authorizations userauths = null;
+    Authorizations userauths;
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
     if (!security.canConditionallyUpdate(credentials, tableId, namespaceId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -919,6 +832,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return results;
     } catch (IOException ioe) {
       throw new TException(ioe);
+    } catch (Exception e) {
+      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}", tid, opid, e);
+      throw e;
     } finally {
       writeTracker.finishWrite(opid);
       server.sessionManager.unreserveSession(sessID);
@@ -950,7 +866,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
       ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
 
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
+    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table), UTF_8));
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
 
     if (!security.canSplitTablet(credentials, tableId, namespaceId)) {
@@ -1100,7 +1016,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
             for (KeyExtent e2 : onlineOverlapping) {
               Tablet tablet = server.getOnlineTablet(e2);
               if (System.currentTimeMillis() - tablet.getSplitCreationTime()
-                  < RECENTLY_SPLIT_MILLIES) {
+                  < RECENTLY_SPLIT_MILLIS) {
                 all.remove(e2);
               }
             }
@@ -1250,23 +1166,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
-    try {
-      checkPermission(security, context, server, credentials, lock, "chop");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to chop extent", e);
-      throw new RuntimeException(e);
-    }
-
-    KeyExtent ke = KeyExtent.fromThrift(textent);
-
-    Tablet tablet = server.getOnlineTablet(ke);
-    if (tablet != null) {
-      tablet.chopFiles();
-    }
-  }
-
-  @Override
   public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
@@ -1383,7 +1282,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
-    // Might be null if there no active logger
+    // Might be null if there is no active logger
     if (log == null) {
       return Collections.emptyList();
     }

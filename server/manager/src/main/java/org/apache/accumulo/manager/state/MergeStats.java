@@ -52,6 +52,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -60,51 +63,22 @@ public class MergeStats {
   private final MergeInfo info;
   private int hosted = 0;
   private int unassigned = 0;
-  private int chopped = 0;
-  private int needsToBeChopped = 0;
   private int total = 0;
-  private boolean lowerSplit = false;
-  private boolean upperSplit = false;
 
   public MergeStats(MergeInfo info) {
     this.info = info;
-    if (info.getState().equals(MergeState.NONE)) {
-      return;
-    }
-    if (info.getExtent().endRow() == null) {
-      upperSplit = true;
-    }
-    if (info.getExtent().prevEndRow() == null) {
-      lowerSplit = true;
-    }
   }
 
   public MergeInfo getMergeInfo() {
     return info;
   }
 
-  public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
+  public void update(KeyExtent ke, TabletState state) {
     if (info.getState().equals(MergeState.NONE)) {
       return;
     }
-    if (!upperSplit && info.getExtent().endRow().equals(ke.prevEndRow())) {
-      log.info("Upper split found: {}", ke.prevEndRow());
-      upperSplit = true;
-    }
-    if (!lowerSplit && info.getExtent().prevEndRow().equals(ke.endRow())) {
-      log.info("Lower split found: {}", ke.endRow());
-      lowerSplit = true;
-    }
     if (!info.overlaps(ke)) {
       return;
-    }
-    if (info.needsToBeChopped(ke)) {
-      this.needsToBeChopped++;
-      if (chopped) {
-        if (state.equals(TabletState.HOSTED) || !hasWALs) {
-          this.chopped++;
-        }
-      }
     }
     this.total++;
     if (state.equals(TabletState.HOSTED)) {
@@ -128,57 +102,26 @@ public class MergeStats {
     log.info("Computing next merge state for {} which is presently {} isDelete : {}",
         info.getExtent(), state, info.isDelete());
     if (state == MergeState.STARTED) {
-      state = MergeState.SPLITTING;
-    }
-    if (state == MergeState.SPLITTING) {
       log.info("{} are hosted, total {}", hosted, total);
       if (!info.isDelete() && total == 1) {
         log.info("Merge range is already contained in a single tablet {}", info.getExtent());
         state = MergeState.COMPLETE;
       } else if (hosted == total) {
-        if (info.isDelete()) {
-          if (!lowerSplit) {
-            log.info("Waiting for {} lower split to occur {}", info, info.getExtent());
-          } else if (!upperSplit) {
-            log.info("Waiting for {} upper split to occur {}", info, info.getExtent());
-          } else {
-            state = MergeState.WAITING_FOR_CHOPPED;
-          }
-        } else {
-          state = MergeState.WAITING_FOR_CHOPPED;
-        }
+        state = MergeState.WAITING_FOR_OFFLINE;
       } else {
         log.info("Waiting for {} hosted tablets to be {} {}", hosted, total, info.getExtent());
       }
     }
-    if (state == MergeState.WAITING_FOR_CHOPPED) {
-      log.info("{} tablets are chopped {}", chopped, info.getExtent());
-      if (chopped == needsToBeChopped) {
-        state = MergeState.WAITING_FOR_OFFLINE;
-      } else {
-        log.info("Waiting for {} chopped tablets to be {} {}", chopped, needsToBeChopped,
-            info.getExtent());
-      }
-    }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
-      if (chopped == needsToBeChopped) {
-        log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
-            info.getExtent());
-        if (unassigned == total) {
-          if (verifyMergeConsistency(accumuloClient, manager)) {
-            state = MergeState.MERGING;
-          } else {
-            log.info("Merge consistency check failed {}", info.getExtent());
-          }
+      if (unassigned == total) {
+        if (verifyMergeConsistency(accumuloClient, manager)) {
+          state = MergeState.MERGING;
         } else {
-          log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
-              info.getExtent());
+          log.info("Merge consistency check failed {}", info.getExtent());
         }
       } else {
-        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
-            chopped, info.getExtent());
-        // Perhaps a split occurred after we chopped, but before we went offline: start over
-        state = MergeState.WAITING_FOR_CHOPPED;
+        log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
+            info.getExtent());
       }
     }
     if (state == MergeState.MERGING) {
@@ -192,7 +135,7 @@ public class MergeStats {
         // Shouldn't happen
         log.error("Unexpected state: unassigned tablets should be {} was {} merge {}", total,
             unassigned, info.getExtent());
-        state = MergeState.WAITING_FOR_CHOPPED;
+        state = MergeState.WAITING_FOR_OFFLINE;
       }
       log.info("{} tablets are unassigned {}", unassigned, info.getExtent());
     }
@@ -201,6 +144,9 @@ public class MergeStats {
 
   private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState manager)
       throws TableNotFoundException, IOException {
+    // The only expected state when this method is called is WAITING_FOR_OFFLINE
+    verifyState(info, MergeState.WAITING_FOR_OFFLINE);
+
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
@@ -230,8 +176,9 @@ public class MergeStats {
         break;
       }
 
-      if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
-        log.debug("failing consistency: needs to be chopped {}", tls.extent);
+      // Verify that no WALs exist
+      if (!verifyWalogs(tls)) {
+        log.debug("failing consistency: {} has walogs {}", tls.extent, tls.walogs.size());
         return false;
       }
 
@@ -256,19 +203,28 @@ public class MergeStats {
 
       prevExtent = tls.extent;
 
-      verify.update(tls.extent, tls.getState(manager.onlineTabletServers()), tls.chopped,
-          !tls.walogs.isEmpty());
+      verify.update(tls.extent, tls.getState(manager.onlineTabletServers()));
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.prevEndRow() != null && extent.endRow() != null
           && tls.extent.prevEndRow().compareTo(extent.endRow()) > 0) {
         break;
       }
     }
-    log.debug("chopped {} v.chopped {} unassigned {} v.unassigned {} verify.total {}", chopped,
-        verify.chopped, unassigned, verify.unassigned, verify.total);
+    log.debug("unassigned {} v.unassigned {} verify.total {}", unassigned, verify.unassigned,
+        verify.total);
 
-    return chopped == verify.chopped && unassigned == verify.unassigned
-        && unassigned == verify.total;
+    return unassigned == verify.unassigned && unassigned == verify.total;
+  }
+
+  @VisibleForTesting
+  void verifyState(MergeInfo info, MergeState expectedState) {
+    Preconditions.checkState(info.getState() == expectedState, "Unexpected merge state %s",
+        info.getState());
+  }
+
+  @VisibleForTesting
+  boolean verifyWalogs(TabletLocationState tls) {
+    return tls.walogs.isEmpty();
   }
 
   public static void main(String[] args) throws Exception {

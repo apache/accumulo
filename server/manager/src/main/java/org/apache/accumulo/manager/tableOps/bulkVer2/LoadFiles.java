@@ -280,7 +280,6 @@ class LoadFiles extends ManagerRepo {
     @Override
     void load(List<TabletMetadata> tablets, Files files) throws MutationsRejectedException {
       byte[] fam = TextUtil.getBytes(DataFileColumnFamily.NAME);
-
       for (TabletMetadata tablet : tablets) {
         if (tablet.getLocation() != null) {
           unloadingTablets.increment(tablet.getLocation().getHostAndPort(), 1L);
@@ -290,10 +289,11 @@ class LoadFiles extends ManagerRepo {
         Mutation mutation = new Mutation(tablet.getExtent().toMetaRow());
 
         for (final Bulk.FileInfo fileInfo : files) {
-          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
+          StoredTabletFile fullPath =
+              StoredTabletFile.of(new Path(bulkDir, fileInfo.getFileName()));
           byte[] val =
               new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()).encode();
-          mutation.put(fam, fullPath.getBytes(UTF_8), val);
+          mutation.put(fam, fullPath.getMetadata().getBytes(UTF_8), val);
         }
 
         bw.addMutation(mutation);

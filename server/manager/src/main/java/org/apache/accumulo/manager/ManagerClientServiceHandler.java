@@ -125,7 +125,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.OTHER, null);
     }
-    return Long.parseLong(new String(fid));
+    return Long.parseLong(new String(fid, UTF_8));
   }
 
   @Override
@@ -378,9 +378,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           Manager.log.trace("{} reports unload failed: not serving tablet, could be a split: {}",
               serverName, tablet);
         }
-        break;
-      case CHOPPED:
-        manager.nextEvent.event("tablet %s chopped", tablet);
         break;
     }
   }

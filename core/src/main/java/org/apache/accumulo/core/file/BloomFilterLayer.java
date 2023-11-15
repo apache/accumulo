@@ -387,13 +387,13 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public org.apache.accumulo.core.data.Key getFirstKey() throws IOException {
-      return reader.getFirstKey();
+    public Text getFirstRow() throws IOException {
+      return reader.getFirstRow();
     }
 
     @Override
-    public org.apache.accumulo.core.data.Key getLastKey() throws IOException {
-      return reader.getLastKey();
+    public Text getLastRow() throws IOException {
+      return reader.getLastRow();
     }
 
     @Override

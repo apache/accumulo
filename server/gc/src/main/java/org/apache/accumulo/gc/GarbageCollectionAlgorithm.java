@@ -22,6 +22,7 @@ import static java.util.Arrays.stream;
 import static java.util.function.Predicate.not;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,8 +37,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
+import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
@@ -117,13 +120,13 @@ public class GarbageCollectionAlgorithm {
     return relPath;
   }
 
-  private SortedMap<String,String> makeRelative(Collection<String> candidates) {
-    SortedMap<String,String> ret = new TreeMap<>();
+  private SortedMap<String,GcCandidate> makeRelative(Collection<GcCandidate> candidates) {
+    SortedMap<String,GcCandidate> ret = new TreeMap<>();
 
-    for (String candidate : candidates) {
+    for (GcCandidate candidate : candidates) {
       String relPath;
       try {
-        relPath = makeRelative(candidate, 0);
+        relPath = makeRelative(candidate.getPath(), 0);
       } catch (IllegalArgumentException iae) {
         log.warn("Ignoring invalid deletion candidate {}", candidate);
         continue;
@@ -135,8 +138,9 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws InterruptedException {
+      SortedMap<String,GcCandidate> candidateMap) throws InterruptedException {
 
+    List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>();
     Iterator<Reference> iter = gce.getReferences().iterator();
@@ -152,15 +156,17 @@ public class GarbageCollectionAlgorithm {
 
         dir = makeRelative(dir, 2);
 
-        if (candidateMap.remove(dir) != null) {
-          log.debug("Candidate was still in use: {}", dir);
+        GcCandidate gcTemp = candidateMap.remove(dir);
+        if (gcTemp != null) {
+          log.debug("Directory Candidate was still in use by dir ref: {}", dir);
+          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
         }
       } else {
-        String reference = ref.getMetadataEntry();
+        String reference = ref.getMetadataPath();
         if (reference.startsWith("/")) {
           log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
               ref.getTableId());
-          reference = "/" + ref.getTableId() + ref.getMetadataEntry();
+          reference = "/" + ref.getTableId() + ref.getMetadataPath();
         } else if (!reference.contains(":") && !reference.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + reference);
         }
@@ -169,23 +175,34 @@ public class GarbageCollectionAlgorithm {
 
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(relativePath) != null) {
-          log.debug("Candidate was still in use: {}", relativePath);
+        GcCandidate gcTemp = candidateMap.remove(relativePath);
+        if (gcTemp != null) {
+          log.debug("File Candidate was still in use: {}", relativePath);
+          // Prevent deletion of candidates that are still in use by scans, because they won't be
+          // recreated once the scan is finished.
+          if (!ref.isScan()) {
+            candidateEntriesToBeDeleted.add(gcTemp);
+          }
         }
 
         String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-        if (candidateMap.remove(dir) != null) {
-          log.debug("Candidate was still in use: {}", relativePath);
+        GcCandidate gcT = candidateMap.remove(dir);
+        if (gcT != null) {
+          log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
         }
       }
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
         Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
+    if (gce.canRemoveInUseCandidates()) {
+      gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
+    }
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws TableNotFoundException {
+      SortedMap<String,GcCandidate> candidateMap) throws TableNotFoundException {
     long blipCount = 0;
     boolean checkForBulkProcessingFiles = candidateMap.keySet().stream().anyMatch(
         relativePath -> relativePath.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX));
@@ -267,7 +284,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws InterruptedException, IOException {
+      SortedMap<String,GcCandidate> candidateMap) throws InterruptedException, IOException {
     HashSet<TableId> tableIdsWithDeletes = new HashSet<>();
 
     // find the table ids that had dirs deleted
@@ -292,7 +309,8 @@ public class GarbageCollectionAlgorithm {
   }
 
   private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws InterruptedException, TableNotFoundException {
+      SortedMap<String,GcCandidate> candidateMap)
+      throws InterruptedException, TableNotFoundException {
     long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
@@ -308,7 +326,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap)
+      SortedMap<String,GcCandidate> candidateMap)
       throws InterruptedException, IOException, TableNotFoundException {
     Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
@@ -326,11 +344,11 @@ public class GarbageCollectionAlgorithm {
   public long collect(GarbageCollectionEnvironment gce)
       throws InterruptedException, TableNotFoundException, IOException {
 
-    Iterator<String> candidatesIter = gce.getCandidates();
+    Iterator<GcCandidate> candidatesIter = gce.getCandidates();
     long totalBlips = 0;
 
     while (candidatesIter.hasNext()) {
-      List<String> batchOfCandidates;
+      List<GcCandidate> batchOfCandidates;
       Span candidatesSpan = TraceUtil.startSpan(this.getClass(), "getCandidates");
       try (Scope candidatesScope = candidatesSpan.makeCurrent()) {
         batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
@@ -348,13 +366,13 @@ public class GarbageCollectionAlgorithm {
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private long deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<GcCandidate> currentBatch)
       throws InterruptedException, TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
     gce.incrementCandidatesStat(origSize);
 
-    SortedMap<String,String> candidateMap = makeRelative(currentBatch);
+    SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
 
     long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
@@ -363,5 +381,4 @@ public class GarbageCollectionAlgorithm {
 
     return blips;
   }
-
 }

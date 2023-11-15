@@ -117,6 +117,11 @@ public class NullTserver {
     }
 
     @Override
+    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+      return true;
+    }
+
+    @Override
     public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
         Map<TKeyExtent,Map<String,DataFileInfo>> fileMap, boolean setTime) {}
 
@@ -161,12 +166,6 @@ public class NullTserver {
     }
 
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
-        TMutation mutation, TDurability durability) {
-
-    }
-
-    @Override
     public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
       return null;
     }
@@ -198,9 +197,6 @@ public class NullTserver {
     public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) {
       return new ArrayList<>();
     }
-
-    @Override
-    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {}
 
     @Override
     public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {
@@ -342,7 +338,8 @@ public class NullTserver {
 
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
         muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
-        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+        10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
+        HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
