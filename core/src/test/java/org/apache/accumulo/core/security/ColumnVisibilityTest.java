@@ -62,6 +62,7 @@ public class ColumnVisibilityTest {
     assertEquals(a, d);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testEmptyFlatten() {
     // empty visibility is valid
@@ -87,6 +88,7 @@ public class ColumnVisibilityTest {
     shouldThrow("a*b");
   }
 
+  @SuppressWarnings("removal")
   public void normalized(String... values) {
     for (int i = 0; i < values.length; i += 2) {
       ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());

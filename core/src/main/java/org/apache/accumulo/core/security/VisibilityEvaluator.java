@@ -102,7 +102,7 @@ public class VisibilityEvaluator {
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     try {
-      return accessEvaluator.canAccess(visibility.getVisibilityExpression());
+      return accessEvaluator.canAccess(visibility.getExpression());
     } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to evaluate expressions
       // itself.

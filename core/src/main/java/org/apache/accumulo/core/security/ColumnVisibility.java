@@ -86,8 +86,6 @@ public class ColumnVisibility {
   private final Supplier<Node> nodeSupplier;
   private final byte[] expression;
 
-  private final AccessExpression accessExpression;
-
   /**
    * Accessor for the underlying byte string.
    *
@@ -95,10 +93,6 @@ public class ColumnVisibility {
    */
   public byte[] getExpression() {
     return expression;
-  }
-
-  public AccessExpression getVisibilityExpression() {
-    return accessExpression;
   }
 
   /**
@@ -301,8 +295,12 @@ public class ColumnVisibility {
    *
    * @return normalized expression in byte[] form
    */
+  @Deprecated(forRemoval = true, since = "3.1.0")
   public byte[] flatten() {
-    return accessExpression.normalize().getBytes(UTF_8);
+    Node normRoot = normalize(nodeSupplier.get(), expression);
+    StringBuilder builder = new StringBuilder(expression.length);
+    stringify(normRoot, expression, builder);
+    return builder.toString().getBytes(UTF_8);
   }
 
   private static class ColumnVisibilityParser {
@@ -489,7 +487,6 @@ public class ColumnVisibility {
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility() {
-    accessExpression = AccessExpression.of();
     expression = EMPTY_BYTES;
     nodeSupplier = Suppliers.memoize(() -> createNode(expression));
   }
@@ -501,14 +498,14 @@ public class ColumnVisibility {
    *        syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
+    this.expression = expression.getBytes(UTF_8);
     try {
-      accessExpression = AccessExpression.of(expression);
+      AccessExpression.validate(this.expression);
     } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
     }
-    this.expression = expression.getBytes(UTF_8);
     nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));
   }
 
@@ -531,7 +528,7 @@ public class ColumnVisibility {
   public ColumnVisibility(byte[] expression) {
     this.expression = expression;
     try {
-      accessExpression = AccessExpression.of(this.expression);
+      AccessExpression.validate(this.expression);
     } catch (IllegalAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.

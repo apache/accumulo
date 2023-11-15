@@ -70,6 +70,7 @@ public class VisibilityEvaluatorTest {
     runQuoteTest(ct);
   }
 
+  @SuppressWarnings("removal")
   private void runQuoteTest(VisibilityEvaluator ct) throws VisibilityParseException {
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
     assertTrue(ct.evaluate(
