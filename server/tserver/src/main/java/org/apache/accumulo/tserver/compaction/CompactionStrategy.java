@@ -28,11 +28,11 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 /**
  * The interface for customizing major compactions.
  * <p>
- * Important: Compaction configurations should be migrated to use the new compaction model as soon
- * as possible. Only one compaction model should be configured and used at a time. Interactions
- * between competing compaction scheme's file selection and scheduling may provide inconsistent
- * results if both schemes are configured. The legacy compaction scheme has been maintained to
- * support migrations to the new model and will be removed in the next major release.
+ * Important: Compaction configurations should be migrated to use only the new compaction plugins as
+ * soon as possible. Interactions between this deprecated plugin with the new plugins may provide
+ * suboptimal and/or inconsistent results when both are configured. This legacy compaction plugin
+ * has been maintained to support migrations to the new model and will be removed in the next major
+ * release.
  * <p>
  * The tablet server has one thread to ask many tablets if they should compact. When the strategy
  * returns true, then tablet is added to the queue of tablets waiting for a compaction thread. Once
@@ -77,7 +77,7 @@ public abstract class CompactionStrategy {
    *
    * <p>
    * Since no blocking should be done in this method, then its unexpected that this method will
-   * throw IOException. However since its in the API, it can not be easily removed.
+   * throw IOException. However, since it is in the API, it can not be easily removed.
    */
   public abstract boolean shouldCompact(MajorCompactionRequest request) throws IOException;
 
@@ -96,7 +96,7 @@ public abstract class CompactionStrategy {
    *
    * <p>
    * Since no blocking should be done in this method, then its unexpected that this method will
-   * throw IOException. However since its in the API, it can not be easily removed.
+   * throw IOException. However, since it is in the API, it can not be easily removed.
    *
    * @param request basic details about the tablet
    * @return the plan for a major compaction, or null to cancel the compaction.
