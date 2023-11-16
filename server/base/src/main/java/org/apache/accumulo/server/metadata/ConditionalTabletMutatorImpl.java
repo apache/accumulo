@@ -20,6 +20,7 @@
 package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -29,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -167,6 +169,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         if (tabletMetadata.getCompactId().isPresent()) {
           c = c.setValue(Long.toString(tabletMetadata.getCompactId().getAsLong()));
         }
+        mutation.addCondition(c);
+      }
+        break;
+      case LOGS: {
+        Condition c = SetEqualityIterator.createCondition(new HashSet<>(tabletMetadata.getLogs()),
+            logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8),
+            LogColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
