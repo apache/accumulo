@@ -81,7 +81,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO: Merges are broken currently
   public void testMergeCancelsExternalCompaction() throws Exception {
 
     String table1 = this.getUniqueNames(1)[0];
