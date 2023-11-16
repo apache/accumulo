@@ -433,7 +433,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
 
-      if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+      if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)
+          && state == TabletState.UNASSIGNED) {
         tableMgmtStats.totalVolumeReplacements++;
         var volRep =
             VolumeUtil.computeVolumeReplacements(tableMgmtParams.getVolumeReplacements(), tm);

@@ -146,7 +146,8 @@ public enum TabletGoalState {
         }
       }
 
-      if (VolumeUtil.needsVolumeReplacement(params.getVolumeReplacements(), tm)) {
+      if (params.getVolumeReplacements().size() > 0
+          && VolumeUtil.needsVolumeReplacement(params.getVolumeReplacements(), tm)) {
         return UNASSIGNED;
       }
 
