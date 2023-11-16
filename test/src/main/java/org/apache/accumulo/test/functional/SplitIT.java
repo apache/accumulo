@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -93,7 +92,6 @@ public class SplitIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "100ms");
   }
 
   private String tservMaxMem, tservMajcDelay;
@@ -105,11 +103,6 @@ public class SplitIT extends AccumuloClusterHarness {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
       tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
-      tservMajcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
-
-      if (!tservMajcDelay.equals("100ms")) {
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-      }
 
       // Property.TSERV_MAXMEM can't be altered on a running server
       boolean restarted = false;
@@ -118,14 +111,6 @@ public class SplitIT extends AccumuloClusterHarness {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
         restarted = true;
-      }
-
-      // If we restarted the tservers, we don't need to re-wait for the majc delay
-      if (!restarted) {
-        long millis = ConfigurationTypeHelper.getTimeInMillis(tservMajcDelay);
-        log.info("Waiting for majc delay period: {}ms", millis);
-        Thread.sleep(millis);
-        log.info("Finished waiting for majc delay period");
       }
     }
   }
@@ -139,11 +124,6 @@ public class SplitIT extends AccumuloClusterHarness {
         tservMaxMem = null;
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
-      if (tservMajcDelay != null) {
-        log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
-        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
-        tservMajcDelay = null;
       }
     }
   }

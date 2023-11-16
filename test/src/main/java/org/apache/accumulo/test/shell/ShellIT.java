@@ -463,6 +463,7 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;
         case TIMEDURATION:
@@ -681,5 +682,4 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("getsplits -m 0", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
   }
-
 }

@@ -1113,10 +1113,7 @@ public class Tablet extends TabletBase {
     candidates.removeAll(referencedLogs);
   }
 
-  public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
-
-    // grab this outside of tablet lock.
-    int maxLogs = tableConfiguration.getCount(Property.TSERV_WAL_MAX_REFERENCED);
+  public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs, int maxLogs) {
 
     String reason = null;
     synchronized (this) {
