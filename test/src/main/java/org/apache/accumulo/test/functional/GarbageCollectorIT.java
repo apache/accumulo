@@ -104,7 +104,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     // reduce the batch size significantly in order to cause the integration tests to have
     // to process many batches of deletion candidates.
     cfg.setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "256K");

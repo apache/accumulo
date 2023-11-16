@@ -54,7 +54,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

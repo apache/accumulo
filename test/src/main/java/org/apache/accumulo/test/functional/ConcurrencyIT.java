@@ -76,7 +76,6 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(siteConfig);
   }
 
