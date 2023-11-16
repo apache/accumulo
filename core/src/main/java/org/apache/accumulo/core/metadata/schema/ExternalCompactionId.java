@@ -67,4 +67,10 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
     return of(ecid);
   }
 
+  public String encodeForFileName() {
+    // A colon in the file name causes issues in HDFS. Use a different character
+    // that will not be URLEncoded
+    return canonical().replace(':', '-');
+  }
+
 }
