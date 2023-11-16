@@ -22,6 +22,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
@@ -49,45 +52,60 @@ class FinishTableRangeOp extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    removeOperationIds(log, data, tid, manager);
+
+    Utils.unreserveTable(manager, data.tableId, tid, true);
+    Utils.unreserveNamespace(manager, data.namespaceId, tid, false);
+    return null;
+  }
+
+  static void removeOperationIds(Logger log, MergeInfo data, long tid, Manager manager) {
     KeyExtent range = data.getReserveExtent();
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
     log.debug("{} unreserving tablet in range {}", FateTxId.formatTid(tid), range);
+    var fateStr = FateTxId.formatTid(tid);
+
+    AtomicLong acceptedCount = new AtomicLong();
+    AtomicLong rejectedCount = new AtomicLong();
+    // delete tablets
+    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+      if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+        acceptedCount.incrementAndGet();
+      } else {
+        log.error("{} failed to update {}", fateStr, extent);
+        rejectedCount.incrementAndGet();
+      }
+    };
+
+    int submitted = 0;
+    int count = 0;
 
     try (var tablets = manager.getContext().getAmple().readTablets().forTable(data.tableId)
         .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, OPID).build();
-        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets();) {
-      int opsDeleted = 0;
-      int count = 0;
+        var tabletsMutator =
+            manager.getContext().getAmple().conditionallyMutateTablets(resultConsumer)) {
 
       for (var tabletMeta : tablets) {
         if (opid.equals(tabletMeta.getOperationId())) {
           tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireOperation(opid)
               .deleteOperation().submit(tm -> !opid.equals(tm.getOperationId()));
-          opsDeleted++;
+          submitted++;
         }
         count++;
       }
 
       Preconditions.checkState(count > 0);
-
-      var results = tabletsMutator.process();
-      var deletesAccepted =
-          results.values().stream().filter(conditionalResult -> conditionalResult.getStatus()
-              == Ample.ConditionalResult.Status.ACCEPTED).count();
-
-      log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
-          deletesAccepted, opsDeleted, count);
-
-      manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
-          FateTxId.formatTid(tid));
-
-      DeleteRows.verifyAccepted(results, FateTxId.formatTid(tid));
-      Preconditions.checkState(deletesAccepted == opsDeleted);
     }
 
-    Utils.unreserveTable(manager, data.tableId, tid, true);
-    Utils.unreserveNamespace(manager, data.namespaceId, tid, false);
-    return null;
+    log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
+        acceptedCount.get(), submitted, count);
+
+    manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
+        FateTxId.formatTid(tid));
+
+    Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
+        "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,
+        rejectedCount.get());
   }
 
 }

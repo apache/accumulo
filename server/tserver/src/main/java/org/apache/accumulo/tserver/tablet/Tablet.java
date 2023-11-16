@@ -296,7 +296,7 @@ public class Tablet extends TabletBase {
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
-            logEntry.filename, logEntry.getColumnQualifier().toString()));
+            logEntry.getFilePath(), logEntry.getColumnQualifier().toString()));
       }
 
       rebuildReferencedLogs();
@@ -1113,10 +1113,7 @@ public class Tablet extends TabletBase {
     candidates.removeAll(referencedLogs);
   }
 
-  public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
-
-    // grab this outside of tablet lock.
-    int maxLogs = tableConfiguration.getCount(Property.TSERV_WAL_MAX_REFERENCED);
+  public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs, int maxLogs) {
 
     String reason = null;
     synchronized (this) {
@@ -1595,6 +1592,14 @@ public class Tablet extends TabletBase {
 
   public void setLastAccessTime() {
     this.lastAccessTime = System.nanoTime();
+  }
+
+  public synchronized boolean isInUse() {
+    // We can't use the lastAccessTime to determine if a Tablet is in use
+    // because it is only set when TabletServer.getOnlineTablet is called
+    // **and** that method is not called in every case where the Tablet
+    // is used.
+    return !activeScans.isEmpty() || writesInProgress > 0;
   }
 
 }

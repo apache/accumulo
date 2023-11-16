@@ -101,7 +101,6 @@ struct TableInfo {
   7:double queryRate
   8:double queryByteRate
   9:Compacting minors
-  10:Compacting majors
   11:Compacting scans
   12:double scanRate
 }
@@ -149,7 +148,6 @@ struct TabletServerStatus {
   14:list<RecoveryStatus> logSorts
   15:i64 flushs
   16:i64 syncs
-  17:list<BulkImportStatus> bulkImports
   19:string version
   18:i64 responseTime
 }

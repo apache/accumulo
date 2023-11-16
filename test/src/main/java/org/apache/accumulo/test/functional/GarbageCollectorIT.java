@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,7 +104,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     // reduce the batch size significantly in order to cause the integration tests to have
     // to process many batches of deletion candidates.
     cfg.setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "256K");
@@ -295,7 +293,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testMetadataUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.USER.tableId();
+    TableId tableId = DataLevel.USER.metaTableId();
     log.info("Metadata GcCandidate Deletion test");
     log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
@@ -310,9 +308,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testRootUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.METADATA.tableId();
+    TableId tableId = DataLevel.METADATA.metaTableId();
     log.info("Root GcCandidate Deletion test");
-    // Behavior for 2.1. INUSE candidates deletion support will be added in 3.x
     log.info("GcCandidates will be added but not removed from Zookeeper");
 
     Ample ample = cluster.getServerContext().getAmple();
@@ -324,10 +321,20 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     ArrayList<GcCandidate> tempCandidates = new ArrayList<>();
     while (cIter.hasNext()) {
       GcCandidate cTemp = cIter.next();
-      log.debug("PreExisting Candidate Found: {}", cTemp);
       tempCandidates.add(cTemp);
     }
-    assertTrue(tempCandidates.size() == 0);
+    if (tempCandidates.size() != 0) {
+      ample.deleteGcCandidates(datalevel, tempCandidates, Ample.GcCandidateType.VALID);
+      tempCandidates.clear();
+
+      cIter = ample.getGcCandidates(datalevel);
+      while (cIter.hasNext()) {
+        GcCandidate cTemp = cIter.next();
+        log.debug("PreExisting Candidate Found: {}", cTemp);
+        tempCandidates.add(cTemp);
+      }
+      assertEquals(0, tempCandidates.size());
+    }
 
     // Create multiple candidate entries
     List<GcCandidate> candidates =
@@ -351,11 +358,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       counter++;
     }
     // Ensure Zookeeper collapsed the entries and did not support duplicates.
-    assertTrue(counter == 2);
+    assertEquals(2, counter);
 
     cIter = ample.getGcCandidates(datalevel);
     while (cIter.hasNext()) {
-      // This should be a noop call. Root inUse candidate deletions are not supported in 2.1.x
+      // This should be a noop call. Root inUse candidate deletions are not supported.
       ample.deleteGcCandidates(datalevel, List.of(cIter.next()), Ample.GcCandidateType.INUSE);
     }
 
@@ -369,13 +376,13 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (GcCandidate cand : candidates) {
         if (gcC.getPath().equals(cand.getPath())) {
           // Candidate uid's will never match as they are randomly generated in 2.1.x
-          assertTrue(!Objects.equals(gcC.getUid(), cand.getUid()));
+          assertNotEquals(gcC.getUid(), cand.getUid());
           counter--;
         }
       }
     }
     // Ensure that we haven't seen more candidates than we expected.
-    assertTrue(counter == 0);
+    assertEquals(0, counter);
 
     // Delete the candidates as VALID GcCandidates
     cIter = ample.getGcCandidates(datalevel);
@@ -393,7 +400,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         counter++;
       }
     }
-    assertEquals(counter, 0);
+    assertEquals(0, counter);
   }
 
   @Test
@@ -469,7 +476,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.debug("PreExisting Candidate Found: {}", cTemp);
       candidates.add(cTemp);
     }
-    assertTrue(candidates.size() == 0);
+    assertEquals(0, candidates.size());
 
     // Create multiple candidate entries
     List<StoredTabletFile> stfs = Stream
@@ -487,7 +494,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.debug("Candidate Found: {}", cTemp);
       candidates.add(cTemp);
     }
-    assertTrue(candidates.size() == 2);
+    assertEquals(2, candidates.size());
 
     GcCandidate deleteCandidate = candidates.get(0);
     assertNotNull(deleteCandidate);
@@ -505,12 +512,12 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       GcCandidate gcC = candidate.next();
       log.debug("Candidate Found: {}", gcC);
       if (gcC.getPath().equals(deleteCandidate.getPath())) {
-        assertTrue(!Objects.equals(gcC.getUid(), deleteCandidate.getUid()));
+        assertNotEquals(gcC.getUid(), deleteCandidate.getUid());
         foundNewCandidate = true;
       }
       counter++;
     }
-    assertTrue(counter == 2);
+    assertEquals(2, counter);
     assertTrue(foundNewCandidate);
   }
 }

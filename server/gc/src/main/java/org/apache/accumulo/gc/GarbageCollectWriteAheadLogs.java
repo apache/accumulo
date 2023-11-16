@@ -295,7 +295,7 @@ public class GarbageCollectWriteAheadLogs {
       // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
       // that made the WALs.
       for (LogEntry wals : tabletMetadata.getLogs()) {
-        String wal = wals.filename;
+        String wal = wals.getFilePath();
         UUID walUUID = path2uuid(new Path(wal));
         TServerInstance dead = result.get(walUUID);
         // There's a reference to a log file, so skip that server's logs

@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -92,6 +93,20 @@ public class FileMetadataUtil {
     try (TabletsMetadata tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId)
         .overlapping(tabletStartRow, tabletEndRow).fetch(ColumnType.FILES).build()) {
       return tabletsMetadata.stream().mapToInt(tm -> tm.getFilesMap().size()).sum();
+    }
+  }
+
+  public static int countFencedFiles(final ServerContext ctx, String tableName) {
+    return countFencedFiles(ctx, tableName, null, null);
+  }
+
+  public static int countFencedFiles(final ServerContext ctx, String tableName, Text tabletStartRow,
+      Text tabletEndRow) {
+    final TableId tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    try (TabletsMetadata tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId)
+        .overlapping(tabletStartRow, tabletEndRow).fetch(ColumnType.FILES).build()) {
+      return (int) tabletsMetadata.stream().flatMap(tm -> tm.getFilesMap().keySet().stream())
+          .filter(AbstractTabletFile::hasRange).count();
     }
   }
 

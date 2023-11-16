@@ -38,18 +38,3 @@
           </table>
         </div>
       </div>
-      <br /><br />
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="bulkPerServerTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Per TabletServer</span><br /></caption>
-            <thead>
-              <tr>
-                <th>Server</th>
-                <th title="Number of imports presently running">#</th>
-                <th title="The age of the oldest import running on this server.">Oldest&nbsp;Age</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>

@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -34,6 +35,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -64,6 +67,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -86,6 +90,68 @@ public class MergeIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(8);
+  }
+
+  @Test
+  public void tooManyFilesMergeTest() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName,
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(),
+              "20000", Property.TABLE_MERGE_FILE_MAX.getKey(), "12345")));
+
+      c.tableOperations().addSplits(tableName,
+          IntStream.range(1, 10001).mapToObj(i -> String.format("%06d", i)).map(Text::new)
+              .collect(Collectors.toCollection(TreeSet::new)));
+      c.tableOperations().addSplits(tableName,
+          IntStream.range(10001, 20001).mapToObj(i -> String.format("%06d", i)).map(Text::new)
+              .collect(Collectors.toCollection(TreeSet::new)));
+
+      // add two bogus files to each tablet, creating 40K file entries
+      c.tableOperations().offline(tableName, true);
+      try (
+          var tablets = getServerContext().getAmple().readTablets()
+              .forTable(getServerContext().getTableId(tableName)).build();
+          var mutator = getServerContext().getAmple().mutateTablets()) {
+        int fc = 0;
+        for (var tabletMeta : tablets) {
+          StoredTabletFile f1 = StoredTabletFile.of(new Path(
+              "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + fc++ + ".rf"));
+          StoredTabletFile f2 = StoredTabletFile.of(new Path(
+              "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + fc++ + ".rf"));
+          DataFileValue dfv1 = new DataFileValue(4200, 42);
+          DataFileValue dfv2 = new DataFileValue(4200, 42);
+          mutator.mutateTablet(tabletMeta.getExtent()).putFile(f1, dfv1).putFile(f2, dfv2).mutate();
+        }
+      }
+      c.tableOperations().online(tableName, true);
+
+      // should fail to merge because there are too many files in the merge range
+      var exception = assertThrows(AccumuloException.class,
+          () -> c.tableOperations().merge(tableName, null, null));
+      // message should contain the observed number of files
+      assertTrue(exception.getMessage().contains("40002"));
+      // message should contain the max files limit it saw
+      assertTrue(exception.getMessage().contains("12345"));
+
+      assertEquals(20000, c.tableOperations().listSplits(tableName).size());
+
+      // attempt to merge smaller ranges with less files, should work.. want to make sure the
+      // aborted merge did not leave the table in a bad state
+      Text prev = null;
+      for (int i = 1000; i <= 20000; i += 1000) {
+        Text end = new Text(String.format("%06d", i));
+        c.tableOperations().merge(tableName, prev, end);
+        prev = end;
+      }
+
+      assertEquals(20, c.tableOperations().listSplits(tableName).size());
+      try (var tablets = getServerContext().getAmple().readTablets()
+          .forTable(getServerContext().getTableId(tableName)).build()) {
+        assertEquals(40002,
+            tablets.stream().mapToInt(tabletMetadata -> tabletMetadata.getFiles().size()).sum());
+      }
+    }
   }
 
   @Test

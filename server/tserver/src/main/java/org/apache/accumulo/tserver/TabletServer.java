@@ -128,7 +128,6 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
@@ -390,39 +389,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return sessionManager.getSession(sessionId);
   }
 
-  private class MajorCompactor implements Runnable {
-
-    public MajorCompactor(ServerContext context) {
-      CompactionWatcher.startWatching(context);
-    }
-
-    @Override
-    public void run() {
-      while (true) {
-        try {
-          // TODO this property is misnamed, opened #3606
-          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
-              TimeUnit.MILLISECONDS);
-
-          final List<DfsLogger> closedCopy;
-
-          synchronized (closedLogs) {
-            closedCopy = List.copyOf(closedLogs);
-          }
-
-          // bail early now if we're shutting down
-          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
-            Tablet tablet = entry.getValue();
-            tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
-          }
-        } catch (Exception t) {
-          log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
-        }
-      }
-    }
-  }
-
   // add a message for the main thread to send back to the manager
   public void enqueueManagerMessage(ManagerMessage m) {
     managerMessages.addLast(m);
@@ -480,14 +446,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return null;
   }
 
-  protected ClientServiceHandler newClientHandler(TransactionWatcher watcher) {
-    return new ClientServiceHandler(context, watcher);
+  protected ClientServiceHandler newClientHandler() {
+    return new ClientServiceHandler(context);
   }
 
   // exists to be overridden in tests
-  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher,
-      WriteTracker writeTracker) {
-    return new TabletClientHandler(this, watcher, writeTracker);
+  protected TabletClientHandler newTabletClientHandler(WriteTracker writeTracker) {
+    return new TabletClientHandler(this, writeTracker);
   }
 
   protected ThriftScanClientHandler newThriftScanClientHandler(WriteTracker writeTracker) {
@@ -500,10 +465,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    TransactionWatcher watcher = new TransactionWatcher(context);
     WriteTracker writeTracker = new WriteTracker();
-    clientHandler = newClientHandler(watcher);
-    thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
+    clientHandler = newClientHandler();
+    thriftClientHandler = newTabletClientHandler(writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
     TProcessor processor =
@@ -826,7 +790,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
+    CompactionWatcher.startWatching(context);
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
   }
@@ -843,7 +807,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       if (table == null) {
         table = new TableInfo();
         table.minors = new Compacting();
-        table.majors = new Compacting();
         tables.put(tableId, table);
       }
       long recs = tablet.getNumEntries();
@@ -942,11 +905,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryDirs = new ArrayList<>();
-    List<LogEntry> sorted = new ArrayList<>(logEntries);
-    sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
-    for (LogEntry entry : sorted) {
+    for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -1122,6 +1083,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
       log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
+
+      // whenever a new log is added to the set of closed logs, go through all of the tablets and
+      // see if any need to minor compact
+      List<DfsLogger> closedCopy;
+      synchronized (closedLogs) {
+        closedCopy = List.copyOf(closedLogs);
+      }
+
+      int maxLogs = getConfiguration().getCount(Property.TSERV_WAL_MAX_REFERENCED);
+      if (closedCopy.size() >= maxLogs) {
+        for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
+          Tablet tablet = entry.getValue();
+          tablet.checkIfMinorCompactionNeededForLogs(closedCopy, maxLogs);
+        }
+      }
     } else {
       log.info(
           "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
@@ -1144,12 +1120,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (t == null) {
       return false;
     }
-    t.updateRates(System.currentTimeMillis());
-    if (t.ingestRate() != 0.0 && t.queryRate() != 0.0 && t.scanRate() != 0.0) {
-      // tablet is ingesting or scanning
-      return true;
-    }
-    return false;
+    return t.isInUse();
   }
 
   public void evaluateOnDemandTabletsForUnload() {

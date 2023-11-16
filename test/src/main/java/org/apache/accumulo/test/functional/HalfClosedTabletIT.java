@@ -52,6 +52,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -62,6 +64,8 @@ import com.google.common.collect.Sets;
 // been failing the Tablet needs to be recovered when it's ultimately re-assigned.
 //
 public class HalfClosedTabletIT extends SharedMiniClusterBase {
+
+  public static final Logger log = LoggerFactory.getLogger(HalfClosedTabletIT.class);
 
   public static class HalfClosedTabletITConfiguration implements MiniClusterConfigurationCallback {
 
@@ -269,6 +273,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       FunctionalTestUtils.checkRFiles(c, tableName, minTablets, maxTablets, minRFiles, maxRFiles);
       return true;
     } catch (Exception e) {
+      log.info(e.getMessage());
       return false;
     }
   }

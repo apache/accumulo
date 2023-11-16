@@ -26,6 +26,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
@@ -38,15 +41,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -63,6 +70,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -70,16 +78,20 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Sets;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
@@ -278,9 +290,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
 
-      // without this the metadata constraint will not allow the bulk file to be added to metadata
-      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, 9L);
-
       // simulate a bulk import
       var stf5 = StoredTabletFile
           .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
@@ -317,6 +326,89 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
     }
+  }
+
+  @Test
+  public void testWALs() {
+    var context = cluster.getServerContext();
+
+    // Test adding a WAL to a tablet and verifying its presence
+    String walFilePath =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry originalLogEntry = new LogEntry(walFilePath);
+    ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+    // create a tablet metadata with no write ahead logs
+    var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
+    // tablet should not have any logs to start with so requireSame with the empty logs should pass
+    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tmEmptySet, LOGS)
+        .putWal(originalLogEntry).submit(tm -> false);
+    var results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+    Set<LogEntry> expectedLogs = new HashSet<>();
+    expectedLogs.add(originalLogEntry);
+    assertEquals(expectedLogs, new HashSet<>(context.getAmple().readTablet(e1).getLogs()),
+        "The original LogEntry should be present.");
+
+    // Test adding another WAL and verifying the update
+    String walFilePath2 =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry newLogEntry = new LogEntry(walFilePath2);
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().putWal(newLogEntry).submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+    // Verify that both the original and new WALs are present
+    expectedLogs.add(newLogEntry);
+    HashSet<LogEntry> actualLogs = new HashSet<>(context.getAmple().readTablet(e1).getLogs());
+    assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
+
+    String walFilePath3 =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry otherLogEntry = new LogEntry(walFilePath3);
+
+    // create a powerset to ensure all possible subsets fail when using requireSame except the
+    // expected current state
+    Set<LogEntry> allLogs = Set.of(originalLogEntry, newLogEntry, otherLogEntry);
+    Set<Set<LogEntry>> allSubsets = Sets.powerSet(allLogs);
+
+    for (Set<LogEntry> subset : allSubsets) {
+      // Skip the subset that matches the current state of the tablet
+      if (subset.equals(expectedLogs)) {
+        continue;
+      }
+
+      final TabletMetadataBuilder builder = TabletMetadata.builder(e1);
+      subset.forEach(builder::putWal);
+      TabletMetadata tmSubset = builder.build(LOGS);
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tmSubset, LOGS)
+          .deleteWal(originalLogEntry).submit(t -> false);
+      results = ctmi.process();
+
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+
+      // ensure the operation did not go through
+      actualLogs = new HashSet<>(context.getAmple().readTablet(e1).getLogs());
+      assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
+    }
+
+    // Test that requiring the current WALs gets accepted when making an update (deleting a WAL in
+    // this example)
+    TabletMetadata tm2 =
+        TabletMetadata.builder(e1).putWal(originalLogEntry).putWal(newLogEntry).build(LOGS);
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOGS)
+        .deleteWal(originalLogEntry).submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e1).getStatus(),
+        "Requiring the current WALs should result in acceptance when making an update.");
+
+    // Verify that the update went through as expected
+    assertEquals(List.of(newLogEntry), context.getAmple().readTablet(e1).getLogs(),
+        "Only the new LogEntry should remain after deleting the original.");
   }
 
   @Test
@@ -799,4 +891,74 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
     }
   }
+
+  @Test
+  public void testAsyncMutator() throws Exception {
+    var table = getUniqueNames(2)[1];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      // The AsyncConditionalTabletsMutatorImpl processes batches of conditional mutations. Run
+      // tests where more than the batch size is processed an ensure this handled correctly.
+
+      TreeSet<Text> splits =
+          IntStream.range(1, (int) (AsyncConditionalTabletsMutatorImpl.BATCH_SIZE * 2.5))
+              .mapToObj(i -> new Text(String.format("%06d", i)))
+              .collect(Collectors.toCollection(TreeSet::new));
+
+      assertTrue(splits.size() > AsyncConditionalTabletsMutatorImpl.BATCH_SIZE);
+
+      c.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
+
+      var ample = cluster.getServerContext().getAmple();
+
+      AtomicLong accepted = new AtomicLong(0);
+      AtomicLong total = new AtomicLong(0);
+      BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer = (extent, result) -> {
+        if (result.getStatus() == Status.ACCEPTED) {
+          accepted.incrementAndGet();
+        }
+        total.incrementAndGet();
+      };
+
+      // run a test where a subset of tablets are modified, all modifications should be accepted
+      var opid1 = TabletOperationId.from(TabletOperationType.MERGING, 50);
+
+      int expected = 0;
+      try (var tablets = ample.readTablets().forTable(tableId).fetch(OPID, PREV_ROW).build();
+          var mutator = ample.conditionallyMutateTablets(resultsConsumer)) {
+        for (var tablet : tablets) {
+          if (tablet.getEndRow() != null
+              && Integer.parseInt(tablet.getEndRow().toString()) % 2 == 0) {
+            mutator.mutateTablet(tablet.getExtent()).requireAbsentOperation().putOperation(opid1)
+                .submit(tm -> opid1.equals(tm.getOperationId()));
+            expected++;
+          }
+        }
+      }
+
+      assertTrue(expected > 0);
+      assertEquals(expected, accepted.get());
+      assertEquals(total.get(), accepted.get());
+
+      // run test where some will be accepted and some will be rejected and ensure the counts come
+      // out as expected.
+      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, 51);
+
+      accepted.set(0);
+      total.set(0);
+
+      try (var tablets = ample.readTablets().forTable(tableId).fetch(OPID, PREV_ROW).build();
+          var mutator = ample.conditionallyMutateTablets(resultsConsumer)) {
+        for (var tablet : tablets) {
+          mutator.mutateTablet(tablet.getExtent()).requireAbsentOperation().putOperation(opid2)
+              .submit(tm -> opid2.equals(tm.getOperationId()));
+        }
+      }
+
+      var numTablets = splits.size() + 1;
+      assertEquals(numTablets - expected, accepted.get());
+      assertEquals(numTablets, total.get());
+    }
+  }
+
 }
