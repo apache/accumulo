@@ -78,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
@@ -89,6 +90,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Sets;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
@@ -334,10 +337,17 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
     LogEntry originalLogEntry = new LogEntry(walFilePath);
     ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-    ctmi.mutateTablet(e1).requireAbsentOperation().putWal(originalLogEntry).submit(tm -> false);
+    // create a tablet metadata with no write ahead logs
+    var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
+    // tablet should not have any logs to start with so requireSame with the empty logs should pass
+    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tmEmptySet, LOGS)
+        .putWal(originalLogEntry).submit(tm -> false);
     var results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-    assertEquals(List.of(originalLogEntry), context.getAmple().readTablet(e1).getLogs(),
+
+    Set<LogEntry> expectedLogs = new HashSet<>();
+    expectedLogs.add(originalLogEntry);
+    assertEquals(expectedLogs, new HashSet<>(context.getAmple().readTablet(e1).getLogs()),
         "The original LogEntry should be present.");
 
     // Test adding another WAL and verifying the update
@@ -345,43 +355,44 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
     LogEntry newLogEntry = new LogEntry(walFilePath2);
     ctmi = new ConditionalTabletsMutatorImpl(context);
-    // create a tablet metadata with no write ahead logs
-    var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
-    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(LOGS, tmEmptySet).putWal(newLogEntry).submit(tm -> false);
+    ctmi.mutateTablet(e1).requireAbsentOperation().putWal(newLogEntry).submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
     // Verify that both the original and new WALs are present
-    Set<LogEntry> expectedLogs = Set.of(originalLogEntry, newLogEntry);
+    expectedLogs.add(newLogEntry);
     HashSet<LogEntry> actualLogs = new HashSet<>(context.getAmple().readTablet(e1).getLogs());
     assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
 
-    // Test that requireSame with just one of the two WALs fails
-    List<TabletMetadata> tabletsWithDifferentLogs = new ArrayList();
-    tabletsWithDifferentLogs.add(tmEmptySet);
-     tabletsWithDifferentLogs.add(TabletMetadata.builder(e1).putWal(originalLogEntry).build(LOGS));
-     tabletsWithDifferentLogs.add(TabletMetadata.builder(e1).putWal(newLogEntry).build(LOGS));
-       
-      String walFilePath3 =
-      java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-     LogEntry otherLogEntry = new LogEntry(walFilePath3);
-     
-// add tablet that has same logs as current tablet plus an extra log, a superset      
-tabletsWithDifferentLogs.add(TabletMetadata.builder(e1).putWal(originalLogEntry).putWal(newLogEntry).putWal(otherLogEntry).build(LOGS));
+    String walFilePath3 =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry otherLogEntry = new LogEntry(walFilePath3);
 
-tabletsWithDifferentLogs.add(TabletMetadata.builder(e1).putWal(otherLogEntry).build(LOGS));
-tabletsWithDifferentLogs.add(TabletMetadata.builder(e1).putWal(originalLogEntry).putWal(otherLogEntry).build(LOGS));
+    // create a powerset to ensure all possible subsets fail when using requireSame except the
+    // expected current state
+    Set<LogEntry> allLogs = Set.of(originalLogEntry, newLogEntry, otherLogEntry);
+    Set<Set<LogEntry>> allSubsets = Sets.powerSet(allLogs);
 
-for(TabletMetadata tm : tabletsWithDifferentLogs) {
+    for (Set<LogEntry> subset : allSubsets) {
+      // Skip the subset that matches the current state of the tablet
+      if (subset.equals(expectedLogs)) {
+        continue;
+      }
 
-    TabletMetadata tm1 = TabletMetadata.builder(e1).putWal(originalLogEntry).build(LOGS);
-    ctmi = new ConditionalTabletsMutatorImpl(context);
-    ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, LOGS)
-        .deleteWal(originalLogEntry).submit(tm -> false);
-    results = ctmi.process();
-    assertEquals(Status.REJECTED, results.get(e1).getStatus());
-    
-    // TODO read tablet and check logs are as expected
+      final TabletMetadataBuilder builder = TabletMetadata.builder(e1);
+      subset.forEach(builder::putWal);
+      TabletMetadata tmSubset = builder.build(LOGS);
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tmSubset, LOGS)
+          .deleteWal(originalLogEntry).submit(t -> false);
+      results = ctmi.process();
+
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+
+      // ensure the operation did not go through
+      actualLogs = new HashSet<>(context.getAmple().readTablet(e1).getLogs());
+      assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
     }
 
     // Test that requiring the current WALs gets accepted when making an update (deleting a WAL in
