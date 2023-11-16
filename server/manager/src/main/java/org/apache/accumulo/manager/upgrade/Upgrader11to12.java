@@ -25,12 +25,16 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants.ChoppedColumnFamily;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -41,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -84,111 +89,97 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeRoot(@NonNull ServerContext context) {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
-    processReferences(context, rootName);
+    // not using ample to avoid StoredTabletFile because old file ref is incompatible
+    try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
+        BatchWriter batchWriter = c.createBatchWriter(rootName); Scanner scanner =
+            new IsolatedScanner(context.createScanner(rootName, Authorizations.EMPTY))) {
+      processReferences(batchWriter, scanner, rootName);
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException("Failed to find table " + rootName, ex);
+    } catch (MutationsRejectedException mex) {
+      log.warn("Failed to update reference for table: " + rootName);
+      log.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
+      throw new IllegalStateException("Failed to process table: " + rootName, mex);
+    }
   }
 
   @Override
   public void upgradeMetadata(@NonNull ServerContext context) {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
-    processReferences(context, metaName);
+    try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
+        BatchWriter batchWriter = c.createBatchWriter(metaName); Scanner scanner =
+            new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
+      processReferences(batchWriter, scanner, metaName);
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException("Failed to find table " + metaName, ex);
+    } catch (MutationsRejectedException mex) {
+      log.warn("Failed to update reference for table: " + metaName);
+      log.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
+      throw new IllegalStateException("Failed to process table: " + metaName, mex);
+    }
   }
 
-  private void processReferences(ServerContext context, String tableName) {
-    // not using ample to avoid StoredTabletFile because old file ref is incompatible
-    try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
-        BatchWriter batchWriter = c.createBatchWriter(tableName); Scanner scanner =
-            new IsolatedScanner(context.createScanner(tableName, Authorizations.EMPTY))) {
+  void processReferences(BatchWriter batchWriter, Scanner scanner, String tableName) {
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
+    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
+    try {
+      Mutation update = null;
+      for (Map.Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        Value value = entry.getValue();
 
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-      scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-      scanner.forEach((k, v) -> {
-        var family = k.getColumnFamily();
+        // on new row, write current mutation and prepare a new one.
+        Text r = key.getRow();
+        if (update == null) {
+          update = new Mutation(r);
+        } else if (!Arrays.equals(update.getRow(), r.getBytes())) {
+          log.trace("table: {}, update: {}", tableName, update.prettyPrint());
+          batchWriter.addMutation(update);
+          update = new Mutation(r);
+        }
+
+        var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
-          upgradeDataFileCF(k, v, batchWriter, tableName);
+          upgradeDataFileCF(key, value, update);
         } else if (family.equals(ChoppedColumnFamily.NAME)) {
-          removeChoppedCF(k, batchWriter, tableName);
+          log.warn(
+              "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
+              tableName, key.getRow());
+          update.at().family(ChoppedColumnFamily.STR_NAME).qualifier(ChoppedColumnFamily.STR_NAME)
+              .delete();
         } else if (family.equals(ExternalCompactionColumnFamily.NAME)) {
-          removeExternalCompactionCF(k, batchWriter, tableName);
+          log.debug(
+              "Deleting external compaction reference from:{}. Previous compaction may not have completed. Ref: {}",
+              tableName, key.getRow());
+          update.at().family(ExternalCompactionColumnFamily.NAME)
+              .qualifier(key.getColumnQualifier()).delete();
         } else {
           throw new IllegalStateException("Processing: " + tableName
               + " Received unexpected column family processing references: " + family);
         }
-      });
+      }
+      // send last mutation
+      if (update != null) {
+        log.trace("table: {}, update: {}", tableName, update.prettyPrint());
+        batchWriter.addMutation(update);
+      }
     } catch (MutationsRejectedException mex) {
       log.warn("Failed to update reference for table: " + tableName);
       log.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
       throw new IllegalStateException("Failed to process table: " + tableName, mex);
-    } catch (Exception ex) {
-      throw new IllegalStateException("Failed to process table: " + tableName, ex);
     }
   }
 
   @VisibleForTesting
-  void upgradeDataFileCF(final Key key, final Value value, final BatchWriter batchWriter,
-      final String tableName) {
+  void upgradeDataFileCF(final Key key, final Value value, final Mutation m) {
     String file = key.getColumnQualifier().toString();
     // filter out references if they are in the correct format already.
     if (fileNeedsConversion(file)) {
       var fileJson = StoredTabletFile.of(new Path(file)).getMetadataText();
-      try {
-        Mutation update = new Mutation(key.getRow());
-        update.at().family(DataFileColumnFamily.STR_NAME).qualifier(fileJson).put(value);
-        log.trace("table: {}, adding: {}", tableName, update.prettyPrint());
-        batchWriter.addMutation(update);
-
-        Mutation delete = new Mutation(key.getRow());
-        delete.at().family(DataFileColumnFamily.STR_NAME).qualifier(file).delete();
-        log.trace("table {}: deleting: {}", tableName, delete.prettyPrint());
-        batchWriter.addMutation(delete);
-      } catch (MutationsRejectedException ex) {
-        // include constraint violation info in log - but stop upgrade
-        log.warn(
-            "Failed to update file reference for table: " + tableName + ". row: " + key.getRow());
-        log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
-        throw new IllegalStateException("File conversion failed. Aborting upgrade", ex);
-      }
-    }
-  }
-
-  @VisibleForTesting
-  void removeChoppedCF(final Key key, final BatchWriter batchWriter, final String tableName) {
-    Mutation delete = null;
-    try {
-      delete = new Mutation(key.getRow()).at().family(ChoppedColumnFamily.STR_NAME)
-          .qualifier(ChoppedColumnFamily.STR_NAME).delete();
-      log.warn(
-          "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
-          tableName, delete.prettyPrint());
-      batchWriter.addMutation(delete);
-    } catch (MutationsRejectedException ex) {
-      log.warn("Failed to delete obsolete chopped CF reference for table: " + tableName + ". Ref: "
-          + delete.prettyPrint() + ". Will try to continue. Ref may need to be manually removed");
-      log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
-      throw new IllegalStateException(
-          "Failed to delete obsolete chopped CF reference for table: " + tableName, ex);
-    }
-  }
-
-  @VisibleForTesting
-  void removeExternalCompactionCF(final Key key, final BatchWriter batchWriter,
-      final String tableName) {
-    Mutation delete = null;
-    try {
-      delete = new Mutation(key.getRow()).at().family(ExternalCompactionColumnFamily.NAME)
-          .qualifier(key.getColumnQualifier()).delete();
-      log.debug(
-          "Deleting external compaction reference from:{}. Previous compaction may not have completed. Ref: {}",
-          tableName, delete.prettyPrint());
-      batchWriter.addMutation(delete);
-    } catch (MutationsRejectedException ex) {
-      log.warn("Failed to delete obsolete external compaction CF reference for table: " + tableName
-          + ". Ref: " + delete.prettyPrint()
-          + ". Will try to continue. Ref may need to be manually removed");
-      log.warn("Constraint violations: {}", ex.getConstraintViolationSummaries());
-      throw new IllegalStateException(
-          "Failed to delete obsolete external compaction CF reference for table: " + tableName, ex);
+      m.at().family(DataFileColumnFamily.STR_NAME).qualifier(fileJson).put(value);
+      m.at().family(DataFileColumnFamily.STR_NAME).qualifier(file).delete();
     }
   }
 
