@@ -68,9 +68,6 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
-
-    Map<String,String> siteConfig = Map.of();
-    cfg.setSiteConfig(siteConfig);
   }
 
   // User added split
