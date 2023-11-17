@@ -50,6 +50,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -198,9 +199,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
           if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // The file should be an absolute URI (file:///...), not a relative path
             // (/b-000.../I000001.rf)
-            String fileUri = k.getColumnQualifier().toString();
-            assertFalse(looksLikeRelativePath(fileUri),
-                "Imported files should have absolute URIs, not relative: " + fileUri);
+            var tabFile = StoredTabletFile.of(k.getColumnQualifier());
+            // Verify that the range is set correctly on the StoredTabletFile
+            verifyRange(tabFile, fenced);
+            assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
+                "Imported files should have absolute URIs, not relative: " + tabFile);
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse(looksLikeRelativePath(value),
                 "Server directory should have absolute URI, not relative: " + value);
@@ -330,9 +333,12 @@ public class ImportExportIT extends AccumuloClusterHarness {
           String value = fileEntry.getValue().toString();
           if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // file should be an absolute URI (file:///...), not relative (/b-000.../I000001.rf)
-            String fileUri = k.getColumnQualifier().toString();
-            assertFalse(looksLikeRelativePath(fileUri),
-                "Imported files should have absolute URIs, not relative: " + fileUri);
+            var tabFile = StoredTabletFile.of(k.getColumnQualifier());
+            // Verify that the range is set correctly on the StoredTabletFile
+            verifyRange(tabFile, fenced);
+            assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
+                "Imported files should have absolute URIs, not relative: "
+                    + tabFile.getMetadataPath());
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse(looksLikeRelativePath(value),
                 "Server directory should have absolute URI, not relative: " + value);
@@ -349,6 +355,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
     }
   }
 
+  private void verifyRange(StoredTabletFile tabFile, boolean fenced) {
+    if (fenced) {
+      assertTrue(!tabFile.getRange().isInfiniteStartKey()
+              || !tabFile.getRange().isInfiniteStopKey());
+    } else {
+      assertTrue(tabFile.getRange().isInfiniteStartKey()
+              && tabFile.getRange().isInfiniteStopKey());
+    }
+  }
   private boolean verifyMappingsFile(String destTableId) throws IOException {
     AccumuloCluster cluster = getCluster();
     assertTrue(cluster instanceof MiniAccumuloClusterImpl);
