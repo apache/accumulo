@@ -201,7 +201,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
             // (/b-000.../I000001.rf)
             var tabFile = StoredTabletFile.of(k.getColumnQualifier());
             // Verify that the range is set correctly on the StoredTabletFile
-            verifyRange(tabFile, fenced);
+            assertEquals(fenced, !tabFile.getRange().isInfiniteStartKey()
+                || !tabFile.getRange().isInfiniteStopKey());
             assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
                 "Imported files should have absolute URIs, not relative: " + tabFile);
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
@@ -335,7 +336,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
             // file should be an absolute URI (file:///...), not relative (/b-000.../I000001.rf)
             var tabFile = StoredTabletFile.of(k.getColumnQualifier());
             // Verify that the range is set correctly on the StoredTabletFile
-            verifyRange(tabFile, fenced);
+            assertEquals(fenced, !tabFile.getRange().isInfiniteStartKey()
+                || !tabFile.getRange().isInfiniteStopKey());
             assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
                 "Imported files should have absolute URIs, not relative: "
                     + tabFile.getMetadataPath());
@@ -352,15 +354,6 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       verifyTableEquality(client, srcTable, destTable, expected);
       assertTrue(verifyMappingsFile(tableId), "Did not find mappings file");
-    }
-  }
-
-  private void verifyRange(StoredTabletFile tabFile, boolean fenced) {
-    if (fenced) {
-      assertTrue(
-          !tabFile.getRange().isInfiniteStartKey() || !tabFile.getRange().isInfiniteStopKey());
-    } else {
-      assertTrue(tabFile.getRange().isInfiniteStartKey() && tabFile.getRange().isInfiniteStopKey());
     }
   }
 
