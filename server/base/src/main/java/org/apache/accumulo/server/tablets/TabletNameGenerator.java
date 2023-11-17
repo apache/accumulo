@@ -73,7 +73,7 @@ public class TabletNameGenerator {
     String tmpFileName = getNextDataFilename(
         !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION,
         context, tabletMetadata.getExtent(), tabletMetadata.getDirName(), dirCreator).insert()
-        .getMetadataPath() + "_tmp_" + ecid.encodeForFileName();
+        .getMetadataPath() + "_tmp_" + ecid.canonical();
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 

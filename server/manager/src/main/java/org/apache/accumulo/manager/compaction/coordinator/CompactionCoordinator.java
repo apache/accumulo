@@ -108,6 +108,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
@@ -1076,30 +1077,37 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           // entered when the conditional mutator above successfully deletes an ecid from
           // the tablet metadata. Remove compaction tmp files from the tablet directory
           // that have a corresponding ecid in the name.
-          String dirName = ctx.getAmple().readTablet(extent, ColumnType.DIR).getDirName();
-          Path dir = new Path(dirName);
-          FileSystem fs = ctx.getVolumeManager().getFileSystemByPath(dir);
 
           ecidsForTablet.clear();
           compactions.entrySet().stream().filter(e -> e.getValue().compareTo(extent) == 0)
               .map(Entry::getKey).forEach(ecidsForTablet::add);
 
-          try {
-            for (ExternalCompactionId ecid : ecidsForTablet) {
-              final String fileSuffix = "_tmp_" + ecid.encodeForFileName();
-              FileStatus[] files = fs.listStatus(dir, (path) -> {
-                return path.getName().endsWith(fileSuffix);
-              });
-              if (files.length > 0) {
-                for (FileStatus file : files) {
-                  if (!fs.delete(file.getPath(), false)) {
-                    LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+          final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
+          if (tm != null && !ecidsForTablet.isEmpty()) {
+            final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+            for (Volume vol : vols) {
+              try {
+                final String volPath =
+                    vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+                        + extent.tableId().canonical() + Path.SEPARATOR + tm.getDirName();
+                final FileSystem fs = vol.getFileSystem();
+                for (ExternalCompactionId ecid : ecidsForTablet) {
+                  final String fileSuffix = "_tmp_" + ecid.canonical();
+                  FileStatus[] files = fs.listStatus(new Path(volPath), (path) -> {
+                    return path.getName().endsWith(fileSuffix);
+                  });
+                  if (files.length > 0) {
+                    for (FileStatus file : files) {
+                      if (!fs.delete(file.getPath(), false)) {
+                        LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+                      }
+                    }
                   }
                 }
+              } catch (IOException e) {
+                LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
               }
             }
-          } catch (IOException e) {
-            LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
           }
         }
       });

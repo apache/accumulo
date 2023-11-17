@@ -85,7 +85,7 @@ public class TabletNameGeneratorTest {
 
     ReferencedTabletFile rtf =
         TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm1, dirCreator, ecid);
-    assertEquals("ANextFileName.rf_tmp_" + ecid.encodeForFileName(), rtf.getFileName());
+    assertEquals("ANextFileName.rf_tmp_" + ecid.canonical(), rtf.getFileName());
 
     EasyMock.verify(tableConf, vm, allocator, context, tm1);
 
