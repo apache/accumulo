@@ -153,7 +153,6 @@ public class ScanCommand extends Command {
           Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
           Shell.log.error("Invalid length argument", iae);
-
         }
       }
       printRecords(cl, shellState, config, scanner, formatter, printFile);
