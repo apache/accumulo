@@ -94,7 +94,7 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
       Path defaultTabletPath = new Path(tdir);
       assertTrue(fs.exists(defaultTabletPath));
 
-      assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx).size());
+      assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical()).size());
 
       List<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 100);
 
@@ -105,7 +105,7 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
         System.out.println(p);
       }
 
-      List<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx);
+      List<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(100, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
@@ -114,7 +114,7 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
       assertEquals(0, stats.failure);
       assertEquals(0, stats.error);
 
-      foundPaths = FindCompactionTmpFiles.findTempFiles(ctx);
+      foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());
 
     }
