@@ -95,9 +95,11 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static final ThriftProcessorTypes<TabletManagementClientService.Client> TABLET_MGMT =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_MGMT);
 
-  public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
-      ServerContext context) {
+  public static TMultiplexedProcessor getCompactorTProcessor(ClientServiceHandler clientHandler,
+      CompactorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
+        ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
     muxProcessor.registerProcessor(COMPACTOR.getServiceName(), COMPACTOR.getTProcessor(
         CompactorService.Processor.class, CompactorService.Iface.class, serviceHandler, context));
     return muxProcessor;
@@ -131,9 +133,11 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor
-      getScanServerTProcessor(TabletScanClientService.Iface tserverHandler, ServerContext context) {
+  public static TMultiplexedProcessor getScanServerTProcessor(ClientServiceHandler clientHandler,
+      TabletScanClientService.Iface tserverHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
+        ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
     muxProcessor.registerProcessor(TABLET_SCAN.getServiceName(),
         TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tserverHandler, context));
