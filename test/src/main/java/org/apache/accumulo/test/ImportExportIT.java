@@ -357,13 +357,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private void verifyRange(StoredTabletFile tabFile, boolean fenced) {
     if (fenced) {
-      assertTrue(!tabFile.getRange().isInfiniteStartKey()
-              || !tabFile.getRange().isInfiniteStopKey());
+      assertTrue(
+          !tabFile.getRange().isInfiniteStartKey() || !tabFile.getRange().isInfiniteStopKey());
     } else {
-      assertTrue(tabFile.getRange().isInfiniteStartKey()
-              && tabFile.getRange().isInfiniteStopKey());
+      assertTrue(tabFile.getRange().isInfiniteStartKey() && tabFile.getRange().isInfiniteStopKey());
     }
   }
+
   private boolean verifyMappingsFile(String destTableId) throws IOException {
     AccumuloCluster cluster = getCluster();
     assertTrue(cluster instanceof MiniAccumuloClusterImpl);
