@@ -60,7 +60,7 @@ public class GrepCommand extends ScanCommand {
         } catch (NumberFormatException nfe) {
           Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
-          Shell.log.error("{}", iae.getMessage(), iae);
+          Shell.log.error("Invalid length argument", iae);
         }
       }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
