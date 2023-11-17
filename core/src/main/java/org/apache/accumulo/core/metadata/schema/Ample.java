@@ -106,7 +106,7 @@ public interface Ample {
     /**
      * @return The Id of the Accumulo table in which this data level stores its metadata.
      */
-    public TableId tableId() {
+    public TableId metaTableId() {
       if (id == null) {
         throw new UnsupportedOperationException();
       }
@@ -311,7 +311,7 @@ public interface Ample {
     /**
      * This can only be called when {@link #getStatus()} returns something other than
      * {@link Status#ACCEPTED}. It reads that tablets metadata for a failed conditional mutation.
-     * This can used used to see why it was rejected.
+     * This can be used to see why it was not accepted.
      */
     TabletMetadata readMetadata();
   }

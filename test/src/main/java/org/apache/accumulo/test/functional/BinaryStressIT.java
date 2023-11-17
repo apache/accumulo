@@ -41,7 +41,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +55,6 @@ public class BinaryStressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   private String majcDelay, maxMem;
@@ -69,25 +67,10 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
-      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
       maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    }
-  }
-
-  @AfterEach
-  public void resetConfig() throws Exception {
-    if (majcDelay != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        InstanceOperations iops = client.instanceOperations();
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
-      }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }

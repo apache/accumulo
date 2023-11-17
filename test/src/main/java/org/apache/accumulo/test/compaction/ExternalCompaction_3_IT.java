@@ -58,7 +58,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
@@ -81,7 +80,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO: Merges are broken currently
   public void testMergeCancelsExternalCompaction() throws Exception {
 
     String table1 = this.getUniqueNames(1)[0];

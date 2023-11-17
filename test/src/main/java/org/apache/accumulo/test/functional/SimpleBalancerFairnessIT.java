@@ -52,7 +52,6 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "1K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 3,
         MemoryUnit.BYTE);
   }
