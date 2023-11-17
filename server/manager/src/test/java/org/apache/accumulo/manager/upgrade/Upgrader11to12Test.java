@@ -334,6 +334,69 @@ public class Upgrader11to12Test {
     verify(batchWriter, scanner);
   }
 
+  /**
+   * process 3 rows, 2 should result in no mutations and batch writer addMutation should not be
+   * called for those rows
+   */
+  @Test
+  public void verifyEmptyMutation() throws Exception {
+    BatchWriter batchWriter = mock(BatchWriter.class);
+    Capture<Mutation> capturedUpdate1 = newCapture();
+    batchWriter.addMutation(capture(capturedUpdate1));
+    expectLastCall().once();
+    // create sample data "served" by the mocked scanner
+    TreeMap<Key,Value> scanData = new TreeMap<>();
+
+    Text row1 = new Text("1");
+
+    String fileName1 = "hdfs://localhost:8020/accumulo/tables/12/default_tablet/1111000v.rf";
+    Key key1 =
+        Key.builder(false).row(row1).family(DataFileColumnFamily.NAME).qualifier(fileName1).build();
+    Value value1 = new Value("111,222");
+    scanData.put(key1, value1);
+
+    Text row2 = new Text("a");
+
+    // reference already in expected form with fence info.
+    String fileName2 =
+        "{\"path\":\"hdfs://localhost:8020/accumulo/tables/12/default_tablet/A000000v.rf\",\"startRow\":\"\",\"endRow\":\"\"}";
+    Key key2 =
+        Key.builder(false).row(row2).family(DataFileColumnFamily.NAME).qualifier(fileName2).build();
+    Value value2 = new Value("222,333");
+    scanData.put(key2, value2);
+
+    Text row3 = new Text("b");
+
+    // reference already in expected form with fence info.
+    String fileName3 =
+        "{\"path\":\"hdfs://localhost:8020/accumulo/tables/12/default_tablet/BBBB000v.rf\",\"startRow\":\"\",\"endRow\":\"\"}";
+    Key key3 =
+        Key.builder(false).row(row3).family(DataFileColumnFamily.NAME).qualifier(fileName3).build();
+    Value value3 = new Value("333,444");
+    scanData.put(key3, value3);
+
+    Scanner scanner = mock(Scanner.class);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    expectLastCall();
+    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
+    expectLastCall();
+    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
+    expectLastCall();
+
+    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
+    replay(batchWriter, scanner);
+
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    upgrader.processReferences(batchWriter, scanner, "accumulo.metadata");
+
+    LOG.info("c:{}", capturedUpdate1.getValue().prettyPrint());
+    var u1 = capturedUpdate1.getValue();
+    // 1 add, 1 delete
+    assertEquals(2, u1.getUpdates().size());
+
+    verify(batchWriter, scanner);
+  }
+
   @Test
   public void upgradeZooKeeperTest() throws Exception {
 

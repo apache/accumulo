@@ -136,7 +136,9 @@ public class Upgrader11to12 implements Upgrader {
           update = new Mutation(r);
         } else if (!Arrays.equals(update.getRow(), r.getBytes())) {
           log.trace("table: {}, update: {}", tableName, update.prettyPrint());
-          batchWriter.addMutation(update);
+          if (!update.getUpdates().isEmpty()) {
+            batchWriter.addMutation(update);
+          }
           update = new Mutation(r);
         }
 
@@ -161,7 +163,7 @@ public class Upgrader11to12 implements Upgrader {
         }
       }
       // send last mutation
-      if (update != null) {
+      if (update != null && !update.getUpdates().isEmpty()) {
         log.trace("table: {}, update: {}", tableName, update.prettyPrint());
         batchWriter.addMutation(update);
       }
