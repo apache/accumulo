@@ -35,7 +35,6 @@ import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.checkerframework.common.returnsreceiver.qual.This;
 
 import com.google.common.base.Preconditions;
 
