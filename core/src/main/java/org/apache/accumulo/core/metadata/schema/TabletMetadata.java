@@ -572,9 +572,12 @@ public class TabletMetadata {
               te.onDemandHostingRequested = true;
               break;
             default:
-              throw new IllegalStateException("Unexpected family " + fam);
+              throw new IllegalStateException("Unexpected qualifier " + fam);
           }
           break;
+        default:
+          throw new IllegalStateException("Unexpected family " + fam);
+
       }
     }
 
