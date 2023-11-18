@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
+import static org.apache.accumulo.test.util.FileMetadataUtil.verifyMergedMarkerCleared;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -97,6 +98,9 @@ public class MergeIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
       assertEquals(8, c.tableOperations().listSplits(tableName).size());
+      // Verify that the MERGED marker was cleared
+      verifyMergedMarkerCleared(getServerContext(),
+          TableId.of(c.tableOperations().tableIdMap().get(tableName)));
     }
   }
 
@@ -189,6 +193,9 @@ public class MergeIT extends AccumuloClusterHarness {
       verify(c, 100, 201, tableName);
       verifyNoRows(c, 100, 301, tableName);
       verify(c, 600, 401, tableName);
+
+      // Verify that the MERGED marker was cleared
+      verifyMergedMarkerCleared(getServerContext(), tableId);
     }
   }
 
@@ -251,6 +258,8 @@ public class MergeIT extends AccumuloClusterHarness {
       c.tableOperations().merge(tableName, null, null);
       log.debug("Metadata after Merge");
       printAndVerifyFileMetadata(getServerContext(), tableId, 12);
+      // Verify that the MERGED marker was cleared
+      verifyMergedMarkerCleared(getServerContext(), tableId);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 150, 1, tableName);
@@ -332,6 +341,8 @@ public class MergeIT extends AccumuloClusterHarness {
       c.tableOperations().merge(tableName, null, null);
       log.debug("Metadata after second Merge");
       printAndVerifyFileMetadata(getServerContext(), tableId, -1);
+      // Verify that the MERGED marker was cleared
+      verifyMergedMarkerCleared(getServerContext(), tableId);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 150, 1, tableName);
@@ -382,6 +393,8 @@ public class MergeIT extends AccumuloClusterHarness {
       c.tableOperations().merge(tableName, null, null);
       log.debug("Metadata after Merge");
       printAndVerifyFileMetadata(getServerContext(), tableId, -1);
+      // Verify that the MERGED marker was cleared
+      verifyMergedMarkerCleared(getServerContext(), tableId);
 
       // Verify that the deleted rows can't be read after merge
       verify(c, 100, 1, tableName);
@@ -518,16 +531,17 @@ public class MergeIT extends AccumuloClusterHarness {
 
     log.debug("Before Merge");
     client.tableOperations().flush(table, null, null, true);
-    printAndVerifyFileMetadata(getServerContext(),
-        TableId.of(client.tableOperations().tableIdMap().get(table)));
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
+    printAndVerifyFileMetadata(getServerContext(), tableId);
 
     client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));
 
     client.tableOperations().flush(table, null, null, true);
     log.debug("After Merge");
-    printAndVerifyFileMetadata(getServerContext(),
-        TableId.of(client.tableOperations().tableIdMap().get(table)));
+    printAndVerifyFileMetadata(getServerContext(), tableId);
+    // Verify that the MERGED marker was cleared
+    verifyMergedMarkerCleared(getServerContext(), tableId);
 
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
