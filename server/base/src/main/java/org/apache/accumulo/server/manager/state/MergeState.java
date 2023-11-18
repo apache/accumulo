@@ -38,9 +38,8 @@ public enum MergeState {
    */
   MERGING,
   /**
-   * when the operation has finished metadata updates for merge/delete. For delete the tablets will
-   * already have been deleted but for merge we can now remove the merged tablets and clear the
-   * MERGED marker.
+   * when the operation has finished metadata updates for merge. We can now remove the merged
+   * tablets and clear the MERGED marker. Not used for delete
    */
   MERGED,
   /**

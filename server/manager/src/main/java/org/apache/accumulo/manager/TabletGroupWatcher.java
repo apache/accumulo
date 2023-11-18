@@ -586,10 +586,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           try {
             if (stats.getMergeInfo().isDelete()) {
               deleteTablets(stats.getMergeInfo());
+              // For delete we are done and can skip to COMPLETE
+              update = MergeState.COMPLETE;
             } else {
               mergeMetadataRecords(stats.getMergeInfo());
+              // For merge we need another state to delete the tablets
+              // and clear the marker
+              update = MergeState.MERGED;
             }
-            update = MergeState.MERGED;
             manager.setMergeState(stats.getMergeInfo(), update);
           } catch (Exception ex) {
             Manager.log.error("Unable merge metadata table records", ex);
@@ -598,11 +602,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         // If the state is MERGED then we are finished with metadata updates
         if (update == MergeState.MERGED) {
-          // If this is a merge and not a delete then we can finish by deleting
-          // the merged tablets and cleaning up the marker that was used for merge
-          if (!stats.getMergeInfo().isDelete()) {
-            deleteMergedTablets(stats.getMergeInfo());
-          }
+          // Finish the merge operatoin by deleting the merged tablets and
+          // cleaning up the marker that was used for merge
+          deleteMergedTablets(stats.getMergeInfo());
           update = MergeState.COMPLETE;
           manager.setMergeState(stats.getMergeInfo(), update);
         }
@@ -614,21 +616,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   // Remove the merged marker from the last tablet in the merge range
-  private void clearMerged(MergeInfo mergeInfo) throws AccumuloException, TableNotFoundException {
-    String targetSystemTable = MetadataTable.NAME;
-    if (mergeInfo.getExtent().tableId() == MetadataTable.ID) {
-      targetSystemTable = RootTable.NAME;
-    }
+  private void clearMerged(MergeInfo mergeInfo, BatchWriter bw) throws AccumuloException {
     HighTablet highTablet = getHighTablet(mergeInfo.getExtent());
     Manager.log.debug("Clearing MERGED marker for {}", mergeInfo.getExtent());
-    AccumuloClient client = manager.getContext();
 
-    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
-      var m = new Mutation(highTablet.getExtent().toMetaRow());
-      MergedColumnFamily.MERGED_COLUMN.putDelete(m);
-      bw.addMutation(m);
-      bw.flush();
-    }
+    var m = new Mutation(highTablet.getExtent().toMetaRow());
+    MergedColumnFamily.MERGED_COLUMN.putDelete(m);
+    bw.addMutation(m);
+    bw.flush();
   }
 
   // This method finds returns the deletion starting row (exclusive) for tablets that
@@ -859,7 +854,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     // Check if we have already previously fenced the tablets
     if (highTablet.isMerged()) {
-      Manager.log.debug("tablet metadata already fenced for merge");
+      Manager.log.debug("tablet metadata already fenced for merge {}", range);
       // Return as we already fenced the files
       return;
     }
@@ -1019,6 +1014,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     KeyExtent range = info.getExtent();
     Manager.log.debug("Deleting merged tablets for {}", range);
     HighTablet highTablet = getHighTablet(range);
+    if (!highTablet.isMerged()) {
+      Manager.log.debug("Tablets have already been deleted for merge with range {}, returning",
+          range);
+      return;
+    }
+
     KeyExtent stop = highTablet.getExtent();
     Manager.log.debug("Highest tablet is {}", stop);
 
@@ -1037,10 +1038,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     AccumuloClient client = manager.getContext();
 
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
+      // Continue and delete the tablets that were merged
       deleteTablets(info, scanRange, bw, client);
 
       // Clear the merged marker after we finish deleting tablets
-      clearMerged(info);
+      clearMerged(info, bw);
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
