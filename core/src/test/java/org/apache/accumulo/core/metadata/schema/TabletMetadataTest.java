@@ -303,6 +303,17 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm::hasMerged);
   }
 
+  @Test
+  public void testUnkownColFamily() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+
+    mutation.put("1234567890abcdefg", "xyz", "v1");
+    assertThrows(IllegalStateException.class,
+        () -> TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+            EnumSet.of(ColumnType.MERGED), true, false));
+  }
+
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
     SortedMap<Key,Value> rowMap = new TreeMap<>();
     mutation.getUpdates().forEach(cu -> {
