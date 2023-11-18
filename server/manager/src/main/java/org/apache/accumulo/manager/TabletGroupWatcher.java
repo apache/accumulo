@@ -616,10 +616,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   // Remove the merged marker from the last tablet in the merge range
-  private void clearMerged(MergeInfo mergeInfo, BatchWriter bw) throws AccumuloException {
-    HighTablet highTablet = getHighTablet(mergeInfo.getExtent());
+  private void clearMerged(MergeInfo mergeInfo, BatchWriter bw, HighTablet highTablet)
+      throws AccumuloException {
     Manager.log.debug("Clearing MERGED marker for {}", mergeInfo.getExtent());
-
     var m = new Mutation(highTablet.getExtent().toMetaRow());
     MergedColumnFamily.MERGED_COLUMN.putDelete(m);
     bw.addMutation(m);
@@ -1042,7 +1041,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       deleteTablets(info, scanRange, bw, client);
 
       // Clear the merged marker after we finish deleting tablets
-      clearMerged(info, bw);
+      clearMerged(info, bw, highTablet);
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
