@@ -597,12 +597,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         // If the state is MERGED then we are finished with metadata updates
-        // and finished deleting any tablets
         if (update == MergeState.MERGED) {
-          // Clean up the marker that was used for merge
-          // The marker is not used for delete rows
+          // If this is a merge and not a delete then we can finish by deleting
+          // the merged tablets and cleaning up the marker that was used for merge
           if (!stats.getMergeInfo().isDelete()) {
-            clearMerged(stats.getMergeInfo());
+            deleteMergedTablets(stats.getMergeInfo());
           }
           update = MergeState.COMPLETE;
           manager.setMergeState(stats.getMergeInfo(), update);
@@ -846,8 +845,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (start == null) {
       start = new Text();
     }
-    Range scanRange =
-        new Range(TabletsSection.encodeRow(range.tableId(), start), false, stopRow, false);
+
     String targetSystemTable = MetadataTable.NAME;
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;
@@ -859,19 +857,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     KeyExtent previousKeyExtent = null;
     KeyExtent lastExtent = null;
 
-    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
-      // Check if we have already previously fenced the tablets
-      if (highTablet.isMerged()) {
-        Manager.log.debug("tablet metadata already fenced for merge");
-        if (!highTablet.hasPrevRowColumn()) {
-          Manager.log.debug("tablet already merged, returning");
-          return;
-        }
-        // Continue and delete tablets as we already finished fencing
-        deleteTablets(info, scanRange, bw, client);
-        return;
-      }
+    // Check if we have already previously fenced the tablets
+    if (highTablet.isMerged()) {
+      Manager.log.debug("tablet metadata already fenced for merge");
+      // Return as we already fenced the files
+      return;
+    }
 
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
@@ -1000,25 +993,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
 
       // Add a marker so we know the tablets have been fenced in case the merge operation
-      // needs to be recovered and restarted to finish later. The value is firstPrevRowValue
-      // which we need if we need to restart the operation
-      MergedColumnFamily.MERGED_COLUMN.put(m,
-          MergedColumnFamily.encodeHasPrevRowColumn(firstPrevRowValue != null));
-
-      Manager.log.debug("Moved {} files to {}", fileCount, stop);
-
-      if (firstPrevRowValue == null) {
-        Manager.log.debug("tablet already merged");
-        if (!m.getUpdates().isEmpty()) {
-          bw.addMutation(m);
-        }
-        bw.flush();
-        return;
-      }
+      // needs to be recovered and restarted to finish later.
+      MergedColumnFamily.MERGED_COLUMN.put(m, MergedColumnFamily.MERGED_VALUE);
 
       // Add the prev row column update to the same mutation as the
       // file updates so it will be atomic and only update the prev row
       // if the tablets were fenced
+      Preconditions.checkState(firstPrevRowValue != null,
+          "Previous row entry for lowest tablet was not found.");
       stop = new KeyExtent(stop.tableId(), stop.endRow(),
           TabletColumnFamily.decodePrevEndRow(firstPrevRowValue));
       TabletColumnFamily.PREV_ROW_COLUMN.put(m,
@@ -1027,8 +1009,38 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       bw.addMutation(m);
       bw.flush();
 
+      Manager.log.debug("Moved {} files to {}", fileCount, stop);
+    } catch (Exception ex) {
+      throw new AccumuloException(ex);
+    }
+  }
+
+  private void deleteMergedTablets(MergeInfo info) throws AccumuloException {
+    KeyExtent range = info.getExtent();
+    Manager.log.debug("Deleting merged tablets for {}", range);
+    HighTablet highTablet = getHighTablet(range);
+    KeyExtent stop = highTablet.getExtent();
+    Manager.log.debug("Highest tablet is {}", stop);
+
+    Text stopRow = stop.toMetaRow();
+    Text start = range.prevEndRow();
+    if (start == null) {
+      start = new Text();
+    }
+    Range scanRange =
+        new Range(TabletsSection.encodeRow(range.tableId(), start), false, stopRow, false);
+    String targetSystemTable = MetadataTable.NAME;
+    if (range.isMeta()) {
+      targetSystemTable = RootTable.NAME;
+    }
+
+    AccumuloClient client = manager.getContext();
+
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       deleteTablets(info, scanRange, bw, client);
 
+      // Clear the merged marker after we finish deleting tablets
+      clearMerged(info);
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
@@ -1305,27 +1317,32 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       KeyExtent highTablet = null;
-      boolean isMerged = false;
-      Value hasPrevRowColumn = null;
+      boolean merged = false;
+      Text firstRow = null;
 
       while (iterator.hasNext()) {
         Entry<Key,Value> entry = iterator.next();
+        if (firstRow == null) {
+          firstRow = entry.getKey().getRow();
+        }
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+          Preconditions.checkState(entry.getKey().getRow().equals(firstRow),
+              "Row " + entry.getKey().getRow() + " does not match first row seen " + firstRow);
           highTablet = KeyExtent.fromMetaPrevRow(entry);
           Manager.log.debug("found high tablet: {}", entry.getKey());
           break;
         } else if (MergedColumnFamily.MERGED_COLUMN.hasColumns(entry.getKey())) {
+          Preconditions.checkState(entry.getKey().getRow().equals(firstRow),
+              "Row " + entry.getKey().getRow() + " does not match first row seen " + firstRow);
           Manager.log.debug("is merged true: {}", entry.getKey());
-          isMerged = true;
-          hasPrevRowColumn = entry.getValue();
+          merged = true;
         }
       }
 
       if (highTablet == null || !highTablet.tableId().equals(range.tableId())) {
         throw new AccumuloException("No last tablet for merge " + range + " " + highTablet);
       }
-      return new HighTablet(highTablet, isMerged,
-          MergedColumnFamily.decodeHasPrevRowColumn(hasPrevRowColumn));
+      return new HighTablet(highTablet, merged);
     } catch (Exception ex) {
       throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range,
           ex);
@@ -1429,11 +1446,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   protected static class HighTablet {
     private final KeyExtent extent;
     private final boolean merged;
-    private final boolean prevRowColumn;
 
-    public HighTablet(KeyExtent extent, boolean merged, boolean prevRowColumn) {
+    public HighTablet(KeyExtent extent, boolean merged) {
       this.extent = Objects.requireNonNull(extent);
-      this.prevRowColumn = prevRowColumn;
       this.merged = merged;
     }
 
@@ -1443,10 +1458,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public KeyExtent getExtent() {
       return extent;
-    }
-
-    public boolean hasPrevRowColumn() {
-      return prevRowColumn;
     }
   }
 }

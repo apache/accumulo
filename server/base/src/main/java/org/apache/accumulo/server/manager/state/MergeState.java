@@ -38,12 +38,13 @@ public enum MergeState {
    */
   MERGING,
   /**
-   * when the merge operation has finished fencing and/or deleting tablets in the merge/delete range
+   * when the operation has finished metadata updates for merge/delete. For delete the tablets will
+   * already have been deleted but for merge we can now remove the merged tablets and clear the
+   * MERGED marker.
    */
   MERGED,
   /**
-   * merge is complete, clean up the merged marker in the resulting tablet and the tablet can be
-   * brought online, remove the marker in zookeeper
+   * merge is complete, the resulting tablet can be brought online, remove the marker in zookeeper
    */
   COMPLETE
 

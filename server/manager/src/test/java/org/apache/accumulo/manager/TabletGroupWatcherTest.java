@@ -75,27 +75,13 @@ public class TabletGroupWatcherTest {
   @Test
   public void testHighTablet() {
     HighTablet mergedTruePrevRowFalse =
-        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true, false);
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true);
     assertNotNull(mergedTruePrevRowFalse.getExtent());
     assertTrue(mergedTruePrevRowFalse.isMerged());
-    assertFalse(mergedTruePrevRowFalse.hasPrevRowColumn());
 
     HighTablet mergedFalsePrevRowFalse =
-        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), false, false);
+        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), false);
     assertNotNull(mergedFalsePrevRowFalse.getExtent());
     assertFalse(mergedFalsePrevRowFalse.isMerged());
-    assertFalse(mergedFalsePrevRowFalse.hasPrevRowColumn());
-
-    HighTablet mergedTruePrevRowTrue =
-        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), true, true);
-    assertNotNull(mergedTruePrevRowTrue.getExtent());
-    assertTrue(mergedTruePrevRowTrue.isMerged());
-    assertTrue(mergedTruePrevRowTrue.hasPrevRowColumn());
-
-    HighTablet mergedFalsePrevRowTrue =
-        new HighTablet(new KeyExtent(MetadataTable.ID, new Text("end"), null), false, true);
-    assertNotNull(mergedFalsePrevRowTrue.getExtent());
-    assertFalse(mergedFalsePrevRowTrue.isMerged());
-    assertTrue(mergedFalsePrevRowTrue.hasPrevRowColumn());
   }
 }

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -59,7 +60,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -115,7 +115,7 @@ public class TabletMetadataTest {
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadata()).put("");
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadata()).put("");
 
-    MERGED_COLUMN.put(mutation, MergedColumnFamily.encodeHasPrevRowColumn(true));
+    MERGED_COLUMN.put(mutation, new Value());
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -147,7 +147,7 @@ public class TabletMetadataTest {
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
-    assertTrue(tm.getMergedPrevRowColumn());
+    assertTrue(tm.hasMerged());
   }
 
   @Test
@@ -267,35 +267,24 @@ public class TabletMetadataTest {
   public void testMergedColumn() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    // Test merged prev column value set to true
+    // Test merged column set
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    MERGED_COLUMN.put(mutation, MergedColumnFamily.encodeHasPrevRowColumn(true));
+    MERGED_COLUMN.put(mutation, MERGED_VALUE);
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.MERGED), true);
     assertTrue(tm.hasMerged());
-    assertTrue(tm.getMergedPrevRowColumn());
-
-    // Test merged prev column value set to false
-    mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    MERGED_COLUMN.put(mutation, MergedColumnFamily.encodeHasPrevRowColumn(false));
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.MERGED), true);
-    assertTrue(tm.hasMerged());
-    assertFalse(tm.getMergedPrevRowColumn());
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.MERGED), true);
     assertFalse(tm.hasMerged());
-    assertNull(tm.getMergedPrevRowColumn());
 
     // MERGED Column not fetched
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.PREV_ROW), true);
     assertThrows(IllegalStateException.class, tm::hasMerged);
-    assertThrows(IllegalStateException.class, tm::getMergedPrevRowColumn);
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
