@@ -105,7 +105,7 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private boolean merged = false;
+  private Boolean mergedPrevRowColumn;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -350,7 +350,12 @@ public class TabletMetadata {
 
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
-    return merged;
+    return mergedPrevRowColumn != null;
+  }
+
+  public Boolean getMergedPrevRowColumn() {
+    ensureFetched(ColumnType.MERGED);
+    return mergedPrevRowColumn;
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -488,7 +493,7 @@ public class TabletMetadata {
               ExternalCompactionMetadata.fromJson(val));
           break;
         case MergedColumnFamily.STR_NAME:
-          te.merged = true;
+          te.mergedPrevRowColumn = MergedColumnFamily.decodeHasPrevRowColumn(kv.getValue());
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

@@ -328,12 +328,22 @@ public class MetadataSchema {
 
     /**
      * Column family for indicating that the files in a tablet contain fenced files that have been
-     * merged from other tablets
+     * merged from other tablets during a merge operation. This is used to support resuming a failed
+     * merge operation. The value is a boolean to indicate of a prev row column was read during the
+     * merge.
      */
     public static class MergedColumnFamily {
       public static final String STR_NAME = "merged";
       public static final Text NAME = new Text(STR_NAME);
       public static final ColumnFQ MERGED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+
+      public static Value encodeHasPrevRowColumn(boolean hasPrevRowColumn) {
+        return new Value(hasPrevRowColumn ? new byte[] {1} : new byte[] {0});
+      }
+
+      public static boolean decodeHasPrevRowColumn(Value hasPrevRowColumn) {
+        return hasPrevRowColumn != null && hasPrevRowColumn.contentEquals(new byte[] {1});
+      }
     }
   }
 

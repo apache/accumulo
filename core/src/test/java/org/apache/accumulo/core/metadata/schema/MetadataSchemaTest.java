@@ -19,8 +19,12 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -38,4 +42,13 @@ public class MetadataSchemaTest {
     assertEquals(ab, TabletColumnFamily.decodePrevEndRow(TabletColumnFamily.encodePrevEndRow(ab)));
   }
 
+  @Test
+  public void testMergedEncodeDecode() {
+    assertEquals(new Value(new byte[] {1}), MergedColumnFamily.encodeHasPrevRowColumn(true));
+    assertEquals(new Value(new byte[] {0}), MergedColumnFamily.encodeHasPrevRowColumn(false));
+
+    assertTrue(MergedColumnFamily.decodeHasPrevRowColumn(new Value(new byte[] {1})));
+    assertFalse(MergedColumnFamily.decodeHasPrevRowColumn(new Value(new byte[] {0})));
+    assertFalse(MergedColumnFamily.decodeHasPrevRowColumn(null));
+  }
 }
