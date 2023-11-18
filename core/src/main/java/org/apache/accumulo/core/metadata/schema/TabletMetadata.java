@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -118,6 +119,7 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private boolean merged;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
@@ -149,6 +151,7 @@ public class TabletMetadata {
     SPLIT_RATIO,
     SUSPEND,
     ECOMP,
+    MERGED,
     HOSTING_GOAL,
     HOSTING_REQUESTED,
     OPID,
@@ -379,6 +382,11 @@ public class TabletMetadata {
     return splitRatio;
   }
 
+  public boolean hasMerged() {
+    ensureFetched(ColumnType.MERGED);
+    return merged;
+  }
+
   public TabletHostingGoal getHostingGoal() {
     if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
       // Override the goal for the system tables
@@ -548,6 +556,9 @@ public class TabletMetadata {
         case ExternalCompactionColumnFamily.STR_NAME:
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
+          break;
+        case MergedColumnFamily.STR_NAME:
+          te.merged = true;
           break;
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));

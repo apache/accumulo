@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
+import static org.apache.accumulo.test.util.FileMetadataUtil.verifyMergedMarkerCleared;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -145,21 +146,29 @@ public class MetaSplitIT extends AccumuloClusterHarness {
         // Merging tablets should produce fenced files because of no-chop merge
         assertTrue(countFencedFiles(getServerContext(), MetadataTable.NAME) > 0);
         verifyMetadataTableScan(client);
+        // Verify that the MERGED marker was cleared and doesn't exist on any tablet
+        verifyMergedMarkerCleared(getServerContext(), MetadataTable.ID);
 
         addSplits(opts, "44 55 66 77 88".split(" "));
         checkMetadataSplits(9, opts);
         assertTrue(countFencedFiles(getServerContext(), MetadataTable.NAME) > 0);
         verifyMetadataTableScan(client);
+        // Verify that the MERGED marker was cleared and doesn't exist on any tablet
+        verifyMergedMarkerCleared(getServerContext(), MetadataTable.ID);
 
         opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
         checkMetadataSplits(6, opts);
         assertTrue(countFencedFiles(getServerContext(), MetadataTable.NAME) > 0);
         verifyMetadataTableScan(client);
+        // Verify that the MERGED marker was cleared and doesn't exist on any tablet
+        verifyMergedMarkerCleared(getServerContext(), MetadataTable.ID);
 
         opts.merge(MetadataTable.NAME, null, null);
         checkMetadataSplits(0, opts);
         assertTrue(countFencedFiles(getServerContext(), MetadataTable.NAME) > 0);
         verifyMetadataTableScan(client);
+        // Verify that the MERGED marker was cleared and doesn't exist on any tablet
+        verifyMergedMarkerCleared(getServerContext(), MetadataTable.ID);
 
         opts.compact(MetadataTable.NAME, new CompactionConfig());
         // Should be no more fenced files after compaction
