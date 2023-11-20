@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -49,7 +49,7 @@ public class FateMetrics implements MetricsProducer {
   private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
-  private final ReadOnlyTStore<FateMetrics> zooStore;
+  private final ReadOnlyFatesStore<FateMetrics> zooStore;
   private final String fateRootPath;
   private final long refreshDelay;
 
@@ -71,7 +71,7 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
+      this.zooStore = new ZooFatesStore<>(fateRootPath, context.getZooReaderWriter(), null); // TODO
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -93,7 +93,7 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge.set(metricValues.getZkConnectionErrors());
 
     for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      switch (ReadOnlyTStore.TStatus.valueOf(vals.getKey())) {
+      switch (ReadOnlyFatesStore.FateStatus.valueOf(vals.getKey())) {
         case NEW:
           newTxGauge.set(vals.getValue());
           break;
@@ -134,20 +134,22 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
     newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-        ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
+        ReadOnlyFatesStore.FateStatus.NEW.name().toLowerCase()), new AtomicLong(0));
     submittedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
-    inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
-    failedInProgressTxGauge =
+        "state", ReadOnlyFatesStore.FateStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
+    inProgressTxGauge =
         registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+            ReadOnlyFatesStore.FateStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+    failedInProgressTxGauge = registry.gauge(METRICS_FATE_TX,
+        Tags.concat(MetricsUtil.getCommonTags(), "state",
+            ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS.name().toLowerCase()),
+        new AtomicLong(0));
     failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFatesStore.FateStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
     successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFatesStore.FateStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
     unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFatesStore.FateStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
     update();
 

@@ -55,8 +55,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -761,7 +761,7 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+    ZooFatesStore<Admin> zs = new ZooFatesStore<>(fateZkPath, zk, null); // TODO
 
     if (fateOpsCommand.cancel) {
       cancelSubmittedFateTxs(context, fateOpsCommand.txList);
@@ -783,7 +783,8 @@ public class Admin implements KeywordExecutable {
     if (fateOpsCommand.print) {
       final Set<Long> sortedTxs = new TreeSet<>();
       fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
-      EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(fateOpsCommand.states);
+      EnumSet<ReadOnlyFatesStore.FateStatus> statusFilter =
+          getCmdLineStatusFilters(fateOpsCommand.states);
       admin.print(zs, zk, zTableLocksPath, new Formatter(System.out), sortedTxs, statusFilter);
       // print line break at the end
       System.out.println();
@@ -835,7 +836,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
-      ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
+      ReadOnlyFatesStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();
@@ -854,7 +855,7 @@ public class Admin implements KeywordExecutable {
       }
     });
 
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+    EnumSet<ReadOnlyFatesStore.FateStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
 
     FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
 
@@ -881,12 +882,12 @@ public class Admin implements KeywordExecutable {
    *
    * @return a set of status filters, or an empty set if none provides
    */
-  private EnumSet<ReadOnlyTStore.TStatus> getCmdLineStatusFilters(List<String> states) {
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = null;
+  private EnumSet<ReadOnlyFatesStore.FateStatus> getCmdLineStatusFilters(List<String> states) {
+    EnumSet<ReadOnlyFatesStore.FateStatus> statusFilter = null;
     if (!states.isEmpty()) {
-      statusFilter = EnumSet.noneOf(ReadOnlyTStore.TStatus.class);
+      statusFilter = EnumSet.noneOf(ReadOnlyFatesStore.FateStatus.class);
       for (String element : states) {
-        statusFilter.add(ReadOnlyTStore.TStatus.valueOf(element));
+        statusFilter.add(ReadOnlyFatesStore.FateStatus.valueOf(element));
       }
     }
     return statusFilter;

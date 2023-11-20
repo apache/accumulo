@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -44,19 +44,21 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -143,13 +145,16 @@ public class FateIT {
     szk.close();
   }
 
+  private ZooUtil.LockID createLockID() {
+    return new ZooUtil.LockID("S1", "N1", 1234);
+  }
+
   @Test
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooFatesStore<Manager> store =
+        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -161,7 +166,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -171,16 +177,16 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(FateStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(FateStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();
       assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
       // tell the op to exit the method
       finishCall.countDown();
       // Check that it transitions to SUCCESSFUL
-      TStatus s = getTxStatus(zk, txid);
+      FateStatus s = getTxStatus(zk, txid);
       while (s != SUCCESSFUL) {
         s = getTxStatus(zk, txid);
         Thread.sleep(10);
@@ -207,9 +213,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooFatesStore<Manager> store =
+        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -221,7 +226,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -238,6 +244,8 @@ public class FateIT {
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+      // can not delete a failed in progress operation, so wait for it to transition to FAILED
+      Wait.waitFor(() -> FAILED_IN_PROGRESS != getTxStatus(zk, txid));
       fate.delete(txid);
     } finally {
       fate.shutdown();
@@ -246,9 +254,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooFatesStore<Manager> store =
+        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -260,7 +267,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -274,12 +282,11 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
+      callStarted.await();
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
       assertFalse(fate.cancel(txid));
-      callStarted.await();
       finishCall.countDown();
-      fate.delete(txid);
     } finally {
       fate.shutdown();
     }
@@ -287,9 +294,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooFatesStore<Manager> store =
+        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -301,7 +307,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -336,11 +343,11 @@ public class FateIT {
    * Get the status of the TX from ZK directly. Unable to call ZooStore.getStatus because this test
    * thread does not have the reservation (the FaTE thread does)
    */
-  private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
+  private static FateStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
-    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
+    return FateStatus.valueOf(new String(zrw.getData(txdir), UTF_8).split(":")[0]);
   }
 
 }

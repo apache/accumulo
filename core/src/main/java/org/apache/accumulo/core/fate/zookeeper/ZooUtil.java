@@ -85,7 +85,6 @@ public class ZooUtil {
     }
 
     public String serialize(String root) {
-
       return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
 

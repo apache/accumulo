@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -268,8 +268,24 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<UpgradeCoordinator> fate = new ZooStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
+      final ReadOnlyFatesStore<UpgradeCoordinator> fate = new ZooFatesStore<>(
+          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter(), null); // TODO
+                                                                                             // maybe
+                                                                                             // have
+                                                                                             // a
+                                                                                             // version
+                                                                                             // of
+                                                                                             // zoostore
+                                                                                             // w/o
+                                                                                             // a
+                                                                                             // lock
+                                                                                             // that
+                                                                                             // fails
+                                                                                             // on
+                                                                                             // ops
+                                                                                             // that
+                                                                                             // need
+                                                                                             // lock
       if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

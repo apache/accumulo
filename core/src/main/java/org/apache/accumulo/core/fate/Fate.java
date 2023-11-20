@@ -19,33 +19,41 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.UNKNOWN;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.EnumSet;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus;
 import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.manager.PartitionData;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,17 +66,112 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
-  private final TStore<T> store;
+  private final FatesStore<T> store;
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
   private final ExecutorService executor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
+  private static final EnumSet<FateStatus> FINISHED_STATES =
+      EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final Supplier<PartitionData> partitionDataSupplier;
+  private final BlockingQueue<Long> workQueue;
+  private final Thread workFinder;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+  }
+
+  // TODO add a task that periodically looks for fate task reserved by dead instances, only run in
+  // partition zero
+  private class LockCleaner implements Runnable {
+    public void run() {
+      while (keepRunning.get()) {
+        var partitionData = partitionDataSupplier.get();
+        if (partitionData.shouldRun(PartitionData.SingletonManagerService.FATE_LOCK_CLEANUP)) {
+          // run cleanup
+        }
+        // sleep a long time
+      }
+    }
+  }
+
+  /**
+   * A single thread that finds transactions to work on and queues them up. Do not want each worker
+   * thread going to the store and looking for work as it would place more load on the store.
+   */
+  private class WorkFinder implements Runnable {
+
+    private Retry newRetry() {
+      // ELASTICITY_TODO the max time to retry may be store depependent, depends on how expensive
+      // the read is in the impl. The more expensive the read is the high we may want to make the
+      // max. Can figure this out after we have an Accumulo table store.
+      return Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
+          .incrementBy(25, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.5)
+          .logInterval(3, MINUTES).createRetry();
+    }
+
+    public void run() {
+
+      try {
+        Retry retry = newRetry();
+        PartitionData lastPartitionData = partitionDataSupplier.get();
+
+        while (keepRunning.get()) {
+          var partitionData = partitionDataSupplier.get();
+          if (!partitionData.equals(lastPartitionData)) {
+            // Partition data changed, so lets clear anything queued to avoid unnecessary
+            // contention.
+            // The queue does not have to be cleared here for overall correctness, this is just an
+            // attempt to avoid some unnecessary work caused by multiple processes trying to reserve
+            // the same fate transaction.
+            workQueue.clear();
+          }
+          lastPartitionData = partitionData;
+
+          var iter = store.runnable(partitionData);
+
+          int count = 0;
+          while (iter.hasNext() && keepRunning.get()) {
+            Long txid = iter.next();
+            count++;
+            try {
+              while (keepRunning.get()) {
+                if (workQueue.offer(txid, 100, TimeUnit.MILLISECONDS)) {
+                  break;
+                }
+              }
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          }
+
+          if (count == 0) {
+            // When nothing was found in the store, then start doing exponential backoff before
+            // reading from the store again in order to avoid overwhelming the store.
+            try {
+              retry.waitForNextAttempt(log,
+                  "Find work for fate partition " + partitionData.toString());
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          } else {
+            // reset the retry object
+            retry.logCompletion(log, "Find work for fate partition " + partitionData.toString());
+            retry = newRetry();
+          }
+        }
+      } catch (Exception e) {
+        if (keepRunning.get()) {
+          log.warn("Failure while attempting to find work for fate", e);
+        } else {
+          log.debug("Failure while attempting to find work for fate", e);
+        }
+      }
+    }
   }
 
   private class TransactionRunner implements Runnable {
@@ -77,17 +180,26 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         long deferTime = 0;
-        Long tid = null;
+        FatesStore.FateStore<T> opStore = null;
         try {
-          tid = store.reserve();
-          TStatus status = store.getStatus(tid);
-          Repo<T> op = store.top(tid);
+          var unreservedTid = workQueue.poll(100, MILLISECONDS);
+          if (unreservedTid == null) {
+            continue;
+          }
+          var optionalopStore = store.tryReserve(unreservedTid);
+          if (optionalopStore.isPresent()) {
+            opStore = optionalopStore.orElseThrow();
+          } else {
+            continue;
+          }
+          FateStatus status = opStore.getStatus();
+          Repo<T> op = opStore.top();
           if (status == FAILED_IN_PROGRESS) {
-            processFailed(tid, op);
+            processFailed(opStore, op);
           } else {
             Repo<T> prevOp = null;
             try {
-              deferTime = op.isReady(tid, environment);
+              deferTime = op.isReady(opStore.getID(), environment);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
               // proceeding on success and returning to the while loop on failure.
@@ -95,16 +207,16 @@ public class Fate<T> {
               if (deferTime == 0) {
                 prevOp = op;
                 if (status == SUBMITTED) {
-                  store.setStatus(tid, IN_PROGRESS);
+                  opStore.setStatus(IN_PROGRESS);
                 }
-                op = op.call(tid, environment);
+                op = op.call(opStore.getID(), environment);
               } else {
                 continue;
               }
 
             } catch (Exception e) {
-              blockIfHadoopShutdown(tid, e);
-              transitionToFailed(tid, e);
+              blockIfHadoopShutdown(opStore.getID(), e);
+              transitionToFailed(opStore, e);
               continue;
             }
 
@@ -112,18 +224,18 @@ public class Fate<T> {
               // transaction is finished
               String ret = prevOp.getReturn();
               if (ret != null) {
-                store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
+                opStore.setTransactionInfo(TxInfo.RETURN_VALUE, ret);
               }
-              store.setStatus(tid, SUCCESSFUL);
-              doCleanUp(tid);
+              opStore.setStatus(SUCCESSFUL);
+              doCleanUp(opStore);
             } else {
               try {
-                store.push(tid, op);
+                opStore.push(op);
               } catch (StackOverflowException e) {
                 // the op that failed to push onto the stack was never executed, so no need to undo
                 // it
                 // just transition to failed and undo the ops that executed
-                transitionToFailed(tid, e);
+                transitionToFailed(opStore, e);
                 continue;
               }
             }
@@ -131,8 +243,8 @@ public class Fate<T> {
         } catch (Exception e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
-          if (tid != null) {
-            store.unreserve(tid, deferTime);
+          if (opStore != null) {
+            opStore.unreserve(deferTime);
           }
         }
       }
@@ -166,8 +278,8 @@ public class Fate<T> {
       }
     }
 
-    private void transitionToFailed(long tid, Exception e) {
-      String tidStr = FateTxId.formatTid(tid);
+    private void transitionToFailed(FatesStore.FateStore<T> opStore, Exception e) {
+      String tidStr = FateTxId.formatTid(opStore.getID());
       final String msg = "Failed to execute Repo " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
@@ -178,32 +290,32 @@ public class Fate<T> {
       } else {
         log.warn(msg, e);
       }
-      store.setTransactionInfo(tid, TxInfo.EXCEPTION, e);
-      store.setStatus(tid, FAILED_IN_PROGRESS);
+      opStore.setTransactionInfo(TxInfo.EXCEPTION, e);
+      opStore.setStatus(FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
 
-    private void processFailed(long tid, Repo<T> op) {
+    private void processFailed(FatesStore.FateStore<T> opStore, Repo<T> op) {
       while (op != null) {
-        undo(tid, op);
+        undo(opStore.getID(), op);
 
-        store.pop(tid);
-        op = store.top(tid);
+        opStore.pop();
+        op = opStore.top();
       }
 
-      store.setStatus(tid, FAILED);
-      doCleanUp(tid);
+      opStore.setStatus(FAILED);
+      doCleanUp(opStore);
     }
 
-    private void doCleanUp(long tid) {
-      Boolean autoClean = (Boolean) store.getTransactionInfo(tid, TxInfo.AUTO_CLEAN);
+    private void doCleanUp(FatesStore.FateStore<T> opStore) {
+      Boolean autoClean = (Boolean) opStore.getTransactionInfo(TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
-        store.delete(tid);
+        opStore.delete();
       } else {
         // no longer need persisted operations, so delete them to save space in case
         // TX is never cleaned up...
-        while (store.top(tid) != null) {
-          store.pop(tid);
+        while (opStore.top() != null) {
+          opStore.pop();
         }
       }
     }
@@ -223,12 +335,16 @@ public class Fate<T> {
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc,
-      AccumuloConfiguration conf) {
+  public Fate(T environment, FatesStore<T> store, Function<Repo<T>,String> toLogStrFunc,
+      Supplier<PartitionData> partitionDataSupplier, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
+    this.partitionDataSupplier = partitionDataSupplier;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    // TODO this queue does not resize when config changes
+    this.workQueue =
+        new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
@@ -255,6 +371,9 @@ public class Fate<T> {
       }
     }, 3, SECONDS));
     this.executor = pool;
+
+    this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
+    this.workFinder.start();
   }
 
   // get a transaction id back to the requester before doing any work
@@ -266,13 +385,13 @@ public class Fate<T> {
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(String txName, long tid, Repo<T> repo, boolean autoCleanUp,
       String goalMessage) {
-    store.reserve(tid);
+    var opStore = store.reserve(tid);
     try {
-      if (store.getStatus(tid) == NEW) {
-        if (store.top(tid) == null) {
+      if (opStore.getStatus() == NEW) {
+        if (opStore.top() == null) {
           try {
             log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
-            store.push(tid, repo);
+            opStore.push(repo);
           } catch (StackOverflowException e) {
             // this should not happen
             throw new IllegalStateException(e);
@@ -280,22 +399,22 @@ public class Fate<T> {
         }
 
         if (autoCleanUp) {
-          store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
+          opStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
         }
 
-        store.setTransactionInfo(tid, TxInfo.TX_NAME, txName);
+        opStore.setTransactionInfo(TxInfo.TX_NAME, txName);
 
-        store.setStatus(tid, SUBMITTED);
+        opStore.setStatus(SUBMITTED);
       }
     } finally {
-      store.unreserve(tid, 0);
+      opStore.unreserve(0);
     }
 
   }
 
   // check on the transaction
-  public TStatus waitForCompletion(long tid) {
-    return store.waitForStatusChange(tid, FINISHED_STATES);
+  public FateStatus waitForCompletion(long tid) {
+    return store.read(tid).waitForStatusChange(FINISHED_STATES);
   }
 
   /**
@@ -308,14 +427,16 @@ public class Fate<T> {
   public boolean cancel(long tid) {
     String tidStr = FateTxId.formatTid(tid);
     for (int retries = 0; retries < 5; retries++) {
-      if (store.tryReserve(tid)) {
+      var optionalOpStore = store.tryReserve(tid);
+      if (optionalOpStore.isPresent()) {
+        var opStore = optionalOpStore.orElseThrow();
         try {
-          TStatus status = store.getStatus(tid);
+          FateStatus status = opStore.getStatus();
           log.info("status is: {}", status);
           if (status == NEW || status == SUBMITTED) {
-            store.setTransactionInfo(tid, TxInfo.EXCEPTION, new TApplicationException(
+            opStore.setTransactionInfo(TxInfo.EXCEPTION, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
-            store.setStatus(tid, FAILED_IN_PROGRESS);
+            opStore.setStatus(FAILED_IN_PROGRESS);
             log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
                 tidStr);
             return true;
@@ -324,7 +445,7 @@ public class Fate<T> {
             return false;
           }
         } finally {
-          store.unreserve(tid, 0);
+          opStore.unreserve(0);
         }
       } else {
         // reserved, lets retry.
@@ -337,14 +458,15 @@ public class Fate<T> {
 
   // resource cleanup
   public void delete(long tid) {
-    store.reserve(tid);
+    // TODO need to handle case of not existing
+    var opStore = store.reserve(tid);
     try {
-      switch (store.getStatus(tid)) {
+      switch (opStore.getStatus()) {
         case NEW:
         case SUBMITTED:
         case FAILED:
         case SUCCESSFUL:
-          store.delete(tid);
+          opStore.delete();
           break;
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
@@ -355,34 +477,34 @@ public class Fate<T> {
           break;
       }
     } finally {
-      store.unreserve(tid, 0);
+      opStore.unreserve(0);
     }
   }
 
   public String getReturn(long tid) {
-    store.reserve(tid);
+    var opStore = store.reserve(tid);
     try {
-      if (store.getStatus(tid) != SUCCESSFUL) {
+      if (opStore.getStatus() != SUCCESSFUL) {
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
       }
-      return (String) store.getTransactionInfo(tid, TxInfo.RETURN_VALUE);
+      return (String) opStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
-      store.unreserve(tid, 0);
+      opStore.unreserve(0);
     }
   }
 
   // get reportable failures
   public Exception getException(long tid) {
-    store.reserve(tid);
+    var opStore = store.reserve(tid);
     try {
-      if (store.getStatus(tid) != FAILED) {
+      if (opStore.getStatus() != FAILED) {
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
       }
-      return (Exception) store.getTransactionInfo(tid, TxInfo.EXCEPTION);
+      return (Exception) opStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {
-      store.unreserve(tid, 0);
+      opStore.unreserve(0);
     }
   }
 
@@ -395,6 +517,7 @@ public class Fate<T> {
     if (executor != null) {
       executor.shutdown();
     }
+    workFinder.interrupt();
   }
 
 }
