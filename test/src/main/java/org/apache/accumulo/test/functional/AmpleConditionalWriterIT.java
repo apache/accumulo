@@ -66,6 +66,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.iterators.user.WalFilter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -81,9 +82,11 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.hadoop.fs.Path;
@@ -846,6 +849,71 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
             context.getAmple().readTablet(e1).getTime());
       }
     }
+  }
+
+  @Test
+  public void testFilter() {
+    ServerContext context = cluster.getServerContext();
+
+    List<KeyExtent> expected = new ArrayList<>(List.of(e1, e2, e3, e4));
+
+    // make sure we read all tablets initially
+    try (TabletsMetadata tablets = context.getAmple().readTablets().forTable(tid).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(expected, actual);
+    }
+
+    // add a wal to tablet e2
+    ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+    String walFilePath =
+        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    LogEntry wal = new LogEntry(walFilePath);
+    ctmi.mutateTablet(e2).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+
+    // verify it went through and we see it
+    var results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+    assertEquals(Set.of(wal), new HashSet<>(context.getAmple().readTablet(e2).getLogs()),
+        "The original LogEntry should be present.");
+
+    // test that the filter only returns tablets with WALs
+    try (TabletsMetadata tablets =
+        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(List.of(e2), actual);
+    }
+
+    // add wal to tablet e4
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    walFilePath = java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+    wal = new LogEntry(walFilePath);
+    ctmi.mutateTablet(e4).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+
+    // check that we see the wal on e4
+    assertEquals(Set.of(wal), new HashSet<>(context.getAmple().readTablet(e4).getLogs()),
+        "Both added wals should be present without filter");
+
+    // now when using the wal filter, should see both e2 and e4
+    try (TabletsMetadata tablets =
+        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(List.of(e2, e4), actual);
+    }
+
+    // remove the wal from e4
+    ctmi.mutateTablet(e4).requireAbsentOperation().deleteWal(wal).submit(tabletMetadata -> false);
+
+    // test that now only the tablet with a wal is returned
+    try (TabletsMetadata tablets =
+        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(List.of(e2), actual);
+    }
+
   }
 
   @Test

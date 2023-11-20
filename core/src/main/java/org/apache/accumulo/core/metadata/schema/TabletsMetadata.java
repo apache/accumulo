@@ -64,6 +64,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -114,6 +115,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
+    private TabletMetadataFilter tableMetadataFilter = null;
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -170,6 +172,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             configureColumns(scanner);
             IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
             scanner.addScanIterator(iterSetting);
+
+            if (tableMetadataFilter != null) {
+              iterSetting = new IteratorSetting(100, tableMetadataFilter.getClass());
+              scanner.addScanIterator(iterSetting);
+            }
 
             Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
               try {
@@ -446,6 +453,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
+    public Options filter(TabletMetadataFilter filter) {
+      this.tableMetadataFilter = filter;
+      return this;
+    }
+
+    @Override
     public Options readConsistency(ReadConsistency readConsistency) {
       this.readConsistency = Objects.requireNonNull(readConsistency);
       return this;
@@ -475,6 +488,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * {@link ReadConsistency#IMMEDIATE}
      */
     Options readConsistency(ReadConsistency readConsistency);
+
+    Options filter(TabletMetadataFilter filter);
   }
 
   public interface RangeOptions extends Options {
