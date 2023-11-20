@@ -106,22 +106,13 @@ public class FindCompactionTmpFiles {
     // Remove paths of all active external compaction output files from the set of
     // tmp files found on the filesystem. This must be done *after* gathering the
     // matches on the filesystem.
-    context.getAmple().readTablets().forLevel(DataLevel.ROOT).fetch(ColumnType.ECOMP).build()
-        .forEach(tm -> {
-          tm.getExternalCompactions().values()
-              .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
-        });
-    context.getAmple().readTablets().forLevel(DataLevel.METADATA).fetch(ColumnType.ECOMP).build()
-        .forEach(tm -> {
-          tm.getExternalCompactions().values()
-              .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
-        });
-    context.getAmple().readTablets().forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()
-        .forEach(tm -> {
-          tm.getExternalCompactions().values()
-              .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
-        });
-
+    for (DataLevel level : DataLevel.values()) {
+      context.getAmple().readTablets().forLevel(level).fetch(ColumnType.ECOMP).build()
+          .forEach(tm -> {
+            tm.getExternalCompactions().values()
+                .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
+          });
+    }
     LOG.debug("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;
   }
