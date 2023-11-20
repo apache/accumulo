@@ -29,9 +29,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -177,31 +175,11 @@ public class ManagerMetadataUtil {
     }
   }
 
-  public static void updateLastLocation(ClientContext context, Ample.TabletUpdates<?> tabletMutator,
+  public static void updateLastLocation(Ample.TabletUpdates<?> tabletMutator,
       TServerInstance location, Location lastLocation) {
     Preconditions.checkArgument(
         lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
-
-    String assignmentMode = context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE);
-    log.debug("setting last location, mode: {}, last: {}", assignmentMode, lastLocation);
-    if ("assignment".equals(assignmentMode)) {
-      // if the location mode is assignment, then preserve the current location in the last
-      // location value
-      updateLocation(tabletMutator, lastLocation, Location.last(location));
-    } else if ("none".equals(assignmentMode)) {
-      Location currentLocationAsLast = null;
-      if (location != null) {
-        currentLocationAsLast = Location.last(location);
-        tabletMutator.deleteLocation(currentLocationAsLast);
-      }
-      if (lastLocation != null
-          && (currentLocationAsLast == null || !lastLocation.equals(currentLocationAsLast))) {
-        tabletMutator.deleteLocation(lastLocation);
-      }
-    } else {
-      log.warn("{} is an invalid value for property {}", assignmentMode,
-          Property.TSERV_LAST_LOCATION_MODE.getKey());
-    }
+    updateLocation(tabletMutator, lastLocation, Location.last(location));
   }
 
   /**

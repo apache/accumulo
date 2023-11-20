@@ -31,24 +31,16 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-public class AssignLocationModeIT extends ConfigurableMacBase {
+public class LastLocationIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
-  }
-
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assignment");
   }
 
   @Test
@@ -75,9 +67,6 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         m.put("b", "c", "d");
         bw.addMutation(m);
       }
-      // assert that the default mode is "assign"
-      assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
       TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
@@ -98,23 +87,6 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
-
-      c.instanceOperations().setProperty(Property.TSERV_LAST_LOCATION_MODE.getKey(), "none");
-      // Wait for property to sync across servers and wait 2x TabletGroupWatcher interval (5s)
-      // to ensure that TGW did *not* update TabletMetadata (because the Tablet is hosted)
-      UtilWaitThread.sleep(1000);
-      online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
-      assertTrue(online.hasCurrent());
-      assertNotNull(online.getLocation());
-      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
-
-      // Unload the Tablet
-      c.tableOperations().offline(tableName, true);
-      offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
-      assertNull(offline.getLocation());
-      assertFalse(offline.hasCurrent());
-      // Check that last is null
-      assertNull(offline.getLast());
     }
   }
 

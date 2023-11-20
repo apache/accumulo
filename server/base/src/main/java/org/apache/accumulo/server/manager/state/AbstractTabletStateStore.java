@@ -37,11 +37,9 @@ import com.google.common.base.Preconditions;
 
 public abstract class AbstractTabletStateStore implements TabletStateStore {
 
-  private final ClientContext context;
   private final Ample ample;
 
   protected AbstractTabletStateStore(ClientContext context) {
-    this.context = context;
     this.ample = context.getAmple();
   }
 
@@ -54,7 +52,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             .putLocation(TabletMetadata.Location.current(assignment.server))
             .deleteLocation(TabletMetadata.Location.future(assignment.server)).deleteSuspension();
 
-        ManagerMetadataUtil.updateLastLocation(context, conditionalMutator, assignment.server,
+        ManagerMetadataUtil.updateLastLocation(conditionalMutator, assignment.server,
             assignment.lastLocation);
 
         conditionalMutator.submit(tabletMetadata -> {
@@ -131,7 +129,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         if (tm.hasCurrent()) {
 
-          ManagerMetadataUtil.updateLastLocation(context, tabletMutator,
+          ManagerMetadataUtil.updateLastLocation(tabletMutator,
               tm.getLocation().getServerInstance(), tm.getLast());
           tabletMutator.deleteLocation(tm.getLocation());
           if (logsForDeadServers != null) {

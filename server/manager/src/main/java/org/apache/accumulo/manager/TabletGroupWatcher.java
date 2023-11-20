@@ -65,7 +65,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -94,7 +93,6 @@ import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -482,18 +480,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             store.name(), tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
             state, goal, actions);
-      }
-
-      if (actions.contains(ManagementAction.NEEDS_LAST_LOCATION_DELETED)
-          && state != TabletState.HOSTED) {
-        // Remove the last location. If the Tablet is currently hosted, then the last location
-        // will be removed when the Tablet is unassigned or unloaded in UnloadTabletHandler. This
-        // code
-        // handles the case where the property is modified when the Tablet is not hosted.
-        TabletMutator mut = manager.getContext().getAmple().mutateTablet(tm.getExtent());
-        ManagerMetadataUtil.updateLastLocation(manager.getContext(), mut,
-            tm.getLocation().getServerInstance(), tm.getLast());
-        mut.mutate();
       }
 
       if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
