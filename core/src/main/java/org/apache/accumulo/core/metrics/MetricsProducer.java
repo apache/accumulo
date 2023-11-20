@@ -700,7 +700,7 @@ public interface MetricsProducer {
   String METRICS_MANAGER_META_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.meta.errors";
   String METRICS_MANAGER_USER_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.user.errors";
 
-  String METRICS_MAJC_PREFIX = "accumulo.tserver.compactions.majc.";
+  String METRICS_MAJC_PREFIX = "accumulo.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";
   String METRICS_MAJC_RUNNING = METRICS_MAJC_PREFIX + "running";
   String METRICS_MAJC_PAUSED = METRICS_MAJC_PREFIX + "paused";

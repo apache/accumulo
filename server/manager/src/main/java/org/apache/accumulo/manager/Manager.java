@@ -162,6 +162,8 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -1662,4 +1664,17 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Unhandled DataLevel value: " + level);
     }
   }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
+    Gauge.builder(METRICS_MAJC_QUEUED, compactionJobQueues, CompactionJobQueues::getQueuedJobCount)
+        .description("Number of queued major compactions").register(registry);
+    Gauge
+        .builder(METRICS_MAJC_RUNNING, compactionCoordinator,
+            CompactionCoordinator::getNumRunningCompactions)
+        .description("Number of running major compactions").register(registry);
+
+  }
+
 }
