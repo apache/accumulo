@@ -21,7 +21,9 @@ package org.apache.accumulo.manager.upgrade;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +53,7 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("setting root table stored hosting goal");
     addHostingGoalToRootTable(context);
+    removeCompactIds(context);
   }
 
   @Override
@@ -64,6 +68,26 @@ public class Upgrader12to13 implements Upgrader {
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
+  }
+
+  private void removeCompactIds(ServerContext context) {
+    final String ZTABLE_COMPACT_ID = "/compact-id";
+    final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+
+    for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
+      final String tName = e.getKey();
+      final String tId = e.getValue();
+      final String zTablePath = Constants.ZROOT + "/" + context.getInstanceID().canonical()
+          + Constants.ZTABLES + "/" + tId;
+      try {
+        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_ID);
+        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
+      } catch (KeeperException | InterruptedException e1) {
+        throw new RuntimeException(
+            "Error removing compaction ids from ZooKeeper for table: " + tName);
+      }
+    }
+
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {

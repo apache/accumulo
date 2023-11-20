@@ -44,11 +44,6 @@ public class Constants {
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
 
-  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
-  public static final String ZTABLE_COMPACT_ID = "/compact-id";
-
-  // ELASTICITY_TODO delete from code and remove from ZK in upgrade
-  public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
