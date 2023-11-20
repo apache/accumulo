@@ -22,7 +22,10 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_P
 
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -56,6 +59,7 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeRoot(ServerContext context) {
     LOG.info("setting metadata table hosting goal");
     addHostingGoalToMetadataTable(context);
+    removeMetaDataBulkLoadFilter(context, RootTable.NAME);
   }
 
   @Override
@@ -64,6 +68,17 @@ public class Upgrader12to13 implements Upgrader {
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
+    removeMetaDataBulkLoadFilter(context, MetadataTable.NAME);
+  }
+
+  private void removeMetaDataBulkLoadFilter(ServerContext context, String tableName) {
+    final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
+    try {
+      context.tableOperations().removeProperty(tableName, propName);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(
+          "Error removing property: " + propName + " from table: " + tableName);
+    }
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
