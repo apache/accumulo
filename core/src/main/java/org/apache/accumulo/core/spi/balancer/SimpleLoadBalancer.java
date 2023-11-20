@@ -265,7 +265,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
         log.error("Unable to select a tablet to move", ex);
         return result;
       }
-      TabletId tabletId = selectTablet(onlineTabletsForTable);
+      if (onlineTabletsForTable.isEmpty()) {
+        return result;
+      }
+      TabletId tabletId = onlineTabletsForTable.keySet().iterator().next();
       onlineTabletsForTable.remove(tabletId);
       if (tabletId == null) {
         return result;
@@ -322,21 +325,6 @@ public class SimpleLoadBalancer implements TabletBalancer {
       }
     }
     return result;
-  }
-
-  static TabletId selectTablet(Map<TabletId,TabletStatistics> extents) {
-    if (extents.isEmpty()) {
-      return null;
-    }
-    TabletId mostRecentlySplit = null;
-    long splitTime = 0;
-    for (Entry<TabletId,TabletStatistics> entry : extents.entrySet()) {
-      if (entry.getValue().getSplitCreationTime() >= splitTime) {
-        splitTime = entry.getValue().getSplitCreationTime();
-        mostRecentlySplit = entry.getKey();
-      }
-    }
-    return mostRecentlySplit;
   }
 
   // define what it means for a tablet to be busy

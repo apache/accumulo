@@ -28,8 +28,6 @@ public interface TabletStatistics extends Comparable<TabletStatistics> {
 
   long getNumEntries();
 
-  long getSplitCreationTime();
-
   double getIngestRate();
 
   double getQueryRate();
