@@ -44,6 +44,7 @@ public class CompactionServicesConfigTest {
 
     conf.set(oldPrefix.getKey() + "default.planner.opts.ignoredProp", "1");
     conf.set(newPrefix.getKey() + "default.planner.opts.validProp", "1");
+    conf.set(oldPrefix.getKey() + "default.planner.opts.validProp", "a");
 
     var compactionConfig = new CompactionServicesConfig(conf);
     assertTrue(compactionConfig.getOptions().get("default").containsKey("validProp"));
@@ -65,11 +66,7 @@ public class CompactionServicesConfigTest {
 
     var compactionConfig = new CompactionServicesConfig(conf);
 
-    assertTrue(compactionConfig.getPlanners().containsKey("default"));
-    assertEquals(planner, compactionConfig.getPlanners().get("default"));
-
-    assertTrue(compactionConfig.getPlanners().containsKey("old"));
-    assertEquals(oldPlanner, compactionConfig.getPlanners().get("old"));
+assertEquals(Map.of("default",planner,"old",oldPlanner), compactionConfig.getPlanners());
   }
 
   @Test

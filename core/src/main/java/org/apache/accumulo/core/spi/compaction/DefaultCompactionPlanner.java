@@ -243,7 +243,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (tmpExec.size() < 1) {
-      throw new IllegalStateException("No defined executors for this planner");
+      throw new IllegalStateException("No defined executors or queues for this planner");
     }
 
     Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,

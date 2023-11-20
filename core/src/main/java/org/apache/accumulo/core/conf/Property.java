@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public enum Property {
-  COMPACTION_SERVICE_PREFIX("compaction.major.service.", null, PropertyType.PREFIX,
+  COMPACTION_SERVICE_PREFIX("compaction.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services.", "3.1.0"),
   COMPACTION_SERVICE_ROOT_PLANNER("compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,

@@ -250,8 +250,25 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    String queues = "[{\"name\": \"midsize\", \"maxSize\":\"32M\"},{\"name\":\"small\"}]";
+    String queues = "[{\"name\": \"small\", \"maxSize\":\"32M\"},{\"name\":\"midsize\"}]";
     planner.init(getInitParamQueues(senv, queues));
+
+    var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
+    var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+
+
+    all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
+    params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("midsize"), job.getExecutor());
   }
 
   /**

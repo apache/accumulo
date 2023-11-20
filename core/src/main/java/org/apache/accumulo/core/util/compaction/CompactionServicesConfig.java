@@ -56,22 +56,23 @@ public class CompactionServicesConfig {
         .getMemoryAsBytes(Property.COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
-  private Map<String,Map<String,String>> getConfiguration(AccumuloConfiguration aconf) {
-    Map<String,Map<String,String>> properties = new HashMap<>();
-    properties.put(newPrefix.getKey(), aconf.getAllPropertiesWithPrefixStripped(newPrefix));
+  private Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
 
-    Map<String,String> oldProps = new HashMap<>();
+    var newProps =  aconf.getAllPropertiesWithPrefixStripped(newPrefix);
+    Map<String,String> properties = new HashMap<>(newProps);
+    // get all of the services under the new prefix
+    var newServices = newProps.keySet().stream().map(prop->prop.split("\\.")[0]).collect(Collectors.toSet());
+
     for (Map.Entry<String,String> entry : aconf.getAllPropertiesWithPrefixStripped(oldPrefix)
         .entrySet()) {
-      // Discard duplicate property definitions
-      if (properties.get(newPrefix.getKey()).containsKey(entry.getKey())) {
-        log.warn("Duplicate property exists for compaction planner: '{}'. "
-            + "Using the value of property '{}'", entry.getKey(), newPrefix + entry.getKey());
+      // Discard duplicate service definitions
+      var service = entry.getKey().split("\\.")[0];
+      if (newServices.contains(service)) {
+        log.warn("Duplicate compaction service '{}' definition exists. Ignoring property : '{}'", service, entry.getKey());
       } else {
-        oldProps.put(entry.getKey(), entry.getValue());
+        properties.put(entry.getKey(), entry.getValue());
       }
     }
-    properties.put(oldPrefix.getKey(), oldProps);
     // Return unmodifiable map
     return Map.copyOf(properties);
   }
