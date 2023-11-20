@@ -34,6 +34,8 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -48,8 +50,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * <li>{@code compaction.major.service.<service>.opts.executors} This is a json array of objects
- * where each object has the fields:
+ * <li>{@code tserver.compaction.major.service.<service>.opts.executors} This is a json array of
+ * objects where each object has the fields:
  * <table>
  * <caption>Default Compaction Planner Executor options</caption>
  * <tr>
@@ -81,16 +83,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </table>
  * <br>
  * Note: The "executors" option has been deprecated in 3.1 and will be removed in a future release.
- * The maxSize field determines the maximum size of compaction that will run on an executor. The
- * maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and represents
- * the sum of the input files for a given compaction. One executor can have no max size and it will
- * run everything that is too large for the other executors. If all executors have a max size, then
- * system compactions will only run for compactions smaller than the largest max size. User, chop,
- * and selector compactions will always run, even if there is no executor for their size. These
- * compactions will run on the executor with the largest max size. The following example value for
- * this property will create 3 threads to run compactions of files whose file size sum is less than
- * 100M, 3 threads to run compactions of files whose file size sum is less than 500M, and run all
- * other compactions on Compactors configured to run compactions for Queue1:
+ * The property prefix "tserver.compaction.major.service" has also been deprecated in 3.1 and will
+ * be removed in a future release. The maxSize field determines the maximum size of compaction that
+ * will run on an executor. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes,
+ * or gigabytes and represents the sum of the input files for a given compaction. One executor can
+ * have no max size and it will run everything that is too large for the other executors. If all
+ * executors have a max size, then system compactions will only run for compactions smaller than the
+ * largest max size. User, chop, and selector compactions will always run, even if there is no
+ * executor for their size. These compactions will run on the executor with the largest max size.
+ * The following example value for this property will create 3 threads to run compactions of files
+ * whose file size sum is less than 100M, 3 threads to run compactions of files whose file size sum
+ * is less than 500M, and run all other compactions on Compactors configured to run compactions for
+ * Queue1:
  *
  * <pre>
  * {@code
@@ -103,10 +107,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * Note that the use of 'external' requires that the CompactionCoordinator and at least one
  * Compactor for Queue1 is running.
- * <li>{@code compaction.major.service.<service>.opts.maxOpen} This determines the maximum number of
- * files that will be included in a single compaction.
- * <li>{@code compaction.major.service.<service>.opts.queues} This is a json array of queue objects
- * which have the following fields:
+ * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
+ * that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.opts.queues} This is a json array of queue objects which
+ * have the following fields:
  * <table>
  * <caption>Default Compaction Planner Queue options</caption>
  * <tr>
@@ -132,6 +136,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
+
+  private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   private static class ExecutorConfig {
     String type;
@@ -269,7 +275,13 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   private void determineMaxFilesToCompact(InitParameters params) {
-    this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
+
+    String maxOpen = params.getOptions().get("maxOpen");
+    if (maxOpen == null) {
+      maxOpen = "10";
+      log.trace("default maxOpen not set, defaulting to 10");
+    }
+    this.maxFilesToCompact = Integer.parseInt(maxOpen);
   }
 
   @Override

@@ -241,7 +241,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   @Test
-  public void testQueueCreation() {
+  public void testQueueCreation() throws Exception {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
     Configuration conf = EasyMock.createMock(Configuration.class);
     EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
@@ -260,7 +260,6 @@ public class DefaultCompactionPlannerTest {
     var job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
-
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -376,7 +375,7 @@ public class DefaultCompactionPlannerTest {
 
     var e = assertThrows(IllegalStateException.class, () -> planner.init(execParams),
         "Failed to throw error");
-    assertEquals("No defined executors for this planner", e.getMessage(),
+    assertEquals("No defined executors or queues for this planner", e.getMessage(),
         "Error message was not equal");
 
     var params = getInitParamQueues(senv, "");
@@ -384,7 +383,7 @@ public class DefaultCompactionPlannerTest {
 
     var err = assertThrows(IllegalStateException.class, () -> planner.init(params),
         "Failed to throw error");
-    assertEquals("No defined executors for this planner", e.getMessage(),
+    assertEquals("No defined executors or queues for this planner", e.getMessage(),
         "Error message was not equal");
   }
 

@@ -86,8 +86,8 @@ public class CompactionService {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
-  public CompactionService(String serviceName, String plannerClass, Long maxRate,
-      Map<String,String> plannerOptions, ServerContext context,
+  public CompactionService(String serviceName, String plannerClass, String plannerPrefix,
+      Long maxRate, Map<String,String> plannerOptions, ServerContext context,
       CompactionExecutorsMetrics ceMetrics,
       Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier) {
 
@@ -100,8 +100,8 @@ public class CompactionService {
     this.ceMetrics = ceMetrics;
     this.externExecutorSupplier = externExecutorSupplier;
 
-    var initParams =
-        new CompactionPlannerInitParams(myId, plannerOpts, new ServiceEnvironmentImpl(context));
+    var initParams = new CompactionPlannerInitParams(myId, plannerPrefix, plannerOpts,
+        new ServiceEnvironmentImpl(context));
     planner = createPlanner(myId, plannerClass, plannerOptions, initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
@@ -359,7 +359,7 @@ public class CompactionService {
         .anyMatch(job -> job.getStatus() == Status.QUEUED);
   }
 
-  public void configurationChanged(String plannerClassName, Long maxRate,
+  public void configurationChanged(String plannerClassName, String plannerPrefix, Long maxRate,
       Map<String,String> plannerOptions) {
     Preconditions.checkArgument(maxRate >= 0);
 
@@ -372,8 +372,8 @@ public class CompactionService {
       return;
     }
 
-    var initParams =
-        new CompactionPlannerInitParams(myId, plannerOptions, new ServiceEnvironmentImpl(context));
+    var initParams = new CompactionPlannerInitParams(myId, plannerPrefix, plannerOptions,
+        new ServiceEnvironmentImpl(context));
     var tmpPlanner = createPlanner(myId, plannerClassName, plannerOptions, initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();

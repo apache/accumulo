@@ -84,7 +84,7 @@ public class SlowOps {
     final int target = numParallelExpected + 1;
     try {
       client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
           "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
       UtilWaitThread.sleep(3_000); // give it time to propagate
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {

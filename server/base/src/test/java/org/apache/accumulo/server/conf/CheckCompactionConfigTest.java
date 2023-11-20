@@ -93,9 +93,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n"
         + "{'name':'large','type':'external','queue':'DCQ1'}] \n"
-        + "compaction.major.service.cs3.planner="
+        + "compaction.service.cs3.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "compaction.major.service.cs3.planner.opts.queues=\\\n"
+        + "compaction.service.cs3.planner.opts.queues=\\\n"
         + "[{'name':'small','maxSize':'16M'},{'name':'large'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
@@ -170,11 +170,11 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testRepeatedQueueName() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'external','maxSize':'16M','queue':'failedQueue'}] \n"
-        + "compaction.major.service.cs1.planner.opts.queues=[{'name':'failedQueue'}]")
+        + "compaction.service.cs1.planner.opts.queues=[{'name':'failedQueue'}]")
         .replaceAll("'", "\"");
 
     String expectedErrorMsg = "Duplicate external executor for queue failedQueue";

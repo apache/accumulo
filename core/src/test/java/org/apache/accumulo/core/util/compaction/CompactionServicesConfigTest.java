@@ -20,16 +20,19 @@ package org.apache.accumulo.core.util.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("deprecation")
 public class CompactionServicesConfigTest {
 
+  @SuppressWarnings("removal")
   private final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
 
@@ -37,9 +40,9 @@ public class CompactionServicesConfigTest {
   public void testCompactionProps() {
     ConfigurationCopy conf = new ConfigurationCopy();
 
-    conf.set("compaction.major.service.default.planner", DefaultCompactionPlanner.class.getName());
-    conf.set("compaction.major.service.default.planner.opts.maxOpen", "10");
-    conf.set("compaction.major.service.default.planner.opts.executors",
+    conf.set(newPrefix.getKey() + "default.planner", DefaultCompactionPlanner.class.getName());
+    conf.set(newPrefix.getKey() + "default.planner.opts.maxOpen", "10");
+    conf.set(newPrefix.getKey() + "default.planner.opts.executors",
         "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]");
 
     conf.set(oldPrefix.getKey() + "default.planner.opts.ignoredProp", "1");
@@ -65,8 +68,7 @@ public class CompactionServicesConfigTest {
     conf.set(oldPrefix.getKey() + "old.planner", oldPlanner);
 
     var compactionConfig = new CompactionServicesConfig(conf);
-
-assertEquals(Map.of("default",planner,"old",oldPlanner), compactionConfig.getPlanners());
+    assertEquals(Map.of("default", planner, "old", oldPlanner), compactionConfig.getPlanners());
   }
 
   @Test
@@ -78,14 +80,10 @@ assertEquals(Map.of("default",planner,"old",oldPlanner), compactionConfig.getPla
     conf.set(oldPrefix.getKey() + "cs1.planner.opts.executors",
         "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]");
     conf.set(oldPrefix.getKey() + "cs1.planner.opts.foo", "1");
-    conf.set(newPrefix.getKey() + "cs1.planner.opts.bar", "2");
 
     var compactionConfig = new CompactionServicesConfig(conf);
     assertTrue(compactionConfig.getOptions().get("cs1").containsKey("foo"));
     assertEquals("1", compactionConfig.getOptions().get("cs1").get("foo"));
-
-    assertTrue(compactionConfig.getOptions().get("cs1").containsKey("bar"));
-    assertEquals("2", compactionConfig.getOptions().get("cs1").get("bar"));
   }
 
   @Test
@@ -98,9 +96,11 @@ assertEquals(Map.of("default",planner,"old",oldPlanner), compactionConfig.getPla
     compactionConfig = new CompactionServicesConfig(conf);
     assertEquals(2097152, compactionConfig.getRateLimits().get("cs1"));
 
-    // Test newPrefix property override
+    // Test service collision
     conf.set(newPrefix.getKey() + "cs1.rate.limit", "4M");
-    compactionConfig = new CompactionServicesConfig(conf);
-    assertEquals(4194304, compactionConfig.getRateLimits().get("cs1"));
+    var e = assertThrows(IllegalArgumentException.class, () -> new CompactionServicesConfig(conf),
+        "failed to throw error");
+    assertEquals("Incomplete compaction service definition, missing planner class: cs1.rate.limit",
+        e.getMessage(), "Error message was not equal");
   }
 }
