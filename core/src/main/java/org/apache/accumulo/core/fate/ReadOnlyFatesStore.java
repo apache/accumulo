@@ -59,7 +59,6 @@ public interface ReadOnlyFatesStore<T> {
      *
      * Caller must have already reserved tid.
      *
-     * @param tid transaction id, previously reserved.
      * @return a read-only view of the operation
      */
     ReadOnlyRepo<T> top();
@@ -75,7 +74,6 @@ public interface ReadOnlyFatesStore<T> {
      *
      * Caller must have already reserved tid.
      *
-     * @param tid transaction id, previously reserved.
      * @return execution status
      */
     FateStatus getStatus();
@@ -83,7 +81,6 @@ public interface ReadOnlyFatesStore<T> {
     /**
      * Wait for the status of a transaction to change
      *
-     * @param tid transaction id, need not have been reserved.
      * @param expected a set of possible statuses we are interested in being notified about. may not
      *        be null.
      * @return execution status.
@@ -95,7 +92,6 @@ public interface ReadOnlyFatesStore<T> {
      *
      * Caller must have already reserved tid.
      *
-     * @param tid transaction id, previously reserved.
      * @param txInfo name of attribute of a transaction to retrieve.
      */
     Serializable getTransactionInfo(Fate.TxInfo txInfo);
