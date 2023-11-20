@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -77,11 +76,6 @@ public class MergeTablets extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    mergeMetadataRecords(manager, tid);
-    return new FinishTableRangeOp(data);
-  }
-
-  private void mergeMetadataRecords(Manager manager, long tid) throws AccumuloException {
     var fateStr = FateTxId.formatTid(tid);
     KeyExtent range = data.getMergeExtent();
     log.debug("{} Merging metadata for {}", fateStr, range);
@@ -130,6 +124,11 @@ public class MergeTablets extends ManagerRepo {
 
           // queue all tablets dirs except the last tablets to be added as GC candidates
           dirs.add(new AllVolumesDirectory(range.tableId(), tabletMeta.getDirName()));
+          if (dirs.size() > 1000) {
+            Preconditions.checkState(tabletsSeen > 1);
+            manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
+            dirs.clear();
+          }
         }
       }
 
@@ -137,7 +136,7 @@ public class MergeTablets extends ManagerRepo {
         // The merge range overlaps a single tablet, so there is nothing to do. This could be
         // because there was only a single tablet before merge started or this operation completed
         // but the process died and now its running a 2nd time.
-        return;
+        return new FinishTableRangeOp(data);
       }
 
       Preconditions.checkState(lastTabletMeta != null, "%s no tablets seen in range %s", opid,
@@ -190,35 +189,7 @@ public class MergeTablets extends ManagerRepo {
     // Accumulo GC will delete the dir
     manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
 
-    // delete tablets
-    try (
-        var tabletsMetadata =
-            manager.getContext().getAmple().readTablets().forTable(range.tableId())
-                .overlapping(range.prevEndRow(), range.endRow()).saveKeyValues().build();
-        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-
-      for (var tabletMeta : tabletsMetadata) {
-        validateTablet(tabletMeta, fateStr, opid, data.tableId);
-
-        // do not delete the last tablet
-        if (Objects.equals(tabletMeta.getExtent().endRow(), lastTabletMeta.getExtent().endRow())) {
-          break;
-        }
-
-        var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
-            .requireOperation(opid).requireAbsentLocation();
-
-        tabletMeta.getKeyValues().keySet().forEach(key -> {
-          log.debug("{} deleting {}", fateStr, key);
-        });
-
-        tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
-        // if the tablet no longer exists, then it was successful
-        tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
-      }
-
-      verifyAccepted(tabletsMutator.process(), fateStr);
-    }
+    return new DeleteTablets(data, lastTabletMeta.getEndRow());
   }
 
   static void validateTablet(TabletMetadata tabletMeta, String fateStr, TabletOperationId opid,

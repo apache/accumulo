@@ -23,8 +23,13 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
@@ -53,20 +58,27 @@ public class ReserveTablets extends ManagerRepo {
     log.debug("{} reserving tablets in range {}", FateTxId.formatTid(tid), range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
 
+    AtomicLong opsAccepted = new AtomicLong(0);
+    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+      if (result.getStatus() == Status.ACCEPTED) {
+        opsAccepted.incrementAndGet();
+      }
+    };
+
+    int count = 0;
+    int otherOps = 0;
+    int opsSet = 0;
+    int locations = 0;
+    int wals = 0;
+
     try (
         var tablets = env.getContext().getAmple().readTablets().forTable(data.tableId)
             .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, LOGS, OPID)
             .checkConsistency().build();
-        var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets();) {
-
-      int count = 0;
-      int otherOps = 0;
-      int opsSet = 0;
-      int locations = 0;
-      int wals = 0;
+        var tabletsMutator =
+            env.getContext().getAmple().conditionallyMutateTablets(resultConsumer)) {
 
       for (var tabletMeta : tablets) {
-
         if (tabletMeta.getOperationId() == null) {
           tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
               .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
@@ -83,46 +95,39 @@ public class ReserveTablets extends ManagerRepo {
 
         count++;
       }
-
-      var opsAccepted = tabletsMutator.process().values().stream()
-          .filter(conditionalResult -> conditionalResult.getStatus() == Status.ACCEPTED).count();
-
-      log.debug(
-          "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",
-          FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted, wals);
-
-      // while there are table lock a tablet can be concurrently deleted, so should always see
-      // tablets
-      Preconditions.checkState(count > 0);
-
-      if (locations > 0 && opsAccepted > 0) {
-        // operation ids were set and tablets have locations, so lets send a signal to get them
-        // unassigned
-        env.getEventCoordinator().event(range, "Tablets %d were reserved for merge %s", opsAccepted,
-            FateTxId.formatTid(tid));
-      }
-
-      if (locations > 0 || otherOps > 0 || wals > 0) {
-        // need to wait on these tablets
-        return Math.max(1000, count);
-      }
-
-      if (opsSet != opsAccepted) {
-        // not all operation ids were set
-        return Math.max(1000, count);
-      }
-
-      // operations ids were set on all tablets and no tablets have locations, so ready
-      return 0;
     }
+
+    log.debug(
+        "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",
+        FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted, wals);
+
+    // while there are table lock a tablet can be concurrently deleted, so should always see
+    // tablets
+    Preconditions.checkState(count > 0);
+
+    if (locations > 0 && opsAccepted.get() > 0) {
+      // operation ids were set and tablets have locations, so lets send a signal to get them
+      // unassigned
+      env.getEventCoordinator().event(range, "Tablets %d were reserved for merge %s",
+          opsAccepted.get(), FateTxId.formatTid(tid));
+    }
+
+    if (locations > 0 || otherOps > 0 || wals > 0) {
+      // need to wait on these tablets
+      return Math.min(Math.max(1000, count), 60000);
+    }
+
+    if (opsSet != opsAccepted.get()) {
+      // not all operation ids were set
+      return Math.min(Math.max(1000, count), 60000);
+    }
+
+    // operations ids were set on all tablets and no tablets have locations, so ready
+    return 0;
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    if (data.op == MergeInfo.Operation.MERGE) {
-      return new MergeTablets(data);
-    } else {
-      return new DeleteRows(data);
-    }
+    return new CountFiles(data);
   }
 }

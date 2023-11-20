@@ -34,3 +34,6 @@
 /nb-configuration.xml
 /.vscode/
 /.factorypath
+
+# MacOS ignores
+.DS_Store

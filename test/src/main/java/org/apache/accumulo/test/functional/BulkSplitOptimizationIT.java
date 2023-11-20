@@ -27,10 +27,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -49,34 +47,19 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(2);
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1s");
-  }
-
-  private String majcDelay;
-
   @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      majcDelay = client.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_MAJC_DELAY.getKey());
-      if (!"1s".equals(majcDelay)) {
-        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
   }
 
   @AfterEach
   public void resetConfig() throws Exception {
-    if (majcDelay != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
   }
 

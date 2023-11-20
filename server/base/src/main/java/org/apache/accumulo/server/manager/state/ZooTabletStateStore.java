@@ -36,6 +36,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +94,11 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
           log.error("Error computing tablet management actions for Root extent", e);
           error = e.getMessage();
         }
+
+        if (VolumeUtil.needsVolumeReplacement(parameters.getVolumeReplacements(), tm)) {
+          actions.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
+        }
+
         return new TabletManagement(actions, tm, error);
 
       }

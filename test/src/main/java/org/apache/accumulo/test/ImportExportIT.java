@@ -46,21 +46,25 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +86,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(1);
   }
 
-  @Test
-  public void testExportImportThenScan() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void testExportImportThenScan(boolean fenced) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
@@ -92,7 +97,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
         for (int row = 0; row < 1000; row++) {
-          Mutation m = new Mutation(Integer.toString(row));
+          Mutation m = new Mutation("row_" + String.format("%010d", row));
           for (int col = 0; col < 100; col++) {
             m.put(Integer.toString(col), "", Integer.toString(col * 2));
           }
@@ -101,6 +106,14 @@ public class ImportExportIT extends AccumuloClusterHarness {
       }
 
       client.tableOperations().compact(srcTable, null, null, true, true);
+
+      int expected = 100000;
+      // Test that files with ranges and are fenced work with export/import
+      if (fenced) {
+        // Split file into 3 ranges of 10000, 20000, and 5000 for a total of 35000
+        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges());
+        expected = 35000;
+      }
 
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
@@ -186,9 +199,12 @@ public class ImportExportIT extends AccumuloClusterHarness {
           if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // The file should be an absolute URI (file:///...), not a relative path
             // (/b-000.../I000001.rf)
-            String fileUri = k.getColumnQualifier().toString();
-            assertFalse(looksLikeRelativePath(fileUri),
-                "Imported files should have absolute URIs, not relative: " + fileUri);
+            var tabFile = StoredTabletFile.of(k.getColumnQualifier());
+            // Verify that the range is set correctly on the StoredTabletFile
+            assertEquals(fenced, !tabFile.getRange().isInfiniteStartKey()
+                || !tabFile.getRange().isInfiniteStopKey());
+            assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
+                "Imported files should have absolute URIs, not relative: " + tabFile);
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse(looksLikeRelativePath(value),
                 "Server directory should have absolute URI, not relative: " + value);
@@ -201,12 +217,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Online the original table before we verify equivalence
       client.tableOperations().online(srcTable, true);
 
-      verifyTableEquality(client, srcTable, destTable);
+      verifyTableEquality(client, srcTable, destTable, expected);
     }
   }
 
-  @Test
-  public void testExportImportOffline() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void testExportImportOffline(boolean fenced) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
@@ -215,7 +232,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
         for (int row = 0; row < 1000; row++) {
-          Mutation m = new Mutation(Integer.toString(row));
+          Mutation m = new Mutation("row_" + String.format("%010d", row));
           for (int col = 0; col < 100; col++) {
             m.put(Integer.toString(col), "", Integer.toString(col * 2));
           }
@@ -224,6 +241,14 @@ public class ImportExportIT extends AccumuloClusterHarness {
       }
 
       client.tableOperations().compact(srcTable, new CompactionConfig());
+
+      int expected = 100000;
+      // Test that files with ranges and are fenced work with export/import
+      if (fenced) {
+        // Split file into 3 ranges of 10000, 20000, and 5000 for a total of 35000
+        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges());
+        expected = 35000;
+      }
 
       // Make export and import directories
       FileSystem fs = cluster.getFileSystem();
@@ -309,9 +334,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
           String value = fileEntry.getValue().toString();
           if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // file should be an absolute URI (file:///...), not relative (/b-000.../I000001.rf)
-            String fileUri = k.getColumnQualifier().toString();
-            assertFalse(looksLikeRelativePath(fileUri),
-                "Imported files should have absolute URIs, not relative: " + fileUri);
+            var tabFile = StoredTabletFile.of(k.getColumnQualifier());
+            // Verify that the range is set correctly on the StoredTabletFile
+            assertEquals(fenced, !tabFile.getRange().isInfiniteStartKey()
+                || !tabFile.getRange().isInfiniteStopKey());
+            assertFalse(looksLikeRelativePath(tabFile.getMetadataPath()),
+                "Imported files should have absolute URIs, not relative: "
+                    + tabFile.getMetadataPath());
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse(looksLikeRelativePath(value),
                 "Server directory should have absolute URI, not relative: " + value);
@@ -323,7 +352,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Online the original table before we verify equivalence
       client.tableOperations().online(srcTable, true);
 
-      verifyTableEquality(client, srcTable, destTable);
+      verifyTableEquality(client, srcTable, destTable, expected);
       assertTrue(verifyMappingsFile(tableId), "Did not find mappings file");
     }
   }
@@ -347,20 +376,23 @@ public class ImportExportIT extends AccumuloClusterHarness {
     return false;
   }
 
-  private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable)
-      throws Exception {
+  private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable,
+      int expected) throws Exception {
     Iterator<Entry<Key,Value>> src =
         client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
         dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue(src.hasNext(), "Could not read any data from source table");
     assertTrue(dest.hasNext(), "Could not read any data from destination table");
+    int entries = 0;
     while (src.hasNext() && dest.hasNext()) {
       Entry<Key,Value> orig = src.next(), copy = dest.next();
       assertEquals(orig.getKey(), copy.getKey());
       assertEquals(orig.getValue(), copy.getValue());
+      entries++;
     }
     assertFalse(src.hasNext(), "Source table had more data to read");
     assertFalse(dest.hasNext(), "Dest table had more data to read");
+    assertEquals(expected, entries);
   }
 
   private boolean looksLikeRelativePath(String uri) {
@@ -369,5 +401,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
     } else {
       return uri.startsWith("/" + Constants.CLONE_PREFIX);
     }
+  }
+
+  private Set<Range> createRanges() {
+    // Split file into ranges of 10000, 20000, and 5000 for a total of 35000
+    return Set.of(
+        new Range("row_" + String.format("%010d", 100), "row_" + String.format("%010d", 199)),
+        new Range("row_" + String.format("%010d", 300), "row_" + String.format("%010d", 499)),
+        new Range("row_" + String.format("%010d", 700), "row_" + String.format("%010d", 749)));
   }
 }

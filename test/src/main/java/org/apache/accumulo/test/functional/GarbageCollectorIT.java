@@ -104,7 +104,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     // reduce the batch size significantly in order to cause the integration tests to have
     // to process many batches of deletion candidates.
     cfg.setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "256K");
@@ -294,7 +293,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testMetadataUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.USER.tableId();
+    TableId tableId = DataLevel.USER.metaTableId();
     log.info("Metadata GcCandidate Deletion test");
     log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
@@ -309,7 +308,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testRootUniqueMutationDelete() throws Exception {
     killMacGc();
-    TableId tableId = DataLevel.METADATA.tableId();
+    TableId tableId = DataLevel.METADATA.metaTableId();
     log.info("Root GcCandidate Deletion test");
     log.info("GcCandidates will be added but not removed from Zookeeper");
 

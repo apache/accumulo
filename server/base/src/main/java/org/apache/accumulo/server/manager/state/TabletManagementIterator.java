@@ -60,6 +60,7 @@ import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.slf4j.Logger;
@@ -250,6 +251,10 @@ public class TabletManagementIterator extends SkippingIterator {
         && env.getPluginEnv().getConfiguration(tm.getTableId())
             .get(Property.TSERV_LAST_LOCATION_MODE.getKey()).equals("none")) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LAST_LOCATION_DELETED);
+    }
+
+    if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 
     if (shouldReturnDueToLocation(tm)) {

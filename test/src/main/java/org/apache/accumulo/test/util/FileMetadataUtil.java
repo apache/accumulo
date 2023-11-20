@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -95,6 +97,20 @@ public class FileMetadataUtil {
     }
   }
 
+  public static int countFencedFiles(final ServerContext ctx, String tableName) {
+    return countFencedFiles(ctx, tableName, null, null);
+  }
+
+  public static int countFencedFiles(final ServerContext ctx, String tableName, Text tabletStartRow,
+      Text tabletEndRow) {
+    final TableId tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
+    try (TabletsMetadata tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId)
+        .overlapping(tabletStartRow, tabletEndRow).fetch(ColumnType.FILES).build()) {
+      return (int) tabletsMetadata.stream().flatMap(tm -> tm.getFilesMap().keySet().stream())
+          .filter(AbstractTabletFile::hasRange).count();
+    }
+  }
+
   public static void splitFilesIntoRanges(final ServerContext ctx, String tableName,
       Set<Range> fileRanges) throws Exception {
     splitFilesIntoRanges(ctx, tableName, null, null, fileRanges);
@@ -152,6 +168,14 @@ public class FileMetadataUtil {
 
     // Bring back online after metadata updates
     ctx.tableOperations().online(tableName, true);
+  }
+
+  // Verifies that the MERGED marker was cleared and doesn't exist on any tablet
+  public static void verifyMergedMarkerCleared(final ServerContext ctx, TableId tableId) {
+    try (var tabletsMetadata =
+        ctx.getAmple().readTablets().forTable(tableId).fetch(ColumnType.MERGED).build()) {
+      assertTrue(tabletsMetadata.stream().noneMatch(TabletMetadata::hasMerged));
+    }
   }
 
   public interface FileMutator {

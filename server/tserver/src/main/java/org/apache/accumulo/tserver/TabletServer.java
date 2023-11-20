@@ -389,39 +389,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return sessionManager.getSession(sessionId);
   }
 
-  private class MajorCompactor implements Runnable {
-
-    public MajorCompactor(ServerContext context) {
-      CompactionWatcher.startWatching(context);
-    }
-
-    @Override
-    public void run() {
-      while (true) {
-        try {
-          // TODO this property is misnamed, opened #3606
-          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
-              TimeUnit.MILLISECONDS);
-
-          final List<DfsLogger> closedCopy;
-
-          synchronized (closedLogs) {
-            closedCopy = List.copyOf(closedLogs);
-          }
-
-          // bail early now if we're shutting down
-          for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
-            Tablet tablet = entry.getValue();
-            tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
-          }
-        } catch (Exception t) {
-          log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
-        }
-      }
-    }
-  }
-
   // add a message for the main thread to send back to the manager
   public void enqueueManagerMessage(ManagerMessage m) {
     managerMessages.addLast(m);
@@ -823,7 +790,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
+    CompactionWatcher.startWatching(context);
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
   }
@@ -938,11 +905,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryDirs = new ArrayList<>();
-    List<LogEntry> sorted = new ArrayList<>(logEntries);
-    sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
-    for (LogEntry entry : sorted) {
+    for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -1118,6 +1083,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
       log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
+
+      // whenever a new log is added to the set of closed logs, go through all of the tablets and
+      // see if any need to minor compact
+      List<DfsLogger> closedCopy;
+      synchronized (closedLogs) {
+        closedCopy = List.copyOf(closedLogs);
+      }
+
+      int maxLogs = getConfiguration().getCount(Property.TSERV_WAL_MAX_REFERENCED);
+      if (closedCopy.size() >= maxLogs) {
+        for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().entrySet()) {
+          Tablet tablet = entry.getValue();
+          tablet.checkIfMinorCompactionNeededForLogs(closedCopy, maxLogs);
+        }
+      }
     } else {
       log.info(
           "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
