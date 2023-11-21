@@ -270,9 +270,6 @@ public class SimpleLoadBalancer implements TabletBalancer {
       }
       TabletId tabletId = onlineTabletsForTable.keySet().iterator().next();
       onlineTabletsForTable.remove(tabletId);
-      if (tabletId == null) {
-        return result;
-      }
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /*
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there
