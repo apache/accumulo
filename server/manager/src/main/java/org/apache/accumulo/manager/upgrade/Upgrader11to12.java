@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -134,7 +135,7 @@ public class Upgrader11to12 implements Upgrader {
         Text r = key.getRow();
         if (update == null) {
           update = new Mutation(r);
-        } else if (!Arrays.equals(update.getRow(), r.getBytes())) {
+        } else if (!Arrays.equals(update.getRow(), TextUtil.getBytes(r))) {
           log.trace("table: {}, update: {}", tableName, update.prettyPrint());
           if (!update.getUpdates().isEmpty()) {
             batchWriter.addMutation(update);
