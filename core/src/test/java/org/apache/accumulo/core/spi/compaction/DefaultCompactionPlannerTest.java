@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,6 +45,8 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.JsonParseException;
 
 public class DefaultCompactionPlannerTest {
 
@@ -271,6 +274,44 @@ public class DefaultCompactionPlannerTest {
   }
 
   /**
+   * Tests that additional fields in the JSON objects cause errors to be thrown.
+   */
+  @Test
+  public void testErrorAdditionalConfigFields() {
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    DefaultCompactionPlanner QueuePlanner = new DefaultCompactionPlanner();
+
+    String queues =
+        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"name\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
+
+    final InitParameters queueParams = getInitParamQueues(senv, queues);
+    assertNotNull(queueParams);
+    var e = assertThrows(JsonParseException.class, () -> QueuePlanner.init(queueParams),
+        "Failed to throw error");
+    assertTrue(e.getMessage().contains("[type, foo, queue]"),
+        "Error message didn't contain '[type, foo, queue]'");
+
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','maxSize':'128M','numThreads':2, 'foo':'bar'",
+        "'type': 'internal','numThreads':1, 'unexpectedField':'foo'");
+
+    final InitParameters execParams = getInitParams(senv, executors);
+    assertNotNull(execParams);
+
+    DefaultCompactionPlanner ExecPlanner = new DefaultCompactionPlanner();
+    var err = assertThrows(JsonParseException.class, () -> ExecPlanner.init(execParams),
+        "Failed to throw error");
+    assertTrue(err.getMessage().contains("Invalid fields: [foo]"),
+        "Error message didn't contain '[foo]'");
+  }
+
+  /**
    * Tests internal type executor with no numThreads set throws error
    */
   @Test
@@ -346,10 +387,9 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    String queues =
-        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"type\":\"internal\", \"queue\":\"broken\"}]";
+    String queues = "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
 
-    var params = getInitParamQueues(senv, queues);
+    final InitParameters params = getInitParamQueues(senv, queues);
     assertNotNull(params);
 
     var e = assertThrows(NullPointerException.class, () -> planner.init(params),

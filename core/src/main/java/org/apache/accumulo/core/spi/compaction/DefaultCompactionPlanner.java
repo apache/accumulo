@@ -20,9 +20,11 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -38,6 +41,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -180,79 +187,77 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   @Override
   public void init(InitParameters params) {
     List<Executor> tmpExec = new ArrayList<>();
-    ExecutorConfig[] execConfigs = null;
-    QueueConfig[] queueConfigs = null;
-    String values = "";
+    String values;
 
-    if (params.getOptions().containsKey("executors")) {
+    if (params.getOptions().containsKey("executors")
+        && !params.getOptions().get("executors").isBlank()) {
       values = params.getOptions().get("executors");
-    }
 
-    if (!values.isBlank()) {
-      execConfigs = GSON.get().fromJson(values, ExecutorConfig[].class);
-    } else {
-      // Generated a zero-length array to avoid a npe thrown by forEach
-      execConfigs = new ExecutorConfig[0];
-    }
+      // Generate a list of fields from the desired object.
+      final List<String> execFields = Arrays.stream(ExecutorConfig.class.getDeclaredFields())
+          .map(Field::getName).collect(Collectors.toList());
 
-    for (ExecutorConfig executorConfig : execConfigs) {
-      Long maxSize = executorConfig.maxSize == null ? null
-          : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
-      CompactionExecutorId ceid;
+      for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
+        validateConfig(element, execFields, ExecutorConfig.class.getName());
+        ExecutorConfig executorConfig = GSON.get().fromJson(element, ExecutorConfig.class);
 
-      // If not supplied, GSON will leave type null. Default to internal
-      if (executorConfig.type == null) {
-        executorConfig.type = "internal";
+        Long maxSize = executorConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
+        CompactionExecutorId ceid;
+
+        // If not supplied, GSON will leave type null. Default to internal
+        if (executorConfig.type == null) {
+          executorConfig.type = "internal";
+        }
+
+        switch (executorConfig.type) {
+          case "internal":
+            Preconditions.checkArgument(null == executorConfig.queue,
+                "'queue' should not be specified for internal compactions");
+            int numThreads = Objects.requireNonNull(executorConfig.numThreads,
+                "'numThreads' must be specified for internal type");
+            ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
+            break;
+          case "external":
+            Preconditions.checkArgument(null == executorConfig.numThreads,
+                "'numThreads' should not be specified for external compactions");
+            String queue = Objects.requireNonNull(executorConfig.queue,
+                "'queue' must be specified for external type");
+            ceid = params.getExecutorManager().getExternalExecutor(queue);
+            break;
+          default:
+            throw new IllegalArgumentException("type must be 'internal' or 'external'");
+        }
+        tmpExec.add(new Executor(ceid, maxSize));
       }
-
-      switch (executorConfig.type) {
-        case "internal":
-          Preconditions.checkArgument(null == executorConfig.queue,
-              "'queue' should not be specified for internal compactions");
-          int numThreads = Objects.requireNonNull(executorConfig.numThreads,
-              "'numThreads' must be specified for internal type");
-          ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
-          break;
-        case "external":
-          Preconditions.checkArgument(null == executorConfig.numThreads,
-              "'numThreads' should not be specified for external compactions");
-          String queue = Objects.requireNonNull(executorConfig.queue,
-              "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(queue);
-          break;
-        default:
-          throw new IllegalArgumentException("type must be 'internal' or 'external'");
-      }
-      tmpExec.add(new Executor(ceid, maxSize));
     }
 
-    values = "";
-    if (params.getOptions().containsKey("queues")) {
+    if (params.getOptions().containsKey("queues") && !params.getOptions().get("queues").isBlank()) {
       values = params.getOptions().get("queues");
-    }
 
-    if (!values.isBlank()) {
-      queueConfigs = GSON.get().fromJson(values, QueueConfig[].class);
-    } else {
-      // Generated a zero-length array to avoid a npe thrown by forEach
-      queueConfigs = new QueueConfig[0];
-    }
+      // Generate a list of fields from the desired object.
+      final List<String> queueFields = Arrays.stream(QueueConfig.class.getDeclaredFields())
+          .map(Field::getName).collect(Collectors.toList());
 
-    for (QueueConfig queueConfig : queueConfigs) {
-      Long maxSize = queueConfig.maxSize == null ? null
-          : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
+      for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
+        validateConfig(element, queueFields, QueueConfig.class.getName());
+        QueueConfig queueConfig = GSON.get().fromJson(element, QueueConfig.class);
 
-      CompactionExecutorId ceid;
-      String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
-      ceid = params.getExecutorManager().getExternalExecutor(queue);
-      tmpExec.add(new Executor(ceid, maxSize));
+        Long maxSize = queueConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
+
+        CompactionExecutorId ceid;
+        String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
+        ceid = params.getExecutorManager().getExternalExecutor(queue);
+        tmpExec.add(new Executor(ceid, maxSize));
+      }
     }
 
     if (tmpExec.size() < 1) {
       throw new IllegalStateException("No defined executors or queues for this planner");
     }
 
-    Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,
+    tmpExec.sort(Comparator.comparing(Executor::getMaxSize,
         Comparator.nullsLast(Comparator.naturalOrder())));
 
     executors = List.copyOf(tmpExec);
@@ -282,6 +287,20 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       log.trace("default maxOpen not set, defaulting to 10");
     }
     this.maxFilesToCompact = Integer.parseInt(maxOpen);
+  }
+
+  private void validateConfig(JsonElement json, List<String> fields, String className) {
+
+    JsonObject jsonObject = GSON.get().fromJson(json, JsonObject.class);
+
+    List<String> objectProperties = new ArrayList<>(jsonObject.keySet());
+    HashSet<String> classFieldNames = new HashSet<>(fields);
+
+    if (!classFieldNames.containsAll(objectProperties)) {
+      objectProperties.removeAll(classFieldNames);
+      throw new JsonParseException(
+          "Invalid fields: " + objectProperties + " provided for class: " + className);
+    }
   }
 
   @Override
