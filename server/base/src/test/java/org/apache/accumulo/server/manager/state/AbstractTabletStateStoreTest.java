@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.manager.state;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -27,7 +27,7 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ManagerMetadataUtilTest {
+public class AbstractTabletStateStoreTest {
 
   private Ample.TabletMutator tabletMutator;
   private final TServerInstance server1 = new TServerInstance("127.0.0.1:10000", 0);
@@ -48,7 +48,7 @@ public class ManagerMetadataUtilTest {
 
     // Pass in a null last location value. There should be a call to
     // tabletMutator.putLocation of last 1 but no deletion as lastLocation is null
-    ManagerMetadataUtil.updateLastLocation(tabletMutator, server1, null);
+    AbstractTabletStateStore.updateLastLocation(tabletMutator, server1, null);
     EasyMock.verify(tabletMutator);
   }
 
@@ -57,7 +57,8 @@ public class ManagerMetadataUtilTest {
     EasyMock.replay(tabletMutator);
     assertThrows(IllegalArgumentException.class, () -> {
       // Should throw an IllegalArgumentException as the lastLocation is not LocationType.LAST
-      ManagerMetadataUtil.updateLastLocation(tabletMutator, server1, Location.current(server1));
+      AbstractTabletStateStore.updateLastLocation(tabletMutator, server1,
+          Location.current(server1));
     });
   }
 
@@ -69,7 +70,7 @@ public class ManagerMetadataUtilTest {
     // There should be no call to tabletMutator.putLocation or tabletMutator.deleteLocation
     // as the locations are equal so no expects() are defined and any method calls would
     // throw an error
-    ManagerMetadataUtil.updateLastLocation(tabletMutator, server1, last1);
+    AbstractTabletStateStore.updateLastLocation(tabletMutator, server1, last1);
     EasyMock.verify(tabletMutator);
   }
 
@@ -86,7 +87,7 @@ public class ManagerMetadataUtilTest {
     // There should be no read from Ample as we provided a value as an argument
     // There should be a call to tabletMutator.putLocation and tabletMutator.deleteLocation
     // as the last location is being updated as last1 does not match server 2
-    ManagerMetadataUtil.updateLastLocation(tabletMutator, server2, last1);
+    AbstractTabletStateStore.updateLastLocation(tabletMutator, server2, last1);
     EasyMock.verify(tabletMutator);
   }
 

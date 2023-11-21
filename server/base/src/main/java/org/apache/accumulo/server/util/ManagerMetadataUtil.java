@@ -41,7 +41,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -54,8 +53,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class ManagerMetadataUtil {
 
@@ -175,30 +172,4 @@ public class ManagerMetadataUtil {
     }
   }
 
-  public static void updateLastLocation(Ample.TabletUpdates<?> tabletMutator,
-      TServerInstance location, Location lastLocation) {
-    Preconditions.checkArgument(
-        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
-    updateLocation(tabletMutator, lastLocation, Location.last(location));
-  }
-
-  /**
-   * Update the location, deleting the previous location if needed
-   *
-   * @param tabletMutator The mutator being built
-   * @param previousLocation The location (may be null)
-   * @param newLocation The new location
-   */
-  private static void updateLocation(Ample.TabletUpdates<?> tabletMutator,
-      Location previousLocation, Location newLocation) {
-    // ELASTICITY_TODO pending #3301, update this code to use conditional mutations
-    if (previousLocation != null) {
-      if (!previousLocation.equals(newLocation)) {
-        tabletMutator.deleteLocation(previousLocation);
-        tabletMutator.putLocation(newLocation);
-      }
-    } else {
-      tabletMutator.putLocation(newLocation);
-    }
-  }
 }
