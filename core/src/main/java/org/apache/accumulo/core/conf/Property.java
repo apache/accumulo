@@ -47,7 +47,17 @@ public enum Property {
   COMPACTION_PREFIX("compaction.", null, PropertyType.PREFIX,
       "Both major and minor compaction properties can be included under this prefix.", "3.1.0"),
   COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
-      "Prefix for major compaction services.", "3.1.0"),
+      "This prefix should be used to define all properties for the compaction services."
+          + "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.\n"
+          + "A new external compaction service would be defined like the following:\n"
+          + "`compaction.service.newService.planner="
+          + "\"org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner\".`\n"
+          + "`compaction.service.newService.opts.queues=\""
+          + "[{\"name\": \"small\", \"maxSize\":\"32M\"},"
+          + "{ \"name\":\"medium\", \"maxSize\":\"512M\"},{\"name\":\"large\"}]`\n"
+          + "`compaction.service.newService.opts.maxOpen=50`.\n"
+          + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
+      "3.1.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
       "3.1.0"),
@@ -212,7 +222,6 @@ public enum Property {
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
       "2.1.0"),
-
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
