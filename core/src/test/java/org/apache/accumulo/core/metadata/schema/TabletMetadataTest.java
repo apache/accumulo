@@ -402,7 +402,7 @@ public class TabletMetadataTest {
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
-        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).build();
+        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged().build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -416,6 +416,7 @@ public class TabletMetadataTest {
     assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
+    assertTrue(tm3.hasMerged());
   }
 
 }
