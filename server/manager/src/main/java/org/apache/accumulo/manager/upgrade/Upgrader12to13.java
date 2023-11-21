@@ -48,6 +48,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    LOG.info("checking for removed properties");
+    checkForRemovedProperties(context);
     LOG.info("setting root table stored hosting goal");
     addHostingGoalToRootTable(context);
   }
@@ -64,6 +66,14 @@ public class Upgrader12to13 implements Upgrader {
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
+  }
+
+  private void checkForRemovedProperties(ServerContext context) {
+    String lastLocationModeProperty = "tserver.last.location.mode";
+    if (context.getConfiguration().get(lastLocationModeProperty) != null) {
+      LOG.warn("Property '{}' has been found in Configuration and is no longer used.",
+          lastLocationModeProperty);
+    }
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
