@@ -20,10 +20,9 @@ package org.apache.accumulo.manager.upgrade;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 
+import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -40,6 +39,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.util.PropUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeRoot(ServerContext context) {
     LOG.info("setting metadata table hosting goal");
     addHostingGoalToMetadataTable(context);
-    removeMetaDataBulkLoadFilter(context, RootTable.NAME);
+    removeMetaDataBulkLoadFilter(context, RootTable.ID);
   }
 
   @Override
@@ -68,17 +69,12 @@ public class Upgrader12to13 implements Upgrader {
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
-    removeMetaDataBulkLoadFilter(context, MetadataTable.NAME);
+    removeMetaDataBulkLoadFilter(context, MetadataTable.ID);
   }
 
-  private void removeMetaDataBulkLoadFilter(ServerContext context, String tableName) {
+  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
-    try {
-      context.tableOperations().removeProperty(tableName, propName);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(
-          "Error removing property: " + propName + " from table: " + tableName);
-    }
+    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), List.of(propName));
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
