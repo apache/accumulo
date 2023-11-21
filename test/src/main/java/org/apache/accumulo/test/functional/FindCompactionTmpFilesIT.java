@@ -22,8 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -57,9 +56,9 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
     stopMiniCluster();
   }
 
-  private List<Path> generateTmpFilePaths(ServerContext context, TableId tid, Path tabletDir,
+  private Set<Path> generateTmpFilePaths(ServerContext context, TableId tid, Path tabletDir,
       int numFiles) {
-    final List<Path> paths = new ArrayList<>(numFiles);
+    final Set<Path> paths = new HashSet<>(numFiles);
     final TabletsMetadata tms = context.getAmple().readTablets().forTable(tid).build();
     final TabletMetadata tm = tms.iterator().next();
 
@@ -96,7 +95,7 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
 
       assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical()).size());
 
-      List<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 100);
+      Set<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 100);
 
       for (Path p : generatedPaths) {
         assertFalse(fs.exists(p));
