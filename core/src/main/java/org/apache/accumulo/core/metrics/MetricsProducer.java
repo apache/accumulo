@@ -47,28 +47,28 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_LOW_MEMORY}</td>
+ * <td>{@value #METRICS_LOW_MEMORY}</td>
  * <td>Guage</td>
  * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
+ * <td>{@value #METRICS_COMPACTOR_MAJC_STUCK}</td>
  * <td>LongTaskTimer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
+ * <td>{@value #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>FateTxOpType_{name}</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TYPE_IN_PROGRESS}</td>
+ * <td>{@value #METRICS_FATE_TYPE_IN_PROGRESS}</td>
  * <td>Gauge</td>
  * <td>Previously there was a metric per operation type with the count of in-progress transactions
  * of that type. Now there is one metric and the type is in the tag op.type</td>
@@ -76,56 +76,56 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>totalFateOps</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_OPS_ACTIVITY}</td>
+ * <td>{@value #METRICS_FATE_OPS_ACTIVITY}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>totalZkConnErrors</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_ERRORS}</td>
+ * <td>{@value #METRICS_FATE_ERRORS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>FateTxState_NEW</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=new</td>
  * </tr>
  * <tr>
  * <td>FateTxState_IN_PROGRESS</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=in.progress</td>
  * </tr>
  * <tr>
  * <td>FateTxState_FAILED_IN_PROGRESS</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=failed.in.progress</td>
  * </tr>
  * <tr>
  * <td>FateTxState_FAILED</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=failed</td>
  * </tr>
  * <tr>
  * <td>FateTxState_SUCCESSFUL</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=successful</td>
  * </tr>
  * <tr>
  * <td>FateTxState_UNKNOWN</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TX}</td>
+ * <td>{@value #METRICS_FATE_TX}</td>
  * <td>Gauge</td>
  * <td>The state is now in a tag: state=unknown</td>
  * </tr>
@@ -133,98 +133,98 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>AccGcStarted</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_STARTED}</td>
+ * <td>{@value #METRICS_GC_STARTED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcFinished</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_FINISHED}</td>
+ * <td>{@value #METRICS_GC_FINISHED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcCandidates</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_CANDIDATES}</td>
+ * <td>{@value #METRICS_GC_CANDIDATES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcInUse</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_IN_USE}</td>
+ * <td>{@value #METRICS_GC_IN_USE}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcDeleted</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_DELETED}</td>
+ * <td>{@value #METRICS_GC_DELETED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcErrors</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_ERRORS}</td>
+ * <td>{@value #METRICS_GC_ERRORS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalStarted</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_STARTED}</td>
+ * <td>{@value #METRICS_GC_WAL_STARTED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalFinished</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_FINISHED}</td>
+ * <td>{@value #METRICS_GC_WAL_FINISHED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalCandidates</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_CANDIDATES}</td>
+ * <td>{@value #METRICS_GC_WAL_CANDIDATES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalInUse</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_IN_USE}</td>
+ * <td>{@value #METRICS_GC_WAL_IN_USE}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalDeleted</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_DELETED}</td>
+ * <td>{@value #METRICS_GC_WAL_DELETED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcWalErrors</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_WAL_ERRORS}</td>
+ * <td>{@value #METRICS_GC_WAL_ERRORS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcPosOpDuration</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_POST_OP_DURATION}</td>
+ * <td>{@value #METRICS_GC_POST_OP_DURATION}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>AccGcRunCycleCount</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_GC_RUN_CYCLE}</td>
+ * <td>{@value #METRICS_GC_RUN_CYCLE}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -232,105 +232,105 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>entries</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_ENTRIES}</td>
+ * <td>{@value #METRICS_TSERVER_ENTRIES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>entriesInMem</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MEM_ENTRIES}</td>
+ * <td>{@value #METRICS_TSERVER_MEM_ENTRIES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>activeMajCs</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_RUNNING}</td>
+ * <td>{@value #METRICS_TSERVER_MAJC_RUNNING}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
+ * <td>{@value #METRICS_TSERVER_MAJC_STUCK}</td>
  * <td>LongTaskTimer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>queuedMajCs</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MAJC_QUEUED}</td>
+ * <td>{@value #METRICS_TSERVER_MAJC_QUEUED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>activeMinCs</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MINC_RUNNING}</td>
+ * <td>{@value #METRICS_TSERVER_MINC_RUNNING}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>queuedMinCs</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MINC_QUEUED}</td>
+ * <td>{@value #METRICS_TSERVER_MINC_QUEUED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>totalMinCs</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_MINC_TOTAL}</td>
+ * <td>{@value #METRICS_TSERVER_MINC_TOTAL}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>onlineTablets</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_TABLETS_ONLINE}</td>
+ * <td>{@value #METRICS_TSERVER_TABLETS_ONLINE}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS}</td>
+ * <td>{@value #METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>openingTablets</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_TABLETS_OPENING}</td>
+ * <td>{@value #METRICS_TSERVER_TABLETS_OPENING}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>unopenedTablets</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_TABLETS_UNOPENED}</td>
+ * <td>{@value #METRICS_TSERVER_TABLETS_UNOPENED}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>filesPerTablet</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_TABLETS_FILES}</td>
+ * <td>{@value #METRICS_TSERVER_TABLETS_FILES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>queries</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_QUERIES}</td>
+ * <td>{@value #METRICS_TSERVER_QUERIES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>scannedRate</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_SCANNED_ENTRIES}</td>
+ * <td>{@value #METRICS_TSERVER_SCANNED_ENTRIES}</td>
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
@@ -338,7 +338,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>queryRate</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_SCAN_RESULTS}</td>
+ * <td>{@value #METRICS_TSERVER_SCAN_RESULTS}</td>
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
@@ -346,7 +346,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>queryByteRate</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_SCAN_RESULTS_BYTES}</td>
+ * <td>{@value #METRICS_TSERVER_SCAN_RESULTS_BYTES}</td>
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
@@ -354,7 +354,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>ingestRate</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_INGEST_MUTATIONS}</td>
+ * <td>{@value #METRICS_TSERVER_INGEST_MUTATIONS}</td>
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
@@ -362,7 +362,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>ingestByteRate</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_INGEST_BYTES}</td>
+ * <td>{@value #METRICS_TSERVER_INGEST_BYTES}</td>
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
@@ -370,7 +370,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>holdTime</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_TSERVER_HOLD}</td>
+ * <td>{@value #METRICS_TSERVER_HOLD}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -378,70 +378,70 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>scan</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_SCAN_TIMES}</td>
+ * <td>{@value #METRICS_SCAN_TIMES}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_OPEN_FILES}</td>
+ * <td>{@value #METRICS_SCAN_OPEN_FILES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>result</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_SCAN_RESULTS}</td>
+ * <td>{@value #METRICS_SCAN_RESULTS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>yield</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_SCAN_YIELDS}</td>
+ * <td>{@value #METRICS_SCAN_YIELDS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_START}</td>
+ * <td>{@value #METRICS_SCAN_START}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_CONTINUE}</td>
+ * <td>{@value #METRICS_SCAN_CONTINUE}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_CLOSE}</td>
+ * <td>{@value #METRICS_SCAN_CLOSE}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_BUSY_TIMEOUT}</td>
+ * <td>{@value #METRICS_SCAN_BUSY_TIMEOUT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_PAUSED_FOR_MEM}</td>
+ * <td>{@value #METRICS_SCAN_PAUSED_FOR_MEM}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_SCAN_RETURN_FOR_MEM}</td>
+ * <td>{@value #METRICS_SCAN_RETURN_FOR_MEM}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
@@ -449,7 +449,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_MAJC_QUEUED}</td>
+ * <td>{@value #METRICS_MAJC_QUEUED}</td>
  * <td>Gauge</td>
  * <td>The compaction service information is in a tag:
  * id={i|e}_{compactionServiceName}_{executor_name}</td>
@@ -457,7 +457,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_running</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_MAJC_RUNNING}</td>
+ * <td>{@value #METRICS_MAJC_RUNNING}</td>
  * <td>Gauge</td>
  * <td>The compaction service information is in a tag:
  * id={i|e}_{compactionServiceName}_{executor_name}</td>
@@ -473,21 +473,21 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>Queue</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_MINC_QUEUED}</td>
+ * <td>{@value #METRICS_MINC_QUEUED}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>Minc</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_MINC_RUNNING}</td>
+ * <td>{@value #METRICS_MINC_RUNNING}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td></td>
  * <td></td>
- * <td>{@link #METRICS_MINC_PAUSED}</td>
+ * <td>{@value #METRICS_MINC_PAUSED}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
@@ -495,49 +495,49 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>permissionErrors</td>
  * <td>Counter</td>
- * <td>{@link #METRICS_UPDATE_ERRORS}</td>
+ * <td>{@value #METRICS_UPDATE_ERRORS}</td>
  * <td>Gauge</td>
  * <td>Type is stored in tag: type=permission</td>
  * </tr>
  * <tr>
  * <td>unknownTabletErrors</td>
  * <td>Counter</td>
- * <td>{@link #METRICS_UPDATE_ERRORS}</td>
+ * <td>{@value #METRICS_UPDATE_ERRORS}</td>
  * <td>Gauge</td>
  * <td>Type is stored in tag: type=unknown.tablet</td>
  * </tr>
  * <tr>
  * <td>constraintViolations</td>
  * <td>Counter</td>
- * <td>{@link #METRICS_UPDATE_ERRORS}</td>
+ * <td>{@value #METRICS_UPDATE_ERRORS}</td>
  * <td>Gauge</td>
  * <td>Type is stored in tag: type=constraint.violation</td>
  * </tr>
  * <tr>
  * <td>commitPrep</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_UPDATE_COMMIT_PREP}</td>
+ * <td>{@value #METRICS_UPDATE_COMMIT_PREP}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>commitTime</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_UPDATE_COMMIT}</td>
+ * <td>{@value #METRICS_UPDATE_COMMIT}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>waLogWriteTime</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_UPDATE_WALOG_WRITE}</td>
+ * <td>{@value #METRICS_UPDATE_WALOG_WRITE}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>mutationArraysSize</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_UPDATE_MUTATION_ARRAY_SIZE}</td>
+ * <td>{@value #METRICS_UPDATE_MUTATION_ARRAY_SIZE}</td>
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
@@ -545,14 +545,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>idle</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_THRIFT_IDLE}</td>
+ * <td>{@value #METRICS_THRIFT_IDLE}</td>
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>execute</td>
  * <td>Stat</td>
- * <td>{@link #METRICS_THRIFT_EXECUTE}</td>
+ * <td>{@value #METRICS_THRIFT_EXECUTE}</td>
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
@@ -560,35 +560,35 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_PROPSTORE_LOAD_TIMER}</td>
+ * <td>{@value #METRICS_PROPSTORE_LOAD_TIMER}</td>
  * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_PROPSTORE_REFRESH_COUNT}</td>
+ * <td>{@value #METRICS_PROPSTORE_REFRESH_COUNT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_PROPSTORE_REFRESH_LOAD_COUNT}</td>
+ * <td>{@value #METRICS_PROPSTORE_REFRESH_LOAD_COUNT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_PROPSTORE_EVICTION_COUNT}</td>
+ * <td>{@value #METRICS_PROPSTORE_EVICTION_COUNT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_PROPSTORE_ZK_ERROR_COUNT}</td>
+ * <td>{@value #METRICS_PROPSTORE_ZK_ERROR_COUNT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
