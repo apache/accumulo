@@ -20,7 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.Optional;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -89,8 +89,8 @@ public class TabletInformationImpl implements TabletInformation {
   }
 
   @Override
-  public TabletHostingGoal getHostingGoal() {
-    return tabletMetadata.getHostingGoal();
+  public TabletAvailability getTabletAvailability() {
+    return tabletMetadata.getTabletAvailability();
   }
 
   @Override

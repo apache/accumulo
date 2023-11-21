@@ -27,8 +27,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -48,7 +48,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -207,7 +207,7 @@ public class TabletMetadataTest {
     tservers.add(ser1);
     tservers.add(ser2);
     EnumSet<ColumnType> colsToFetch =
-        EnumSet.of(LOCATION, LAST, SUSPEND, HOSTING_GOAL, HOSTING_REQUESTED);
+        EnumSet.of(LOCATION, LAST, SUSPEND, AVAILABILITY, HOSTING_REQUESTED);
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -349,14 +349,14 @@ public class TabletMetadataTest {
     StoredTabletFile sf4 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf4.rf")).insert();
 
-    TabletMetadata tm = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.NEVER)
-        .putLocation(Location.future(ser1)).putFile(sf1, dfv1).putFile(sf2, dfv2)
-        .putCompactionId(23).putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27)
-        .putDirName("dir1").putScan(sf3).putScan(sf4).putCompacted(17).putCompacted(23)
-        .build(ECOMP, HOSTING_REQUESTED);
+    TabletMetadata tm = TabletMetadata.builder(extent)
+        .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
+        .putFile(sf1, dfv1).putFile(sf2, dfv2).putCompactionId(23).putBulkFile(rf1, 25)
+        .putBulkFile(rf2, 35).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
+        .putCompacted(17).putCompacted(23).build(ECOMP, HOSTING_REQUESTED);
 
     assertEquals(extent, tm.getExtent());
-    assertEquals(TabletHostingGoal.NEVER, tm.getHostingGoal());
+    assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());
     assertEquals(Location.future(ser1), tm.getLocation());
     assertEquals(23L, tm.getCompactId().orElse(-1));
     assertEquals(27L, tm.getFlushId().orElse(-1));
@@ -378,7 +378,7 @@ public class TabletMetadataTest {
     assertEquals(opid1, tm2.getOperationId());
     assertNull(tm2.getLocation());
     assertThrows(IllegalStateException.class, tm2::getFiles);
-    assertThrows(IllegalStateException.class, tm2::getHostingGoal);
+    assertThrows(IllegalStateException.class, tm2::getTabletAvailability);
     assertThrows(IllegalStateException.class, tm2::getCompactId);
     assertThrows(IllegalStateException.class, tm2::getFlushId);
     assertThrows(IllegalStateException.class, tm2::getFiles);

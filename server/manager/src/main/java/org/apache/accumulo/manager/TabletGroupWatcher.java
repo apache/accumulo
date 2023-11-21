@@ -427,9 +427,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
       final TabletState state = TabletState.compute(tm, currentTServers.keySet());
-      // This is final because nothing in this method should change the goal. All computation of the
-      // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
-      // will compute a consistent goal.
+      // This is final because nothing in this method should change the availability. All
+      // computation of the
+      // availability should be done in TabletGoalState.compute() so that all parts of the Accumulo
+      // code
+      // will compute a consistent availability.
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
 
@@ -476,7 +478,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (Manager.log.isTraceEnabled()) {
         Manager.log.trace(
-            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{}",
+            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, availability: {} actions:{}",
             store.name(), tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
             state, goal, actions);

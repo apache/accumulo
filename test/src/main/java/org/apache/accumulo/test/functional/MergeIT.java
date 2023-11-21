@@ -46,9 +46,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -168,10 +168,10 @@ public class MergeIT extends AccumuloClusterHarness {
           bw.addMutation(m);
         }
       }
-      c.tableOperations().setTabletHostingGoal(tableName, new Range("d", "e"),
-          TabletHostingGoal.ALWAYS);
-      c.tableOperations().setTabletHostingGoal(tableName, new Range("e", "f"),
-          TabletHostingGoal.NEVER);
+      c.tableOperations().setTabletAvailability(tableName, new Range("d", "e"),
+          TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, new Range("e", "f"),
+          TabletAvailability.UNHOSTED);
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
       assertEquals(8, c.tableOperations().listSplits(tableName).size());
@@ -182,14 +182,14 @@ public class MergeIT extends AccumuloClusterHarness {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-        HostingColumnFamily.GOAL_COLUMN.fetch(s);
+        HostingColumnFamily.AVAILABILITY_COLUMN.fetch(s);
         assertEquals(2, Iterables.size(s));
         for (Entry<Key,Value> rows : s) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(rows.getKey())) {
             assertEquals("c", TabletColumnFamily.decodePrevEndRow(rows.getValue()).toString());
-          } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(rows.getKey())) {
-            assertEquals(TabletHostingGoal.ALWAYS,
-                TabletHostingGoalUtil.fromValue(rows.getValue()));
+          } else if (HostingColumnFamily.AVAILABILITY_COLUMN.hasColumns(rows.getKey())) {
+            assertEquals(TabletAvailability.HOSTED,
+                TabletAvailabilityUtil.fromValue(rows.getValue()));
           } else {
             fail("Unknown column");
           }

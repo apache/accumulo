@@ -100,8 +100,9 @@ public class TabletManagementIterator extends SkippingIterator {
     TabletState state = TabletState.compute(tm, tabletMgmtParams.getOnlineTsevers());
     TabletGoalState goalState = TabletGoalState.compute(tm, state, balancer, tabletMgmtParams);
     if (LOG.isTraceEnabled()) {
-      LOG.trace("extent:{} state:{} goalState:{} hostingGoal:{}, hostingRequested: {}, opId: {}",
-          tm.getExtent(), state, goalState, tm.getHostingGoal(), tm.getHostingRequested(),
+      LOG.trace(
+          "extent:{} state:{} goalState:{} tabletAvailability:{}, hostingRequested: {}, opId: {}",
+          tm.getExtent(), state, goalState, tm.getTabletAvailability(), tm.getHostingRequested(),
           tm.getOperationId());
     }
 

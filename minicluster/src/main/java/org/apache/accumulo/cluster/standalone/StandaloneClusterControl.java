@@ -142,12 +142,13 @@ public class StandaloneClusterControl implements ClusterControl {
   /**
    * Wrapper around SetGoalState
    *
-   * @param goalState The goal state to set
+   * @param goalState The availability state to set
    * @throws IOException If SetGoalState returns a non-zero result
    */
   public void setGoalState(String goalState) throws IOException {
     requireNonNull(goalState, "Goal state must not be null");
-    checkArgument(ManagerGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    checkArgument(ManagerGoalState.valueOf(goalState) != null,
+        "Unknown availability state: " + goalState);
     String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
     Entry<Integer,String> pair = exec(manager, cmd);

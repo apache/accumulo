@@ -83,7 +83,7 @@ public class Merge {
   static class Opts extends ClientOpts {
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
     String tableName;
-    @Parameter(names = {"-s", "--size"}, description = "merge goal size",
+    @Parameter(names = {"-s", "--size"}, description = "merge availability size",
         converter = MemoryConverter.class)
     Long goalSize = null;
     @Parameter(names = {"-f", "--force"},
@@ -149,7 +149,7 @@ public class Merge {
       }
       List<Size> sizes = new ArrayList<>();
       long totalSize = 0;
-      // Merge any until you get larger than the goal size, and then merge one less tablet
+      // Merge any until you get larger than the availability size, and then merge one less tablet
       Iterator<Size> sizeIterator = getSizeIterator(client, table, start, end);
       while (sizeIterator.hasNext()) {
         Size next = sizeIterator.next();

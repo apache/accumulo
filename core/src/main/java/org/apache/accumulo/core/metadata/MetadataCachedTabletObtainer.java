@@ -37,7 +37,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
@@ -45,7 +45,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.CachedTabletObtainer;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
@@ -79,7 +79,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
-    locCols.add(HostingColumnFamily.GOAL_COLUMN.toColumn());
+    locCols.add(HostingColumnFamily.AVAILABILITY_COLUMN.toColumn());
     locCols.add(HostingColumnFamily.REQUESTED_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
@@ -222,7 +222,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Text location = null;
     Text session = null;
-    TabletHostingGoal goal = null;
+    TabletAvailability tabletAvailability = null;
     boolean hostingRequested = false;
 
     List<CachedTablet> results = new ArrayList<>();
@@ -240,7 +240,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       if (key.compareRow(lastRowFromKey) != 0) {
         location = null;
         session = null;
-        goal = null;
+        tabletAvailability = null;
         hostingRequested = false;
         key.getRow(lastRowFromKey);
       }
@@ -256,20 +256,20 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         }
         location = new Text(val.toString());
         session = new Text(colq);
-      } else if (HostingColumnFamily.GOAL_COLUMN.equals(colf, colq)) {
-        goal = TabletHostingGoalUtil.fromValue(val);
+      } else if (HostingColumnFamily.AVAILABILITY_COLUMN.equals(colf, colq)) {
+        tabletAvailability = TabletAvailabilityUtil.fromValue(val);
       } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(colf, colq)) {
         hostingRequested = true;
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (ke.isMeta()) {
-          goal = TabletHostingGoal.ALWAYS;
+          tabletAvailability = TabletAvailability.HOSTED;
         }
         if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString(), goal,
-              hostingRequested));
+          results.add(new CachedTablet(ke, location.toString(), session.toString(),
+              tabletAvailability, hostingRequested));
         } else {
-          results.add(new CachedTablet(ke, goal, hostingRequested));
+          results.add(new CachedTablet(ke, tabletAvailability, hostingRequested));
         }
         location = null;
       }

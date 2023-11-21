@@ -51,7 +51,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -82,13 +82,13 @@ import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
+import org.apache.accumulo.manager.tableOps.availability.SetTabletAvailability;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 import org.apache.accumulo.manager.tableOps.create.CreateTable;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
-import org.apache.accumulo.manager.tableOps.goal.SetHostingGoal;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
 import org.apache.accumulo.manager.tableOps.merge.TableRangeOp;
 import org.apache.accumulo.manager.tableOps.namespace.create.CreateNamespace;
@@ -196,8 +196,8 @@ class FateServiceHandler implements FateService.Iface {
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
         InitialTableState initialTableState =
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
-        TabletHostingGoal initialHostingGoal =
-            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(3)));
+        TabletAvailability initialTabletAvailability =
+            TabletAvailability.valueOf(ByteBufferUtil.toString(arguments.get(3)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(4)));
         validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
         Path splitsPath = null;
@@ -240,12 +240,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
-            + " splits and initial hosting goal of " + initialHostingGoal;
+            + " splits and initial tabletAvailability of " + initialTabletAvailability;
 
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
-                splitsPath, splitCount, splitsDirsPath, initialTableState, initialHostingGoal,
-                namespaceId)),
+                splitsPath, splitCount, splitsDirsPath, initialTableState,
+                initialTabletAvailability, namespaceId)),
             autoCleanup, goalMessage);
 
         break;
@@ -657,28 +657,29 @@ class FateServiceHandler implements FateService.Iface {
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
       }
-      case TABLE_HOSTING_GOAL: {
-        TableOperation tableOp = TableOperation.SET_HOSTING_GOAL;
+      case TABLE_TABLET_AVAILABILITY: {
+        TableOperation tableOp = TableOperation.SET_TABLET_AVAILABILITY;
         validateArgumentCount(arguments, tableOp, 3);
         String tableName = validateName(arguments.get(0), tableOp, NOT_METADATA_TABLE);
         TableId tableId = null;
         try {
           tableId = manager.getContext().getTableId(tableName);
         } catch (TableNotFoundException e) {
-          throw new ThriftTableOperationException(null, tableName, TableOperation.SET_HOSTING_GOAL,
-              TableOperationExceptionType.NOTFOUND, "Table no longer exists");
+          throw new ThriftTableOperationException(null, tableName,
+              TableOperation.SET_TABLET_AVAILABILITY, TableOperationExceptionType.NOTFOUND,
+              "Table no longer exists");
         }
         final NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
-        final boolean canSetHostingGoal;
+        final boolean canSetAvailability;
         try {
-          canSetHostingGoal = manager.security.canAlterTable(c, tableId, namespaceId);
+          canSetAvailability = manager.security.canAlterTable(c, tableId, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, tableName,
-              TableOperation.SET_HOSTING_GOAL);
+              TableOperation.SET_TABLET_AVAILABILITY);
           throw e;
         }
-        if (!canSetHostingGoal) {
+        if (!canSetAvailability) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         }
 
@@ -687,17 +688,18 @@ class FateServiceHandler implements FateService.Iface {
           new TDeserializer().deserialize(tRange, ByteBufferUtil.toBytes(arguments.get(1)));
         } catch (TException e) {
           throw new ThriftTableOperationException(tableId.canonical(), tableName,
-              TableOperation.SET_HOSTING_GOAL, TableOperationExceptionType.BAD_RANGE,
+              TableOperation.SET_TABLET_AVAILABILITY, TableOperationExceptionType.BAD_RANGE,
               e.getMessage());
         }
-        TabletHostingGoal goal =
-            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(2)));
+        TabletAvailability tabletAvailability =
+            TabletAvailability.valueOf(ByteBufferUtil.toString(arguments.get(2)));
 
-        goalMessage += "Set Hosting Goal for table: " + tableName + "(" + tableId + ") range: "
-            + tRange + " to: " + goal.name();
+        goalMessage += "Set availability for table: " + tableName + "(" + tableId + ") range: "
+            + tRange + " to: " + tabletAvailability.name();
         manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new SetHostingGoal(tableId, namespaceId, tRange, goal)), autoCleanup,
-            goalMessage);
+            new TraceRepo<>(
+                new SetTabletAvailability(tableId, namespaceId, tRange, tabletAvailability)),
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_SPLIT: {

@@ -99,15 +99,15 @@ public class TabletLogger {
   }
 
   /**
-   * Called when a tablet's current assignment state does not match the goal state.
+   * Called when a tablet's current assignment state does not match the availability state.
    */
   public static void missassigned(KeyExtent extent, String goalState, String currentState,
       TServerInstance future, TServerInstance current, int walogs) {
     // usually this is only called when the states are not equal, but for the root tablet this
     // method is currently always called
     if (!goalState.equals(currentState)) {
-      locLog.trace("Miss-assigned {} goal:{} current:{} future:{} location:{} walogs:{}", extent,
-          goalState, currentState, future, current, walogs);
+      locLog.trace("Miss-assigned {} availability:{} current:{} future:{} location:{} walogs:{}",
+          extent, goalState, currentState, future, current, walogs);
     }
   }
 

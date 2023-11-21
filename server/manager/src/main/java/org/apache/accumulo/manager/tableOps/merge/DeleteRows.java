@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -241,14 +241,15 @@ public class DeleteRows extends ManagerRepo {
     }
   }
 
-  static TabletHostingGoal getMergeHostingGoal(KeyExtent range, Set<TabletHostingGoal> goals) {
-    TabletHostingGoal mergeHostingGoal = TabletHostingGoal.ONDEMAND;
-    if (range.isMeta() || goals.contains(TabletHostingGoal.ALWAYS)) {
-      mergeHostingGoal = TabletHostingGoal.ALWAYS;
-    } else if (goals.contains(TabletHostingGoal.NEVER)) {
-      mergeHostingGoal = TabletHostingGoal.NEVER;
+  static TabletAvailability getMergeTabletAvailability(KeyExtent range,
+      Set<TabletAvailability> tabletAvailabilities) {
+    TabletAvailability mergeTabletAvailability = TabletAvailability.ONDEMAND;
+    if (range.isMeta() || tabletAvailabilities.contains(TabletAvailability.HOSTED)) {
+      mergeTabletAvailability = TabletAvailability.HOSTED;
+    } else if (tabletAvailabilities.contains(TabletAvailability.UNHOSTED)) {
+      mergeTabletAvailability = TabletAvailability.UNHOSTED;
     }
-    return mergeHostingGoal;
+    return mergeTabletAvailability;
   }
 
   // Divide each new DFV in half and make sure the sum equals the original

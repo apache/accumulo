@@ -150,7 +150,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   /*
    * When the manager starts up any refreshes that were in progress when the last manager process
    * died must be completed before new refresh entries are written. This map of countdown latches
-   * helps achieve that goal.
+   * helps achieve that availability.
    */
   private final Map<Ample.DataLevel,CountDownLatch> refreshLatches;
 

@@ -95,7 +95,7 @@ public class ListTabletsCommand extends Command {
                 : tabletInfo.getTabletId().getPrevEndRow().toString(),
             tabletInfo.getTabletId().getEndRow() == null ? "+INF"
                 : tabletInfo.getTabletId().getEndRow().toString(),
-            tabletInfo.getHostingGoal()));
+            tabletInfo.getTabletAvailability()));
       }
     }
 

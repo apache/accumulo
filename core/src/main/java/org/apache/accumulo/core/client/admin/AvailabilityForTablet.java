@@ -23,23 +23,23 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
- * This class contains information that defines the tablet hosting data for a table. The class
- * contains the TabletId and associated goal for each tablet in a table or a subset of tablets if a
- * range is provided.
+ * This class contains information that defines the tablet availability data for a table. The class
+ * contains the TabletId and associated availability for each tablet in a table or a subset of
+ * tablets if a range is provided.
  *
  * @since 4.0.0
  */
-public class HostingGoalForTablet {
+public class AvailabilityForTablet {
   private final TabletId tabletId;
-  private final TabletHostingGoal hostingGoal;
+  private final TabletAvailability tabletAvailability;
 
-  public HostingGoalForTablet(TabletId tabletId, TabletHostingGoal hostingGoal) {
+  public AvailabilityForTablet(TabletId tabletId, TabletAvailability tabletAvailability) {
     this.tabletId = tabletId;
-    this.hostingGoal = hostingGoal;
+    this.tabletAvailability = tabletAvailability;
   }
 
-  public TabletHostingGoal getHostingGoal() {
-    return hostingGoal;
+  public TabletAvailability getTabletAvailability() {
+    return tabletAvailability;
   }
 
   public TabletId getTabletId() {
@@ -54,12 +54,12 @@ public class HostingGoalForTablet {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    HostingGoalForTablet that = (HostingGoalForTablet) o;
-    return Objects.equals(tabletId, that.tabletId) && hostingGoal == that.hostingGoal;
+    AvailabilityForTablet that = (AvailabilityForTablet) o;
+    return Objects.equals(tabletId, that.tabletId) && tabletAvailability == that.tabletAvailability;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(tabletId, hostingGoal);
+    return Objects.hash(tabletId, tabletAvailability);
   }
 }

@@ -1234,7 +1234,7 @@ public class TabletManagementClientService {
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField LOCK_FIELD_DESC = new org.apache.thrift.protocol.TField("lock", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField GOAL_FIELD_DESC = new org.apache.thrift.protocol.TField("goal", org.apache.thrift.protocol.TType.I32, (short)6);
+    private static final org.apache.thrift.protocol.TField GOAL_FIELD_DESC = new org.apache.thrift.protocol.TField("availability", org.apache.thrift.protocol.TType.I32, (short)6);
     private static final org.apache.thrift.protocol.TField REQUEST_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("requestTime", org.apache.thrift.protocol.TType.I64, (short)7);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new unloadTablet_argsStandardSchemeFactory();
@@ -1261,7 +1261,7 @@ public class TabletManagementClientService {
        * 
        * @see TUnloadTabletGoal
        */
-      GOAL((short)6, "goal"),
+      GOAL((short)6, "availability"),
       REQUEST_TIME((short)7, "requestTime");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -1346,7 +1346,7 @@ public class TabletManagementClientService {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.GOAL, new org.apache.thrift.meta_data.FieldMetaData("goal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.GOAL, new org.apache.thrift.meta_data.FieldMetaData("availability", org.apache.thrift.TFieldRequirementType.DEFAULT,
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TUnloadTabletGoal.class)));
       tmpMap.put(_Fields.REQUEST_TIME, new org.apache.thrift.meta_data.FieldMetaData("requestTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
@@ -1536,7 +1536,7 @@ public class TabletManagementClientService {
       this.goal = null;
     }
 
-    /** Returns true if field goal is set (has been assigned a value) and false otherwise */
+    /** Returns true if field availability is set (has been assigned a value) and false otherwise */
     public boolean isSetGoal() {
       return this.goal != null;
     }
@@ -1897,7 +1897,7 @@ public class TabletManagementClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("goal:");
+      sb.append("availability:");
       if (this.goal == null) {
         sb.append("null");
       } else {

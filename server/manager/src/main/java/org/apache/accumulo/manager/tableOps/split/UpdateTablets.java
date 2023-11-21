@@ -190,7 +190,7 @@ public class UpdateTablets extends ManagerRepo {
             .forEach(ctid -> log.debug("{} copying compacted marker to new child tablet {}",
                 FateTxId.formatTid(tid), FateTxId.formatTid(ctid)));
 
-        mutator.putHostingGoal(tabletMetadata.getHostingGoal());
+        mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
 
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
         tabletMetadata.getLogs().forEach(mutator::putWal);

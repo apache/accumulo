@@ -26,7 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -91,7 +91,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.COMPACT_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
-          HostingColumnFamily.GOAL_COLUMN,
+          HostingColumnFamily.AVAILABILITY_COLUMN,
           HostingColumnFamily.REQUESTED_COLUMN,
               ServerColumnFamily.SELECTED_COLUMN);
   private static final Set<Text> validColumnFams =
@@ -243,9 +243,9 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
         violations = validateDataFileMetadata(violations,
             new String(columnUpdate.getColumnQualifier(), UTF_8));
-      } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
+      } else if (HostingColumnFamily.AVAILABILITY_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
-          TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
+          TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 10);
         }
@@ -417,7 +417,7 @@ public class MetadataConstraints implements Constraint {
       case 9:
         return "Malformed operation id";
       case 10:
-        return "Malformed hosting goal";
+        return "Malformed availability value";
       case 11:
         return "Malformed file selection value";
       case 12:

@@ -269,7 +269,7 @@ public class LargestFirstMemoryManager {
 
       // memory change < 0 means a minor compaction occurred
       // we want to see how full the memory got during the compaction
-      // (the goal is for it to have between 80% and 90% memory utilization)
+      // (the availability is for it to have between 80% and 90% memory utilization)
       // and adjust the compactionThreshold accordingly
 
       log.debug(String.format("BEFORE compactionThreshold = %.3f maxObserved = %,d",

@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_P
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -48,19 +48,19 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    LOG.info("setting root table stored hosting goal");
+    LOG.info("setting root table stored hosting availability");
     addHostingGoalToRootTable(context);
   }
 
   @Override
   public void upgradeRoot(ServerContext context) {
-    LOG.info("setting metadata table hosting goal");
+    LOG.info("setting metadata table hosting availability");
     addHostingGoalToMetadataTable(context);
   }
 
   @Override
   public void upgradeMetadata(ServerContext context) {
-    LOG.info("setting hosting goal on user tables");
+    LOG.info("setting hosting availability on user tables");
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
@@ -96,8 +96,8 @@ public class Upgrader12to13 implements Upgrader {
         TabletsMetadata tm =
             context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(
-          t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ALWAYS).mutate());
+      tm.forEach(t -> mut.mutateTablet(t.getExtent())
+          .putTabletAvailability(TabletAvailability.HOSTED).mutate());
     }
   }
 
@@ -114,8 +114,8 @@ public class Upgrader12to13 implements Upgrader {
         TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
             .fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(
-          t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ONDEMAND).mutate());
+      tm.forEach(t -> mut.mutateTablet(t.getExtent())
+          .putTabletAvailability(TabletAvailability.ONDEMAND).mutate());
     }
   }
 

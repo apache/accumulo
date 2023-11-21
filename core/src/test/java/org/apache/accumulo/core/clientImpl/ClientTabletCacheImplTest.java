@@ -40,7 +40,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -138,7 +138,7 @@ public class ClientTabletCacheImplTest {
     for (int i = 0; i < data.length; i += 2) {
       KeyExtent ke = (KeyExtent) data[i];
       String loc = (String) data[i + 1];
-      mcke.put(ke, new CachedTablet(ke, loc, "1", TabletHostingGoal.ONDEMAND, false));
+      mcke.put(ke, new CachedTablet(ke, loc, "1", TabletAvailability.ONDEMAND, false));
     }
 
     return mcke;
@@ -607,7 +607,7 @@ public class ClientTabletCacheImplTest {
     @Override
     protected CachedTablet getRootTabletLocation(ClientContext context) {
       return new CachedTablet(RootTable.EXTENT, context.getRootTabletLocation(), "1",
-          TabletHostingGoal.ALWAYS, false);
+          TabletAvailability.HOSTED, false);
     }
 
     @Override
@@ -659,9 +659,9 @@ public class ClientTabletCacheImplTest {
       tabletData.put(lk, new Value(location));
     }
 
-    Key hk = new Key(mr, HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
-        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier());
-    tabletData.put(hk, TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
+    Key hk = new Key(mr, HostingColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+        HostingColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier());
+    tabletData.put(hk, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
 
     Key pk = new Key(mr, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
@@ -1231,13 +1231,13 @@ public class ClientTabletCacheImplTest {
   @Test
   public void testIsContiguous() {
     CachedTablet e1 = new CachedTablet(createNewKeyExtent("foo", "1", null), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
     CachedTablet e2 = new CachedTablet(createNewKeyExtent("foo", "2", "1"), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
     CachedTablet e3 = new CachedTablet(createNewKeyExtent("foo", "3", "2"), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
     CachedTablet e4 = new CachedTablet(createNewKeyExtent("foo", null, "3"), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
 
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4)));
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3)));
@@ -1251,7 +1251,7 @@ public class ClientTabletCacheImplTest {
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e3, e4)));
 
     CachedTablet e5 = new CachedTablet(createNewKeyExtent("foo", null, null), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e5)));
@@ -1259,12 +1259,12 @@ public class ClientTabletCacheImplTest {
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e5)));
 
     CachedTablet e6 = new CachedTablet(createNewKeyExtent("foo", null, "1"), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e6)));
 
     CachedTablet e7 = new CachedTablet(createNewKeyExtent("foo", "33", "11"), "l1", "1",
-        TabletHostingGoal.ONDEMAND, false);
+        TabletAvailability.ONDEMAND, false);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e7, e4)));
   }
@@ -1757,9 +1757,9 @@ public class ClientTabletCacheImplTest {
     var failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
-    var tl1 = new CachedTablet(ke1, TabletHostingGoal.ONDEMAND, false);
-    var tl2 = new CachedTablet(ke2, TabletHostingGoal.ONDEMAND, false);
-    var tl3 = new CachedTablet(ke3, "L2", "I2", TabletHostingGoal.ONDEMAND, false);
+    var tl1 = new CachedTablet(ke1, TabletAvailability.ONDEMAND, false);
+    var tl2 = new CachedTablet(ke2, TabletAvailability.ONDEMAND, false);
+    var tl3 = new CachedTablet(ke3, "L2", "I2", TabletAvailability.ONDEMAND, false);
     var expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1786,7 +1786,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
-    tl1 = new CachedTablet(ke1, "L3", "I3", TabletHostingGoal.ONDEMAND, false);
+    tl1 = new CachedTablet(ke1, "L3", "I3", TabletAvailability.ONDEMAND, false);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1795,7 +1795,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.REQUIRED);
     assertEquals(List.of(), failures);
-    tl2 = new CachedTablet(ke2, "L4", "I4", TabletHostingGoal.ONDEMAND, false);
+    tl2 = new CachedTablet(ke2, "L4", "I4", TabletAvailability.ONDEMAND, false);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);

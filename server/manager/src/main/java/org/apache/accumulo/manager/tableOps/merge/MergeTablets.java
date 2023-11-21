@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -81,7 +81,7 @@ public class MergeTablets extends ManagerRepo {
     log.debug("{} Merging metadata for {}", fateStr, range);
 
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
-    Set<TabletHostingGoal> goals = new HashSet<>();
+    Set<TabletAvailability> tabletAvailabilities = new HashSet<>();
     MetadataTime maxLogicalTime = null;
     List<ReferenceFile> dirs = new ArrayList<>();
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>();
@@ -90,7 +90,7 @@ public class MergeTablets extends ManagerRepo {
 
     try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
         .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-        .fetch(OPID, LOCATION, HOSTING_GOAL, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS).build()) {
+        .fetch(OPID, LOCATION, AVAILABILITY, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS).build()) {
 
       int tabletsSeen = 0;
 
@@ -108,7 +108,7 @@ public class MergeTablets extends ManagerRepo {
 
         // want to gather the following for all tablets, including the last tablet
         maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, tabletMeta.getTime());
-        goals.add(tabletMeta.getHostingGoal());
+        tabletAvailabilities.add(tabletMeta.getTabletAvailability());
 
         // determine if this is the last tablet in the merge range
         boolean isLastTablet = (range.endRow() == null && tabletMeta.getExtent().endRow() == null)
@@ -174,7 +174,8 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putTime(maxLogicalTime);
         lastTabletMeta.getExternalCompactions().keySet()
             .forEach(tabletMutator::deleteExternalCompaction);
-        tabletMutator.putHostingGoal(DeleteRows.getMergeHostingGoal(range, goals));
+        tabletMutator.putTabletAvailability(
+            DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
 
         // if the tablet no longer exists (because changed prev end row, then the update was

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
@@ -44,9 +44,9 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -120,7 +120,7 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean merged;
-  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  private TabletAvailability availability = TabletAvailability.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
@@ -152,7 +152,7 @@ public class TabletMetadata {
     SUSPEND,
     ECOMP,
     MERGED,
-    HOSTING_GOAL,
+    AVAILABILITY,
     HOSTING_REQUESTED,
     OPID,
     SELECTED,
@@ -387,13 +387,13 @@ public class TabletMetadata {
     return merged;
   }
 
-  public TabletHostingGoal getHostingGoal() {
+  public TabletAvailability getTabletAvailability() {
     if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
-      // Override the goal for the system tables
-      return TabletHostingGoal.ALWAYS;
+      // Override the availability for the system tables
+      return TabletAvailability.HOSTED;
     }
-    ensureFetched(ColumnType.HOSTING_GOAL);
-    return goal;
+    ensureFetched(ColumnType.AVAILABILITY);
+    return availability;
   }
 
   public boolean getHostingRequested() {
@@ -412,7 +412,7 @@ public class TabletMetadata {
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
         .append("compact", compact).append("splitRatio", splitRatio)
-        .append("extCompactions", extCompactions).append("goal", goal)
+        .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
@@ -565,8 +565,8 @@ public class TabletMetadata {
           break;
         case HostingColumnFamily.STR_NAME:
           switch (qual) {
-            case GOAL_QUAL:
-              te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
+            case AVAILABILITY_QUAL:
+              te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
               break;
             case REQUESTED_QUAL:
               te.onDemandHostingRequested = true;
@@ -582,8 +582,8 @@ public class TabletMetadata {
     }
 
     if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
-      // Override the goal for the system tables
-      te.goal = TabletHostingGoal.ALWAYS;
+      // Override the availability for the system tables
+      te.availability = TabletAvailability.HOSTED;
     }
 
     te.files = filesBuilder.build();

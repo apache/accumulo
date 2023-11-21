@@ -313,8 +313,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case FLUSH_ID:
             qualifiers.add(FLUSH_COLUMN);
             break;
-          case HOSTING_GOAL:
-            qualifiers.add(HostingColumnFamily.GOAL_COLUMN);
+          case AVAILABILITY:
+            qualifiers.add(HostingColumnFamily.AVAILABILITY_COLUMN);
             break;
           case HOSTING_REQUESTED:
             qualifiers.add(HostingColumnFamily.REQUESTED_COLUMN);

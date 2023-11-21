@@ -48,7 +48,7 @@ function refreshManagerBanners() {
 
     const isStateGoalSame = managerState === managerGoalState;
 
-    // if the manager state is normal and the goal state is the same as the current state,
+    // if the manager state is normal and the availability state is the same as the current state,
     // or of the manager is not running, hide the state banner and return early
     if ((managerState === 'NORMAL' && isStateGoalSame) || managerState === null) {
       $('#managerStateBanner').hide();
@@ -58,8 +58,8 @@ function refreshManagerBanners() {
     // update the manager state banner message and show it
     let bannerMessage = 'Manager state: ' + managerState;
     if (!isStateGoalSame) {
-      // only show the goal state if it differs from the manager's current state
-      bannerMessage += '. Manager goal state: ' + managerGoalState;
+      // only show the availability state if it differs from the manager's current state
+      bannerMessage += '. Manager availability state: ' + managerGoalState;
     }
     $('#manager-banner-message').text(bannerMessage);
     $('#managerStateBanner').show();

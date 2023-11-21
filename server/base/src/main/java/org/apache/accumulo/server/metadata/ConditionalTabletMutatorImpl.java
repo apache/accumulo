@@ -21,7 +21,7 @@ package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
@@ -36,8 +36,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -111,10 +111,12 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireHostingGoal(TabletHostingGoal goal) {
+  public Ample.ConditionalTabletMutator
+      requireTabletAvailability(TabletAvailability tabletAvailability) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition c = new Condition(GOAL_COLUMN.getColumnFamily(), GOAL_COLUMN.getColumnQualifier())
-        .setValue(TabletHostingGoalUtil.toValue(goal).get());
+    Condition c = new Condition(AVAILABILITY_COLUMN.getColumnFamily(),
+        AVAILABILITY_COLUMN.getColumnQualifier())
+        .setValue(TabletAvailabilityUtil.toValue(tabletAvailability).get());
     mutation.addCondition(c);
     return this;
   }

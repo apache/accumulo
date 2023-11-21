@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A simple tablet balancer that attempts to spread tablets out evenly across all available tablet
- * servers. The goal is to achieve the same number of tablets on each tablet server.
+ * servers. The availability is to achieve the same number of tablets on each tablet server.
  *
  * <p>
  * Initial assignments attempt to maintain locality by assigning tablets to their previous location

@@ -230,7 +230,7 @@ class WriteExportFiles extends ManagerRepo {
 
     Scanner metaScanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    HostingColumnFamily.GOAL_COLUMN.fetch(metaScanner);
+    HostingColumnFamily.AVAILABILITY_COLUMN.fetch(metaScanner);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
     metaScanner.setRange(new KeyExtent(tableID, null, null).toMetaRange());

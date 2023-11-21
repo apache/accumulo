@@ -351,9 +351,9 @@ public class ScanIdIT extends AccumuloClusterHarness {
   /**
    * Generate some sample data using random row id to distribute across splits.
    * <p>
-   * The primary goal is to determine that each scanner is assigned a unique scan id. This test does
-   * check that the count value for fam1 increases if a scanner reads multiple value, but this is
-   * secondary consideration for this test, that is included for completeness.
+   * The primary availability is to determine that each scanner is assigned a unique scan id. This
+   * test does check that the count value for fam1 increases if a scanner reads multiple value, but
+   * this is secondary consideration for this test, that is included for completeness.
    *
    * @param accumuloClient Accumulo client to test cluster or MAC instance.
    */
