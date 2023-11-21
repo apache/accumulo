@@ -1097,6 +1097,11 @@ public enum Property {
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
+      PropertyType.TIMEDURATION,
+      "Interval at which Compactors will check to see if the currently executing compaction"
+          + " should be cancelled.",
+      "4.0.0"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
       "If the compactor.port.client is in use, search higher ports until one is available.",

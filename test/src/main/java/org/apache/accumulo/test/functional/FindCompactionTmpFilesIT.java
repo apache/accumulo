@@ -105,7 +105,7 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
         System.out.println(p);
       }
 
-      List<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
+      Set<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(100, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 

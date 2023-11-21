@@ -73,6 +73,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.Refreshes.RefreshEntry;
+import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -118,6 +120,8 @@ import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1051,17 +1055,31 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         try {
           ctx.requireNotDeleted(extent.tableId());
           tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-              .deleteExternalCompaction(ecid)
-              .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+              .deleteExternalCompaction(ecid).submit(new RejectionHandler() {
+
+                @Override
+                public boolean callWhenTabletDoesNotExists() {
+                  return true;
+                }
+
+                @Override
+                public boolean test(TabletMetadata tabletMetadata) {
+                  return tabletMetadata == null
+                      || !tabletMetadata.getExternalCompactions().containsKey(ecid);
+                }
+
+              });
         } catch (TableDeletedException e) {
           LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",
               extent.tableId());
         }
       });
 
+      Set<TableId> missingExtentTables = new HashSet<>();
       final List<ExternalCompactionId> ecidsForTablet = new ArrayList<>();
       tabletsMutator.process().forEach((extent, result) -> {
         if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+
           // this should try again later when the dead compaction detector runs, lets log it in case
           // its a persistent problem
           if (LOG.isDebugEnabled()) {
@@ -1071,7 +1089,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
             LOG.debug("Unable to remove failed compaction {} {}", extent, ecid);
           }
         } else {
-
           // compactionFailed is called from the Compactor when either a compaction fails or
           // is cancelled and it's called from the DeadCompactionDetector. This block is
           // entered when the conditional mutator above successfully deletes an ecid from
@@ -1082,35 +1099,62 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
           compactions.entrySet().stream().filter(e -> e.getValue().compareTo(extent) == 0)
               .map(Entry::getKey).forEach(ecidsForTablet::add);
 
-          final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
-          if (tm != null && !ecidsForTablet.isEmpty()) {
-            final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
-            for (Volume vol : vols) {
-              try {
-                final String volPath =
-                    vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-                        + extent.tableId().canonical() + Path.SEPARATOR + tm.getDirName();
-                final FileSystem fs = vol.getFileSystem();
-                for (ExternalCompactionId ecid : ecidsForTablet) {
-                  final String fileSuffix = "_tmp_" + ecid.canonical();
-                  FileStatus[] files = fs.listStatus(new Path(volPath), (path) -> {
-                    return path.getName().endsWith(fileSuffix);
-                  });
-                  if (files.length > 0) {
-                    for (FileStatus file : files) {
-                      if (!fs.delete(file.getPath(), false)) {
-                        LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+          if (!ecidsForTablet.isEmpty()) {
+            final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
+            if (tm != null) {
+              final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+              for (Volume vol : vols) {
+                try {
+                  final String volPath =
+                      vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+                          + extent.tableId().canonical() + Path.SEPARATOR + tm.getDirName();
+                  final FileSystem fs = vol.getFileSystem();
+                  for (ExternalCompactionId ecid : ecidsForTablet) {
+                    final String fileSuffix = "_tmp_" + ecid.canonical();
+                    FileStatus[] files = fs.listStatus(new Path(volPath), (path) -> {
+                      return path.getName().endsWith(fileSuffix);
+                    });
+                    if (files.length > 0) {
+                      for (FileStatus file : files) {
+                        if (!fs.delete(file.getPath(), false)) {
+                          LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+                        } else {
+                          LOG.debug("Deleted ecid tmp file: {}", file.getPath());
+                        }
                       }
                     }
                   }
+                } catch (IOException e) {
+                  LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
                 }
-              } catch (IOException e) {
-                LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
               }
+            } else {
+              // TabletMetadata does not exist for the extent. This could be due to a merge or
+              // split operation. Use the utility to find tmp files at the table level
+              missingExtentTables.add(extent.tableId());
             }
           }
         }
       });
+
+      if (!missingExtentTables.isEmpty()) {
+        for (TableId tid : missingExtentTables) {
+          try {
+            final Set<Path> matches = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
+            LOG.debug("Found the following compaction tmp files for table {}:", tid);
+            matches.forEach(p -> LOG.debug("{}", p));
+
+            LOG.debug("Deleting compaction tmp files for table {}...", tid);
+            DeleteStats stats = FindCompactionTmpFiles.deleteTempFiles(ctx, matches);
+            LOG.debug(
+                "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
+                tid, stats.success, stats.failure, stats.error);
+          } catch (InterruptedException e) {
+            LOG.error("Interrupted while finding compaction tmp files for table: {}",
+                tid.canonical(), e);
+          }
+        }
+      }
     }
 
     compactions.forEach((k, v) -> recordCompletion(k));

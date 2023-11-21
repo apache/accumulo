@@ -230,6 +230,7 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
+    cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
     cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
     cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");

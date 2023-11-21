@@ -113,7 +113,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
       // Verify that a tmp file is created
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 1);
 
       // Merge - blocking operation
       Text start = md.get(0).getPrevEndRow();

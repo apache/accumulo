@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,17 +63,17 @@ public class FindCompactionTmpFiles {
     boolean delete = false;
   }
 
-  public static List<Path> findTempFiles(ServerContext context, String tableId)
+  public static Set<Path> findTempFiles(ServerContext context, String tableId)
       throws InterruptedException {
     String tablePattern = tableId != null ? tableId : "*";
     final String pattern = "/tables/" + tablePattern + "/*/*";
     final Collection<Volume> vols = context.getVolumeManager().getVolumes();
     final ExecutorService svc = Executors.newFixedThreadPool(vols.size());
-    final List<Path> matches = new ArrayList<>(1024);
+    final Set<Path> matches = new ConcurrentSkipListSet<>();
     final List<Future<Void>> futures = new ArrayList<>(vols.size());
     for (Volume vol : vols) {
       final Path volPattern = new Path(vol.getBasePath() + pattern);
-      LOG.info("Looking for tmp files that match pattern: {}", volPattern);
+      LOG.trace("Looking for tmp files that match pattern: {}", volPattern);
       futures.add(svc.submit(() -> {
         try {
           FileStatus[] files = vol.getFileSystem().globStatus(volPattern,
@@ -101,7 +103,7 @@ public class FindCompactionTmpFiles {
       }
     }
     svc.awaitTermination(10, TimeUnit.MINUTES);
-    LOG.debug("Found compaction tmp files: {}", matches);
+    LOG.trace("Found compaction tmp files: {}", matches);
 
     // Remove paths of all active external compaction output files from the set of
     // tmp files found on the filesystem. This must be done *after* gathering the
@@ -113,7 +115,7 @@ public class FindCompactionTmpFiles {
                 .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
           });
     }
-    LOG.debug("Final set of compaction tmp files after removing active compactions: {}", matches);
+    LOG.trace("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;
   }
 
@@ -123,7 +125,7 @@ public class FindCompactionTmpFiles {
     public int error = 0;
   }
 
-  public static DeleteStats deleteTempFiles(ServerContext context, List<Path> filesToDelete)
+  public static DeleteStats deleteTempFiles(ServerContext context, Set<Path> filesToDelete)
       throws InterruptedException {
 
     final ExecutorService delSvc = Executors.newFixedThreadPool(8);
@@ -131,7 +133,12 @@ public class FindCompactionTmpFiles {
     final DeleteStats stats = new DeleteStats();
 
     filesToDelete.forEach(p -> {
-      futures.add(delSvc.submit(() -> context.getVolumeManager().delete(p)));
+      futures.add(delSvc.submit(() -> {
+        if (context.getVolumeManager().exists(p)) {
+          return context.getVolumeManager().delete(p);
+        }
+        return true;
+      }));
     });
     delSvc.shutdown();
 
@@ -183,7 +190,7 @@ public class FindCompactionTmpFiles {
           continue;
         }
 
-        final List<Path> matches = findTempFiles(context, tableId);
+        final Set<Path> matches = findTempFiles(context, tableId);
         LOG.info("Found the following compaction tmp files for table {}:", table);
         matches.forEach(p -> LOG.info("{}", p));
 
