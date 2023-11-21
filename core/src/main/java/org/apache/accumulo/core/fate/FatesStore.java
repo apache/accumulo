@@ -21,6 +21,8 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.Optional;
 
+import org.apache.accumulo.core.manager.PartitionData;
+
 /**
  * FatesStore : a place to store fate data for all fate operations.
  *
@@ -85,8 +87,8 @@ public interface FatesStore<T> extends ReadOnlyFatesStore<T> {
      * upon successful return the store now controls the referenced transaction id. caller should no
      * longer interact with it.
      *
-     * @param deferTime time in millis to keep this transaction out of the pool used in the
-     *        {@link #reserve() reserve} method. must be non-negative.
+     * @param deferTime time in millis to keep this transaction from being returned by
+     *        {@link #runnable(PartitionData)}. Must be non-negative.
      */
     void unreserve(long deferTime);
   }
