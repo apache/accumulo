@@ -16,20 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.test.functional;
 
 import java.util.EnumSet;
+import java.util.OptionalLong;
 
+import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-public class WalFilter extends TabletMetadataFilter {
+/**
+ * A filter constructed to test filtering in ample. This filter only allows tablets with compacted
+ * and with a flush ID.
+ */
+public class TestTabletMetadataFilter extends TabletMetadataFilter {
+
+  public static final long VALID_FLUSH_ID = 44L;
+
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
-    return EnumSet.of(TabletMetadata.ColumnType.LOGS);
+    return EnumSet.of(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID);
   }
 
   @Override
   public boolean acceptTablet(TabletMetadata tabletMetadata) {
-    return !tabletMetadata.getLogs().isEmpty();
+    return !tabletMetadata.getCompacted().isEmpty()
+        && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
   }
 }

@@ -246,6 +246,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         configureColumns(scanner);
         Range range1 = scanner.getRange();
 
+        if (tableMetadataFilter != null) {
+          IteratorSetting iterSetting = new IteratorSetting(100, tableMetadataFilter.getClass());
+          scanner.addScanIterator(iterSetting);
+        }
+
         Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
           synchronized (scanner) {
             scanner.setRange(r);

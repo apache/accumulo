@@ -37,6 +37,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -83,11 +84,11 @@ public class GarbageCollectWriteAheadLogs {
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
-        context.getAmple().readTablets().forLevel(DataLevel.ROOT)
+        context.getAmple().readTablets().forLevel(DataLevel.ROOT).filter(new HasWalsFilter())
             .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.METADATA)
+        context.getAmple().readTablets().forLevel(DataLevel.METADATA).filter(new HasWalsFilter())
             .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.USER)
+        context.getAmple().readTablets().forLevel(DataLevel.USER).filter(new HasWalsFilter())
             .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator());
   }
 

@@ -18,24 +18,18 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import java.io.IOException;
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorAdapter;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-public abstract class TabletMetadataFilter extends RowFilter {
+public class HasWalsFilter extends TabletMetadataFilter {
   @Override
-  public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
-    TabletMetadata tm =
-        TabletMetadata.convertRow(new IteratorAdapter(rowIterator), getColumns(), true, false);
-    return acceptTablet(tm);
+  public EnumSet<TabletMetadata.ColumnType> getColumns() {
+    return EnumSet.of(TabletMetadata.ColumnType.LOGS);
   }
 
-  public abstract EnumSet<TabletMetadata.ColumnType> getColumns();
-
-  public abstract boolean acceptTablet(TabletMetadata tabletMetadata);
+  @Override
+  public boolean acceptTablet(TabletMetadata tabletMetadata) {
+    return !tabletMetadata.getLogs().isEmpty();
+  }
 }

@@ -66,7 +66,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.iterators.user.WalFilter;
+import org.apache.accumulo.core.iterators.user.HasWalsFilter;
+import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -92,6 +93,7 @@ import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
@@ -851,67 +853,112 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test
-  public void testFilter() {
-    ServerContext context = cluster.getServerContext();
+  @Nested
+  public class TestFilter {
 
-    List<KeyExtent> expected = new ArrayList<>(List.of(e1, e2, e3, e4));
-
-    // make sure we read all tablets initially
-    try (TabletsMetadata tablets = context.getAmple().readTablets().forTable(tid).build()) {
-      List<KeyExtent> actual =
-          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-      assertEquals(expected, actual);
+    /**
+     * Applies the given filter and verifies the returned tablets match the given List
+     */
+    private void testFilterApplied(ServerContext context, TabletMetadataFilter filter,
+        List<KeyExtent> expectedTablets, String message) {
+      try (TabletsMetadata tablets =
+          context.getAmple().readTablets().forTable(tid).filter(filter).build()) {
+        List<KeyExtent> actual =
+            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+        assertEquals(expectedTablets, actual, message);
+      }
     }
 
-    // add a wal to tablet e2
-    ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-    String walFilePath =
-        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-    LogEntry wal = new LogEntry(walFilePath);
-    ctmi.mutateTablet(e2).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+    @Test
+    public void testCompactedAndFlushIdFilter() {
+      ServerContext context = cluster.getServerContext();
+      ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+      TestTabletMetadataFilter filter = new TestTabletMetadataFilter();
 
-    // verify it went through and we see it
-    var results = ctmi.process();
-    assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-    assertEquals(Set.of(wal), new HashSet<>(context.getAmple().readTablet(e2).getLogs()),
-        "The original LogEntry should be present.");
+      // make sure we read all tablets on table initially
+      // passing null applies no filter
+      testFilterApplied(context, null, List.of(e1, e2, e3, e4),
+          "Initially, all tablets should be present");
 
-    // test that the filter only returns tablets with WALs
-    try (TabletsMetadata tablets =
-        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
-      List<KeyExtent> actual =
-          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-      assertEquals(List.of(e2), actual);
+      // Set compacted on e2 but with no flush ID
+      ctmi.mutateTablet(e2).requireAbsentOperation().putCompacted(34L)
+          .submit(tabletMetadata -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      testFilterApplied(context, filter, List.of(),
+          "Compacted but no flush ID should return no tablets");
+
+      // Set incorrect flush ID on e2
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e2).requireAbsentOperation().putFlushId(45L)
+          .submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      testFilterApplied(context, filter, List.of(),
+          "Compacted with incorrect flush ID should return no tablets");
+
+      // Set correct flush ID on e2
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e2).requireAbsentOperation()
+          .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      testFilterApplied(context, filter, List.of(e2),
+          "Compacted with correct flush ID should return e2");
+
+      // Step 4: Set compacted and correct flush ID on e3
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e3).requireAbsentOperation().putCompacted(987L)
+          .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      testFilterApplied(context, filter, List.of(e2, e3),
+          "Compacted with correct flush ID should return e2 and e3");
     }
 
-    // add wal to tablet e4
-    ctmi = new ConditionalTabletsMutatorImpl(context);
-    walFilePath = java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-    wal = new LogEntry(walFilePath);
-    ctmi.mutateTablet(e4).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+    @Test
+    public void walFilter() {
+      ServerContext context = cluster.getServerContext();
+      ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
+      HasWalsFilter filter = new HasWalsFilter();
 
-    // check that we see the wal on e4
-    assertEquals(Set.of(wal), new HashSet<>(context.getAmple().readTablet(e4).getLogs()),
-        "Both added wals should be present without filter");
+      // make sure we read all tablets on table initially
+      // passing null applies no filter
+      testFilterApplied(context, null, List.of(e1, e2, e3, e4),
+          "Initially, all tablets should be present");
 
-    // now when using the wal filter, should see both e2 and e4
-    try (TabletsMetadata tablets =
-        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
-      List<KeyExtent> actual =
-          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-      assertEquals(List.of(e2, e4), actual);
-    }
+      // add a wal to e2
+      String walFilePath =
+          java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+      LogEntry wal = new LogEntry(walFilePath);
+      ctmi.mutateTablet(e2).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
 
-    // remove the wal from e4
-    ctmi.mutateTablet(e4).requireAbsentOperation().deleteWal(wal).submit(tabletMetadata -> false);
+      // test that the filter works
+      testFilterApplied(context, filter, List.of(e2), "Only tablets with wals should be returned");
 
-    // test that now only the tablet with a wal is returned
-    try (TabletsMetadata tablets =
-        context.getAmple().readTablets().forTable(tid).filter(new WalFilter()).build()) {
-      List<KeyExtent> actual =
-          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-      assertEquals(List.of(e2), actual);
+      // add wal to tablet e4
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      walFilePath = java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
+      wal = new LogEntry(walFilePath);
+      ctmi.mutateTablet(e4).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+
+      // now, when using the wal filter, should see both e2 and e4
+      testFilterApplied(context, filter, List.of(e2, e4),
+          "Only tablets with wals should be returned");
+
+      // remove the wal from e4
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e4).requireAbsentOperation().deleteWal(wal).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+
+      // test that now only the tablet with a wal is returned when using filter()
+      testFilterApplied(context, filter, List.of(e2), "Only tablets with wals should be returned");
+
     }
 
   }
