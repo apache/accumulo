@@ -224,7 +224,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       Map<Long,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
-          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
+          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, zl);
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);

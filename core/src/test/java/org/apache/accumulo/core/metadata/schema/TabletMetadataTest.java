@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -90,7 +89,6 @@ public class TabletMetadataTest {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
-    COMPACT_COLUMN.put(mutation, new Value("5"));
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
@@ -133,7 +131,6 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), true, false);
 
     assertEquals("OK", tm.getCloned());
-    assertEquals(5L, tm.getCompactId().getAsLong());
     assertEquals("t-0001757", tm.getDirName());
     assertEquals(extent.endRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
@@ -351,14 +348,12 @@ public class TabletMetadataTest {
 
     TabletMetadata tm = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.NEVER)
         .putLocation(Location.future(ser1)).putFile(sf1, dfv1).putFile(sf2, dfv2)
-        .putCompactionId(23).putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27)
-        .putDirName("dir1").putScan(sf3).putScan(sf4).putCompacted(17).putCompacted(23)
-        .build(ECOMP, HOSTING_REQUESTED);
+        .putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27).putDirName("dir1").putScan(sf3)
+        .putScan(sf4).putCompacted(17).putCompacted(23).build(ECOMP, HOSTING_REQUESTED);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletHostingGoal.NEVER, tm.getHostingGoal());
     assertEquals(Location.future(ser1), tm.getLocation());
-    assertEquals(23L, tm.getCompactId().orElse(-1));
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
     assertEquals(Map.of(rf1.insert(), 25L, rf2.insert(), 35L), tm.getLoaded());
@@ -379,7 +374,6 @@ public class TabletMetadataTest {
     assertNull(tm2.getLocation());
     assertThrows(IllegalStateException.class, tm2::getFiles);
     assertThrows(IllegalStateException.class, tm2::getHostingGoal);
-    assertThrows(IllegalStateException.class, tm2::getCompactId);
     assertThrows(IllegalStateException.class, tm2::getFlushId);
     assertThrows(IllegalStateException.class, tm2::getFiles);
     assertThrows(IllegalStateException.class, tm2::getLogs);

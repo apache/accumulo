@@ -942,7 +942,7 @@ public class Tablet extends TabletBase {
 
     try {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
-          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
+          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID);
 
       if (tabletMeta == null) {
         String msg = "Closed tablet " + extent + " not found in metadata";

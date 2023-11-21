@@ -33,12 +33,14 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +70,29 @@ public class Upgrader12to13 implements Upgrader {
     addHostingGoalToUserTables(context);
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
+    removeCompactColumns(context);
+  }
+
+  private void removeCompactColumns(ServerContext context) {
+
+    final Text COMPACT_QUAL = new Text("compact");
+
+    try (var scanner = context.createScanner(MetadataTable.NAME);
+        var writer = context.createBatchWriter(MetadataTable.NAME)) {
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+
+      for (Map.Entry<Key,Value> entry : scanner) {
+        var key = entry.getKey();
+        var row = key.getRow();
+        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+        Mutation m = new Mutation(row);
+        m.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, COMPACT_QUAL);
+        writer.addMutation(m);
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private void removeCompactIds(ServerContext context) {
@@ -83,7 +108,7 @@ public class Upgrader12to13 implements Upgrader {
         context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_ID);
         context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       } catch (KeeperException | InterruptedException e1) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "Error removing compaction ids from ZooKeeper for table: " + tName);
       }
     }

@@ -357,8 +357,6 @@ public interface Ample {
 
     T deleteScan(StoredTabletFile path);
 
-    T putCompactionId(long compactionId);
-
     T putFlushId(long flushId);
 
     T putLocation(Location location);

@@ -242,9 +242,6 @@ public class MetadataSchema {
       public static final String FLUSH_QUAL = "flush";
       public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
 
-      // ELASTICITY_TODO remove this from code and remove it from metadata in upgrade
-      public static final String COMPACT_QUAL = "compact";
-      public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text(COMPACT_QUAL));
       /**
        * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
        * tablet is not dead

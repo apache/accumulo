@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
@@ -300,9 +299,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         switch (colToFetch) {
           case CLONED:
             families.add(ClonedColumnFamily.NAME);
-            break;
-          case COMPACT_ID:
-            qualifiers.add(COMPACT_COLUMN);
             break;
           case DIR:
             qualifiers.add(DIRECTORY_COLUMN);

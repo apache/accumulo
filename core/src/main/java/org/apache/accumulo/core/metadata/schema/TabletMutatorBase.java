@@ -128,13 +128,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putCompactionId(long compactionId) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ServerColumnFamily.COMPACT_COLUMN.put(mutation, new Value(Long.toString(compactionId)));
-    return getThis();
-  }
-
-  @Override
   public T putFlushId(long flushId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
