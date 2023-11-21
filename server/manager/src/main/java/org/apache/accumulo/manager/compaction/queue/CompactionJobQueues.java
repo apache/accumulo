@@ -92,8 +92,11 @@ public class CompactionJobQueues {
   }
 
   public long getQueuedJobCount() {
-    return priorityQueues.values().stream().map(CompactionJobPriorityQueue::getQueuedJobs)
-        .reduce(Long::sum).orElseThrow();
+    long count = 0;
+    for (CompactionJobPriorityQueue queue : priorityQueues.values()) {
+      count += queue.getQueuedJobs();
+    }
+    return count;
   }
 
   public static class MetaJob {
