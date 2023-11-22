@@ -31,7 +31,10 @@ import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUCCES
 import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -77,6 +80,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final Supplier<PartitionData> partitionDataSupplier;
   private final BlockingQueue<Long> workQueue;
+  private final Set<Long> queuedWork;
   private final Thread workFinder;
 
   public enum TxInfo {
@@ -130,13 +134,23 @@ public class Fate<T> {
           }
           lastPartitionData = partitionData;
 
+          if (workQueue.isEmpty()) {
+            queuedWork.clear();
+          }
+
           var iter = store.runnable(partitionData);
 
-          int count = 0;
+          int added = 0;
           while (iter.hasNext() && keepRunning.get()) {
             Long txid = iter.next();
-            count++;
             try {
+              if (queuedWork.contains(txid)) {
+                // Avoid adding the same id to the queue multiple times as this will cause
+                // unnecessary work when multiple threads try to work on the same id.
+                continue;
+              }
+              added++;
+              queuedWork.add(txid);
               while (keepRunning.get()) {
                 if (workQueue.offer(txid, 100, TimeUnit.MILLISECONDS)) {
                   break;
@@ -148,8 +162,8 @@ public class Fate<T> {
             }
           }
 
-          if (count == 0) {
-            // When nothing was found in the store, then start doing exponential backoff before
+          if (added == 0) {
+            // When nothing was added to the queue, then start doing exponential backoff before
             // reading from the store again in order to avoid overwhelming the store.
             try {
               retry.waitForNextAttempt(log,
@@ -170,6 +184,9 @@ public class Fate<T> {
         } else {
           log.debug("Failure while attempting to find work for fate", e);
         }
+
+        queuedWork.clear();
+        workQueue.clear();
       }
     }
   }
@@ -186,6 +203,7 @@ public class Fate<T> {
           if (unreservedTid == null) {
             continue;
           }
+          queuedWork.remove(unreservedTid);
           var optionalopStore = store.tryReserve(unreservedTid);
           if (optionalopStore.isPresent()) {
             opStore = optionalopStore.orElseThrow();
@@ -196,7 +214,7 @@ public class Fate<T> {
           Repo<T> op = opStore.top();
           if (status == FAILED_IN_PROGRESS) {
             processFailed(opStore, op);
-          } else {
+          } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
               deferTime = op.isReady(opStore.getID(), environment);
@@ -345,6 +363,7 @@ public class Fate<T> {
     // TODO this queue does not resize when config changes
     this.workQueue =
         new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
+    this.queuedWork = Collections.synchronizedSet(new HashSet<>());
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
