@@ -87,7 +87,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGERS);
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,

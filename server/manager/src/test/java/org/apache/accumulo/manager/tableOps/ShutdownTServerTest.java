@@ -80,7 +80,7 @@ public class ShutdownTServerTest {
     EasyMock.expect(manager.onlineTabletServers()).andReturn(Collections.singleton(tserver));
     EasyMock.expect(manager.getConnection(tserver)).andReturn(tserverCnxn);
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
-    EasyMock.expect(manager.getPrimaryManagerLock()).andReturn(null);
+    EasyMock.expect(manager.getManagerLock()).andReturn(null);
     tserverCnxn.halt(null);
     EasyMock.expectLastCall().once();
 

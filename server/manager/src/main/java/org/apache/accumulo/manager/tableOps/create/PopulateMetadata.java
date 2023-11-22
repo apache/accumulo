@@ -69,7 +69,7 @@ class PopulateMetadata extends ManagerRepo {
       splitDirMap = Map.of();
     }
 
-    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getPrimaryManagerLock());
+    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getManagerLock());
 
     return new FinishCreateTable(tableInfo);
   }
@@ -102,7 +102,7 @@ class PopulateMetadata extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
-        environment.getPrimaryManagerLock());
+        environment.getManagerLock());
   }
 
   /**

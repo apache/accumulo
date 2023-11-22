@@ -579,8 +579,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
               if (client != null) {
                 LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
                     tm.getExtent());
-                client.unloadTablet(manager.getPrimaryManagerLock(), tm.getExtent(),
-                    goal.howUnload(), manager.getSteadyTime());
+                client.unloadTablet(manager.getManagerLock(), tm.getExtent(), goal.howUnload(),
+                    manager.getSteadyTime());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
               } else {
@@ -1009,7 +1009,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     for (Assignment a : tLists.assignments) {
       TServerConnection client = manager.tserverSet.getConnection(a.server);
       if (client != null) {
-        client.assignTablet(manager.primaryManagerLock, a.tablet);
+        client.assignTablet(manager.getManagerLock(), a.tablet);
       } else {
         Manager.log.warn("Could not connect to server {}", a.server);
       }
@@ -1031,8 +1031,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
-        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(),
-            manager.getPrimaryManagerLock());
+        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(), manager.getManagerLock());
 
         tabletMutator.submit(
             tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd

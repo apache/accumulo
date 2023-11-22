@@ -212,7 +212,7 @@ public class Manager extends AbstractServer
   private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
   private ServiceLock managerServerLock = null;
-  ServiceLock primaryManagerLock = null;
+  private ServiceLock primaryManagerLock = null;
   private TServer clientService = null;
   private HostAndPort clientServiceAddress = null;
   protected volatile TabletBalancer tabletBalancer;
@@ -690,7 +690,7 @@ public class Manager extends AbstractServer
                     for (TServerInstance server : currentServers) {
                       try {
                         serversToShutdown.add(server);
-                        tserverSet.getConnection(server).fastHalt(primaryManagerLock);
+                        tserverSet.getConnection(server).fastHalt(managerServerLock);
                       } catch (TException e) {
                         // its probably down, and we don't care
                       } finally {
@@ -774,7 +774,7 @@ public class Manager extends AbstractServer
         try {
           TServerConnection connection = tserverSet.getConnection(instance);
           if (connection != null) {
-            connection.fastHalt(primaryManagerLock);
+            connection.fastHalt(managerServerLock);
           }
         } catch (TException e) {
           log.error("{}", e.getMessage(), e);
@@ -884,7 +884,7 @@ public class Manager extends AbstractServer
               try {
                 TServerConnection connection2 = tserverSet.getConnection(server);
                 if (connection2 != null) {
-                  connection2.halt(primaryManagerLock);
+                  connection2.halt(managerServerLock);
                 }
               } catch (TTransportException e1) {
                 // ignore: it's probably down
@@ -1398,8 +1398,8 @@ public class Manager extends AbstractServer
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
-  public ServiceLock getPrimaryManagerLock() {
-    return primaryManagerLock;
+  public ServiceLock getManagerLock() {
+    return managerServerLock;
   }
 
   private static class PrimaryManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {

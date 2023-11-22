@@ -72,7 +72,11 @@ public class ZooUtil {
       if (lastSlash == 0) {
         path = root;
       } else {
-        path = root + "/" + sa[0].substring(0, lastSlash);
+        path = root;
+        if (!sa[0].startsWith("/")) {
+          path += "/";
+        }
+        path += sa[0].substring(0, lastSlash);
       }
       node = sa[0].substring(lastSlash + 1);
       eid = new BigInteger(sa[1], 16).longValue();
