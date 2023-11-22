@@ -46,6 +46,7 @@ public class TabletStatisticsImpl implements TabletStatistics {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public long getSplitCreationTime() {
     return thriftStats.getSplitCreationTime();
   }
