@@ -28,6 +28,7 @@ import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_
 import java.util.Arrays;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -130,7 +131,8 @@ public class Upgrader11to12 implements Upgrader {
       for (Map.Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         Value value = entry.getValue();
-
+        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+                "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
         // on new row, write current mutation and prepare a new one.
         Text r = key.getRow();
         if (update == null) {
