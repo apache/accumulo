@@ -131,9 +131,6 @@ public enum PropertyType {
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
       "One of 'none', 'flush', or 'compact'."),
 
-  LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
-      "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
-
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),

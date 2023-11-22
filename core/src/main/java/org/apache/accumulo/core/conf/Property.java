@@ -717,17 +717,6 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
-  // ELASTICITY_TODO reconsider this prop and its impl now that compactions never happen on tservers
-  TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
-      PropertyType.LAST_LOCATION_MODE,
-      "Describes how the system will record the 'last' location for tablets, which can be used for"
-          + " assigning them when a cluster restarts. If 'compaction' is the mode, then the system"
-          + " will record the location where the tablet's most recent compaction occurred. If"
-          + " 'assignment' is the mode, then the most recently assigned location will be recorded."
-          + " The manager.startup.tserver properties might also need to be set to ensure the"
-          + " tserver is available before tablets are initially assigned if the 'last' location is"
-          + " to be used.",
-      "2.1.1"),
   TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
       PropertyType.TIMEDURATION,
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded.",

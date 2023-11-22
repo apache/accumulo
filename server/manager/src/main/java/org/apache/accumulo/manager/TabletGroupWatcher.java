@@ -403,7 +403,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       final Set<ManagementAction> actions = mti.getActions();
-      if (tm.isFutureAndCurrentLocationSet()) {
+      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
         throw new BadLocationStateException(
             tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
             tm.getExtent().toMetaRow());
