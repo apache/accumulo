@@ -657,6 +657,7 @@ public class Manager extends AbstractServer
                 return TabletGoalState.UNASSIGNED;
               }
             case MERGING:
+            case MERGED:
               return TabletGoalState.UNASSIGNED;
           }
         } else {
