@@ -76,6 +76,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -1110,9 +1111,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER).fetch(ECOMP).build()
-        .stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
-        .collect(Collectors.toSet());
+    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+        .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build().stream()
+        .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
   }
 
   /**
