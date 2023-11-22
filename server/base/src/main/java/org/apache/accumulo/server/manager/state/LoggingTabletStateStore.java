@@ -61,12 +61,6 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  @Deprecated
-  public void overrideRanges(List<Range> ranges) {
-    wrapped.overrideRanges(ranges);
-  }
-
-  @Override
   public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     wrapped.setFutureLocations(assignments);

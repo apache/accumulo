@@ -67,15 +67,6 @@ public interface TabletStateStore {
   }
 
   /**
-   * Override the range of tablets that the TabletStateStore should retrieve. By default it
-   * retrieves all tablets.
-   */
-  @Deprecated
-  default void overrideRanges(List<Range> ranges) {
-    throw new UnsupportedOperationException("Not implemented.");
-  }
-
-  /**
    * Store the assigned locations in the data store.
    */
   void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;

@@ -318,7 +318,7 @@ public enum Property {
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
   MANAGER_PORTSEARCH("manager.port.search", "false", PropertyType.BOOLEAN,
-      "If the manager.port.client is in use, search higher ports until one is available.", "3.1.0"),
+      "If the manager.port.client is in use, search higher ports until one is available.", "4.0.0"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
@@ -378,14 +378,14 @@ public enum Property {
       "Minimum number of managers that need to be registered before a manager will start. A value "
           + "greater than 0 is useful when multiple managers are supposed to be running on startup. "
           + "When set to 0 or less, no blocking occurs. Default is 0 (disabled).",
-      "3.1.0"),
+      "4.0.0"),
   MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT("manager.startup.manager.avail.max.wait", "0",
       PropertyType.TIMEDURATION,
       "Maximum time manager will wait for manager available threshold "
           + "to be reached before continuing. When set to 0 or less, will block "
           + "indefinitely. Default is 0 to block indefinitely. Only valid when manager available "
           + "threshold is set greater than 1.",
-      "3.1.0"),
+      "4.0.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
       PropertyType.COUNT,
       "Minimum number of tservers that need to be registered before manager will "

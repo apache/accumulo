@@ -179,5 +179,4 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   public String name() {
     return "Root Table";
   }
-
 }
