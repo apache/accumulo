@@ -1099,7 +1099,8 @@ public class CompactableImpl implements Compactable {
 
   @SuppressWarnings("removal")
   private boolean isCompactionStratConfigured() {
-    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY);
+    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY)
+        && !tablet.getTableConfiguration().get(Property.TABLE_COMPACTION_STRATEGY).isBlank();
   }
 
   @Override

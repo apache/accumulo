@@ -1071,8 +1071,7 @@ public enum Property {
       "Options for the table compaction configuror.", "2.1.0"),
   @Deprecated(since = "2.1.0", forRemoval = true)
   @ReplacedBy(property = TABLE_COMPACTION_SELECTOR)
-  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy",
-      "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
+  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy", "", PropertyType.CLASSNAME,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction %}.", "1.6.0"),
   @Deprecated(since = "2.1.0", forRemoval = true)
   @ReplacedBy(property = TABLE_COMPACTION_SELECTOR_OPTS)
