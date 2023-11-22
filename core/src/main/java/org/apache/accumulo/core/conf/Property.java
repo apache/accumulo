@@ -1100,7 +1100,8 @@ public enum Property {
   COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
       PropertyType.TIMEDURATION,
       "Interval at which Compactors will check to see if the currently executing compaction"
-          + " should be cancelled.",
+          + " should be cancelled. This checks for situations like was the tablet deleted (split "
+          + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
       "4.0.0"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
