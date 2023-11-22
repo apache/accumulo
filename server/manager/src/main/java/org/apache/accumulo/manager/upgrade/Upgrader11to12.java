@@ -28,8 +28,6 @@ import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_
 import java.util.Arrays;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -92,9 +90,8 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
     // not using ample to avoid StoredTabletFile because old file ref is incompatible
-    try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
-        BatchWriter batchWriter = c.createBatchWriter(rootName); Scanner scanner =
-            new IsolatedScanner(context.createScanner(rootName, Authorizations.EMPTY))) {
+    try (BatchWriter batchWriter = context.createBatchWriter(rootName); Scanner scanner =
+        new IsolatedScanner(context.createScanner(rootName, Authorizations.EMPTY))) {
       processReferences(batchWriter, scanner, rootName);
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + rootName, ex);
@@ -109,9 +106,8 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeMetadata(@NonNull ServerContext context) {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
-    try (AccumuloClient c = Accumulo.newClient().from(context.getProperties()).build();
-        BatchWriter batchWriter = c.createBatchWriter(metaName); Scanner scanner =
-            new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
+    try (BatchWriter batchWriter = context.createBatchWriter(metaName); Scanner scanner =
+        new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
       processReferences(batchWriter, scanner, metaName);
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
