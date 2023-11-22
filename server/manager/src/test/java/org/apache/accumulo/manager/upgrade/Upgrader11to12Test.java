@@ -79,7 +79,7 @@ public class Upgrader11to12Test {
     upgrader.upgradeDataFileCF(k, v, upgrade);
 
     var pending = upgrade.getUpdates();
-
+    assertEquals(2, pending.size());
     // leverage sort order for "expected" values
     // check file entry converted is in the mutation
     Iterator<ColumnUpdate> m = pending.iterator();
@@ -167,6 +167,7 @@ public class Upgrader11to12Test {
     var u2 = capturedUpdate2.getValue();
     // 1 add, 1 delete
     assertEquals(2, u2.getUpdates().size());
+    assertEquals(1, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
     verify(batchWriter, scanner);
 
@@ -214,6 +215,7 @@ public class Upgrader11to12Test {
     var u1 = capturedUpdate1.getValue();
     // 1 add, 1 delete
     assertEquals(2, u1.getUpdates().size());
+    assertEquals(1, u1.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
     verify(batchWriter, scanner);
   }
@@ -393,6 +395,7 @@ public class Upgrader11to12Test {
     var u1 = capturedUpdate1.getValue();
     // 1 add, 1 delete
     assertEquals(2, u1.getUpdates().size());
+    assertEquals(1, u1.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
     verify(batchWriter, scanner);
   }

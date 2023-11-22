@@ -138,7 +138,9 @@ public class Upgrader11to12 implements Upgrader {
         if (update == null) {
           update = new Mutation(r);
         } else if (!Arrays.equals(update.getRow(), TextUtil.getBytes(r))) {
-          log.trace("table: {}, update: {}", tableName, update.prettyPrint());
+          if (log.isTraceEnabled()) {
+            log.trace("table: {}, update: {}", tableName, update.prettyPrint());
+          }
           if (!update.getUpdates().isEmpty()) {
             batchWriter.addMutation(update);
           }
