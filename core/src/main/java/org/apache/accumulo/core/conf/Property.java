@@ -577,7 +577,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited.  This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
@@ -596,7 +598,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
@@ -615,7 +619,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
       "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
@@ -735,9 +741,10 @@ public enum Property {
           + " 'assignment' is the mode, then the most recently assigned location will be recorded."
           + " The manager.startup.tserver properties might also need to be set to ensure the"
           + " tserver is available before tablets are initially assigned if the 'last' location is"
-          + " to be used.",
+          + " to be used. This property has been deprecated in anticipation of it being removed in"
+          + " a future release that removes major compactions from the TabletServer, rendering this"
+          + " feature moot.",
       "2.1.1"),
-
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",
