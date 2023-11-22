@@ -244,21 +244,20 @@ public class Merge {
     // open up metadata, walk through the tablets.
 
     TableId tableId;
-    TabletsMetadata tablets;
+    ClientContext context = (ClientContext) client;
     try {
-      ClientContext context = (ClientContext) client;
       tableId = context.getTableId(tablename);
-      tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
-          .build();
     } catch (Exception e) {
       throw new MergeException(e);
     }
-
-    return tablets.stream().map(tm -> {
-      long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-      return new Size(tm.getExtent(), size);
-    }).iterator();
+    try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+        .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
+        .build()) {
+      return tablets.stream().map(tm -> {
+        long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+        return new Size(tm.getExtent(), size);
+      }).iterator();
+    }
   }
 
 }

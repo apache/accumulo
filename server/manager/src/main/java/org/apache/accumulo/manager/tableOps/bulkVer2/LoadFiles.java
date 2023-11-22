@@ -328,24 +328,25 @@ class LoadFiles extends ManagerRepo {
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
-    Iterator<TabletMetadata> tabletIter =
-        TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
-            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build().iterator();
-
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
       loader = new OnlineLoader();
     } else {
       loader = new OfflineLoader();
     }
-
+    long t1;
     loader.start(bulkDir, manager, tid, bulkInfo.setTime);
+    try (TabletsMetadata tabletsMetadata =
+        TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
+            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build()) {
 
-    long t1 = System.currentTimeMillis();
-    while (lmi.hasNext()) {
-      loadMapEntry = lmi.next();
-      List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
-      loader.load(tablets, loadMapEntry.getValue());
+      t1 = System.currentTimeMillis();
+      while (lmi.hasNext()) {
+        loadMapEntry = lmi.next();
+        List<TabletMetadata> tablets =
+            findOverlappingTablets(loadMapEntry.getKey(), tabletsMetadata.iterator());
+        loader.load(tablets, loadMapEntry.getValue());
+      }
     }
 
     long sleepTime = loader.finish();

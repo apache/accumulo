@@ -104,18 +104,19 @@ class CompactionDriver extends ManagerRepo {
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
 
-    TabletsMetadata tablets = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
-        .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build();
+    try (TabletsMetadata tablets = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build()) {
 
-    for (TabletMetadata tablet : tablets) {
-      if (tablet.getCompactId().orElse(-1) < compactId) {
-        tabletsToWaitFor++;
-        if (tablet.hasCurrent()) {
-          serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
+      for (TabletMetadata tablet : tablets) {
+        if (tablet.getCompactId().orElse(-1) < compactId) {
+          tabletsToWaitFor++;
+          if (tablet.hasCurrent()) {
+            serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
+          }
         }
-      }
 
-      tabletCount++;
+        tabletCount++;
+      }
     }
 
     long scanTime = System.currentTimeMillis() - t1;

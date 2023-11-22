@@ -88,9 +88,10 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   @VisibleForTesting
   protected Stream<KeyExtent> lookupExtents(Text row) {
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, true, null)
-        .checkConsistency().fetch(PREV_ROW).build().stream().limit(100)
-        .map(TabletMetadata::getExtent);
+    try (TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(row, true, null).checkConsistency().fetch(PREV_ROW).build()) {
+      return tabletsMetadata.stream().limit(100).map(TabletMetadata::getExtent);
+    }
   }
 
   @Override
