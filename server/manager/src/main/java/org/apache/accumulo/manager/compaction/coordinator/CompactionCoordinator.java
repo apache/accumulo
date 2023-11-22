@@ -73,7 +73,6 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -120,8 +119,6 @@ import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
-import org.apache.accumulo.server.util.FindCompactionTmpFiles;
-import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -179,6 +176,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> checked_tablet_dir_cache;
+  private final DeadCompactionDetector deadCompactionDetector;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
       SecurityOperation security, CompactionJobQueues jobQueues,
@@ -217,6 +215,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
             .maximumWeight(10485760L).weigher(weigher).build();
 
+    deadCompactionDetector = new DeadCompactionDetector(this.ctx, this, schedExecutor);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
@@ -343,7 +342,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(this.ctx, this, schedExecutor).start();
+    deadCompactionDetector.start();
   }
 
   protected long getMissingCompactorWarningTime() {
@@ -1075,7 +1074,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         }
       });
 
-      Set<TableId> missingExtentTables = new HashSet<>();
       final List<ExternalCompactionId> ecidsForTablet = new ArrayList<>();
       tabletsMutator.process().forEach((extent, result) -> {
         if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
@@ -1131,30 +1129,11 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
             } else {
               // TabletMetadata does not exist for the extent. This could be due to a merge or
               // split operation. Use the utility to find tmp files at the table level
-              missingExtentTables.add(extent.tableId());
+              deadCompactionDetector.addTableId(extent.tableId());
             }
           }
         }
       });
-
-      if (!missingExtentTables.isEmpty()) {
-        for (TableId tid : missingExtentTables) {
-          try {
-            final Set<Path> matches = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
-            LOG.debug("Found the following compaction tmp files for table {}:", tid);
-            matches.forEach(p -> LOG.debug("{}", p));
-
-            LOG.debug("Deleting compaction tmp files for table {}...", tid);
-            DeleteStats stats = FindCompactionTmpFiles.deleteTempFiles(ctx, matches);
-            LOG.debug(
-                "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
-                tid, stats.success, stats.failure, stats.error);
-          } catch (InterruptedException e) {
-            LOG.error("Interrupted while finding compaction tmp files for table: {}",
-                tid.canonical(), e);
-          }
-        }
-      }
     }
 
     compactions.forEach((k, v) -> recordCompletion(k));
