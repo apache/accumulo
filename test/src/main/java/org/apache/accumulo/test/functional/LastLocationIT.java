@@ -31,26 +31,16 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
-public class AssignLocationModeIT extends ConfigurableMacBase {
+public class LastLocationIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
-  }
-
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assignment");
   }
 
   @Test
@@ -77,9 +67,6 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         m.put("b", "c", "d");
         bw.addMutation(m);
       }
-      // assert that the default mode is "assign"
-      assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
       TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
