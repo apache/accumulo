@@ -563,7 +563,7 @@ public class ClientContext implements AccumuloClient {
             .path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGERS + "/" + manager);
         Optional<ServiceLockData> sld = zooCache.getLockData(zLocPath);
         if (sld.isPresent()) {
-          locations.add(sld.get().getAddressString(ThriftService.MANAGER));
+          locations.add(sld.orElseThrow().getAddressString(ThriftService.MANAGER));
         }
       }
     }

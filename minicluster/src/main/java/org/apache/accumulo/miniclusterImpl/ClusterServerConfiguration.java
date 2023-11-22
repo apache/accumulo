@@ -47,7 +47,8 @@ public class ClusterServerConfiguration {
    * @param numSServers number of scan servers in the default resource group
    * @param numTServers number of tablet servers in the default resource group
    */
-  public ClusterServerConfiguration(int numManagers, int numCompactors, int numSServers, int numTServers) {
+  public ClusterServerConfiguration(int numManagers, int numCompactors, int numSServers,
+      int numTServers) {
     this.numManagers = numManagers;
     compactors = new HashMap<>();
     compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
@@ -60,11 +61,11 @@ public class ClusterServerConfiguration {
   public int getNumManagers() {
     return this.numManagers;
   }
-  
+
   public void setNumManagers(int num) {
     this.numManagers = num;
   }
-  
+
   public void setNumDefaultCompactors(int numCompactors) {
     compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
   }

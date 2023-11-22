@@ -69,7 +69,7 @@ class PopulateMetadata extends ManagerRepo {
       splitDirMap = Map.of();
     }
 
-    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getManagerLock());
+    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getPrimaryManagerLock());
 
     return new FinishCreateTable(tableInfo);
   }

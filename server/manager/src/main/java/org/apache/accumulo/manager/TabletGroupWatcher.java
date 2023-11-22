@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -138,7 +137,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
   private WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
-  private final Supplier<Boolean> enabled;
   private LiveManagerSet liveManagers;
   /* current set of managers */
   private final SortedSet<String> managers = new TreeSet<>();
@@ -146,7 +144,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
   private final AtomicReference<SortedSet<String>> managerUpdates = new AtomicReference<>();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
-      ManagerMetrics metrics, Supplier<Boolean> enabled) {
+      ManagerMetrics metrics) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
@@ -155,7 +153,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
-    this.enabled = enabled;
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -236,18 +233,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     private boolean needsFullScan = true;
 
     private final BlockingQueue<Range> rangesToProcess;
-    AtomicReference<Map<TableId,String>> tablesFromLastRun = new AtomicReference<>(null);
 
     class RangeProccessor implements Runnable {
       @Override
       public void run() {
         try {
           while (manager.stillManager()) {
-
-            // spin if not enabled
-            while (!enabled.get()) {
-              Thread.onSpinWait();
-            }
 
             var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
             if (range == null) {
@@ -266,7 +257,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
               continue;
             }
 
-            TabletManagementParameters tabletMgmtParams = createTabletManagementParameters(false);
+            TabletManagementParameters tabletMgmtParams =
+                createTabletManagementParameters(false, Optional.of(ranges));
 
             var currentTservers = getCurrentTservers(tabletMgmtParams.getOnlineTsevers());
             if (currentTservers.isEmpty()) {
@@ -340,8 +332,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     }
   }
 
-  private TabletManagementParameters
-      createTabletManagementParameters(boolean lookForTabletsNeedingVolReplacement) {
+  private TabletManagementParameters createTabletManagementParameters(
+      boolean lookForTabletsNeedingVolReplacement, Optional<List<Range>> ranges) {
 
     HashMap<Ample.DataLevel,Boolean> parentLevelUpgrade = new HashMap<>();
     UpgradeCoordinator.UpgradeStatus upgradeStatus = manager.getUpgradeStatus();
@@ -365,7 +357,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : List.of());
+            : List.of(),
+        ranges);
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -510,19 +503,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
           if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
             LOG.debug("submitting tablet {} for split", tm.getExtent());
             manager.getSplitter().executeSplit(new SplitTask(manager.getContext(), tm, manager));
-            
-// DLMARI2: Figure out where this goes now            
-        // Override the set of table ranges that this manager will manage
-//        if (store.getLevel() == DataLevel.USER) {
-//          Optional<List<Range>> ranges = calculateRangesForMultipleManagers(
-//              tablesFromLastRun.getAndSet(manager.getContext().getTableIdToNameMap()));
-//          // If ranges is empty, then the tables and managers did not change from the
-//          // previous call, we will use the same ranges.
-//          if (ranges.isPresent()) {
-//            store.overrideRanges(ranges.get());
-//          }
-//        }
-
           }
         } else {
           LOG.debug("{} is not splittable.", tm.getExtent());
@@ -599,8 +579,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
               if (client != null) {
                 LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
                     tm.getExtent());
-                client.unloadTablet(manager.getManagerLock(), tm.getExtent(), goal.howUnload(),
-                    manager.getSteadyTime());
+                client.unloadTablet(manager.getPrimaryManagerLock(), tm.getExtent(),
+                    goal.howUnload(), manager.getSteadyTime());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
               } else {
@@ -638,6 +618,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
   public void run() {
     int[] oldCounts = new int[TabletState.values().length];
     boolean lookForTabletsNeedingVolReplacement = true;
+    AtomicReference<Map<TableId,String>> tablesFromLastRun = new AtomicReference<>(null);
 
     while (manager.stillManager()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
@@ -648,8 +629,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
       final long waitTimeBetweenScans = manager.getConfiguration()
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
+      // Override the set of table ranges that this manager will manage
+      Optional<List<Range>> ranges = Optional.empty();
+      if (store.getLevel() == Ample.DataLevel.USER) {
+        ranges = calculateRangesForMultipleManagers(
+            tablesFromLastRun.getAndSet(manager.getContext().getTableIdToNameMap()));
+      }
+
       TabletManagementParameters tableMgmtParams =
-          createTabletManagementParameters(lookForTabletsNeedingVolReplacement);
+          createTabletManagementParameters(lookForTabletsNeedingVolReplacement, ranges);
       var currentTServers = getCurrentTservers(tableMgmtParams.getOnlineTsevers());
 
       ClosableIterator<TabletManagement> iter = null;
@@ -1043,7 +1031,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
-        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(), manager.getManagerLock());
+        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(),
+            manager.getPrimaryManagerLock());
 
         tabletMutator.submit(
             tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd

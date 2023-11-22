@@ -972,8 +972,8 @@ public class Manager extends AbstractServer
 
       ServiceDescriptors descriptors = new ServiceDescriptors();
       // Insert the service with a fake address so that clients can't connect right now
-      descriptors.addService(
-          new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER, address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
       ServiceLockData sld = new ServiceLockData(descriptors);
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
@@ -995,11 +995,13 @@ public class Manager extends AbstractServer
 
   private static void updateLockContent(HostAndPort address, ServiceLock primaryManagerLock) {
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    descriptors.addService(
-        new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER, address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER,
+        address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
     if (PRIMARY_MANAGER.get()) {
-      descriptors.addService(
-          new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.FATE, address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.COORDINATOR,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.FATE,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
     }
     ServiceLockData sld = new ServiceLockData(descriptors);
     log.info("Setting manager lock data to {}", sld.toString());
@@ -1034,7 +1036,8 @@ public class Manager extends AbstractServer
     FateService.Iface fateProxy = HighlyAvailableServiceWrapper.service(fateServiceHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateProxy, compactionCoordinator, mgrProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateProxy, compactionCoordinator,
+        mgrProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1135,7 +1138,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm, () -> true) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1143,7 +1146,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm, () -> PRIMARY_MANAGER.get()) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1154,7 +1157,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm, () -> PRIMARY_MANAGER.get()) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
@@ -1394,10 +1397,6 @@ public class Manager extends AbstractServer
   private long remaining(long deadline) {
     return Math.max(1, deadline - System.currentTimeMillis());
   }
-  
-  public ServiceLock getManagerLock() {
-    return managerServerLock;
-  }
 
   public ServiceLock getPrimaryManagerLock() {
     return primaryManagerLock;
@@ -1470,8 +1469,8 @@ public class Manager extends AbstractServer
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get primary manager lock");
 
-    ServiceLockData sld =
-        new ServiceLockData(MANAGER_SERVER_UUID, address.toString(), ThriftService.FATE, Constants.DEFAULT_RESOURCE_GROUP_NAME);
+    ServiceLockData sld = new ServiceLockData(MANAGER_SERVER_UUID, address.toString(),
+        ThriftService.FATE, Constants.DEFAULT_RESOURCE_GROUP_NAME);
 
     primaryManagerLock = new ServiceLock(zooKeeper, zManagerLoc, MANAGER_SERVER_UUID);
     PrimaryManagerLockWatcher managerLockWatcher =

@@ -192,9 +192,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         synchronized (managerProcesses) {
           int count = 0;
           for (int i = managerProcesses.size();
-              count < limit && i < cluster.getConfig().getClusterServerConfiguration().getNumManagers(); i++, ++count) {
-            managerProcesses
-                .add(cluster._exec(classToUse, server, configOverrides).getProcess());
+              count < limit
+                  && i < cluster.getConfig().getClusterServerConfiguration().getNumManagers();
+              i++, ++count) {
+            managerProcesses.add(cluster._exec(classToUse, server, configOverrides).getProcess());
           }
         }
         break;
