@@ -90,6 +90,8 @@ public class Fate<T> {
   // TODO add a task that periodically looks for fate task reserved by dead instances, only run in
   // partition zero
   private class LockCleaner implements Runnable {
+
+    @Override
     public void run() {
       while (keepRunning.get()) {
         var partitionData = partitionDataSupplier.get();
@@ -116,6 +118,7 @@ public class Fate<T> {
           .logInterval(3, MINUTES).createRetry();
     }
 
+    @Override
     public void run() {
 
       try {
@@ -131,6 +134,7 @@ public class Fate<T> {
             // attempt to avoid some unnecessary work caused by multiple processes trying to reserve
             // the same fate transaction.
             workQueue.clear();
+            queuedWork.clear();
           }
           lastPartitionData = partitionData;
 
