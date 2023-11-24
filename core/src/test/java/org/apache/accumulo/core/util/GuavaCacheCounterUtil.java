@@ -32,7 +32,7 @@ import com.google.common.cache.Cache;
  */
 public class GuavaCacheCounterUtil {
   private static final Logger LOG = LoggerFactory.getLogger(GuavaCacheCounterUtil.class);
-  private static final int reties = 5;
+  private static final int retries = 5;
   private static final long delayMills = 1_000;
 
   /**
@@ -47,7 +47,7 @@ public class GuavaCacheCounterUtil {
     Preconditions.checkArgument(expected >= 0, "Expected cache size must be >= 0");
     long received = Long.MIN_VALUE;
     int retryCount = 0;
-    while (retryCount++ < reties) {
+    while (retryCount++ < retries) {
       received = cacheCount(cache);
       if (received == expected) {
         return;
