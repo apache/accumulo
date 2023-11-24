@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.apache.accumulo.core.util.GuavaCacheCounterUtil.assertCacheCountEquals;
+import static org.apache.accumulo.core.util.GuavaCacheCounterUtil.cacheCount;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -41,12 +43,6 @@ public class TableIdTest extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(TableIdTest.class);
 
-  private static long cacheCount() {
-    // guava cache size() is approximate, and can include garbage-collected entries
-    // so we iterate to get the actual cache size
-    return TableId.cache.asMap().entrySet().stream().count();
-  }
-
   @Test
   public void testCacheNoDuplicates() {
 
@@ -59,9 +55,9 @@ public class TableIdTest extends WithTestNames {
     assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
     String tableString = "table-" + testName();
-    long initialSize = cacheCount();
+    long initialSize = cacheCount(TableId.cache);
     TableId table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, cacheCount());
+    assertCacheCountEquals(initialSize + 1, TableId.cache);
     assertEquals(tableString, table1.canonical());
 
     // ensure duplicates are not created
@@ -72,10 +68,10 @@ public class TableIdTest extends WithTestNames {
     builtInTableId = TableId.of("+rep");
     assertSame(REPL_TABLE_ID, builtInTableId);
     table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, cacheCount());
+    assertCacheCountEquals(initialSize + 1, TableId.cache);
     assertEquals(tableString, table1.canonical());
     TableId table2 = TableId.of(tableString);
-    assertEquals(initialSize + 1, cacheCount());
+    assertCacheCountEquals(initialSize + 1, TableId.cache);
     assertEquals(tableString, table2.canonical());
     assertSame(table1, table2);
   }
@@ -83,7 +79,7 @@ public class TableIdTest extends WithTestNames {
   @Test
   @Timeout(30)
   public void testCacheIncreasesAndDecreasesAfterGC() {
-    long initialSize = cacheCount();
+    long initialSize = cacheCount(TableId.cache);
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(TableId.cache.asMap().toString());
@@ -91,21 +87,21 @@ public class TableIdTest extends WithTestNames {
     // add one and check increase
     String tableString = "table-" + testName();
     TableId table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, cacheCount());
+    assertCacheCountEquals(initialSize + 1, TableId.cache);
     assertEquals(tableString, table1.canonical());
 
     // create a bunch more and throw them away
-    long preGCSize = 0;
+    long preGCSize;
     int i = 0;
-    while ((preGCSize = cacheCount()) < 100) {
-      TableId.of(new String("table" + i++));
+    while ((preGCSize = cacheCount(TableId.cache)) < 100) {
+      TableId.of("table" + i++);
     }
     LOG.info("Entries before System.gc(): {}", preGCSize);
     assertEquals(100, preGCSize);
     long postGCSize = preGCSize;
     while (postGCSize >= preGCSize) {
       tryToGc();
-      postGCSize = cacheCount();
+      postGCSize = cacheCount(TableId.cache);
       LOG.info("Entries after System.gc(): {}", postGCSize);
     }
   }
