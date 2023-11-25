@@ -81,6 +81,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Collections2;
@@ -231,6 +232,11 @@ public class CompactableImpl implements Compactable {
       return selectKind;
     }
 
+    @VisibleForTesting
+    Set<StoredTabletFile> getSelectedFiles() {
+      return Set.copyOf(selectedFiles);
+    }
+
     SelectedInfo getReservedInfo() {
       Preconditions.checkState(selectStatus == FileSelectionStatus.RESERVED);
       return new SelectedInfo(initiallySelectedAll, selectedFiles, selectKind);
@@ -245,7 +251,8 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(kind == CompactionKind.SELECTOR || kind == CompactionKind.USER);
 
       if (selectStatus == FileSelectionStatus.NOT_ACTIVE || (kind == CompactionKind.USER
-          && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR))) {
+          && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR)
+          && selectStatus != FileSelectionStatus.SELECTING)) {
         selectStatus = FileSelectionStatus.NEW;
         selectKind = kind;
         selectedFiles.clear();
@@ -1065,7 +1072,6 @@ public class CompactableImpl implements Compactable {
 
         manager.compactableChanged(this);
       }
-
     } catch (Exception e) {
       log.error("Failed to select user compaction files {}", getExtent(), e);
     } finally {
@@ -1075,7 +1081,6 @@ public class CompactableImpl implements Compactable {
         }
       }
     }
-
   }
 
   static Collection<String> asFileNames(Set<StoredTabletFile> files) {

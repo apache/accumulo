@@ -150,7 +150,7 @@
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.76</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
-    <version.errorprone>2.20.0</version.errorprone>
+    <version.errorprone>2.23.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
     <version.opentelemetry>1.27.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
@@ -1665,6 +1665,10 @@
       compile time. Auto-generated code is not checked.
       See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
       <id>errorprone</id>
+      <properties>
+        <!-- forking is required for -J options to take effect -->
+        <maven.compiler.fork>true</maven.compiler.fork>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -1716,9 +1720,9 @@
       </build>
     </profile>
     <profile>
-      <id>jdk17</id>
+      <id>jdk16</id>
       <activation>
-        <jdk>[17,)</jdk>
+        <jdk>[16,)</jdk>
       </activation>
       <properties>
         <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</extraTestArgs>
