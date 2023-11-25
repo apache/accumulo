@@ -80,6 +80,29 @@ public class CheckCompactionConfigTest extends WithTestNames {
   }
 
   @Test
+  public void testValidInput3() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}] \n"
+        + "tserver.compaction.major.service.cs2.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs2.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n"
+        + "{'name':'large','type':'external','queue':'DCQ1'}] \n"
+        + "compaction.service.cs3.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "compaction.service.cs3.planner.opts.queues=\\\n"
+        + "[{'name':'small','maxSize':'16M'},{'name':'large'}]").replaceAll("'", "\"");
+
+    String filePath = writeToFileAndReturnPath(inputString);
+    CheckCompactionConfig.main(new String[] {filePath});
+  }
+
+  @Test
   public void testThrowsExternalNumThreadsError() throws IOException {
     String inputString = ("tserver.compaction.major.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
@@ -93,7 +116,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
-    assertEquals(e.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   @Test
@@ -119,7 +142,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
-    String expectedErrorMsg = "Incomplete compaction service definitions, missing planner class";
+    String expectedErrorMsg = "Incomplete compaction service definition, missing planner class";
 
     String filePath = writeToFileAndReturnPath(inputString);
 
@@ -138,11 +161,29 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "{'name':'small','type':'internal','numThreads':2}]").replaceAll("'", "\"");
     String expectedErrorMsg = "Duplicate Compaction Executor ID found";
 
-    String filePath = writeToFileAndReturnPath(inputString);
+    final String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalStateException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
+  }
+
+  @Test
+  public void testRepeatedQueueName() throws Exception {
+    String inputString = ("compaction.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'external','maxSize':'16M','queue':'failedQueue'}] \n"
+        + "compaction.service.cs1.planner.opts.queues=[{'name':'failedQueue'}]")
+        .replaceAll("'", "\"");
+
+    String expectedErrorMsg = "Duplicate external executor for queue failedQueue";
+
+    final String filePath = writeToFileAndReturnPath(inputString);
+
+    var err = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertEquals(err.getMessage(), expectedErrorMsg);
   }
 
   @Test

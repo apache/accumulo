@@ -19,7 +19,9 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -43,6 +45,8 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.JsonParseException;
 
 public class DefaultCompactionPlannerTest {
 
@@ -239,6 +243,74 @@ public class DefaultCompactionPlannerTest {
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
 
+  @Test
+  public void testQueueCreation() throws Exception {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    String queues = "[{\"name\": \"small\", \"maxSize\":\"32M\"},{\"name\":\"midsize\"}]";
+    planner.init(getInitParamQueues(senv, queues));
+
+    var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
+    var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+
+    all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
+    params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("midsize"), job.getExecutor());
+  }
+
+  /**
+   * Tests that additional fields in the JSON objects cause errors to be thrown.
+   */
+  @Test
+  public void testErrorAdditionalConfigFields() {
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    DefaultCompactionPlanner QueuePlanner = new DefaultCompactionPlanner();
+
+    String queues =
+        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"name\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
+
+    final InitParameters queueParams = getInitParamQueues(senv, queues);
+    assertNotNull(queueParams);
+    var e = assertThrows(JsonParseException.class, () -> QueuePlanner.init(queueParams),
+        "Failed to throw error");
+    assertTrue(e.getMessage().contains("[type, foo, queue]"),
+        "Error message didn't contain '[type, foo, queue]'");
+
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','maxSize':'128M','numThreads':2, 'foo':'bar'",
+        "'type': 'internal','numThreads':1, 'unexpectedField':'foo'");
+
+    final InitParameters execParams = getInitParams(senv, executors);
+    assertNotNull(execParams);
+
+    DefaultCompactionPlanner ExecPlanner = new DefaultCompactionPlanner();
+    var err = assertThrows(JsonParseException.class, () -> ExecPlanner.init(execParams),
+        "Failed to throw error");
+    assertTrue(err.getMessage().contains("Invalid fields: [foo]"),
+        "Error message didn't contain '[foo]'");
+  }
+
   /**
    * Tests internal type executor with no numThreads set throws error
    */
@@ -303,6 +375,59 @@ public class DefaultCompactionPlannerTest {
   }
 
   /**
+   * Tests queue with missing name throws error
+   */
+  @Test
+  public void testErrorQueueNoName() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    String queues = "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
+
+    final InitParameters params = getInitParamQueues(senv, queues);
+    assertNotNull(params);
+
+    var e = assertThrows(NullPointerException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals(e.getMessage(), "'name' must be specified", "Error message didn't contain 'name'");
+  }
+
+  /**
+   * Tests not having executors or queues throws errors
+   */
+  @Test
+  public void testErrorNoExecutors() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    var execParams = getInitParams(senv, "");
+    assertNotNull(execParams);
+
+    var e = assertThrows(IllegalStateException.class, () -> planner.init(execParams),
+        "Failed to throw error");
+    assertEquals("No defined executors or queues for this planner", e.getMessage(),
+        "Error message was not equal");
+
+    var params = getInitParamQueues(senv, "");
+    assertNotNull(params);
+
+    var err = assertThrows(IllegalStateException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals("No defined executors or queues for this planner", e.getMessage(),
+        "Error message was not equal");
+  }
+
+  /**
    * Tests executors can only have one without a max size.
    */
   @Test
@@ -360,7 +485,44 @@ public class DefaultCompactionPlannerTest {
       @Override
       public String getFullyQualifiedOption(String key) {
         assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+      }
+
+      @Override
+      public ExecutorManager getExecutorManager() {
+        return new ExecutorManager() {
+          @Override
+          public CompactionExecutorId createExecutor(String name, int threads) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+
+          @Override
+          public CompactionExecutorId getExternalExecutor(String name) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+        };
+      }
+    };
+  }
+
+  private CompactionPlanner.InitParameters getInitParamQueues(ServiceEnvironment senv,
+      String queues) {
+    return new CompactionPlanner.InitParameters() {
+
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return senv;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return Map.of("queues", queues, "maxOpen", "15");
+      }
+
+      @Override
+      public String getFullyQualifiedOption(String key) {
+        assertEquals("maxOpen", key);
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
       }
 
       @Override
@@ -521,7 +683,7 @@ public class DefaultCompactionPlannerTest {
       @Override
       public String getFullyQualifiedOption(String key) {
         assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+        return Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
       }
 
       @Override

@@ -20,9 +20,11 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,12 +32,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -80,16 +89,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * </table>
  * <br>
- * The maxSize field determines the maximum size of compaction that will run on an executor. The
- * maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and represents
- * the sum of the input files for a given compaction. One executor can have no max size and it will
- * run everything that is too large for the other executors. If all executors have a max size, then
- * system compactions will only run for compactions smaller than the largest max size. User, chop,
- * and selector compactions will always run, even if there is no executor for their size. These
- * compactions will run on the executor with the largest max size. The following example value for
- * this property will create 3 threads to run compactions of files whose file size sum is less than
- * 100M, 3 threads to run compactions of files whose file size sum is less than 500M, and run all
- * other compactions on Compactors configured to run compactions for Queue1:
+ * Note: The "executors" option has been deprecated in 3.1 and will be removed in a future release.
+ * The property prefix "tserver.compaction.major.service" has also been deprecated in 3.1 and will
+ * be removed in a future release. The maxSize field determines the maximum size of compaction that
+ * will run on an executor. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes,
+ * or gigabytes and represents the sum of the input files for a given compaction. One executor can
+ * have no max size and it will run everything that is too large for the other executors. If all
+ * executors have a max size, then system compactions will only run for compactions smaller than the
+ * largest max size. User, chop, and selector compactions will always run, even if there is no
+ * executor for their size. These compactions will run on the executor with the largest max size.
+ * The following example value for this property will create 3 threads to run compactions of files
+ * whose file size sum is less than 100M, 3 threads to run compactions of files whose file size sum
+ * is less than 500M, and run all other compactions on Compactors configured to run compactions for
+ * Queue1:
  *
  * <pre>
  * {@code
@@ -102,15 +114,37 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * Note that the use of 'external' requires that the CompactionCoordinator and at least one
  * Compactor for Queue1 is running.
- * <li>{@code tserver.compaction.major.service.<service>.opts.maxOpen} This determines the maximum
- * number of files that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
+ * that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.opts.queues} This is a json array of queue objects which
+ * have the following fields:
+ * <table>
+ * <caption>Default Compaction Planner Queue options</caption>
+ * <tr>
+ * <th>Field Name</th>
+ * <th>Description</th>
+ * </tr>
+ * <tr>
+ * <td>name</td>
+ * <td>name or alias of the queue (required)</td>
+ * </tr>
+ * <tr>
+ * <td>maxSize</td>
+ * <td>threshold sum of the input files (required for all but one of the configs)</td>
+ * </tr>
+ * </table>
+ * <br>
+ * This 'queues' object is used for defining external compaction queues without needing to use the
+ * thread-based 'executors' property.
  * </ul>
  *
- * @since 2.1.0
+ * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
+
+  private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   private static class ExecutorConfig {
     String type;
@@ -118,6 +152,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     String maxSize;
     Integer numThreads;
     String queue;
+  }
+
+  private static class QueueConfig {
+    String name;
+    String maxSize;
   }
 
   private static class Executor {
@@ -147,44 +186,78 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    ExecutorConfig[] execConfigs =
-        GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
-
     List<Executor> tmpExec = new ArrayList<>();
+    String values;
 
-    for (ExecutorConfig executorConfig : execConfigs) {
-      Long maxSize = executorConfig.maxSize == null ? null
-          : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
+    if (params.getOptions().containsKey("executors")
+        && !params.getOptions().get("executors").isBlank()) {
+      values = params.getOptions().get("executors");
 
-      CompactionExecutorId ceid;
+      // Generate a list of fields from the desired object.
+      final List<String> execFields = Arrays.stream(ExecutorConfig.class.getDeclaredFields())
+          .map(Field::getName).collect(Collectors.toList());
 
-      // If not supplied, GSON will leave type null. Default to internal
-      if (executorConfig.type == null) {
-        executorConfig.type = "internal";
+      for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
+        validateConfig(element, execFields, ExecutorConfig.class.getName());
+        ExecutorConfig executorConfig = GSON.get().fromJson(element, ExecutorConfig.class);
+
+        Long maxSize = executorConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
+        CompactionExecutorId ceid;
+
+        // If not supplied, GSON will leave type null. Default to internal
+        if (executorConfig.type == null) {
+          executorConfig.type = "internal";
+        }
+
+        switch (executorConfig.type) {
+          case "internal":
+            Preconditions.checkArgument(null == executorConfig.queue,
+                "'queue' should not be specified for internal compactions");
+            int numThreads = Objects.requireNonNull(executorConfig.numThreads,
+                "'numThreads' must be specified for internal type");
+            ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
+            break;
+          case "external":
+            Preconditions.checkArgument(null == executorConfig.numThreads,
+                "'numThreads' should not be specified for external compactions");
+            String queue = Objects.requireNonNull(executorConfig.queue,
+                "'queue' must be specified for external type");
+            ceid = params.getExecutorManager().getExternalExecutor(queue);
+            break;
+          default:
+            throw new IllegalArgumentException("type must be 'internal' or 'external'");
+        }
+        tmpExec.add(new Executor(ceid, maxSize));
       }
-
-      switch (executorConfig.type) {
-        case "internal":
-          Preconditions.checkArgument(null == executorConfig.queue,
-              "'queue' should not be specified for internal compactions");
-          int numThreads = Objects.requireNonNull(executorConfig.numThreads,
-              "'numThreads' must be specified for internal type");
-          ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
-          break;
-        case "external":
-          Preconditions.checkArgument(null == executorConfig.numThreads,
-              "'numThreads' should not be specified for external compactions");
-          String queue = Objects.requireNonNull(executorConfig.queue,
-              "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(queue);
-          break;
-        default:
-          throw new IllegalArgumentException("type must be 'internal' or 'external'");
-      }
-      tmpExec.add(new Executor(ceid, maxSize));
     }
 
-    Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,
+    if (params.getOptions().containsKey("queues") && !params.getOptions().get("queues").isBlank()) {
+      values = params.getOptions().get("queues");
+
+      // Generate a list of fields from the desired object.
+      final List<String> queueFields = Arrays.stream(QueueConfig.class.getDeclaredFields())
+          .map(Field::getName).collect(Collectors.toList());
+
+      for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
+        validateConfig(element, queueFields, QueueConfig.class.getName());
+        QueueConfig queueConfig = GSON.get().fromJson(element, QueueConfig.class);
+
+        Long maxSize = queueConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
+
+        CompactionExecutorId ceid;
+        String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
+        ceid = params.getExecutorManager().getExternalExecutor(queue);
+        tmpExec.add(new Executor(ceid, maxSize));
+      }
+    }
+
+    if (tmpExec.size() < 1) {
+      throw new IllegalStateException("No defined executors or queues for this planner");
+    }
+
+    tmpExec.sort(Comparator.comparing(Executor::getMaxSize,
         Comparator.nullsLast(Comparator.naturalOrder())));
 
     executors = List.copyOf(tmpExec);
@@ -207,7 +280,27 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   private void determineMaxFilesToCompact(InitParameters params) {
-    this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
+
+    String maxOpen = params.getOptions().get("maxOpen");
+    if (maxOpen == null) {
+      maxOpen = "10";
+      log.trace("default maxOpen not set, defaulting to 10");
+    }
+    this.maxFilesToCompact = Integer.parseInt(maxOpen);
+  }
+
+  private void validateConfig(JsonElement json, List<String> fields, String className) {
+
+    JsonObject jsonObject = GSON.get().fromJson(json, JsonObject.class);
+
+    List<String> objectProperties = new ArrayList<>(jsonObject.keySet());
+    HashSet<String> classFieldNames = new HashSet<>(fields);
+
+    if (!classFieldNames.containsAll(objectProperties)) {
+      objectProperties.removeAll(classFieldNames);
+      throw new JsonParseException(
+          "Invalid fields: " + objectProperties + " provided for class: " + className);
+    }
   }
 
   @Override

@@ -54,7 +54,7 @@ import com.google.common.collect.MoreCollectors;
 
 public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
-  private static final String CSP = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
+  private static final String CSP = Property.COMPACTION_SERVICE_PREFIX.getKey();
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
