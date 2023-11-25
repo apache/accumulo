@@ -30,9 +30,10 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
  * <p>
  * Important: Compaction configurations should be migrated to use only the new compaction plugins as
  * soon as possible. Interactions between this deprecated plugin with the new plugins may provide
- * suboptimal and/or inconsistent results when both are configured. This legacy compaction plugin
- * has been maintained to support migrations to the new model and will be removed in the next major
- * release.
+ * suboptimal and/or inconsistent results when both are configured. For example, concurrent
+ * compactions may not occur if a compaction strategy is in place along with the new compaction
+ * plugins. This legacy compaction plugin has been maintained to support migrations to the new model
+ * and will be removed in the next major release.
  * <p>
  * The tablet server has one thread to ask many tablets if they should compact. When the strategy
  * returns true, then tablet is added to the queue of tablets waiting for a compaction thread. Once
