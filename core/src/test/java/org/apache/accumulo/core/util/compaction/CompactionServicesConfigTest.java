@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,9 +49,7 @@ public class CompactionServicesConfigTest {
     conf.set(oldPrefix.getKey() + "default.planner.opts.validProp", "a");
 
     var compactionConfig = new CompactionServicesConfig(conf);
-    assertTrue(compactionConfig.getOptions().get("default").containsKey("validProp"));
-    assertEquals("1", compactionConfig.getOptions().get("default").get("validProp"));
-    assertNull(compactionConfig.getOptions().get("default").get("ignoredProp"));
+    assertEquals(Map.of("validProp", "1"), compactionConfig.getOptions().get("default"));
   }
 
   @Test

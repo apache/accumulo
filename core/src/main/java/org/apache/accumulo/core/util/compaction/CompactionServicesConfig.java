@@ -126,19 +126,16 @@ public class CompactionServicesConfig {
           throw new IllegalArgumentException(
               "Incomplete compaction service definition, missing planner class: " + prop);
         }
-        // Only add the compaction options if they match the planner's defined prefix.
-        if (plannerPrefixes.get(tokens[0]).equals(prefix)) {
-          if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
-            options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
-          } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
-            var eprop = Property.getPropertyByKey(prop);
-            if (eprop == null || aconf.isPropertySet(eprop)) {
-              rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
-            }
-          } else if (!(tokens.length == 2 && tokens[1].equals("planner"))) {
-            throw new IllegalArgumentException(
-                "Malformed compaction service property " + prefix + prop);
+        if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
+          options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
+        } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
+          var eprop = Property.getPropertyByKey(prop);
+          if (eprop == null || aconf.isPropertySet(eprop)) {
+            rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
           }
+        } else if (!(tokens.length == 2 && tokens[1].equals("planner"))) {
+          throw new IllegalArgumentException(
+              "Malformed compaction service property " + prefix + prop);
         } else {
           log.warn(
               "Ignoring compaction property {} as does not match the prefix used by the referenced planner definition",
