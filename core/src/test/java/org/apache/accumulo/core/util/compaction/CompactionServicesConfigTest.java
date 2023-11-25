@@ -49,7 +49,9 @@ public class CompactionServicesConfigTest {
     conf.set(oldPrefix.getKey() + "default.planner.opts.validProp", "a");
 
     var compactionConfig = new CompactionServicesConfig(conf);
-    assertEquals(Map.of("validProp", "1"), compactionConfig.getOptions().get("default"));
+    assertEquals(Map.of("maxOpen", "10", "executors",
+        "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]",
+        "validProp", "1"), compactionConfig.getOptions().get("default"));
   }
 
   @Test
