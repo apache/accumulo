@@ -54,11 +54,7 @@ public class GuavaCacheCounterUtil {
       }
       LOG.info("Cache count {} did not match expected: {}, try count: {}", received, expected,
           received);
-      try {
-        Thread.sleep(delayMills);
-      } catch (InterruptedException ex) {
-        throw new IllegalStateException("Received interrupt during sleep");
-      }
+      UtilWaitThread.sleep(delayMills);
     }
     assertEquals(expected, received, "expected cache entry count did not match expected");
   }
