@@ -47,9 +47,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testValidInput1() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
@@ -61,15 +61,15 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testValidInput2() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}] \n"
-        + "tserver.compaction.major.service.cs2.planner="
+        + "compaction.service.cs2.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs2.planner.opts.executors=\\\n"
+        + "compaction.service.cs2.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n"
         + "{'name':'large','type':'external','queue':'DCQ1'}]").replaceAll("'", "\"");
@@ -81,15 +81,15 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testValidInput3() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}] \n"
-        + "tserver.compaction.major.service.cs2.planner="
+        + "compaction.service.cs2.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs2.planner.opts.executors=\\\n"
+        + "compaction.service.cs2.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n"
         + "{'name':'large','type':'external','queue':'DCQ1'}] \n"
@@ -104,9 +104,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testThrowsExternalNumThreadsError() throws IOException {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'external','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
@@ -121,9 +121,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testNegativeThreadCount() throws IOException {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':-4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
@@ -138,7 +138,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testNoPlanner() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+    String inputString = ("compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
@@ -153,9 +153,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testRepeatedCompactionExecutorID() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'small','type':'internal','numThreads':2}]").replaceAll("'", "\"");
@@ -188,9 +188,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testInvalidTypeValue() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
         + "{'name':'large','type':'internl','numThreads':2}]").replaceAll("'", "\"");
@@ -205,9 +205,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
   @Test
   public void testInvalidMaxSize() throws Exception {
-    String inputString = ("tserver.compaction.major.service.cs1.planner="
+    String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
-        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "compaction.service.cs1.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'0M','numThreads':4},\\\n"
         + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");

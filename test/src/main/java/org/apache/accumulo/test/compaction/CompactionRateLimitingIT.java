@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_SERVICE_PREFIX;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,10 +51,10 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "20");
     cfg.setProperty(Property.TABLE_FILE_COMPRESSION_TYPE, "none");
 
-    cfg.setProperty("tserver.compaction.major.service.test.rate.limit", RATE + "B");
-    cfg.setProperty("tserver.compaction.major.service.test.planner",
+    cfg.setProperty(COMPACTION_SERVICE_PREFIX.getKey() + "test.rate.limit", RATE + "B");
+    cfg.setProperty(COMPACTION_SERVICE_PREFIX.getKey() + "test.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.test.planner.opts.executors",
+    cfg.setProperty(COMPACTION_SERVICE_PREFIX.getKey() + "test.planner.opts.executors",
         "[{'name':'all','numThreads':2}]".replaceAll("'", "\""));
 
   }
