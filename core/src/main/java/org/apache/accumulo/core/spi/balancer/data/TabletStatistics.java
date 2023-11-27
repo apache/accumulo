@@ -28,6 +28,7 @@ public interface TabletStatistics extends Comparable<TabletStatistics> {
 
   long getNumEntries();
 
+  @Deprecated(since = "3.1", forRemoval = true)
   long getSplitCreationTime();
 
   double getIngestRate();
