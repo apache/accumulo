@@ -36,16 +36,22 @@ public interface ManagerClient<C extends TServiceClient> {
   default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    List<String> locations = context.getManagerLocations();
+    HostAndPort manager;
+    if (type == ThriftClientTypes.COORDINATOR || type == ThriftClientTypes.FATE) {
+      String primaryManager = context.getPrimaryManagerLocation();
+      manager = HostAndPort.fromString(primaryManager);
+    } else {
+      List<String> locations = context.getManagerLocations();
 
-    if (locations.isEmpty()) {
-      log.debug("No managers...");
-      return null;
-    }
+      if (locations.isEmpty()) {
+        log.debug("No managers...");
+        return null;
+      }
 
-    HostAndPort manager = HostAndPort.fromString(locations.get(0));
-    if (manager.getPort() == 0) {
-      return null;
+      manager = HostAndPort.fromString(locations.get(0));
+      if (manager.getPort() == 0) {
+        return null;
+      }
     }
 
     try {

@@ -1138,7 +1138,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm, () -> true) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1146,7 +1146,8 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm,
+        () -> PRIMARY_MANAGER.get()) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1157,7 +1158,8 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm,
+        () -> PRIMARY_MANAGER.get()) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
@@ -1187,7 +1189,8 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration(),
+          () -> PRIMARY_MANAGER.get());
       fateRef.set(f);
       fateReadyLatch.countDown();
 

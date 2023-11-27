@@ -161,7 +161,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate =
+        new Fate<Manager>(manager, store, TraceRepo::toLogString, config, () -> true);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -221,7 +222,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate =
+        new Fate<Manager>(manager, store, TraceRepo::toLogString, config, () -> true);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -260,7 +262,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate =
+        new Fate<Manager>(manager, store, TraceRepo::toLogString, config, () -> true);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -301,7 +304,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate =
+        new Fate<Manager>(manager, store, TraceRepo::toLogString, config, () -> true);
     try {
 
       // Wait for the transaction runner to be scheduled.

@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -76,6 +77,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -143,8 +145,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
   /* updates set by LiveManagerSet callback */
   private final AtomicReference<SortedSet<String>> managerUpdates = new AtomicReference<>();
 
+  private final Supplier<Boolean> enabledSupplier;
+
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
-      ManagerMetrics metrics) {
+      ManagerMetrics metrics, Supplier<Boolean> enabledSupplier) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
@@ -152,6 +156,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     this.metrics = metrics;
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
+    this.enabledSupplier = enabledSupplier;
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
   }
 
@@ -621,6 +626,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveMa
     AtomicReference<Map<TableId,String>> tablesFromLastRun = new AtomicReference<>(null);
 
     while (manager.stillManager()) {
+
+      if (!enabledSupplier.get()) {
+        Manager.log.debug("[{}] Not enabled, must not be primary manager");
+        UtilWaitThread.sleep(60_000);
+        continue;
+      }
+
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       // ELASTICITY_TODO above sleep in the case when not doing a full scan to make manager more

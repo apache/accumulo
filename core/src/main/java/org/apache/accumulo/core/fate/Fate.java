@@ -37,6 +37,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -62,6 +63,7 @@ public class Fate<T> {
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
   private final ExecutorService executor;
+  private final Supplier<Boolean> enabled;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
@@ -76,6 +78,11 @@ public class Fate<T> {
     @Override
     public void run() {
       while (keepRunning.get()) {
+        if (!enabled.get()) {
+          log.debug("[{}] Not enabled, must not be primary manager");
+          UtilWaitThread.sleep(60_000);
+          continue;
+        }
         long deferTime = 0;
         Long tid = null;
         try {
@@ -224,7 +231,7 @@ public class Fate<T> {
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
   public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc,
-      AccumuloConfiguration conf) {
+      AccumuloConfiguration conf, Supplier<Boolean> enabled) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
@@ -255,6 +262,7 @@ public class Fate<T> {
       }
     }, 3, SECONDS));
     this.executor = pool;
+    this.enabled = enabled;
   }
 
   // get a transaction id back to the requester before doing any work
