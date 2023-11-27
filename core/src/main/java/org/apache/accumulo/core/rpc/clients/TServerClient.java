@@ -72,14 +72,7 @@ public interface TServerClient<C extends TServiceClient> {
     }
     ZooCache zc = context.getZooCache();
     for (String serverPath : serverPaths) {
-      if (!serverPath.endsWith(Constants.ZCOMPACTORS)) {
-        for (String server : zc.getChildren(serverPath)) {
-          var zLocPath = ServiceLock.path(serverPath + "/" + server);
-          zc.getLockData(zLocPath).map(sld -> sld.getAddress(service))
-              .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
-              .ifPresent(servers::add);
-        }
-      } else {
+      if (serverPath.endsWith(Constants.ZCOMPACTORS)) {
         // Compactor path has another subdirectory, the group / queue name
         for (String groupName : zc.getChildren(serverPath)) {
           for (String server : zc.getChildren(serverPath + "/" + groupName)) {
@@ -88,6 +81,13 @@ public interface TServerClient<C extends TServiceClient> {
                 .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
                 .ifPresent(servers::add);
           }
+        }
+      } else {
+        for (String server : zc.getChildren(serverPath)) {
+          var zLocPath = ServiceLock.path(serverPath + "/" + server);
+          zc.getLockData(zLocPath).map(sld -> sld.getAddress(service))
+              .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
+              .ifPresent(servers::add);
         }
       }
     }
