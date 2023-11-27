@@ -57,8 +57,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * <li>{@code tserver.compaction.major.service.<service>.opts.executors} This is a json array of
- * objects where each object has the fields:
+ * <li>{@code compaction.service.<service>.opts.executors} This is a json array of objects where
+ * each object has the fields:
  * <table>
  * <caption>Default Compaction Planner Executor options</caption>
  * <tr>
@@ -90,18 +90,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </table>
  * <br>
  * Note: The "executors" option has been deprecated in 3.1 and will be removed in a future release.
- * The property prefix "tserver.compaction.major.service" has also been deprecated in 3.1 and will
- * be removed in a future release. The maxSize field determines the maximum size of compaction that
- * will run on an executor. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes,
- * or gigabytes and represents the sum of the input files for a given compaction. One executor can
- * have no max size and it will run everything that is too large for the other executors. If all
- * executors have a max size, then system compactions will only run for compactions smaller than the
- * largest max size. User, chop, and selector compactions will always run, even if there is no
- * executor for their size. These compactions will run on the executor with the largest max size.
- * The following example value for this property will create 3 threads to run compactions of files
- * whose file size sum is less than 100M, 3 threads to run compactions of files whose file size sum
- * is less than 500M, and run all other compactions on Compactors configured to run compactions for
- * Queue1:
+ * This example uses the new `compaction.service` prefix. The property prefix
+ * "tserver.compaction.major.service" has also been deprecated in 3.1 and will be removed in a
+ * future release. The maxSize field determines the maximum size of compaction that will run on an
+ * executor. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and
+ * represents the sum of the input files for a given compaction. One executor can have no max size
+ * and it will run everything that is too large for the other executors. If all executors have a max
+ * size, then system compactions will only run for compactions smaller than the largest max size.
+ * User, chop, and selector compactions will always run, even if there is no executor for their
+ * size. These compactions will run on the executor with the largest max size. The following example
+ * value for this property will create 3 threads to run compactions of files whose file size sum is
+ * less than 100M, 3 threads to run compactions of files whose file size sum is less than 500M, and
+ * run all other compactions on Compactors configured to run compactions for Queue1:
  *
  * <pre>
  * {@code
