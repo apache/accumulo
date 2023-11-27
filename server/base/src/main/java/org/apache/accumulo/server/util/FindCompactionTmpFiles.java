@@ -88,7 +88,6 @@ public class FindCompactionTmpFiles {
     svc.shutdown();
 
     while (futures.size() > 0) {
-      UtilWaitThread.sleep(10_000);
       Iterator<Future<Void>> iter = futures.iterator();
       while (iter.hasNext()) {
         Future<Void> future = iter.next();
@@ -100,6 +99,9 @@ public class FindCompactionTmpFiles {
             throw new RuntimeException("Error getting list of tmp files", e);
           }
         }
+      }
+      if (futures.size() > 0) {
+        UtilWaitThread.sleep(3_000);
       }
     }
     svc.awaitTermination(10, TimeUnit.MINUTES);
@@ -144,7 +146,6 @@ public class FindCompactionTmpFiles {
 
     int expectedResponses = filesToDelete.size();
     while (expectedResponses > 0) {
-      UtilWaitThread.sleep(10_000);
       Iterator<Future<Boolean>> iter = futures.iterator();
       while (iter.hasNext()) {
         Future<Boolean> future = iter.next();
@@ -163,7 +164,10 @@ public class FindCompactionTmpFiles {
           }
         }
       }
-      LOG.debug("Waiting on {} responses", expectedResponses);
+      LOG.debug("Waiting on {} background delete operations", expectedResponses);
+      if (expectedResponses > 0) {
+        UtilWaitThread.sleep(3_000);
+      }
     }
     delSvc.awaitTermination(10, TimeUnit.MINUTES);
     return stats;
