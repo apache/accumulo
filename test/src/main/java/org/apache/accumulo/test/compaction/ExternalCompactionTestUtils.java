@@ -195,37 +195,37 @@ public class ExternalCompactionTestUtils {
     cfg.setClientProps(clProps);
 
     // configure the compaction services to use the queues
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
         "[{'name':'all', 'type': 'external', 'group': '" + GROUP1 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP2 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP3 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP4 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP5 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP6 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP7 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner.opts.executors",
         "[{'name':'all', 'type': 'external','group': '" + GROUP8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
