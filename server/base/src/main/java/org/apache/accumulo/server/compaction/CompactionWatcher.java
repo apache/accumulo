@@ -98,7 +98,7 @@ public class CompactionWatcher implements Runnable {
     // remove any compaction that completed or made progress
     observedCompactions.keySet().retainAll(newKeys);
 
-    long warnTime = config.getTimeInMillis(Property.TSERV_COMPACTION_WARN_TIME);
+    long warnTime = config.getTimeInMillis(Property.COMPACTION_WARN_TIME);
 
     // check for stuck compactions
     for (ObservedCompactionInfo oci : observedCompactions.values()) {

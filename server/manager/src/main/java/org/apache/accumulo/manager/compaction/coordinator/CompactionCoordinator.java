@@ -360,6 +360,10 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   }
 
+  public long getNumRunningCompactions() {
+    return RUNNING_CACHE.size();
+  }
+
   /**
    * Return the next compaction job from the queue to a Compactor
    *

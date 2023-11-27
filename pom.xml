@@ -148,7 +148,7 @@
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.76</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
-    <version.errorprone>2.20.0</version.errorprone>
+    <version.errorprone>2.23.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
     <version.maven-javadoc-plugin>3.6.0</version.maven-javadoc-plugin>
     <version.opentelemetry>1.27.0</version.opentelemetry>
@@ -1605,6 +1605,10 @@
       compile time. Auto-generated code is not checked.
       See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
       <id>errorprone</id>
+      <properties>
+        <!-- forking is required for -J options to take effect -->
+        <maven.compiler.fork>true</maven.compiler.fork>
+      </properties>
       <build>
         <plugins>
           <plugin>
