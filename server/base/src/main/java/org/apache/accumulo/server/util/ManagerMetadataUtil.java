@@ -65,6 +65,9 @@ import com.google.common.base.Preconditions;
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
+  @SuppressWarnings("removal")
+  private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
+      Property.TSERV_LAST_LOCATION_MODE;
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
@@ -257,7 +260,8 @@ public class ManagerMetadataUtil {
 
     // if the location mode is assignment, then preserve the current location in the last
     // location value
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("assignment"
+        .equals(context.getConfiguration().get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY))) {
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }
@@ -275,7 +279,8 @@ public class ManagerMetadataUtil {
       Location lastLocation, TServerInstance tServerInstance) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
-    if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("compaction"
+        .equals(context.getConfiguration().get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY))) {
       Location newLocation = Location.last(tServerInstance);
       updateLocation(tabletMutator, lastLocation, newLocation);
     }

@@ -597,7 +597,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited.  This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
@@ -619,7 +621,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
@@ -641,7 +645,9 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
       "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
   @Deprecated(since = "3.1", forRemoval = true)
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
@@ -756,6 +762,7 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
+  @Deprecated(since = "3.1", forRemoval = true)
   TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
       PropertyType.LAST_LOCATION_MODE,
       "Describes how the system will record the 'last' location for tablets, which can be used for"
@@ -764,9 +771,10 @@ public enum Property {
           + " 'assignment' is the mode, then the most recently assigned location will be recorded."
           + " The manager.startup.tserver properties might also need to be set to ensure the"
           + " tserver is available before tablets are initially assigned if the 'last' location is"
-          + " to be used.",
+          + " to be used. This property has been deprecated in anticipation of it being removed in"
+          + " a future release that removes major compactions from the TabletServer, rendering this"
+          + " feature moot.",
       "2.1.1"),
-
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",

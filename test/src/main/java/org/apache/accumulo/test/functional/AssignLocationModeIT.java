@@ -43,6 +43,10 @@ import org.junit.jupiter.api.Test;
 
 public class AssignLocationModeIT extends ConfigurableMacBase {
 
+  @SuppressWarnings("removal")
+  private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
+      Property.TSERV_LAST_LOCATION_MODE;
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
@@ -50,7 +54,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assignment");
+    cfg.setProperty(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY, "assignment");
   }
 
   @Test
@@ -78,7 +82,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       }
       // assert that the default mode is "assign"
       assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
+          .get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY.getKey()));
 
       // last location should not be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
