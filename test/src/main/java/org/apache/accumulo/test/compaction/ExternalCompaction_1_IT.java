@@ -79,7 +79,9 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
@@ -227,6 +229,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       assertFalse(ecids.isEmpty());
 
+      // Verify that a tmp file is created
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 1);
+
       // Kill the compactor
       getCluster().getClusterControl().stop(ServerType.COMPACTOR);
 
@@ -234,6 +240,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // it from the tablet.
       ExternalCompactionTestUtils.waitForRunningCompactions(getCluster().getServerContext(), tid,
           ecids);
+
+      // Verify that the tmp file are cleaned up
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
 
       // If the compaction actually ran it would have filtered data, so lets make sure all the data
       // written is there. This check provides evidence the compaction did not run.
