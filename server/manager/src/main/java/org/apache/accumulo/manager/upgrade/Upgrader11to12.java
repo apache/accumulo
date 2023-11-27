@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -127,6 +128,7 @@ public class Upgrader11to12 implements Upgrader {
     try (BatchWriter batchWriter = context.createBatchWriter(metaName); Scanner scanner =
         new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
       UPGRADE_FAMILIES.forEach(scanner::fetchColumnFamily);
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
       processReferences(batchWriter::addMutation, scanner, metaName);
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
