@@ -150,20 +150,28 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   @Override
   public synchronized void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
       throws IOException {
+
+    final int maxTries = 10;
+    int retryCount = 0;
+    long retryDelay = 1000;
+
     if (coordinatorProcess == null) {
       coordinatorProcess = cluster
           ._exec(coordinator, ServerType.COMPACTION_COORDINATOR, new HashMap<>()).getProcess();
       // Wait for coordinator to start
       TExternalCompactionList metrics = null;
-      while (metrics == null) {
+      while (metrics == null && retryCount++ < maxTries) {
         try {
           metrics = getRunningCompactions(cluster.getServerContext());
         } catch (TException e) {
           log.debug(
-              "Error getting running compactions from coordinator, message: " + e.getMessage());
-          UtilWaitThread.sleep(250);
+              "Error getting running compactions from coordinator, will retry in {} message: {}",
+              retryDelay, e.getMessage());
+          UtilWaitThread.sleep(retryDelay);
+          retryDelay = (long) (retryDelay * 1.2); // max delay ~ 10 seconds.
         }
       }
+      log.debug("found metrics for running compactions from coordinator - will continue");
     }
   }
 
