@@ -42,7 +42,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.Manager;
@@ -160,7 +160,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         } catch (TException e) {
           log.debug(
               "Error getting running compactions from coordinator, message: " + e.getMessage());
-          UtilWaitThread.sleep(250);
+          Wait.sleep(250);
         }
       }
     }

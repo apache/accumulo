@@ -35,7 +35,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
@@ -94,13 +94,13 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
       writeFile(client, tableName);
       writeFile(client, tableName);
       writeFile(client, tableName);
-      UtilWaitThread.sleep(2_000);
+      Wait.sleep(2_000);
       assertEquals(4, countFiles(client));
       writeFile(client, tableName);
       int count = countFiles(client);
       assertTrue(count == 1 || count == 5);
       while (count != 1) {
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
         count = countFiles(client);
       }
     }

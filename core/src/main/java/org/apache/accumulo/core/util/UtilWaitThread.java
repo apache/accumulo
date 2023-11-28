@@ -28,14 +28,6 @@ import org.slf4j.LoggerFactory;
 public class UtilWaitThread {
   private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
 
-  public static void sleep(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-    }
-  }
-
   /**
    * Copied from Guava release 23. The Uniterruptibles class was annotated as Beta by Google,
    * therefore unstable to use. The following javadoc was copied from

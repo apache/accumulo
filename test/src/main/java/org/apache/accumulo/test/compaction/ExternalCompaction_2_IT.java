@@ -55,7 +55,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -177,7 +177,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           while (metrics2.getCompactions() == null) {
             metrics2 = getRunningCompactions(getCluster().getServerContext());
             if (metrics2.getCompactions() == null) {
-              UtilWaitThread.sleep(50);
+              Wait.sleep(50);
             }
           }
           LOG.info("Taking table offline");
@@ -220,7 +220,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       while (finalStateCount > 0) {
         finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
         if (finalStateCount > 0) {
-          UtilWaitThread.sleep(50);
+          Wait.sleep(50);
         }
       }
 

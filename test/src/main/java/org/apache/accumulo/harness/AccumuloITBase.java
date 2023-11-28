@@ -32,7 +32,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.test.util.Wait;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;

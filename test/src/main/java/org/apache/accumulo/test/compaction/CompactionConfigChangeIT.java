@@ -32,9 +32,9 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class CompactionConfigChangeIT extends AccumuloClusterHarness {

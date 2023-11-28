@@ -22,7 +22,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.manager.Manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ public class ReplicationDriver implements Runnable {
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
     log.debug("Waiting {}ms before starting main replication loop", millisToWait);
-    UtilWaitThread.sleep(millisToWait);
+    Wait.sleep(millisToWait);
 
     log.debug("Starting replication loop");
 

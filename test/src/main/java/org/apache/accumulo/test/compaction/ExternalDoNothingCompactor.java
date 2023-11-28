@@ -30,7 +30,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +71,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
         while (!JOB_HOLDER.isCancelled()) {
           LOG.info("Sleeping while job is not cancelled");
-          UtilWaitThread.sleep(1000);
+          Wait.sleep(1000);
         }
         // Compactor throws this exception when cancelled
         throw new CompactionCanceledException();

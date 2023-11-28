@@ -41,7 +41,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -89,7 +89,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       Set<TabletLocationState> oldLocations = new HashSet<>();
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       while (states.size() < 2) {
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
         oldLocations.clear();
         for (TabletLocationState tls : store) {
           if (tls.current != null) {
@@ -107,7 +107,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       TableId repTable = org.apache.accumulo.core.replication.ReplicationTable.ID;
       // Find out which tablet server remains
       while (true) {
-        UtilWaitThread.sleep(1000);
+        Wait.sleep(1000);
         states.clear();
         replStates.clear();
         boolean allAssigned = true;
@@ -156,7 +156,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
         continue;
       }
       break;

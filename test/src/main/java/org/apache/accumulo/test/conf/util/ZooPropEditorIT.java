@@ -25,9 +25,9 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
-import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;

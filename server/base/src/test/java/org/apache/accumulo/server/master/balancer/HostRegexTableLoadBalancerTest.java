@@ -45,7 +45,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -444,7 +444,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init();
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
+    Wait.sleep(11000);
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     this.balance(createCurrent(15), migrations, migrationsOut);

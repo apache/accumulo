@@ -88,7 +88,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -639,7 +639,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           job = getNextJob(getNextId());
           if (!job.isSetExternalCompactionId()) {
             LOG.trace("No external compactions in queue {}", this.queueName);
-            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
+            Wait.sleep(getWaitTimeBetweenCompactionChecks());
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {

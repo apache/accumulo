@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -55,7 +55,7 @@ public class TestMultiTableIngest {
     for (String table : tableNames) {
       // wait for table to exist
       while (!client.tableOperations().exists(table)) {
-        UtilWaitThread.sleep(100);
+        Wait.sleep(100);
       }
       try (Scanner scanner = client.createScanner(table, opts.auths)) {
         int count = i;

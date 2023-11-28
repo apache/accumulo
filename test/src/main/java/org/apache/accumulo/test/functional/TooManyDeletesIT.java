@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.junit.jupiter.api.Test;
@@ -121,7 +121,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
           break;
         }
 
-        UtilWaitThread.sleep(50);
+        Wait.sleep(50);
       }
     }
   }

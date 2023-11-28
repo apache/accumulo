@@ -47,7 +47,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -126,7 +126,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
         // keep checking until test times out
         while (!Collections.disjoint(ecids, ecids2)) {
-          UtilWaitThread.sleep(25);
+          Wait.sleep(25);
           ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
               .collect(Collectors.toSet());
         }
@@ -176,7 +176,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             }
           }
         }
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
       }
       assertTrue(matches > 0);
 

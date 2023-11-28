@@ -16,14 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.util;
+package org.apache.accumulo.core.util;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.function.ToIntFunction;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Wait {
+
+  private static final Logger log = LoggerFactory.getLogger(Wait.class);
 
   public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(30);
   public static final long SLEEP_MILLIS = 1000;
@@ -49,6 +54,14 @@ public class Wait {
       return onError.applyAsInt(e);
     }
 
+  }
+
+  public static void sleep(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      log.error("{}", e.getMessage(), e);
+    }
   }
 
   public interface Condition {

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
@@ -84,7 +84,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
       }
-      UtilWaitThread.sleep(20_000);
+      Wait.sleep(20_000);
       for (int pid : tserverPids) {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
@@ -96,7 +96,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
       assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-      UtilWaitThread.sleep(30_000);
+      Wait.sleep(30_000);
       checkBalance(c);
     }
   }

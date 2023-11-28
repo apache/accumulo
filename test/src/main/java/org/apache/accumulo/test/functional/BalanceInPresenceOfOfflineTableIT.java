@@ -40,7 +40,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -91,7 +91,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       if (accumuloClient.instanceOperations().getTabletServers().size() >= 2) {
         break;
       }
-      UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
+      Wait.sleep(TimeUnit.SECONDS.toMillis(2));
     }
     assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
         "Not enough tservers to run test");

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
@@ -84,7 +84,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
     fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
+    Wait.sleep(WAIT);
     return dstPath;
   }
 

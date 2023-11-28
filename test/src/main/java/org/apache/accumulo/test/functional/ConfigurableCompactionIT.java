@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -129,7 +129,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
       }
 
       while (countFiles(c) != 7) {
-        UtilWaitThread.sleep(200);
+        Wait.sleep(200);
       }
     }
   }
@@ -169,7 +169,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
       if (count == 1) {
         break;
       }
-      UtilWaitThread.sleep(1000);
+      Wait.sleep(1000);
     }
   }
 

@@ -84,7 +84,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -234,7 +234,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       while (count == 0) {
         count = getFinalStatesForTable(getCluster(), tid)
             .filter(state -> state.getFinalState().equals(FinalState.FAILED)).count();
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
       }
 
       // We need to cancel the compaction or delete the table here because we initiate a user
@@ -399,7 +399,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Stream<ExternalCompactionFinalState> fs = getFinalStatesForTable(getCluster(), tid);
       while (fs.findAny().isEmpty()) {
         LOG.info("Waiting for compaction completed marker to appear");
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
         fs = getFinalStatesForTable(getCluster(), tid);
       }
 
@@ -437,7 +437,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Stream<ExternalCompactionFinalState> fs2 = getFinalStatesForTable(getCluster(), tid);
       while (fs2.findAny().isPresent()) {
         LOG.info("Waiting for compaction completed marker to disappear");
-        UtilWaitThread.sleep(500);
+        Wait.sleep(500);
         fs2 = getFinalStatesForTable(getCluster(), tid);
       }
       verify(client, table3, 2);

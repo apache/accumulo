@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.conf.Configuration;
@@ -63,7 +63,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       // wait for the table to be online
       TabletLocationState newTablet;
       do {
-        UtilWaitThread.sleep(250);
+        Wait.sleep(250);
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
       // this would be null if the mode was not "assign"

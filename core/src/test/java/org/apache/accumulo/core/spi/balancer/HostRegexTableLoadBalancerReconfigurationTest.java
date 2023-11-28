@@ -48,7 +48,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.ConfigurationImpl;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class HostRegexTableLoadBalancerReconfigurationTest
@@ -105,7 +105,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     List<TabletMigration> migrationsOut = new ArrayList<>();
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
-    UtilWaitThread.sleep(3000);
+    Wait.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         migrations, migrationsOut));
     assertEquals(0, migrationsOut.size());
@@ -114,7 +114,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     config.set(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
 
     // Wait to trigger the out of bounds check and the repool check
-    UtilWaitThread.sleep(10000);
+    Wait.sleep(10000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         migrations, migrationsOut));
     assertEquals(5, migrationsOut.size());

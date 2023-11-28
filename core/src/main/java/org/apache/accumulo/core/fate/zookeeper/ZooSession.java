@@ -30,7 +30,7 @@ import java.util.Map;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -128,7 +128,7 @@ public class ZooSession {
             }
             tryAgain = false;
           } else {
-            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+            Wait.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
           }
         }
 
@@ -169,7 +169,7 @@ public class ZooSession {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
         }
-        UtilWaitThread.sleep(sleepTime);
+        Wait.sleep(sleepTime);
         if (sleepTime < 10000) {
           sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
         }

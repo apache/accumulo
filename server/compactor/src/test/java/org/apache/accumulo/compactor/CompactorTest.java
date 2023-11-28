@@ -46,7 +46,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Wait;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
@@ -95,7 +95,7 @@ public class CompactorTest {
     public void run() {
       try {
         started.countDown();
-        UtilWaitThread.sleep(1000);
+        Wait.sleep(1000);
       } catch (Exception e) {
         err.set(e);
       } finally {
@@ -115,7 +115,7 @@ public class CompactorTest {
     public void run() {
       try {
         started.countDown();
-        UtilWaitThread.sleep(1000);
+        Wait.sleep(1000);
         throw new RuntimeException();
       } catch (Exception e) {
         err.set(e);
