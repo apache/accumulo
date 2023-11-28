@@ -149,12 +149,15 @@ public class ScanServer extends AbstractServer
     @Override
     public Map<? extends KeyExtent,? extends TabletMetadata>
         loadAll(Set<? extends KeyExtent> keys) {
+      Map<KeyExtent,TabletMetadata> tms;
       long t1 = System.currentTimeMillis();
       @SuppressWarnings("unchecked")
-      TabletsMetadata tabletsMetadata =
-          ample.readTablets().forTablets((Collection<KeyExtent>) keys, Optional.empty()).build();
-      var tms = tabletsMetadata.stream().onClose(tabletsMetadata::close)
-          .collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
+      Collection<KeyExtent> extents = (Collection<KeyExtent>) keys;
+      try (TabletsMetadata tabletsMetadata =
+          ample.readTablets().forTablets(extents, Optional.empty()).build()) {
+        tms = tabletsMetadata.stream().onClose(tabletsMetadata::close)
+            .collect(Collectors.toMap(TabletMetadata::getExtent, tm -> tm));
+      }
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
       return tms;
