@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,6 +34,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -38,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
@@ -46,6 +51,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,11 +61,16 @@ public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
 
+  private static final Text COMPACT_QUAL = new Text("compact");
+
   @Override
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("setting root table stored hosting goal");
     addHostingGoalToRootTable(context);
-    removeCompactIds(context);
+    LOG.info("Removing compact-id paths from ZooKeeper");
+    removeZKCompactIdPaths(context);
+    LOG.info("Removing compact columns from root tablet");
+    removeCompactColumnsFromRootTabletMetadata(context);
   }
 
   @Override
@@ -67,6 +78,8 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("setting metadata table hosting goal");
     addHostingGoalToMetadataTable(context);
     removeMetaDataBulkLoadFilter(context, RootTable.ID);
+    LOG.info("Removing compact columns from metadata tablets");
+    removeCompactColumnsFromTable(context, RootTable.NAME);
   }
 
   @Override
@@ -76,15 +89,56 @@ public class Upgrader12to13 implements Upgrader {
     deleteExternalCompactionFinalStates(context);
     deleteExternalCompactions(context);
     removeMetaDataBulkLoadFilter(context, MetadataTable.ID);
-    removeCompactColumns(context);
+    LOG.info("Removing compact columns from user tables");
+    removeCompactColumnsFromTable(context, MetadataTable.NAME);
   }
 
-  private void removeCompactColumns(ServerContext context) {
+  private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
+    var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
-    final Text COMPACT_QUAL = new Text("compact");
+    try {
+      var zrw = context.getZooReaderWriter();
+      Stat stat = new Stat();
+      byte[] rootData = zrw.getData(rootBase, stat);
 
-    try (var scanner = context.createScanner(MetadataTable.NAME);
-        var writer = context.createBatchWriter(MetadataTable.NAME)) {
+      String json = new String(rootData, UTF_8);
+
+      var rtm = new RootTabletMetadata(json);
+
+      ArrayList<Mutation> mutations = new ArrayList<>();
+      for (Map.Entry<Key,Value> entry : rtm.toKeyValues().entrySet()) {
+        var key = entry.getKey();
+        var row = key.getRow();
+        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+        Mutation m = new Mutation(row);
+        m.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, COMPACT_QUAL);
+        mutations.add(m);
+      }
+
+      Preconditions.checkState(mutations.size() <= 1);
+
+      if (!mutations.isEmpty()) {
+        LOG.info("Root metadata in ZooKeeper before upgrade: {}", json);
+        rtm.update(mutations.get(0));
+        zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Could not read root metadata from ZooKeeper due to interrupt", ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write root metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+
+  }
+
+  private void removeCompactColumnsFromTable(ServerContext context, String tableName) {
+
+    try (var scanner = context.createScanner(tableName);
+        var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
 
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -101,7 +155,7 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeCompactIds(ServerContext context) {
+  private void removeZKCompactIdPaths(ServerContext context) {
     final String ZTABLE_COMPACT_ID = "/compact-id";
     final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
