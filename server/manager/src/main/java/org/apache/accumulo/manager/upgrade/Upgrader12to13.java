@@ -23,7 +23,12 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_P
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,10 +57,29 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    LOG.info("checking for removed properties");
-    checkForRemovedProperties(context);
+    LOG.info("validating properties");
+    validateProperties(context);
     LOG.info("setting root table stored hosting goal");
     addHostingGoalToRootTable(context);
+  }
+
+  private void validateProperties(ServerContext context) {
+    ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
+    ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
+    try {
+      for (String ns : context.namespaceOperations().list()) {
+        ConfigCheckUtil.validate(
+            context.namespaceOperations().getNamespaceProperties(ns).entrySet(),
+            ns + " namespace configuration");
+      }
+      for (String table : context.tableOperations().list()) {
+        ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
+            table + " table configuration");
+      }
+    } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
+        | TableNotFoundException e) {
+      throw new IllegalStateException("Error checking properties", e);
+    }
   }
 
   @Override
@@ -77,14 +101,6 @@ public class Upgrader12to13 implements Upgrader {
   private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
     PropUtil.removeProperties(context, TablePropKey.of(context, tableId), List.of(propName));
-  }
-
-  private void checkForRemovedProperties(ServerContext context) {
-    String lastLocationModeProperty = "tserver.last.location.mode";
-    if (context.getConfiguration().get(lastLocationModeProperty) != null) {
-      LOG.warn("Property '{}' has been found in Configuration and is no longer used.",
-          lastLocationModeProperty);
-    }
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
