@@ -20,16 +20,18 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 public class ServiceLockTest {
 
   @Test
-  public void testSortAndFindLowestPrevPrefix() throws Exception {
+  public void testSortAndFindLowestPrevPrefix() {
     List<String> children = new ArrayList<>();
     children.add("zlock#00000000-0000-0000-0000-ffffffffffff#0000000007");
     children.add("zlock#00000000-0000-0000-0000-eeeeeeeeeeee#0000000010");
@@ -66,15 +68,39 @@ public class ServiceLockTest {
         ServiceLock.findLowestPrevPrefix(validChildren,
             "zlock#00000000-0000-0000-0000-eeeeeeeeeeee#0000000010"));
 
-    assertThrows(IndexOutOfBoundsException.class, () -> {
-      ServiceLock.findLowestPrevPrefix(validChildren,
-          "zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
-    });
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ServiceLock.findLowestPrevPrefix(validChildren,
+            "zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"));
 
-    assertThrows(IndexOutOfBoundsException.class, () -> {
-      ServiceLock.findLowestPrevPrefix(validChildren,
-          "zlock#00000000-0000-0000-0000-XXXXXXXXXXXX#0000000099");
-    });
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ServiceLock.findLowestPrevPrefix(validChildren,
+            "zlock#00000000-0000-0000-0000-XXXXXXXXXXXX#0000000099"));
   }
 
+  @Test
+  public void rejectInvalidUUID() {
+    List<String> children = new ArrayList<>();
+    String uuid = "1-1-1-1-1";
+    String seq = "1234567891";
+    children.add("zlock#" + uuid + "#" + seq);
+
+    // pass as UUID, but fail on string compare.
+    assertEquals("00000001-0001-0001-0001-000000000001", UUID.fromString(uuid).toString());
+    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
+    assertEquals(0, validChildren.size());
+  }
+
+  @Test
+  public void uuidTest() {
+    List<String> children = new ArrayList<>();
+    String uuid = "219ad0f6-ebe0-416e-a20f-c0f32922841d";
+    String seq = "1234567891";
+    children.add("zlock#" + uuid + "#" + seq);
+
+    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
+    assertEquals(1, validChildren.size());
+    String candidate = validChildren.get(0);
+    assertTrue(candidate.contains(uuid));
+    assertTrue(candidate.contains(seq));
+  }
 }
