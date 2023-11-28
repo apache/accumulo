@@ -414,6 +414,10 @@ public interface Ample {
      *         is not empty
      */
     T deleteAll(Set<Key> keys);
+
+    T setMerged();
+
+    T deleteMerged();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
