@@ -251,8 +251,10 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertEquals(fileCount, metadataScanFileRefs.size());
 
         assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
-
-        List<Reference> refs = gc.getReferences().collect(Collectors.toList());
+        List<Reference> refs;
+        try (Stream<Reference> references = gc.getReferences()) {
+          refs = references.collect(Collectors.toList());
+        }
         assertTrue(refs.size() > fileCount * 2);
         List<Reference> tableRefs =
             refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())

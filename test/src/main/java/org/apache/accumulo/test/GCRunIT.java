@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -155,16 +155,11 @@ public class GCRunIT extends SharedMiniClusterBase {
   public void forceMissingPrevRowTest() {}
 
   private void scanReferences(GCRun userGC) {
-    final AtomicInteger counter = new AtomicInteger(0);
     // loop through the user table references - the row deleted above should violate dir present.
-    var userTableIter = userGC.getReferences().iterator();
-    while (userTableIter.hasNext()) {
-      Reference ref = userTableIter.next();
-      counter.incrementAndGet();
-      log.trace("user ref: {}", ref);
+    try (Stream<Reference> references = userGC.getReferences()) {
+      long count = references.peek(ref -> log.trace("user ref: {}", ref)).count();
+      assertTrue(count > 0);
     }
-
-    assertTrue(counter.get() > 0);
   }
 
   private void fillMetadataEntries(final String table1, final String clone1) throws Exception {

@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -209,7 +210,8 @@ public class PrepBulkImport extends ManagerRepo {
         try (TabletsMetadata tabletsMetadata =
             TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
                 .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build()) {
-          return tabletsMetadata.stream().map(TabletMetadata::getExtent).iterator();
+          return tabletsMetadata.stream().map(TabletMetadata::getExtent)
+              .collect(Collectors.toList()).iterator();
         }
       };
 

@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
@@ -256,7 +257,7 @@ public class Merge {
       return tablets.stream().map(tm -> {
         long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
         return new Size(tm.getExtent(), size);
-      }).iterator();
+      }).collect(Collectors.toList()).iterator();
     }
   }
 
