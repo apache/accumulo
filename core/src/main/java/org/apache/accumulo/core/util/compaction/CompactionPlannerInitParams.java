@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
@@ -38,14 +37,16 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
   private final Set<CompactionExecutorId> requestedExternalExecutors;
   private final ServiceEnvironment senv;
   private final CompactionServiceId serviceId;
+  private final String prefix;
 
-  public CompactionPlannerInitParams(CompactionServiceId serviceId, Map<String,String> plannerOpts,
-      ServiceEnvironment senv) {
+  public CompactionPlannerInitParams(CompactionServiceId serviceId, String prefix,
+      Map<String,String> plannerOpts, ServiceEnvironment senv) {
     this.serviceId = serviceId;
     this.plannerOpts = plannerOpts;
     this.requestedExecutors = new HashMap<>();
     this.requestedExternalExecutors = new HashSet<>();
     this.senv = senv;
+    this.prefix = prefix;
   }
 
   @Override
@@ -60,7 +61,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
 
   @Override
   public String getFullyQualifiedOption(String key) {
-    return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + serviceId + ".opts." + key;
+    return prefix + serviceId + ".opts." + key;
   }
 
   @Override

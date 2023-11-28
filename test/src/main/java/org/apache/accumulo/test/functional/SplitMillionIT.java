@@ -20,6 +20,8 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.SortedSet;
@@ -29,9 +31,14 @@ import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -42,11 +49,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitMillionIT extends AccumuloClusterHarness {
 
+  private static final Logger log = LoggerFactory.getLogger(SplitMillionIT.class);
+
+  public static class XFilter extends Filter {
+
+    @Override
+    public boolean accept(Key k, Value v) {
+      return !k.getColumnQualifierData().toString().equals("x");
+    }
+  }
+
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
       justification = "predictable random is ok for testing")
   @Test
   public void testOneMillionTablets() throws Exception {
-    Logger log = LoggerFactory.getLogger(SplitIT.class);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -96,7 +112,7 @@ public class SplitMillionIT extends AccumuloClusterHarness {
         }
 
         long t3 = System.currentTimeMillis();
-        verifyRow(c, tableName, row);
+        verifyRow(c, tableName, row, Map.of("x", "200", "y", "900", "z", "300"));
         long t4 = System.currentTimeMillis();
         log.info("Row: {} scan1: {}ms write: {}ms scan2: {}ms", row, t2 - t1, t3 - t2, t4 - t3);
       }
@@ -105,7 +121,18 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       long count = c.tableOperations().getTabletInformation(tableName, new Range()).count();
       long t2 = System.currentTimeMillis();
       assertEquals(1_000_000, count);
-      log.info("Time to scan all tablets : {}ms", t2 - t1);
+      log.info("Time to scan all tablets information : {}ms", t2 - t1);
+
+      t1 = System.currentTimeMillis();
+      var iterSetting = new IteratorSetting(100, XFilter.class);
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true).setFlush(true));
+      t2 = System.currentTimeMillis();
+      assertEquals(1_000_000, count);
+      log.info("Time to compact all tablets : {}ms", t2 - t1);
+
+      var expected = Map.of("y", "900", "z", "300");
+      vefifyData(rows, c, tableName, expected);
 
       // clone the table to test cloning with lots of tablets and also to give merge its own table
       // to work on
@@ -114,6 +141,7 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       c.tableOperations().clone(tableName, cloneName, CloneConfiguration.builder().build());
       t2 = System.currentTimeMillis();
       log.info("Time to clone table : {}ms", t2 - t1);
+      vefifyData(rows, c, cloneName, expected);
 
       // merge the clone, so that delete table can run later on tablet with lots and lots of tablets
       t1 = System.currentTimeMillis();
@@ -121,11 +149,7 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       t2 = System.currentTimeMillis();
       log.info("Time to merge all tablets : {}ms", t2 - t1);
 
-      // verify data after merge
-      for (var rowInt : rows) {
-        var row = String.format("%010d", rowInt);
-        verifyRow(c, cloneName, row);
-      }
+      vefifyData(rows, c, cloneName, expected);
 
       t1 = System.currentTimeMillis();
       c.tableOperations().delete(tableName);
@@ -134,12 +158,37 @@ public class SplitMillionIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyRow(AccumuloClient c, String tableName, String row) throws Exception {
+  private void vefifyData(int[] rows, AccumuloClient c, String tableName,
+      Map<String,String> expected) throws Exception {
+    // use a batch scanner so that many hosting request can be submitted at the same time
+    long t1 = System.currentTimeMillis();
+    try (var scanner = c.createBatchScanner(tableName)) {
+      var ranges = IntStream.of(rows).mapToObj(row -> String.format("%010d", row)).map(Range::new)
+          .collect(Collectors.toList());
+      scanner.setRanges(ranges);
+      Map<String,Map<String,String>> allCoords = new HashMap<>();
+      scanner.forEach((k, v) -> {
+        var row = k.getRowData().toString();
+        var qual = k.getColumnQualifierData().toString();
+        var val = v.toString();
+        allCoords.computeIfAbsent(row, r -> new HashMap<>()).put(qual, val);
+      });
+
+      assertEquals(IntStream.of(rows).mapToObj(row -> String.format("%010d", row))
+          .collect(Collectors.toSet()), allCoords.keySet());
+      allCoords.values().forEach(coords -> assertEquals(expected, coords));
+    }
+    long t2 = System.currentTimeMillis();
+    log.info("Time to verify {} rows was {}ms", rows.length, t2 - t1);
+  }
+
+  private void verifyRow(AccumuloClient c, String tableName, String row,
+      Map<String,String> expected) throws Exception {
     try (var scanner = c.createScanner(tableName)) {
       scanner.setRange(new Range(row));
       Map<String,String> coords = scanner.stream().collect(Collectors
           .toMap(e -> e.getKey().getColumnQualifier().toString(), e -> e.getValue().toString()));
-      assertEquals(Map.of("x", "200", "y", "900", "z", "300"), coords);
+      assertEquals(expected, coords);
     }
   }
 

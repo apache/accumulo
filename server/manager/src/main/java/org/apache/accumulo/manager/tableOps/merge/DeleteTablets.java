@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -66,11 +66,11 @@ public class DeleteTablets extends ManagerRepo {
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();
     // delete tablets
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         acceptedCount.incrementAndGet();
       } else {
-        log.error("{} failed to update {}", fateStr, extent);
+        log.error("{} failed to update {}", fateStr, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };

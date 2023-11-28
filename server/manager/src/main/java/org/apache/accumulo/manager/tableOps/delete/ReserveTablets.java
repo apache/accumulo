@@ -23,11 +23,10 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -58,11 +57,11 @@ public class ReserveTablets extends ManagerRepo {
 
     // The consumer may be called in another thread so use an AtomicLong
     AtomicLong accepted = new AtomicLong(0);
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultsConsumer = result -> {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         accepted.incrementAndGet();
       } else {
-        log.debug("Failed to set operation id {} {}", opid, extent);
+        log.debug("Failed to set operation id {} {}", opid, result.getExtent());
       }
     };
 

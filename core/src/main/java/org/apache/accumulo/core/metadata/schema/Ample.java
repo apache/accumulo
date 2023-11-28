@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -213,7 +213,7 @@ public interface Ample {
    * An entry point for updating tablets metadata using a conditional writer. The returned mutator
    * will buffer everything in memory until {@link ConditionalTabletsMutator#process()} is called.
    * If buffering everything in memory is undesirable, then consider using
-   * {@link #conditionallyMutateTablets(BiConsumer)}
+   * {@link #conditionallyMutateTablets(Consumer)}
    *
    * @see ConditionalTabletMutator#submit(RejectionHandler)
    */
@@ -237,7 +237,7 @@ public interface Ample {
    * @see ConditionalTabletMutator#submit(RejectionHandler)
    */
   default AsyncConditionalTabletsMutator
-      conditionallyMutateTablets(BiConsumer<KeyExtent,ConditionalResult> resultsConsumer) {
+      conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
     throw new UnsupportedOperationException();
   }
 

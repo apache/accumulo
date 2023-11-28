@@ -118,6 +118,7 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
+  @SuppressWarnings("removal")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks

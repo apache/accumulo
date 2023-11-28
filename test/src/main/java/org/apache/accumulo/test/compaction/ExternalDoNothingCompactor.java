@@ -30,9 +30,15 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +72,15 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
         update.setState(TCompactionState.STARTED);
         update.setMessage("Compaction started");
         updateCompactionState(job, update);
+
+        // Create tmp output file
+        final TabletMetadata tm = getContext().getAmple()
+            .readTablet(KeyExtent.fromThrift(job.getExtent()), ColumnType.DIR);
+        ReferencedTabletFile newFile =
+            TabletNameGenerator.getNextDataFilenameForMajc(job.isPropagateDeletes(), getContext(),
+                tm, (dir) -> {}, ExternalCompactionId.from(job.getExternalCompactionId()));
+        LOG.info("Creating tmp file: {}", newFile.getPath());
+        getContext().getVolumeManager().createNewFile(newFile.getPath());
 
         LOG.info("Starting compactor");
         started.countDown();
