@@ -22,17 +22,13 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class UtilWaitThread {
-  private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
 
   /**
    * Copied from Guava release 23. The Uniterruptibles class was annotated as Beta by Google,
    * therefore unstable to use. The following javadoc was copied from
    * com.google.common.util.concurrent.Uninterruptibles:
-   *
+   * <p>
    * Utilities for treating interruptible operations as uninterruptible. In all cases, if a thread
    * is interrupted during such a call, the call continues to block until the result is available or
    * the timeout elapses, and only then re-interrupts the thread.
