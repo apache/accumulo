@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.manager.upgrade.Upgrader11to12.UPGRADE_FAMILIES;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
@@ -33,15 +34,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
@@ -52,6 +54,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants.ChoppedColumnFamily;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
@@ -103,14 +106,6 @@ public class Upgrader11to12Test {
 
   @Test
   public void processReferencesTest() throws Exception {
-    BatchWriter batchWriter = mock(BatchWriter.class);
-    Capture<Mutation> capturedUpdate1 = newCapture();
-    batchWriter.addMutation(capture(capturedUpdate1));
-    expectLastCall().once();
-
-    Capture<Mutation> capturedUpdate2 = newCapture();
-    batchWriter.addMutation(capture(capturedUpdate2));
-    expectLastCall().once();
 
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
@@ -144,41 +139,28 @@ public class Upgrader11to12Test {
     Value value3 = new Value("1,2");
     scanData.put(key3, value3);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(batchWriter, scanner, "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
 
-    LOG.info("c:{}", capturedUpdate1.getValue().prettyPrint());
-    var u1 = capturedUpdate1.getValue();
+    assertEquals(2, mutations.size());
+
+    var u1 = mutations.get(0);
+    LOG.info("c:{}", u1.prettyPrint());
     // 2 file add, 2 file delete. 1 chop delete, 1 ext comp delete
     assertEquals(6, u1.getUpdates().size());
 
-    LOG.info("c:{}", capturedUpdate2.getValue().prettyPrint());
-    var u2 = capturedUpdate2.getValue();
+    var u2 = mutations.get(1);
+    LOG.info("c:{}", u2.prettyPrint());
     // 1 add, 1 delete
     assertEquals(2, u2.getUpdates().size());
     assertEquals(1, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
-
-    verify(batchWriter, scanner);
 
   }
 
   @Test
   public void skipConvertedFileTest() throws Exception {
-    BatchWriter batchWriter = mock(BatchWriter.class);
-    Capture<Mutation> capturedUpdate1 = newCapture();
-    batchWriter.addMutation(capture(capturedUpdate1));
-    expectLastCall().once();
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
     Text row1 = new Text("123");
@@ -197,27 +179,18 @@ public class Upgrader11to12Test {
     Value value2 = new Value("321,654");
     scanData.put(key2, value2);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(batchWriter, scanner, "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
 
-    LOG.info("c:{}", capturedUpdate1.getValue().prettyPrint());
-    var u1 = capturedUpdate1.getValue();
+    assertEquals(1, mutations.size());
+
+    var u1 = mutations.get(0);
+    LOG.info("c:{}", u1.prettyPrint());
     // 1 add, 1 delete
     assertEquals(2, u1.getUpdates().size());
     assertEquals(1, u1.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
-
-    verify(batchWriter, scanner);
   }
 
   @Test
@@ -239,22 +212,13 @@ public class Upgrader11to12Test {
     Value value1 = new Value("123,456");
     scanData.put(key1, value1);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    replay(batchWriter);
     Upgrader11to12 upgrader = new Upgrader11to12();
 
-    assertThrows(IllegalStateException.class,
-        () -> upgrader.processReferences(batchWriter, scanner, "accumulo.metadata"));
+    assertThrows(IllegalStateException.class, () -> upgrader
+        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
 
-    verify(batchWriter, scanner);
+    verify(batchWriter);
   }
 
   @Test
@@ -282,22 +246,13 @@ public class Upgrader11to12Test {
     Value value2 = new Value("321,654");
     scanData.put(key2, value2);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    replay(batchWriter);
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    assertThrows(IllegalArgumentException.class,
-        () -> upgrader.processReferences(batchWriter, scanner, "accumulo.metadata"));
+    assertThrows(IllegalArgumentException.class, () -> upgrader
+        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
 
-    verify(batchWriter, scanner);
+    verify(batchWriter);
   }
 
   @Test
@@ -318,22 +273,13 @@ public class Upgrader11to12Test {
     Value value1 = new Value("123,456");
     scanData.put(key1, value1);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    replay(batchWriter);
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    assertThrows(IllegalStateException.class,
-        () -> upgrader.processReferences(batchWriter, scanner, "accumulo.metadata"));
+    assertThrows(IllegalStateException.class, () -> upgrader
+        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
 
-    verify(batchWriter, scanner);
+    verify(batchWriter);
   }
 
   /**
@@ -342,10 +288,6 @@ public class Upgrader11to12Test {
    */
   @Test
   public void verifyEmptyMutation() throws Exception {
-    BatchWriter batchWriter = mock(BatchWriter.class);
-    Capture<Mutation> capturedUpdate1 = newCapture();
-    batchWriter.addMutation(capture(capturedUpdate1));
-    expectLastCall().once();
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
 
@@ -377,27 +319,17 @@ public class Upgrader11to12Test {
     Value value3 = new Value("333,444");
     scanData.put(key3, value3);
 
-    Scanner scanner = mock(Scanner.class);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    expectLastCall();
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    expectLastCall();
-
-    expect(scanner.iterator()).andReturn(scanData.entrySet().iterator()).once();
-    replay(batchWriter, scanner);
+    ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(batchWriter, scanner, "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
 
-    LOG.info("c:{}", capturedUpdate1.getValue().prettyPrint());
-    var u1 = capturedUpdate1.getValue();
+    assertEquals(1, mutations.size());
+    var u1 = mutations.get(0);
+    LOG.info("c:{}", u1.prettyPrint());
     // 1 add, 1 delete
     assertEquals(2, u1.getUpdates().size());
     assertEquals(1, u1.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
-
-    verify(batchWriter, scanner);
   }
 
   @Test
@@ -408,7 +340,7 @@ public class Upgrader11to12Test {
         "{\"version\":1,\"columnValues\":{\"file\":{\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A0000030.rf\":\"856,15\",\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000r.rf\":\"308,2\"},\"last\":{\"100017f46240004\":\"localhost:9997\"},\"loc\":{\"100017f46240004\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"16\",\"lock\":\"tservers/localhost:9997/zlock#f6a582b9-9583-4553-b179-a7a3852c8332#0000000000$100017f46240004\",\"time\":\"L42\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}\n"
             .getBytes(UTF_8);
     final String zKRootV2 =
-        "{\"version\":2,\"columnValues\":{\"file\":{\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A0000030.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"856,15\",\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000r.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"308,2\"},\"last\":{\"100017f46240004\":\"localhost:9997\"},\"loc\":{\"100017f46240004\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"16\",\"lock\":\"tservers/localhost:9997/zlock#f6a582b9-9583-4553-b179-a7a3852c8332#0000000000$100017f46240004\",\"time\":\"L42\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
+        "{\"version\":1,\"columnValues\":{\"file\":{\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A0000030.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"856,15\",\"{\\\"path\\\":\\\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000r.rf\\\",\\\"startRow\\\":\\\"\\\",\\\"endRow\\\":\\\"\\\"}\":\"308,2\"},\"last\":{\"100017f46240004\":\"localhost:9997\"},\"loc\":{\"100017f46240004\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"16\",\"lock\":\"tservers/localhost:9997/zlock#f6a582b9-9583-4553-b179-a7a3852c8332#0000000000$100017f46240004\",\"time\":\"L42\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
 
     InstanceId iid = InstanceId.of(UUID.randomUUID());
     Upgrader11to12 upgrader = new Upgrader11to12();
@@ -458,4 +390,59 @@ public class Upgrader11to12Test {
     assertFalse(upgrader.fileNeedsConversion(s31));
     assertFalse(upgrader.fileNeedsConversion(s31_untrimmed));
   }
+
+  @Test
+  public void convertRoot1File() {
+    String root21ZkData =
+        "{\"version\":1,\"columnValues\":{\"file\":{\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A000000v.rf\":\"1368,61\"},\"last\":{\"100025091780006\":\"localhost:9997\"},\"loc\":{\"100025091780006\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"3\",\"lock\":\"tservers/localhost:9997/zlock#9db8961a-4ee9-400e-8e80-3353148baadd#0000000000$100025091780006\",\"time\":\"L53\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}";
+
+    RootTabletMetadata rtm = new RootTabletMetadata(root21ZkData);
+    ArrayList<Mutation> mutations = new ArrayList<>();
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    upgrader.processReferences(mutations::add,
+        rtm.getKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
+            .collect(Collectors.toList()),
+        "accumulo.metadata");
+    assertEquals(1, mutations.size());
+    var mutation = mutations.get(0);
+    rtm.update(mutation);
+
+    LOG.debug("converted column values: {}", rtm.toTabletMetadata().getFiles());
+
+    var files = rtm.toTabletMetadata().getFiles();
+    LOG.info("FILES: {}", rtm.toTabletMetadata().getFilesMap());
+
+    assertEquals(1, files.size());
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/A000000v.rf"))));
+  }
+
+  @Test
+  public void convertRoot2Files() {
+    String root212ZkData2Files =
+        "{\"version\":1,\"columnValues\":{\"file\":{\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/00000_00000.rf\":\"0,0\",\"hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000c.rf\":\"926,18\"},\"last\":{\"10001a84d7d0005\":\"localhost:9997\"},\"loc\":{\"10001a84d7d0005\":\"localhost:9997\"},\"srv\":{\"dir\":\"root_tablet\",\"flush\":\"2\",\"lock\":\"tservers/localhost:9997/zlock#d21adaa4-0f97-4004-9ff8-cce9dbb6687f#0000000000$10001a84d7d0005\",\"time\":\"L6\"},\"~tab\":{\"~pr\":\"\\u0000\"}}}\n";
+
+    RootTabletMetadata rtm = new RootTabletMetadata(root212ZkData2Files);
+    ArrayList<Mutation> mutations = new ArrayList<>();
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    upgrader.processReferences(mutations::add,
+        rtm.getKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
+            .collect(Collectors.toList()),
+        "accumulo.metadata");
+    assertEquals(1, mutations.size());
+    var mutation = mutations.get(0);
+    rtm.update(mutation);
+
+    LOG.debug("converted column values: {}", rtm.toTabletMetadata());
+
+    var files = rtm.toTabletMetadata().getFiles();
+    LOG.info("FILES: {}", rtm.toTabletMetadata().getFilesMap());
+
+    assertEquals(2, files.size());
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/00000_00000.rf"))));
+    assertTrue(files.contains(StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000c.rf"))));
+  }
+
 }

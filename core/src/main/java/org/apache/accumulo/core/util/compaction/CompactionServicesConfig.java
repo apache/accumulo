@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,21 +50,12 @@ public class CompactionServicesConfig {
   @SuppressWarnings("removal")
   private static final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private static final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
-  public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
-  private static Map<String,Map<String,String>>
-      stripPropPrefix(PluginEnvironment.Configuration conf) {
-    @SuppressWarnings("removal")
-    String prefix = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
-    var confMap = new HashMap<String,String>();
-    conf.getWithPrefix(prefix).forEach((prop, val) -> {
-      var suffix = prop.substring(prefix.length());
-      confMap.put(suffix, val);
-    });
-    return Map.of(prefix, confMap);
+  private interface ConfigIndirection {
+    Map<String,String> getAllPropertiesWithPrefixStripped(Property p);
   }
 
-  private static Map<String,Map<String,String>> getConfiguration(AccumuloConfiguration aconf) {
+  private static Map<String,Map<String,String>> getConfiguration(ConfigIndirection aconf) {
     Map<String,Map<String,String>> properties = new HashMap<>();
 
     var newProps = aconf.getAllPropertiesWithPrefixStripped(newPrefix);
@@ -95,11 +85,16 @@ public class CompactionServicesConfig {
 
   public CompactionServicesConfig(PluginEnvironment.Configuration conf) {
     // TODO will probably not need rate limit eventually and the 2nd param predicate can go away
-    this(stripPropPrefix(conf), property -> conf.isSet(property.getKey()));
+    this(getConfiguration(prefix -> {
+      var props = conf.getWithPrefix(prefix.getKey());
+      Map<String,String> stripped = new HashMap<>();
+      props.forEach((k, v) -> stripped.put(k.substring(prefix.getKey().length()), v));
+      return stripped;
+    }), property -> conf.isSet(property.getKey()));
   }
 
   public CompactionServicesConfig(AccumuloConfiguration aconf) {
-    this(getConfiguration(aconf), aconf::isPropertySet);
+    this(getConfiguration(aconf::getAllPropertiesWithPrefixStripped), aconf::isPropertySet);
   }
 
   @SuppressWarnings("removal")
