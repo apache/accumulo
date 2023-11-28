@@ -22,8 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -36,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -58,6 +62,10 @@ public class Upgrader11to12 implements Upgrader {
 
   private static final Logger log = LoggerFactory.getLogger(Upgrader11to12.class);
 
+  @VisibleForTesting
+  static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME,
+      ChoppedColumnFamily.NAME, ExternalCompactionColumnFamily.NAME);
+
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
@@ -69,9 +77,21 @@ public class Upgrader11to12 implements Upgrader {
       byte[] rootData = zrw.getData(rootBase, stat);
 
       String json = new String(rootData, UTF_8);
-      if (RootTabletMetadata.needsUpgrade(json)) {
+
+      var rtm = new RootTabletMetadata(json);
+
+      TreeMap<Key,Value> entries = new TreeMap<>();
+      rtm.toKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
+          .forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
+      ArrayList<Mutation> mutations = new ArrayList<>();
+
+      processReferences(mutations::add, entries.entrySet(), "root_table_metadata");
+
+      Preconditions.checkState(mutations.size() <= 1);
+
+      if (!mutations.isEmpty()) {
         log.info("Root metadata in ZooKeeper before upgrade: {}", json);
-        RootTabletMetadata rtm = RootTabletMetadata.upgrade(json);
+        rtm.update(mutations.get(0));
         zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
@@ -85,30 +105,31 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  interface MutationWriter {
+    void addMutation(Mutation m) throws MutationsRejectedException;
+  }
+
   @Override
   public void upgradeRoot(@NonNull ServerContext context) {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
-    // not using ample to avoid StoredTabletFile because old file ref is incompatible
-    try (BatchWriter batchWriter = context.createBatchWriter(rootName); Scanner scanner =
-        new IsolatedScanner(context.createScanner(rootName, Authorizations.EMPTY))) {
-      processReferences(batchWriter, scanner, rootName);
-    } catch (TableNotFoundException ex) {
-      throw new IllegalStateException("Failed to find table " + rootName, ex);
-    } catch (MutationsRejectedException mex) {
-      log.warn("Failed to update reference for table: " + rootName);
-      log.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
-      throw new IllegalStateException("Failed to process table: " + rootName, mex);
-    }
+    upgradeTabletsMetadata(context, rootName);
   }
 
   @Override
   public void upgradeMetadata(@NonNull ServerContext context) {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
+    upgradeTabletsMetadata(context, metaName);
+  }
+
+  private void upgradeTabletsMetadata(@NonNull ServerContext context, String metaName) {
+    // not using ample to avoid StoredTabletFile because old file ref is incompatible
     try (BatchWriter batchWriter = context.createBatchWriter(metaName); Scanner scanner =
         new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
-      processReferences(batchWriter, scanner, metaName);
+      UPGRADE_FAMILIES.forEach(scanner::fetchColumnFamily);
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      processReferences(batchWriter::addMutation, scanner, metaName);
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
     } catch (MutationsRejectedException mex) {
@@ -118,10 +139,8 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  void processReferences(BatchWriter batchWriter, Scanner scanner, String tableName) {
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
+  void processReferences(MutationWriter batchWriter, Iterable<Map.Entry<Key,Value>> scanner,
+      String tableName) {
     try {
       Mutation update = null;
       for (Map.Entry<Key,Value> entry : scanner) {
