@@ -130,8 +130,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
           if (getFromCache(lookupRow) == null) {
             while (true) {
               try (Stream<KeyExtent> keyExtentStream = lookupExtents(lookupRow)) {
-                keyExtentStream.limit(100).takeWhile(ke2 -> !inCache(ke2))
-                    .forEach(this::updateCache);
+                keyExtentStream.takeWhile(ke2 -> !inCache(ke2)).forEach(this::updateCache);
                 break;
               } catch (TabletDeletedException tde) {
                 // tablets were merged away in the table, start over and try again
