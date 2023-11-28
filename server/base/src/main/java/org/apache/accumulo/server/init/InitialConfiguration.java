@@ -31,7 +31,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.hadoop.conf.Configuration;
 
 class InitialConfiguration {
@@ -71,8 +70,6 @@ class InitialConfiguration {
         "10," + VersioningIterator.class.getName());
     initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
         "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
-        "20," + MetadataBulkLoadFilter.class.getName());
     initialRootMetaConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,

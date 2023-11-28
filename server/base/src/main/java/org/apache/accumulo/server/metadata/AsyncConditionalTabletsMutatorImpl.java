@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -32,7 +32,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 
 public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditionalTabletsMutator {
-  private final BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer;
+  private final Consumer<Ample.ConditionalResult> resultsConsumer;
   private final ExecutorService executor;
   private Future<Map<KeyExtent,Ample.ConditionalResult>> backgroundProcessing = null;
   private ConditionalTabletsMutatorImpl bufferingMutator;
@@ -41,7 +41,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   public static final int BATCH_SIZE = 1000;
 
   AsyncConditionalTabletsMutatorImpl(ServerContext context,
-      BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer) {
+      Consumer<Ample.ConditionalResult> resultsConsumer) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
     this.bufferingMutator = new ConditionalTabletsMutatorImpl(context);
     this.context = context;
@@ -58,7 +58,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
       if (backgroundProcessing != null) {
         // a previous batch of mutations was submitted for processing so wait on it.
         try {
-          backgroundProcessing.get().forEach(resultsConsumer);
+          backgroundProcessing.get().values().forEach(resultsConsumer);
         } catch (InterruptedException | ExecutionException e) {
           throw new IllegalStateException(e);
         }
@@ -85,13 +85,13 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     if (backgroundProcessing != null) {
       // a previous batch of mutations was submitted for processing so wait on it.
       try {
-        backgroundProcessing.get().forEach(resultsConsumer);
+        backgroundProcessing.get().values().forEach(resultsConsumer);
       } catch (InterruptedException | ExecutionException e) {
         throw new IllegalStateException(e);
       }
     }
     // process anything not processed so far
-    bufferingMutator.process().forEach(resultsConsumer);
+    bufferingMutator.process().values().forEach(resultsConsumer);
     bufferingMutator.close();
     executor.shutdownNow();
   }
