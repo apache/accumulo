@@ -33,9 +33,9 @@ public interface CompactionJob {
   short getPriority();
 
   /**
-   * @return The executor to run the job.
+   * @return The group to run the job.
    */
-  CompactionExecutorId getExecutor();
+  CompactionGroupId getGroup();
 
   /**
    * @return The files to compact

@@ -18,22 +18,20 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import org.apache.accumulo.core.data.AbstractId;
+
 /**
- * Offered to a Compaction Planner at initialization time so it can create executors.
+ * A unique identifier for a compaction group that a {@link CompactionPlanner} can schedule
+ * compactions on using a {@link CompactionJob}.
  *
- *
- * @since 2.1.0
- * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
+ * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-public interface ExecutorManager {
-  /**
-   * Create a thread pool executor within a compaction service.
-   */
-  public CompactionExecutorId createExecutor(String name, int threads);
+public class CompactionGroupId extends AbstractId<CompactionGroupId> {
+  // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
+  private static final long serialVersionUID = 1L;
 
-  /**
-   * @return an id for a configured external execution queue.
-   */
-  public CompactionExecutorId getExternalExecutor(String name);
+  protected CompactionGroupId(String canonical) {
+    super(canonical);
+  }
 }
