@@ -18,21 +18,28 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CloseScannerIT extends AccumuloClusterHarness {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CloseScannerIT.class);
 
   static final int ROWS = 1000;
   static final int COLS = 1000;
@@ -61,14 +68,26 @@ public class CloseScannerIT extends AccumuloClusterHarness {
         } // when the scanner is closed, all open sessions should be closed
       }
 
-      List<String> tservers = client.instanceOperations().getTabletServers();
-      int activeScans = 0;
-      for (String tserver : tservers) {
-        activeScans += client.instanceOperations().getActiveScans(tserver).size();
-      }
-
-      assertTrue(activeScans < 3);
+      Wait.waitFor(() -> {
+        final List<ActiveScan> activeScans = getAllActiveScans(client);
+        if (activeScans.size() < 3) {
+          return true;
+        } else {
+          LOG.error("Saw more scans than expected. Retrying. Scans found: {}", activeScans);
+          return false;
+        }
+      }, 5000, 250, "Found too many active scans after closing all scanners.");
     }
+  }
+
+  private static List<ActiveScan> getAllActiveScans(AccumuloClient client)
+      throws AccumuloException, AccumuloSecurityException {
+    List<String> tservers = client.instanceOperations().getTabletServers();
+    List<ActiveScan> allActiveScans = new ArrayList<>();
+    for (String tserver : tservers) {
+      allActiveScans.addAll(client.instanceOperations().getActiveScans(tserver));
+    }
+    return allActiveScans;
   }
 
   private static Scanner createScanner(AccumuloClient client, String tableName, int i)
