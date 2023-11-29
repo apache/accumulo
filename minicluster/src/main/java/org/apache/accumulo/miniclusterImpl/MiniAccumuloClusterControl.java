@@ -57,7 +57,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   protected MiniAccumuloClusterImpl cluster;
 
   Process zooKeeperProcess = null;
-  Process managerProcess = null;
+  final List<Process> managerProcesses = new ArrayList<>();
   Process gcProcess = null;
   Process monitor = null;
   final Map<String,List<Process>> tabletServerProcesses = new HashMap<>();
@@ -189,8 +189,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MANAGER:
-        if (managerProcess == null) {
-          managerProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
+        synchronized (managerProcesses) {
+          int count = 0;
+          for (int i = managerProcesses.size();
+              count < limit
+                  && i < cluster.getConfig().getClusterServerConfiguration().getNumManagers();
+              i++, ++count) {
+            managerProcesses.add(cluster._exec(classToUse, server, configOverrides).getProcess());
+          }
         }
         break;
       case ZOOKEEPER:
@@ -258,15 +264,19 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MANAGER:
-        if (managerProcess != null) {
+        synchronized (managerProcesses) {
           try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            for (Process manager : managerProcesses) {
+              try {
+                cluster.stopProcessWithTimeout(manager, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("Manager did not fully stop after 30 seconds", e);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
           } finally {
-            managerProcess = null;
+            managerProcesses.clear();
           }
         }
         break;
@@ -392,14 +402,19 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     boolean found = false;
     switch (type) {
       case MANAGER:
-        if (procRef.getProcess().equals(managerProcess)) {
-          try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
+        synchronized (managerProcesses) {
+          for (Process manager : managerProcesses) {
+            if (procRef.getProcess().equals(manager)) {
+              managerProcesses.remove(manager);
+              try {
+                cluster.stopProcessWithTimeout(manager, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("Manager did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
           }
-          managerProcess = null;
-          found = true;
         }
         break;
       case TABLET_SERVER:

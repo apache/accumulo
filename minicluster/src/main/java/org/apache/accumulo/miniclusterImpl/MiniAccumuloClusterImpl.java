@@ -703,8 +703,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int numTries = 10;
 
-    requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
-    waitForProcessStart(getClusterControl().managerProcess, "Manager");
+    int mgrExpectedCount = 0;
+    for (Process tsp : getClusterControl().managerProcesses) {
+      mgrExpectedCount++;
+      requireNonNull(tsp, "Error starting Manager " + mgrExpectedCount + " - no process");
+      waitForProcessStart(tsp, "Manager" + mgrExpectedCount);
+    }
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
     waitForProcessStart(getClusterControl().gcProcess, "GC");
@@ -875,7 +879,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
+    result.put(ServerType.MANAGER, references(control.managerProcesses.toArray(new Process[0])));
     result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
         .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
     result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()

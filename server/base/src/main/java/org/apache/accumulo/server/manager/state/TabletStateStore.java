@@ -59,7 +59,11 @@ public interface TabletStateStore {
    * Scan the information about all tablets covered by this store..
    */
   default ClosableIterator<TabletManagement> iterator(TabletManagementParameters parameters) {
-    return iterator(List.of(MetadataSchema.TabletsSection.getRange()), parameters);
+    List<Range> ranges = List.of(MetadataSchema.TabletsSection.getRange());
+    if (parameters.getRangeOverrides() != null) {
+      ranges = parameters.getRangeOverrides();
+    }
+    return iterator(ranges, parameters);
   }
 
   /**

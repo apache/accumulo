@@ -50,9 +50,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -77,6 +79,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
@@ -88,6 +91,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -158,6 +162,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -182,10 +187,11 @@ public class Manager extends AbstractServer
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
   private static final int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
-  private static final int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
   static final int MAX_TSERVER_WORK_CHUNK = 5000;
   private static final int MAX_BAD_STATUS_COUNT = 3;
   private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
+  private static final AtomicBoolean PRIMARY_MANAGER = new AtomicBoolean(false);
+  private static final UUID MANAGER_SERVER_UUID = UUID.randomUUID();
 
   private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
@@ -205,8 +211,10 @@ public class Manager extends AbstractServer
   private ZooAuthenticationKeyDistributor keyDistributor;
   private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
-  ServiceLock managerLock = null;
+  private ServiceLock managerServerLock = null;
+  private ServiceLock primaryManagerLock = null;
   private TServer clientService = null;
+  private HostAndPort clientServiceAddress = null;
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
@@ -682,7 +690,7 @@ public class Manager extends AbstractServer
                     for (TServerInstance server : currentServers) {
                       try {
                         serversToShutdown.add(server);
-                        tserverSet.getConnection(server).fastHalt(managerLock);
+                        tserverSet.getConnection(server).fastHalt(managerServerLock);
                       } catch (TException e) {
                         // its probably down, and we don't care
                       } finally {
@@ -766,7 +774,7 @@ public class Manager extends AbstractServer
         try {
           TServerConnection connection = tserverSet.getConnection(instance);
           if (connection != null) {
-            connection.fastHalt(managerLock);
+            connection.fastHalt(managerServerLock);
           }
         } catch (TException e) {
           log.error("{}", e.getMessage(), e);
@@ -876,7 +884,7 @@ public class Manager extends AbstractServer
               try {
                 TServerConnection connection2 = tserverSet.getConnection(server);
                 if (connection2 != null) {
-                  connection2.halt(managerLock);
+                  connection2.halt(managerServerLock);
                 }
               } catch (TTransportException e1) {
                 // ignore: it's probably down
@@ -927,6 +935,84 @@ public class Manager extends AbstractServer
     return info;
   }
 
+  private void announceExistence(HostAndPort address) {
+    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+
+    try {
+      var zLockPath = ServiceLock
+          .path(getContext().getZooKeeperRoot() + Constants.ZMANAGERS + "/" + address.toString());
+
+      try {
+        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
+      } catch (KeeperException e) {
+        if (e.code() == KeeperException.Code.NOAUTH) {
+          log.error("Failed to write to ZooKeeper. Ensure that"
+              + " accumulo.properties, specifically instance.secret, is consistent.");
+        }
+        throw e;
+      }
+
+      managerServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, MANAGER_SERVER_UUID);
+
+      LockWatcher lw = new LockWatcher() {
+
+        @Override
+        public void lostLock(final LockLossReason reason) {
+          Halt.halt("Manager server lock in zookeeper lost (reason = " + reason + "), exiting!",
+              -1);
+          getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
+        }
+
+        @Override
+        public void unableToMonitorLockNode(final Exception e) {
+          Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
+
+        }
+      };
+
+      ServiceDescriptors descriptors = new ServiceDescriptors();
+      // Insert the service with a fake address so that clients can't connect right now
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      ServiceLockData sld = new ServiceLockData(descriptors);
+      for (int i = 0; i < 120 / 5; i++) {
+        zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
+        if (managerServerLock.tryLock(lw, sld)) {
+          log.debug("Obtained manager server lock {}", managerServerLock.getLockPath());
+          return;
+        }
+        log.info("Waiting for manager server lock");
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
+      }
+      String msg = "Too many retries, exiting.";
+      log.info(msg);
+      throw new RuntimeException(msg);
+    } catch (Exception e) {
+      log.info("Could not obtain manager server lock, exiting.", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static void updateLockContent(HostAndPort address, ServiceLock primaryManagerLock) {
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.MANAGER,
+        address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    if (PRIMARY_MANAGER.get()) {
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.COORDINATOR,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      descriptors.addService(new ServiceDescriptor(MANAGER_SERVER_UUID, ThriftService.FATE,
+          address.toString(), Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    }
+    ServiceLockData sld = new ServiceLockData(descriptors);
+    log.info("Setting manager lock data to {}", sld.toString());
+    try {
+      primaryManagerLock.replaceLockData(sld);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception updating manager lock", e);
+    }
+
+  }
+
   @Override
   public void run() {
     final ServerContext context = getContext();
@@ -940,36 +1026,53 @@ public class Manager extends AbstractServer
     //
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
-    managerClientHandler = new ManagerClientServiceHandler(this);
     compactionCoordinator =
         new CompactionCoordinator(context, tserverSet, security, compactionJobQueues, nextEvent);
     // Start the Manager's Client service
-    // Ensure that calls before the manager gets the lock fail
-    ManagerClientService.Iface haProxy =
+    managerClientHandler = new ManagerClientServiceHandler(this);
+    // Ensure that calls before the manager is initialized fail
+    ManagerClientService.Iface mgrProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+    FateService.Iface fateProxy = HighlyAvailableServiceWrapper.service(fateServiceHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateProxy, compactionCoordinator,
+        mgrProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
-          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
-          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
-          Property.GENERAL_MAX_MESSAGE_SIZE);
+          "Manager", "Manager Client Service Handler", Property.MANAGER_PORTSEARCH,
+          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
+          Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
     clientService = sa.server;
-    log.info("Started Manager client service at {}", sa.address);
+    clientServiceAddress = sa.address;
+    log.info("Started Manager client service at {}", clientServiceAddress);
 
-    // block until we can obtain the ZK lock for the manager
-    ServiceLockData sld = null;
+    // announceExistence by creating an entry at the Constants.ZMANAGERS path.
+    announceExistence(clientServiceAddress);
+
+    // wait a configurable amount of time for multiple manager processes to start, then
+    // try to get the ZMANAGER_LOCK. This will determine which manager manages not
+    // only the FATE transactions, but the root and metadata tables.
     try {
-      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      blockForManagers();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Now that the minimum expected Managers are up, try to become the primary Manager.
+    // The Primary Manager will be responsible for Fate operations and metadata table tablets
+    try {
+      getPrimaryManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK),
+          clientServiceAddress);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+
+    setManagerState(ManagerState.HAVE_LOCK);
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
@@ -980,7 +1083,7 @@ public class Manager extends AbstractServer
     ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress());
+          clientServiceAddress);
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -1035,7 +1138,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm, () -> true) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1043,7 +1146,8 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm,
+        () -> PRIMARY_MANAGER.get()) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1054,13 +1158,15 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm,
+        () -> PRIMARY_MANAGER.get()) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
         return false;
       }
     });
+
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
@@ -1083,7 +1189,8 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration(),
+          () -> PRIMARY_MANAGER.get());
       fateRef.set(f);
       fateReadyLatch.countDown();
 
@@ -1122,21 +1229,7 @@ public class Manager extends AbstractServer
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    String address = sa.address.toString();
-    UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
-    ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
-    }
-
-    sld = new ServiceLockData(descriptors);
-    log.info("Setting manager lock data to {}", sld.toString());
-    try {
-      managerLock.replaceLockData(sld);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception updating manager lock", e);
-    }
+    updateLockContent(clientServiceAddress, this.primaryManagerLock);
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
@@ -1193,6 +1286,28 @@ public class Manager extends AbstractServer
     log.info("exiting");
   }
 
+  private void blockForTservers() throws InterruptedException {
+    blockForServers(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT,
+        Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, () -> tserverSet.size(), "tserver");
+  }
+
+  private void blockForManagers() throws InterruptedException {
+    Supplier<Integer> count = new Supplier<>() {
+      @Override
+      public Integer get() {
+        try {
+          return (int) getContext().getZooReader()
+              .getChildren(getContext().getZooKeeperRoot() + Constants.ZMANAGERS).stream()
+              .filter(s -> s.contains(":")).count();
+        } catch (KeeperException | InterruptedException e) {
+          throw new RuntimeException("Error getting manager count", e);
+        }
+      }
+    };
+    blockForServers(Property.MANAGER_STARTUP_MANAGER_AVAIL_MIN_COUNT,
+        Property.MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT, count, "manager");
+  }
+
   /**
    * Allows property configuration to block manager start-up waiting for a minimum number of
    * tservers to register in zookeeper. It also accepts a maximum time to wait - if the time
@@ -1208,19 +1323,19 @@ public class Manager extends AbstractServer
    *
    * @throws InterruptedException if interrupted while blocking, propagated for caller to handle.
    */
-  private void blockForTservers() throws InterruptedException {
+  private void blockForServers(Property minServerCountProperty, Property minServerWaitProperty,
+      Supplier<Integer> numServers, String serverType) throws InterruptedException {
+
     long waitStart = System.nanoTime();
 
-    long minTserverCount =
-        getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
-
-    if (minTserverCount <= 0) {
-      log.info("tserver availability check disabled, continuing with-{} servers. To enable, set {}",
-          tserverSet.size(), Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+    long minServerCount = getConfiguration().getCount(minServerCountProperty);
+    if (minServerCount <= 0) {
+      log.info("{} availability check disabled, continuing with-{} servers. To enable, set {}",
+          serverType, numServers.get(), minServerCountProperty.getKey());
       return;
     }
-    long userWait = MILLISECONDS.toSeconds(
-        getConfiguration().getTimeInMillis(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
+    long userWait =
+        MILLISECONDS.toSeconds(getConfiguration().getTimeInMillis(minServerWaitProperty));
 
     // Setting retry values for defined wait timeouts
     long retries = 10;
@@ -1230,8 +1345,8 @@ public class Manager extends AbstractServer
     long waitIncrement = 0;
 
     if (userWait <= 0) {
-      log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
-          Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
+      log.info("{} availability check set to block indefinitely, To change, set {} > 0.",
+          serverType, minServerWaitProperty.getKey());
       userWait = Long.MAX_VALUE;
 
       // If indefinitely blocking, change retry values to support incremental backoff and logging.
@@ -1241,42 +1356,44 @@ public class Manager extends AbstractServer
       waitIncrement = 5;
     }
 
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
+    Retry serverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
         .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, SECONDS).backOffFactor(1)
         .logInterval(30, SECONDS).createRetry();
 
-    log.info("Checking for tserver availability - need to reach {} servers. Have {}",
-        minTserverCount, tserverSet.size());
+    log.info("Checking for {} availability - need to reach {} servers. Have {}", serverType,
+        minServerCount, numServers.get());
 
-    boolean needTservers = tserverSet.size() < minTserverCount;
+    boolean needServers = numServers.get() < minServerCount;
 
-    while (needTservers && tserverRetry.canRetry()) {
+    while (needServers && serverRetry.canRetry()) {
 
-      tserverRetry.waitForNextAttempt(log, "block until minimum tservers reached");
+      serverRetry.waitForNextAttempt(log, "block until minimum " + serverType + "s reached");
 
-      needTservers = tserverSet.size() < minTserverCount;
+      needServers = numServers.get() < minServerCount;
 
       // suppress last message once threshold reached.
-      if (needTservers) {
-        tserverRetry.logRetry(log, String.format(
-            "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
-            minTserverCount, tserverSet.size(),
+      if (needServers) {
+        serverRetry.logRetry(log, String.format(
+            "Blocking for %s availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
+            serverType, minServerCount, numServers.get(),
             NANOSECONDS.toSeconds(System.nanoTime() - waitStart)));
       }
-      tserverRetry.useRetry();
+      serverRetry.useRetry();
     }
 
-    if (tserverSet.size() < minTserverCount) {
+    if (numServers.get() < minServerCount) {
       log.warn(
-          "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
+          "{} availability check time expired - continuing. Requested {}, have {} servers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
+          serverType, numServers.get(), minServerCount,
+          NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
 
     } else {
       log.info(
-          "tserver availability check completed. Requested {}, have {} tservers on line. "
+          "{} availability check completed. Requested {}, have {} servers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
+          serverType, numServers.get(), minServerCount,
+          NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
     }
   }
 
@@ -1285,21 +1402,30 @@ public class Manager extends AbstractServer
   }
 
   public ServiceLock getManagerLock() {
-    return managerLock;
+    return managerServerLock;
   }
 
-  private static class ManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
+  private static class PrimaryManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
+    private final HostAndPort address;
+    private final ServiceLock mgrLock;
+
+    public PrimaryManagerLockWatcher(HostAndPort address, ServiceLock mgrLock) {
+      this.address = address;
+      this.mgrLock = mgrLock;
+    }
 
     @Override
     public void lostLock(LockLossReason reason) {
-      Halt.halt("Manager lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      PRIMARY_MANAGER.set(false);
+      Halt.halt(-1, () -> log.error("Lost tablet server lock (reason = {}), exiting.", reason));
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
+      PRIMARY_MANAGER.set(false);
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor manager lock node", e));
 
@@ -1307,19 +1433,22 @@ public class Manager extends AbstractServer
 
     @Override
     public synchronized void acquiredLock() {
-      log.debug("Acquired manager lock");
+      log.info("Acquired primary manager lock");
 
       if (acquiredLock || failedToAcquireLock) {
         Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
       }
 
       acquiredLock = true;
+      PRIMARY_MANAGER.set(true);
+      updateLockContent(address, mgrLock);
       notifyAll();
     }
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get manager lock", e);
+      PRIMARY_MANAGER.set(false);
+      log.warn("Failed to get primary manager lock", e);
 
       if (e instanceof NoAuthException) {
         String msg = "Failed to acquire manager lock due to incorrect ZooKeeper authentication.";
@@ -1336,53 +1465,20 @@ public class Manager extends AbstractServer
       notifyAll();
     }
 
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {}
-      }
-    }
   }
 
-  private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
+  private void getPrimaryManagerLock(final ServiceLockPath zManagerLoc, final HostAndPort address)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
-    log.info("trying to get manager lock");
+    log.info("trying to get primary manager lock");
 
-    final String managerClientAddress =
-        getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
+    ServiceLockData sld = new ServiceLockData(MANAGER_SERVER_UUID, address.toString(),
+        ThriftService.FATE, Constants.DEFAULT_RESOURCE_GROUP_NAME);
 
-    UUID zooLockUUID = UUID.randomUUID();
-
-    ServiceDescriptors descriptors = new ServiceDescriptors();
-    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
-        managerClientAddress, this.getResourceGroup()));
-
-    ServiceLockData sld = new ServiceLockData(descriptors);
-    while (true) {
-
-      ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-      managerLock.lock(managerLockWatcher, sld);
-
-      managerLockWatcher.waitForChange();
-
-      if (managerLockWatcher.acquiredLock) {
-        break;
-      }
-
-      if (!managerLockWatcher.failedToAcquireLock) {
-        throw new IllegalStateException("manager lock in unknown state");
-      }
-
-      managerLock.tryToCancelAsyncLockOrUnlock();
-
-      sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
-    }
-
-    setManagerState(ManagerState.HAVE_LOCK);
-    return sld;
+    primaryManagerLock = new ServiceLock(zooKeeper, zManagerLoc, MANAGER_SERVER_UUID);
+    PrimaryManagerLockWatcher managerLockWatcher =
+        new PrimaryManagerLockWatcher(address, primaryManagerLock);
+    primaryManagerLock.lock(managerLockWatcher, sld);
   }
 
   @Override
@@ -1680,4 +1776,7 @@ public class Manager extends AbstractServer
 
   }
 
+  HostAndPort getManagerClientAddress() {
+    return clientServiceAddress;
+  }
 }

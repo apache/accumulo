@@ -33,10 +33,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -72,13 +74,15 @@ public class TabletManagementParameters {
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
   private final List<Pair<Path,Path>> volumeReplacements;
+  private final List<Range> rangeOverrides;
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
       Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints,
-      boolean canSuspendTablets, List<Pair<Path,Path>> volumeReplacements) {
+      boolean canSuspendTablets, List<Pair<Path,Path>> volumeReplacements,
+      Optional<List<Range>> rangeOverrides) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -100,6 +104,7 @@ public class TabletManagementParameters {
     });
     this.canSuspendTablets = canSuspendTablets;
     this.volumeReplacements = volumeReplacements;
+    this.rangeOverrides = rangeOverrides.orElse(null);
   }
 
   private TabletManagementParameters(JsonData jdata) {
@@ -126,6 +131,7 @@ public class TabletManagementParameters {
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
     this.volumeReplacements = jdata.volumeReplacements;
+    this.rangeOverrides = jdata.rangeOverrides;
   }
 
   public ManagerState getManagerState() {
@@ -180,6 +186,10 @@ public class TabletManagementParameters {
     return volumeReplacements;
   }
 
+  public List<Range> getRangeOverrides() {
+    return rangeOverrides;
+  }
+
   private static Map<Long,Map<String,String>>
       makeImmutable(Map<Long,Map<String,String>> compactionHints) {
     var copy = new HashMap<Long,Map<String,String>>();
@@ -203,6 +213,7 @@ public class TabletManagementParameters {
 
     final boolean canSuspendTablets;
     final List<Pair<Path,Path>> volumeReplacements;
+    final List<Range> rangeOverrides;
 
     private static String toString(KeyExtent extent) {
       DataOutputBuffer buffer = new DataOutputBuffer();
@@ -245,6 +256,7 @@ public class TabletManagementParameters {
       compactionHints = params.compactionHints;
       canSuspendTablets = params.canSuspendTablets;
       volumeReplacements = params.volumeReplacements;
+      rangeOverrides = params.rangeOverrides;
     }
 
   }
