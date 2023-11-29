@@ -40,10 +40,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -62,9 +62,12 @@ public class Upgrader11to12 implements Upgrader {
 
   private static final Logger log = LoggerFactory.getLogger(Upgrader11to12.class);
 
+  @SuppressWarnings("deprecation")
+  private static final Text CHOPPED = ChoppedColumnFamily.NAME;
+
   @VisibleForTesting
-  static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME,
-      ChoppedColumnFamily.NAME, ExternalCompactionColumnFamily.NAME);
+  static final Set<Text> UPGRADE_FAMILIES =
+      Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
@@ -165,12 +168,11 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
-        } else if (family.equals(ChoppedColumnFamily.NAME)) {
+        } else if (family.equals(CHOPPED)) {
           log.warn(
               "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
               tableName, key.getRow());
-          update.at().family(ChoppedColumnFamily.STR_NAME).qualifier(ChoppedColumnFamily.STR_NAME)
-              .delete();
+          update.at().family(CHOPPED).qualifier(CHOPPED).delete();
         } else if (family.equals(ExternalCompactionColumnFamily.NAME)) {
           log.debug(
               "Deleting external compaction reference from:{}. Previous compaction may not have completed. Ref: {}",
