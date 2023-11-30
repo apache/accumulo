@@ -20,7 +20,6 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,6 +43,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.easymock.EasyMock;
@@ -567,9 +567,9 @@ public class DefaultCompactionPlannerTest {
     var params = getInitParamQueues(senv, "");
     assertNotNull(params);
 
-    var err = assertThrows(IllegalStateException.class, () -> planner.init(params),
+    var e2 = assertThrows(IllegalStateException.class, () -> planner.init(params),
         "Failed to throw error");
-    assertEquals("No defined executors or queues for this planner", e.getMessage(),
+    assertEquals("No defined executors or queues for this planner", e2.getMessage(),
         "Error message was not equal");
   }
 

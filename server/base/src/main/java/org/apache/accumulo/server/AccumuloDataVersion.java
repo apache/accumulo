@@ -43,7 +43,7 @@ public class AccumuloDataVersion {
 
   /**
    * version (12) reflect changes to support no chop merges including json encoding of the file
-   * column family stored in root and metadata tables.
+   * column family stored in root and metadata tables in version 3.1
    */
   public static final int METADATA_FILE_JSON_ENCODING = 12;
 
@@ -54,12 +54,12 @@ public class AccumuloDataVersion {
 
   /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}
    */
   public static final int ROOT_TABLET_META_CHANGES = 10;
 
   /**
-   * Historic data versions
+   * Historic data versions.
    *
    * <ul>
    * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
@@ -99,8 +99,12 @@ public class AccumuloDataVersion {
     return cv;
   }
 
+  public static int oldestUpgradeableVersion() {
+    return CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow();
+  }
+
   public static String oldestUpgradeableVersionName() {
-    return dataVersionToReleaseName(CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow());
+    return dataVersionToReleaseName(oldestUpgradeableVersion());
   }
 
   private static String dataVersionToReleaseName(final int version) {
