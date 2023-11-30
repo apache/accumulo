@@ -133,15 +133,9 @@ public class ServerContextTest {
   // ensure upgrades fail with older, unsupported versions, but pass with supported versions
   @Test
   public void testCanRun() {
-    // ensure this fails with older versions; the oldest supported version is hard-coded here
-    // to ensure we don't unintentionally break upgrade support; changing this should be a conscious
-    // decision and this check will ensure we don't overlook it
-
-    final int oldestSupported = AccumuloDataVersion.ONDEMAND_TABLETS_FOR_VERSION_4;
-    // ELASTICITY_TODO basically disable check until upgrade to 3.1 is supported. Should be:
-    // final int oldestSupported = AccumuloDataVersion.oldestUpgradeableVersion();
+    final int oldestSupported = AccumuloDataVersion.oldestUpgradeableVersion();
+    // ELASTICITY_TODO basically disable check until upgrade is working. Should be:
     // assertEquals(10, oldestSupported); // make sure it hasn't changed accidentally
-
     final int currentVersion = AccumuloDataVersion.get();
     IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
     IntConsumer shouldFail = v -> assertThrows(IllegalStateException.class,

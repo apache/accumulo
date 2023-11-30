@@ -83,7 +83,8 @@ public class AccumuloDataVersion {
   }
 
   // ELASTICITY_TODO get upgrade working
-  // public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  // public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES,
+  // REMOVE_DEPRECATIONS_FOR_VERSION_3, METADATA_FILE_JSON_ENCODING, CURRENT_VERSION);
   public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION);
 
   /**
