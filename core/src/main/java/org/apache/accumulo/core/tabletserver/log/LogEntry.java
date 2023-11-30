@@ -126,7 +126,7 @@ public class LogEntry {
   }
 
   public Value getValue() {
-    return new Value(filePath);
-  }
 
+    return new Value("");
+  }
 }
