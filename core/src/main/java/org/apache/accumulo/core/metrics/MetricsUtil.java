@@ -53,19 +53,21 @@ public class MetricsUtil {
   private static Pattern camelCasePattern = Pattern.compile("[a-z][A-Z][a-z]");
 
   public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
-      final HostAndPort address, final String instanceName) throws ClassNotFoundException,
-      InstantiationException, IllegalAccessException, IllegalArgumentException,
-      InvocationTargetException, NoSuchMethodException, SecurityException {
-    initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
-        conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
-        conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address, instanceName);
-  }
-
-  private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
-      String factoryClass, String appName, HostAndPort address, String instanceName)
+      final HostAndPort address, final String instanceName, final String resourceGroup)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
       SecurityException {
+    initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
+        conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
+        conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address, instanceName,
+        resourceGroup);
+  }
+
+  private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
+      String factoryClass, String appName, HostAndPort address, String instanceName,
+      String resourceGroup) throws ClassNotFoundException, InstantiationException,
+      IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+      NoSuchMethodException, SecurityException {
 
     LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
 
@@ -80,7 +82,7 @@ public class MetricsUtil {
       List<Tag> tags = new ArrayList<>();
       tags.add(Tag.of("instance.name", instanceName));
       tags.add(Tag.of("process.name", processName));
-
+      tags.add(Tag.of("resource.group", resourceGroup));
       if (address != null) {
         if (!address.getHost().isEmpty()) {
           tags.add(Tag.of("host", address.getHost()));
