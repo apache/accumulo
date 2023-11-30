@@ -613,7 +613,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress, this.getResourceGroup());
+          clientAddress, getContext().getInstanceName(), this.getResourceGroup());
       pausedMetrics = new PausedCompactionMetrics();
       MetricsUtil.initializeProducers(this, pausedMetrics);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException

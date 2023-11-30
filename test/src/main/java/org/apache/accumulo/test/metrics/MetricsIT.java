@@ -195,6 +195,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
             // check hostname is always set and is valid
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
+            assertNotNull(a.getTags().get("instance.name"));
 
             // check resource.group tag exists
             assertNotNull(a.getTags().get("resource.group"));
