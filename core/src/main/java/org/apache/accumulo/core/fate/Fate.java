@@ -44,7 +44,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
@@ -328,7 +328,7 @@ public class Fate<T> {
         }
       } else {
         // reserved, lets retry.
-        UtilWaitThread.sleep(500);
+        WaitFor.sleep(500);
       }
     }
     log.info("Unable to reserve transaction {} to cancel it", tid);

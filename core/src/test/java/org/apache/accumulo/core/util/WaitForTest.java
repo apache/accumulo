@@ -18,17 +18,23 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UtilWaitThread {
-  private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
+import org.junit.jupiter.api.Test;
 
-  public static void sleep(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-    }
+public class WaitForTest {
+
+  @Test
+  public void pauseTest() {
+    long start = System.nanoTime();
+    assertThrows(IllegalStateException.class,
+        () -> WaitFor.builder(() -> false).upTo(1, SECONDS).withDelay(250, MILLISECONDS)
+            .withProgressMsg("a message").withFailMsg("forced fail").waitFor());
+
+    assertTrue(System.nanoTime() - start < SECONDS.toNanos(5));
   }
+
 }

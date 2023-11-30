@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +181,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           return true;
         }
         // TODO: do something better than poll - ACCUMULO-1310
-        UtilWaitThread.sleep(100);
+        WaitFor.sleep(100);
         now = System.currentTimeMillis();
       }
       return false;

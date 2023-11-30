@@ -41,7 +41,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -163,7 +163,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
       // Wait for all external compactions to complete
       long count;
       do {
-        UtilWaitThread.sleep(100);
+        WaitFor.sleep(100);
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()) {
           count = tm.stream().mapToLong(t -> t.getExternalCompactions().keySet().size()).sum();
