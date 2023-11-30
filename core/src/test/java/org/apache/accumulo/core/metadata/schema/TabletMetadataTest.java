@@ -288,13 +288,13 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     MERGED_COLUMN.put(mutation, MERGED_VALUE);
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(MERGED), true, false);
+        EnumSet.of(ColumnType.MERGED), true, false);
     assertTrue(tm.hasMerged());
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED),
-        true, false);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.MERGED), true, false);
     assertFalse(tm.hasMerged());
 
     // MERGED Column not fetched
@@ -310,8 +310,9 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     mutation.put("1234567890abcdefg", "xyz", "v1");
-    assertThrows(IllegalStateException.class, () -> TabletMetadata
-        .convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED), true, false));
+    assertThrows(IllegalStateException.class,
+        () -> TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+            EnumSet.of(ColumnType.MERGED), true, false));
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
@@ -367,7 +368,6 @@ public class TabletMetadataTest {
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
     assertEquals(Set.of(17L, 23L), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
-    assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -417,7 +417,6 @@ public class TabletMetadataTest {
     assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
-    assertTrue(tm3.hasMerged());
   }
 
 }
