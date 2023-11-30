@@ -668,12 +668,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
   public static class NoBulkConstratint implements Constraint {
 
     public static final String CANARY_VALUE = "a!p@a#c$h%e^&*()";
+    public static final short CANARY_CODE = 31234;
 
     @Override
     public String getViolationDescription(short violationCode) {
       if (violationCode == 1) {
         return "Bulk import files are not allowed in this test";
-      } else if (violationCode == 31234) {
+      } else if (violationCode == CANARY_CODE) {
         return "Check used to see if constraint is active";
       }
 
@@ -692,7 +693,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         }
 
         if (new String(colUpdate.getValue(), UTF_8).equals(CANARY_VALUE)) {
-          return List.of((short) 31234);
+          return List.of(CANARY_CODE);
         }
 
       }
@@ -729,7 +730,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         return false;
       } catch (MutationsRejectedException e) {
         return e.getConstraintViolationSummaries().stream()
-            .anyMatch(cvs -> cvs.violationCode == 31234);
+            .anyMatch(cvs -> cvs.violationCode == NoBulkConstratint.CANARY_CODE);
       }
     });
 
