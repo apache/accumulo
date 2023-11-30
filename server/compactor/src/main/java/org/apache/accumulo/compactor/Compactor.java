@@ -616,7 +616,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress);
+          clientAddress, getContext().getInstanceName());
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
