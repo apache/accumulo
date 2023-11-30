@@ -712,8 +712,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
-          clientAddress);
+      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName, clientAddress,
+          getContext().getInstanceName());
 
       metrics = new TabletServerMetrics(this);
       updateMetrics = new TabletServerUpdateMetrics();
