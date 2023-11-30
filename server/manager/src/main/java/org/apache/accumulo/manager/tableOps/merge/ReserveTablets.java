@@ -24,9 +24,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -59,7 +58,7 @@ public class ReserveTablets extends ManagerRepo {
     var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
 
     AtomicLong opsAccepted = new AtomicLong(0);
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.ACCEPTED) {
         opsAccepted.incrementAndGet();
       }

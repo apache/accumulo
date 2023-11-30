@@ -24,13 +24,13 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.manager.tableOps.merge.DeleteRows.verifyAccepted;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +56,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,10 +148,8 @@ public class MergeTablets extends ManagerRepo {
     // Check if the last tablet was already updated, this could happen if a process died and this
     // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
     // only a subset of the other tablets were deleted. If the last tablet was never updated, then
-    // its prev row should be the greatest.
-    Comparator<Text> prevRowComparator = Comparator.nullsFirst(Text::compareTo);
-    if (prevRowComparator.compare(firstTabletMeta.getPrevEndRow(), lastTabletMeta.getPrevEndRow())
-        < 0) {
+    // the merged marker should not exist
+    if (!lastTabletMeta.hasMerged()) {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
         var lastExtent = lastTabletMeta.getExtent();
@@ -177,6 +174,10 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putTabletAvailability(
             DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
+
+        // Set merged marker on the last tablet when we are finished
+        // so we know that we already updated metadata if the process restarts
+        tabletMutator.setMerged();
 
         // if the tablet no longer exists (because changed prev end row, then the update was
         // successful.

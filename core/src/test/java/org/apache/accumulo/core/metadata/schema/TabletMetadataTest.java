@@ -32,6 +32,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -287,13 +288,13 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     MERGED_COLUMN.put(mutation, MERGED_VALUE);
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.MERGED), true, false);
+        EnumSet.of(MERGED), true, false);
     assertTrue(tm.hasMerged());
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.MERGED), true, false);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED),
+        true, false);
     assertFalse(tm.hasMerged());
 
     // MERGED Column not fetched
@@ -309,9 +310,8 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     mutation.put("1234567890abcdefg", "xyz", "v1");
-    assertThrows(IllegalStateException.class,
-        () -> TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-            EnumSet.of(ColumnType.MERGED), true, false));
+    assertThrows(IllegalStateException.class, () -> TabletMetadata
+        .convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED), true, false));
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
@@ -367,6 +367,7 @@ public class TabletMetadataTest {
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
     assertEquals(Set.of(17L, 23L), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
+    assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -402,7 +403,7 @@ public class TabletMetadataTest {
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
-        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).build();
+        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged().build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -416,6 +417,7 @@ public class TabletMetadataTest {
     assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
+    assertTrue(tm3.hasMerged());
   }
 
 }

@@ -295,6 +295,7 @@ public class CompactionJobGenerator {
       options = servicesConfig.getOptions().get(serviceId.canonical());
       planner = env.instantiate(tableId, plannerClassName, CompactionPlanner.class);
       CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
+          servicesConfig.getPlannerPrefix(serviceId.canonical()),
           servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
       planner.init(initParameters);
     } catch (Exception e) {
