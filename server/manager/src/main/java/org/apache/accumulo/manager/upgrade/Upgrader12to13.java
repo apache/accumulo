@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
