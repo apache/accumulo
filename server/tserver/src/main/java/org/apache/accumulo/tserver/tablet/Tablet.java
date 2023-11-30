@@ -1790,6 +1790,11 @@ public class Tablet extends TabletBase {
       var storedTabletFile = getDatafileManager().importMapFiles(tid, entries, setTime);
       lastMapFileImportTime = System.currentTimeMillis();
 
+      synchronized (this) {
+        // only mark the bulk import a success if no exception was thrown
+        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
+      }
+
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
       } else {
@@ -1804,11 +1809,6 @@ public class Tablet extends TabletBase {
               "Likely bug in code, always expect to remove something.  Please open an Accumulo issue.");
         }
 
-        try {
-          bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
-        } catch (Exception ex) {
-          log.info(ex.toString(), ex);
-        }
         tabletServer.removeBulkImportState(files);
       }
     }
