@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -319,6 +320,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
       mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     });
 
+    return getThis();
+  }
+
+  @Override
+  public T setMerged() {
+    MergedColumnFamily.MERGED_COLUMN.put(mutation, MergedColumnFamily.MERGED_VALUE);
+    return getThis();
+  }
+
+  @Override
+  public T deleteMerged() {
+    MergedColumnFamily.MERGED_COLUMN.putDelete(mutation);
     return getThis();
   }
 

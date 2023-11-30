@@ -89,13 +89,17 @@ public class DeleteTablets extends ManagerRepo {
       for (var tabletMeta : tabletsMetadata) {
         MergeTablets.validateTablet(tabletMeta, fateStr, opid, data.tableId);
 
-        // do not delete the last tablet
-        if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {
-          break;
-        }
-
         var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
             .requireOperation(opid).requireAbsentLocation();
+
+        // do not delete the last tablet
+        if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {
+          // Clear the merged marker after we are finished on the last tablet
+          tabletMutator.deleteMerged();
+          tabletMutator.submit((tm) -> !tm.hasMerged());
+          submitted++;
+          break;
+        }
 
         tabletMeta.getKeyValues().keySet().forEach(key -> {
           log.trace("{} deleting {}", fateStr, key);

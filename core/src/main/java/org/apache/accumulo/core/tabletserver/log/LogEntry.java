@@ -61,7 +61,7 @@ public class LogEntry {
     String uuidPart = parts[parts.length - 1];
 
     try {
-      var ignored = HostAndPort.fromString(tserverPart);
+      HostAndPort.fromString(tserverPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
@@ -69,7 +69,7 @@ public class LogEntry {
     }
 
     try {
-      var ignored = UUID.fromString(uuidPart);
+      UUID.fromString(uuidPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Expected valid UUID. Found '" + uuidPart + "'");
     }

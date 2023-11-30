@@ -51,11 +51,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants.ChoppedColumnFamily;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -123,8 +123,9 @@ public class Upgrader11to12Test {
     Value value2 = new Value("321,654");
     scanData.put(key2, value2);
 
-    Key chop1 = Key.builder(false).row(row1).family(ChoppedColumnFamily.NAME)
-        .qualifier(ChoppedColumnFamily.NAME).build();
+    @SuppressWarnings("deprecation")
+    var chopped = ChoppedColumnFamily.NAME;
+    Key chop1 = Key.builder(false).row(row1).family(chopped).qualifier(chopped).build();
     scanData.put(chop1, null);
 
     Key extern1 = Key.builder(false).row(row1).family(ExternalCompactionColumnFamily.NAME)
