@@ -138,7 +138,7 @@ public class ServerContextTest {
 
     final int oldestSupported = AccumuloDataVersion.ONDEMAND_TABLETS_FOR_VERSION_4;
     // ELASTICITY_TODO basically disable check until upgrade to 3.1 is supported. Should be:
-    // final int oldestSupported = AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
+    // final int oldestSupported = AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
 
     final int currentVersion = AccumuloDataVersion.get();
     IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
