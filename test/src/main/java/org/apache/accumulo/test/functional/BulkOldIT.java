@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Iterator;
@@ -30,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -60,6 +63,9 @@ public class BulkOldIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
+    // lowering this because the test testExceptionInMetadataUpdate() will cause retries and the
+    // default takes forever
+    cfg.setProperty(Property.TSERV_BULK_RETRY, "2");
   }
 
   // suppress importDirectory deprecated since this is the only test for legacy technique
@@ -105,6 +111,51 @@ public class BulkOldIT extends AccumuloClusterHarness {
       verifyData(c, tableName, 0, 1999);
     }
 
+  }
+
+  // test case where the metadata data update throws an exception
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testExceptionInMetadataUpdate() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // after setting this up, bulk imports should fail
+      BulkNewIT.setupBulkConstraint(getAdminPrincipal(), c);
+
+      String tableName = getUniqueNames(1)[0];
+
+      c.tableOperations().create(tableName);
+      Configuration conf = new Configuration();
+      AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
+      FileSystem fs = getCluster().getFileSystem();
+      String rootPath = cluster.getTemporaryPath().toString();
+
+      String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+
+      fs.delete(new Path(dir), true);
+
+      writeData(conf, aconf, fs, dir, "f1", 0, 333);
+
+      String failDir = dir + "_failures";
+      Path failPath = new Path(failDir);
+      fs.delete(failPath, true);
+      fs.mkdirs(failPath);
+      fs.deleteOnExit(failPath);
+
+      // this should fail and it should copy the file to the fail dir
+      c.tableOperations().importDirectory(tableName, dir, failDir, false);
+
+      if (fs.listStatus(failPath).length < 1) {
+        throw new Exception("Expected files in failure directory");
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        // verify the table is empty
+        assertEquals(0, scanner.stream().count());
+      }
+
+      BulkNewIT.removeBulkConstraint(getAdminPrincipal(), c);
+    }
   }
 
   private void writeData(Configuration conf, AccumuloConfiguration aconf, FileSystem fs, String dir,
