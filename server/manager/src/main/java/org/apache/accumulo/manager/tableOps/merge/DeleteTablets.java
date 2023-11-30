@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -66,11 +66,11 @@ public class DeleteTablets extends ManagerRepo {
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();
     // delete tablets
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         acceptedCount.incrementAndGet();
       } else {
-        log.error("{} failed to update {}", fateStr, extent);
+        log.error("{} failed to update {}", fateStr, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };
@@ -89,13 +89,17 @@ public class DeleteTablets extends ManagerRepo {
       for (var tabletMeta : tabletsMetadata) {
         MergeTablets.validateTablet(tabletMeta, fateStr, opid, data.tableId);
 
-        // do not delete the last tablet
-        if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {
-          break;
-        }
-
         var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
             .requireOperation(opid).requireAbsentLocation();
+
+        // do not delete the last tablet
+        if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {
+          // Clear the merged marker after we are finished on the last tablet
+          tabletMutator.deleteMerged();
+          tabletMutator.submit((tm) -> !tm.hasMerged());
+          submitted++;
+          break;
+        }
 
         tabletMeta.getKeyValues().keySet().forEach(key -> {
           log.trace("{} deleting {}", fateStr, key);

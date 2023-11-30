@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -68,11 +68,11 @@ class FinishTableRangeOp extends ManagerRepo {
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();
     // delete tablets
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         acceptedCount.incrementAndGet();
       } else {
-        log.error("{} failed to update {}", fateStr, extent);
+        log.error("{} failed to update {}", fateStr, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };

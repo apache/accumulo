@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -84,11 +85,13 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.Refreshes.RefreshEntry;
+import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -106,6 +109,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
@@ -116,6 +120,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -171,6 +176,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private LoadingCache<Long,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> checked_tablet_dir_cache;
+  private final DeadCompactionDetector deadCompactionDetector;
 
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
       SecurityOperation security, CompactionJobQueues jobQueues,
@@ -209,6 +215,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
             .maximumWeight(10485760L).weigher(weigher).build();
 
+    deadCompactionDetector = new DeadCompactionDetector(this.ctx, this, schedExecutor);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
@@ -335,7 +342,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(this.ctx, this, schedExecutor).start();
+    deadCompactionDetector.start();
   }
 
   protected long getMissingCompactorWarningTime() {
@@ -405,7 +412,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       // config is deleted.
       if (kind == CompactionKind.SYSTEM
           || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(metaJob, compactorAddress, externalCompactionId);
+        ecm = reserveCompaction(metaJob, compactorAddress,
+            ExternalCompactionId.from(externalCompactionId));
       }
 
       if (ecm != null) {
@@ -506,7 +514,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   private ExternalCompactionMetadata createExternalCompactionMetadata(CompactionJob job,
-      Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress) {
+      Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress,
+      ExternalCompactionId externalCompactionId) {
     boolean propDels;
 
     Long fateTxId = null;
@@ -530,8 +539,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
 
     Consumer<String> directoryCreator = dir -> checkTabletDir(tablet.getExtent(), new Path(dir));
-    ReferencedTabletFile newFile =
-        TabletNameGenerator.getNextDataFilenameForMajc(propDels, ctx, tablet, directoryCreator);
+    ReferencedTabletFile newFile = TabletNameGenerator.getNextDataFilenameForMajc(propDels, ctx,
+        tablet, directoryCreator, externalCompactionId);
 
     return new ExternalCompactionMetadata(jobFiles, newFile, compactorAddress, job.getKind(),
         job.getPriority(), job.getExecutor(), propDels, fateTxId);
@@ -539,7 +548,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   private ExternalCompactionMetadata reserveCompaction(CompactionJobQueues.MetaJob metaJob,
-      String compactorAddress, String externalCompactionId) {
+      String compactorAddress, ExternalCompactionId externalCompactionId) {
 
     Preconditions.checkArgument(metaJob.getJob().getKind() == CompactionKind.SYSTEM
         || metaJob.getJob().getKind() == CompactionKind.USER);
@@ -562,16 +571,15 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         }
 
         var ecm = createExternalCompactionMetadata(metaJob.getJob(), jobFiles, tabletMetadata,
-            compactorAddress);
+            compactorAddress, externalCompactionId);
 
         // any data that is read from the tablet to make a decision about if it can compact or not
         // must be included in the requireSame call
         var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
             .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
 
-        var ecid = ExternalCompactionId.of(externalCompactionId);
-        tabletMutator.putExternalCompaction(ecid, ecm);
-        tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(ecid));
+        tabletMutator.putExternalCompaction(externalCompactionId, ecm);
+        tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
 
         var result = tabletsMutator.process().get(extent);
 
@@ -1041,10 +1049,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     LOG.info("Compaction failed, id: {}", externalCompactionId);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
-
-    // ELASTICITIY_TODO need to open an issue about making the GC clean up tmp files. The tablet
-    // currently cleans up tmp files on tablet load. With tablets never loading possibly but still
-    // compacting dying compactors may still leave tmp files behind.
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -1054,16 +1058,30 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         try {
           ctx.requireNotDeleted(extent.tableId());
           tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-              .deleteExternalCompaction(ecid)
-              .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+              .deleteExternalCompaction(ecid).submit(new RejectionHandler() {
+
+                @Override
+                public boolean callWhenTabletDoesNotExists() {
+                  return true;
+                }
+
+                @Override
+                public boolean test(TabletMetadata tabletMetadata) {
+                  return tabletMetadata == null
+                      || !tabletMetadata.getExternalCompactions().containsKey(ecid);
+                }
+
+              });
         } catch (TableDeletedException e) {
           LOG.warn("Table {} was deleted, unable to update metadata for compaction failure.",
               extent.tableId());
         }
       });
 
+      final List<ExternalCompactionId> ecidsForTablet = new ArrayList<>();
       tabletsMutator.process().forEach((extent, result) -> {
         if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+
           // this should try again later when the dead compaction detector runs, lets log it in case
           // its a persistent problem
           if (LOG.isDebugEnabled()) {
@@ -1071,6 +1089,52 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
                 compactions.entrySet().stream().filter(entry -> entry.getValue().equals(extent))
                     .findFirst().map(Map.Entry::getKey).orElse(null);
             LOG.debug("Unable to remove failed compaction {} {}", extent, ecid);
+          }
+        } else {
+          // compactionFailed is called from the Compactor when either a compaction fails or
+          // is cancelled and it's called from the DeadCompactionDetector. This block is
+          // entered when the conditional mutator above successfully deletes an ecid from
+          // the tablet metadata. Remove compaction tmp files from the tablet directory
+          // that have a corresponding ecid in the name.
+
+          ecidsForTablet.clear();
+          compactions.entrySet().stream().filter(e -> e.getValue().compareTo(extent) == 0)
+              .map(Entry::getKey).forEach(ecidsForTablet::add);
+
+          if (!ecidsForTablet.isEmpty()) {
+            final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
+            if (tm != null) {
+              final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+              for (Volume vol : vols) {
+                try {
+                  final String volPath =
+                      vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+                          + extent.tableId().canonical() + Path.SEPARATOR + tm.getDirName();
+                  final FileSystem fs = vol.getFileSystem();
+                  for (ExternalCompactionId ecid : ecidsForTablet) {
+                    final String fileSuffix = "_tmp_" + ecid.canonical();
+                    FileStatus[] files = fs.listStatus(new Path(volPath), (path) -> {
+                      return path.getName().endsWith(fileSuffix);
+                    });
+                    if (files.length > 0) {
+                      for (FileStatus file : files) {
+                        if (!fs.delete(file.getPath(), false)) {
+                          LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+                        } else {
+                          LOG.debug("Deleted ecid tmp file: {}", file.getPath());
+                        }
+                      }
+                    }
+                  }
+                } catch (IOException e) {
+                  LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
+                }
+              }
+            } else {
+              // TabletMetadata does not exist for the extent. This could be due to a merge or
+              // split operation. Use the utility to find tmp files at the table level
+              deadCompactionDetector.addTableId(extent.tableId());
+            }
           }
         }
       });

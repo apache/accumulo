@@ -49,6 +49,7 @@ public class ConfigSetIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConfigSetIT.class);
 
   @Test
+  @SuppressWarnings("removal")
   public void setInvalidJson() throws Exception {
     log.debug("Starting setInvalidJson test ------------------");
 
@@ -61,7 +62,6 @@ public class ConfigSetIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client =
         getCluster().createAccumuloClient("root", new PasswordToken(getRootPassword()))) {
-
       client.instanceOperations().setProperty(TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getKey(),
           validJson);
       assertThrows(AccumuloException.class, () -> client.instanceOperations()
