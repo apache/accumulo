@@ -657,7 +657,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     Path splitFilePath = Paths.get(splitsFile);
     try {
       generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
-      createCmd = "createtable " + tables[3] + " -g Hosted -sf " + splitsFile;
+      createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
       verifyTableWithTabletAvailability(createCmd, tables[3], "HOSTED", 11);
     } finally {
       Files.delete(splitFilePath);

@@ -1347,7 +1347,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains(tableId + ";s hosting:availability []\tONDEMAND"));
     assertTrue(result.contains(tableId + "< hosting:availability []\tONDEMAND"));
 
-    ts.exec("createtable " + tableName[1] + " -g hosted", true);
+    ts.exec("createtable " + tableName[1] + " -a hosted", true);
 
     String tableId2 = getTableId(tableName[1]);
 
