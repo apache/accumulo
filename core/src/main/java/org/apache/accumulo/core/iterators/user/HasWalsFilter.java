@@ -19,17 +19,22 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.util.EnumSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public class HasWalsFilter extends TabletMetadataFilter {
+
+  private final static Predicate<TabletMetadata> HAS_WALS =
+      tabletMetadata -> !tabletMetadata.getLogs().isEmpty();
+
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
     return EnumSet.of(TabletMetadata.ColumnType.LOGS);
   }
 
   @Override
-  public boolean acceptTablet(TabletMetadata tabletMetadata) {
-    return !tabletMetadata.getLogs().isEmpty();
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return HAS_WALS;
   }
 }

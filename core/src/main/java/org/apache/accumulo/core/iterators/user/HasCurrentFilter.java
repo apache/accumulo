@@ -19,17 +19,21 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.util.EnumSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public class HasCurrentFilter extends TabletMetadataFilter {
+
+  private final static Predicate<TabletMetadata> HAS_CURRENT = TabletMetadata::hasCurrent;
+
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
     return EnumSet.of(TabletMetadata.ColumnType.LOCATION);
   }
 
   @Override
-  public boolean acceptTablet(TabletMetadata tabletMetadata) {
-    return tabletMetadata.hasCurrent();
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return HAS_CURRENT;
   }
 }

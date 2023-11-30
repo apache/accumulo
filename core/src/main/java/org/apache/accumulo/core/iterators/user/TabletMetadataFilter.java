@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -28,14 +29,15 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public abstract class TabletMetadataFilter extends RowFilter {
+
   @Override
   public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
     TabletMetadata tm =
         TabletMetadata.convertRow(new IteratorAdapter(rowIterator), getColumns(), true, false);
-    return acceptTablet(tm);
+    return acceptTablet().test(tm);
   }
 
   public abstract EnumSet<TabletMetadata.ColumnType> getColumns();
 
-  public abstract boolean acceptTablet(TabletMetadata tabletMetadata);
+  protected abstract Predicate<TabletMetadata> acceptTablet();
 }

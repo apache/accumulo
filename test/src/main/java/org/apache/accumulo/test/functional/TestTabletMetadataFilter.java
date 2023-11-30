@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.EnumSet;
 import java.util.OptionalLong;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -32,14 +33,17 @@ public class TestTabletMetadataFilter extends TabletMetadataFilter {
 
   public static final long VALID_FLUSH_ID = 44L;
 
+  private final static Predicate<TabletMetadata> TEST =
+      tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
+          && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
+
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
     return EnumSet.of(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID);
   }
 
   @Override
-  public boolean acceptTablet(TabletMetadata tabletMetadata) {
-    return !tabletMetadata.getCompacted().isEmpty()
-        && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return TEST;
   }
 }
