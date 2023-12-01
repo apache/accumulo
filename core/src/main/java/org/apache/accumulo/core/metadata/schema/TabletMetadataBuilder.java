@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACT_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -113,13 +112,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   @Override
   public TabletMetadataBuilder deleteScan(StoredTabletFile path) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public TabletMetadataBuilder putCompactionId(long compactionId) {
-    fetched.add(COMPACT_ID);
-    internalBuilder.putCompactionId(compactionId);
-    return this;
   }
 
   @Override

@@ -61,7 +61,7 @@ public class ManagerMetadataUtil {
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
-      long lastFlushID, long lastCompactID, ServiceLock zooLock) {
+      long lastFlushID, ServiceLock zooLock) {
 
     // ELASTICITY_TODO intentionally not using conditional mutations for this code because its only
     // called when tablets split. Tablet splitting will drastically change, so there is no need to
@@ -75,10 +75,6 @@ public class ManagerMetadataUtil {
 
     if (lastFlushID > 0) {
       tablet.putFlushId(lastFlushID);
-    }
-
-    if (lastCompactID > 0) {
-      tablet.putCompactionId(lastCompactID);
     }
 
     if (tServerInstance != null) {
