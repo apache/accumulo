@@ -37,12 +37,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -52,7 +49,6 @@ import org.slf4j.LoggerFactory;
  */
 public class RootTabletMetadata {
 
-  private static final Logger log = LoggerFactory.getLogger(RootTabletMetadata.class);
   private static final CharsetDecoder UTF8_error_detecting_decoder = UTF_8.newDecoder();
   private static final Predicate<Entry<String,TreeMap<String,String>>> isLocationCF = e -> {
     String fam = e.getKey();
@@ -60,11 +56,7 @@ public class RootTabletMetadata {
         || fam.equals(FutureLocationColumnFamily.STR_NAME);
   };
 
-  // JSON Mapping Version 1. Released with Accumulo version 2.1.0
-  private static final int VERSION_1 = 1;
-  // JSON Mapping Version 2. Released with Accumulo version 3,1
-  private static final int VERSION_2 = 2;
-  private static final int VERSION = VERSION_2;
+  private static final int VERSION = 1;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
@@ -127,40 +119,6 @@ public class RootTabletMetadata {
     data = new Data(VERSION, new TreeMap<>());
   }
 
-  public static RootTabletMetadata upgrade(final String json) {
-    Data data = GSON.get().fromJson(json, Data.class);
-    int currVersion = data.getVersion();
-    switch (currVersion) {
-      case VERSION_1:
-        RootTabletMetadata rtm = new RootTabletMetadata();
-        Mutation m = convert1To2(data);
-        rtm.update(m);
-        return rtm;
-      case VERSION_2:
-        log.debug("no metadata version conversion required for {}", currVersion);
-        return new RootTabletMetadata(data);
-      default:
-        throw new IllegalArgumentException("Unsupported data version: " + currVersion);
-    }
-  }
-
-  private static Mutation convert1To2(final Data data) {
-    Mutation mutation =
-        MetadataSchema.TabletsSection.TabletColumnFamily.createPrevRowMutation(RootTable.EXTENT);
-    data.columnValues.forEach((colFam, colQuals) -> {
-      if (colFam.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME)) {
-        colQuals.forEach((colQual, value) -> {
-          mutation.put(colFam, StoredTabletFile.serialize(colQual), value);
-        });
-      } else {
-        colQuals.forEach((colQual, value) -> {
-          mutation.put(colFam, colQual, value);
-        });
-      }
-    });
-    return mutation;
-  }
-
   /**
    * Apply a metadata table mutation to update internal entries.
    */
@@ -195,6 +153,15 @@ public class RootTabletMetadata {
     }
   }
 
+  public Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {
+    String row = RootTable.EXTENT.toMetaRow().toString();
+    return data.columnValues.entrySet().stream()
+        .flatMap(famToQualVal -> famToQualVal.getValue().entrySet().stream()
+            .map(qualVal -> new SimpleImmutableEntry<>(
+                new Key(row, famToQualVal.getKey(), qualVal.getKey(), 1),
+                new Value(qualVal.getValue()))));
+  }
+
   public SortedMap<Key,Value> toKeyValues() {
     TreeMap<Key,Value> metamap = new TreeMap<>();
     getKeyValues().forEach(e -> metamap.put(e.getKey(), e.getValue()));
@@ -205,19 +172,9 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    Stream<SimpleImmutableEntry<Key,Value>> entries = getKeyValues();
-    return TabletMetadata.convertRow(entries.iterator(),
+    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
+    return TabletMetadata.convertRow(getKeyValues().iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
-  }
-
-  private Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {
-    String row = RootTable.EXTENT.toMetaRow().toString();
-    Stream<SimpleImmutableEntry<Key,Value>> entries = data.columnValues.entrySet().stream()
-        .flatMap(famToQualVal -> famToQualVal.getValue().entrySet().stream()
-            .map(qualVal -> new SimpleImmutableEntry<>(
-                new Key(row, famToQualVal.getKey(), qualVal.getKey(), 1),
-                new Value(qualVal.getValue()))));
-    return entries;
   }
 
   public static boolean needsUpgrade(final String json) {

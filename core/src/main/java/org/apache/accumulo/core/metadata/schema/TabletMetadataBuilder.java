@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -270,6 +271,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteAll(Set<Key> keys) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder setMerged() {
+    fetched.add(MERGED);
+    internalBuilder.setMerged();
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteMerged() {
     throw new UnsupportedOperationException();
   }
 
