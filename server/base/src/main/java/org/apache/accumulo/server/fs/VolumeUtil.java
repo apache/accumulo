@@ -89,7 +89,7 @@ public class VolumeUtil {
     return null;
   }
 
-  private static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
+  protected static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
     Path switchedPath = switchVolume(new Path(le.getFilePath()), FileType.WAL, replacements);
     String switchedString;
     int numSwitched = 0;
