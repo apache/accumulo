@@ -519,6 +519,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         if (goal == TabletGoalState.HOSTED) {
           if ((state != TabletState.HOSTED && !tm.getLogs().isEmpty())
               && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
+            LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
+                tm.getLogs().size());
             continue;
           }
           switch (state) {
