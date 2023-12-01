@@ -40,7 +40,7 @@ public class WaitForTest {
     WaitFor.builder(c1).upTo(5, SECONDS).withDelay(250, MILLISECONDS).waitFor();
 
     long elapsed = System.nanoTime() - start;
-    LOG.info("Condition passed in {} mills", NANOSECONDS.toMillis(elapsed - start));
+    LOG.info("Condition passed in {} mills", NANOSECONDS.toMillis(elapsed));
     assertTrue(elapsed < SECONDS.toNanos(5));
   }
 
