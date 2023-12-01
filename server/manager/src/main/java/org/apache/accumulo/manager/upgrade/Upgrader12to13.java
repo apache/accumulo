@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
+import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
@@ -61,11 +62,12 @@ public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
 
-  private static final Text COMPACT_QUAL = new Text("compact");
+  private static final ColumnFQ COMPACT_COL =
+      new ColumnFQ(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, new Text("compact"));
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    LOG.info("setting root table stored hosting goal");
+    LOG.info("Setting root table stored hosting goal");
     addHostingGoalToRootTable(context);
     LOG.info("Removing compact-id paths from ZooKeeper");
     removeZKCompactIdPaths(context);
@@ -75,8 +77,9 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
-    LOG.info("setting metadata table hosting goal");
+    LOG.info("Setting metadata table hosting goal");
     addHostingGoalToMetadataTable(context);
+    LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
     removeMetaDataBulkLoadFilter(context, RootTable.ID);
     LOG.info("Removing compact columns from metadata tablets");
     removeCompactColumnsFromTable(context, RootTable.NAME);
@@ -84,10 +87,13 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext context) {
-    LOG.info("setting hosting goal on user tables");
+    LOG.info("Setting hosting goal on user tables");
     addHostingGoalToUserTables(context);
+    LOG.info("Deleting external compaction final states from user tables");
     deleteExternalCompactionFinalStates(context);
+    LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
+    LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
     removeMetaDataBulkLoadFilter(context, MetadataTable.ID);
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, MetadataTable.NAME);
@@ -108,12 +114,15 @@ public class Upgrader12to13 implements Upgrader {
       ArrayList<Mutation> mutations = new ArrayList<>();
       for (Map.Entry<Key,Value> entry : rtm.toKeyValues().entrySet()) {
         var key = entry.getKey();
-        var row = key.getRow();
-        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
-            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
-        Mutation m = new Mutation(row);
-        m.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, COMPACT_QUAL);
-        mutations.add(m);
+
+        if (COMPACT_COL.hasColumns(key)) {
+          var row = key.getRow();
+          Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+              "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+          Mutation m = new Mutation(row);
+          COMPACT_COL.putDelete(m);
+          mutations.add(m);
+        }
       }
 
       Preconditions.checkState(mutations.size() <= 1);
@@ -140,15 +149,18 @@ public class Upgrader12to13 implements Upgrader {
     try (var scanner = context.createScanner(tableName);
         var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      COMPACT_COL.fetch(scanner);
 
       for (Map.Entry<Key,Value> entry : scanner) {
         var key = entry.getKey();
-        var row = key.getRow();
-        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
-            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
-        Mutation m = new Mutation(row);
-        m.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, COMPACT_QUAL);
-        writer.addMutation(m);
+        if (COMPACT_COL.hasColumns(key)) {
+          var row = key.getRow();
+          Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+              "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+          Mutation m = new Mutation(row);
+          COMPACT_COL.putDelete(m);
+          writer.addMutation(m);
+        }
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
