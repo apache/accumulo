@@ -23,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
@@ -165,5 +167,30 @@ public class VolumeUtilTest {
 
     assertEquals(new Path("file:/foo/v8/tables/+r/root_tablet"),
         VolumeUtil.switchVolume(new Path("file:/foo/v1/tables/+r/root_tablet"), ft, replacements));
+  }
+
+  @Test
+  public void testWalVolumeReplacment() {
+    List<Pair<Path,Path>> replacements = new ArrayList<>();
+    replacements.add(new Pair<>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements
+        .add(new Pair<>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b/accumulo")));
+
+    String walUUID = UUID.randomUUID().toString();
+    String fileName = "hdfs://nn1/accumulo/wal/localhost+9997/" + walUUID;
+    LogEntry le = new LogEntry(fileName);
+    LogEntry fixedVolume = VolumeUtil.switchVolumes(le, replacements);
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
+
+    fileName = "hdfs://nn1:9000/accumulo/wal/localhost+9997/" + walUUID;
+    le = new LogEntry(fileName);
+    fixedVolume = VolumeUtil.switchVolumes(le, replacements);
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
+
+    fileName = "hdfs://nn2/accumulo/wal/localhost+9997/" + walUUID;
+    le = new LogEntry(fileName);
+    fixedVolume = VolumeUtil.switchVolumes(le, replacements);
+    assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
   }
 }
