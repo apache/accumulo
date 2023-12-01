@@ -32,33 +32,22 @@ public class WaitForTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(WaitForTest.class);
 
-  private static class TimedCondition implements WaitFor.Condition {
-    private final long startNanos = System.nanoTime();
-
-    @Override
-    public boolean isSatisfied() throws Exception {
-      return (System.nanoTime() - startNanos) > MILLISECONDS.toNanos(1_100);
-    }
-  }
-
   @Test
   public void goPathTest() {
-
     TimedCondition c1 = new TimedCondition();
-
     long start = System.nanoTime();
 
     WaitFor.builder(c1).upTo(5, SECONDS).withDelay(250, MILLISECONDS).waitFor();
 
-    LOG.info("Condition passed in {} mills", NANOSECONDS.toMillis(System.nanoTime() - start));
-
-    assertTrue(System.nanoTime() - start < SECONDS.toNanos(5));
-
+    long elapsed = System.nanoTime() - start;
+    LOG.info("Condition passed in {} mills", NANOSECONDS.toMillis(elapsed - start));
+    assertTrue(elapsed < SECONDS.toNanos(5));
   }
 
   @Test
   public void pauseTest() {
     long start = System.nanoTime();
+
     assertThrows(IllegalStateException.class,
         () -> WaitFor.builder(() -> false).upTo(1, SECONDS).withDelay(250, MILLISECONDS)
             .withProgressMsg("a message").withFailMsg("forced fail").waitFor());
@@ -76,5 +65,14 @@ public class WaitForTest {
   public void invalidDurationTest() {
     assertThrows(IllegalArgumentException.class,
         () -> WaitFor.builder(() -> false).withDelay(-1, SECONDS).waitFor());
+  }
+
+  private static class TimedCondition implements WaitFor.Condition {
+    private final long startNanos = System.nanoTime();
+
+    @Override
+    public boolean isSatisfied() throws Exception {
+      return (System.nanoTime() - startNanos) > MILLISECONDS.toNanos(1_100);
+    }
   }
 }
