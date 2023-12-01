@@ -66,6 +66,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
 import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -97,6 +98,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
@@ -156,6 +158,13 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
 
+      try (TabletsMetadata tablets =
+          context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
+        List<KeyExtent> actual =
+            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+        assertEquals(List.of(), actual);
+      }
+
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
           .putLocation(Location.current(ts1)).deleteLocation(Location.future(ts1))
@@ -164,6 +173,13 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+      try (TabletsMetadata tablets =
+          context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
+        List<KeyExtent> actual =
+            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+        assertEquals(List.of(e1), actual);
+      }
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
@@ -857,27 +873,83 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   public class TestFilter {
 
     /**
-     * Applies the given filter and verifies the returned tablets match the given List
+     * @param filters set of filters to apply to the readTablets operation
+     * @param expectedTablets set of tablets expected to be returned with the filters applied
      */
-    private void testFilterApplied(ServerContext context, TabletMetadataFilter filter,
-        List<KeyExtent> expectedTablets, String message) {
-      try (TabletsMetadata tablets =
-          context.getAmple().readTablets().forTable(tid).filter(filter).build()) {
-        List<KeyExtent> actual =
-            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+    private void testFilterApplied(ServerContext context, Set<TabletMetadataFilter> filters,
+        Set<KeyExtent> expectedTablets, String message) {
+      TabletsMetadata.TableRangeOptions options = context.getAmple().readTablets().forTable(tid);
+      // add the filter(s) to the operation before building
+      for (TabletMetadataFilter filter : filters) {
+        options.filter(filter);
+      }
+      try (TabletsMetadata tablets = options.build()) {
+        Set<KeyExtent> actual =
+            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toSet());
         assertEquals(expectedTablets, actual, message);
       }
+    }
+
+    @Test
+    public void multipleFilters() {
+      ServerContext context = cluster.getServerContext();
+      ConditionalTabletsMutatorImpl ctmi;
+
+      // make sure we read all tablets on table initially with no filters
+      testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
+          "Initially, all tablets should be present");
+
+      HostAndPort server = HostAndPort.fromParts("server1", 8555);
+
+      String walFilePath =
+          java.nio.file.Path.of(server.toString(), UUID.randomUUID().toString()).toString();
+      LogEntry wal = new LogEntry(walFilePath);
+
+      // add wal compact and flush ID to these tablets
+      final Set<KeyExtent> tabletsWithWalCompactFlush = Set.of(e1, e2, e3);
+      for (KeyExtent ke : tabletsWithWalCompactFlush) {
+        ctmi = new ConditionalTabletsMutatorImpl(context);
+        ctmi.mutateTablet(ke).requireAbsentOperation().putCompacted(34L)
+            .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).putWal(wal)
+            .submit(tabletMetadata -> false);
+        var results = ctmi.process();
+        assertEquals(Status.ACCEPTED, results.get(ke).getStatus());
+      }
+      // check that applying a combination of filters returns only tablets that meet the criteria
+      testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new HasWalsFilter()),
+          tabletsWithWalCompactFlush, "Combination of filters did not return the expected tablets");
+
+      TServerInstance serverInstance = new TServerInstance(server, "s001");
+
+      // on a subset of the tablets, put a location
+      final Set<KeyExtent> tabletsWithLocation = Set.of(e2, e3, e4);
+      for (KeyExtent ke : tabletsWithLocation) {
+        ctmi = new ConditionalTabletsMutatorImpl(context);
+        ctmi.mutateTablet(ke).requireAbsentOperation().requireAbsentLocation()
+            .putLocation(Location.current(serverInstance)).submit(tabletMetadata -> false);
+        var results = ctmi.process();
+        assertEquals(Status.ACCEPTED, results.get(ke).getStatus());
+        assertEquals(Location.current(serverInstance),
+            context.getAmple().readTablet(ke).getLocation(),
+            "Did not see expected location after adding it");
+      }
+
+      // test that the new subset is returned with all 3 filters applied
+      Set<KeyExtent> expected = Sets.intersection(tabletsWithWalCompactFlush, tabletsWithLocation);
+      assertFalse(expected.isEmpty());
+      testFilterApplied(context,
+          Set.of(new HasCurrentFilter(), new HasWalsFilter(), new TestTabletMetadataFilter()),
+          expected, "Combination of filters did not return the expected tablets");
     }
 
     @Test
     public void testCompactedAndFlushIdFilter() {
       ServerContext context = cluster.getServerContext();
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-      TestTabletMetadataFilter filter = new TestTabletMetadataFilter();
+      Set<TabletMetadataFilter> filter = Set.of(new TestTabletMetadataFilter());
 
-      // make sure we read all tablets on table initially
-      // passing null applies no filter
-      testFilterApplied(context, null, List.of(e1, e2, e3, e4),
+      // make sure we read all tablets on table initially with no filters
+      testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
           "Initially, all tablets should be present");
 
       // Set compacted on e2 but with no flush ID
@@ -885,7 +957,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .submit(tabletMetadata -> false);
       var results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      testFilterApplied(context, filter, List.of(),
+      testFilterApplied(context, filter, Set.of(),
           "Compacted but no flush ID should return no tablets");
 
       // Set incorrect flush ID on e2
@@ -894,7 +966,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      testFilterApplied(context, filter, List.of(),
+      testFilterApplied(context, filter, Set.of(),
           "Compacted with incorrect flush ID should return no tablets");
 
       // Set correct flush ID on e2
@@ -903,16 +975,16 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      testFilterApplied(context, filter, List.of(e2),
+      testFilterApplied(context, filter, Set.of(e2),
           "Compacted with correct flush ID should return e2");
 
-      // Step 4: Set compacted and correct flush ID on e3
+      // Set compacted and correct flush ID on e3
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e3).requireAbsentOperation().putCompacted(987L)
           .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
-      testFilterApplied(context, filter, List.of(e2, e3),
+      testFilterApplied(context, filter, Set.of(e2, e3),
           "Compacted with correct flush ID should return e2 and e3");
     }
 
@@ -920,11 +992,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     public void walFilter() {
       ServerContext context = cluster.getServerContext();
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-      HasWalsFilter filter = new HasWalsFilter();
+      Set<TabletMetadataFilter> filter = Set.of(new HasWalsFilter());
 
-      // make sure we read all tablets on table initially
-      // passing null applies no filter
-      testFilterApplied(context, null, List.of(e1, e2, e3, e4),
+      // make sure we read all tablets on table initially with no filters
+      testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
           "Initially, all tablets should be present");
 
       // add a wal to e2
@@ -936,7 +1007,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
 
       // test that the filter works
-      testFilterApplied(context, filter, List.of(e2), "Only tablets with wals should be returned");
+      testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
 
       // add wal to tablet e4
       ctmi = new ConditionalTabletsMutatorImpl(context);
@@ -947,7 +1018,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
 
       // now, when using the wal filter, should see both e2 and e4
-      testFilterApplied(context, filter, List.of(e2, e4),
+      testFilterApplied(context, filter, Set.of(e2, e4),
           "Only tablets with wals should be returned");
 
       // remove the wal from e4
@@ -957,8 +1028,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
 
       // test that now only the tablet with a wal is returned when using filter()
-      testFilterApplied(context, filter, List.of(e2), "Only tablets with wals should be returned");
-
+      testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
     }
 
   }
