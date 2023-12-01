@@ -37,4 +37,15 @@ public class WaitForTest {
     assertTrue(System.nanoTime() - start < SECONDS.toNanos(5));
   }
 
+  @Test
+  public void invalidSleepTest() {
+    assertThrows(IllegalArgumentException.class,
+        () -> WaitFor.builder(() -> false).upTo(0, SECONDS).waitFor());
+  }
+
+  @Test
+  public void invalidDurationTest() {
+    assertThrows(IllegalArgumentException.class,
+        () -> WaitFor.builder(() -> false).withDelay(-1, SECONDS).waitFor());
+  }
 }

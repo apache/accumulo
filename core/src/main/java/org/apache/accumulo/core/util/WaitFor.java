@@ -27,6 +27,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Provides a generic capability to sleep until a condition is true. The maximum time to wait for
  * the condition, the delay between checking the condition as well as progress and error messages
@@ -107,12 +109,9 @@ public class WaitFor {
    * @return return a fluent-style object to configure other optional parameters.
    */
   public WaitFor upTo(final long duration, TimeUnit units) {
-    if (duration <= 0) {
-      LOG.info("Invalid wait duration {} millis, using default of {} millis",
-          units.toMillis(duration), this.duration);
-    } else {
-      this.duration = units.toMillis(duration);
-    }
+    Preconditions.checkArgument(duration > 0,
+        "when supplied, duration must be > 0. Received: " + duration);
+    this.duration = units.toMillis(duration);
     return this;
   }
 
@@ -125,12 +124,8 @@ public class WaitFor {
    * @return return a fluent-style object to configure other optional parameters.
    */
   public WaitFor withDelay(final long sleep, TimeUnit units) {
-    if (sleep <= 0) {
-      LOG.info("Invalid sleep {} millis, using default of {} millis", units.toMillis(sleep),
-          sleepMillis);
-    } else {
-      this.sleepMillis = units.toMillis(sleep);
-    }
+    Preconditions.checkArgument(sleep > 0, "when supplied, sleep must be > 0. Received: " + sleep);
+    this.sleepMillis = units.toMillis(sleep);
     return this;
   }
 
