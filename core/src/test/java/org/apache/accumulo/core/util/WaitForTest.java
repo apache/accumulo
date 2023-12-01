@@ -19,13 +19,42 @@
 package org.apache.accumulo.core.util;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WaitForTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(WaitForTest.class);
+
+  private static class TimedCondition implements WaitFor.Condition {
+    private final long startNanos = System.nanoTime();
+
+    @Override
+    public boolean isSatisfied() throws Exception {
+      return (System.nanoTime() - startNanos) > MILLISECONDS.toNanos(1_100);
+    }
+  }
+
+  @Test
+  public void goPathTest() {
+
+    TimedCondition c1 = new TimedCondition();
+
+    long start = System.nanoTime();
+
+    WaitFor.builder(c1).upTo(5, SECONDS).withDelay(250, MILLISECONDS).waitFor();
+
+    LOG.info("Condition passed in {} mills", NANOSECONDS.toMillis(System.nanoTime() - start));
+
+    assertTrue(System.nanoTime() - start < SECONDS.toNanos(5));
+
+  }
 
   @Test
   public void pauseTest() {
