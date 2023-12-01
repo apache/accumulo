@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TabletManagementIterator extends SkippingIterator {
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
-  private static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
+  public static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
 
@@ -88,6 +88,10 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   private boolean shouldReturnDueToLocation(final TabletMetadata tm) {
+
+    if (tm.getExtent().isRootTablet()) {
+      return true;
+    }
 
     if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
