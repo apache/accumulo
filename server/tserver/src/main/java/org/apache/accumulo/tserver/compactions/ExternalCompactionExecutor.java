@@ -32,11 +32,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 
 import com.google.common.base.Preconditions;
@@ -110,10 +110,10 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   }
 
   private final PriorityBlockingQueue<ExternalJob> queue;
-  private final CompactionExecutorId ceid;
+  private final CompactionGroupId cgid;
 
-  public ExternalCompactionExecutor(CompactionExecutorId ceid) {
-    this.ceid = ceid;
+  public ExternalCompactionExecutor(CompactionGroupId cgid) {
+    this.cgid = cgid;
     Comparator<ExternalJob> priorityComparator =
         Comparator.comparingLong(ej -> ej.getJob().getPriority());
     priorityComparator =
@@ -203,13 +203,13 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
       prioStream = prioStream.sorted(Comparator.reverseOrder()).limit(100);
     }
 
-    String queueName = ((CompactionExecutorIdImpl) ceid).getExternalName();
+    String queueName = ((CompactionGroupIdImpl) cgid).getExternalName();
 
     return prioStream.map(prio -> new TCompactionQueueSummary(queueName, prio));
   }
 
-  public CompactionExecutorId getId() {
-    return ceid;
+  public CompactionGroupId getId() {
+    return cgid;
   }
 
   @Override

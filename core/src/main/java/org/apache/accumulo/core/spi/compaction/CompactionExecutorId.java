@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.AbstractId;
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
+@Deprecated(since = "3.1", forRemoval = true)
 public class CompactionExecutorId extends AbstractId<CompactionExecutorId> {
   private static final long serialVersionUID = 1L;
 

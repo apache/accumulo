@@ -62,7 +62,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -561,7 +561,7 @@ public class CompactableImpl implements Compactable {
             ecMeta.getJobFiles().stream().map(f -> new CompactableFileImpl(f, dataFileSizes.get(f)))
                 .collect(Collectors.toList());
         CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-            ecMeta.getCompactionExecutorId(), files, ecMeta.getKind(), Optional.empty());
+            ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
         addJob(job);
 
         ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
@@ -571,7 +571,7 @@ public class CompactableImpl implements Compactable {
 
         log.debug("Loaded tablet {} has existing external compaction {} {}", getExtent(), ecid,
             ecMeta);
-        manager.registerExternalCompaction(ecid, getExtent(), ecMeta.getCompactionExecutorId());
+        manager.registerExternalCompaction(ecid, getExtent(), ecMeta.getCompactionGroupId());
       }
     });
 
@@ -1138,7 +1138,7 @@ public class CompactableImpl implements Compactable {
 
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
           Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, compactorId,
-          job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
+          job.getKind(), job.getPriority(), job.getGroup(), cInfo.propagateDeletes,
           cInfo.initiallySelectedAll, cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
@@ -1357,7 +1357,7 @@ public class CompactableImpl implements Compactable {
       // selectStatus is SELECTING, there may be metadata table writes so
       // wait on those. Do not wait on external compactions that are running.
       while (runningJobs.stream()
-          .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
+          .anyMatch(job -> !((CompactionGroupIdImpl) job.getGroup()).isExternalId())
           || !externalCompactionsCommitting.isEmpty()
           || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
         try {

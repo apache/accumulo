@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 public class CompactionJobImpl implements CompactionJob {
 
   private final short priority;
+  @SuppressWarnings("removal")
   private final CompactionExecutorId executor;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
@@ -49,10 +51,20 @@ public class CompactionJobImpl implements CompactionJob {
    *        to start compaction. After a job is running, its not used. So when a job object is
    *        recreated for a running external compaction this parameter can be empty.
    */
+  @SuppressWarnings("removal")
   public CompactionJobImpl(short priority, CompactionExecutorId executor,
       Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
     this.priority = priority;
     this.executor = Objects.requireNonNull(executor);
+    this.files = Set.copyOf(files);
+    this.kind = Objects.requireNonNull(kind);
+    this.jobSelectedAll = Objects.requireNonNull(jobSelectedAll);
+  }
+
+  public CompactionJobImpl(short priority, CompactionGroupId group,
+      Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
+    this.priority = priority;
+    this.executor = Objects.requireNonNull(CompactionExecutorIdImpl.convertGroupId(group));
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
     this.jobSelectedAll = Objects.requireNonNull(jobSelectedAll);
@@ -67,8 +79,17 @@ public class CompactionJobImpl implements CompactionJob {
    * @return The executor to run the job.
    */
   @Override
+  @SuppressWarnings("removal")
   public CompactionExecutorId getExecutor() {
     return executor;
+  }
+
+  /**
+   * @return The compaction group to run the job
+   */
+  @Override
+  public CompactionGroupId getGroup() {
+    return CompactionGroupIdImpl.convertExecutorId(executor);
   }
 
   /**

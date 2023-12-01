@@ -28,9 +28,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 
 public class ExternalCompactionMetadata {
 
@@ -40,14 +40,14 @@ public class ExternalCompactionMetadata {
   private final String compactorId;
   private final CompactionKind kind;
   private final short priority;
-  private final CompactionExecutorId ceid;
+  private final CompactionGroupId cgid;
   private final boolean propagateDeletes;
   private final boolean initiallySelectedAll;
   private final Long compactionId;
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles, Set<StoredTabletFile> nextFiles,
       ReferencedTabletFile compactTmpName, String compactorId, CompactionKind kind, short priority,
-      CompactionExecutorId ceid, boolean propagateDeletes, boolean initiallySelectedAll,
+      CompactionGroupId cgid, boolean propagateDeletes, boolean initiallySelectedAll,
       Long compactionId) {
     if (!initiallySelectedAll && !propagateDeletes
         && (kind == CompactionKind.SELECTOR || kind == CompactionKind.USER)) {
@@ -61,7 +61,7 @@ public class ExternalCompactionMetadata {
     this.compactorId = Objects.requireNonNull(compactorId);
     this.kind = Objects.requireNonNull(kind);
     this.priority = priority;
-    this.ceid = Objects.requireNonNull(ceid);
+    this.cgid = Objects.requireNonNull(cgid);
     this.propagateDeletes = propagateDeletes;
     this.initiallySelectedAll = initiallySelectedAll;
     this.compactionId = compactionId;
@@ -91,8 +91,8 @@ public class ExternalCompactionMetadata {
     return priority;
   }
 
-  public CompactionExecutorId getCompactionExecutorId() {
-    return ceid;
+  public CompactionGroupId getCompactionGroupId() {
+    return cgid;
   }
 
   public boolean getPropagateDeletes() {
@@ -130,7 +130,7 @@ public class ExternalCompactionMetadata {
     jData.tmp = compactTmpName.insert().getMetadata();
     jData.compactor = compactorId;
     jData.kind = kind.name();
-    jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();
+    jData.executorId = ((CompactionGroupIdImpl) cgid).getExternalName();
     jData.priority = priority;
     jData.propDels = propagateDeletes;
     jData.selectedAll = initiallySelectedAll;
@@ -146,7 +146,7 @@ public class ExternalCompactionMetadata {
         jData.nextFiles.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.selectedAll,
+        CompactionGroupIdImpl.groupId(jData.executorId), jData.propDels, jData.selectedAll,
         jData.compactionId);
   }
 

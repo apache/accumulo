@@ -18,40 +18,16 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import java.util.Set;
-
-import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-
 /**
- * An immutable object that describes what files to compact and where to compact them.
+ * Offered to a Compaction Planner at initialization time, so it can create compaction groups.
  *
- * @since 2.1.0
+ * @since 3.1.0
+ * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
  * @see org.apache.accumulo.core.spi.compaction
  */
-public interface CompactionJob {
-
-  short getPriority();
-
+public interface GroupManager {
   /**
-   * @return The executor to run the job.
+   * @return an id for a configured compaction group.
    */
-  @Deprecated(since = "3.1", forRemoval = true)
-  @SuppressWarnings("removal")
-  CompactionExecutorId getExecutor();
-
-  /**
-   * @return The compaction group to run the job.
-   */
-  CompactionGroupId getGroup();
-
-  /**
-   * @return The files to compact
-   */
-  Set<CompactableFile> getFiles();
-
-  /**
-   * @return The kind of compaction this is.
-   */
-  CompactionKind getKind();
-
+  CompactionGroupId getGroup(String name);
 }

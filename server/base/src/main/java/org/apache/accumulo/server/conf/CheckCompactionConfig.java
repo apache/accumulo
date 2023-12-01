@@ -78,6 +78,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
@@ -122,7 +123,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
               "Compaction service '{}' requested creation of thread pool '{}' with {} threads.",
               serviceId, execId, numThreads));
 
-      initParams.getRequestedExternalExecutors()
+      initParams.getRequestedGroups()
           .forEach(execId -> log.info(
               "Compaction service '{}' requested with external execution queue '{}'", serviceId,
               execId));

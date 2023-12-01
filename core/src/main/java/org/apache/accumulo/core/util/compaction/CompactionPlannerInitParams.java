@@ -25,16 +25,19 @@ import java.util.Set;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.ExecutorManager;
+import org.apache.accumulo.core.spi.compaction.GroupManager;
 
 import com.google.common.base.Preconditions;
 
+@SuppressWarnings("removal")
 public class CompactionPlannerInitParams implements CompactionPlanner.InitParameters {
   private final Map<String,String> plannerOpts;
   private final Map<CompactionExecutorId,Integer> requestedExecutors;
-  private final Set<CompactionExecutorId> requestedExternalExecutors;
+  private final Set<CompactionGroupId> requestedGroups;
   private final ServiceEnvironment senv;
   private final CompactionServiceId serviceId;
   private final String prefix;
@@ -44,7 +47,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
     this.serviceId = serviceId;
     this.plannerOpts = plannerOpts;
     this.requestedExecutors = new HashMap<>();
-    this.requestedExternalExecutors = new HashSet<>();
+    this.requestedGroups = new HashSet<>();
     this.senv = senv;
     this.prefix = prefix;
   }
@@ -65,6 +68,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
   }
 
   @Override
+  @SuppressWarnings("removal")
   public ExecutorManager getExecutorManager() {
     return new ExecutorManager() {
       @Override
@@ -80,11 +84,21 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
 
       @Override
       public CompactionExecutorId getExternalExecutor(String name) {
-        var ceid = CompactionExecutorIdImpl.externalId(name);
-        Preconditions.checkArgument(!getRequestedExternalExecutors().contains(ceid),
-            "Duplicate external executor for queue " + name);
-        getRequestedExternalExecutors().add(ceid);
-        return ceid;
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  @Override
+  public GroupManager getGroupManager() {
+    return new GroupManager() {
+      @Override
+      public CompactionGroupId getGroup(String name) {
+        var cgid = CompactionGroupIdImpl.groupId(name);
+        Preconditions.checkArgument(!getRequestedGroups().contains(cgid),
+            "Duplicate compaction group for group " + name);
+        getRequestedGroups().add(cgid);
+        return cgid;
       }
     };
   }
@@ -93,7 +107,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
     return requestedExecutors;
   }
 
-  public Set<CompactionExecutorId> getRequestedExternalExecutors() {
-    return requestedExternalExecutors;
+  public Set<CompactionGroupId> getRequestedGroups() {
+    return requestedGroups;
   }
 }

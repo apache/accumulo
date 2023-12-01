@@ -81,6 +81,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   public static class TestPlanner implements CompactionPlanner {
 
     private int filesPerCompaction;
+    @SuppressWarnings("removal")
     private List<CompactionExecutorId> executorIds;
     private EnumSet<CompactionKind> kindsToProcess = EnumSet.noneOf(CompactionKind.class);
 
@@ -94,6 +95,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       }
 
       for (int i = 0; i < executors; i++) {
+        @SuppressWarnings("removal")
         var ceid = params.getExecutorManager().createExecutor("e" + i, 2);
         executorIds.add(ceid);
       }
@@ -105,6 +107,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public CompactionPlan makePlan(PlanningParameters params) {
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
         return params

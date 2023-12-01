@@ -177,13 +177,13 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "compaction.service.cs1.planner.opts.queues=[{'name':'failedQueue'}]")
         .replaceAll("'", "\"");
 
-    String expectedErrorMsg = "Duplicate external executor for queue failedQueue";
+    String expectedErrorMsg = "Duplicate compaction group for group failedQueue";
 
     final String filePath = writeToFileAndReturnPath(inputString);
 
     var err = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
-    assertEquals(err.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, err.getMessage());
   }
 
   @Test

@@ -42,6 +42,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -156,7 +157,7 @@ public class DefaultCompactionPlannerTest {
     // planner should compact.
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
   }
 
   @Test
@@ -172,7 +173,7 @@ public class DefaultCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
@@ -190,7 +191,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -200,7 +201,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("huge"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("huge"), job.getGroup());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files the meets the compaction ratio
@@ -210,7 +211,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -219,7 +220,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
 
   }
 
@@ -233,14 +234,14 @@ public class DefaultCompactionPlannerTest {
     // should only compact files less than max size
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("large"), job.getGroup());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("large"), job.getGroup());
   }
 
   @Test
@@ -262,7 +263,7 @@ public class DefaultCompactionPlannerTest {
 
     var job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -270,7 +271,7 @@ public class DefaultCompactionPlannerTest {
 
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("midsize"), job.getExecutor());
+    assertEquals(CompactionGroupIdImpl.groupId("midsize"), job.getGroup());
   }
 
   /**
@@ -489,11 +490,12 @@ public class DefaultCompactionPlannerTest {
       }
 
       @Override
+      @SuppressWarnings("removal")
       public ExecutorManager getExecutorManager() {
         return new ExecutorManager() {
           @Override
           public CompactionExecutorId createExecutor(String name, int threads) {
-            return CompactionExecutorIdImpl.externalId(name);
+            return CompactionExecutorIdImpl.internalId(CompactionServiceId.of("cs1"), name);
           }
 
           @Override
@@ -502,7 +504,18 @@ public class DefaultCompactionPlannerTest {
           }
         };
       }
+
+      @Override
+      public GroupManager getGroupManager() {
+        return new GroupManager() {
+          @Override
+          public CompactionGroupId getGroup(String name) {
+            return CompactionGroupIdImpl.groupId(name);
+          }
+        };
+      }
     };
+
   }
 
   private CompactionPlanner.InitParameters getInitParamQueues(ServiceEnvironment senv,
@@ -526,16 +539,27 @@ public class DefaultCompactionPlannerTest {
       }
 
       @Override
+      @SuppressWarnings("removal")
       public ExecutorManager getExecutorManager() {
         return new ExecutorManager() {
           @Override
           public CompactionExecutorId createExecutor(String name, int threads) {
-            return CompactionExecutorIdImpl.externalId(name);
+            return CompactionExecutorIdImpl.internalId(CompactionServiceId.of("cs1"), name);
           }
 
           @Override
           public CompactionExecutorId getExternalExecutor(String name) {
             return CompactionExecutorIdImpl.externalId(name);
+          }
+        };
+      }
+
+      @Override
+      public GroupManager getGroupManager() {
+        return new GroupManager() {
+          @Override
+          public CompactionGroupId getGroup(String name) {
+            return CompactionGroupIdImpl.groupId(name);
           }
         };
       }
@@ -687,6 +711,7 @@ public class DefaultCompactionPlannerTest {
       }
 
       @Override
+      @SuppressWarnings("removal")
       public ExecutorManager getExecutorManager() {
         return new ExecutorManager() {
           @Override
@@ -713,6 +738,16 @@ public class DefaultCompactionPlannerTest {
 
           @Override
           public CompactionExecutorId getExternalExecutor(String name) {
+            throw new UnsupportedOperationException();
+          }
+        };
+      }
+
+      @Override
+      public GroupManager getGroupManager() {
+        return new GroupManager() {
+          @Override
+          public CompactionGroupId getGroup(String name) {
             throw new UnsupportedOperationException();
           }
         };

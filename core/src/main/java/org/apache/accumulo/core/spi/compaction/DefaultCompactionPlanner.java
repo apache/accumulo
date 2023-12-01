@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,12 +161,21 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   private static class Executor {
+    @SuppressWarnings("removal")
     final CompactionExecutorId ceid;
     final Long maxSize;
 
+    @SuppressWarnings("removal")
     public Executor(CompactionExecutorId ceid, Long maxSize) {
       Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
       this.ceid = Objects.requireNonNull(ceid, "Compaction ID is null");
+      this.maxSize = maxSize;
+    }
+
+    public Executor(CompactionGroupId cgid, Long maxSize) {
+      Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
+      this.ceid = Objects.requireNonNull(CompactionExecutorIdImpl.convertGroupId(cgid),
+          "Compaction ID is null");
       this.maxSize = maxSize;
     }
 
@@ -184,6 +194,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
+  @SuppressWarnings("removal")
   @Override
   public void init(InitParameters params) {
     List<Executor> tmpExec = new ArrayList<>();
@@ -223,7 +234,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
                 "'numThreads' should not be specified for external compactions");
             String queue = Objects.requireNonNull(executorConfig.queue,
                 "'queue' must be specified for external type");
-            ceid = params.getExecutorManager().getExternalExecutor(queue);
+            ceid =
+                CompactionExecutorIdImpl.convertGroupId(params.getGroupManager().getGroup(queue));
             break;
           default:
             throw new IllegalArgumentException("type must be 'internal' or 'external'");
@@ -236,20 +248,20 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       values = params.getOptions().get("queues");
 
       // Generate a list of fields from the desired object.
-      final List<String> queueFields = Arrays.stream(QueueConfig.class.getDeclaredFields())
+      final List<String> groupFields = Arrays.stream(QueueConfig.class.getDeclaredFields())
           .map(Field::getName).collect(Collectors.toList());
 
       for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
-        validateConfig(element, queueFields, QueueConfig.class.getName());
-        QueueConfig queueConfig = GSON.get().fromJson(element, QueueConfig.class);
+        validateConfig(element, groupFields, QueueConfig.class.getName());
+        QueueConfig groupConfig = GSON.get().fromJson(element, QueueConfig.class);
 
-        Long maxSize = queueConfig.maxSize == null ? null
-            : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
+        Long maxSize = groupConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
-        CompactionExecutorId ceid;
-        String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
-        ceid = params.getExecutorManager().getExternalExecutor(queue);
-        tmpExec.add(new Executor(ceid, maxSize));
+        CompactionGroupId cgid;
+        String queue = Objects.requireNonNull(groupConfig.name, "'name' must be specified");
+        cgid = params.getGroupManager().getGroup(queue);
+        tmpExec.add(new Executor(cgid, maxSize));
       }
     }
 
@@ -283,6 +295,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     String maxOpen = params.getOptions().get("maxOpen");
     if (maxOpen == null) {
+      // Extract this to generic property
       maxOpen = "10";
       log.trace("default maxOpen not set, defaulting to 10");
     }
@@ -304,6 +317,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public CompactionPlan makePlan(PlanningParameters params) {
     if (params.getCandidates().isEmpty()) {
       return params.createPlanBuilder().build();
@@ -559,6 +573,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, larsmaIndex + 1);
   }
 
+  @SuppressWarnings("removal")
   CompactionExecutorId getExecutor(Collection<CompactableFile> files) {
 
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
