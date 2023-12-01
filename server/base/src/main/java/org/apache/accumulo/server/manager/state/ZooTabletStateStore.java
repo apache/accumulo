@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -97,10 +98,6 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
     return new ClosableIterator<TabletManagement>() {
 
-      // We only want to return the root tablet metadata once
-      // and then hasNext should return false
-      private boolean returnedRootTabletMetadata = false;
-
       @Override
       public void close() {
         closed.compareAndSet(false, true);
@@ -112,7 +109,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
           return false;
         }
 
-        boolean result = tmi.hasTop() && !returnedRootTabletMetadata;
+        boolean result = tmi.hasTop();
         if (!result) {
           close();
         }
@@ -121,15 +118,17 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
       @Override
       public TabletManagement next() {
-        if (closed.get()) {
+        if (closed.get() || !tmi.hasTop()) {
           throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
         }
 
         Key k = tmi.getTopKey();
         Value v = tmi.getTopValue();
-        Map<Key,Value> m = Map.of(k, v);
-        Entry<Key,Value> e = m.entrySet().iterator().next();
+        Entry<Key,Value> e = new AbstractMap.SimpleImmutableEntry<>(k, v);
         try {
+          tmi.next();
+          Preconditions.checkState(!tmi.hasTop(),
+              "Saw multiple tablet metadata entries for root table");
           TabletManagement tm = TabletManagementIterator.decode(e);
           log.trace(
               "Returning metadata tablet, extent: {}, hostingGoal: {}, actions: {}, error: {}",
@@ -139,8 +138,6 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
         } catch (IOException e1) {
           throw new UncheckedIOException("Error creating TabletMetadata object for root tablet",
               e1);
-        } finally {
-          returnedRootTabletMetadata = true;
         }
       }
     };
