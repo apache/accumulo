@@ -93,7 +93,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -101,8 +100,6 @@ import com.google.common.net.HostAndPort;
  */
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
-
-  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
 
   @Override
   protected Duration defaultTimeout() {
@@ -447,8 +444,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    LogEntry logEntry = new LogEntry(
-        java.nio.file.Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
+    String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
+    LogEntry logEntry = new LogEntry(fileName);
     m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
         .put(logEntry.getValue());
     try (BatchWriter bw = client.createBatchWriter(table)) {
