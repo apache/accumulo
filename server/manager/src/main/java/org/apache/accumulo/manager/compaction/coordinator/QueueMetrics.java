@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics;
+package org.apache.accumulo.manager.compaction.coordinator;
 
 import static org.apache.accumulo.core.metrics.MetricsUtil.formatString;
 import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
@@ -36,9 +35,8 @@ import io.micrometer.core.instrument.Tags;
 
 public class QueueMetrics implements MetricsProducer {
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
-  private MeterRegistry meterRegistry = null;
+  private volatile MeterRegistry meterRegistry = null;
   private final CompactionJobQueues compactionJobQueues;
-  private AtomicLong queueCount;
 
   public QueueMetrics(CompactionJobQueues compactionJobQueues) {
     this.compactionJobQueues = compactionJobQueues;
@@ -51,10 +49,17 @@ public class QueueMetrics implements MetricsProducer {
 
   public void update() {
 
+    // read the volatile variable once so the rest of the method has consistent view
+    var localRegistry = meterRegistry;
+
+    if (localRegistry == null) {
+      return;
+    }
+
     Gauge
         .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, compactionJobQueues,
             CompactionJobQueues::getQueueCount)
-        .description("Number of current Queues").tags(getCommonTags()).register(meterRegistry);
+        .description("Number of current Queues").tags(getCommonTags()).register(localRegistry);
 
     for (CompactionExecutorId ceid : compactionJobQueues.getQueueIds()) {
       // Normalize the queueId to match metrics tag naming convention.
@@ -65,31 +70,31 @@ public class QueueMetrics implements MetricsProducer {
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, ceid,
               compactionJobQueues::getQueueMaxSize)
           .description("Length of priority queues")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(localRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED, ceid,
               compactionJobQueues::getQueuedJobs)
           .description("Count of queued jobs")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(localRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED, ceid,
               compactionJobQueues::getDequeuedJobs)
           .description("Count of jobs dequeued")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(localRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, ceid,
               compactionJobQueues::getRejectedJobs)
           .description("Count of rejected jobs")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(localRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY, ceid,
               compactionJobQueues::getLowestPriority)
           .description("Lowest priority queued job")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(localRegistry);
     }
   }
 
