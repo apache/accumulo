@@ -31,6 +31,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -41,7 +42,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 
@@ -68,13 +71,14 @@ public class TabletManagementParameters {
   private final Map<Long,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
+  private final List<Pair<Path,Path>> volumeReplacements;
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
       Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints,
-      boolean canSuspendTablets) {
+      boolean canSuspendTablets, List<Pair<Path,Path>> volumeReplacements) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -95,6 +99,7 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = canSuspendTablets;
+    this.volumeReplacements = volumeReplacements;
   }
 
   private TabletManagementParameters(JsonData jdata) {
@@ -120,7 +125,7 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
-    ;
+    this.volumeReplacements = jdata.volumeReplacements;
   }
 
   public ManagerState getManagerState() {
@@ -171,6 +176,10 @@ public class TabletManagementParameters {
     return canSuspendTablets;
   }
 
+  public List<Pair<Path,Path>> getVolumeReplacements() {
+    return volumeReplacements;
+  }
+
   private static Map<Long,Map<String,String>>
       makeImmutable(Map<Long,Map<String,String>> compactionHints) {
     var copy = new HashMap<Long,Map<String,String>>();
@@ -193,6 +202,7 @@ public class TabletManagementParameters {
     final Map<Long,Map<String,String>> compactionHints;
 
     final boolean canSuspendTablets;
+    final List<Pair<Path,Path>> volumeReplacements;
 
     private static String toString(KeyExtent extent) {
       DataOutputBuffer buffer = new DataOutputBuffer();
@@ -234,6 +244,7 @@ public class TabletManagementParameters {
               .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints;
       canSuspendTablets = params.canSuspendTablets;
+      volumeReplacements = params.volumeReplacements;
     }
 
   }

@@ -49,7 +49,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -812,30 +812,33 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     var loc = rootMeta.getLocation();
 
     assertEquals(LocationType.CURRENT, loc.getType());
-    assertFalse(rootMeta.getCompactId().isPresent());
+    assertNull(rootMeta.getOperationId());
+
+    TabletOperationId opid = TabletOperationId.from(TabletOperationType.MERGING, 7);
 
     var ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation().requireAbsentLocation()
-        .putCompactionId(7).submit(tm -> false);
+        .putOperation(opid).submit(tm -> false);
     var results = ctmi.process();
     assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
-    assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
+    assertNull(context.getAmple().readTablet(RootTable.EXTENT).getOperationId());
 
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation()
-        .requireLocation(Location.future(loc.getServerInstance())).putCompactionId(7)
+        .requireLocation(Location.future(loc.getServerInstance())).putOperation(opid)
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
-    assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
+    assertNull(context.getAmple().readTablet(RootTable.EXTENT).getOperationId());
 
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation()
-        .requireLocation(Location.current(loc.getServerInstance())).putCompactionId(7)
+        .requireLocation(Location.current(loc.getServerInstance())).putOperation(opid)
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(RootTable.EXTENT).getStatus());
-    assertEquals(7L, context.getAmple().readTablet(RootTable.EXTENT).getCompactId().getAsLong());
+    assertEquals(opid.canonical(),
+        context.getAmple().readTablet(RootTable.EXTENT).getOperationId().canonical());
   }
 
   @Test
@@ -1098,7 +1101,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       AtomicLong accepted = new AtomicLong(0);
       AtomicLong total = new AtomicLong(0);
-      BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer = (extent, result) -> {
+      Consumer<Ample.ConditionalResult> resultsConsumer = result -> {
         if (result.getStatus() == Status.ACCEPTED) {
           accepted.incrementAndGet();
         }

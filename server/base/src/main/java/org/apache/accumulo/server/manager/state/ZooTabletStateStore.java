@@ -18,25 +18,35 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +55,6 @@ import com.google.common.base.Preconditions;
 class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStateStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
-  private final Ample ample;
   private final DataLevel level;
   private final ServerContext ctx;
 
@@ -53,7 +62,6 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
     super(context);
     this.ctx = context;
     this.level = level;
-    this.ample = context.getAmple();
   }
 
   @Override
@@ -66,45 +74,74 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       TabletManagementParameters parameters) {
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
-    return new ClosableIterator<>() {
-      boolean finished = false;
+    final String zpath = ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
+    final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
+        ctx.getTableConfiguration(RootTable.ID), RootTable.ID);
+    final WholeRowIterator wri = new WholeRowIterator();
+    final TabletManagementIterator tmi = new TabletManagementIterator();
+    final AtomicBoolean closed = new AtomicBoolean(false);
+
+    try {
+      final byte[] rootTabletMetadata =
+          ctx.getZooReaderWriter().getZooKeeper().getData(zpath, false, null);
+      final RootTabletMetadata rtm = new RootTabletMetadata(new String(rootTabletMetadata, UTF_8));
+      final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
+      wri.init(iter, Map.of(), env);
+      tmi.init(wri,
+          Map.of(TabletManagementIterator.TABLET_GOAL_STATE_PARAMS_OPTION, parameters.serialize()),
+          env);
+      tmi.seek(new Range(), null, true);
+    } catch (KeeperException | InterruptedException | IOException e2) {
+      throw new IllegalStateException(
+          "Error setting up TabletManagementIterator for the root tablet", e2);
+    }
+
+    return new ClosableIterator<TabletManagement>() {
+
+      @Override
+      public void close() {
+        closed.compareAndSet(false, true);
+      }
 
       @Override
       public boolean hasNext() {
-        return !finished;
+        if (closed.get()) {
+          return false;
+        }
+
+        boolean result = tmi.hasTop();
+        if (!result) {
+          close();
+        }
+        return result;
       }
 
       @Override
       public TabletManagement next() {
-        finished = true;
-
-        final var actions = EnumSet.of(ManagementAction.NEEDS_LOCATION_UPDATE);
-        final TabletMetadata tm = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
-        String error = null;
-        try {
-          CompactionJobGenerator cjg =
-              new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx), Map.of());
-          var jobs = cjg.generateJobs(tm,
-              EnumSet.of(CompactionKind.SYSTEM, CompactionKind.USER, CompactionKind.SELECTOR));
-          if (!jobs.isEmpty()) {
-            actions.add(ManagementAction.NEEDS_COMPACTING);
-          }
-        } catch (Exception e) {
-          log.error("Error computing tablet management actions for Root extent", e);
-          error = e.getMessage();
+        if (closed.get() || !tmi.hasTop()) {
+          throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
         }
-        return new TabletManagement(actions, tm, error);
 
+        Key k = tmi.getTopKey();
+        Value v = tmi.getTopValue();
+        Entry<Key,Value> e = new AbstractMap.SimpleImmutableEntry<>(k, v);
+        try {
+          tmi.next();
+          Preconditions.checkState(!tmi.hasTop(),
+              "Saw multiple tablet metadata entries for root table");
+          TabletManagement tm = TabletManagementIterator.decode(e);
+          log.trace(
+              "Returning metadata tablet, extent: {}, hostingGoal: {}, actions: {}, error: {}",
+              tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getHostingGoal(),
+              tm.getActions(), tm.getErrorMessage());
+          return tm;
+        } catch (IOException e1) {
+          throw new UncheckedIOException("Error creating TabletMetadata object for root tablet",
+              e1);
+        }
       }
-
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public void close() {}
     };
+
   }
 
   private static void validateAssignments(Collection<Assignment> assignments) {

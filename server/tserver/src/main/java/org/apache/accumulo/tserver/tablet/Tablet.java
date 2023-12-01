@@ -82,7 +82,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -942,7 +941,7 @@ public class Tablet extends TabletBase {
 
     try {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
-          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
+          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID);
 
       if (tabletMeta == null) {
         String msg = "Closed tablet " + extent + " not found in metadata";
@@ -1332,9 +1331,6 @@ public class Tablet extends TabletBase {
       if (dfv.getNumEntries() > 0) {
         tablet.putFile(newDatafile, dfv);
         newFile = Optional.of(newDatafile.insert());
-
-        ManagerMetadataUtil.updateLastForCompactionMode(getContext(), tablet, lastLocation,
-            tabletServer.getTabletSession());
       }
 
       var newTime = tabletTime.getMetadataTime(maxCommittedTime);

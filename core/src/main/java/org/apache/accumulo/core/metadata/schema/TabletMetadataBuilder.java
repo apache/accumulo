@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACT_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -29,6 +28,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -112,13 +112,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   @Override
   public TabletMetadataBuilder deleteScan(StoredTabletFile path) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public TabletMetadataBuilder putCompactionId(long compactionId) {
-    fetched.add(COMPACT_ID);
-    internalBuilder.putCompactionId(compactionId);
-    return this;
   }
 
   @Override
@@ -270,6 +263,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteAll(Set<Key> keys) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder setMerged() {
+    fetched.add(MERGED);
+    internalBuilder.setMerged();
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteMerged() {
     throw new UnsupportedOperationException();
   }
 

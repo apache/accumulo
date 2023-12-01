@@ -62,6 +62,8 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
@@ -106,6 +108,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           .confirmCompactionRunning(getCluster().getServerContext(), ecids);
       assertTrue(matches > 0);
 
+      // Verify that a tmp file is created
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 1);
+
       // ExternalDoNothingCompactor will not compact, it will wait, split the table.
       SortedSet<Text> splits = new TreeSet<>();
       int jump = MAX_DATA / 5;
@@ -130,6 +136,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(table1);
+
+      // Verify that the tmp file are cleaned up
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0, 60_000);
     }
   }
 
@@ -163,6 +173,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           .confirmCompactionRunning(getCluster().getServerContext(), ecids);
       assertTrue(matches > 0);
 
+      // Verify that a tmp file is created
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 1);
+
       // when the compaction starts it will create a selected files column in the tablet, wait for
       // that to happen
       while (countTablets(getCluster().getServerContext(), table1,
@@ -185,6 +199,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           tm -> tm.getSelectedFiles() != null || !tm.getCompacted().isEmpty()) > 0) {
         Thread.sleep(1000);
       }
+
+      // Verify that the tmp file are cleaned up
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
     }
   }
 

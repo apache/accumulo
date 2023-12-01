@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -124,13 +125,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   public T deleteScan(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(ScanFileColumnFamily.NAME, path.getMetadataText());
-    return getThis();
-  }
-
-  @Override
-  public T putCompactionId(long compactionId) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ServerColumnFamily.COMPACT_COLUMN.put(mutation, new Value(Long.toString(compactionId)));
     return getThis();
   }
 
@@ -326,6 +320,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
       mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     });
 
+    return getThis();
+  }
+
+  @Override
+  public T setMerged() {
+    MergedColumnFamily.MERGED_COLUMN.put(mutation, MergedColumnFamily.MERGED_VALUE);
+    return getThis();
+  }
+
+  @Override
+  public T deleteMerged() {
+    MergedColumnFamily.MERGED_COLUMN.putDelete(mutation);
     return getThis();
   }
 

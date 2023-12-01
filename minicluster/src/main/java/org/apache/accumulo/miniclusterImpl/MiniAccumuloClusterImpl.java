@@ -669,7 +669,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         CompactionPlanner cp = senv.instantiate(plannerClass, CompactionPlanner.class);
         var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
-            csc.getOptions().get(serviceId), senv);
+            csc.getPlannerPrefix(serviceId), csc.getOptions().get(serviceId), senv);
         cp.init(initParams);
         initParams.getRequestedExternalExecutors().forEach(ceid -> {
           String id = ceid.canonical();
@@ -934,6 +934,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.stop(ServerType.MANAGER, null);
     control.stop(ServerType.TABLET_SERVER, null);
     control.stop(ServerType.ZOOKEEPER, null);
+    control.stop(ServerType.COMPACTOR, null);
+    control.stop(ServerType.SCAN_SERVER, null);
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (executor != null) {
