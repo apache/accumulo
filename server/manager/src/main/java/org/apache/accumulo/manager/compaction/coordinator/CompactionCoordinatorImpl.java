@@ -232,11 +232,13 @@ public class CompactionCoordinatorImpl implements CompactionCoordinator,
 
   private volatile Thread serviceThread = null;
 
+  @Override
   public void start() {
     serviceThread = Threads.createThread("CompactionCoordinator Thread", this);
     serviceThread.start();
   }
 
+  @Override
   public void shutdown() {
     shutdown = true;
     var localThread = serviceThread;
