@@ -673,7 +673,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     KeyExtent extent = info.getExtent();
     String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;
     Manager.log.debug("Deleting tablets for {}", extent);
-    MetadataTime metadataTime = null;
     KeyExtent followingTablet = null;
     if (extent.endRow() != null) {
       Key nextExtent = new Key(extent.endRow()).followingKey(PartialKey.ROW);
@@ -710,8 +709,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
             datafilesAndDirs.clear();
           }
-        } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
-          metadataTime = MetadataTime.parse(entry.getValue().toString());
         } else if (isTabletAssigned(key)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
@@ -740,7 +737,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // If there is another tablet after the delete range then update the prev end row
       // of that tablet as all tablets will have been deleted in the delete range.
-      // If the delete range includes the last tablet in the tablet then we need
+      // If the delete range includes the last tablet in the table then we need
       // to update the last tablet's previous end row as deleteTablets() will keep the
       // last tablet and only delete the files as we require at least 1 tablet to exist
       final KeyExtent goalTablet;
