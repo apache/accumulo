@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -27,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -68,26 +66,19 @@ public class CloseScannerIT extends AccumuloClusterHarness {
         } // when the scanner is closed, all open sessions should be closed
       }
 
-      Wait.waitFor(() -> {
-        final List<ActiveScan> activeScans = getAllActiveScans(client);
-        if (activeScans.size() < 3) {
-          return true;
-        } else {
-          LOG.error("Saw more scans than expected. Retrying. Scans found: {}", activeScans);
-          return false;
-        }
-      }, 5000, 250, "Found too many active scans after closing all scanners.");
+      Wait.waitFor(() -> getActiveScansCount(client) < 1, 5000, 250,
+          "Found active scans after closing all scanners. Expected to find no scans");
     }
   }
 
-  private static List<ActiveScan> getAllActiveScans(AccumuloClient client)
+  private static int getActiveScansCount(AccumuloClient client)
       throws AccumuloException, AccumuloSecurityException {
     List<String> tservers = client.instanceOperations().getTabletServers();
-    List<ActiveScan> allActiveScans = new ArrayList<>();
+    int scanCount = 0;
     for (String tserver : tservers) {
-      allActiveScans.addAll(client.instanceOperations().getActiveScans(tserver));
+      scanCount += client.instanceOperations().getActiveScans(tserver).size();
     }
-    return allActiveScans;
+    return scanCount;
   }
 
   private static Scanner createScanner(AccumuloClient client, String tableName, int i)
