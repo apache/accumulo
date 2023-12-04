@@ -112,8 +112,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.manager.compaction.CompactionCoordinator;
-import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinatorImpl;
+import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -935,7 +934,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinatorImpl(context, tserverSet, security, nextEvent);
+    compactionCoordinator = new CompactionCoordinator(context, tserverSet, security, nextEvent);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =

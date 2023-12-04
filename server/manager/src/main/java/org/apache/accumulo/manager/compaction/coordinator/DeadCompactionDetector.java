@@ -49,12 +49,12 @@ public class DeadCompactionDetector {
   private static final Logger log = LoggerFactory.getLogger(DeadCompactionDetector.class);
 
   private final ServerContext context;
-  private final CompactionCoordinatorImpl coordinator;
+  private final CompactionCoordinator coordinator;
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
 
-  public DeadCompactionDetector(ServerContext context, CompactionCoordinatorImpl coordinator,
+  public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
       ScheduledThreadPoolExecutor stpe) {
     this.context = context;
     this.coordinator = coordinator;

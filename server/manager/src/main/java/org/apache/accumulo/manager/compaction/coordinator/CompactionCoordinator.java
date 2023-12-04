@@ -112,7 +112,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
-import org.apache.accumulo.manager.compaction.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 import org.apache.accumulo.server.ServerContext;
@@ -142,10 +141,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class CompactionCoordinatorImpl implements CompactionCoordinator,
-    CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
+public class CompactionCoordinator
+    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinatorImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
 
   /*
@@ -186,7 +185,7 @@ public class CompactionCoordinatorImpl implements CompactionCoordinator,
 
   private final QueueMetrics queueMetrics;
 
-  public CompactionCoordinatorImpl(ServerContext ctx, LiveTServerSet tservers,
+  public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
       SecurityOperation security, EventCoordinator eventCoordinator) {
     this.ctx = ctx;
     this.tserverSet = tservers;
@@ -232,13 +231,11 @@ public class CompactionCoordinatorImpl implements CompactionCoordinator,
 
   private volatile Thread serviceThread = null;
 
-  @Override
   public void start() {
     serviceThread = Threads.createThread("CompactionCoordinator Thread", this);
     serviceThread.start();
   }
 
-  @Override
   public void shutdown() {
     shutdown = true;
     var localThread = serviceThread;
@@ -648,18 +645,16 @@ public class CompactionCoordinatorImpl implements CompactionCoordinator,
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
         .description("Number of queued major compactions").register(registry);
-    Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinatorImpl::getNumRunningCompactions)
+    Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
         .description("Number of running major compactions").register(registry);
 
     queueMetrics.registerMetrics(registry);
   }
 
-  @Override
   public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     jobQueues.add(tabletMetadata, jobs);
   }
 
-  @Override
   public CompactionCoordinatorService.Iface getThriftService() {
     return this;
   }
