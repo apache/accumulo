@@ -87,7 +87,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -494,7 +493,6 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO: Log Recovery is not working yet
   public void testDirtyReplaceVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, false, false);
@@ -509,7 +507,6 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO: Log Recovery is not working yet
   public void testDirtyReplaceVolumesWithRangedFiles() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, false, true);
