@@ -108,7 +108,7 @@ public class TabletMetadataTest {
         .put(le1.getValue());
     LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
     mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
-        .put(le2.getValue());
+        .put(new Value(""));
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
