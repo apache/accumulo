@@ -151,6 +151,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected Compactor(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
+    validateResourceGroup();
     aconf = conf == null ? super.getConfiguration() : conf;
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
@@ -159,6 +160,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     startCancelChecker(schedExecutor,
         aconf.getTimeInMillis(Property.COMPACTOR_CANCEL_CHECK_INTERVAL));
     printStartupMsg();
+  }
+
+  private void validateResourceGroup() {
+    String[] fields = getResourceGroup().split("\\.");
+    if (fields.length != 2) {
+      throw new IllegalArgumentException("The resource group '" + getResourceGroup()
+          + "' is not in the expected format '<compaction service name>.<queue name>'");
+    }
   }
 
   @Override

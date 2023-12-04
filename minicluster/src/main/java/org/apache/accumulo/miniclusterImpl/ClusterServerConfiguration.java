@@ -48,7 +48,8 @@ public class ClusterServerConfiguration {
    */
   public ClusterServerConfiguration(int numCompactors, int numSServers, int numTServers) {
     compactors = new HashMap<>();
-    compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
+    // TODO
+    // compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
     sservers = new HashMap<>();
     sservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numSServers);
     tservers = new HashMap<>();
