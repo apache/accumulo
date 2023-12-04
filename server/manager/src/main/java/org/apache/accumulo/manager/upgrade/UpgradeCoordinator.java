@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -272,7 +272,7 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<UpgradeCoordinator> fate = new ZooStore<>(
+      final ReadOnlyFateStore<UpgradeCoordinator> fate = new ZooStore<>(
           context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
       if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
