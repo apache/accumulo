@@ -25,6 +25,20 @@ import java.io.Serializable;
  */
 public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
 
+  /**
+   * Fate.TransactionRunner.run by default will attempt to make progress on as many transactions as
+   * possible by interleaving the execution of transactions. For example, when
+   * {@link #isReady(long, Object)} returns a value greater than 0, it will move on to the next
+   * transaction returned by ZooStore.reserve(). Also, when {@link #call(long, Object)} completes
+   * and returns the next operation it does not execute it immediately. It calls ZooStore.reserve to
+   * try and make progress on another transaction. When this method returns true then
+   * Fate.TransactionRunner.run will process this Repo to completion instead of swapping out other
+   * transactions.
+   */
+  default boolean interleave() {
+    return true;
+  }
+
   Repo<T> call(long tid, T environment) throws Exception;
 
   void undo(long tid, T environment) throws Exception;
