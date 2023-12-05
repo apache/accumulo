@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -91,7 +90,6 @@ public class TabletMetadataTest {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
-    COMPACT_COLUMN.put(mutation, new Value("5"));
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
@@ -134,7 +132,6 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), true, false);
 
     assertEquals("OK", tm.getCloned());
-    assertEquals(5L, tm.getCompactId().getAsLong());
     assertEquals("t-0001757", tm.getDirName());
     assertEquals(extent.endRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
@@ -288,13 +285,13 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     MERGED_COLUMN.put(mutation, MERGED_VALUE);
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.MERGED), true, false);
+        EnumSet.of(MERGED), true, false);
     assertTrue(tm.hasMerged());
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.MERGED), true, false);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED),
+        true, false);
     assertFalse(tm.hasMerged());
 
     // MERGED Column not fetched
@@ -310,9 +307,8 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     mutation.put("1234567890abcdefg", "xyz", "v1");
-    assertThrows(IllegalStateException.class,
-        () -> TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-            EnumSet.of(ColumnType.MERGED), true, false));
+    assertThrows(IllegalStateException.class, () -> TabletMetadata
+        .convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED), true, false));
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
@@ -350,16 +346,14 @@ public class TabletMetadataTest {
     StoredTabletFile sf4 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf4.rf")).insert();
 
-    TabletMetadata tm = TabletMetadata.builder(extent)
-        .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
-        .putFile(sf1, dfv1).putFile(sf2, dfv2).putCompactionId(23).putBulkFile(rf1, 25)
-        .putBulkFile(rf2, 35).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
-        .putCompacted(17).putCompacted(23).build(ECOMP, HOSTING_REQUESTED);
+    TabletMetadata tm = TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.UNHOSTED)
+        .putLocation(Location.future(ser1)).putFile(sf1, dfv1).putFile(sf2, dfv2)
+        .putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27).putDirName("dir1").putScan(sf3)
+        .putScan(sf4).putCompacted(17).putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());
     assertEquals(Location.future(ser1), tm.getLocation());
-    assertEquals(23L, tm.getCompactId().orElse(-1));
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
     assertEquals(Map.of(rf1.insert(), 25L, rf2.insert(), 35L), tm.getLoaded());
@@ -368,6 +362,7 @@ public class TabletMetadataTest {
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
     assertEquals(Set.of(17L, 23L), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
+    assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -380,7 +375,6 @@ public class TabletMetadataTest {
     assertNull(tm2.getLocation());
     assertThrows(IllegalStateException.class, tm2::getFiles);
     assertThrows(IllegalStateException.class, tm2::getTabletAvailability);
-    assertThrows(IllegalStateException.class, tm2::getCompactId);
     assertThrows(IllegalStateException.class, tm2::getFlushId);
     assertThrows(IllegalStateException.class, tm2::getFiles);
     assertThrows(IllegalStateException.class, tm2::getLogs);
@@ -417,6 +411,7 @@ public class TabletMetadataTest {
     assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
+    assertTrue(tm3.hasMerged());
   }
 
 }

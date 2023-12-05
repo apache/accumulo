@@ -20,9 +20,7 @@
 package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
@@ -49,6 +47,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -165,15 +164,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     switch (type) {
       case PREV_ROW:
         throw new IllegalStateException("PREV_ROW already set from Extent");
-      case COMPACT_ID: {
-        Condition c =
-            new Condition(COMPACT_COLUMN.getColumnFamily(), COMPACT_COLUMN.getColumnQualifier());
-        if (tabletMetadata.getCompactId().isPresent()) {
-          c = c.setValue(Long.toString(tabletMetadata.getCompactId().getAsLong()));
-        }
-        mutation.addCondition(c);
-      }
-        break;
       case LOGS: {
         Condition c = SetEqualityIterator.createCondition(new HashSet<>(tabletMetadata.getLogs()),
             logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8),

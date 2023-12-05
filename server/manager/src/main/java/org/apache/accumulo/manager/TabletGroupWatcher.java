@@ -435,28 +435,31 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
 
-      if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)
-          && state == TabletState.UNASSIGNED) {
+      if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         tableMgmtStats.totalVolumeReplacements++;
-        var volRep =
-            VolumeUtil.computeVolumeReplacements(tableMgmtParams.getVolumeReplacements(), tm);
-
-        if (volRep.logsToRemove.size() + volRep.filesToRemove.size() > 0) {
-          if (tm.getLocation() != null) {
-            // since the totalVolumeReplacements counter was incremented, should try this again
-            // later after its unassigned
-            LOG.debug("Volume replacement needed for {} but it has a location {}.", tm.getExtent(),
-                tm.getLocation());
-          } else if (tm.getOperationId() != null) {
-            LOG.debug("Volume replacement needed for {} but it has an active operation {}.",
-                tm.getExtent(), tm.getOperationId());
+        if (state == TabletState.UNASSIGNED || state == TabletState.SUSPENDED) {
+          var volRep =
+              VolumeUtil.computeVolumeReplacements(tableMgmtParams.getVolumeReplacements(), tm);
+          if (volRep.logsToRemove.size() + volRep.filesToRemove.size() > 0) {
+            if (tm.getLocation() != null) {
+              // since the totalVolumeReplacements counter was incremented, should try this again
+              // later after its unassigned
+              LOG.debug("Volume replacement needed for {} but it has a location {}.",
+                  tm.getExtent(), tm.getLocation());
+            } else if (tm.getOperationId() != null) {
+              LOG.debug("Volume replacement needed for {} but it has an active operation {}.",
+                  tm.getExtent(), tm.getOperationId());
+            } else {
+              LOG.debug("Volume replacement needed for {}.", tm.getExtent());
+              // buffer replacements so that multiple mutations can be done at once
+              tLists.volumeReplacements.add(volRep);
+            }
           } else {
-            LOG.debug("Volume replacement needed for {}.", tm.getExtent());
-            // buffer replacements so that multiple mutations can be done at once
-            tLists.volumeReplacements.add(volRep);
+            LOG.debug("Volume replacement evaluation for {} returned no changes.", tm.getExtent());
           }
         } else {
-          LOG.debug("Volume replacement evaluation for {} returned no changes.", tm.getExtent());
+          LOG.debug("Volume replacement needed for {} but its tablet state is {}.", tm.getExtent(),
+              state);
         }
       }
 
@@ -484,7 +487,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             state, goal, actions);
       }
 
-      if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
+      if (actions.contains(ManagementAction.NEEDS_SPLITTING)
+          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         LOG.debug("{} may need splitting.", tm.getExtent());
         if (manager.getSplitter().isSplittable(tm)) {
           if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
@@ -499,7 +503,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
+      if (actions.contains(ManagementAction.NEEDS_COMPACTING)
+          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         var jobs = compactionGenerator.generateJobs(tm,
             TabletManagementIterator.determineCompactionKinds(actions));
         LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());

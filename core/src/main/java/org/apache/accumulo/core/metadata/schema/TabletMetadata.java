@@ -20,7 +20,6 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
@@ -116,7 +115,6 @@ public class TabletMetadata {
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
-  private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean merged;
@@ -147,7 +145,6 @@ public class TabletMetadata {
     CLONED,
     FLUSH_ID,
     LOGS,
-    COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
     ECOMP,
@@ -372,11 +369,6 @@ public class TabletMetadata {
     return flush;
   }
 
-  public OptionalLong getCompactId() {
-    ensureFetched(ColumnType.COMPACT_ID);
-    return compact;
-  }
-
   public Double getSplitRatio() {
     ensureFetched(ColumnType.SPLIT_RATIO);
     return splitRatio;
@@ -411,9 +403,8 @@ public class TabletMetadata {
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("compact", compact).append("splitRatio", splitRatio)
-        .append("extCompactions", extCompactions).append("availability", availability)
-        .append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
+        .append("availability", availability).append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }
@@ -513,9 +504,6 @@ public class TabletMetadata {
               break;
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
-              break;
-            case COMPACT_QUAL:
-              te.compact = OptionalLong.of(Long.parseLong(val));
               break;
             case OPID_QUAL:
               te.setOperationIdOnce(val, suppressLocationError);
