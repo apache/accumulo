@@ -32,7 +32,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -66,7 +66,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         if (stats.tServerInfo.size() != 2) {
           break;
         }
-        UtilWaitThread.sleep(500);
+        WaitFor.sleep(500);
       }
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
@@ -75,7 +75,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         if (!stats.deadTabletServers.isEmpty()) {
           break;
         }
-        UtilWaitThread.sleep(500);
+        WaitFor.sleep(500);
       }
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.badTServers.size());

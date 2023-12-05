@@ -106,7 +106,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
@@ -962,7 +962,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         // sleep a few seconds in case this is at cluster start...give monitor
         // time to start so the warning will be more visible
         if (!warned) {
-          UtilWaitThread.sleep(5000);
+          WaitFor.sleep(5000);
           warned = true;
         }
         log.warn("WAL directory ({}) implementation does not support sync or flush."

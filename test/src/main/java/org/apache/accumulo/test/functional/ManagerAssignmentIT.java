@@ -50,7 +50,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
@@ -76,7 +76,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       // wait for the table to be online
       TabletLocationState newTablet;
       do {
-        UtilWaitThread.sleep(250);
+        WaitFor.sleep(250);
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
       assertNull(newTablet.last);

@@ -60,7 +60,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
@@ -111,7 +111,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       while (tabletsInFlux > 0) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
-        UtilWaitThread.sleep(500);
+        WaitFor.sleep(500);
         copyTable(client, MetadataTable.NAME, metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       }

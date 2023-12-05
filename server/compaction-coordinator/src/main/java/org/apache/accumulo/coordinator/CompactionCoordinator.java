@@ -75,7 +75,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -315,7 +315,7 @@ public class CompactionCoordinator extends AbstractServer
       long duration = (System.currentTimeMillis() - start);
       if (checkInterval - duration > 0) {
         LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
-        UtilWaitThread.sleep(checkInterval - duration);
+        WaitFor.sleep(checkInterval - duration);
       }
     }
 

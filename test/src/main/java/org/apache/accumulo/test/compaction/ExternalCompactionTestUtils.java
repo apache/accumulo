@@ -63,7 +63,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -292,7 +292,7 @@ public class ExternalCompactionTestUtils {
         tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).forEach(ecids::add);
       }
       if (ecids.isEmpty()) {
-        UtilWaitThread.sleep(50);
+        WaitFor.sleep(50);
       }
     } while (ecids.isEmpty());
     return ecids;
@@ -313,7 +313,7 @@ public class ExternalCompactionTestUtils {
         }
       }
       if (matches == 0) {
-        UtilWaitThread.sleep(50);
+        WaitFor.sleep(50);
       }
     }
     return matches;
@@ -326,7 +326,7 @@ public class ExternalCompactionTestUtils {
     while (running.getCompactions() != null) {
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
       if (running.getCompactions() == null) {
-        UtilWaitThread.sleep(250);
+        WaitFor.sleep(250);
       }
     }
     // The compaction should be in the completed list with the expected state
@@ -334,7 +334,7 @@ public class ExternalCompactionTestUtils {
     while (completed.getCompactions() == null) {
       completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
       if (completed.getCompactions() == null) {
-        UtilWaitThread.sleep(50);
+        WaitFor.sleep(50);
       }
     }
     for (ExternalCompactionId e : ecids) {

@@ -87,7 +87,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.WaitFor;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
@@ -385,7 +385,7 @@ public class ScanServer extends AbstractServer
 
     try {
       while (!serverStopRequested) {
-        UtilWaitThread.sleep(1000);
+        WaitFor.sleep(1000);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
