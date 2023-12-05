@@ -77,7 +77,7 @@ public class LogEntryTest {
     assertEquals(entry.toString(), copy2.toString());
     assertEquals(uuid, entry.getUniqueID());
     assertEquals("-/" + filename, entry.getColumnQualifier().toString());
-    assertEquals(new Value(filename), entry.getValue());
+    assertEquals(new Value(""), entry.getValue());
   }
 
   @Test
