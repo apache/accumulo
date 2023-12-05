@@ -32,12 +32,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CloseScannerIT extends AccumuloClusterHarness {
-
-  private static final Logger LOG = LoggerFactory.getLogger(CloseScannerIT.class);
 
   static final int ROWS = 1000;
   static final int COLS = 1000;
