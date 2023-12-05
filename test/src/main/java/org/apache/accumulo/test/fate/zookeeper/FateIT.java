@@ -57,6 +57,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -237,7 +238,7 @@ public class FateIT {
       assertTrue(fate.cancel(txid));
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+      Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
       fate.delete(txid);
     } finally {
       fate.shutdown();
@@ -276,6 +277,7 @@ public class FateIT {
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
+      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       assertFalse(fate.cancel(txid));
       callStarted.await();
       finishCall.countDown();
