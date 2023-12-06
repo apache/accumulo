@@ -107,13 +107,18 @@ public class LogEntry {
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    final Value value = entry.getValue();
+    // final Key key = entry.getKey();
+    final Text columnQualifier = entry.getKey().getColumnQualifier();
 
-    String filePath = value.toString();
+    String filePath = columnQualifier.toString();
 
-    validateFilePath(filePath);
+    String[] parts = filePath.split("/", 2);
 
-    return new LogEntry(filePath);
+    if (parts.length > 1) {
+      return new LogEntry(parts[1]);
+    } else {
+      return new LogEntry(filePath);
+    }
   }
 
   public String getUniqueID() {
@@ -127,6 +132,6 @@ public class LogEntry {
 
   public Value getValue() {
 
-    return new Value("");
+    return new Value();
   }
 }

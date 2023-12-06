@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -202,7 +203,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Add a walog which should keep the state from transitioning to MERGING
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
-      LogEntry logEntry = new LogEntry("");
+      LogEntry logEntry = new LogEntry("localhost:1234/" + UUID.randomUUID());
       m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
           .put(logEntry.getValue());
       update(accumuloClient, m);

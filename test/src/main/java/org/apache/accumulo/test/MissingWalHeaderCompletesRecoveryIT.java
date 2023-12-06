@@ -56,6 +56,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
@@ -159,7 +161,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals("", new String());
+        assertEquals(0, Iterables.size(s));
       }
     }
   }
@@ -218,7 +220,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals("", new String());
+        assertEquals(0, Iterables.size(s));
       }
     }
   }
