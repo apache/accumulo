@@ -31,7 +31,7 @@ import org.apache.accumulo.core.manager.PartitionData;
  * A transaction consists of a number of operations. Instances of this class may check on the queue
  * of outstanding transactions but may neither modify them nor create new ones.
  */
-public interface ReadOnlyFatesStore<T> {
+public interface ReadOnlyFateStore<T> {
 
   /**
    * Possible operational status codes. Serialized by name within stores.
@@ -53,7 +53,7 @@ public interface ReadOnlyFatesStore<T> {
     SUBMITTED
   }
 
-  interface ReadOnlyFateStore<T> {
+  interface ReadOnlyFateTxStore<T> {
     /**
      * Get the current operation for the given transaction id.
      *
@@ -106,7 +106,7 @@ public interface ReadOnlyFatesStore<T> {
     long getID();
   }
 
-  ReadOnlyFateStore<T> read(long tid);
+  ReadOnlyFateTxStore<T> read(long tid);
 
   /**
    * list all transaction ids in store.

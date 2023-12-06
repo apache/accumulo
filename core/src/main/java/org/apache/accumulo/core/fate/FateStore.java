@@ -32,7 +32,7 @@ import org.apache.accumulo.core.manager.PartitionData;
  * as each step successfully completes. If a step fails, the stack can be unwound, undoing each
  * operation.
  */
-public interface FatesStore<T> extends ReadOnlyFatesStore<T> {
+public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
   /**
    * Create a new transaction id
@@ -44,7 +44,7 @@ public interface FatesStore<T> extends ReadOnlyFatesStore<T> {
   /**
    * An interface that allows read/write access to the data related to a single fate operation.
    */
-  interface FateStore<T> extends ReadOnlyFateStore<T> {
+  interface FateTxStore<T> extends ReadOnlyFateTxStore<T> {
 
     @Override
     Repo<T> top();
@@ -99,7 +99,7 @@ public interface FatesStore<T> extends ReadOnlyFatesStore<T> {
    * @param tid transaction id
    * @return true if reserved by this call, false if already reserved
    */
-  Optional<FateStore<T>> tryReserve(long tid);
+  Optional<FateTxStore<T>> tryReserve(long tid);
 
   /**
    * Reserve the specific tid.
@@ -108,6 +108,6 @@ public interface FatesStore<T> extends ReadOnlyFatesStore<T> {
    * instance will be operating on that transaction id.
    *
    */
-  FateStore<T> reserve(long tid);
+  FateTxStore<T> reserve(long tid);
 
 }

@@ -22,13 +22,13 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUCCESSFUL;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.UNKNOWN;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.Collections;
@@ -49,7 +49,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.util.Retry;
@@ -69,7 +69,7 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
-  private final FatesStore<T> store;
+  private final FateStore<T> store;
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
   private final ExecutorService executor;
@@ -201,7 +201,7 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         long deferTime = 0;
-        FatesStore.FateStore<T> opStore = null;
+        FateStore.FateTxStore<T> opStore = null;
         try {
           var unreservedTid = workQueue.poll(100, MILLISECONDS);
           if (unreservedTid == null) {
@@ -300,7 +300,7 @@ public class Fate<T> {
       }
     }
 
-    private void transitionToFailed(FatesStore.FateStore<T> opStore, Exception e) {
+    private void transitionToFailed(FateStore.FateTxStore<T> opStore, Exception e) {
       String tidStr = FateTxId.formatTid(opStore.getID());
       final String msg = "Failed to execute Repo " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
@@ -317,7 +317,7 @@ public class Fate<T> {
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
 
-    private void processFailed(FatesStore.FateStore<T> opStore, Repo<T> op) {
+    private void processFailed(FateStore.FateTxStore<T> opStore, Repo<T> op) {
       while (op != null) {
         undo(opStore.getID(), op);
 
@@ -329,7 +329,7 @@ public class Fate<T> {
       doCleanUp(opStore);
     }
 
-    private void doCleanUp(FatesStore.FateStore<T> opStore) {
+    private void doCleanUp(FateStore.FateTxStore<T> opStore) {
       Boolean autoClean = (Boolean) opStore.getTransactionInfo(TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
         opStore.delete();
@@ -357,7 +357,7 @@ public class Fate<T> {
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, FatesStore<T> store, Function<Repo<T>,String> toLogStrFunc,
+  public Fate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       Supplier<PartitionData> partitionDataSupplier, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;

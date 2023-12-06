@@ -65,7 +65,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
-public class ZooFatesStore<T> implements FatesStore<T> {
+public class ZooFatesStore<T> implements FateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooFatesStore.class);
   private String path;
@@ -183,7 +183,7 @@ public class ZooFatesStore<T> implements FatesStore<T> {
   }
 
   @Override
-  public FateStore<T> reserve(long tid) {
+  public FateTxStore<T> reserve(long tid) {
     var retry =
         Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
             .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
@@ -210,7 +210,7 @@ public class ZooFatesStore<T> implements FatesStore<T> {
    * @return true if reserved by this call, false if already reserved
    */
   @Override
-  public Optional<FateStore<T>> tryReserve(long tid) {
+  public Optional<FateTxStore<T>> tryReserve(long tid) {
 
     // uniquely identify this attempt to reserve the fate operation data
     var uuid = UUID.randomUUID();
@@ -231,7 +231,7 @@ public class ZooFatesStore<T> implements FatesStore<T> {
       if (newValue != null) {
         // clear any deferment if it exists, it may or may not be set when its unreserved
         defered.remove(tid);
-        return Optional.of(new FateStoreImpl(tid, uuid));
+        return Optional.of(new FateTxStoreImpl(tid, uuid));
       } else {
         return Optional.empty();
       }
@@ -243,7 +243,7 @@ public class ZooFatesStore<T> implements FatesStore<T> {
     }
   }
 
-  private class ReadOnlyFateStoreImpl implements ReadOnlyFateStore<T> {
+  private class ReadOnlyFateStoreImpl implements ReadOnlyFateTxStore<T> {
     private static final int RETRIES = 10;
 
     protected final long tid;
@@ -435,14 +435,14 @@ public class ZooFatesStore<T> implements FatesStore<T> {
 
   }
 
-  private class FateStoreImpl extends ReadOnlyFateStoreImpl implements FateStore<T> {
+  private class FateTxStoreImpl extends ReadOnlyFateStoreImpl implements FateTxStore<T> {
 
     private boolean reserved = true;
     private boolean deleted = false;
 
     private final UUID uuid;
 
-    protected FateStoreImpl(long tid, UUID uuid) {
+    protected FateTxStoreImpl(long tid, UUID uuid) {
       super(tid);
       this.uuid = Objects.requireNonNull(uuid);
     }
@@ -578,7 +578,7 @@ public class ZooFatesStore<T> implements FatesStore<T> {
   }
 
   @Override
-  public ReadOnlyFateStore<T> read(long tid) {
+  public ReadOnlyFateTxStore<T> read(long tid) {
     return new ReadOnlyFateStoreImpl(tid);
   }
 

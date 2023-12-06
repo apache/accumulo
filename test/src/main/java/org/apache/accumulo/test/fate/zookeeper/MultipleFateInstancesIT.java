@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -95,12 +95,12 @@ public class MultipleFateInstancesIT {
       if (txid % 2 == 0) {
         var rfo = zooFatesStore1.reserve(txid);
         assertTrue(zooFatesStore2.tryReserve(txid).isEmpty());
-        rfo.setStatus(ReadOnlyFatesStore.FateStatus.SUBMITTED);
+        rfo.setStatus(ReadOnlyFateStore.FateStatus.SUBMITTED);
         rfo.unreserve(0);
       } else {
         var rfo = zooFatesStore2.reserve(txid);
         assertTrue(zooFatesStore1.tryReserve(txid).isEmpty());
-        rfo.setStatus(ReadOnlyFatesStore.FateStatus.SUBMITTED);
+        rfo.setStatus(ReadOnlyFateStore.FateStatus.SUBMITTED);
         rfo.unreserve(0);
       }
     }

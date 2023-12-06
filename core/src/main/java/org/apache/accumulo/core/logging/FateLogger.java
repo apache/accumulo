@@ -28,8 +28,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FatesStore;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -44,12 +44,12 @@ public class FateLogger {
   // reproducible problems with FATE transactions.
   private static final Logger storeLog = LoggerFactory.getLogger(PREFIX + "store");
 
-  private static class LoggingFateStore<T> implements FatesStore.FateStore<T> {
+  private static class LoggingFateStore<T> implements FateStore.FateTxStore<T> {
 
-    private final FatesStore.FateStore<T> wrapped;
+    private final FateStore.FateTxStore<T> wrapped;
     private final Function<Repo<T>,String> toLogString;
 
-    private LoggingFateStore(FatesStore.FateStore<T> wrapped,
+    private LoggingFateStore(FateStore.FateTxStore<T> wrapped,
         Function<Repo<T>,String> toLogString) {
       this.wrapped = wrapped;
       this.toLogString = toLogString;
@@ -61,13 +61,13 @@ public class FateLogger {
     }
 
     @Override
-    public ReadOnlyFatesStore.FateStatus getStatus() {
+    public ReadOnlyFateStore.FateStatus getStatus() {
       return wrapped.getStatus();
     }
 
     @Override
-    public ReadOnlyFatesStore.FateStatus
-        waitForStatusChange(EnumSet<ReadOnlyFatesStore.FateStatus> expected) {
+    public ReadOnlyFateStore.FateStatus
+        waitForStatusChange(EnumSet<ReadOnlyFateStore.FateStatus> expected) {
       return wrapped.waitForStatusChange(expected);
     }
 
@@ -108,7 +108,7 @@ public class FateLogger {
     }
 
     @Override
-    public void setStatus(ReadOnlyFatesStore.FateStatus status) {
+    public void setStatus(ReadOnlyFateStore.FateStatus status) {
       wrapped.setStatus(status);
       if (storeLog.isTraceEnabled()) {
         storeLog.trace("{} setStatus to {}", formatTid(wrapped.getID()), status);
@@ -137,22 +137,22 @@ public class FateLogger {
     }
   }
 
-  public static <T> FatesStore<T> wrap(FatesStore<T> store, Function<Repo<T>,String> toLogString) {
+  public static <T> FateStore<T> wrap(FateStore<T> store, Function<Repo<T>,String> toLogString) {
 
     // only logging operations that change the persisted data, not operations that only read data
-    return new FatesStore<>() {
+    return new FateStore<>() {
       @Override
-      public FateStore<T> reserve(long tid) {
+      public FateTxStore<T> reserve(long tid) {
         return new LoggingFateStore<>(store.reserve(tid), toLogString);
       }
 
       @Override
-      public Optional<FateStore<T>> tryReserve(long tid) {
+      public Optional<FateTxStore<T>> tryReserve(long tid) {
         return store.tryReserve(tid).map(fos -> new LoggingFateStore<>(fos, toLogString));
       }
 
       @Override
-      public ReadOnlyFateStore<T> read(long tid) {
+      public ReadOnlyFateTxStore<T> read(long tid) {
         return store.read(tid);
       }
 

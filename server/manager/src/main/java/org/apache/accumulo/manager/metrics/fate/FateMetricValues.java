@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -101,7 +101,7 @@ class FateMetricValues {
    * @return the current FATE metric values.
    */
   public static FateMetricValues getFromZooKeeper(final ServerContext context,
-      final String fateRootPath, final ReadOnlyFatesStore<FateMetrics> zooStore) {
+      final String fateRootPath, final ReadOnlyFateStore<FateMetrics> zooStore) {
 
     FateMetricValues.Builder builder = FateMetricValues.builder();
 
@@ -116,7 +116,7 @@ class FateMetricValues {
 
       // states are enumerated - create new map with counts initialized to 0.
       Map<String,Long> states = new TreeMap<>();
-      for (ReadOnlyFatesStore.FateStatus t : ReadOnlyFatesStore.FateStatus.values()) {
+      for (ReadOnlyFateStore.FateStatus t : ReadOnlyFateStore.FateStatus.values()) {
         states.put(t.name(), 0L);
       }
 
@@ -132,7 +132,7 @@ class FateMetricValues {
         states.merge(stateName, 1L, Long::sum);
 
         // incr count for op type for for in_progress transactions.
-        if (ReadOnlyFatesStore.FateStatus.IN_PROGRESS.equals(tx.getStatus())) {
+        if (ReadOnlyFateStore.FateStatus.IN_PROGRESS.equals(tx.getStatus())) {
           String opType = tx.getTxName();
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";
@@ -189,7 +189,7 @@ class FateMetricValues {
 
       // states are enumerated - create new map with counts initialized to 0.
       txStateCounters = new TreeMap<>();
-      for (ReadOnlyFatesStore.FateStatus t : ReadOnlyFatesStore.FateStatus.values()) {
+      for (ReadOnlyFateStore.FateStatus t : ReadOnlyFateStore.FateStatus.values()) {
         txStateCounters.put(t.name(), 0L);
       }
 

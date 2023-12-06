@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -49,7 +49,7 @@ public class FateMetrics implements MetricsProducer {
   private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
-  private final ReadOnlyFatesStore<FateMetrics> zooStore;
+  private final ReadOnlyFateStore<FateMetrics> zooStore;
   private final String fateRootPath;
   private final long refreshDelay;
 
@@ -93,7 +93,7 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge.set(metricValues.getZkConnectionErrors());
 
     for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      switch (ReadOnlyFatesStore.FateStatus.valueOf(vals.getKey())) {
+      switch (ReadOnlyFateStore.FateStatus.valueOf(vals.getKey())) {
         case NEW:
           newTxGauge.set(vals.getValue());
           break;
@@ -134,22 +134,21 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
     newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-        ReadOnlyFatesStore.FateStatus.NEW.name().toLowerCase()), new AtomicLong(0));
+        ReadOnlyFateStore.FateStatus.NEW.name().toLowerCase()), new AtomicLong(0));
     submittedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyFatesStore.FateStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
-    inProgressTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyFatesStore.FateStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFateStore.FateStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
+    inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyFateStore.FateStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
     failedInProgressTxGauge = registry.gauge(METRICS_FATE_TX,
         Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS.name().toLowerCase()),
+            ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS.name().toLowerCase()),
         new AtomicLong(0));
     failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyFatesStore.FateStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFateStore.FateStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
     successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyFatesStore.FateStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFateStore.FateStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
     unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyFatesStore.FateStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
+        "state", ReadOnlyFateStore.FateStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
     update();
 

@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyFatesStore.FateStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
