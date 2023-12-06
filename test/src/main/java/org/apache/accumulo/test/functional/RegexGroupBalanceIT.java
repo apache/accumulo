@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -45,13 +46,11 @@ import org.apache.accumulo.core.spi.balancer.RegexGroupBalancer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-@Disabled // ELASTICITY_TODO
 public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
@@ -90,8 +89,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       props.put(RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
       props.put(Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
 
-      client.tableOperations().create(tablename,
-          new NewTableConfiguration().setProperties(props).withSplits(splits));
+      client.tableOperations().create(tablename, new NewTableConfiguration().setProperties(props)
+          .withSplits(splits).withInitialHostingGoal(TabletHostingGoal.ALWAYS));
 
       while (true) {
         Thread.sleep(250);
