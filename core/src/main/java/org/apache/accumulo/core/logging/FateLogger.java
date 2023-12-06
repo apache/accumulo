@@ -61,13 +61,13 @@ public class FateLogger {
     }
 
     @Override
-    public ReadOnlyFateStore.FateStatus getStatus() {
+    public ReadOnlyFateStore.TStatus getStatus() {
       return wrapped.getStatus();
     }
 
     @Override
-    public ReadOnlyFateStore.FateStatus
-        waitForStatusChange(EnumSet<ReadOnlyFateStore.FateStatus> expected) {
+    public ReadOnlyFateStore.TStatus
+        waitForStatusChange(EnumSet<ReadOnlyFateStore.TStatus> expected) {
       return wrapped.waitForStatusChange(expected);
     }
 
@@ -108,7 +108,7 @@ public class FateLogger {
     }
 
     @Override
-    public void setStatus(ReadOnlyFateStore.FateStatus status) {
+    public void setStatus(ReadOnlyFateStore.TStatus status) {
       wrapped.setStatus(status);
       if (storeLog.isTraceEnabled()) {
         storeLog.trace("{} setStatus to {}", formatTid(wrapped.getID()), status);

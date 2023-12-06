@@ -36,7 +36,8 @@ public interface ReadOnlyFateStore<T> {
   /**
    * Possible operational status codes. Serialized by name within stores.
    */
-  enum FateStatus {
+  // TODO rename to FateTxStatus
+  enum TStatus {
     /** Unseeded transaction */
     NEW,
     /** Transaction that is executing */
@@ -76,7 +77,7 @@ public interface ReadOnlyFateStore<T> {
      *
      * @return execution status
      */
-    FateStatus getStatus();
+    TStatus getStatus();
 
     /**
      * Wait for the status of a transaction to change
@@ -85,7 +86,7 @@ public interface ReadOnlyFateStore<T> {
      *        be null.
      * @return execution status.
      */
-    FateStatus waitForStatusChange(EnumSet<FateStatus> expected);
+    TStatus waitForStatusChange(EnumSet<TStatus> expected);
 
     /**
      * Retrieve transaction-specific information.

@@ -22,13 +22,13 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUCCESSFUL;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.UNKNOWN;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.Collections;
@@ -49,7 +49,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.util.Retry;
@@ -74,8 +74,7 @@ public class Fate<T> {
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
   private final ExecutorService executor;
 
-  private static final EnumSet<FateStatus> FINISHED_STATES =
-      EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
+  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final Supplier<PartitionData> partitionDataSupplier;
@@ -214,7 +213,7 @@ public class Fate<T> {
           } else {
             continue;
           }
-          FateStatus status = opStore.getStatus();
+          TStatus status = opStore.getStatus();
           Repo<T> op = opStore.top();
           if (status == FAILED_IN_PROGRESS) {
             processFailed(opStore, op);
@@ -436,7 +435,7 @@ public class Fate<T> {
   }
 
   // check on the transaction
-  public FateStatus waitForCompletion(long tid) {
+  public TStatus waitForCompletion(long tid) {
     return store.read(tid).waitForStatusChange(FINISHED_STATES);
   }
 
@@ -454,7 +453,7 @@ public class Fate<T> {
       if (optionalOpStore.isPresent()) {
         var opStore = optionalOpStore.orElseThrow();
         try {
-          FateStatus status = opStore.getStatus();
+          TStatus status = opStore.getStatus();
           log.info("status is: {}", status);
           if (status == NEW || status == SUBMITTED) {
             opStore.setTransactionInfo(TxInfo.EXCEPTION, new TApplicationException(

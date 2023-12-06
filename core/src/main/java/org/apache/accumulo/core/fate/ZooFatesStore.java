@@ -79,18 +79,18 @@ public class ZooFatesStore<T> implements FateStore<T> {
   // TODO this was hastily written code for serialization. Should it use json? It needs better
   // validation of data being serialized (like validate status, lock, and uuid).
   private static class NodeValue {
-    final FateStatus status;
+    final TStatus status;
     final String lock;
     final String uuid;
 
     private NodeValue(byte[] serializedData) {
       var fields = new String(serializedData, UTF_8).split(":", 3);
-      this.status = FateStatus.valueOf(fields[0]);
+      this.status = TStatus.valueOf(fields[0]);
       this.lock = fields[1];
       this.uuid = fields[2];
     }
 
-    private NodeValue(FateStatus status, String lock, String uuid) {
+    private NodeValue(TStatus status, String lock, String uuid) {
       if (lock.isEmpty() && !uuid.isEmpty() || uuid.isEmpty() && !lock.isEmpty()) {
         throw new IllegalArgumentException(
             "For lock and uuid expect neither is empty or both are empty. lock:'" + lock
@@ -171,7 +171,7 @@ public class ZooFatesStore<T> implements FateStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        zk.putPersistentData(getTXPath(tid), new NodeValue(FateStatus.NEW, "", "").serialize(),
+        zk.putPersistentData(getTXPath(tid), new NodeValue(TStatus.NEW, "", "").serialize(),
             NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
@@ -304,25 +304,25 @@ public class ZooFatesStore<T> implements FateStore<T> {
       return max;
     }
 
-    private FateStatus _getStatus() {
+    private TStatus _getStatus() {
       checkState(false);
       try {
         return new NodeValue(zk.getData(getTXPath(tid))).status;
       } catch (NoNodeException nne) {
-        return FateStatus.UNKNOWN;
+        return TStatus.UNKNOWN;
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }
     }
 
     @Override
-    public FateStatus getStatus() {
+    public TStatus getStatus() {
       checkState(false);
       return _getStatus();
     }
 
     @Override
-    public FateStatus waitForStatusChange(EnumSet<FateStatus> expected) {
+    public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       checkState(false);
       // TODO make the max time a function of the number of concurrent callers, as the number of
       // concurrent callers increases then increase the max wait time
@@ -334,7 +334,7 @@ public class ZooFatesStore<T> implements FateStore<T> {
           .logInterval(3, MINUTES).createRetry();
 
       while (true) {
-        FateStatus status = _getStatus();
+        TStatus status = _getStatus();
         if (expected.contains(status)) {
           retry.logCompletion(log, "Waiting on status change for " + FateTxId.formatTid(tid)
               + " expected:" + expected + " status:" + status);
@@ -481,7 +481,7 @@ public class ZooFatesStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void setStatus(FateStatus status) {
+    public void setStatus(TStatus status) {
       checkState(false);
       try {
         zk.mutateExisting(getTXPath(tid), currentValue -> {
@@ -606,9 +606,9 @@ public class ZooFatesStore<T> implements FateStore<T> {
           var nodeVal = new NodeValue(zk.getData(path + "/" + txid));
           var tid = parseTid(txid);
           if (!nodeVal.isReserved()
-              && (nodeVal.status == FateStatus.IN_PROGRESS
-                  || nodeVal.status == FateStatus.FAILED_IN_PROGRESS
-                  || nodeVal.status == FateStatus.SUBMITTED)
+              && (nodeVal.status == TStatus.IN_PROGRESS
+                  || nodeVal.status == TStatus.FAILED_IN_PROGRESS
+                  || nodeVal.status == TStatus.SUBMITTED)
               && tid % partitionData.getTotalInstances() == partitionData.getPartition()) {
             runnableTids.add(tid);
           }

@@ -95,12 +95,12 @@ public class MultipleFateInstancesIT {
       if (txid % 2 == 0) {
         var rfo = zooFatesStore1.reserve(txid);
         assertTrue(zooFatesStore2.tryReserve(txid).isEmpty());
-        rfo.setStatus(ReadOnlyFateStore.FateStatus.SUBMITTED);
+        rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
       } else {
         var rfo = zooFatesStore2.reserve(txid);
         assertTrue(zooFatesStore1.tryReserve(txid).isEmpty());
-        rfo.setStatus(ReadOnlyFateStore.FateStatus.SUBMITTED);
+        rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
       }
     }

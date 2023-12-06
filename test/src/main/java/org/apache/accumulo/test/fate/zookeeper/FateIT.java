@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooFatesStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -177,16 +177,16 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      assertEquals(FateStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(FateStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();
       assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
       // tell the op to exit the method
       finishCall.countDown();
       // Check that it transitions to SUCCESSFUL
-      FateStatus s = getTxStatus(zk, txid);
+      TStatus s = getTxStatus(zk, txid);
       while (s != SUCCESSFUL) {
         s = getTxStatus(zk, txid);
         Thread.sleep(10);
@@ -343,11 +343,11 @@ public class FateIT {
    * Get the status of the TX from ZK directly. Unable to call ZooStore.getStatus because this test
    * thread does not have the reservation (the FaTE thread does)
    */
-  private static FateStatus getTxStatus(ZooReaderWriter zrw, long txid)
+  private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
-    return FateStatus.valueOf(new String(zrw.getData(txdir), UTF_8).split(":")[0]);
+    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8).split(":")[0]);
   }
 
 }

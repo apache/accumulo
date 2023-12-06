@@ -70,14 +70,14 @@ public class AdminUtil<T> {
   public static class TransactionStatus {
 
     private final long txid;
-    private final ReadOnlyFateStore.FateStatus status;
+    private final ReadOnlyFateStore.TStatus status;
     private final String txName;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
-    private TransactionStatus(Long tid, ReadOnlyFateStore.FateStatus status, String txName,
+    private TransactionStatus(Long tid, ReadOnlyFateStore.TStatus status, String txName,
         List<String> hlocks, List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
@@ -98,7 +98,7 @@ public class AdminUtil<T> {
       return FastFormat.toHexString(txid);
     }
 
-    public ReadOnlyFateStore.FateStatus getStatus() {
+    public ReadOnlyFateStore.TStatus getStatus() {
       return status;
     }
 
@@ -217,7 +217,7 @@ public class AdminUtil<T> {
    * @return list of FATE transactions that match filter criteria
    */
   public List<TransactionStatus> getTransactionStatus(ReadOnlyFateStore<T> zs, Set<Long> filterTxid,
-      EnumSet<ReadOnlyFateStore.FateStatus> filterStatus) {
+      EnumSet<ReadOnlyFateStore.TStatus> filterStatus) {
 
     FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
         Collections.<Long,List<String>>emptyMap(), Collections.<Long,List<String>>emptyMap());
@@ -240,7 +240,7 @@ public class AdminUtil<T> {
    */
   public FateStatus getStatus(ReadOnlyFateStore<T> zs, ZooReader zk,
       ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid,
-      EnumSet<ReadOnlyFateStore.FateStatus> filterStatus)
+      EnumSet<ReadOnlyFateStore.TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<>();
     Map<Long,List<String>> waitingLocks = new HashMap<>();
@@ -333,7 +333,7 @@ public class AdminUtil<T> {
    * @return current fate and lock status
    */
   private FateStatus getTransactionStatus(ReadOnlyFateStore<T> zs, Set<Long> filterTxid,
-      EnumSet<ReadOnlyFateStore.FateStatus> filterStatus, Map<Long,List<String>> heldLocks,
+      EnumSet<ReadOnlyFateStore.TStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
 
     List<Long> transactions = zs.list();
@@ -363,7 +363,7 @@ public class AdminUtil<T> {
         top = repo.getName();
       }
 
-      ReadOnlyFateStore.FateStatus status = opStore.getStatus();
+      ReadOnlyFateStore.TStatus status = opStore.getStatus();
 
       long timeCreated = opStore.timeCreated();
 
@@ -376,8 +376,8 @@ public class AdminUtil<T> {
 
   }
 
-  private boolean includeByStatus(ReadOnlyFateStore.FateStatus status,
-      EnumSet<ReadOnlyFateStore.FateStatus> filterStatus) {
+  private boolean includeByStatus(ReadOnlyFateStore.TStatus status,
+      EnumSet<ReadOnlyFateStore.TStatus> filterStatus) {
     return (filterStatus == null) || filterStatus.contains(status);
   }
 
@@ -392,7 +392,7 @@ public class AdminUtil<T> {
 
   public void print(ReadOnlyFateStore<T> zs, ZooReader zk,
       ServiceLock.ServiceLockPath tableLocksPath, Formatter fmt, Set<Long> filterTxid,
-      EnumSet<ReadOnlyFateStore.FateStatus> filterStatus)
+      EnumSet<ReadOnlyFateStore.TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     FateStatus fateStatus = getStatus(zs, zk, tableLocksPath, filterTxid, filterStatus);
 
@@ -435,7 +435,7 @@ public class AdminUtil<T> {
     boolean state = false;
 
     var opStore = zs.reserve(txid);
-    ReadOnlyFateStore.FateStatus ts = opStore.getStatus();
+    ReadOnlyFateStore.TStatus ts = opStore.getStatus();
     switch (ts) {
       case UNKNOWN:
         System.out.printf("Invalid transaction ID: %016x%n", txid);
@@ -472,7 +472,7 @@ public class AdminUtil<T> {
     }
     boolean state = false;
     var opStore = zs.reserve(txid);
-    ReadOnlyFateStore.FateStatus ts = opStore.getStatus();
+    ReadOnlyFateStore.TStatus ts = opStore.getStatus();
     switch (ts) {
       case UNKNOWN:
         System.out.printf("Invalid transaction ID: %016x%n", txid);
@@ -482,7 +482,7 @@ public class AdminUtil<T> {
       case IN_PROGRESS:
       case NEW:
         System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
-        opStore.setStatus(ReadOnlyFateStore.FateStatus.FAILED_IN_PROGRESS);
+        opStore.setStatus(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS);
         state = true;
         break;
 

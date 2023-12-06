@@ -55,7 +55,7 @@ public class FateSummaryReport {
   private final transient Map<String,String> idsToNameMap;
 
   public FateSummaryReport(Map<String,String> idsToNameMap,
-      EnumSet<ReadOnlyFateStore.FateStatus> statusFilter) {
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter) {
     this.idsToNameMap = idsToNameMap;
     if (statusFilter != null) {
       statusFilter.forEach(f -> this.statusFilterNames.add(f.name()));

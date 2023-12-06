@@ -66,7 +66,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      *
      * @param status execution status
      */
-    void setStatus(FateStatus status);
+    void setStatus(TStatus status);
 
     /**
      * Set transaction-specific information.

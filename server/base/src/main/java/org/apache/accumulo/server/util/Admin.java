@@ -783,7 +783,7 @@ public class Admin implements KeywordExecutable {
     if (fateOpsCommand.print) {
       final Set<Long> sortedTxs = new TreeSet<>();
       fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
-      EnumSet<ReadOnlyFateStore.FateStatus> statusFilter =
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
           getCmdLineStatusFilters(fateOpsCommand.states);
       admin.print(zs, zk, zTableLocksPath, new Formatter(System.out), sortedTxs, statusFilter);
       // print line break at the end
@@ -855,7 +855,7 @@ public class Admin implements KeywordExecutable {
       }
     });
 
-    EnumSet<ReadOnlyFateStore.FateStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
 
     FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
 
@@ -882,12 +882,12 @@ public class Admin implements KeywordExecutable {
    *
    * @return a set of status filters, or an empty set if none provides
    */
-  private EnumSet<ReadOnlyFateStore.FateStatus> getCmdLineStatusFilters(List<String> states) {
-    EnumSet<ReadOnlyFateStore.FateStatus> statusFilter = null;
+  private EnumSet<ReadOnlyFateStore.TStatus> getCmdLineStatusFilters(List<String> states) {
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = null;
     if (!states.isEmpty()) {
-      statusFilter = EnumSet.noneOf(ReadOnlyFateStore.FateStatus.class);
+      statusFilter = EnumSet.noneOf(ReadOnlyFateStore.TStatus.class);
       for (String element : states) {
-        statusFilter.add(ReadOnlyFateStore.FateStatus.valueOf(element));
+        statusFilter.add(ReadOnlyFateStore.TStatus.valueOf(element));
       }
     }
     return statusFilter;

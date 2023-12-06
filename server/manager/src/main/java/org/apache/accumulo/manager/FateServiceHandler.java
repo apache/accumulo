@@ -68,7 +68,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -823,8 +823,8 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(credentials);
 
-    FateStatus status = manager.fate().waitForCompletion(opid);
-    if (status == FateStatus.FAILED) {
+    TStatus status = manager.fate().waitForCompletion(opid);
+    if (status == TStatus.FAILED) {
       Exception e = manager.fate().getException(opid);
       if (e instanceof ThriftTableOperationException) {
         throw (ThriftTableOperationException) e;

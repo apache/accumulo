@@ -67,7 +67,7 @@ class SummaryReportTest {
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.FateStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn(null).anyTimes();
     expect(status1.getTxName()).andReturn(null).anyTimes();
     expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
