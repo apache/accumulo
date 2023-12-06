@@ -56,8 +56,6 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
       cfg.setNumTservers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
-      // check on 1s intervals and set low mem condition if more than 80% of
-      // the heap is used.
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD));
