@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 
 public class CompactLocationModeIT extends ConfigurableMacBase {
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
       Property.TSERV_LAST_LOCATION_MODE;
 

@@ -40,7 +40,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public static final long BYTES_TO_WRITE = 10 * 1024 * 1024;
   public static final long RATE = 1 * 1024 * 1024;
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   protected Property getThroughputProp() {
     return Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT;
   }
