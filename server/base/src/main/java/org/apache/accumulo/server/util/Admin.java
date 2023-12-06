@@ -56,7 +56,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.ZooFatesStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -761,7 +761,7 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    ZooFatesStore<Admin> zs = new ZooFatesStore<>(fateZkPath, zk, null); // TODO
+    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk, null); // TODO
 
     if (fateOpsCommand.cancel) {
       cancelSubmittedFateTxs(context, fateOpsCommand.txList);

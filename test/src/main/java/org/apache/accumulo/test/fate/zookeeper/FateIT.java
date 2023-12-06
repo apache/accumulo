@@ -48,7 +48,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.ZooFatesStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.PartitionData;
@@ -153,8 +153,8 @@ public class FateIT {
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooFatesStore<Manager> store =
-        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -213,8 +213,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooFatesStore<Manager> store =
-        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -254,8 +254,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooFatesStore<Manager> store =
-        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -294,8 +294,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooFatesStore<Manager> store =
-        new ZooFatesStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);

@@ -65,9 +65,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
-public class ZooFatesStore<T> implements FateStore<T> {
+public class ZooStore<T> implements FateStore<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(ZooFatesStore.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
   private ZooReaderWriter zk;
 
@@ -147,7 +147,7 @@ public class ZooFatesStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooFatesStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID)
+  public ZooStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID)
       throws KeeperException, InterruptedException {
 
     this.path = path;
@@ -161,7 +161,7 @@ public class ZooFatesStore<T> implements FateStore<T> {
   /**
    * For testing only
    */
-  ZooFatesStore() {
+  ZooStore() {
     lockID = null;
   }
 

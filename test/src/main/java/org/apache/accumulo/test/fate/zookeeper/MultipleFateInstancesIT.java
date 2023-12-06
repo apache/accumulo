@@ -33,7 +33,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.ZooFatesStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.PartitionData;
@@ -74,41 +74,41 @@ public class MultipleFateInstancesIT {
   public void testZooStores() throws Exception {
     ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
     ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
-    final ZooFatesStore<Manager> zooFatesStore1 = new ZooFatesStore<Manager>(FATE_DIR, zk, lock1);
-    final ZooFatesStore<Manager> zooFatesStore2 = new ZooFatesStore<Manager>(FATE_DIR, zk, lock2);
+    final ZooStore<Manager> zooStore1 = new ZooStore<Manager>(FATE_DIR, zk, lock1);
+    final ZooStore<Manager> zooStore2 = new ZooStore<Manager>(FATE_DIR, zk, lock2);
 
     Set<Long> allIds = new HashSet<>();
 
     for (int i = 0; i < 100; i++) {
-      assertTrue(allIds.add(zooFatesStore1.create()));
-      assertTrue(allIds.add(zooFatesStore2.create()));
+      assertTrue(allIds.add(zooStore1.create()));
+      assertTrue(allIds.add(zooStore2.create()));
     }
 
     var pd1 = new PartitionData(0, 2);
     var pd2 = new PartitionData(1, 2);
 
     // nothing should be ready to run
-    assertFalse(zooFatesStore1.runnable(pd1).hasNext());
-    assertFalse(zooFatesStore2.runnable(pd2).hasNext());
+    assertFalse(zooStore1.runnable(pd1).hasNext());
+    assertFalse(zooStore2.runnable(pd2).hasNext());
 
     for (var txid : allIds) {
       if (txid % 2 == 0) {
-        var rfo = zooFatesStore1.reserve(txid);
-        assertTrue(zooFatesStore2.tryReserve(txid).isEmpty());
+        var rfo = zooStore1.reserve(txid);
+        assertTrue(zooStore2.tryReserve(txid).isEmpty());
         rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
       } else {
-        var rfo = zooFatesStore2.reserve(txid);
-        assertTrue(zooFatesStore1.tryReserve(txid).isEmpty());
+        var rfo = zooStore2.reserve(txid);
+        assertTrue(zooStore1.tryReserve(txid).isEmpty());
         rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
       }
     }
 
     HashSet<Long> runnable1 = new HashSet<>();
-    zooFatesStore1.runnable(pd1).forEachRemaining(txid -> assertTrue(runnable1.add(txid)));
+    zooStore1.runnable(pd1).forEachRemaining(txid -> assertTrue(runnable1.add(txid)));
     HashSet<Long> runnable2 = new HashSet<>();
-    zooFatesStore2.runnable(pd2).forEachRemaining(txid -> assertTrue(runnable2.add(txid)));
+    zooStore2.runnable(pd2).forEachRemaining(txid -> assertTrue(runnable2.add(txid)));
 
     assertFalse(runnable1.isEmpty());
     assertFalse(runnable2.isEmpty());
@@ -116,8 +116,8 @@ public class MultipleFateInstancesIT {
     assertEquals(allIds, Sets.union(runnable1, runnable2));
 
     for (var txid : allIds) {
-      var rfo = zooFatesStore1.reserve(txid);
-      assertTrue(zooFatesStore2.tryReserve(txid).isEmpty());
+      var rfo = zooStore1.reserve(txid);
+      assertTrue(zooStore2.tryReserve(txid).isEmpty());
       rfo.delete();
       rfo.unreserve(0);
     }
@@ -163,8 +163,8 @@ public class MultipleFateInstancesIT {
   public void testMultipleFateInstances() throws Exception {
     ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
     ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
-    final ZooFatesStore<TestEnv> zooFatesStore1 = new ZooFatesStore<>(FATE_DIR, zk, lock1);
-    final ZooFatesStore<TestEnv> zooFatesStore2 = new ZooFatesStore<>(FATE_DIR, zk, lock2);
+    final ZooStore<TestEnv> zooStore1 = new ZooStore<>(FATE_DIR, zk, lock1);
+    final ZooStore<TestEnv> zooStore2 = new ZooStore<>(FATE_DIR, zk, lock2);
 
     TestEnv testEnv1 = new TestEnv();
     TestEnv testEnv2 = new TestEnv();
@@ -172,9 +172,9 @@ public class MultipleFateInstancesIT {
     AtomicReference<PartitionData> partitionData1 = new AtomicReference<>(new PartitionData(0, 2));
     AtomicReference<PartitionData> partitionData2 = new AtomicReference<>(new PartitionData(1, 2));
 
-    Fate<TestEnv> fate1 = new Fate<>(testEnv1, zooFatesStore1, r -> "", partitionData1::get,
+    Fate<TestEnv> fate1 = new Fate<>(testEnv1, zooStore1, r -> "", partitionData1::get,
         DefaultConfiguration.getInstance());
-    Fate<TestEnv> fate2 = new Fate<>(testEnv2, zooFatesStore2, r -> "", partitionData2::get,
+    Fate<TestEnv> fate2 = new Fate<>(testEnv2, zooStore2, r -> "", partitionData2::get,
         DefaultConfiguration.getInstance());
 
     Set<Long> submittedIds = new HashSet<>();
@@ -204,10 +204,10 @@ public class MultipleFateInstancesIT {
 
     // create a third fate instance
     ZooUtil.LockID lock3 = new ZooUtil.LockID("/locks", "L3", 54);
-    final ZooFatesStore<TestEnv> zooFatesStore3 = new ZooFatesStore<>(FATE_DIR, zk, lock3);
+    final ZooStore<TestEnv> zooStore3 = new ZooStore<>(FATE_DIR, zk, lock3);
     TestEnv testEnv3 = new TestEnv();
     AtomicReference<PartitionData> partitionData3 = new AtomicReference<>(new PartitionData(2, 3));
-    Fate<TestEnv> fate3 = new Fate<>(testEnv3, zooFatesStore3, r -> "", partitionData3::get,
+    Fate<TestEnv> fate3 = new Fate<>(testEnv3, zooStore3, r -> "", partitionData3::get,
         DefaultConfiguration.getInstance());
 
     // adjust the partition data for the existing fate instances, they should react to this change

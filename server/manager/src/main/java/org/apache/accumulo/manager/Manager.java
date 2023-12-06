@@ -71,7 +71,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.ZooFatesStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -1082,7 +1082,7 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final ZooFatesStore<Manager> store = new ZooFatesStore<>(getZooKeeperRoot() + Constants.ZFATE,
+      final ZooStore<Manager> store = new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
           context.getZooReaderWriter(), managerLock.getLockID());
 
       Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, this::getParitionData,
