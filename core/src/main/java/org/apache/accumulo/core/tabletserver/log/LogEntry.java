@@ -107,7 +107,7 @@ public class LogEntry {
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    // final Key key = entry.getKey();
+
     final Text columnQualifier = entry.getKey().getColumnQualifier();
 
     String filePath = columnQualifier.toString();
