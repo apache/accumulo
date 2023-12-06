@@ -341,9 +341,9 @@ public class AdminUtil<T> {
 
     for (Long tid : transactions) {
 
-      var opStore = zs.read(tid);
+      var txStore = zs.read(tid);
 
-      String txName = (String) opStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+      String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
       List<String> hlocks = heldLocks.remove(tid);
 
@@ -358,14 +358,14 @@ public class AdminUtil<T> {
       }
 
       String top = null;
-      ReadOnlyRepo<T> repo = opStore.top();
+      ReadOnlyRepo<T> repo = txStore.top();
       if (repo != null) {
         top = repo.getName();
       }
 
-      TStatus status = opStore.getStatus();
+      TStatus status = txStore.getStatus();
 
-      long timeCreated = opStore.timeCreated();
+      long timeCreated = txStore.timeCreated();
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
         statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
@@ -432,8 +432,8 @@ public class AdminUtil<T> {
     }
     boolean state = false;
 
-    var opStore = zs.reserve(txid);
-    TStatus ts = opStore.getStatus();
+    var txStore = zs.reserve(txid);
+    TStatus ts = txStore.getStatus();
     switch (ts) {
       case UNKNOWN:
         System.out.printf("Invalid transaction ID: %016x%n", txid);
@@ -446,12 +446,12 @@ public class AdminUtil<T> {
       case FAILED_IN_PROGRESS:
       case SUCCESSFUL:
         System.out.printf("Deleting transaction: %016x (%s)%n", txid, ts);
-        opStore.delete();
+        txStore.delete();
         state = true;
         break;
     }
 
-    opStore.unreserve(0);
+    txStore.unreserve(0);
     return state;
   }
 
