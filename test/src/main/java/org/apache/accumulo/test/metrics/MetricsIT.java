@@ -20,6 +20,7 @@ package org.apache.accumulo.test.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -191,6 +192,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
             // check hostname is always set and is valid
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
+            assertNotNull(a.getTags().get("instance.name"));
 
             // check the length of the tag value is sane
             final int MAX_EXPECTED_TAG_LEN = 128;

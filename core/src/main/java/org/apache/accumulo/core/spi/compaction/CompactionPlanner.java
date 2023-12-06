@@ -45,11 +45,10 @@ public interface CompactionPlanner {
 
     /**
      * @return The configured options. For example if the system properties
-     *         {@code tserver.compaction.major.service.s1.planner.opts.p1=abc} and
-     *         {@code tserver.compaction.major.service.s1.planner.opts.p9=123} were set, then this
-     *         map would contain {@code p1=abc} and {@code p9=123}. In this example {@code s1} is
-     *         the identifier for the compaction service. Each compaction service has a single
-     *         planner.
+     *         {@code compaction.service.s1.planner.opts.p1=abc} and
+     *         {@code compaction.service.s1.planner.opts.p9=123} were set, then this map would
+     *         contain {@code p1=abc} and {@code p9=123}. In this example {@code s1} is the
+     *         identifier for the compaction service. Each compaction service has a single planner.
      */
     Map<String,String> getOptions();
 
@@ -57,8 +56,7 @@ public interface CompactionPlanner {
      * @return For a given key from the map returned by {@link #getOptions()} determines the fully
      *         qualified tablet property for that key. For example if a planner was being
      *         initialized for compaction service {@code CS9} and this method were passed
-     *         {@code prop1} then it would return
-     *         {@code tserver.compaction.major.service.CS9.planner.opts.prop1}.
+     *         {@code prop1} then it would return {@code compaction.service.CS9.planner.opts.prop1}.
      */
     String getFullyQualifiedOption(String key);
 

@@ -157,7 +157,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address,
+          getContext().getInstanceName());
       MetricsUtil.initializeProducers(this, new GcMetrics(this));
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException

@@ -140,7 +140,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.startMiniClusterWithConfig((miniCfg, coreSite) -> {
       Map<String,String> siteCfg = new HashMap<>();
 
-      var csp = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey();
+      var csp = Property.COMPACTION_SERVICE_PREFIX.getKey();
       siteCfg.put(csp + "cs1.planner", TestPlanner.class.getName());
       siteCfg.put(csp + "cs1.planner.opts.executors", "3");
       siteCfg.put(csp + "cs1.planner.opts.filesPerCompaction", "5");
@@ -205,10 +205,11 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       assertEquals(2, getFiles(client, "rctt").size());
 
-      client.instanceOperations().setProperty(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey()
-          + "recfg.planner.opts.filesPerCompaction", "5");
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.executors", "1");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.filesPerCompaction",
+          "5");
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.executors", "1");
 
       addFiles(client, "rctt", 10);
 
@@ -223,15 +224,15 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   @Test
   public void testAddCompactionService() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.instanceOperations().setProperty(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey()
-          + "newcs.planner.opts.filesPerCompaction", "7");
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.process",
-          "SYSTEM");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.filesPerCompaction",
+          "7");
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors", "3");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.process", "SYSTEM");
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors", "3");
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
           TestPlanner.class.getName());
 
       createTable(client, "acst", "newcs");

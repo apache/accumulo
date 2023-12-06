@@ -43,6 +43,10 @@ import org.junit.jupiter.api.Test;
 
 public class CompactLocationModeIT extends ConfigurableMacBase {
 
+  @SuppressWarnings("removal")
+  private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
+      Property.TSERV_LAST_LOCATION_MODE;
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
@@ -50,7 +54,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "compaction");
+    cfg.setProperty(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY, "compaction");
   }
 
   @Test
@@ -77,7 +81,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       }
       // assert that the default mode is "compact"
       assertEquals("compaction", c.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
+          .get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY.getKey()));
 
       // no last location should be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);

@@ -44,7 +44,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -106,7 +105,6 @@ import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -739,7 +737,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Manager.log.debug("Tablet deletion range is {}", extent);
     String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;
     Manager.log.debug("Deleting tablets for {}", extent);
-    MetadataTime metadataTime = null;
     KeyExtent followingTablet = null;
     if (extent.endRow() != null) {
       Key nextExtent = new Key(extent.endRow()).followingKey(PartialKey.ROW);
@@ -777,8 +774,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
             datafilesAndDirs.clear();
           }
-        } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
-          metadataTime = MetadataTime.parse(entry.getValue().toString());
         } else if (isTabletAssigned(key)) {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
@@ -798,29 +793,37 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
       ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
       BatchWriter bw = client.createBatchWriter(targetSystemTable);
+      KeyExtent lastTabletInRange;
       try {
-        deleteTablets(info, deleteRange, bw, client);
+        lastTabletInRange = deleteTablets(info, deleteRange, bw, client);
       } finally {
         bw.close();
       }
 
+      // If there is another tablet after the delete range then update the prev end row
+      // of that tablet as all tablets will have been deleted in the delete range.
+      // If the delete range includes the last tablet in the table then we need
+      // to update the last tablet's previous end row as deleteTablets() will keep the
+      // last tablet and only delete the files as we require at least 1 tablet to exist
+      final KeyExtent goalTablet;
       if (followingTablet != null) {
-        Manager.log.debug("Updating prevRow of {} to {}", followingTablet, extent.prevEndRow());
-        bw = client.createBatchWriter(targetSystemTable);
-        try {
-          Mutation m = new Mutation(followingTablet.toMetaRow());
-          TabletColumnFamily.PREV_ROW_COLUMN.put(m,
-              TabletColumnFamily.encodePrevEndRow(extent.prevEndRow()));
-          bw.addMutation(m);
-          bw.flush();
-        } finally {
-          bw.close();
-        }
+        goalTablet = followingTablet;
       } else {
-        // Recreate the default tablet to hold the end of the table
-        MetadataTableUtil.addTablet(new KeyExtent(extent.tableId(), null, extent.prevEndRow()),
-            ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, manager.getContext(),
-            metadataTime.getType(), manager.managerLock);
+        goalTablet = lastTabletInRange;
+        Preconditions.checkState(goalTablet != null && goalTablet.endRow() == null,
+            "If followingTablet is null then last tablet in delete range should be the last tablet in the table");
+      }
+
+      Manager.log.debug("Updating prevRow of {} to {}", goalTablet, extent.prevEndRow());
+      bw = client.createBatchWriter(targetSystemTable);
+      try {
+        Mutation m = new Mutation(goalTablet.toMetaRow());
+        TabletColumnFamily.PREV_ROW_COLUMN.put(m,
+            TabletColumnFamily.encodePrevEndRow(extent.prevEndRow()));
+        bw.addMutation(m);
+        bw.flush();
+      } finally {
+        bw.close();
       }
     } catch (RuntimeException | TableNotFoundException ex) {
       throw new AccumuloException(ex);
@@ -1264,8 +1267,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, AccumuloClient client)
-      throws TableNotFoundException, MutationsRejectedException {
+  private KeyExtent deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw,
+      AccumuloClient client) throws TableNotFoundException, AccumuloException {
     Scanner scanner;
     Mutation m;
     // Delete everything in the other tablets
@@ -1278,24 +1281,40 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Manager.log.debug("Deleting range {}", scanRange);
     scanner.setRange(scanRange);
     RowIterator rowIter = new RowIterator(scanner);
+    KeyExtent lastTablet = null;
     while (rowIter.hasNext()) {
       Iterator<Entry<Key,Value>> row = rowIter.next();
       m = null;
       while (row.hasNext()) {
         Entry<Key,Value> entry = row.next();
         Key key = entry.getKey();
+        lastTablet = KeyExtent.fromMetaRow(key.getRow());
 
         if (m == null) {
           m = new Mutation(key.getRow());
         }
 
-        m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-        Manager.log.debug("deleting entry {}", key);
+        // For delete operations, check if this is the last tablet
+        // If this is the last tablet in the table then only delete
+        // the files as we need to make sure we always keep at least 1 tablet
+        if (info.isDelete() && lastTablet.endRow() == null) {
+          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+            Manager.log.debug("deleting file entry {}", key);
+          }
+        } else {
+          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+          Manager.log.debug("deleting entry {}", key);
+        }
       }
-      bw.addMutation(m);
+      if (m != null && !m.getUpdates().isEmpty()) {
+        bw.addMutation(m);
+      }
     }
 
     bw.flush();
+
+    return lastTablet;
   }
 
   private boolean isTabletAssigned(Key key) {
