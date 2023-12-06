@@ -959,11 +959,12 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         var result = tabletsMutator.process().get(extent);
         if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
           // compaction was committed, mark the compaction input files for deletion
-          // ELASTICITIY_TODO in the case of process death the GC candidates would never be added like #3811.  If
-          // compaction commit were moved to FATE per #3559 then this would not be an issue.  If compaction
-          // commit is never moved to FATE, then this addition could moved to the compaction refresh
-          // process. The compaction refresh procss will go away if compaction commit is moved to FATE, so 
-          // should only do this if not moving to FATE.
+          //
+          // ELASTICITIY_TODO in the case of process death the GC candidates would never be added
+          // like #3811. If compaction commit were moved to FATE per #3559 then this would not
+          // be an issue. If compaction commit is never moved to FATE, then this addition could
+          // moved to the compaction refresh process. The compaction refresh process will go away
+          // if compaction commit is moved to FATE, so should only do this if not moving to FATE.
           ctx.getAmple().putGcCandidates(extent.tableId(), ecm.getJobFiles());
           break;
         } else {
