@@ -140,7 +140,6 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
   }
 
   @Test
-  // @Disabled // ELASTICITY_TODO
   public void testClose() throws Exception {
     String tableName = getUniqueNames(1)[0];
 
