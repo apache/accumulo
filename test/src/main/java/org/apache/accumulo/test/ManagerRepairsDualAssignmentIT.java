@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -84,11 +83,12 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
-      Set<TabletMetadata.Location> states = new HashSet<>();
-      Set<TabletLocationState> oldLocations = new HashSet<>();
-      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      final Set<TabletMetadata.Location> states = new HashSet<>();
+      final Set<TabletLocationState> oldLocations = new HashSet<>();
+      final TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+
       while (states.size() < 2) {
-        UtilWaitThread.sleep(250);
+        Thread.sleep(250);
         oldLocations.clear();
         for (TabletLocationState tls : store) {
           if (tls.current != null) {
@@ -103,7 +103,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       // Find out which tablet server remains
       while (true) {
-        UtilWaitThread.sleep(1000);
+        Thread.sleep(1000);
         states.clear();
         boolean allAssigned = true;
         for (TabletLocationState tls : store) {
@@ -126,7 +126,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           moved = old;
         }
       }
-      assertNotEquals(null, moved);
+      assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
       tabletMutator.putLocation(moved.current);
@@ -142,13 +142,13 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
     }
   }
 
-  private void waitForCleanStore(TabletStateStore store) {
+  private void waitForCleanStore(TabletStateStore store) throws InterruptedException {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
-        System.out.println(ex);
-        UtilWaitThread.sleep(250);
+        System.out.println(ex.getMessage());
+        Thread.sleep(250);
         continue;
       }
       break;
