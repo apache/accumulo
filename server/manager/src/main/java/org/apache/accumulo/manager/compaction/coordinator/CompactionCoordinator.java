@@ -958,7 +958,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         // ELASTICITY_TODO check return value and retry, could fail because of race conditions
         var result = tabletsMutator.process().get(extent);
         if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
-          // compaction was committed
+          // compaction was committed, mark the compaction input files for deletion
+          ctx.getAmple().putGcCandidates(extent.tableId(), ecm.getJobFiles());
           break;
         } else {
           // compaction failed to commit, maybe something changed on the tablet so lets reread the
