@@ -74,7 +74,6 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
         scanner.forEach((k, v) -> {});
       }
       Wait.waitFor(() -> countWALsInFS(cluster) == 2, SECONDS.toMillis(120), SECONDS.toMillis(15));
-      assertEquals(2, countWALsInFS(cluster));
     }
   }
 

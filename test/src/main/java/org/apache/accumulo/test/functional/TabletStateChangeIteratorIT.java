@@ -113,6 +113,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> findTabletsNeedingAttention(client, metaCopy1, state) <= 0,
           SECONDS.toMillis(30), 500);
 
+      // update the clone for additional manipulations
+      copyTable(client, MetadataTable.NAME, metaCopy1);
+
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
           "No tables should need attention");
 
