@@ -263,6 +263,12 @@ public class TabletMetadata {
   }
 
   private void ensureFetched(ColumnType col) {
+    log.info(">>>> TabletMetadata::ensureFetched({}, {})", col.toString(), col.name());
+    if (fetchedCols.contains(col)) {
+      log.info(">>>> fetchedCols.contains({})", col);
+    } else {
+      log.info(">>>> ! fetchedCols.contains({})", col);
+    }
     Preconditions.checkState(fetchedCols.contains(col), "%s was not fetched", col);
   }
 
@@ -375,6 +381,9 @@ public class TabletMetadata {
   }
 
   public boolean hasMerged() {
+    log.info(">>>> TabletMetadata::hasMerged");
+    log.info(">>>> FETCHEDCOLS:");
+    fetchedCols.forEach(p -> log.info(">>>> ---\t{}", p));
     ensureFetched(ColumnType.MERGED);
     return merged;
   }
@@ -404,7 +413,8 @@ public class TabletMetadata {
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
         .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
-        .append("availability", availability).append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("availability", availability)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }

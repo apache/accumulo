@@ -148,6 +148,7 @@ public class MergeTablets extends ManagerRepo {
     // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
     // only a subset of the other tablets were deleted. If the last tablet was never updated, then
     // the merged marker should not exist
+    log.info(">>>> call !lastTabletMeta.hasMerged loop");
     if (!lastTabletMeta.hasMerged()) {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {

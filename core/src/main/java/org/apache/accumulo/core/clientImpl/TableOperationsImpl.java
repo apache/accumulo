@@ -154,6 +154,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MapCounter;
@@ -323,19 +324,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private String waitForFateOperation(long opid)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
+    log.info(">>>> waitForFateOperation...");
     while (true) {
       FateService.Client client = null;
       try {
         client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
+        log.info(">>>> catch 1");
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
+        log.info(">>>> catch 2");
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
+        log.info(">>>> finally...");
         ThriftUtil.close(client, context);
       }
     }
@@ -390,7 +395,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Long opid = null;
 
     try {
+      log.info(">>>> call beginFateOperation...");
       opid = beginFateOperation();
+      log.info(">>>> call executeFateOperation...");
+      log.info(">>>> opid: {}", opid);
+      args.forEach(p -> log.info(">>>> args: {} ({})", ByteBufferUtil.toString(p), p));
+      opts.forEach((k, v) -> log.info(">>>> opts: {}, {}", k, v));
       executeFateOperation(opid, op, args, opts, !wait);
       if (!wait) {
         opid = null;
@@ -410,6 +420,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
+      log.info(">>>> ThriftTableOperationException: {} - {}", e.getType(), e.getMessage());
       switch (e.getType()) {
         case EXISTS:
           throw new TableExistsException(e);
@@ -428,12 +439,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException(e.description, e);
       }
     } catch (Exception e) {
+      log.info(">>>> Exception thrown: {}", e.getMessage());
       throw new AccumuloException(e.getMessage(), e);
     } finally {
       context.clearTableListCache();
       // always finish table op, even when exception
       if (opid != null) {
         try {
+          log.info(">>>> call finishFateOperation...");
           finishFateOperation(opid);
         } catch (Exception e) {
           log.warn("Exception thrown while finishing fate table operation", e);
@@ -1724,6 +1737,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Class<? extends Exception> namespaceNotFoundExceptionClass, FateOperation op,
       List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException,
       AccumuloException, TableExistsException, TableNotFoundException {
+    log.info(">>>> doTableFateOperation: {}", op.toString());
     try {
       doFateOperation(op, args, opts, tableOrNamespaceName);
     } catch (NamespaceExistsException e) {

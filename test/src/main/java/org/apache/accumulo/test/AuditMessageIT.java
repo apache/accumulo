@@ -47,7 +47,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -451,7 +451,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     NewTableConfiguration ntc =
-        new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+        new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
     client.tableOperations().create(OLD_TEST_TABLE_NAME, ntc);
     auditAccumuloClient =
         getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));

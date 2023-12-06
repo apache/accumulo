@@ -346,10 +346,11 @@ public class TabletMetadataTest {
     StoredTabletFile sf4 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf4.rf")).insert();
 
-    TabletMetadata tm = TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.UNHOSTED)
-        .putLocation(Location.future(ser1)).putFile(sf1, dfv1).putFile(sf2, dfv2)
-        .putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27).putDirName("dir1").putScan(sf3)
-        .putScan(sf4).putCompacted(17).putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED);
+    TabletMetadata tm = TabletMetadata.builder(extent)
+        .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
+        .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, 25).putBulkFile(rf2, 35)
+        .putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4).putCompacted(17)
+        .putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());

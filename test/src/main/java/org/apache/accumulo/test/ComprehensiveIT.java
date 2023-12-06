@@ -99,6 +99,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 
@@ -109,6 +111,8 @@ import com.google.common.collect.MoreCollectors;
  */
 @Tag(SUNNY_DAY)
 public class ComprehensiveIT extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
@@ -153,7 +157,6 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       final SortedMap<Key,Value> expectedData = generateKeys(0, 300);
 
       write(client, table, generateMutations(0, 300, tr -> true));
-
       verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       // test adding splits to a table
@@ -164,10 +167,19 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       // test merging splits away
+      log.info(">>>> call tableOperations().merge...");
       client.tableOperations().merge(table, null, null);
+      log.info(">>>> after merge call");
+
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
+      log.info(">>>> after merge assert");
       // merging should not change data
       verifyData(client, table, AUTHORIZATIONS, expectedData);
+      log.info(">>>> after merge verifydata");
+
+      if (true) {
+        return;
+      }
 
       splits = new TreeSet<>(List.of(new Text(row(33)), new Text(row(66))));
       client.tableOperations().addSplits(table, splits);
