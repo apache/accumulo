@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,12 +39,12 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -86,13 +85,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
+
     // Need at least two tservers -- wait for them to start before failing
-    for (int retries = 0; retries < 5; ++retries) {
-      if (accumuloClient.instanceOperations().getTabletServers().size() >= 2) {
-        break;
-      }
-      UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
-    }
+    Wait.waitFor(() -> accumuloClient.instanceOperations().getTabletServers().size() >= 2);
+
     assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
         "Not enough tservers to run test");
 

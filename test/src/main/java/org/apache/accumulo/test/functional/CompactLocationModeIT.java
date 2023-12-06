@@ -35,9 +35,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -65,11 +65,9 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online
-      TabletLocationState newTablet;
-      do {
-        UtilWaitThread.sleep(250);
-        newTablet = getTabletLocationState(c, tableId);
-      } while (newTablet.current == null);
+      Wait.waitFor(() -> getTabletLocationState(c, tableId) != null);
+
+      TabletLocationState newTablet = getTabletLocationState(c, tableId);
       assertNull(newTablet.last);
       assertNull(newTablet.future);
 
