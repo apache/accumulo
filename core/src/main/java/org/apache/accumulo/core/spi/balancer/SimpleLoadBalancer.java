@@ -331,7 +331,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
     TabletId mostRecentlySplit = null;
     long splitTime = 0;
     for (Entry<TabletId,TabletStatistics> entry : extents.entrySet()) {
-      @SuppressWarnings("deprecation")
+      @SuppressWarnings("removal")
       long splitCreationTime = entry.getValue().getSplitCreationTime();
       if (splitCreationTime >= splitTime) {
         splitTime = splitCreationTime;
