@@ -78,7 +78,7 @@ public class SlowOps {
     createData();
   }
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   public static void setExpectedCompactions(AccumuloClient client, final int numParallelExpected) {
     final int target = numParallelExpected + 1;
     try {

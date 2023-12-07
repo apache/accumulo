@@ -45,14 +45,14 @@ public class CompactionServicesConfig {
   private final Map<String,String> plannerPrefixes = new HashMap<>();
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
   long defaultRateLimit;
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private long getDefaultThroughput() {
     return ConfigurationTypeHelper
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());

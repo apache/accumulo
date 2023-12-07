@@ -49,7 +49,7 @@ public class ConfigSetIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConfigSetIT.class);
 
   @Test
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   public void setInvalidJson() throws Exception {
     log.debug("Starting setInvalidJson test ------------------");
 

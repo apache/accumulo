@@ -1043,6 +1043,10 @@
                   <property name="message" value="Line has trailing whitespace." />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="[@]Deprecated([^)]*forRemoval[^)]*)" />
+                  <property name="message" value="forRemoval should not be used." />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="[@]see\s+[{][@]link" />
                   <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
                 </module>
