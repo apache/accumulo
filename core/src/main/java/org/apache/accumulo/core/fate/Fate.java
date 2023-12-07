@@ -202,8 +202,7 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         long deferTime = 0;
-        // MERGE TODO rename to txStore
-        FateStore.FateTxStore<T> opStore = null;
+        FateStore.FateTxStore<T> txStore = null;
         try {
           var unreservedTid = workQueue.poll(100, MILLISECONDS);
           if (unreservedTid == null) {
@@ -212,18 +211,18 @@ public class Fate<T> {
           queuedWork.remove(unreservedTid);
           var optionalopStore = store.tryReserve(unreservedTid);
           if (optionalopStore.isPresent()) {
-            opStore = optionalopStore.orElseThrow();
+            txStore = optionalopStore.orElseThrow();
           } else {
             continue;
           }
-          TStatus status = opStore.getStatus();
-          Repo<T> op = opStore.top();
+          TStatus status = txStore.getStatus();
+          Repo<T> op = txStore.top();
           if (status == FAILED_IN_PROGRESS) {
-            processFailed(opStore, op);
+            processFailed(txStore, op);
           } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
-              deferTime = op.isReady(opStore.getID(), environment);
+              deferTime = op.isReady(txStore.getID(), environment);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
               // proceeding on success and returning to the while loop on failure.
@@ -231,16 +230,16 @@ public class Fate<T> {
               if (deferTime == 0) {
                 prevOp = op;
                 if (status == SUBMITTED) {
-                  opStore.setStatus(IN_PROGRESS);
+                  txStore.setStatus(IN_PROGRESS);
                 }
-                op = op.call(opStore.getID(), environment);
+                op = op.call(txStore.getID(), environment);
               } else {
                 continue;
               }
 
             } catch (Exception e) {
-              blockIfHadoopShutdown(opStore.getID(), e);
-              transitionToFailed(opStore, e);
+              blockIfHadoopShutdown(txStore.getID(), e);
+              transitionToFailed(txStore, e);
               continue;
             }
 
@@ -248,18 +247,18 @@ public class Fate<T> {
               // transaction is finished
               String ret = prevOp.getReturn();
               if (ret != null) {
-                opStore.setTransactionInfo(TxInfo.RETURN_VALUE, ret);
+                txStore.setTransactionInfo(TxInfo.RETURN_VALUE, ret);
               }
-              opStore.setStatus(SUCCESSFUL);
-              doCleanUp(opStore);
+              txStore.setStatus(SUCCESSFUL);
+              doCleanUp(txStore);
             } else {
               try {
-                opStore.push(op);
+                txStore.push(op);
               } catch (StackOverflowException e) {
                 // the op that failed to push onto the stack was never executed, so no need to undo
                 // it
                 // just transition to failed and undo the ops that executed
-                transitionToFailed(opStore, e);
+                transitionToFailed(txStore, e);
                 continue;
               }
             }
@@ -267,8 +266,8 @@ public class Fate<T> {
         } catch (Exception e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
-          if (opStore != null) {
-            opStore.unreserve(deferTime);
+          if (txStore != null) {
+            txStore.unreserve(deferTime);
           }
         }
       }
