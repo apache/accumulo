@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
@@ -30,14 +31,21 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -45,9 +53,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.manager.PartitionData;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +79,121 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final Supplier<PartitionData> partitionDataSupplier;
+  private final BlockingQueue<Long> workQueue;
+  private final Set<Long> queuedWork;
+  private final Thread workFinder;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+  }
+
+  // TODO add a task that periodically looks for fate task reserved by dead instances, only run in
+  // partition zero
+  private class LockCleaner implements Runnable {
+
+    @Override
+    public void run() {
+      while (keepRunning.get()) {
+        var partitionData = partitionDataSupplier.get();
+        if (partitionData.shouldRun(PartitionData.SingletonManagerService.FATE_LOCK_CLEANUP)) {
+          // run cleanup
+        }
+        // sleep a long time
+      }
+    }
+  }
+
+  /**
+   * A single thread that finds transactions to work on and queues them up. Do not want each worker
+   * thread going to the store and looking for work as it would place more load on the store.
+   */
+  private class WorkFinder implements Runnable {
+
+    private Retry newRetry() {
+      // ELASTICITY_TODO the max time to retry may be store depependent, depends on how expensive
+      // the read is in the impl. The more expensive the read is the high we may want to make the
+      // max. Can figure this out after we have an Accumulo table store.
+      return Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
+          .incrementBy(25, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.5)
+          .logInterval(3, MINUTES).createRetry();
+    }
+
+    @Override
+    public void run() {
+
+      try {
+        Retry retry = newRetry();
+        PartitionData lastPartitionData = partitionDataSupplier.get();
+
+        while (keepRunning.get()) {
+          var partitionData = partitionDataSupplier.get();
+          if (!partitionData.equals(lastPartitionData)) {
+            // Partition data changed, so lets clear anything queued to avoid unnecessary
+            // contention.
+            // The queue does not have to be cleared here for overall correctness, this is just an
+            // attempt to avoid some unnecessary work caused by multiple processes trying to reserve
+            // the same fate transaction.
+            workQueue.clear();
+            queuedWork.clear();
+          }
+          lastPartitionData = partitionData;
+
+          if (workQueue.isEmpty()) {
+            queuedWork.clear();
+          }
+
+          var iter = store.runnable(partitionData);
+
+          int added = 0;
+          while (iter.hasNext() && keepRunning.get()) {
+            Long txid = iter.next();
+            try {
+              if (queuedWork.contains(txid)) {
+                // Avoid adding the same id to the queue multiple times as this will cause
+                // unnecessary work when multiple threads try to work on the same id.
+                continue;
+              }
+              added++;
+              queuedWork.add(txid);
+              while (keepRunning.get()) {
+                if (workQueue.offer(txid, 100, TimeUnit.MILLISECONDS)) {
+                  break;
+                }
+              }
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          }
+
+          if (added == 0) {
+            // When nothing was added to the queue, then start doing exponential backoff before
+            // reading from the store again in order to avoid overwhelming the store.
+            try {
+              retry.waitForNextAttempt(log,
+                  "Find work for fate partition " + partitionData.toString());
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          } else {
+            // reset the retry object
+            retry.logCompletion(log, "Find work for fate partition " + partitionData.toString());
+            retry = newRetry();
+          }
+        }
+      } catch (Exception e) {
+        if (keepRunning.get()) {
+          log.warn("Failure while attempting to find work for fate", e);
+        } else {
+          log.debug("Failure while attempting to find work for fate", e);
+        }
+
+        queuedWork.clear();
+        workQueue.clear();
+      }
+    }
   }
 
   private class TransactionRunner implements Runnable {
@@ -79,14 +202,24 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         long deferTime = 0;
-        FateTxStore<T> txStore = null;
+        FateStore.FateTxStore<T> txStore = null;
         try {
-          txStore = store.reserve();
+          var unreservedTid = workQueue.poll(100, MILLISECONDS);
+          if (unreservedTid == null) {
+            continue;
+          }
+          queuedWork.remove(unreservedTid);
+          var optionalopStore = store.tryReserve(unreservedTid);
+          if (optionalopStore.isPresent()) {
+            txStore = optionalopStore.orElseThrow();
+          } else {
+            continue;
+          }
           TStatus status = txStore.getStatus();
           Repo<T> op = txStore.top();
           if (status == FAILED_IN_PROGRESS) {
             processFailed(txStore, op);
-          } else {
+          } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
               deferTime = op.isReady(txStore.getID(), environment);
@@ -226,11 +359,16 @@ public class Fate<T> {
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
   public Fate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
-      AccumuloConfiguration conf) {
+      Supplier<PartitionData> partitionDataSupplier, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
+    this.partitionDataSupplier = partitionDataSupplier;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    // TODO this queue does not resize when config changes
+    this.workQueue =
+        new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
+    this.queuedWork = Collections.synchronizedSet(new HashSet<>());
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
@@ -257,6 +395,9 @@ public class Fate<T> {
       }
     }, 3, SECONDS));
     this.executor = pool;
+
+    this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
+    this.workFinder.start();
   }
 
   // get a transaction id back to the requester before doing any work
@@ -341,6 +482,7 @@ public class Fate<T> {
 
   // resource cleanup
   public void delete(long tid) {
+    // TODO need to handle case of not existing
     FateTxStore<T> txStore = store.reserve(tid);
     try {
       switch (txStore.getStatus()) {
@@ -399,6 +541,7 @@ public class Fate<T> {
     if (executor != null) {
       executor.shutdown();
     }
+    workFinder.interrupt();
   }
 
 }

@@ -419,6 +419,8 @@ public class AdminUtil<T> {
 
   public boolean prepDelete(FateStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
       String txidStr) {
+    // TODO do not need global lock now
+    // TODO need way to see what process holds a reservation
     if (!checkGlobalLock(zk, path)) {
       return false;
     }

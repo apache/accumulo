@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
-import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -71,8 +70,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -82,6 +81,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -255,6 +255,12 @@ public class Manager extends AbstractServer
 
   public boolean stillManager() {
     return getManagerState() != ManagerState.STOP;
+  }
+
+  // ELASTICITY_TODO implement this and determine behavior when manager does not have lock. Maybe it
+  // should return Optional<PartitionData>, so it can return Optional.empty() when lock is not held?
+  public PartitionData getParitionData() {
+    return new PartitionData(0, 1);
   }
 
   /**
@@ -1078,17 +1084,13 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(
-          new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()),
-          HOURS.toMillis(8), System::currentTimeMillis);
+      final ZooStore<Manager> store = new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
+          context.getZooReaderWriter(), managerLock.getLockID());
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, this::getParitionData,
+          getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
-
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }

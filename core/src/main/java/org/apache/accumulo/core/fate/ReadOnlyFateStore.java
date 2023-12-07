@@ -20,7 +20,10 @@ package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
+
+import org.apache.accumulo.core.manager.PartitionData;
 
 /**
  * Read only access to a Transaction Store.
@@ -33,6 +36,7 @@ public interface ReadOnlyFateStore<T> {
   /**
    * Possible operational status codes. Serialized by name within stores.
    */
+  // TODO rename to FateTxStatus
   enum TStatus {
     /** Unseeded transaction */
     NEW,
@@ -121,4 +125,11 @@ public interface ReadOnlyFateStore<T> {
    * @return all outstanding transactions, including those reserved by others.
    */
   List<Long> list();
+
+  /**
+   * @return an iterator over fate op ids that are (IN_PROGRESS or FAILED_IN_PROGRESS) and
+   *         unreserved. Also filter the transaction using the partitioning data so that each fate
+   *         instance sees a different subset of all fate transactions.
+   */
+  Iterator<Long> runnable(PartitionData partitionData);
 }

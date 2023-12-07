@@ -21,6 +21,8 @@ package org.apache.accumulo.core.fate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayInputStream;
@@ -34,22 +36,29 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.UUID;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -61,11 +70,45 @@ public class ZooStore<T> implements FateStore<T> {
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
   private ZooReaderWriter zk;
-  private String lastReserved = "";
-  private Set<Long> reserved;
+
   private Map<Long,Long> defered;
-  private long statusChangeEvents = 0;
-  private int reservationsWaiting = 0;
+
+  // The zookeeper lock for the process that running this store instance.
+  private final ZooUtil.LockID lockID;
+
+  // TODO this was hastily written code for serialization. Should it use json? It needs better
+  // validation of data being serialized (like validate status, lock, and uuid).
+  private static class NodeValue {
+    final TStatus status;
+    final String lock;
+    final String uuid;
+
+    private NodeValue(byte[] serializedData) {
+      var fields = new String(serializedData, UTF_8).split(":", 3);
+      this.status = TStatus.valueOf(fields[0]);
+      this.lock = fields[1];
+      this.uuid = fields[2];
+    }
+
+    private NodeValue(TStatus status, String lock, String uuid) {
+      if (lock.isEmpty() && !uuid.isEmpty() || uuid.isEmpty() && !lock.isEmpty()) {
+        throw new IllegalArgumentException(
+            "For lock and uuid expect neither is empty or both are empty. lock:'" + lock
+                + "' uuid:'" + uuid + "'");
+      }
+      this.status = status;
+      this.lock = lock;
+      this.uuid = uuid;
+    }
+
+    byte[] serialize() {
+      return (status.name() + ":" + lock + ":" + uuid).getBytes(UTF_8);
+    }
+
+    public boolean isReserved() {
+      return !lock.isEmpty();
+    }
+  }
 
   private byte[] serialize(Object o) {
 
@@ -104,12 +147,13 @@ public class ZooStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID)
+      throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
-    this.reserved = new HashSet<>();
-    this.defered = new HashMap<>();
+    this.defered = Collections.synchronizedMap(new HashMap<>());
+    this.lockID = lockID;
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -117,7 +161,9 @@ public class ZooStore<T> implements FateStore<T> {
   /**
    * For testing only
    */
-  ZooStore() {}
+  ZooStore() {
+    lockID = null;
+  }
 
   @Override
   public long create() {
@@ -125,7 +171,7 @@ public class ZooStore<T> implements FateStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid), new NodeValue(TStatus.NEW, "", "").serialize(),
             NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
@@ -137,108 +183,24 @@ public class ZooStore<T> implements FateStore<T> {
   }
 
   @Override
-  public FateTxStore<T> reserve() {
-    try {
-      while (true) {
-
-        long events;
-        synchronized (this) {
-          events = statusChangeEvents;
-        }
-
-        List<String> txdirs = new ArrayList<>(zk.getChildren(path));
-        Collections.sort(txdirs);
-
-        synchronized (this) {
-          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0) {
-            lastReserved = "";
-          }
-        }
-
-        for (String txdir : txdirs) {
-          long tid = parseTid(txdir);
-
-          synchronized (this) {
-            // this check makes reserve pick up where it left off, so that it cycles through all as
-            // it is repeatedly called.... failing to do so can lead to
-            // starvation where fate ops that sort higher and hold a lock are never reserved.
-            if (txdir.compareTo(lastReserved) <= 0) {
-              continue;
-            }
-
-            if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis()) {
-                defered.remove(tid);
-              } else {
-                continue;
-              }
-            }
-            if (reserved.contains(tid)) {
-              continue;
-            } else {
-              reserved.add(tid);
-              lastReserved = txdir;
-            }
-          }
-
-          // have reserved id, status should not change
-
-          try {
-            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
-            if (status == TStatus.SUBMITTED || status == TStatus.IN_PROGRESS
-                || status == TStatus.FAILED_IN_PROGRESS) {
-              return new FateTxStoreImpl(tid, true);
-            } else {
-              unreserve(tid);
-            }
-          } catch (NoNodeException nne) {
-            // node deleted after we got the list of children, its ok
-            unreserve(tid);
-          } catch (KeeperException | InterruptedException | RuntimeException e) {
-            unreserve(tid);
-            throw e;
-          }
-        }
-
-        synchronized (this) {
-          // suppress lgtm alert - synchronized variable is not always true
-          if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.isEmpty()) {
-              this.wait(5000);
-            } else {
-              Long minTime = Collections.min(defered.values());
-              long waitTime = minTime - System.currentTimeMillis();
-              if (waitTime > 0) {
-                this.wait(Math.min(waitTime, 5000));
-              }
-            }
-          }
-        }
-      }
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Override
   public FateTxStore<T> reserve(long tid) {
-    synchronized (this) {
-      reservationsWaiting++;
-      try {
-        while (reserved.contains(tid)) {
-          try {
-            this.wait(1000);
-          } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-          }
-        }
+    var retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
-        reserved.add(tid);
-        return new FateTxStoreImpl(tid, true);
-      } finally {
-        reservationsWaiting--;
+    var resFateOp = tryReserve(tid);
+    while (resFateOp.isEmpty()) {
+      try {
+        retry.waitForNextAttempt(log, "Attempting to reserve " + FateTxId.formatTid(tid));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalArgumentException(e);
       }
+      resFateOp = tryReserve(tid);
     }
+
+    retry.logCompletion(log, "Attempting to reserve " + FateTxId.formatTid(tid));
+    return resFateOp.orElseThrow();
   }
 
   /**
@@ -249,38 +211,73 @@ public class ZooStore<T> implements FateStore<T> {
    */
   @Override
   public Optional<FateTxStore<T>> tryReserve(long tid) {
-    synchronized (this) {
-      if (!reserved.contains(tid)) {
-        return Optional.of(reserve(tid));
+
+    // uniquely identify this attempt to reserve the fate operation data
+    var uuid = UUID.randomUUID();
+
+    try {
+      byte[] newValue = zk.mutateExisting(getTXPath(tid), currentValue -> {
+        var nodeVal = new NodeValue(currentValue);
+        // The uuid handle the case where there was a ZK server fault and the write for this thread
+        // went through but that was not acknowledged and we are reading our own write for 2nd time.
+        if (!nodeVal.isReserved() || nodeVal.uuid.equals(uuid.toString())) {
+          return new NodeValue(nodeVal.status, lockID.serialize(""), uuid.toString()).serialize();
+        } else {
+          // returning null will not change the value AND the null will be returned
+          return null;
+        }
+      });
+
+      if (newValue != null) {
+        // clear any deferment if it exists, it may or may not be set when its unreserved
+        defered.remove(tid);
+        return Optional.of(new FateTxStoreImpl(tid, uuid));
+      } else {
+        return Optional.empty();
       }
+    } catch (NoNodeException e) {
+      log.trace("Fate op does not exists so can not reserve", e);
       return Optional.empty();
-    }
-  }
-
-  private void unreserve(long tid) {
-    synchronized (this) {
-      if (!reserved.remove(tid)) {
-        throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
-      }
-
-      // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
-      // loop when tx is stuck in NEW...
-      // only do this when something external has called reserve(tid)...
-      if (reservationsWaiting > 0) {
-        this.notifyAll();
-      }
+    } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
+      throw new IllegalStateException(e);
     }
   }
 
   private class FateTxStoreImpl implements FateTxStore<T> {
 
     private final long tid;
-    private final boolean isReserved;
+    private UUID reservationUUID;
+    private boolean deleted = false;
 
-    private FateTxStoreImpl(long tid, boolean isReserved) {
+    private FateTxStoreImpl(long tid) {
       this.tid = tid;
-      this.isReserved = isReserved;
+      this.reservationUUID = null;
+    }
+
+    private FateTxStoreImpl(long tid, UUID uuid) {
+      this.tid = tid;
+      this.reservationUUID = Objects.requireNonNull(uuid);
+    }
+
+    private void unreserve() {
+      Preconditions.checkState(reservationUUID != null);
+      try {
+        if (!deleted) {
+          zk.mutateExisting(getTXPath(tid), currentValue -> {
+            var nodeVal = new NodeValue(currentValue);
+            if (nodeVal.uuid.equals(reservationUUID.toString())) {
+              return new NodeValue(nodeVal.status, "", "").serialize();
+            } else {
+              // possible this is running a 2nd time in zk server fault conditions and its first
+              // write went through
+              return null;
+            }
+          });
+        }
+        reservationUUID = null;
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
+        throw new IllegalStateException(e);
+      }
     }
 
     @Override
@@ -290,33 +287,18 @@ public class ZooStore<T> implements FateStore<T> {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
-      synchronized (this) {
-        if (!reserved.remove(tid)) {
-          throw new IllegalStateException(
-              "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
-        }
-
-        if (deferTime > 0) {
-          defered.put(tid, System.currentTimeMillis() + deferTime);
-        }
-
-        this.notifyAll();
+      if (deferTime > 0) {
+        // add to defered before actually unreserving
+        defered.put(tid, System.currentTimeMillis() + deferTime);
       }
 
+      unreserve();
     }
 
     private void verifyReserved(boolean isWrite) {
-      if (!isReserved && isWrite) {
-        throw new IllegalStateException("Attempted write on unreserved FATE transaction.");
-      }
-
-      if (isReserved) {
-        synchronized (this) {
-          if (!reserved.contains(tid)) {
-            throw new IllegalStateException(
-                "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
-          }
-        }
+      if (reservationUUID == null && isWrite) {
+        throw new IllegalStateException(
+            "Attempted write on unreserved FATE transaction." + FateTxId.formatTid(getID()));
       }
     }
 
@@ -355,6 +337,7 @@ public class ZooStore<T> implements FateStore<T> {
     }
 
     private String findTop(String txpath) throws KeeperException, InterruptedException {
+      verifyReserved(false);
       List<String> ops = zk.getChildren(txpath);
 
       ops = new ArrayList<>(ops);
@@ -409,9 +392,10 @@ public class ZooStore<T> implements FateStore<T> {
       }
     }
 
-    private TStatus _getStatus(long tid) {
+    private TStatus _getStatus() {
+      verifyReserved(false);
       try {
-        return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
+        return new NodeValue(zk.getData(getTXPath(tid))).status;
       } catch (NoNodeException nne) {
         return TStatus.UNKNOWN;
       } catch (KeeperException | InterruptedException e) {
@@ -422,31 +406,35 @@ public class ZooStore<T> implements FateStore<T> {
     @Override
     public TStatus getStatus() {
       verifyReserved(false);
-      return _getStatus(tid);
+      return _getStatus();
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
-      while (true) {
-        long events;
-        synchronized (this) {
-          events = statusChangeEvents;
-        }
+      verifyReserved(false);
+      // TODO make the max time a function of the number of concurrent callers, as the number of
+      // concurrent callers increases then increase the max wait time
+      // TODO could support signaling within this instance for known events
+      // TODO made the maxWait low so this would be responsive... that may put a lot of load in the
+      // case there are lots of things waiting...
+      var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
+          .incrementBy(25, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
+          .logInterval(3, MINUTES).createRetry();
 
-        TStatus status = _getStatus(tid);
+      while (true) {
+        TStatus status = _getStatus();
         if (expected.contains(status)) {
+          retry.logCompletion(log, "Waiting on status change for " + FateTxId.formatTid(tid)
+              + " expected:" + expected + " status:" + status);
           return status;
         }
 
-        synchronized (this) {
-          // suppress lgtm alert - synchronized variable is not always true
-          if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            try {
-              this.wait(5000);
-            } catch (InterruptedException e) {
-              throw new IllegalStateException(e);
-            }
-          }
+        try {
+          retry.waitForNextAttempt(log, "Waiting on status change for " + FateTxId.formatTid(tid)
+              + " expected:" + expected + " status:" + status);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
         }
       }
     }
@@ -456,24 +444,23 @@ public class ZooStore<T> implements FateStore<T> {
       verifyReserved(true);
 
       try {
-        zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
-            NodeExistsPolicy.OVERWRITE);
-      } catch (KeeperException | InterruptedException e) {
+        zk.mutateExisting(getTXPath(tid), currentValue -> {
+          var nodeVal = new NodeValue(currentValue);
+          Preconditions.checkState(nodeVal.uuid.equals(reservationUUID.toString()),
+              "Tried to set status for %s and it was not reserved", FateTxId.formatTid(tid));
+          return new NodeValue(status, nodeVal.lock, nodeVal.uuid).serialize();
+        });
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
         throw new IllegalStateException(e);
       }
-
-      synchronized (this) {
-        statusChangeEvents++;
-      }
-
     }
 
     @Override
     public void delete() {
       verifyReserved(true);
-
       try {
         zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
+        deleted = true;
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }
@@ -537,6 +524,7 @@ public class ZooStore<T> implements FateStore<T> {
 
     @Override
     public long getID() {
+      verifyReserved(false);
       return tid;
     }
 
@@ -584,7 +572,7 @@ public class ZooStore<T> implements FateStore<T> {
 
   @Override
   public ReadOnlyFateTxStore<T> read(long tid) {
-    return new FateTxStoreImpl(tid, false);
+    return new FateTxStoreImpl(tid);
   }
 
   @Override
@@ -596,6 +584,43 @@ public class ZooStore<T> implements FateStore<T> {
         l.add(parseTid(txid));
       }
       return l;
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Override
+  public Iterator<Long> runnable(PartitionData partitionData) {
+    try {
+      ArrayList<Long> runnableTids = new ArrayList<>();
+      List<String> transactions = zk.getChildren(path);
+      for (String txid : transactions) {
+        try {
+          var nodeVal = new NodeValue(zk.getData(path + "/" + txid));
+          var tid = parseTid(txid);
+          if (!nodeVal.isReserved()
+              && (nodeVal.status == TStatus.IN_PROGRESS
+                  || nodeVal.status == TStatus.FAILED_IN_PROGRESS
+                  || nodeVal.status == TStatus.SUBMITTED)
+              && tid % partitionData.getTotalInstances() == partitionData.getPartition()) {
+            runnableTids.add(tid);
+          }
+        } catch (NoNodeException nne) {
+          // expected race condition that node could be deleted after getting list of children
+          log.trace("Skipping missing node {}", txid);
+        }
+      }
+
+      // Anything that is not runnable in this partition should be removed from the defered set
+      defered.keySet().retainAll(runnableTids);
+
+      // Filter out any transactions that are not read to run because of deferment
+      runnableTids.removeIf(runnableTid -> {
+        var deferedTime = defered.get(runnableTid);
+        return deferedTime != null && deferedTime < System.currentTimeMillis();
+      });
+
+      return runnableTids.iterator();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }

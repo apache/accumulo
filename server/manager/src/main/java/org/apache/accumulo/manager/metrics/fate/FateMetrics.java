@@ -71,7 +71,7 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
+      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter(), null); // TODO
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);

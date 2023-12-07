@@ -21,6 +21,7 @@ package org.apache.accumulo.core.logging;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.WrappedFateTxStore;
+import org.apache.accumulo.core.manager.PartitionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,13 +100,13 @@ public class FateLogger {
     return new FateStore<>() {
 
       @Override
-      public FateTxStore<T> reserve() {
-        return new LoggingFateTxStore<>(store.reserve(), toLogString);
+      public FateTxStore<T> reserve(long tid) {
+        return new LoggingFateTxStore<>(store.reserve(tid), toLogString);
       }
 
       @Override
-      public FateTxStore<T> reserve(long tid) {
-        return new LoggingFateTxStore<>(store.reserve(tid), toLogString);
+      public long create() {
+        return store.create();
       }
 
       @Override
@@ -123,13 +125,10 @@ public class FateLogger {
       }
 
       @Override
-      public long create() {
-        long tid = store.create();
-        if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction", formatTid(tid));
-        }
-        return tid;
+      public Iterator<Long> runnable(PartitionData partitionData) {
+        return store.runnable(partitionData);
       }
+
     };
   }
 }

@@ -44,13 +44,14 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.PartitionData;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -144,13 +145,16 @@ public class FateIT {
     szk.close();
   }
 
+  private ZooUtil.LockID createLockID() {
+    return new ZooUtil.LockID("S1", "N1", 1234);
+  }
+
   @Test
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -162,7 +166,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -208,9 +213,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -222,7 +226,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -247,9 +252,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -261,7 +265,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -275,13 +280,12 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
+      callStarted.await();
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
       Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       assertFalse(fate.cancel(txid));
-      callStarted.await();
       finishCall.countDown();
-      fate.delete(txid);
     } finally {
       fate.shutdown();
     }
@@ -289,9 +293,8 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    final ZooStore<Manager> store =
+        new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, createLockID());
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -303,7 +306,8 @@ public class FateIT {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString,
+        () -> new PartitionData(0, 1), config);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -342,7 +346,7 @@ public class FateIT {
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
-    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
+    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8).split(":")[0]);
   }
 
 }
