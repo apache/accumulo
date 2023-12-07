@@ -148,7 +148,10 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   public void testMergeAndSplit() throws Exception {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      long t1 = System.currentTimeMillis();
       client.tableOperations().create(table);
+      long t2 = System.currentTimeMillis();
+      System.out.println("create time " + (t2 - t1));
 
       final SortedMap<Key,Value> expectedData = generateKeys(0, 300);
 
@@ -158,23 +161,35 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // test adding splits to a table
       var splits = new TreeSet<>(List.of(new Text(row(75)), new Text(row(150))));
+      t1 = System.currentTimeMillis();
       client.tableOperations().addSplits(table, splits);
+      t2 = System.currentTimeMillis();
+      System.out.println("split time " + (t2 - t1));
       assertEquals(splits, new TreeSet<>(client.tableOperations().listSplits(table)));
       // adding splits should not change data
       verifyData(client, table, AUTHORIZATIONS, expectedData);
 
+      t1 = System.currentTimeMillis();
       // test merging splits away
       client.tableOperations().merge(table, null, null);
+      t2 = System.currentTimeMillis();
+      System.out.println("merge time " + (t2 - t1));
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       // merging should not change data
       verifyData(client, table, AUTHORIZATIONS, expectedData);
 
       splits = new TreeSet<>(List.of(new Text(row(33)), new Text(row(66))));
+      t1 = System.currentTimeMillis();
       client.tableOperations().addSplits(table, splits);
+      t2 = System.currentTimeMillis();
+      System.out.println("split time " + (t2 - t1));
       assertEquals(splits, new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
 
+      t1 = System.currentTimeMillis();
       client.tableOperations().merge(table, null, null);
+      t2 = System.currentTimeMillis();
+      System.out.println("merge time " + (t2 - t1));
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
     }
