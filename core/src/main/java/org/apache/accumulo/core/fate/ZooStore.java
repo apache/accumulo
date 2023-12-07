@@ -333,7 +333,7 @@ public class ZooStore<T> implements FateStore<T> {
           return status;
         }
 
-        waitForChange(tid, 5000);
+        waitForChange(tid, 1000);
       }
     }
 
