@@ -20,7 +20,6 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
@@ -71,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -115,9 +115,9 @@ public class TabletMetadata {
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
-  private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private boolean merged;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
@@ -145,10 +145,10 @@ public class TabletMetadata {
     CLONED,
     FLUSH_ID,
     LOGS,
-    COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
     ECOMP,
+    MERGED,
     HOSTING_GOAL,
     HOSTING_REQUESTED,
     OPID,
@@ -369,14 +369,14 @@ public class TabletMetadata {
     return flush;
   }
 
-  public OptionalLong getCompactId() {
-    ensureFetched(ColumnType.COMPACT_ID);
-    return compact;
-  }
-
   public Double getSplitRatio() {
     ensureFetched(ColumnType.SPLIT_RATIO);
     return splitRatio;
+  }
+
+  public boolean hasMerged() {
+    ensureFetched(ColumnType.MERGED);
+    return merged;
   }
 
   public TabletHostingGoal getHostingGoal() {
@@ -403,9 +403,8 @@ public class TabletMetadata {
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("compact", compact).append("splitRatio", splitRatio)
-        .append("extCompactions", extCompactions).append("goal", goal)
-        .append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
+        .append("goal", goal).append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }
@@ -506,9 +505,6 @@ public class TabletMetadata {
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
               break;
-            case COMPACT_QUAL:
-              te.compact = OptionalLong.of(Long.parseLong(val));
-              break;
             case OPID_QUAL:
               te.setOperationIdOnce(val, suppressLocationError);
               break;
@@ -549,6 +545,9 @@ public class TabletMetadata {
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
           break;
+        case MergedColumnFamily.STR_NAME:
+          te.merged = true;
+          break;
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));
           break;
@@ -561,9 +560,12 @@ public class TabletMetadata {
               te.onDemandHostingRequested = true;
               break;
             default:
-              throw new IllegalStateException("Unexpected family " + fam);
+              throw new IllegalStateException("Unexpected qualifier " + fam);
           }
           break;
+        default:
+          throw new IllegalStateException("Unexpected family " + fam);
+
       }
     }
 

@@ -243,9 +243,7 @@ public class FateIT {
       assertTrue(fate.cancel(txid));
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
-      // can not delete a failed in progress operation, so wait for it to transition to FAILED
-      Wait.waitFor(() -> FAILED_IN_PROGRESS != getTxStatus(zk, txid));
+      Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
       fate.delete(txid);
     } finally {
       fate.shutdown();
@@ -285,6 +283,7 @@ public class FateIT {
       callStarted.await();
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
+      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       assertFalse(fate.cancel(txid));
       finishCall.countDown();
     } finally {

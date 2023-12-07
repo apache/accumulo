@@ -242,5 +242,9 @@ public class MultipleFateInstancesIT {
     assertFalse(testEnv1.executedOps.isEmpty());
     assertFalse(testEnv2.executedOps.isEmpty());
     assertFalse(testEnv3.executedOps.isEmpty());
+
+    fate1.shutdown();
+    fate2.shutdown();
+    fate3.shutdown();
   }
 }

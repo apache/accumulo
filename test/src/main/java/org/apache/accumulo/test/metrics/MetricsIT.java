@@ -20,6 +20,7 @@ package org.apache.accumulo.test.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -96,7 +97,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
         METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM, METRICS_SCAN_RETURN_FOR_MEM,
-        METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED, METRICS_MAJC_QUEUED, METRICS_MAJC_RUNNING);
+        METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED);
     Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
         METRICS_PROPSTORE_EVICTION_COUNT, METRICS_PROPSTORE_REFRESH_COUNT,
         METRICS_PROPSTORE_REFRESH_LOAD_COUNT, METRICS_PROPSTORE_ZK_ERROR_COUNT,
@@ -162,7 +163,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
           writer.addMutation(m);
         }
       }
-      client.tableOperations().compact(tableName, new CompactionConfig());
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       try (Scanner scanner = client.createScanner(tableName)) {
         scanner.forEach((k, v) -> {});
       }
@@ -194,6 +195,10 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
             // check hostname is always set and is valid
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
+            assertNotNull(a.getTags().get("instance.name"));
+
+            // check resource.group tag exists
+            assertNotNull(a.getTags().get("resource.group"));
 
             // check the length of the tag value is sane
             final int MAX_EXPECTED_TAG_LEN = 128;

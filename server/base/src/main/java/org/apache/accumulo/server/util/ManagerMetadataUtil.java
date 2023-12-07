@@ -29,9 +29,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -43,7 +41,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -57,8 +54,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
@@ -66,7 +61,7 @@ public class ManagerMetadataUtil {
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
-      long lastFlushID, long lastCompactID, ServiceLock zooLock) {
+      long lastFlushID, ServiceLock zooLock) {
 
     // ELASTICITY_TODO intentionally not using conditional mutations for this code because its only
     // called when tablets split. Tablet splitting will drastically change, so there is no need to
@@ -80,10 +75,6 @@ public class ManagerMetadataUtil {
 
     if (lastFlushID > 0) {
       tablet.putFlushId(lastFlushID);
-    }
-
-    if (lastCompactID > 0) {
-      tablet.putCompactionId(lastCompactID);
     }
 
     if (tServerInstance != null) {
@@ -177,64 +168,4 @@ public class ManagerMetadataUtil {
     }
   }
 
-  /**
-   * Update the last location if the location mode is "assignment". This will delete the previous
-   * last location if needed and set the new last location
-   *
-   * @param context The server context
-   * @param tabletMutator The mutator being built
-   * @param location The new location
-   * @param lastLocation The previous last location, which may be null
-   */
-  public static void updateLastForAssignmentMode(ClientContext context,
-      Ample.TabletUpdates<?> tabletMutator, TServerInstance location, Location lastLocation) {
-    Preconditions.checkArgument(
-        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
-
-    // if the location mode is assignment, then preserve the current location in the last
-    // location value
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
-    }
-  }
-
-  /**
-   * Update the last location if the location mode is "compaction". This will delete the previous
-   * last location if needed and set the new last location
-   *
-   * @param context The server context
-   * @param tabletMutator The mutator being built
-   * @param lastLocation The last location
-   * @param tServerInstance The server address
-   */
-  public static void updateLastForCompactionMode(ClientContext context,
-      Ample.ConditionalTabletMutator tabletMutator, Location lastLocation,
-      TServerInstance tServerInstance) {
-    // if the location mode is 'compaction', then preserve the current compaction location in the
-    // last location value
-    if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      Location newLocation = Location.last(tServerInstance);
-      updateLocation(tabletMutator, lastLocation, newLocation);
-    }
-  }
-
-  /**
-   * Update the location, deleting the previous location if needed
-   *
-   * @param tabletMutator The mutator being built
-   * @param previousLocation The location (may be null)
-   * @param newLocation The new location
-   */
-  private static void updateLocation(Ample.TabletUpdates<?> tabletMutator,
-      Location previousLocation, Location newLocation) {
-    // ELASTICITY_TODO pending #3301, update this code to use conditional mutations
-    if (previousLocation != null) {
-      if (!previousLocation.equals(newLocation)) {
-        tabletMutator.deleteLocation(previousLocation);
-        tabletMutator.putLocation(newLocation);
-      }
-    } else {
-      tabletMutator.putLocation(newLocation);
-    }
-  }
 }

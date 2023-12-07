@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
@@ -341,7 +343,7 @@ public class AdminUtil<T> {
 
     for (Long tid : transactions) {
 
-      var txStore = zs.read(tid);
+      ReadOnlyFateTxStore<T> txStore = zs.read(tid);
 
       String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
@@ -431,27 +433,28 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
+    FateTxStore<T> txStore = zs.reserve(txid);
+    try {
+      TStatus ts = txStore.getStatus();
+      switch (ts) {
+        case UNKNOWN:
+          System.out.printf("Invalid transaction ID: %016x%n", txid);
+          break;
 
-    var txStore = zs.reserve(txid);
-    TStatus ts = txStore.getStatus();
-    switch (ts) {
-      case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
-        break;
-
-      case SUBMITTED:
-      case IN_PROGRESS:
-      case NEW:
-      case FAILED:
-      case FAILED_IN_PROGRESS:
-      case SUCCESSFUL:
-        System.out.printf("Deleting transaction: %016x (%s)%n", txid, ts);
-        txStore.delete();
-        state = true;
-        break;
+        case SUBMITTED:
+        case IN_PROGRESS:
+        case NEW:
+        case FAILED:
+        case FAILED_IN_PROGRESS:
+        case SUCCESSFUL:
+          System.out.printf("Deleting transaction: %016x (%s)%n", txid, ts);
+          txStore.delete();
+          state = true;
+          break;
+      }
+    } finally {
+      txStore.unreserve(0);
     }
-
-    txStore.unreserve(0);
     return state;
   }
 
@@ -469,33 +472,36 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
-    var opStore = zs.reserve(txid);
-    TStatus ts = opStore.getStatus();
-    switch (ts) {
-      case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
-        break;
+    FateTxStore<T> txStore = zs.reserve(txid);
+    try {
+      TStatus ts = txStore.getStatus();
+      switch (ts) {
+        case UNKNOWN:
+          System.out.printf("Invalid transaction ID: %016x%n", txid);
+          break;
 
-      case SUBMITTED:
-      case IN_PROGRESS:
-      case NEW:
-        System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
-        opStore.setStatus(TStatus.FAILED_IN_PROGRESS);
-        state = true;
-        break;
+        case SUBMITTED:
+        case IN_PROGRESS:
+        case NEW:
+          System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
+          txStore.setStatus(TStatus.FAILED_IN_PROGRESS);
+          state = true;
+          break;
 
-      case SUCCESSFUL:
-        System.out.printf("Transaction already completed: %016x (%s)%n", txid, ts);
-        break;
+        case SUCCESSFUL:
+          System.out.printf("Transaction already completed: %016x (%s)%n", txid, ts);
+          break;
 
-      case FAILED:
-      case FAILED_IN_PROGRESS:
-        System.out.printf("Transaction already failed: %016x (%s)%n", txid, ts);
-        state = true;
-        break;
+        case FAILED:
+        case FAILED_IN_PROGRESS:
+          System.out.printf("Transaction already failed: %016x (%s)%n", txid, ts);
+          state = true;
+          break;
+      }
+    } finally {
+      txStore.unreserve(0);
     }
 
-    opStore.unreserve(0);
     return state;
   }
 

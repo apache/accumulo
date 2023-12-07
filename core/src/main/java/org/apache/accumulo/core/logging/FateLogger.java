@@ -21,7 +21,6 @@ package org.apache.accumulo.core.logging;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -29,10 +28,11 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
+import org.apache.accumulo.core.fate.WrappedFateTxStore;
 import org.apache.accumulo.core.manager.PartitionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,96 +44,53 @@ public class FateLogger {
   // reproducible problems with FATE transactions.
   private static final Logger storeLog = LoggerFactory.getLogger(PREFIX + "store");
 
-  private static class LoggingFateStore<T> implements FateStore.FateTxStore<T> {
+  private static class LoggingFateTxStore<T> extends WrappedFateTxStore<T> {
 
-    private final FateStore.FateTxStore<T> wrapped;
     private final Function<Repo<T>,String> toLogString;
 
-    private LoggingFateStore(FateStore.FateTxStore<T> wrapped,
-        Function<Repo<T>,String> toLogString) {
-      this.wrapped = wrapped;
+    private LoggingFateTxStore(FateTxStore<T> wrapped, Function<Repo<T>,String> toLogString) {
+      super(wrapped);
       this.toLogString = toLogString;
     }
 
     @Override
-    public List<ReadOnlyRepo<T>> getStack() {
-      return wrapped.getStack();
-    }
-
-    @Override
-    public ReadOnlyFateStore.TStatus getStatus() {
-      return wrapped.getStatus();
-    }
-
-    @Override
-    public ReadOnlyFateStore.TStatus
-        waitForStatusChange(EnumSet<ReadOnlyFateStore.TStatus> expected) {
-      return wrapped.waitForStatusChange(expected);
-    }
-
-    @Override
-    public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      return wrapped.getTransactionInfo(txInfo);
-    }
-
-    @Override
-    public long timeCreated() {
-      return wrapped.timeCreated();
-    }
-
-    @Override
-    public long getID() {
-      return wrapped.getID();
-    }
-
-    @Override
-    public Repo<T> top() {
-      return wrapped.top();
-    }
-
-    @Override
     public void push(Repo<T> repo) throws StackOverflowException {
-      wrapped.push(repo);
+      super.push(repo);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} pushed {}", formatTid(wrapped.getID()), toLogString.apply(repo));
+        storeLog.trace("{} pushed {}", formatTid(getID()), toLogString.apply(repo));
       }
     }
 
     @Override
     public void pop() {
-      wrapped.pop();
+      super.pop();
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} popped", formatTid(wrapped.getID()));
+        storeLog.trace("{} popped", formatTid(getID()));
       }
     }
 
     @Override
     public void setStatus(ReadOnlyFateStore.TStatus status) {
-      wrapped.setStatus(status);
+      super.setStatus(status);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} setStatus to {}", formatTid(wrapped.getID()), status);
+        storeLog.trace("{} setStatus to {}", formatTid(getID()), status);
       }
     }
 
     @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
-      wrapped.setTransactionInfo(txInfo, val);
+      super.setTransactionInfo(txInfo, val);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} setting {} to {}", formatTid(wrapped.getID()), txInfo, val);
+        storeLog.trace("{} setting {} to {}", formatTid(getID()), txInfo, val);
       }
     }
 
     @Override
     public void delete() {
-      wrapped.delete();
+      super.delete();
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} deleted fate transaction", formatTid(wrapped.getID()));
+        storeLog.trace("{} deleted fate transaction", formatTid(getID()));
       }
-    }
-
-    @Override
-    public void unreserve(long deferTime) {
-      wrapped.unreserve(deferTime);
     }
   }
 
@@ -141,14 +98,20 @@ public class FateLogger {
 
     // only logging operations that change the persisted data, not operations that only read data
     return new FateStore<>() {
+
       @Override
       public FateTxStore<T> reserve(long tid) {
-        return new LoggingFateStore<>(store.reserve(tid), toLogString);
+        return new LoggingFateTxStore<>(store.reserve(tid), toLogString);
+      }
+
+      @Override
+      public long create() {
+        return store.create();
       }
 
       @Override
       public Optional<FateTxStore<T>> tryReserve(long tid) {
-        return store.tryReserve(tid).map(fos -> new LoggingFateStore<>(fos, toLogString));
+        return store.tryReserve(tid).map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString));
       }
 
       @Override
@@ -166,14 +129,6 @@ public class FateLogger {
         return store.runnable(partitionData);
       }
 
-      @Override
-      public long create() {
-        long tid = store.create();
-        if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction", formatTid(tid));
-        }
-        return tid;
-      }
     };
   }
 }

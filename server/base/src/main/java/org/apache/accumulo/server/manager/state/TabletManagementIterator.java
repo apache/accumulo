@@ -60,6 +60,7 @@ import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TabletManagementIterator extends SkippingIterator {
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
-  private static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
+  public static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
 
@@ -87,6 +88,10 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   private boolean shouldReturnDueToLocation(final TabletMetadata tm) {
+
+    if (tm.getExtent().isRootTablet()) {
+      return true;
+    }
 
     if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
@@ -244,6 +249,10 @@ public class TabletManagementIterator extends SkippingIterator {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;
+    }
+
+    if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 
     if (shouldReturnDueToLocation(tm)) {

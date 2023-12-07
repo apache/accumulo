@@ -91,6 +91,14 @@ public class CompactionJobQueues {
     return priorityQueues.mappingCount();
   }
 
+  public long getQueuedJobCount() {
+    long count = 0;
+    for (CompactionJobPriorityQueue queue : priorityQueues.values()) {
+      count += queue.getQueuedJobs();
+    }
+    return count;
+  }
+
   public static class MetaJob {
     private final CompactionJob job;
 

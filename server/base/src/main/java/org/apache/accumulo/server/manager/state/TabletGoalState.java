@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,6 +144,11 @@ public enum TabletGoalState {
               "Could not find resource group for tserver {}, so did not consult balancer.  Need to determine the cause of this.",
               tm.getLocation().getServerInstance());
         }
+      }
+
+      if (params.getVolumeReplacements().size() > 0
+          && VolumeUtil.needsVolumeReplacement(params.getVolumeReplacements(), tm)) {
+        return UNASSIGNED;
       }
 
       if (tm.hasCurrent()

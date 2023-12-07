@@ -131,9 +131,6 @@ public enum PropertyType {
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
       "One of 'none', 'flush', or 'compact'."),
 
-  LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
-      "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
-
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),
@@ -245,7 +242,7 @@ public enum PropertyType {
         || (suffixCheck.test(x) && new Bounds(lowerBound, upperBound).test(stripUnits.apply(x)));
   }
 
-  private static final Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
+  private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end
   private static final Function<String,String> stripUnits =
       x -> x == null ? null : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
 

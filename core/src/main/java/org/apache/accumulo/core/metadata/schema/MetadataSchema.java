@@ -242,9 +242,6 @@ public class MetadataSchema {
       public static final String FLUSH_QUAL = "flush";
       public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
 
-      // ELASTICITY_TODO remove this from code and remove it from metadata in upgrade
-      public static final String COMPACT_QUAL = "compact";
-      public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text(COMPACT_QUAL));
       /**
        * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
        * tablet is not dead
@@ -392,9 +389,31 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    /**
+     * Column family for indicating that the files in a tablet have been trimmed to only include
+     * data for the current tablet, so that they are safe to merge
+     */
+    public static class ChoppedColumnFamily {
+      // kept to support upgrades to 3.1; name is used for both col fam and col qual
+      @Deprecated(since = "3.1.0")
+      public static final Text NAME = new Text("chopped");
+    }
+
     public static class ExternalCompactionColumnFamily {
       public static final String STR_NAME = "ecomp";
       public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * Column family for indicating that the files in a tablet contain fenced files that have been
+     * merged from other tablets during a merge operation. This is used to support resuming a failed
+     * merge operation.
+     */
+    public static class MergedColumnFamily {
+      public static final String STR_NAME = "merged";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ MERGED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+      public static final Value MERGED_VALUE = new Value("merged");
     }
 
     /**

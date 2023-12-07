@@ -162,6 +162,8 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -984,7 +986,7 @@ public class Manager extends AbstractServer
     ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress());
+          sa.getAddress(), getContext().getInstanceName(), this.getResourceGroup());
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -1647,7 +1649,10 @@ public class Manager extends AbstractServer
     AssignmentParamsImpl params =
         AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,
             unassigned.entrySet().stream().collect(HashMap::new,
-                (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
+                (m, e) -> m.put(e.getKey(),
+                    e.getValue().getLastLocation() == null ? null
+                        : e.getValue().getLastLocation().getServerInstance()),
+                Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
   }
@@ -1664,4 +1669,17 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Unhandled DataLevel value: " + level);
     }
   }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
+    Gauge.builder(METRICS_MAJC_QUEUED, compactionJobQueues, CompactionJobQueues::getQueuedJobCount)
+        .description("Number of queued major compactions").register(registry);
+    Gauge
+        .builder(METRICS_MAJC_RUNNING, compactionCoordinator,
+            CompactionCoordinator::getNumRunningCompactions)
+        .description("Number of running major compactions").register(registry);
+
+  }
+
 }

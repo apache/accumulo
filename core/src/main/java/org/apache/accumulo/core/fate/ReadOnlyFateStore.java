@@ -54,7 +54,16 @@ public interface ReadOnlyFateStore<T> {
     SUBMITTED
   }
 
+  /**
+   * Reads the data related to fate transaction without reserving it.
+   */
+  ReadOnlyFateTxStore<T> read(long tid);
+
+  /**
+   * Storage for an individual fate transaction
+   */
   interface ReadOnlyFateTxStore<T> {
+
     /**
      * Get the current operation for the given transaction id.
      *
@@ -104,10 +113,11 @@ public interface ReadOnlyFateStore<T> {
      */
     long timeCreated();
 
+    /**
+     * @return the id of the FATE transaction
+     */
     long getID();
   }
-
-  ReadOnlyFateTxStore<T> read(long tid);
 
   /**
    * list all transaction ids in store.
