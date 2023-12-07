@@ -243,18 +243,71 @@ public class ZooStore<T> implements FateStore<T> {
     }
   }
 
-  private class ReadOnlyFateStoreImpl implements ReadOnlyFateTxStore<T> {
-    private static final int RETRIES = 10;
+  private class FateTxStoreImpl implements FateTxStore<T> {
 
-    protected final long tid;
+    private final long tid;
+    private UUID reservationUUID;
+    private boolean deleted = false;
 
-    protected ReadOnlyFateStoreImpl(long tid) {
+    private FateTxStoreImpl(long tid) {
       this.tid = tid;
+      this.reservationUUID = null;
+    }
+
+    private FateTxStoreImpl(long tid, UUID uuid) {
+      this.tid = tid;
+      this.reservationUUID = Objects.requireNonNull(uuid);
+    }
+
+    private void unreserve() {
+      Preconditions.checkState(reservationUUID != null);
+      try {
+        if (!deleted) {
+          zk.mutateExisting(getTXPath(tid), currentValue -> {
+            var nodeVal = new NodeValue(currentValue);
+            if (nodeVal.uuid.equals(reservationUUID.toString())) {
+              return new NodeValue(nodeVal.status, "", "").serialize();
+            } else {
+              // possible this is running a 2nd time in zk server fault conditions and its first
+              // write went through
+              return null;
+            }
+          });
+        }
+        reservationUUID = null;
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
+        throw new IllegalStateException(e);
+      }
     }
 
     @Override
+    public void unreserve(long deferTime) {
+
+      if (deferTime < 0) {
+        throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
+      }
+
+      if (deferTime > 0) {
+        // add to defered before actually unreserving
+        defered.put(tid, System.currentTimeMillis() + deferTime);
+      }
+
+      unreserve();
+    }
+
+    private void verifyReserved(boolean isWrite) {
+      if (reservationUUID == null && isWrite) {
+        throw new IllegalStateException(
+            "Attempted write on unreserved FATE transaction." + FateTxId.formatTid(getID()));
+      }
+    }
+
+    private static final int RETRIES = 10;
+
+    @Override
     public Repo<T> top() {
-      checkState(false);
+      verifyReserved(false);
+
       for (int i = 0; i < RETRIES; i++) {
         String txpath = getTXPath(tid);
         try {
@@ -283,8 +336,8 @@ public class ZooStore<T> implements FateStore<T> {
       return null;
     }
 
-    String findTop(String txpath) throws KeeperException, InterruptedException {
-      checkState(false);
+    private String findTop(String txpath) throws KeeperException, InterruptedException {
+      verifyReserved(false);
       List<String> ops = zk.getChildren(txpath);
 
       ops = new ArrayList<>(ops);
@@ -304,8 +357,43 @@ public class ZooStore<T> implements FateStore<T> {
       return max;
     }
 
+    @Override
+    public void push(Repo<T> repo) throws StackOverflowException {
+      verifyReserved(true);
+
+      String txpath = getTXPath(tid);
+      try {
+        String top = findTop(txpath);
+        if (top != null && Long.parseLong(top.split("_")[1]) > 100) {
+          throw new StackOverflowException("Repo stack size too large");
+        }
+
+        zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
+      } catch (StackOverflowException soe) {
+        throw soe;
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public void pop() {
+      verifyReserved(true);
+
+      try {
+        String txpath = getTXPath(tid);
+        String top = findTop(txpath);
+        if (top == null) {
+          throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
+        }
+        zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
     private TStatus _getStatus() {
-      checkState(false);
+      verifyReserved(false);
       try {
         return new NodeValue(zk.getData(getTXPath(tid))).status;
       } catch (NoNodeException nne) {
@@ -317,13 +405,13 @@ public class ZooStore<T> implements FateStore<T> {
 
     @Override
     public TStatus getStatus() {
-      checkState(false);
+      verifyReserved(false);
       return _getStatus();
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
-      checkState(false);
+      verifyReserved(false);
       // TODO make the max time a function of the number of concurrent callers, as the number of
       // concurrent callers increases then increase the max wait time
       // TODO could support signaling within this instance for known events
@@ -352,8 +440,57 @@ public class ZooStore<T> implements FateStore<T> {
     }
 
     @Override
+    public void setStatus(TStatus status) {
+      verifyReserved(true);
+
+      try {
+        zk.mutateExisting(getTXPath(tid), currentValue -> {
+          var nodeVal = new NodeValue(currentValue);
+          Preconditions.checkState(nodeVal.uuid.equals(reservationUUID.toString()),
+              "Tried to set status for %s and it was not reserved", FateTxId.formatTid(tid));
+          return new NodeValue(status, nodeVal.lock, nodeVal.uuid).serialize();
+        });
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public void delete() {
+      verifyReserved(true);
+      try {
+        zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
+        deleted = true;
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public void setTransactionInfo(Fate.TxInfo txInfo, Serializable so) {
+      verifyReserved(true);
+
+      try {
+        if (so instanceof String) {
+          zk.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
+              NodeExistsPolicy.OVERWRITE);
+        } else {
+          byte[] sera = serialize(so);
+          byte[] data = new byte[sera.length + 2];
+          System.arraycopy(sera, 0, data, 2, sera.length);
+          data[0] = 'O';
+          data[1] = ' ';
+          zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
+        }
+      } catch (KeeperException | InterruptedException e2) {
+        throw new IllegalStateException(e2);
+      }
+    }
+
+    @Override
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      checkState(false);
+      verifyReserved(false);
+
       try {
         byte[] data = zk.getData(getTXPath(tid) + "/" + txInfo);
 
@@ -375,7 +512,8 @@ public class ZooStore<T> implements FateStore<T> {
 
     @Override
     public long timeCreated() {
-      checkState(false);
+      verifyReserved(false);
+
       try {
         Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
         return stat.getCtime();
@@ -386,13 +524,13 @@ public class ZooStore<T> implements FateStore<T> {
 
     @Override
     public long getID() {
-      checkState(false);
+      verifyReserved(false);
       return tid;
     }
 
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
-      checkState(false);
+      verifyReserved(false);
       String txpath = getTXPath(tid);
 
       outer: while (true) {
@@ -430,156 +568,11 @@ public class ZooStore<T> implements FateStore<T> {
         return dops;
       }
     }
-
-    protected void checkState(boolean unreserving) {}
-
-  }
-
-  private class FateTxStoreImpl extends ReadOnlyFateStoreImpl implements FateTxStore<T> {
-
-    private boolean reserved = true;
-    private boolean deleted = false;
-
-    private final UUID uuid;
-
-    protected FateTxStoreImpl(long tid, UUID uuid) {
-      super(tid);
-      this.uuid = Objects.requireNonNull(uuid);
-    }
-
-    @Override
-    public void push(Repo<T> repo) throws StackOverflowException {
-      checkState(false);
-      String txpath = getTXPath(tid);
-      try {
-        String top = findTop(txpath);
-        if (top != null && Long.parseLong(top.split("_")[1]) > 100) {
-          throw new StackOverflowException("Repo stack size too large");
-        }
-
-        zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
-      } catch (StackOverflowException soe) {
-        throw soe;
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @Override
-    public void pop() {
-      checkState(false);
-      try {
-        String txpath = getTXPath(tid);
-        String top = findTop(txpath);
-        if (top == null) {
-          throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
-        }
-        zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @Override
-    public void setStatus(TStatus status) {
-      checkState(false);
-      try {
-        zk.mutateExisting(getTXPath(tid), currentValue -> {
-          var nodeVal = new NodeValue(currentValue);
-          Preconditions.checkState(nodeVal.uuid.equals(uuid.toString()),
-              "Tried to set status for %s and it was not reserved", FateTxId.formatTid(tid));
-          return new NodeValue(status, nodeVal.lock, nodeVal.uuid).serialize();
-        });
-      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @Override
-    public void delete() {
-      checkState(false);
-      try {
-        zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
-        deleted = true;
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @Override
-    public void setTransactionInfo(Fate.TxInfo txInfo, Serializable so) {
-      checkState(false);
-      try {
-        if (so instanceof String) {
-          zk.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
-              NodeExistsPolicy.OVERWRITE);
-        } else {
-          byte[] sera = serialize(so);
-          byte[] data = new byte[sera.length + 2];
-          System.arraycopy(sera, 0, data, 2, sera.length);
-          data[0] = 'O';
-          data[1] = ' ';
-          zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
-        }
-      } catch (KeeperException | InterruptedException e2) {
-        throw new IllegalStateException(e2);
-      }
-    }
-
-    private void unreserve() {
-      checkState(true);
-      try {
-        if (!deleted) {
-          zk.mutateExisting(getTXPath(tid), currentValue -> {
-            var nodeVal = new NodeValue(currentValue);
-            if (nodeVal.uuid.equals(uuid.toString())) {
-              return new NodeValue(nodeVal.status, "", "").serialize();
-            } else {
-              // possible this is running a 2nd time in zk server fault conditions and its first
-              // write went through
-              return null;
-            }
-          });
-        }
-        reserved = false;
-      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @Override
-    public void unreserve(long deferTime) {
-
-      if (deferTime < 0) {
-        throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
-      }
-
-      if (deferTime > 0) {
-        // add to defered before actually unreserving
-        defered.put(tid, System.currentTimeMillis() + deferTime);
-      }
-
-      unreserve();
-    }
-
-    @Override
-    protected void checkState(boolean unreserving) {
-      super.checkState(unreserving);
-      if (!reserved) {
-        throw new IllegalStateException("Attempted to use fate store " + FateTxId.formatTid(getID())
-            + " after unreserving it.");
-      }
-
-      if (!unreserving && deleted) {
-        throw new IllegalStateException("Attempted to use fate store for "
-            + FateTxId.formatTid(getID()) + " after deleting it.");
-      }
-    }
   }
 
   @Override
   public ReadOnlyFateTxStore<T> read(long tid) {
-    return new ReadOnlyFateStoreImpl(tid);
+    return new FateTxStoreImpl(tid);
   }
 
   @Override
