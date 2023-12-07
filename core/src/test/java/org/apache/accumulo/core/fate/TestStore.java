@@ -23,10 +23,12 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Transient in memory store for transactions.
@@ -51,11 +53,6 @@ public class TestStore implements FateStore<String> {
     // twice... if test change, then change this
     reserved.add(tid);
     return new TestFateTxStore(tid);
-  }
-
-  @Override
-  public FateTxStore<String> reserve() {
-    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -170,6 +167,11 @@ public class TestStore implements FateStore<String> {
   @Override
   public List<Long> list() {
     return new ArrayList<>(statuses.keySet());
+  }
+
+  @Override
+  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+    throw new UnsupportedOperationException();
   }
 
 }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
@@ -32,6 +33,8 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -48,9 +51,12 @@ import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Fault tolerant executor
@@ -68,12 +74,110 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final BlockingQueue<Long> workQueue;
+  private final SingalCount idleWorkerCount = new SingalCount();
+  private final Thread workFinder;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
+  private class SingalCount {
+    long count;
+
+    synchronized void increment() {
+      count++;
+      this.notifyAll();
+    }
+
+    synchronized void decrement() {
+      Preconditions.checkState(count > 0);
+      count--;
+      this.notifyAll();
+    }
+
+    synchronized void waitTillNonZero() {
+      while (count == 0 && keepRunning.get()) {
+        try {
+          wait(100);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+
+  }
+
+  /**
+   * A single thread that finds transactions to work on and queues them up. Do not want each worker
+   * thread going to the store and looking for work as it would place more load on the store.
+   */
+  private class WorkFinder implements Runnable {
+
+    @Override
+    public void run() {
+
+      try {
+
+        while (keepRunning.get()) {
+
+          while (!workQueue.isEmpty() && keepRunning.get()) {
+            // wait till there is at least one worker that is looking for work and the queue is
+            // empty
+            idleWorkerCount.waitTillNonZero();
+          }
+
+          var iter = store.runnable(keepRunning);
+
+          while (iter.hasNext() && keepRunning.get()) {
+            Long txid = iter.next();
+            try {
+              while (keepRunning.get()) {
+                if (workQueue.offer(txid, 100, MILLISECONDS)) {
+                  break;
+                }
+              }
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          }
+        }
+      } catch (Exception e) {
+        if (keepRunning.get()) {
+          log.warn("Failure while attempting to find work for fate", e);
+        } else {
+          log.debug("Failure while attempting to find work for fate", e);
+        }
+
+        workQueue.clear();
+      }
+    }
+  }
+
   private class TransactionRunner implements Runnable {
+
+    private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
+      idleWorkerCount.increment();
+      try {
+        while (keepRunning.get()) {
+          var unreservedTid = workQueue.poll(100, MILLISECONDS);
+
+          if (unreservedTid == null) {
+            continue;
+          }
+          var optionalopStore = store.tryReserve(unreservedTid);
+          if (optionalopStore.isPresent()) {
+            return optionalopStore;
+          }
+        }
+
+        return Optional.empty();
+      } finally {
+        idleWorkerCount.decrement();
+      }
+    }
 
     @Override
     public void run() {
@@ -81,12 +185,17 @@ public class Fate<T> {
         long deferTime = 0;
         FateTxStore<T> txStore = null;
         try {
-          txStore = store.reserve();
+          var optionalopStore = reserveFateTx();
+          if (optionalopStore.isPresent()) {
+            txStore = optionalopStore.orElseThrow();
+          } else {
+            continue;
+          }
           TStatus status = txStore.getStatus();
           Repo<T> op = txStore.top();
           if (status == FAILED_IN_PROGRESS) {
             processFailed(txStore, op);
-          } else {
+          } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
               deferTime = op.isReady(txStore.getID(), environment);
@@ -231,6 +340,9 @@ public class Fate<T> {
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    // TODO this queue does not resize when config changes
+    this.workQueue =
+        new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
@@ -257,6 +369,9 @@ public class Fate<T> {
       }
     }, 3, SECONDS));
     this.executor = pool;
+
+    this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
+    this.workFinder.start();
   }
 
   // get a transaction id back to the requester before doing any work
@@ -398,6 +513,12 @@ public class Fate<T> {
     fatePoolWatcher.shutdown();
     if (executor != null) {
       executor.shutdown();
+    }
+    workFinder.interrupt();
+    try {
+      workFinder.join();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 

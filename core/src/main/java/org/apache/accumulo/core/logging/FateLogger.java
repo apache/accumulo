@@ -21,8 +21,10 @@ package org.apache.accumulo.core.logging;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.fate.Fate;
@@ -98,11 +100,6 @@ public class FateLogger {
     return new FateStore<>() {
 
       @Override
-      public FateTxStore<T> reserve() {
-        return new LoggingFateTxStore<>(store.reserve(), toLogString);
-      }
-
-      @Override
       public FateTxStore<T> reserve(long tid) {
         return new LoggingFateTxStore<>(store.reserve(tid), toLogString);
       }
@@ -120,6 +117,11 @@ public class FateLogger {
       @Override
       public List<Long> list() {
         return store.list();
+      }
+
+      @Override
+      public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+        return store.runnable(keepWaiting);
       }
 
       @Override
