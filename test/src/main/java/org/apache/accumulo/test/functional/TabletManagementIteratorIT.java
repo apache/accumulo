@@ -70,8 +70,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -241,8 +241,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
       for (Entry<Key,Value> entry : scanner) {
         Mutation m = new Mutation(entry.getKey().getRow());
-        m.put(HostingColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
-            HostingColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier(),
+        m.put(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+            TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier(),
             entry.getKey().getTimestamp() + 1, new Value(state));
         try (BatchWriter bw = client.createBatchWriter(table)) {
           bw.addMutation(m);

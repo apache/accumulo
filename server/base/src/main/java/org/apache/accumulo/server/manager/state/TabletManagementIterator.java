@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -133,7 +132,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
-    scanner.fetchColumnFamily(HostingColumnFamily.NAME);
+    scanner.fetchColumnFamily(TabletColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
     ServerColumnFamily.OPID_COLUMN.fetch(scanner);

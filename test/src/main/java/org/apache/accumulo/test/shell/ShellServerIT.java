@@ -79,7 +79,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -1243,8 +1243,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
         Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
-      s.fetchColumn(new Column(HostingColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
-          HostingColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier()));
+      s.fetchColumn(new Column(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+          TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier()));
       for (Entry<Key,Value> e : s) {
         var row = e.getKey().getRow().toString();
         if (row.equals(tableId + ";c") || row.equals(tableId + ";e")) {

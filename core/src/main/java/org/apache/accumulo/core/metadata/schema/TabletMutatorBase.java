@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -291,20 +290,20 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T putTabletAvailability(TabletAvailability tabletAvailability) {
-    HostingColumnFamily.AVAILABILITY_COLUMN.put(mutation,
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(mutation,
         TabletAvailabilityUtil.toValue(tabletAvailability));
     return getThis();
   }
 
   @Override
   public T setHostingRequested() {
-    HostingColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
+    TabletColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
     return getThis();
   }
 
   @Override
   public T deleteHostingRequested() {
-    HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
+    TabletColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
     return getThis();
   }
 

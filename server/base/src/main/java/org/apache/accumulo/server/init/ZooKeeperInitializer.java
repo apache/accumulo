@@ -184,7 +184,7 @@ public class ZooKeeperInitializer {
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
 
-    MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_COLUMN.put(mutation,
+    MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN.put(mutation,
         TabletAvailabilityUtil.toValue(TabletAvailability.HOSTED));
 
     RootTabletMetadata rootTabletJson = new RootTabletMetadata();

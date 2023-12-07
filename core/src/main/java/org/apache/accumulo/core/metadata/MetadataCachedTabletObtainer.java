@@ -59,7 +59,6 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.OpTimer;
@@ -79,8 +78,8 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
-    locCols.add(HostingColumnFamily.AVAILABILITY_COLUMN.toColumn());
-    locCols.add(HostingColumnFamily.REQUESTED_COLUMN.toColumn());
+    locCols.add(TabletColumnFamily.AVAILABILITY_COLUMN.toColumn());
+    locCols.add(TabletColumnFamily.REQUESTED_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -256,9 +255,9 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         }
         location = new Text(val.toString());
         session = new Text(colq);
-      } else if (HostingColumnFamily.AVAILABILITY_COLUMN.equals(colf, colq)) {
+      } else if (TabletColumnFamily.AVAILABILITY_COLUMN.equals(colf, colq)) {
         tabletAvailability = TabletAvailabilityUtil.fromValue(val);
-      } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(colf, colq)) {
+      } else if (TabletColumnFamily.REQUESTED_COLUMN.equals(colf, colq)) {
         hostingRequested = true;
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);

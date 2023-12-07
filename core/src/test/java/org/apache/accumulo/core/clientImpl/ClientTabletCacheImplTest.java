@@ -59,7 +59,6 @@ import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -659,8 +658,8 @@ public class ClientTabletCacheImplTest {
       tabletData.put(lk, new Value(location));
     }
 
-    Key hk = new Key(mr, HostingColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
-        HostingColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier());
+    Key hk = new Key(mr, TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+        TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier());
     tabletData.put(hk, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
 
     Key pk = new Key(mr, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),

@@ -58,7 +58,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.FastFormat;
@@ -182,12 +181,12 @@ public class MergeIT extends AccumuloClusterHarness {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-        HostingColumnFamily.AVAILABILITY_COLUMN.fetch(s);
+        TabletColumnFamily.AVAILABILITY_COLUMN.fetch(s);
         assertEquals(2, Iterables.size(s));
         for (Entry<Key,Value> rows : s) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(rows.getKey())) {
             assertEquals("c", TabletColumnFamily.decodePrevEndRow(rows.getValue()).toString());
-          } else if (HostingColumnFamily.AVAILABILITY_COLUMN.hasColumns(rows.getKey())) {
+          } else if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(rows.getKey())) {
             assertEquals(TabletAvailability.HOSTED,
                 TabletAvailabilityUtil.fromValue(rows.getValue()));
           } else {

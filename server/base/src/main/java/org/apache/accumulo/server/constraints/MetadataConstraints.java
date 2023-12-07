@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -90,8 +89,8 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
-          HostingColumnFamily.AVAILABILITY_COLUMN,
-          HostingColumnFamily.REQUESTED_COLUMN,
+              TabletColumnFamily.AVAILABILITY_COLUMN,
+              TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN);
 
   @SuppressWarnings("deprecation")
@@ -225,7 +224,7 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          && !TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
           && !columnFamily.equals(CompactedColumnFamily.NAME)) {
         violations = addViolation(violations, 6);
       }
@@ -246,7 +245,7 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
         violations = validateDataFileMetadata(violations,
             new String(columnUpdate.getColumnQualifier(), UTF_8));
-      } else if (HostingColumnFamily.AVAILABILITY_COLUMN.equals(columnFamily, columnQualifier)) {
+      } else if (TabletColumnFamily.AVAILABILITY_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {

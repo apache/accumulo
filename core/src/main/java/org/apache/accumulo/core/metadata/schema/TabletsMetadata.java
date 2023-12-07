@@ -76,7 +76,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -310,10 +309,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             qualifiers.add(FLUSH_COLUMN);
             break;
           case AVAILABILITY:
-            qualifiers.add(HostingColumnFamily.AVAILABILITY_COLUMN);
+            qualifiers.add(TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN);
             break;
           case HOSTING_REQUESTED:
-            qualifiers.add(HostingColumnFamily.REQUESTED_COLUMN);
+            qualifiers.add(TabletsSection.TabletColumnFamily.REQUESTED_COLUMN);
             break;
           case LAST:
             families.add(LastLocationColumnFamily.NAME);

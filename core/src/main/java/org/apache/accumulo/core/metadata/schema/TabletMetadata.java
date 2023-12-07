@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.AVAILABILITY_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
 import java.util.Collection;
@@ -67,7 +67,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -477,7 +476,7 @@ public class TabletMetadata {
             "Input contains more than one row : " + row + " " + key.getRowData());
       }
 
-      switch (fam.toString()) {
+      switch (fam) {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
@@ -490,6 +489,12 @@ public class TabletMetadata {
               break;
             case SPLIT_RATIO_QUAL:
               te.splitRatio = Double.parseDouble(val);
+              break;
+            case AVAILABILITY_QUAL:
+              te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
+              break;
+            case REQUESTED_QUAL:
+              te.onDemandHostingRequested = true;
               break;
           }
           break;
@@ -551,18 +556,6 @@ public class TabletMetadata {
           break;
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));
-          break;
-        case HostingColumnFamily.STR_NAME:
-          switch (qual) {
-            case AVAILABILITY_QUAL:
-              te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
-              break;
-            case REQUESTED_QUAL:
-              te.onDemandHostingRequested = true;
-              break;
-            default:
-              throw new IllegalStateException("Unexpected qualifier " + fam);
-          }
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

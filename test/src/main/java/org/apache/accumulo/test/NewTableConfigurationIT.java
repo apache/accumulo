@@ -47,7 +47,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -164,7 +164,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     }
     Range range = new Range(beginRow, endRow);
     try (Scanner scanner = client.createScanner("accumulo.metadata")) {
-      HostingColumnFamily.AVAILABILITY_COLUMN.fetch(scanner);
+      TabletColumnFamily.AVAILABILITY_COLUMN.fetch(scanner);
       scanner.setRange(range);
       for (Map.Entry<Key,Value> entry : scanner) {
         assertEquals(expectedTabletAvailability, entry.getValue().toString());

@@ -47,7 +47,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
@@ -156,7 +155,7 @@ class PopulateMetadataTable extends ManagerRepo {
               if (m != null) {
                 if (!sawTabletAvailability) {
                   // add a default tablet availability
-                  HostingColumnFamily.AVAILABILITY_COLUMN.put(m,
+                  TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
                       TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
                 }
                 mbw.addMutation(m);
@@ -174,7 +173,7 @@ class PopulateMetadataTable extends ManagerRepo {
               sawTabletAvailability = false;
             }
 
-            if (HostingColumnFamily.AVAILABILITY_COLUMN.hasColumns(key)) {
+            if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(key)) {
               sawTabletAvailability = true;
             }
             m.put(key.getColumnFamily(), cq, val);
@@ -183,7 +182,7 @@ class PopulateMetadataTable extends ManagerRepo {
 
               if (!sawTabletAvailability) {
                 // add a default tablet availability
-                HostingColumnFamily.AVAILABILITY_COLUMN.put(m,
+                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
                     TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
               }
 
