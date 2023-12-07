@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
@@ -88,7 +89,8 @@ public class MergeTablets extends ManagerRepo {
 
     try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
         .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-        .fetch(OPID, LOCATION, AVAILABILITY, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS).build()) {
+        .fetch(OPID, LOCATION, AVAILABILITY, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS, MERGED)
+        .build()) {
 
       int tabletsSeen = 0;
 
@@ -148,7 +150,6 @@ public class MergeTablets extends ManagerRepo {
     // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
     // only a subset of the other tablets were deleted. If the last tablet was never updated, then
     // the merged marker should not exist
-    log.info(">>>> call !lastTabletMeta.hasMerged loop");
     if (!lastTabletMeta.hasMerged()) {
       // update the last tablet
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {

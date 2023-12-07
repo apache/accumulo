@@ -263,12 +263,6 @@ public class TabletMetadata {
   }
 
   private void ensureFetched(ColumnType col) {
-    log.info(">>>> TabletMetadata::ensureFetched({}, {})", col.toString(), col.name());
-    if (fetchedCols.contains(col)) {
-      log.info(">>>> fetchedCols.contains({})", col);
-    } else {
-      log.info(">>>> ! fetchedCols.contains({})", col);
-    }
     Preconditions.checkState(fetchedCols.contains(col), "%s was not fetched", col);
   }
 
@@ -381,9 +375,6 @@ public class TabletMetadata {
   }
 
   public boolean hasMerged() {
-    log.info(">>>> TabletMetadata::hasMerged");
-    log.info(">>>> FETCHEDCOLS:");
-    fetchedCols.forEach(p -> log.info(">>>> ---\t{}", p));
     ensureFetched(ColumnType.MERGED);
     return merged;
   }
