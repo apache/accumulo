@@ -33,7 +33,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ class TxnDetailsTest {
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
     expect(status1.getTxName()).andReturn("runningTx1").anyTimes();
     expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
@@ -59,7 +59,7 @@ class TxnDetailsTest {
 
     AdminUtil.TransactionStatus status2 = createMock(AdminUtil.TransactionStatus.class);
     expect(status2.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(7)).anyTimes();
-    expect(status2.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status2.getTop()).andReturn("step2").anyTimes();
     expect(status2.getTxName()).andReturn("runningTx2").anyTimes();
     expect(status2.getTxid()).andReturn("123456789").anyTimes();
@@ -93,7 +93,7 @@ class TxnDetailsTest {
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
     expect(status1.getTxName()).andReturn("runningTx").anyTimes();
     expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();

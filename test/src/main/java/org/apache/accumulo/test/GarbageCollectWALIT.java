@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -28,21 +29,19 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   @Override
@@ -74,8 +73,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
-      UtilWaitThread.sleep(3 * 5_000);
-      assertEquals(2, countWALsInFS(cluster));
+      Wait.waitFor(() -> countWALsInFS(cluster) == 2, SECONDS.toMillis(120), SECONDS.toMillis(15));
     }
   }
 

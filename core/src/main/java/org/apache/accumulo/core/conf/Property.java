@@ -598,49 +598,49 @@ public enum Property {
       "2.1.0"),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server.", "1.3.5"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   @ReplacedBy(property = COMPACTION_SERVICE_PREFIX)
   TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
       "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
       PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
       ("[{'name':'small','type':'external','maxSize':'128M','group':'user_small'}, {'name':'large','type':'external','group':'user_large'}]")

@@ -44,7 +44,6 @@ import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
 import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -138,8 +137,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         c.tableOperations().setProperty(tables[3], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
             RowFunctor.class.getName());
 
-        // ensure the updates to zookeeper propagate
-        UtilWaitThread.sleep(500);
+        // allow the updates to zookeeper propagate
+        Thread.sleep(500);
 
         c.tableOperations().compact(tables[3], null, null, false, true);
         c.tableOperations().compact(tables[0], null, null, false, true);

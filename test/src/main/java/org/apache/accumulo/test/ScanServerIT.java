@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -77,7 +77,6 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -179,30 +178,20 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  @Disabled("Scanner.setTimeout does not work, issue #2606")
-  @Timeout(value = 20)
-  public void testScannerTimeout() throws Exception {
-    // Configure the client to use different scan server selector property values
-    Properties props = getClientProps();
-    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s', 'busyTimeoutMultiplier':8, "
-        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'},"
-        + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
-    props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles", profiles);
+  public void testScanOfflineTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
 
-    String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-        SlowIterator.setSleepTime(slow, 30000);
-        SlowIterator.setSeekSleepTime(slow, 30000);
-        scanner.addScanIterator(slow);
-        scanner.setRange(new Range());
-        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        scanner.setTimeout(10, TimeUnit.SECONDS);
-        assertFalse(scanner.stream().findAny().isPresent(),
-            "The scanner should not see any entries");
-      }
+      client.tableOperations().offline(tableName, true);
+
+      assertThrows(TableOfflineException.class, () -> {
+        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRange(new Range());
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          assertEquals(100, Iterables.size(scanner));
+        } // when the scanner is closed, all open sessions should be closed
+      });
     }
   }
 
