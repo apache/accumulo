@@ -65,7 +65,7 @@ import com.google.common.base.Preconditions;
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
       Property.TSERV_LAST_LOCATION_MODE;
 
