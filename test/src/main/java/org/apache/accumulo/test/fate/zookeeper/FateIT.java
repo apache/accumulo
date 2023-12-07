@@ -51,7 +51,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
@@ -166,7 +165,7 @@ public class FateIT {
     try {
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      Thread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -226,7 +225,7 @@ public class FateIT {
     try {
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      Thread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -265,7 +264,7 @@ public class FateIT {
     try {
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      Thread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -307,7 +306,7 @@ public class FateIT {
     try {
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      Thread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);

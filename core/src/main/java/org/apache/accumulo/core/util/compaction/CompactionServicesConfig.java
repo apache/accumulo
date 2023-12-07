@@ -47,7 +47,7 @@ public class CompactionServicesConfig {
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private static final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private static final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
 
