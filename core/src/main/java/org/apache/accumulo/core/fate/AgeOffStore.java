@@ -20,10 +20,12 @@ package org.apache.accumulo.core.fate;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,11 +151,6 @@ public class AgeOffStore<T> implements FateStore<T> {
   }
 
   @Override
-  public FateTxStore<T> reserve() {
-    return new AgeOffFateTxStore(store.reserve());
-  }
-
-  @Override
   public FateTxStore<T> reserve(long tid) {
     return new AgeOffFateTxStore(store.reserve(tid));
   }
@@ -203,5 +200,10 @@ public class AgeOffStore<T> implements FateStore<T> {
   @Override
   public List<Long> list() {
     return store.list();
+  }
+
+  @Override
+  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+    return store.runnable(keepWaiting);
   }
 }

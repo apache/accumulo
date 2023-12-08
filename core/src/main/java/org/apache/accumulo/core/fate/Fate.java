@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
@@ -33,9 +34,11 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -48,6 +51,7 @@ import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,12 +72,73 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final TransferQueue<Long> workQueue;
+  private final Thread workFinder;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
+  /**
+   * A single thread that finds transactions to work on and queues them up. Do not want each worker
+   * thread going to the store and looking for work as it would place more load on the store.
+   */
+  private class WorkFinder implements Runnable {
+
+    @Override
+    public void run() {
+      while (keepRunning.get()) {
+        try {
+          var iter = store.runnable(keepRunning);
+
+          while (iter.hasNext() && keepRunning.get()) {
+            Long txid = iter.next();
+            try {
+              while (keepRunning.get()) {
+                // The reason for calling transfer instead of queueing is avoid rescanning the
+                // storage layer and adding the same thing over and over. For example if all threads
+                // were busy, the queue size was 100, and there are three runnable things in the
+                // store. Do not want to keep scanning the store adding those same 3 runnable things
+                // until the queue is full.
+                if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
+                  break;
+                }
+              }
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(e);
+            }
+          }
+        } catch (Exception e) {
+          if (keepRunning.get()) {
+            log.warn("Failure while attempting to find work for fate", e);
+          } else {
+            log.debug("Failure while attempting to find work for fate", e);
+          }
+
+          workQueue.clear();
+        }
+      }
+    }
+  }
+
   private class TransactionRunner implements Runnable {
+
+    private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
+      while (keepRunning.get()) {
+        var unreservedTid = workQueue.poll(100, MILLISECONDS);
+
+        if (unreservedTid == null) {
+          continue;
+        }
+        var optionalopStore = store.tryReserve(unreservedTid);
+        if (optionalopStore.isPresent()) {
+          return optionalopStore;
+        }
+      }
+
+      return Optional.empty();
+    }
 
     @Override
     public void run() {
@@ -81,12 +146,17 @@ public class Fate<T> {
         long deferTime = 0;
         FateTxStore<T> txStore = null;
         try {
-          txStore = store.reserve();
+          var optionalopStore = reserveFateTx();
+          if (optionalopStore.isPresent()) {
+            txStore = optionalopStore.orElseThrow();
+          } else {
+            continue;
+          }
           TStatus status = txStore.getStatus();
           Repo<T> op = txStore.top();
           if (status == FAILED_IN_PROGRESS) {
             processFailed(txStore, op);
-          } else {
+          } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
               deferTime = op.isReady(txStore.getID(), environment);
@@ -231,6 +301,7 @@ public class Fate<T> {
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    this.workQueue = new LinkedTransferQueue<>();
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
@@ -257,6 +328,9 @@ public class Fate<T> {
       }
     }, 3, SECONDS));
     this.executor = pool;
+
+    this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
+    this.workFinder.start();
   }
 
   // get a transaction id back to the requester before doing any work
@@ -398,6 +472,12 @@ public class Fate<T> {
     fatePoolWatcher.shutdown();
     if (executor != null) {
       executor.shutdown();
+    }
+    workFinder.interrupt();
+    try {
+      workFinder.join();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 

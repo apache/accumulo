@@ -38,6 +38,9 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    */
   long create();
 
+  /**
+   * An interface that allows read/write access to the data related to a single fate operation.
+   */
   interface FateTxStore<T> extends ReadOnlyFateTxStore<T> {
     @Override
     Repo<T> top();
@@ -81,8 +84,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * upon successful return the store now controls the referenced transaction id. caller should no
      * longer interact with it.
      *
-     * @param deferTime time in millis to keep this transaction out of the pool used in the
-     *        {@link #reserve() reserve} method. must be non-negative.
+     * @param deferTime time in millis to keep this transaction from being returned by
+     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean)}. Must be non-negative.
      */
     void unreserve(long deferTime);
   }
@@ -103,15 +106,5 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *
    */
   FateTxStore<T> reserve(long tid);
-
-  /**
-   * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
-   *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same
-   * instance will be operating on that transaction id.
-   *
-   * @return a transaction id that is safe to interact with, chosen by the store.
-   */
-  FateTxStore<T> reserve();
 
 }
