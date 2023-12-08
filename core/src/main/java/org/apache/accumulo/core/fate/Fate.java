@@ -75,14 +75,14 @@ public class Fate<T> {
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final BlockingQueue<Long> workQueue;
-  private final SingalCount idleWorkerCount = new SingalCount();
+  private final SignalCount idleWorkerCount = new SignalCount();
   private final Thread workFinder;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
-  private class SingalCount {
+  private class SignalCount {
     long count;
 
     synchronized void increment() {
