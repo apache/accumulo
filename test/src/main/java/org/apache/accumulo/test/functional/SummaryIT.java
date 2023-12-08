@@ -92,7 +92,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class SummaryIT extends SharedMiniClusterBase {
@@ -152,7 +151,6 @@ public class SummaryIT extends SharedMiniClusterBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
