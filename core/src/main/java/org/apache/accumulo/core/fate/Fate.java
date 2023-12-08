@@ -73,7 +73,6 @@ public class Fate<T> {
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<Long> workQueue;
-  private final SignalCount idleWorkerCount = new SignalCount();
   private final Thread workFinder;
 
   public enum TxInfo {
