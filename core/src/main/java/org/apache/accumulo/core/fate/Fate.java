@@ -88,10 +88,8 @@ public class Fate<T> {
 
     @Override
     public void run() {
-
-      try {
-
-        while (keepRunning.get()) {
+      while (keepRunning.get()) {
+        try {
           var iter = store.runnable(keepRunning);
 
           while (iter.hasNext() && keepRunning.get()) {
@@ -107,15 +105,15 @@ public class Fate<T> {
               throw new IllegalStateException(e);
             }
           }
-        }
-      } catch (Exception e) {
-        if (keepRunning.get()) {
-          log.warn("Failure while attempting to find work for fate", e);
-        } else {
-          log.debug("Failure while attempting to find work for fate", e);
-        }
+        } catch (Exception e) {
+          if (keepRunning.get()) {
+            log.warn("Failure while attempting to find work for fate", e);
+          } else {
+            log.debug("Failure while attempting to find work for fate", e);
+          }
 
-        workQueue.clear();
+          workQueue.clear();
+        }
       }
     }
   }
