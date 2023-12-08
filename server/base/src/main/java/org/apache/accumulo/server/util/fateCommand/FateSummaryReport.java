@@ -33,7 +33,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,7 +55,7 @@ public class FateSummaryReport {
   private final transient Map<String,String> idsToNameMap;
 
   public FateSummaryReport(Map<String,String> idsToNameMap,
-      EnumSet<ReadOnlyTStore.TStatus> statusFilter) {
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter) {
     this.idsToNameMap = idsToNameMap;
     if (statusFilter != null) {
       statusFilter.forEach(f -> this.statusFilterNames.add(f.name()));

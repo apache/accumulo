@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -32,9 +33,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -61,22 +62,15 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
       getCluster().killProcess(TABLET_SERVER,
           getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
-      while (true) {
-        stats = getStats(c);
-        if (stats.tServerInfo.size() != 2) {
-          break;
-        }
-        UtilWaitThread.sleep(500);
-      }
+      Wait.waitFor(() -> getStats(c).tServerInfo.size() != 2, SECONDS.toMillis(60), 500);
+
+      stats = getStats(c);
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
-      while (true) {
-        stats = getStats(c);
-        if (!stats.deadTabletServers.isEmpty()) {
-          break;
-        }
-        UtilWaitThread.sleep(500);
-      }
+
+      Wait.waitFor(() -> !getStats(c).deadTabletServers.isEmpty(), SECONDS.toMillis(60), 500);
+
+      stats = getStats(c);
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.badTServers.size());
       assertEquals(1, stats.deadTabletServers.size());

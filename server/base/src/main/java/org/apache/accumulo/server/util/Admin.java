@@ -55,7 +55,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -783,7 +783,8 @@ public class Admin implements KeywordExecutable {
     if (fateOpsCommand.print) {
       final Set<Long> sortedTxs = new TreeSet<>();
       fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
-      EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(fateOpsCommand.states);
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
+          getCmdLineStatusFilters(fateOpsCommand.states);
       admin.print(zs, zk, zTableLocksPath, new Formatter(System.out), sortedTxs, statusFilter);
       // print line break at the end
       System.out.println();
@@ -835,7 +836,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
-      ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
+      ReadOnlyFateStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();
@@ -854,7 +855,7 @@ public class Admin implements KeywordExecutable {
       }
     });
 
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
 
     FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
 
@@ -881,12 +882,12 @@ public class Admin implements KeywordExecutable {
    *
    * @return a set of status filters, or an empty set if none provides
    */
-  private EnumSet<ReadOnlyTStore.TStatus> getCmdLineStatusFilters(List<String> states) {
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = null;
+  private EnumSet<ReadOnlyFateStore.TStatus> getCmdLineStatusFilters(List<String> states) {
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = null;
     if (!states.isEmpty()) {
-      statusFilter = EnumSet.noneOf(ReadOnlyTStore.TStatus.class);
+      statusFilter = EnumSet.noneOf(ReadOnlyFateStore.TStatus.class);
       for (String element : states) {
-        statusFilter.add(ReadOnlyTStore.TStatus.valueOf(element));
+        statusFilter.add(ReadOnlyFateStore.TStatus.valueOf(element));
       }
     }
     return statusFilter;

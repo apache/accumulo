@@ -677,14 +677,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Create an event at the store level, this will force the next scan to be a full scan
           manager.nextEvent.event(store.getLevel(), "Set of tablet servers changed");
         }
+      } catch (BadLocationStateException e) {
+        Manager.log.error("{}, attempting to repair", e.getMessage());
+        repairMetadata(e.getEncodedEndRow());
       } catch (Exception ex) {
         Manager.log.error("Error processing table state for store " + store.name(), ex);
-        if (ex.getCause() != null && ex.getCause() instanceof BadLocationStateException) {
-          // ELASTICITY_TODO review this function
-          repairMetadata(((BadLocationStateException) ex.getCause()).getEncodedEndRow());
-        } else {
-          sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
-        }
+        sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
       } finally {
         if (iter != null) {
           try {

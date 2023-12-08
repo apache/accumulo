@@ -151,7 +151,7 @@ public class GCRunIT extends SharedMiniClusterBase {
    * GCRun need to support injecting synthetic row data, or another solution is required.
    */
   @Test
-  @Disabled("deleting prev row causes scan to fail before row read validation")
+  @Disabled("disabled since test creation, deleting prev row causes scan to fail before row read validation")
   public void forceMissingPrevRowTest() {}
 
   private void scanReferences(GCRun userGC) {

@@ -84,7 +84,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -615,7 +614,7 @@ public class SummaryIT extends SharedMiniClusterBase {
             assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
             break;
           } catch (AccumuloSecurityException ase) {
-            UtilWaitThread.sleep(500);
+            Thread.sleep(500);
             tries++;
           }
         }
