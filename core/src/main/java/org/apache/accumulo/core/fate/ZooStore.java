@@ -68,11 +68,11 @@ public class ZooStore<T> implements FateStore<T> {
   private Set<Long> reserved;
   private Map<Long,Long> defered;
 
-  // The key of this map is transaction id and the value is a count of threads waiting on a change
-  // for that transaction id
-  private Map<Long,Long> waitingForChange;
+  // This is incremented each time a transaction was unreserved that was non new
+  private final SignalCount unreservedNonNewCount = new SignalCount();
 
-  private long unreservedRunnableCount = 0;
+  // This is incremented each time a transaction is unreserved that was runnable
+  private final SignalCount unreservedRunnableCount = new SignalCount();
 
   private byte[] serialize(Object o) {
 
@@ -117,7 +117,6 @@ public class ZooStore<T> implements FateStore<T> {
     this.zk = zk;
     this.reserved = new HashSet<>();
     this.defered = new HashMap<>();
-    this.waitingForChange = new HashMap<>();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -146,9 +145,14 @@ public class ZooStore<T> implements FateStore<T> {
 
   @Override
   public FateTxStore<T> reserve(long tid) {
-    synchronized (this) {
+    synchronized (ZooStore.this) {
       while (reserved.contains(tid)) {
-        waitForChange(tid, 100);
+        try {
+          ZooStore.this.wait(100);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
+        }
       }
 
       reserved.add(tid);
@@ -177,7 +181,7 @@ public class ZooStore<T> implements FateStore<T> {
     private final long tid;
     private final boolean isReserved;
 
-    private boolean observedRunnableStatus = false;
+    private TStatus observedStatus = null;
 
     private FateTxStoreImpl(long tid, boolean isReserved) {
       this.tid = tid;
@@ -197,17 +201,20 @@ public class ZooStore<T> implements FateStore<T> {
               "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
         }
 
+        // notify any threads waiting to reserve
+        ZooStore.this.notifyAll();
+
         if (deferTime > 0) {
           defered.put(tid, System.currentTimeMillis() + deferTime);
         }
+      }
 
-        if (observedRunnableStatus) {
-          unreservedRunnableCount++;
-        }
+      if (observedStatus != null && isRunnable(observedStatus)) {
+        unreservedRunnableCount.increment();
+      }
 
-        if (waitingForChange.containsKey(tid) || observedRunnableStatus) {
-          ZooStore.this.notifyAll();
-        }
+      if (observedStatus != TStatus.NEW) {
+        unreservedNonNewCount.increment();
       }
     }
 
@@ -319,7 +326,7 @@ public class ZooStore<T> implements FateStore<T> {
     public TStatus getStatus() {
       verifyReserved(false);
       var status = _getStatus(tid);
-      observedRunnableStatus = isRunnable(status);
+      observedStatus = status;
       return _getStatus(tid);
     }
 
@@ -328,12 +335,15 @@ public class ZooStore<T> implements FateStore<T> {
       Preconditions.checkState(!isReserved,
           "Attempted to wait for status change while reserved " + FateTxId.formatTid(getID()));
       while (true) {
+
+        long countBefore = unreservedNonNewCount.getCount();
+
         TStatus status = _getStatus(tid);
         if (expected.contains(status)) {
           return status;
         }
 
-        waitForChange(tid, 1000);
+        unreservedNonNewCount.waitFor(count -> count != countBefore, 1000, () -> true);
       }
     }
 
@@ -348,7 +358,7 @@ public class ZooStore<T> implements FateStore<T> {
         throw new IllegalStateException(e);
       }
 
-      observedRunnableStatus = isRunnable(status);
+      observedStatus = status;
     }
 
     @Override
@@ -465,23 +475,6 @@ public class ZooStore<T> implements FateStore<T> {
     }
   }
 
-  private void waitForChange(long tid, long timeout) {
-    synchronized (ZooStore.this) {
-      waitingForChange.compute(tid, (k, v) -> (v == null) ? 1 : v + 1);
-      try {
-        ZooStore.this.wait(timeout);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(e);
-      } finally {
-        waitingForChange.compute(tid, (k, v) -> {
-          Preconditions.checkState(v != null && v > 0);
-          return (v == 1) ? null : v - 1;
-        });
-      }
-    }
-  }
-
   private TStatus _getStatus(long tid) {
     try {
       return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
@@ -522,10 +515,7 @@ public class ZooStore<T> implements FateStore<T> {
     while (keepWaiting.get()) {
       ArrayList<Long> runnableTids = new ArrayList<>();
 
-      long events;
-      synchronized (this) {
-        events = unreservedRunnableCount;
-      }
+      final long beforeCount = unreservedRunnableCount.getCount();
 
       try {
 
@@ -554,24 +544,25 @@ public class ZooStore<T> implements FateStore<T> {
 
             return false;
           });
-
-          if (runnableTids.isEmpty()) {
-            // suppress lgtm alert - synchronized variable is not always true
-            if (events == unreservedRunnableCount) {// lgtm [java/constant-comparison]
-              if (defered.isEmpty()) {
-                this.wait(5000);
-              } else {
-                Long minTime = Collections.min(defered.values());
-                long waitTime = minTime - System.currentTimeMillis();
-                if (waitTime > 0) {
-                  this.wait(Math.min(waitTime, 5000));
-                }
-              }
-            }
-          } else {
-            return runnableTids.iterator();
-          }
         }
+
+        if (runnableTids.isEmpty()) {
+          if (beforeCount == unreservedRunnableCount.getCount()) {
+            long waitTime = 5000;
+            if (!defered.isEmpty()) {
+              Long minTime = Collections.min(defered.values());
+              waitTime = minTime - System.currentTimeMillis();
+            }
+
+            if (waitTime > 0) {
+              unreservedRunnableCount.waitFor(count -> count != beforeCount, waitTime,
+                  keepWaiting::get);
+            }
+          }
+        } else {
+          return runnableTids.iterator();
+        }
+
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }

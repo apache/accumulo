@@ -56,8 +56,6 @@ import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Fault tolerant executor
  */
@@ -82,33 +80,6 @@ public class Fate<T> {
     TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
-  private class SignalCount {
-    long count;
-
-    synchronized void increment() {
-      count++;
-      this.notifyAll();
-    }
-
-    synchronized void decrement() {
-      Preconditions.checkState(count > 0);
-      count--;
-      this.notifyAll();
-    }
-
-    synchronized void waitTillNonZero() {
-      while (count == 0 && keepRunning.get()) {
-        try {
-          wait(100);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new IllegalStateException(e);
-        }
-      }
-    }
-
-  }
-
   /**
    * A single thread that finds transactions to work on and queues them up. Do not want each worker
    * thread going to the store and looking for work as it would place more load on the store.
@@ -125,7 +96,7 @@ public class Fate<T> {
           while (!workQueue.isEmpty() && keepRunning.get()) {
             // wait till there is at least one worker that is looking for work and the queue is
             // empty
-            idleWorkerCount.waitTillNonZero();
+            idleWorkerCount.waitFor(count -> count != 0, keepRunning::get);
           }
 
           var iter = store.runnable(keepRunning);
