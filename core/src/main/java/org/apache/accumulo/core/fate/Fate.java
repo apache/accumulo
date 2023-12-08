@@ -95,6 +95,11 @@ public class Fate<T> {
             Long txid = iter.next();
             try {
               while (keepRunning.get()) {
+                // The reason for calling transfer instead of queueing is avoid rescanning the
+                // storage layer and adding the same thing over and over. For example if all threads
+                // were busy, the queue size was 100, and there are three runnable things in the
+                // store. Do not want to keep scanning the store adding those same 3 runnable things
+                // until the queue is full.
                 if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
                   break;
                 }
