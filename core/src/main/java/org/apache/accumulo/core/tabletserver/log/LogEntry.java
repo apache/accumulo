@@ -23,7 +23,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.net.HostAndPort;
@@ -82,6 +84,15 @@ public class LogEntry {
    */
   public LogEntry switchFile(String filePath) {
     return new LogEntry(filePath);
+  }
+
+  /**
+   * Add LogEntry information to the provided mutation.
+   *
+   * @param mutation the mutation to update
+   */
+  public void addToMutation(Mutation mutation) {
+    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(getValue());
   }
 
   @Override
