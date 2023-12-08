@@ -30,36 +30,41 @@ import java.util.concurrent.atomic.DoubleAdder;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Disabled // ELASTICITY_TODO
+import com.google.common.net.HostAndPort;
+
 public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MemoryStarvedMajCIT.class);
 
   public static class MemoryStarvedITConfiguration implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
-      cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
-      // Configure the LowMemoryDetector in the TabletServer
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD));
@@ -120,15 +125,30 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
   @Test
   public void testMajCPauses() throws Exception {
+
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
+      ClientContext ctx = (ClientContext) client;
+
+      // Stop the normal compactors and start the version that will consume
+      // and free memory when we need it to
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+
+      getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+          MemoryConsumingCompactor.class);
+      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 4, 60_000);
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getCompactorAddrs(ctx).get("user_small").size() == 1,
+          60_000);
+
+      Map<String,List<HostAndPort>> groupedCompactors =
+          ExternalCompactionUtil.getCompactorAddrs(ctx);
+      List<HostAndPort> compactorAddresses = groupedCompactors.get("user_small");
+      HostAndPort compactorAddr = compactorAddresses.get(0);
+
       TableOperations to = client.tableOperations();
       to.create(table);
-
-      // Add a small amount of data so that the MemoryConsumingIterator
-      // returns true when trying to consume all of the memory.
-      ReadWriteIT.ingest(client, 1, 1, 1, 0, table);
 
       AtomicReference<Throwable> error = new AtomicReference<>();
       Thread compactionThread = new Thread(() -> {
@@ -139,25 +159,29 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         }
       });
 
-      try (Scanner scanner = client.createScanner(table)) {
+      int paused = MAJC_PAUSED.intValue();
+      assertEquals(0, paused);
 
-        MemoryStarvedScanIT.consumeServerMemory(scanner);
+      // Calling getRunningCompaction on the MemoryConsumingCompactor
+      // will consume the free memory
+      LOG.info("Calling getRunningCompaction on {}", compactorAddr);
+      ExternalCompactionUtil.getRunningCompaction(compactorAddr, ctx);
 
-        int paused = MAJC_PAUSED.intValue();
-        assertEquals(0, paused);
+      ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
+      compactionThread.start();
 
-        ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
-        compactionThread.start();
+      waitFor(() -> MAJC_PAUSED.intValue() > 0);
 
-        waitFor(() -> MAJC_PAUSED.intValue() > 0);
+      // Calling cancel on the MemoryConsumingCompactor will free
+      // the consumed memory
+      LOG.info("Calling cancel on {}", compactorAddr);
+      ExternalCompactionUtil.cancelCompaction(ctx, compactorAddr, "fakeECID");
 
-        MemoryStarvedScanIT.freeServerMemory(client);
-        compactionThread.interrupt();
-        compactionThread.join();
-        assertNull(error.get());
-        assertTrue(client.instanceOperations().getActiveCompactions().stream()
-            .anyMatch(ac -> ac.getPausedCount() > 0));
-      }
+      compactionThread.interrupt();
+      compactionThread.join();
+      assertNull(error.get());
+      assertTrue(client.instanceOperations().getActiveCompactions().stream()
+          .anyMatch(ac -> ac.getPausedCount() > 0));
     }
 
   }
