@@ -33,12 +33,12 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.EnumSet;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -72,7 +72,7 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
-  private final BlockingQueue<Long> workQueue;
+  private final TransferQueue<Long> workQueue;
   private final SignalCount idleWorkerCount = new SignalCount();
   private final Thread workFinder;
 
@@ -92,20 +92,13 @@ public class Fate<T> {
       try {
 
         while (keepRunning.get()) {
-
-          while (!workQueue.isEmpty() && keepRunning.get()) {
-            // wait till there is at least one worker that is looking for work and the queue is
-            // empty
-            idleWorkerCount.waitFor(count -> count != 0, keepRunning::get);
-          }
-
           var iter = store.runnable(keepRunning);
 
           while (iter.hasNext() && keepRunning.get()) {
             Long txid = iter.next();
             try {
               while (keepRunning.get()) {
-                if (workQueue.offer(txid, 100, MILLISECONDS)) {
+                if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
                   break;
                 }
               }
@@ -130,24 +123,19 @@ public class Fate<T> {
   private class TransactionRunner implements Runnable {
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
-      idleWorkerCount.increment();
-      try {
-        while (keepRunning.get()) {
-          var unreservedTid = workQueue.poll(100, MILLISECONDS);
+      while (keepRunning.get()) {
+        var unreservedTid = workQueue.poll(100, MILLISECONDS);
 
-          if (unreservedTid == null) {
-            continue;
-          }
-          var optionalopStore = store.tryReserve(unreservedTid);
-          if (optionalopStore.isPresent()) {
-            return optionalopStore;
-          }
+        if (unreservedTid == null) {
+          continue;
         }
-
-        return Optional.empty();
-      } finally {
-        idleWorkerCount.decrement();
+        var optionalopStore = store.tryReserve(unreservedTid);
+        if (optionalopStore.isPresent()) {
+          return optionalopStore;
+        }
       }
+
+      return Optional.empty();
     }
 
     @Override
@@ -311,9 +299,7 @@ public class Fate<T> {
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    // TODO this queue does not resize when config changes
-    this.workQueue =
-        new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
+    this.workQueue = new LinkedTransferQueue<>();
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
