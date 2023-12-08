@@ -78,15 +78,6 @@ public class LogEntry {
   }
 
   /**
-   * Make a copy of this LogEntry but replace the file path.
-   *
-   * @param filePath path to use
-   */
-  public LogEntry switchFile(String filePath) {
-    return new LogEntry(filePath);
-  }
-
-  /**
    * Add LogEntry information to the provided mutation.
    *
    * @param mutation the mutation to update
