@@ -426,7 +426,35 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
-      final TabletState state = TabletState.compute(tm, currentTServers.keySet());
+      TabletState state = TabletState.compute(tm, currentTServers.keySet());
+      if (state == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+        /*
+         * This code exists to deal with a race condition caused by two threads running in this
+         * class that compute tablets actions. One thread does full scans and the other reacts to
+         * events and does partial scans. Below is an example of the race condition this is
+         * handling.
+         *
+         * - TGW Thread 1 : reads the set of tablets servers and its empty
+         *
+         * - TGW Thread 2 : reads the set of tablet servers and its [TS1]
+         *
+         * - TGW Thread 2 : Sees tabletX without a location and assigns it to TS1
+         *
+         * - TGW Thread 1 : Sees tabletX assigned to TS1 and assumes it's assigned to a dead tablet
+         * server because its set of live servers is the empty set.
+         *
+         * To deal with this race condition, this code recomputes the tablet state using the latest
+         * tservers when a tablet is seen assigned to a dead tserver.
+         */
+
+        TabletState newState = TabletState.compute(tm, manager.tserversSnapshot().getTservers());
+        if (newState != state) {
+          LOG.debug("Tablet state changed when using latest set of tservers {} {} {}",
+              tm.getExtent(), state, newState);
+          state = newState;
+        }
+      }
+
       // This is final because nothing in this method should change the goal. All computation of the
       // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
       // will compute a consistent goal.
