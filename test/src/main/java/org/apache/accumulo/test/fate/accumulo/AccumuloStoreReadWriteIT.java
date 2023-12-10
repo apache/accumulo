@@ -114,6 +114,8 @@ public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
 
   private static class TestOperation2 extends TestOperation {
 
+    private static final long serialVersionUID = 1L;
+
     public TestOperation2(NamespaceId namespaceId, TableId tableId) {
       super(namespaceId, tableId);
     }
