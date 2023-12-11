@@ -89,24 +89,26 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
      * 2) Copy the accumulo test jar (in /test/target/) to your accumulo installation's
      * lib directory*
      * Now, this can be run with
-     * "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table>"
+     * "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>"
      *      <props-file>: An accumulo client properties file
      *      <tmp-dir>: tmpDir field for the TestContext object
      *      <table>: The name of the table to be created
+     *      <sleep-time>: The time to sleep (ms) after submitting the various concurrent tasks
      * *Ensure the test jar is in lib before the tablet servers start. Restart tablet
      * servers if necessary.
      * @formatter:on
      */
-    Preconditions.checkArgument(args.length == 3, "Invalid arguments. Use: "
-        + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table>");
+    Preconditions.checkArgument(args.length == 4, "Invalid arguments. Use: "
+        + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>");
     inTestingContext = false;
     final String propsFile = args[0];
     final String tmpDir = args[1];
     final String table = args[2];
+    final long sleepTime = Long.parseLong(args[3]);
 
     try (AccumuloClient client = Accumulo.newClient().from(propsFile).build()) {
       FileSystem fileSystem = FileSystem.get(new Configuration());
-      runTest(client, fileSystem, tmpDir, table);
+      runTest(client, fileSystem, tmpDir, table, sleepTime);
     } catch (Exception e) {
       log.error(e.toString());
     }
@@ -121,12 +123,13 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       FileSystem fileSystem = getCluster().getFileSystem();
       final String tmpDir = getCluster().getTemporaryPath().toString();
       final String table = getUniqueNames(1)[0];
-      runTest(client, fileSystem, tmpDir, table);
+      final long sleepTime = 60000;
+      runTest(client, fileSystem, tmpDir, table, sleepTime);
     }
   }
 
   private static void runTest(AccumuloClient client, FileSystem fileSystem, String tmpDir,
-      String table) throws Exception {
+      String table, long sleepTime) throws Exception {
 
     /**
      * Tips for debugging this test when it sees a row that should not exist or does not see a row
@@ -170,14 +173,14 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       var tableOpsTask = executor.submit(new TableOpsTask(testContext));
 
       // let the concurrent mayhem run for a bit
-      Thread.sleep(60000);
+      Thread.sleep(sleepTime);
 
       // let the threads know to exit
       testContext.keepRunning.set(false);
 
       for (Future<WriteStats> writeTask : writeTasks) {
         var stats = writeTask.get();
-        logMessage(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
+        log.info(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
             stats.written, stats.bulkImported, stats.deleted, stats.bulkDeleted));
         checkTrue(stats.written + stats.bulkImported > 0);
         checkTrue(stats.deleted + stats.bulkDeleted > 0);
@@ -185,19 +188,19 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       for (Future<ScanStats> scanTask : scanTasks) {
         var stats = scanTask.get();
-        logMessage(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
+        log.info(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
         checkTrue(stats.verified > 0);
         // These scans were running concurrently with writes, so a scan will see more data than what
         // was written before the scan started.
         checkTrue(stats.scanned > stats.verified);
       }
 
-      logMessage(tableOpsTask.get());
+      log.info(tableOpsTask.get());
 
       var stats1 = scanData(testContext, random, new Range(), false);
       var stats2 = scanData(testContext, random, new Range(), true);
       var stats3 = batchScanData(testContext, new Range());
-      logMessage(
+      log.info(
           String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
       checkTrue(stats1.verified > 0);
       // Should see all expected data now that there are no concurrent writes happening
@@ -206,9 +209,10 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       checkEquals(stats2.verified, stats1.verified);
       checkEquals(stats3.scanned, stats1.scanned);
       checkEquals(stats3.verified, stats1.verified);
+
+      client.tableOperations().delete(table);
     } finally {
       executor.shutdownNow();
-      client.tableOperations().delete(table);
     }
   }
 
@@ -238,19 +242,6 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       assertEquals(l1, l2);
     } else if (l1 != l2) {
       throw new Exception("Failed assertion");
-    }
-  }
-
-  /**
-   * Logs msg at debug level if inTestingContext, info level otherwise
-   *
-   * @param msg message to be logged
-   */
-  private static void logMessage(String msg) {
-    if (inTestingContext) {
-      log.debug(msg);
-    } else {
-      log.info(msg);
     }
   }
 
