@@ -237,6 +237,13 @@ service TabletServerClientService {
     2:security.TCredentials credentials
     3:list<data.TKeyExtent> tabletsToRefresh
   )
+
+  map<data.TKeyExtent, i64> allocateTimestamps(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<data.TKeyExtent> tablets
+    4:i32 numStamps
+  )
 }
 
 typedef i32 TabletID
