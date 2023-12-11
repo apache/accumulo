@@ -370,7 +370,7 @@ public class Tablet extends TabletBase {
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
-            logEntry.getFilePath(), logEntry.getColumnQualifier().toString()));
+            logEntry.getLogReference(), logEntry.getColumnQualifier().toString()));
       }
 
       rebuildReferencedLogs();
