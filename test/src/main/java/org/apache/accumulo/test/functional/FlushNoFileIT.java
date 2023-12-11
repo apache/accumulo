@@ -47,7 +47,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
@@ -55,7 +54,6 @@ import com.google.common.collect.Iterables;
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
  */
-@Disabled // ELASTICITY_TODO
 public class FlushNoFileIT extends AccumuloClusterHarness {
 
   @Override
@@ -72,15 +70,17 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       NewTableConfiguration ntc = new NewTableConfiguration();
       IteratorSetting iteratorSetting = new IteratorSetting(20, NullIterator.class);
       ntc.attachIterator(iteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.minc));
-      ntc.withSplits(new TreeSet<>(Set.of(new Text("a"), new Text("s"))));
+      ntc.withSplits(new TreeSet<>(Set.of(new Text("b"), new Text("s"))));
 
       c.tableOperations().create(tableName, ntc);
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
-        Mutation m = new Mutation(new Text("r1"));
-        m.put("acf", tableName, "1");
-        bw.addMutation(m);
+        for (String row : Set.of("a", "c", "t")) {
+          Mutation m = new Mutation(new Text(row + "1"));
+          m.put("acf", tableName, "1");
+          bw.addMutation(m);
+        }
       }
 
       FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
@@ -92,9 +92,11 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       long flushId = FunctionalTestUtils.checkFlushId((ClientContext) c, tableId, 0);
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
-        Mutation m = new Mutation(new Text("r2"));
-        m.put("acf", tableName, "1");
-        bw.addMutation(m);
+        for (String row : Set.of("a", "c", "t")) {
+          Mutation m = new Mutation(new Text(row + "1"));
+          m.put("acf", tableName, "1");
+          bw.addMutation(m);
+        }
       }
 
       c.tableOperations().flush(tableName, null, null, true);

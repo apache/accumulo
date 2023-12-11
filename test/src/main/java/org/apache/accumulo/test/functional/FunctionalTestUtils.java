@@ -252,7 +252,7 @@ public class FunctionalTestUtils {
             prevTabletFlushId = flushId;
           }
         } else {
-          throw new Exception("Missing flush ID");
+          throw new Exception("Missing flush ID for tablet: " + tabletMetadata.getExtent());
         }
       }
 
