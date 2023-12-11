@@ -104,8 +104,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     final String tmpDir = args[1];
     final String table = args[2];
 
-    try {
-      AccumuloClient client = Accumulo.newClient().from(propsFile).build();
+    try (AccumuloClient client = Accumulo.newClient().from(propsFile).build()) {
       FileSystem fileSystem = FileSystem.get(new Configuration());
       runTest(client, fileSystem, tmpDir, table);
     } catch (Exception e) {
@@ -178,7 +177,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       for (Future<WriteStats> writeTask : writeTasks) {
         var stats = writeTask.get();
-        log.debug(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
+        logMessage(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
             stats.written, stats.bulkImported, stats.deleted, stats.bulkDeleted));
         checkTrue(stats.written + stats.bulkImported > 0);
         checkTrue(stats.deleted + stats.bulkDeleted > 0);
@@ -186,19 +185,19 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       for (Future<ScanStats> scanTask : scanTasks) {
         var stats = scanTask.get();
-        log.debug(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
+        logMessage(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
         checkTrue(stats.verified > 0);
         // These scans were running concurrently with writes, so a scan will see more data than what
         // was written before the scan started.
         checkTrue(stats.scanned > stats.verified);
       }
 
-      log.debug(tableOpsTask.get());
+      logMessage(tableOpsTask.get());
 
       var stats1 = scanData(testContext, random, new Range(), false);
       var stats2 = scanData(testContext, random, new Range(), true);
       var stats3 = batchScanData(testContext, new Range());
-      log.debug(
+      logMessage(
           String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
       checkTrue(stats1.verified > 0);
       // Should see all expected data now that there are no concurrent writes happening
@@ -239,6 +238,19 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       assertEquals(l1, l2);
     } else if (l1 != l2) {
       throw new Exception("Failed assertion");
+    }
+  }
+
+  /**
+   * Logs msg at debug level if inTestingContext, info level otherwise
+   *
+   * @param msg message to be logged
+   */
+  private static void logMessage(String msg) {
+    if (inTestingContext) {
+      log.debug(msg);
+    } else {
+      log.info(msg);
     }
   }
 
