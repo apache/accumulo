@@ -55,13 +55,13 @@ public class LogEntry {
   private static void validateLogReference(String logReference) {
     String[] parts = logReference.split("/");
 
-    if (parts.length < 2) {
+    if (parts.length != 3) {
       throw new IllegalArgumentException(
-          "Invalid logReference format. The path should at least contain tserver/UUID.");
+          "Invalid logReference format. The reference should contain exactly 3 parts: tserver, port, and UUID.");
     }
 
-    String tserverPart = parts[parts.length - 2];
-    String uuidPart = parts[parts.length - 1];
+    String tserverPart = parts[1];
+    String uuidPart = parts[2];
 
     try {
       HostAndPort.fromString(tserverPart);
@@ -115,12 +115,11 @@ public class LogEntry {
 
     String logReference = columnQualifier.toString();
 
-    String[] parts = logReference.split("/", 2);
+    String[] parts = logReference.split("/", 3);
 
-    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
-        "Malformed write-ahead log %s", logReference);
+    Preconditions.checkArgument(parts.length == 3, "Malformed write-ahead log %s", logReference);
 
-    return new LogEntry(parts[1]);
+    return new LogEntry(parts[1] + "/" + parts[2]);
   }
 
   public String getUniqueID() {
@@ -129,7 +128,7 @@ public class LogEntry {
   }
 
   public Text getColumnQualifier() {
-    return new Text("-/" + logReference);
+    return new Text(logReference);
   }
 
   public Value getValue() {
