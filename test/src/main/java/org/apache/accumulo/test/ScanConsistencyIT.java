@@ -97,22 +97,19 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
      * servers if necessary.
      * @formatter:on
      */
-    if (args.length == 3) {
-      inTestingContext = false;
-      final String propsFile = args[0];
-      final String tmpDir = args[1];
-      final String table = args[2];
+    Preconditions.checkArgument(args.length == 3, "Invalid arguments. Use: "
+        + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table>");
+    inTestingContext = false;
+    final String propsFile = args[0];
+    final String tmpDir = args[1];
+    final String table = args[2];
 
-      try {
-        AccumuloClient client = Accumulo.newClient().from(propsFile).build();
-        FileSystem fileSystem = FileSystem.get(new Configuration());
-        runTest(client, fileSystem, tmpDir, table);
-      } catch (Exception e) {
-        log.error(e.toString());
-      }
-    } else {
-      log.error("Invalid arguments. Use: "
-          + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table>");
+    try {
+      AccumuloClient client = Accumulo.newClient().from(propsFile).build();
+      FileSystem fileSystem = FileSystem.get(new Configuration());
+      runTest(client, fileSystem, tmpDir, table);
+    } catch (Exception e) {
+      log.error(e.toString());
     }
   }
 
@@ -150,67 +147,70 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     // getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
     var executor = Executors.newCachedThreadPool();
-    client.tableOperations().create(table);
+    try {
+      client.tableOperations().create(table);
 
-    TestContext testContext = new TestContext(client, table, fileSystem, tmpDir);
+      TestContext testContext = new TestContext(client, table, fileSystem, tmpDir);
 
-    List<Future<WriteStats>> writeTasks = new ArrayList<>();
-    List<Future<ScanStats>> scanTasks = new ArrayList<>();
+      List<Future<WriteStats>> writeTasks = new ArrayList<>();
+      List<Future<ScanStats>> scanTasks = new ArrayList<>();
 
-    Random random = new Random();
+      Random random = new Random();
 
-    int numWriteTask = random.nextInt(10) + 1;
-    int numsScanTask = random.nextInt(10) + 1;
+      int numWriteTask = random.nextInt(10) + 1;
+      int numsScanTask = random.nextInt(10) + 1;
 
-    for (int i = 0; i < numWriteTask; i++) {
-      writeTasks.add(executor.submit(new WriteTask(testContext)));
+      for (int i = 0; i < numWriteTask; i++) {
+        writeTasks.add(executor.submit(new WriteTask(testContext)));
+      }
+
+      for (int i = 0; i < numsScanTask; i++) {
+        scanTasks.add(executor.submit(new ScanTask(testContext)));
+      }
+
+      var tableOpsTask = executor.submit(new TableOpsTask(testContext));
+
+      // let the concurrent mayhem run for a bit
+      Thread.sleep(60000);
+
+      // let the threads know to exit
+      testContext.keepRunning.set(false);
+
+      for (Future<WriteStats> writeTask : writeTasks) {
+        var stats = writeTask.get();
+        log.debug(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
+            stats.written, stats.bulkImported, stats.deleted, stats.bulkDeleted));
+        checkTrue(stats.written + stats.bulkImported > 0);
+        checkTrue(stats.deleted + stats.bulkDeleted > 0);
+      }
+
+      for (Future<ScanStats> scanTask : scanTasks) {
+        var stats = scanTask.get();
+        log.debug(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
+        checkTrue(stats.verified > 0);
+        // These scans were running concurrently with writes, so a scan will see more data than what
+        // was written before the scan started.
+        checkTrue(stats.scanned > stats.verified);
+      }
+
+      log.debug(tableOpsTask.get());
+
+      var stats1 = scanData(testContext, random, new Range(), false);
+      var stats2 = scanData(testContext, random, new Range(), true);
+      var stats3 = batchScanData(testContext, new Range());
+      log.debug(
+          String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
+      checkTrue(stats1.verified > 0);
+      // Should see all expected data now that there are no concurrent writes happening
+      checkEquals(stats1.scanned, stats1.verified);
+      checkEquals(stats2.scanned, stats1.scanned);
+      checkEquals(stats2.verified, stats1.verified);
+      checkEquals(stats3.scanned, stats1.scanned);
+      checkEquals(stats3.verified, stats1.verified);
+    } finally {
+      executor.shutdownNow();
+      client.tableOperations().delete(table);
     }
-
-    for (int i = 0; i < numsScanTask; i++) {
-      scanTasks.add(executor.submit(new ScanTask(testContext)));
-    }
-
-    var tableOpsTask = executor.submit(new TableOpsTask(testContext));
-
-    // let the concurrent mayhem run for a bit
-    Thread.sleep(60000);
-
-    // let the threads know to exit
-    testContext.keepRunning.set(false);
-
-    for (Future<WriteStats> writeTask : writeTasks) {
-      var stats = writeTask.get();
-      log.debug(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
-          stats.written, stats.bulkImported, stats.deleted, stats.bulkDeleted));
-      checkTrue(stats.written + stats.bulkImported > 0);
-      checkTrue(stats.deleted + stats.bulkDeleted > 0);
-    }
-
-    for (Future<ScanStats> scanTask : scanTasks) {
-      var stats = scanTask.get();
-      log.debug(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
-      checkTrue(stats.verified > 0);
-      // These scans were running concurrently with writes, so a scan will see more data than what
-      // was written before the scan started.
-      checkTrue(stats.scanned > stats.verified);
-    }
-
-    log.debug(tableOpsTask.get());
-
-    var stats1 = scanData(testContext, random, new Range(), false);
-    var stats2 = scanData(testContext, random, new Range(), true);
-    var stats3 = batchScanData(testContext, new Range());
-    log.debug(
-        String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
-    checkTrue(stats1.verified > 0);
-    // Should see all expected data now that there are no concurrent writes happening
-    checkEquals(stats1.scanned, stats1.verified);
-    checkEquals(stats2.scanned, stats1.scanned);
-    checkEquals(stats2.verified, stats1.verified);
-    checkEquals(stats3.scanned, stats1.scanned);
-    checkEquals(stats3.verified, stats1.verified);
-
-    executor.shutdownNow();
   }
 
   /**
@@ -218,7 +218,6 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
    * throws an exception if not.
    *
    * @param b The boolean checked
-   * @throws Exception
    */
   private static void checkTrue(boolean b) throws Exception {
     if (inTestingContext) {
@@ -234,7 +233,6 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
    *
    * @param l1 One of the two longs to be compared
    * @param l2 One of the two longs to be compared
-   * @throws Exception
    */
   private static void checkEquals(long l1, long l2) throws Exception {
     if (inTestingContext) {
