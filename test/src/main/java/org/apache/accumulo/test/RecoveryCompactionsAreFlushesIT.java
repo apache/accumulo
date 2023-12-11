@@ -40,11 +40,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 // Accumulo3010
-@Disabled // ELASTICITY_TODO
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
