@@ -100,7 +100,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  public static Map<String,String> getTServerGroups(MiniAccumuloClusterImpl cluster) throws Exception {
+  public static Map<String,String> getTServerGroups(MiniAccumuloClusterImpl cluster)
+      throws Exception {
 
     Map<String,String> tservers = new HashMap<>();
     ZooCache zk = cluster.getServerContext().getZooCache();
