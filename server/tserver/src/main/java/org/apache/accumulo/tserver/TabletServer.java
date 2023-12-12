@@ -1103,7 +1103,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     List<Path> recoveryDirs = new ArrayList<>();
     for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getLogReference()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
