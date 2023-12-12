@@ -133,13 +133,11 @@ public class CompactionServicesConfig {
           if (eprop == null || aconf.isPropertySet(eprop)) {
             rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
           }
-        } else if (!(tokens.length == 2 && tokens[1].equals("planner"))) {
+        } else if (tokens.length == 2 && tokens[1].equals("planner")) {
+          return; // moves to next opt
+        } else {
           throw new IllegalArgumentException(
               "Malformed compaction service property " + prefix + prop);
-        } else {
-          log.warn(
-              "Ignoring compaction property {} as does not match the prefix used by the referenced planner definition",
-              prop);
         }
       });
     });
