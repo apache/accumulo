@@ -1757,7 +1757,7 @@ public class Tablet extends TabletBase {
       // wait for any files that are bulk importing up to the RPC timeout limit
       while (!Collections.disjoint(bulkImporting, fileMap.keySet())) {
         try {
-          wait(50);
+          wait(1_000);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
