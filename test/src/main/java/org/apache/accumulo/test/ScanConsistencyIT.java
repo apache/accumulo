@@ -79,28 +79,31 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
-  private static boolean inTestingContext;
 
   public static void main(String[] args) {
     /**
      * @formatter:off
      * Note: In order to run main,
      * 1) Build the project
-     * 2) Copy the accumulo test jar (in /test/target/) to your accumulo installation's
+     * 2) Copy the accumulo test jar (in /test/target/) into your accumulo installation's
      * lib directory*
+     * 3) Copy the JUnit dependencies into your accumulo installation's lib directory:
+     * "mvn dependency:copy-dependencies -DincludeGroupIds="org.junit.jupiter"
+     * cp test/target/dependency/junit-jupiter-* $ACCUMULO_HOME/lib/"
+     *
+     * *Ensure the test jar is in lib before the tablet servers start. Restart tablet
+     * servers if necessary.
+     *
      * Now, this can be run with
      * "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>"
      *      <props-file>: An accumulo client properties file
      *      <tmp-dir>: tmpDir field for the TestContext object
      *      <table>: The name of the table to be created
      *      <sleep-time>: The time to sleep (ms) after submitting the various concurrent tasks
-     * *Ensure the test jar is in lib before the tablet servers start. Restart tablet
-     * servers if necessary.
      * @formatter:on
      */
     Preconditions.checkArgument(args.length == 4, "Invalid arguments. Use: "
         + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>");
-    inTestingContext = false;
     final String propsFile = args[0];
     final String tmpDir = args[1];
     final String table = args[2];
@@ -118,7 +121,6 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       justification = "predictable random is ok for testing")
   @Test
   public void testConcurrentScanConsistency() throws Exception {
-    inTestingContext = true;
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       FileSystem fileSystem = getCluster().getFileSystem();
       final String tmpDir = getCluster().getTemporaryPath().toString();
@@ -182,17 +184,17 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         var stats = writeTask.get();
         log.info(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
             stats.written, stats.bulkImported, stats.deleted, stats.bulkDeleted));
-        checkTrue(stats.written + stats.bulkImported > 0);
-        checkTrue(stats.deleted + stats.bulkDeleted > 0);
+        assertTrue(stats.written + stats.bulkImported > 0);
+        assertTrue(stats.deleted + stats.bulkDeleted > 0);
       }
 
       for (Future<ScanStats> scanTask : scanTasks) {
         var stats = scanTask.get();
         log.info(String.format("Scanned:%,d verified:%,d", stats.scanned, stats.verified));
-        checkTrue(stats.verified > 0);
+        assertTrue(stats.verified > 0);
         // These scans were running concurrently with writes, so a scan will see more data than what
         // was written before the scan started.
-        checkTrue(stats.scanned > stats.verified);
+        assertTrue(stats.scanned > stats.verified);
       }
 
       log.info(tableOpsTask.get());
@@ -202,46 +204,17 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       var stats3 = batchScanData(testContext, new Range());
       log.info(
           String.format("Final scan, scanned:%,d verified:%,d", stats1.scanned, stats1.verified));
-      checkTrue(stats1.verified > 0);
+      assertTrue(stats1.verified > 0);
       // Should see all expected data now that there are no concurrent writes happening
-      checkEquals(stats1.scanned, stats1.verified);
-      checkEquals(stats2.scanned, stats1.scanned);
-      checkEquals(stats2.verified, stats1.verified);
-      checkEquals(stats3.scanned, stats1.scanned);
-      checkEquals(stats3.verified, stats1.verified);
+      assertEquals(stats1.scanned, stats1.verified);
+      assertEquals(stats2.scanned, stats1.scanned);
+      assertEquals(stats2.verified, stats1.verified);
+      assertEquals(stats3.scanned, stats1.scanned);
+      assertEquals(stats3.verified, stats1.verified);
 
       client.tableOperations().delete(table);
     } finally {
       executor.shutdownNow();
-    }
-  }
-
-  /**
-   * Checks if b is true. Uses JUnit assert if inTestingContext, otherwise checks if b is true and
-   * throws an exception if not.
-   *
-   * @param b The boolean checked
-   */
-  private static void checkTrue(boolean b) throws Exception {
-    if (inTestingContext) {
-      assertTrue(b);
-    } else if (!b) {
-      throw new Exception("Failed assertion");
-    }
-  }
-
-  /**
-   * Checks if l1 and l2 are equal. Uses JUnit assert if inTestingContext, otherwise checks if l1
-   * and l2 are equal and throws an exception if not.
-   *
-   * @param l1 One of the two longs to be compared
-   * @param l2 One of the two longs to be compared
-   */
-  private static void checkEquals(long l1, long l2) throws Exception {
-    if (inTestingContext) {
-      assertEquals(l1, l2);
-    } else if (l1 != l2) {
-      throw new Exception("Failed assertion");
     }
   }
 
@@ -412,7 +385,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       }
     });
 
-    checkTrue(expected.isEmpty());
+    assertTrue(expected.isEmpty());
     return stats;
   }
 
