@@ -23,9 +23,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class LogEntry {
@@ -47,7 +50,7 @@ public class LogEntry {
    * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
    *
    * @param filePath path to validate
-   * @throws IllegalArgumentException if the filepath is invalid
+   * @throws IllegalArgumentException if the filePath is invalid
    */
   private static void validateFilePath(String filePath) {
     String[] parts = filePath.split("/");
@@ -76,12 +79,12 @@ public class LogEntry {
   }
 
   /**
-   * Make a copy of this LogEntry but replace the file path.
+   * Add LogEntry information to the provided mutation.
    *
-   * @param filePath path to use
+   * @param mutation the mutation to update
    */
-  public LogEntry switchFile(String filePath) {
-    return new LogEntry(filePath);
+  public void addToMutation(Mutation mutation) {
+    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(new Value());
   }
 
   @Override
@@ -107,13 +110,11 @@ public class LogEntry {
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    final Value value = entry.getValue();
-
-    String filePath = value.toString();
-
-    validateFilePath(filePath);
-
-    return new LogEntry(filePath);
+    String qualifier = entry.getKey().getColumnQualifier().toString();
+    String[] parts = qualifier.split("/", 2);
+    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
+        "Malformed write-ahead log %s", qualifier);
+    return new LogEntry(parts[1]);
   }
 
   public String getUniqueID() {
@@ -123,10 +124,6 @@ public class LogEntry {
 
   public Text getColumnQualifier() {
     return new Text("-/" + filePath);
-  }
-
-  public Value getValue() {
-    return new Value(filePath);
   }
 
 }

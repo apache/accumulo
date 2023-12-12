@@ -146,8 +146,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
-      m.put(TabletsSection.LogColumnFamily.NAME, logEntry.getColumnQualifier(),
-          logEntry.getValue());
+      logEntry.addToMutation(m);
 
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(m);
@@ -205,8 +204,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
-      m.put(TabletsSection.LogColumnFamily.NAME, logEntry.getColumnQualifier(),
-          logEntry.getValue());
+      logEntry.addToMutation(m);
 
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
         bw.addMutation(m);

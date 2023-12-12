@@ -204,8 +204,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
       LogEntry logEntry = new LogEntry("localhost:1234/" + UUID.randomUUID());
-      m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-          .put(logEntry.getValue());
+      logEntry.addToMutation(m);
       update(accumuloClient, m);
 
       // Verify state is still WAITING_FOR_OFFLINE
