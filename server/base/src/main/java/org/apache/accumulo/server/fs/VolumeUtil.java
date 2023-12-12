@@ -103,11 +103,11 @@ public class VolumeUtil {
       return null;
     }
 
-    le = new LogEntry(switchedString);
+    LogEntry newLogEntry = new LogEntry(switchedString);
 
-    log.trace("Switched {} to {}", le, switchedString);
+    log.trace("Switched {} to {}", le, newLogEntry);
 
-    return le;
+    return newLogEntry;
   }
 
   public static class TabletFiles {

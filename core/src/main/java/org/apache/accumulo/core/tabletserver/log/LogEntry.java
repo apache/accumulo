@@ -84,7 +84,7 @@ public class LogEntry {
    * @param mutation the mutation to update
    */
   public void addToMutation(Mutation mutation) {
-    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(getValue());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(new Value());
   }
 
   @Override
@@ -110,16 +110,10 @@ public class LogEntry {
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-
-    final Text columnQualifier = entry.getKey().getColumnQualifier();
-
-    String logReference = columnQualifier.toString();
-
-    String[] parts = logReference.split("/", 2);
-
+    String qualifier = entry.getKey().getColumnQualifier().toString();
+    String[] parts = qualifier.split("/", 2);
     Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
-        "Malformed write-ahead log %s", logReference);
-
+        "Malformed write-ahead log %s", qualifier);
     return new LogEntry(parts[1]);
   }
 
@@ -132,8 +126,4 @@ public class LogEntry {
     return new Text("-/" + logReference);
   }
 
-  public Value getValue() {
-
-    return new Value();
-  }
 }
