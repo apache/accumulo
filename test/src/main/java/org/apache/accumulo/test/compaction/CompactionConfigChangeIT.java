@@ -33,13 +33,31 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
-import org.junit.jupiter.api.Disabled;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class CompactionConfigChangeIT extends AccumuloClusterHarness {
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("e4", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("e5", 1);
+
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
+        ("[{'name':'small','type':'external','maxSize':'2M', 'group': 'e1'},"
+            + "{'name':'medium','type':'external','maxSize':'128M', 'group':'e2'},"
+            + "{'name':'large','type':'external','group':'e3'}]").replaceAll("'", "\""));
+
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  }
 
   public static long countFiles(AccumuloClient client, String table, String fileNamePrefix)
       throws Exception {
@@ -57,15 +75,6 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     // this test reproduces #3749
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String table = getUniqueNames(1)[0];
-
-      client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
-          DefaultCompactionPlanner.class.getName());
-      client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-          ("[{'name':'small','type':'internal','maxSize':'2M','numThreads':2},"
-              + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
-              + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\""));
 
       createTable(client, table, "cs1", 100);
 
@@ -94,8 +103,8 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       // with running compactions.
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-          ("[{'name':'little','type':'internal','maxSize':'128M','numThreads':8},"
-              + "{'name':'big','type':'internal','numThreads':2}]").replaceAll("'", "\""));
+          ("[{'name':'little','type':'external','maxSize':'128M','group':'e4'},"
+              + "{'name':'big','type':'external','group':'e5'}]").replaceAll("'", "\""));
 
       Wait.waitFor(() -> countFiles(client, table, "F") == 0, 60000);
 
