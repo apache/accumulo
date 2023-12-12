@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -165,7 +166,15 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       // Calling getRunningCompaction on the MemoryConsumingCompactor
       // will consume the free memory
       LOG.info("Calling getRunningCompaction on {}", compactorAddr);
-      ExternalCompactionUtil.getRunningCompaction(compactorAddr, ctx);
+      boolean success = false;
+      while (!success) {
+        try {
+          ExternalCompactionUtil.getRunningCompaction(compactorAddr, ctx);
+          success = true;
+        } catch (Exception e) {
+          UtilWaitThread.sleep(3000);
+        }
+      }
 
       ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
       compactionThread.start();
