@@ -60,6 +60,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -99,11 +100,11 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private Map<String,String> getTServerGroups() throws Exception {
+  public static Map<String,String> getTServerGroups(MiniAccumuloClusterImpl cluster) throws Exception {
 
     Map<String,String> tservers = new HashMap<>();
-    ZooCache zk = getCluster().getServerContext().getZooCache();
-    String zpath = getCluster().getServerContext().getZooKeeperRoot() + Constants.ZTSERVERS;
+    ZooCache zk = cluster.getServerContext().getZooCache();
+    String zpath = cluster.getServerContext().getZooKeeperRoot() + Constants.ZTSERVERS;
 
     List<String> children = zk.getChildren(zpath);
     for (String child : children) {
@@ -147,7 +148,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       client.tableOperations().create(names[1], ntc2);
       client.instanceOperations().waitForBalance();
 
-      Map<String,String> tserverGroups = getTServerGroups();
+      Map<String,String> tserverGroups = getTServerGroups(getCluster());
       assertEquals(2, tserverGroups.size());
 
       Ample ample = ((ClientContext) client).getAmple();
@@ -290,7 +291,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     assertEquals(numExpectedSplits, getCountOfHostedTablets(client, tableName));
 
-    Map<String,String> tserverGroups = getTServerGroups();
+    Map<String,String> tserverGroups = getTServerGroups(getCluster());
     LOG.info("Tablet Server groups: {}", tserverGroups);
 
     assertEquals(2, tserverGroups.size());
