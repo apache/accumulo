@@ -87,27 +87,29 @@ public class VolumeUtil {
     return null;
   }
 
-  protected static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    Path switchedPath = switchVolume(new Path(le.getLogReference()), FileType.WAL, replacements);
+  protected static LogEntry switchVolumes(LogEntry newLogEntry,
+      List<Pair<Path,Path>> replacements) {
+    Path switchedPath =
+        switchVolume(new Path(newLogEntry.getLogReference()), FileType.WAL, replacements);
     String switchedString;
     int numSwitched = 0;
     if (switchedPath != null) {
       switchedString = switchedPath.toString();
       numSwitched++;
     } else {
-      switchedString = le.getLogReference();
+      switchedString = newLogEntry.getLogReference();
     }
 
     if (numSwitched == 0) {
-      log.trace("Did not switch {}", le);
+      log.trace("Did not switch {}", newLogEntry);
       return null;
     }
 
-    le = new LogEntry(switchedString);
+    newLogEntry = new LogEntry(switchedString);
 
-    log.trace("Switched {} to {}", le, switchedString);
+    log.trace("Switched {} to {}", newLogEntry, switchedString);
 
-    return le;
+    return newLogEntry;
   }
 
   public static class TabletFiles {
