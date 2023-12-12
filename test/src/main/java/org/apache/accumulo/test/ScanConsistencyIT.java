@@ -372,8 +372,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     }
   }
 
-  private static ScanStats scan(Stream<Map.Entry<Key,Value>> scanner, Set<Key> expected)
-      throws Exception {
+  private static ScanStats scan(Stream<Map.Entry<Key,Value>> scanner, Set<Key> expected) {
     ScanStats stats = new ScanStats();
 
     scanner.forEach(entry -> {
