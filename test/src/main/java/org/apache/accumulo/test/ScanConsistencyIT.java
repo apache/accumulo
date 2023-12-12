@@ -129,7 +129,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
   }
 
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
-          justification = "predictable random is ok for testing")
+      justification = "predictable random is ok for testing")
   private static void runTest(AccumuloClient client, FileSystem fileSystem, String tmpDir,
       String table, long sleepTime) throws Exception {
 
