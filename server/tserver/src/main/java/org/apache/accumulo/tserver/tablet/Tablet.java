@@ -1764,7 +1764,7 @@ public class Tablet extends TabletBase {
         }
 
         long lockWait = System.nanoTime() - now;
-        if (System.nanoTime() - now > rpcTimeoutNanos) {
+        if (lockWait > rpcTimeoutNanos) {
           throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
               + " seconds to get tablet lock for " + extent + " " + tid);
         }
