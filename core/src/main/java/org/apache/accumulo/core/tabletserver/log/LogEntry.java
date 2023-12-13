@@ -23,22 +23,25 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class LogEntry {
 
-  private final String filePath;
+  private final String logReference;
 
-  public LogEntry(String filePath) {
-    validateFilePath(filePath);
-    this.filePath = filePath;
+  public LogEntry(String logReference) {
+    validateLogReference(logReference);
+    this.logReference = logReference;
   }
 
-  public String getFilePath() {
-    return this.filePath;
+  public String getLogReference() {
+    return this.logReference;
   }
 
   /**
@@ -46,15 +49,15 @@ public class LogEntry {
    * (host:port) followed by a UUID as the file name. For example,
    * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
    *
-   * @param filePath path to validate
+   * @param logReference path to validate
    * @throws IllegalArgumentException if the filepath is invalid
    */
-  private static void validateFilePath(String filePath) {
-    String[] parts = filePath.split("/");
+  private static void validateLogReference(String logReference) {
+    String[] parts = logReference.split("/");
 
     if (parts.length < 2) {
       throw new IllegalArgumentException(
-          "Invalid filePath format. The path should at least contain tserver/UUID.");
+          "Invalid logReference format. The path should at least contain tserver/UUID.");
     }
 
     String tserverPart = parts[parts.length - 2];
@@ -64,8 +67,8 @@ public class LogEntry {
       HostAndPort.fromString(tserverPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-          "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
-              + "'");
+          "Invalid tserver format in logReference. Expected format: host:port. Found '"
+              + tserverPart + "'");
     }
 
     try {
@@ -76,17 +79,17 @@ public class LogEntry {
   }
 
   /**
-   * Make a copy of this LogEntry but replace the file path.
+   * Add LogEntry information to the provided mutation.
    *
-   * @param filePath path to use
+   * @param mutation the mutation to update
    */
-  public LogEntry switchFile(String filePath) {
-    return new LogEntry(filePath);
+  public void addToMutation(Mutation mutation) {
+    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(new Value());
   }
 
   @Override
   public String toString() {
-    return filePath;
+    return logReference;
   }
 
   @Override
@@ -98,35 +101,29 @@ public class LogEntry {
       return false;
     }
     LogEntry logEntry = (LogEntry) other;
-    return this.filePath.equals(logEntry.filePath);
+    return this.logReference.equals(logEntry.logReference);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(filePath);
+    return Objects.hash(logReference);
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    final Value value = entry.getValue();
-
-    String filePath = value.toString();
-
-    validateFilePath(filePath);
-
-    return new LogEntry(filePath);
+    String qualifier = entry.getKey().getColumnQualifier().toString();
+    String[] parts = qualifier.split("/", 2);
+    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
+        "Malformed write-ahead log %s", qualifier);
+    return new LogEntry(parts[1]);
   }
 
   public String getUniqueID() {
-    String[] parts = filePath.split("/");
+    String[] parts = logReference.split("/");
     return parts[parts.length - 1];
   }
 
   public Text getColumnQualifier() {
-    return new Text("-/" + filePath);
-  }
-
-  public Value getValue() {
-    return new Value(filePath);
+    return new Text("-/" + logReference);
   }
 
 }

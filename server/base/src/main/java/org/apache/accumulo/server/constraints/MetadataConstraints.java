@@ -416,7 +416,7 @@ public class MetadataConstraints implements Constraint {
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:
-        return "Bulk load transaction no longer running";
+        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
       case 9:
         return "Malformed operation id";
       case 10:

@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -101,11 +100,9 @@ public class TabletManagementTest {
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
     LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
-        .put(le1.getValue());
+    le1.addToMutation(mutation);
     LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
-        .put(le2.getValue());
+    le2.addToMutation(mutation);
 
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
