@@ -1172,6 +1172,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
+  public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+      List<TKeyExtent> extents, int numStamps) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    var tabletsSnapshot = server.getOnlineTablets();
+
+    Map<TKeyExtent,Long> timestamps = new HashMap<>();
+
+    for (var textent : extents) {
+      var extent = KeyExtent.fromThrift(textent);
+      Tablet tablet = tabletsSnapshot.get(extent);
+      if (tablet != null) {
+        tablet.allocateTimestamp(numStamps)
+            .ifPresent(timestamp -> timestamps.put(textent, timestamp));
+      }
+    }
+
+    return timestamps;
+  }
+
+  @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
     // Might be null if there is no active logger
