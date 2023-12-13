@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -237,31 +239,19 @@ public class FunctionalTestUtils {
   /**
    * Verify that flush ID gets updated properly and is the same for all tablets.
    */
-  static long checkFlushId(ClientContext c, TableId tableId, long prevFlushID) throws Exception {
+  static Map<KeyExtent,OptionalLong> getFlushIds(ClientContext c, TableId tableId)
+      throws Exception {
+
+    Map<KeyExtent,OptionalLong> flushValues = new HashMap<>();
+
     try (TabletsMetadata metaScan =
         c.getAmple().readTablets().forTable(tableId).fetch(FLUSH_ID).checkConsistency().build()) {
 
-      long flushId = 0, prevTabletFlushId = 0;
       for (TabletMetadata tabletMetadata : metaScan) {
-        OptionalLong optFlushId = tabletMetadata.getFlushId();
-        if (optFlushId.isPresent()) {
-          flushId = optFlushId.getAsLong();
-          if (prevTabletFlushId > 0 && prevTabletFlushId != flushId) {
-            throw new Exception("Flush ID different between tablets");
-          } else {
-            prevTabletFlushId = flushId;
-          }
-        } else {
-          throw new Exception("Missing flush ID");
-        }
+        flushValues.put(tabletMetadata.getExtent(), tabletMetadata.getFlushId());
       }
 
-      if (prevFlushID >= flushId) {
-        throw new Exception(
-            "Flush ID did not increase. prevFlushID: " + prevFlushID + " current: " + flushId);
-      }
-
-      return flushId;
     }
+    return flushValues;
   }
 }
