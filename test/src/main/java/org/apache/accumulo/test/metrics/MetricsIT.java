@@ -21,22 +21,26 @@ package org.apache.accumulo.test.metrics;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.conf.Property;
@@ -45,6 +49,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -60,7 +65,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(1);
+    return Duration.ofMinutes(3);
   }
 
   @BeforeAll
@@ -92,9 +97,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   @Test
   public void confirmMetricsPublished() throws Exception {
 
-    doWorkToGenerateMetrics();
-    cluster.stop();
-
     Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
         METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM, METRICS_SCAN_RETURN_FOR_MEM,
         METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED);
@@ -114,8 +116,30 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     List<String> statsDMetrics;
 
+    final int compactionPriorityQueueLengthBit = 0;
+    final int compactionPriorityQueueQueuedBit = 1;
+    final int compactionPriorityQueueDequeuedBit = 2;
+    final int compactionPriorityQueueRejectedBit = 3;
+    final int compactionPriorityQueuePriorityBit = 4;
+
+    final BitSet trueSet = new BitSet(5);
+    trueSet.set(0, 4, true);
+
+    final BitSet queueMetricsSeen = new BitSet(5);
+
+    AtomicReference<Exception> error = new AtomicReference<>();
+    Thread workerThread = new Thread(() -> {
+      try {
+        doWorkToGenerateMetrics();
+      } catch (Exception e) {
+        error.set(e);
+      }
+    });
+    workerThread.start();
+
     // loop until we run out of lines or until we see all expected metrics
-    while (!(statsDMetrics = sink.getLines()).isEmpty() && !expectedMetricNames.isEmpty()) {
+    while (!(statsDMetrics = sink.getLines()).isEmpty() && !expectedMetricNames.isEmpty()
+        && !queueMetricsSeen.intersects(trueSet)) {
       // for each metric name not yet seen, check if it is expected, flaky, or unknown
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
           .map(TestStatsDSink::parseStatsDMetric).map(Metric::getName)
@@ -126,14 +150,37 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             } else if (flakyMetrics.contains(name)) {
               // ignore any flaky metric names seen
               // these aren't always expected, but we shouldn't be surprised if we see them
+            } else if (name.startsWith("accumulo.compactor.queue")) {
+              // Compactor queue metrics are not guaranteed to be emitted
+              // during the call to doWorkToGenerateMetrics above. This will
+              // flip a bit in the BitSet when each metric is seen. The top-level
+              // loop will continue to iterate until all the metrics are seen.
+              seenMetricNames.put(name, expectedMetricNames.remove(name));
+              if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.equals(name)) {
+                queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
+              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.equals(name)) {
+                queueMetricsSeen.set(compactionPriorityQueueQueuedBit, true);
+              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.equals(name)) {
+                queueMetricsSeen.set(compactionPriorityQueueDequeuedBit, true);
+              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.equals(name)) {
+                queueMetricsSeen.set(compactionPriorityQueueRejectedBit, true);
+              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.equals(name)) {
+                queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
+              }
             } else {
               // completely unexpected metric
               fail("Found accumulo metric not in expectedMetricNames or flakyMetricNames: " + name);
             }
           });
+      Thread.sleep(4_000);
     }
     assertTrue(expectedMetricNames.isEmpty(),
         "Did not see all expected metric names, missing: " + expectedMetricNames.values());
+
+    workerThread.join();
+    assertNull(error.get());
+    cluster.stop();
+
   }
 
   private void doWorkToGenerateMetrics() throws Exception {
@@ -167,6 +214,14 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
       try (Scanner scanner = client.createScanner(tableName)) {
         scanner.forEach((k, v) -> {});
       }
+      // Start a compaction with the slow iterator to ensure that the compaction queues
+      // are not removed quickly
+      CompactionConfig cc = new CompactionConfig();
+      IteratorSetting is = new IteratorSetting(100, "slow", SlowIterator.class);
+      SlowIterator.setSleepTime(is, 3000);
+      cc.setIterators(List.of(is));
+      cc.setWait(false);
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
       client.tableOperations().delete(tableName);
       while (client.tableOperations().exists(tableName)) {
         Thread.sleep(1000);
