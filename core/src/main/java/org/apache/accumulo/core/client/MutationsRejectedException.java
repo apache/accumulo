@@ -60,7 +60,7 @@ public class MutationsRejectedException extends AccumuloException {
       Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
       int unknownErrors, Throwable cause) {
     super(
-        "# constraint violations : "
+        "constraint violation codes : "
             + cvsList.stream().map(ConstraintViolationSummary::getViolationCode)
                 .collect(Collectors.toSet())
             + "  security codes: " + hashMap.toString() + "  # server errors "
@@ -87,7 +87,7 @@ public class MutationsRejectedException extends AccumuloException {
       Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
       int unknownErrors, Throwable cause) {
     super(
-        "# constraint violations : "
+        "constraint violation codes : "
             + cvsList.stream().map(ConstraintViolationSummary::getViolationCode).collect(
                 Collectors.toSet())
             + "  security codes: " + format(hashMap, (ClientContext) client) + "  # server errors "
