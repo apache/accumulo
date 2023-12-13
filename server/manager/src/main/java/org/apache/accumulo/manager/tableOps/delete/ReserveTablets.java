@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -61,7 +62,8 @@ public class ReserveTablets extends ManagerRepo {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         accepted.incrementAndGet();
       } else {
-        log.debug("Failed to set operation id {} {}", opid, result.getExtent());
+        log.debug("{} Failed to set operation id {} {}", FateTxId.formatTid(tid), opid,
+            result.getExtent());
       }
     };
 
@@ -95,8 +97,8 @@ public class ReserveTablets extends ManagerRepo {
     }
 
     if (locations > 0 || otherOps > 0 || submitted != accepted.get()) {
-      log.debug("Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
-          locations, otherOps, submitted, accepted.get());
+      log.debug("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
+          FateTxId.formatTid(tid), locations, otherOps, submitted, accepted.get());
       return Math.min(Math.max(100, tabletsSeen), 30000);
     }
 
