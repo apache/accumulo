@@ -1744,18 +1744,41 @@ public class Tablet extends TabletBase {
 
     // Clients timeout and will think that this operation failed.
     // Don't do it if we spent too long waiting for the lock
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime();
     synchronized (this) {
       if (isClosed()) {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      // TODO check seems unneeded now - ACCUMULO-1291
-      long lockWait = System.currentTimeMillis() - now;
-      if (lockWait
-          > getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
-        throw new IOException(
-            "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
+      long rpcTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(
+          (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
+              * 1.1));
+
+      // wait for any files that are bulk importing up to the RPC timeout limit
+      while (!Collections.disjoint(bulkImporting, fileMap.keySet())) {
+        try {
+          wait(1_000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
+        }
+
+        long lockWait = System.nanoTime() - now;
+        if (lockWait > rpcTimeoutNanos) {
+          throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+              + " seconds to get tablet lock for " + extent + " " + tid);
+        }
+      }
+
+      // need to check this again because when wait is called above the lock is released.
+      if (isClosed()) {
+        throw new IOException("tablet " + extent + " is closed");
+      }
+
+      long lockWait = System.nanoTime() - now;
+      if (lockWait > rpcTimeoutNanos) {
+        throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+            + " seconds to get tablet lock for " + extent + " " + tid);
       }
 
       List<TabletFile> alreadyImported = bulkImported.get(tid);
@@ -1766,14 +1789,6 @@ public class Tablet extends TabletBase {
           }
         }
       }
-
-      fileMap.keySet().removeIf(file -> {
-        if (bulkImporting.contains(file)) {
-          log.info("Ignoring import of bulk file currently importing: " + file);
-          return true;
-        }
-        return false;
-      });
 
       if (fileMap.isEmpty()) {
         return;
