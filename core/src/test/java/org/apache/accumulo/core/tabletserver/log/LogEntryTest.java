@@ -52,18 +52,20 @@ public class LogEntryTest {
     // test from constructor
     LogEntry one = new LogEntry(validFilename);
     assertEquals(validFilename, one.toString());
-    assertEquals(validFilename, one.getLogReference());
+    assertEquals(validFilename, one.getFilePath());
     assertEquals(new Text("-/" + validFilename), one.getColumnQualifier());
     assertEquals(validUUID.toString(), one.getUniqueID());
+    assertEquals(new Value(validFilename), one.getValue());
 
     // test from metadata entry
     LogEntry two = LogEntry.fromMetaWalEntry(new AbstractMap.SimpleImmutableEntry<>(
-        new Key(new Text("1<"), new Text("log"), one.getColumnQualifier()), new Value("unused")));
+        new Key(new Text("1<"), new Text("log"), one.getColumnQualifier()), one.getValue()));
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getLogReference(), two.getLogReference());
+    assertEquals(one.getFilePath(), two.getFilePath());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
+    assertEquals(one.getValue(), two.getValue());
     assertEquals(one, two);
   }
 
@@ -74,9 +76,10 @@ public class LogEntryTest {
 
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getLogReference(), two.getLogReference());
+    assertEquals(one.getFilePath(), two.getFilePath());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
+    assertEquals(one.getValue(), two.getValue());
     assertEquals(one, two);
 
     assertEquals(one, one);

@@ -98,8 +98,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
           List<Collection<String>> logs = new ArrayList<>();
           rootMeta.getLogs().forEach(logEntry -> {
-            logs.add(Collections.singleton(logEntry.getLogReference()));
-            log.debug("root tablet log {}", logEntry.getLogReference());
+            logs.add(Collections.singleton(logEntry.getFilePath()));
+            log.debug("root tablet log {}", logEntry.getFilePath());
           });
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
