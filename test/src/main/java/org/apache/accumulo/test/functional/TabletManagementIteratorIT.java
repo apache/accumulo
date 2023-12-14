@@ -71,7 +71,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -446,8 +445,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     Mutation m = new Mutation(extent.toMetaRow());
     String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
     LogEntry logEntry = new LogEntry(fileName);
-    m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-        .put(logEntry.getValue());
+    logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }

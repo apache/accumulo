@@ -531,7 +531,7 @@ public class ZooStore<T> implements FateStore<T> {
           runnableTids.removeIf(txid -> {
             var deferedTime = defered.get(txid);
             if (deferedTime != null) {
-              if (deferedTime < System.currentTimeMillis()) {
+              if (deferedTime >= System.currentTimeMillis()) {
                 return true;
               } else {
                 defered.remove(txid);
