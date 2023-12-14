@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -158,7 +159,11 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized long getLowestPriority() {
-    return jobQueue.lastKey().job.getPriority();
+    CompactionJobPriorityQueue.CjpqKey highestJob = null;
+    try {
+      highestJob = jobQueue.lastKey();
+    } catch (NoSuchElementException e) {}
+    return highestJob == null ? 0 : highestJob.job.getPriority();
   }
 
   public synchronized CompactionJobQueues.MetaJob poll() {
