@@ -150,7 +150,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             } else if (flakyMetrics.contains(name)) {
               // ignore any flaky metric names seen
               // these aren't always expected, but we shouldn't be surprised if we see them
-            } else if (name.startsWith("accumulo.compactor.queue")) {
+            } else if (name.startsWith(METRICS_COMPACTOR_PREFIX)) {
               // Compactor queue metrics are not guaranteed to be emitted
               // during the call to doWorkToGenerateMetrics above. This will
               // flip a bit in the BitSet when each metric is seen. The top-level
