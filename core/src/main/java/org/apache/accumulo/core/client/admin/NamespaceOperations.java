@@ -184,8 +184,8 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
-   * recently changed properties may not be available immediately. Method calls
+   * Gets a merged view of the properties of a namespace, which are inherited by tables in this
+   * namespace. Note that recently changed properties may not be available immediately. Method calls
    * {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
    * @param namespace the name of the namespace
@@ -202,9 +202,9 @@ public interface NamespaceOperations {
   }
 
   /**
-   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
-   * recently changed properties may not be available immediately. This new method returns a Map
-   * instead of an Iterable.
+   * Gets a merged view of the properties of a namespace, which are inherited by tables in this
+   * namespace. Note that recently changed properties may not be available immediately. This new
+   * method returns a Map instead of an Iterable.
    *
    * @param namespace the name of the namespace
    * @return all properties visible by this namespace (system and per-table properties). Note that
@@ -218,8 +218,9 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Gets properties specific to this namespace. Note that recently changed properties may not be
-   * available immediately. This new method returns a Map instead of an Iterable.
+   * Gets properties specific to this namespace. Note that this does not return a merged view of the
+   * properties. Also note that recently changed properties may not be available immediately. This
+   * new method returns a Map instead of an Iterable.
    *
    * @param namespace the name of the namespace
    * @return per-table properties specific to this namespace. Note that recently changed properties
