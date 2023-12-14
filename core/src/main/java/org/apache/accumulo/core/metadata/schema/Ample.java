@@ -359,6 +359,8 @@ public interface Ample {
 
     T putFlushId(long flushId);
 
+    T putFlushNonce(long flushNonce);
+
     T putLocation(Location location);
 
     T deleteLocation(Location location);

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
@@ -114,6 +115,7 @@ public class TabletMetadata {
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
+  private OptionalLong flushNonce = OptionalLong.empty();
   private List<LogEntry> logs;
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
@@ -144,6 +146,7 @@ public class TabletMetadata {
     TIME,
     CLONED,
     FLUSH_ID,
+    FLUSH_NONCE,
     LOGS,
     SPLIT_RATIO,
     SUSPEND,
@@ -369,6 +372,11 @@ public class TabletMetadata {
     return flush;
   }
 
+  public OptionalLong getFlushNonce() {
+    ensureFetched(ColumnType.FLUSH_NONCE);
+    return flushNonce;
+  }
+
   public Double getSplitRatio() {
     ensureFetched(ColumnType.SPLIT_RATIO);
     return splitRatio;
@@ -504,6 +512,9 @@ public class TabletMetadata {
               break;
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
+              break;
+            case FLUSH_NONCE_QUAL:
+              te.flushNonce = OptionalLong.of(Long.parseUnsignedLong(val, 16));
               break;
             case OPID_QUAL:
               te.setOperationIdOnce(val, suppressLocationError);
