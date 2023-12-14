@@ -280,7 +280,6 @@ public class FateIT {
       Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
-      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       assertFalse(fate.cancel(txid));
       callStarted.await();
       finishCall.countDown();
