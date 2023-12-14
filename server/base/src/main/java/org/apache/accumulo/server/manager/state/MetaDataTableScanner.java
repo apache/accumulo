@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -176,8 +176,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
-        String[] split = entry.getValue().toString().split("\\|")[0].split(";");
-        walogs.add(Arrays.asList(split));
+        walogs.add(Collections.singleton(LogEntry.fromMetaWalEntry(entry).getFilePath()));
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
           last = Location.last(new TServerInstance(entry.getValue(), cq));
