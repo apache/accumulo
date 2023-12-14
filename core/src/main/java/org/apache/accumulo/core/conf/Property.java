@@ -483,6 +483,11 @@ public enum Property {
   @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
+  SSERV_IDLE_STOP_ENABLED("sserver.idle.stop.enabled", "false", PropertyType.BOOLEAN,
+      "Exit the process when idle for longer than the associated idle stop period property.",
+      "4.0.0"),
+  SSERV_IDLE_STOP_PERIOD("sserver.idle.stop.period", "0", PropertyType.TIMEDURATION,
+      "The amount of time the process must be idle before it can be stopped.", "4.0.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers.", "1.3.5"),
@@ -755,6 +760,11 @@ public enum Property {
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
           + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer).",
       "4.0.0"),
+  TSERV_IDLE_STOP_ENABLED("tserver.idle.stop.enabled", "false", PropertyType.BOOLEAN,
+      "Exit the process when idle for longer than the associated idle stop period property.",
+      "4.0.0"),
+  TSERV_IDLE_STOP_PERIOD("tserver.idle.stop.period", "0", PropertyType.TIMEDURATION,
+      "The amount of time the process must be idle before it can be stopped.", "4.0.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -1153,6 +1163,11 @@ public enum Property {
   @Experimental
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
+  COMPACTOR_IDLE_STOP_ENABLED("compactor.idle.stop.enabled", "false", PropertyType.BOOLEAN,
+      "Exit the process when idle for longer than the associated idle stop period property.",
+      "4.0.0"),
+  COMPACTOR_IDLE_STOP_PERIOD("compactor.idle.stop.period", "0", PropertyType.TIMEDURATION,
+      "The amount of time the process must be idle before it can be stopped.", "4.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,

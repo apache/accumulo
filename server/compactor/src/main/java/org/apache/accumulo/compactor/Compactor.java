@@ -33,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -631,8 +632,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
+      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
 
-      while (!shutdown) {
+      while (!shutdown && !shouldStopDueToIdleCondition(() -> {
+        return timeSinceLastCompletion.get() > 0
+            && (System.currentTimeMillis() - timeSinceLastCompletion.get()) > idleStopPeriod;
+      })) {
         currentCompactionId.set(null);
         err.set(null);
         JOB_HOLDER.reset();
@@ -770,6 +775,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
+          timeSinceLastCompletion.set(System.currentTimeMillis());
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.
@@ -889,5 +895,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } else {
       return eci.canonical();
     }
+  }
+
+  @Override
+  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
+    return conf.getBoolean(Property.COMPACTOR_IDLE_STOP_ENABLED);
+  }
+
+  @Override
+  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.COMPACTOR_IDLE_STOP_PERIOD);
   }
 }

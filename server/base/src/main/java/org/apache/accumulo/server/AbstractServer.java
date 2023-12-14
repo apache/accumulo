@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -42,12 +43,16 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
+  private final static Logger LOG = LoggerFactory.getLogger(AbstractServer.class);
+
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
   private final String resourceGroup;
-
   private final ProcessMetrics processMetrics;
+  protected final boolean idleStopEnabled;
+  protected final long idleStopPeriod;
+  private volatile long idlePeriodStart = 0L;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -73,6 +78,37 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
+    idleStopEnabled = getIdleStopEnabled(context.getConfiguration());
+    idleStopPeriod = getIdleStopPeriod(context.getConfiguration());
+  }
+
+  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
+    return false;
+  }
+
+  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
+    return 0L;
+  }
+
+  public boolean shouldStopDueToIdleCondition(Supplier<Boolean> idleCondition) {
+    if (!idleStopEnabled) {
+      return false;
+    }
+    boolean idle = idleCondition.get();
+    if (!idle) {
+      idlePeriodStart = 0;
+      return false;
+    } else if (idlePeriodStart == 0) {
+      idlePeriodStart = System.currentTimeMillis();
+      return false;
+    } else if ((System.currentTimeMillis() - idlePeriodStart) > idleStopPeriod) {
+      LOG.info("Idle stop enabled and process idle for longer than {}ms. Process could be stopped.",
+          idleStopPeriod);
+      return true;
+    } else {
+      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
+      return false;
+    }
   }
 
   protected String getResourceGroupPropertyValue(SiteConfiguration conf) {

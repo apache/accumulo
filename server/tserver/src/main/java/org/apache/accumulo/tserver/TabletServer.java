@@ -636,7 +636,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     });
 
     HostAndPort managerHost;
-    while (!serverStopRequested) {
+    while (!serverStopRequested
+        && !shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
@@ -1219,4 +1220,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
   }
+
+  @Override
+  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
+    return conf.getBoolean(Property.TSERV_IDLE_STOP_ENABLED);
+  }
+
+  @Override
+  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.TSERV_IDLE_STOP_PERIOD);
+  }
+
 }

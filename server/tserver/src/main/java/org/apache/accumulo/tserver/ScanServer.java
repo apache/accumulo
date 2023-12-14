@@ -385,7 +385,10 @@ public class ScanServer extends AbstractServer
     ServiceLock lock = announceExistence();
 
     try {
-      while (!serverStopRequested) {
+      while (!serverStopRequested && !shouldStopDueToIdleCondition(() -> {
+        return sessionManager.getActiveScans().isEmpty()
+            && tabletMetadataCache.estimatedSize() == 0;
+      })) {
         UtilWaitThread.sleep(1000);
       }
     } finally {
@@ -1036,6 +1039,16 @@ public class ScanServer extends AbstractServer
   @Override
   public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
     return BlockCacheConfiguration.forScanServer(acuConf);
+  }
+
+  @Override
+  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
+    return conf.getBoolean(Property.SSERV_IDLE_STOP_ENABLED);
+  }
+
+  @Override
+  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.SSERV_IDLE_STOP_PERIOD);
   }
 
   public static void main(String[] args) throws Exception {
