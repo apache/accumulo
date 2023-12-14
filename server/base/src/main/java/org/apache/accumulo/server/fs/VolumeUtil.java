@@ -105,7 +105,7 @@ public class VolumeUtil {
       return null;
     }
 
-    newLogEntry = new LogEntry(switchedString);
+    LogEntry newLogEntry = new LogEntry(switchedString);
 
     log.trace("Switched {} to {}", newLogEntry, switchedString);
 

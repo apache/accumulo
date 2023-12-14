@@ -49,8 +49,8 @@ public class LogEntry {
    * (host:port) followed by a UUID as the file name. For example,
    * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
    *
-   * @param logReference path to validate
-   * @throws IllegalArgumentException if the filepath is invalid
+   * @param filePath path to validate
+   * @throws IllegalArgumentException if the filePath is invalid
    */
   private static void validateLogReference(String logReference) {
     String[] parts = logReference.split("/");
@@ -84,7 +84,7 @@ public class LogEntry {
    * @param mutation the mutation to update
    */
   public void addToMutation(Mutation mutation) {
-    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(getValue());
+    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(new Value());
   }
 
   @Override
@@ -110,15 +110,9 @@ public class LogEntry {
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-
-    final Text columnQualifier = entry.getKey().getColumnQualifier();
-
-    String logReference = columnQualifier.toString();
-
-    String[] parts = logReference.split("/", 3);
-
-    Preconditions.checkArgument(parts.length == 3, "Malformed write-ahead log %s", logReference);
-
+    String qualifier = entry.getKey().getColumnQualifier().toString();
+    String[] parts = qualifier.split("/", 3);
+    Preconditions.checkArgument(parts.length == 3, "Malformed write-ahead log %s", qualifier);
     return new LogEntry(parts[1] + "/" + parts[2]);
   }
 
@@ -131,8 +125,4 @@ public class LogEntry {
     return new Text(logReference);
   }
 
-  public Value getValue() {
-
-    return new Value();
-  }
 }
