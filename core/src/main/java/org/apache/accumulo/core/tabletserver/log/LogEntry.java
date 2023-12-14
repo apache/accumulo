@@ -33,15 +33,15 @@ import com.google.common.net.HostAndPort;
 
 public class LogEntry {
 
-  private final String logReference;
+  private final String filePath;
 
-  public LogEntry(String logReference) {
-    validateLogReference(logReference);
-    this.logReference = logReference;
+  public LogEntry(String filePath) {
+    validateFilePath(filePath);
+    this.filePath = filePath;
   }
 
-  public String getLogReference() {
-    return this.logReference;
+  public String getFilePath() {
+    return this.filePath;
   }
 
   /**
@@ -49,15 +49,15 @@ public class LogEntry {
    * (host:port) followed by a UUID as the file name. For example,
    * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
    *
-   * @param logReference path to validate
-   * @throws IllegalArgumentException if the filepath is invalid
+   * @param filePath path to validate
+   * @throws IllegalArgumentException if the filePath is invalid
    */
-  private static void validateLogReference(String logReference) {
-    String[] parts = logReference.split("/");
+  private static void validateFilePath(String filePath) {
+    String[] parts = filePath.split("/");
 
     if (parts.length < 2) {
       throw new IllegalArgumentException(
-          "Invalid logReference format. The path should at least contain tserver/UUID.");
+          "Invalid filePath format. The path should at least contain tserver/UUID.");
     }
 
     String tserverPart = parts[parts.length - 2];
@@ -67,8 +67,8 @@ public class LogEntry {
       HostAndPort.fromString(tserverPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-          "Invalid tserver format in logReference. Expected format: host:port. Found '"
-              + tserverPart + "'");
+          "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
+              + "'");
     }
 
     try {
@@ -89,7 +89,7 @@ public class LogEntry {
 
   @Override
   public String toString() {
-    return logReference;
+    return filePath;
   }
 
   @Override
@@ -101,12 +101,12 @@ public class LogEntry {
       return false;
     }
     LogEntry logEntry = (LogEntry) other;
-    return this.logReference.equals(logEntry.logReference);
+    return this.filePath.equals(logEntry.filePath);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logReference);
+    return Objects.hash(filePath);
   }
 
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
@@ -118,12 +118,12 @@ public class LogEntry {
   }
 
   public String getUniqueID() {
-    String[] parts = logReference.split("/");
+    String[] parts = filePath.split("/");
     return parts[parts.length - 1];
   }
 
   public Text getColumnQualifier() {
-    return new Text("-/" + logReference);
+    return new Text("-/" + filePath);
   }
 
 }

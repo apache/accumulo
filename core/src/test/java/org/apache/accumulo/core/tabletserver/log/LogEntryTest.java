@@ -52,7 +52,7 @@ public class LogEntryTest {
     // test from constructor
     LogEntry one = new LogEntry(validFilename);
     assertEquals(validFilename, one.toString());
-    assertEquals(validFilename, one.getLogReference());
+    assertEquals(validFilename, one.getFilePath());
     assertEquals(new Text("-/" + validFilename), one.getColumnQualifier());
     assertEquals(validUUID.toString(), one.getUniqueID());
 
@@ -61,7 +61,7 @@ public class LogEntryTest {
         new Key(new Text("1<"), new Text("log"), one.getColumnQualifier()), new Value("unused")));
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getLogReference(), two.getLogReference());
+    assertEquals(one.getFilePath(), two.getFilePath());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
     assertEquals(one, two);
@@ -74,7 +74,7 @@ public class LogEntryTest {
 
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getLogReference(), two.getLogReference());
+    assertEquals(one.getFilePath(), two.getFilePath());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
     assertEquals(one, two);

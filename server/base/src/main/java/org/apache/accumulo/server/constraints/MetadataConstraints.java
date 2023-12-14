@@ -224,9 +224,10 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          && !columnFamily.equals(CompactedColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+          || columnFamily.equals(LogColumnFamily.NAME)
+          || HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          || columnFamily.equals(CompactedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
