@@ -160,7 +160,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range("tx_" + FastFormat.toHexString(tid)));
+        scanner.setRange(getRow(tid));
 
         final ColumnFQ cq;
         switch (txInfo) {
