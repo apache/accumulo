@@ -1326,7 +1326,6 @@ public class Tablet extends TabletBase {
         // bulk imports can also update time in the metadata table, so only update if we are moving
         // time forward
         if (maxCommittedTime > lastTabletMetadata.getTime().getTime()) {
-          // TODO throw exception if requireSame called more than once
           tablet.requireSame(lastTabletMetadata, ColumnType.TIME);
           var newTime = tabletTime.getMetadataTime(maxCommittedTime);
           tablet.putTime(newTime);
