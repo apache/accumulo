@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.accumulo;
 
 import static org.apache.accumulo.core.fate.AbstractFateStore.serialize;
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRow;
+import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
 
 import java.util.Objects;
 
@@ -110,14 +111,13 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putRepo(int position, Repo<T> repo) {
-    mutation.put(RepoColumnFamily.NAME, new Text(Integer.toString(position)),
-        new Value(serialize(repo)));
+    mutation.put(RepoColumnFamily.NAME, invertRepo(position), new Value(serialize(repo)));
     return this;
   }
 
   @Override
   public FateMutator<T> deleteRepo(int position) {
-    mutation.putDelete(RepoColumnFamily.NAME, new Text(Integer.toString(position)));
+    mutation.putDelete(RepoColumnFamily.NAME, invertRepo(position));
     return this;
   }
 

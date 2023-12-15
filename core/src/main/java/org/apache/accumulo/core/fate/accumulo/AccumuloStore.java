@@ -18,13 +18,10 @@
  */
 package org.apache.accumulo.core.fate.accumulo;
 
-import static java.util.Collections.reverseOrder;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.Serializable;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,9 +31,7 @@ import java.util.stream.StreamSupport;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
@@ -48,6 +43,7 @@ import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFami
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,11 +51,10 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   private static Logger log = LoggerFactory.getLogger(AccumuloStore.class);
 
-  private static final Comparator<Entry<Key,Value>> repoComparator =
-      Comparator.comparing(o -> o.getKey().getColumnQualifier(), reverseOrder());
-
   private final ClientContext context;
   private final String tableName;
+
+  private static final int maxRepos = 100;
 
   public AccumuloStore(ClientContext context, String tableName) {
     this.context = Objects.requireNonNull(context);
@@ -80,8 +75,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   protected List<String> getTransactions() {
     return scanTx(scanner -> {
       scanner.setRange(new Range());
-      scanner.fetchColumn(TxColumnFamily.STATUS_COLUMN.getColumnFamily(),
-          TxColumnFamily.STATUS_COLUMN.getColumnQualifier());
+      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> e.getKey().getRow().toString()).collect(Collectors.toList());
     });
@@ -91,8 +85,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   protected TStatus _getStatus(long tid) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(tid));
-      scanner.fetchColumn(TxColumnFamily.STATUS_COLUMN.getColumnFamily(),
-          TxColumnFamily.STATUS_COLUMN.getColumnQualifier());
+      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
     });
@@ -107,7 +100,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     return new Range("tx_" + FastFormat.toHexString(tid));
   }
 
-  private <T> FateMutatorImpl<T> newMutator(long tid) {
+  private FateMutatorImpl<T> newMutator(long tid) {
     return new FateMutatorImpl<>(context, tableName, tid);
   }
 
@@ -132,7 +125,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false).sorted(repoComparator).map(e -> {
+        return StreamSupport.stream(scanner.spliterator(), false).map(e -> {
           @SuppressWarnings("unchecked")
           var repo = (Repo<T>) deserialize(e.getValue().get());
           return repo;
@@ -147,7 +140,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false).sorted(repoComparator).map(e -> {
+        return StreamSupport.stream(scanner.spliterator(), false).map(e -> {
           @SuppressWarnings("unchecked")
           var repo = (ReadOnlyRepo<T>) deserialize(e.getValue().get());
           return repo;
@@ -194,8 +187,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
-        scanner.fetchColumn(TxColumnFamily.CREATE_TIME_COLUMN.getColumnFamily(),
-            TxColumnFamily.CREATE_TIME_COLUMN.getColumnQualifier());
+        TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
         return StreamSupport.stream(scanner.spliterator(), false)
             .map(e -> Long.parseLong(e.getValue().toString())).findFirst().orElse(0L);
       });
@@ -211,12 +203,12 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         // We also likely need a conditional mutation to make sure we are incrementing the latest
         Optional<Integer> top = findTop();
 
-        if (top.filter(t -> t > 100).isPresent()) {
+        if (top.filter(t -> t >= maxRepos).isPresent()) {
           throw new StackOverflowException("Repo stack size too large");
         }
 
         FateMutator<T> fateMutator = newMutator(tid);
-        fateMutator.putRepo(top.map(t -> t + 1).orElse(0), repo).mutate();
+        fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
       } catch (StackOverflowException soe) {
         throw soe;
       }
@@ -280,9 +272,17 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false).sorted(repoComparator)
-            .map(e -> Integer.parseInt(e.getKey().getColumnQualifier().toString())).findFirst();
+        return StreamSupport.stream(scanner.spliterator(), false)
+            .map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
       });
     }
+  }
+
+  static Text invertRepo(int position) {
+    return new Text(String.format("%02d", maxRepos - position));
+  }
+
+  static Integer restoreRepo(Text position) {
+    return maxRepos - Integer.parseInt(position.toString());
   }
 }
