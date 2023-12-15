@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 
@@ -37,10 +37,10 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 public class CompactionJobImpl implements CompactionJob {
 
   private final short priority;
-  private final CompactionExecutorId executor;
+  private final CompactionGroupId group;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
-  // Tracks if a job selected all of the tablets files that existed at the time the job was created.
+  // Tracks if a job selected all the tablet's files that existed at the time the job was created.
   private final Optional<Boolean> jobSelectedAll;
 
   /**
@@ -49,10 +49,10 @@ public class CompactionJobImpl implements CompactionJob {
    *        to start compaction. After a job is running, its not used. So when a job object is
    *        recreated for a running external compaction this parameter can be empty.
    */
-  public CompactionJobImpl(short priority, CompactionExecutorId executor,
+  public CompactionJobImpl(short priority, CompactionGroupId group,
       Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
     this.priority = priority;
-    this.executor = Objects.requireNonNull(executor);
+    this.group = Objects.requireNonNull(group);
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
     this.jobSelectedAll = Objects.requireNonNull(jobSelectedAll);
@@ -64,11 +64,11 @@ public class CompactionJobImpl implements CompactionJob {
   }
 
   /**
-   * @return The executor to run the job.
+   * @return The group to run the job.
    */
   @Override
-  public CompactionExecutorId getExecutor() {
-    return executor;
+  public CompactionGroupId getGroup() {
+    return group;
   }
 
   /**
@@ -89,7 +89,7 @@ public class CompactionJobImpl implements CompactionJob {
 
   @Override
   public int hashCode() {
-    return Objects.hash(priority, executor, files, kind);
+    return Objects.hash(priority, group, files, kind);
   }
 
   public boolean selectedAll() {
@@ -101,7 +101,7 @@ public class CompactionJobImpl implements CompactionJob {
     if (o instanceof CompactionJobImpl) {
       CompactionJobImpl ocj = (CompactionJobImpl) o;
 
-      return priority == ocj.priority && executor.equals(ocj.executor) && files.equals(ocj.files)
+      return priority == ocj.priority && group.equals(ocj.group) && files.equals(ocj.files)
           && kind == ocj.kind;
     }
 
@@ -110,7 +110,7 @@ public class CompactionJobImpl implements CompactionJob {
 
   @Override
   public String toString() {
-    return "CompactionJob [priority=" + priority + ", executor=" + executor + ", files=" + files
+    return "CompactionJob [priority=" + priority + ", group=" + group + ", files=" + files
         + ", kind=" + kind + "]";
   }
 

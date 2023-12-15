@@ -46,8 +46,7 @@ public interface CompactionPlan {
      * @param files The files to compact.
      * @return this
      */
-    Builder addJob(short priority, CompactionGroupId group,
-        Collection<CompactableFile> files);
+    Builder addJob(short priority, CompactionGroupId group, Collection<CompactableFile> files);
 
     CompactionPlan build();
   }

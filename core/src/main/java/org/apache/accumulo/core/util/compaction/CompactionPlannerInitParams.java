@@ -18,23 +18,21 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.ExecutorManager;
+import org.apache.accumulo.core.spi.compaction.GroupManager;
 
 import com.google.common.base.Preconditions;
 
 public class CompactionPlannerInitParams implements CompactionPlanner.InitParameters {
   private final Map<String,String> plannerOpts;
-  private final Map<CompactionExecutorId,Integer> requestedExecutors;
-  private final Set<CompactionExecutorId> requestedExternalExecutors;
+  private final Set<CompactionGroupId> requestedGroups;
   private final ServiceEnvironment senv;
   private final CompactionServiceId serviceId;
   private final String prefix;
@@ -43,8 +41,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
       Map<String,String> plannerOpts, ServiceEnvironment senv) {
     this.serviceId = serviceId;
     this.plannerOpts = plannerOpts;
-    this.requestedExecutors = new HashMap<>();
-    this.requestedExternalExecutors = new HashSet<>();
+    this.requestedGroups = new HashSet<>();
     this.senv = senv;
     this.prefix = prefix;
   }
@@ -65,35 +62,21 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
   }
 
   @Override
-  public ExecutorManager getExecutorManager() {
-    return new ExecutorManager() {
-      @Override
-      public CompactionExecutorId createExecutor(String executorName, int threads) {
-        Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
-            threads);
-        var ceid = CompactionExecutorIdImpl.internalId(serviceId, executorName);
-        Preconditions.checkState(!getRequestedExecutors().containsKey(ceid),
-            "Duplicate Compaction Executor ID found");
-        getRequestedExecutors().put(ceid, threads);
-        return ceid;
-      }
+  public GroupManager getGroupManager() {
+    return new GroupManager() {
 
       @Override
-      public CompactionExecutorId getExternalExecutor(String name) {
-        var ceid = CompactionExecutorIdImpl.externalId(name);
-        Preconditions.checkArgument(!getRequestedExternalExecutors().contains(ceid),
-            "Duplicate external executor for group " + name);
-        getRequestedExternalExecutors().add(ceid);
-        return ceid;
+      public CompactionGroupId getGroup(String name) {
+        var cgid = CompactionGroupIdImpl.groupId(name);
+        Preconditions.checkArgument(!getRequestedGroups().contains(cgid),
+            "Duplicate compaction group for group: " + name);
+        getRequestedGroups().add(cgid);
+        return cgid;
       }
     };
   }
 
-  public Map<CompactionExecutorId,Integer> getRequestedExecutors() {
-    return requestedExecutors;
-  }
-
-  public Set<CompactionExecutorId> getRequestedExternalExecutors() {
-    return requestedExternalExecutors;
+  public Set<CompactionGroupId> getRequestedGroups() {
+    return requestedGroups;
   }
 }

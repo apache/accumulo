@@ -61,8 +61,7 @@ public interface CompactionPlanner {
     String getFullyQualifiedOption(String key);
 
     /**
-     * @return a group manager that can be used to create groups for a compaction
-     *         service.
+     * @return a group manager that can be used to create groups for a compaction service.
      */
     GroupManager getGroupManager();
   }

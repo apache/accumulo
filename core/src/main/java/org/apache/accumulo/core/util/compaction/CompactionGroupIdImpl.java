@@ -18,34 +18,17 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
-import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 
-import com.google.common.base.Preconditions;
+public class CompactionGroupIdImpl extends CompactionGroupId {
 
-public class CompactionExecutorIdImpl extends CompactionExecutorId {
-
-  protected CompactionExecutorIdImpl(String canonical) {
+  protected CompactionGroupIdImpl(String canonical) {
     super(canonical);
   }
 
   private static final long serialVersionUID = 1L;
 
-  public boolean isExternalId() {
-    return canonical().startsWith("e.");
+  public static CompactionGroupId groupId(String groupName) {
+    return new CompactionGroupIdImpl(groupName);
   }
-
-  public String getExternalName() {
-    Preconditions.checkState(isExternalId());
-    return canonical().substring("e.".length());
-  }
-
-  public static CompactionExecutorId internalId(CompactionServiceId csid, String executorName) {
-    return new CompactionExecutorIdImpl("i." + csid + "." + executorName);
-  }
-
-  public static CompactionExecutorId externalId(String executorName) {
-    return new CompactionExecutorIdImpl("e." + executorName);
-  }
-
 }

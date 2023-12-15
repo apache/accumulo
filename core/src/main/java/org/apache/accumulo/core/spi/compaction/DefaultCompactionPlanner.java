@@ -57,7 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * Note that the CompactionCoordinator and at least one Compactor for "Large" must be running.
+ * <li>Note that the CompactionCoordinator and at least one Compactor for "Large" must be running.
  * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
  * that will be included in a single compaction.
  * <li>{@code compaction.service.<service>.opts.groups} This is a json array of group objects which
@@ -78,18 +78,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * </table>
  * <br>
- * This 'groups' object is used for defining compaction groups.
- *
- * The maxSize field determines the maximum size of compaction that will run in a
- * group. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and
- * represents the sum of the input files for a given compaction. One group can have no max size
- * and it will run everything that is too large for the other groups. If all groups have a max
- * size, then system compactions will only run for compactions smaller than the largest max size.
- * User, chop, and selector compactions will always run, even if there is no group for their
- * size. These compactions will run on the group with the largest max size. The following example
- * value for this property will create three separate compaction groups. "small" will run compactions of files whose file size sum is
- * less than 100M, "medium" will run compactions of files whose file size sum is less than 500M, and "large" will run
- * all other compactions on Compactors configured to run compactions for Large:
+ * This 'groups' object is used for defining compaction groups. The maxSize field determines the
+ * maximum size of compaction that will run in a group. The maxSize field can have a suffix of K,M,G
+ * for kilobytes, megabytes, or gigabytes and represents the sum of the input files for a given
+ * compaction. One group can have no max size and it will run everything that is too large for the
+ * other groups. If all groups have a max size, then system compactions will only run for
+ * compactions smaller than the largest max size. User, chop, and selector compactions will always
+ * run, even if there is no group for their size. These compactions will run on the group with the
+ * largest max size. The following example value for this property will create three separate
+ * compaction groups. "small" will run compactions of files whose file size sum is less than 100M,
+ * "medium" will run compactions of files whose file size sum is less than 500M, and "large" will
+ * run all other compactions on Compactors configured to run compactions for Large:
  *
  * <pre>
  * {@code
@@ -99,7 +98,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *  {"name": "large"}
  * ]}
  * </pre>
- *
  * </ul>
  *
  * @since 3.1.0
@@ -245,7 +243,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     long maxSizeToCompact = getMaxSizeToCompact(params.getKind());
 
     // This set represents future files that will be produced by running compactions. If the optimal
-    // set of files to compact is computed and contains one of these files, then it's optimal to wait
+    // set of files to compact is computed and contains one of these files, then it's optimal to
+    // wait
     // for this compaction to finish.
     Set<CompactableFile> expectedFiles = new HashSet<>();
     params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
@@ -323,8 +322,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     var builder = params.createPlanBuilder();
-    compactionJobs.forEach(jobFiles -> builder.addJob(createPriority(params, jobFiles),
-        getGroup(jobFiles), jobFiles));
+    compactionJobs.forEach(
+        jobFiles -> builder.addJob(createPriority(params, jobFiles), getGroup(jobFiles), jobFiles));
     return builder.build();
   }
 

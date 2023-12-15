@@ -45,15 +45,14 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
 
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup("e4", 1);
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup("e5", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("little", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("big", 1);
 
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-        ("[{'name':'small','type':'external','maxSize':'2M', 'group': 'e1'},"
-            + "{'name':'medium','type':'external','maxSize':'128M', 'group':'e2'},"
-            + "{'name':'large','type':'external','group':'e3'}]").replaceAll("'", "\""));
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+        ("[{'name':'small','maxSize':'2M'}, {'name':'medium','maxSize':'128M'},"
+            + "{'name':'large'}]").replaceAll("'", "\""));
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -97,14 +96,13 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       // give some time for compactions to start running
       Wait.waitFor(() -> countFiles(client, table, "F") < 95);
 
-      // Change config deleting executors named small, medium, and large. There was bug where
-      // deleting executors running compactions would leave the tablet in a bad state for future
+      // Change config deleting groups named small, medium, and large. There was bug where
+      // deleting groups running compactions would leave the tablet in a bad state for future
       // compactions. Because the compactions are running slow, expect this config change to overlap
       // with running compactions.
       client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-          ("[{'name':'little','type':'external','maxSize':'128M','group':'e4'},"
-              + "{'name':'big','type':'external','group':'e5'}]").replaceAll("'", "\""));
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+          ("[{'name':'little','maxSize':'128M'},{'name':'big'}]").replaceAll("'", "\""));
 
       Wait.waitFor(() -> countFiles(client, table, "F") == 0, 60000);
 
