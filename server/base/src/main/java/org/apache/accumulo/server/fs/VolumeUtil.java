@@ -105,7 +105,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = le.switchFile(switchedString);
+    LogEntry newLogEntry = new LogEntry(switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 
