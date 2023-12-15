@@ -51,8 +51,8 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private final String resourceGroup;
   private final ProcessMetrics processMetrics;
   protected final boolean idleStopEnabled;
-  protected final long idleStopPeriod;
-  private volatile long idlePeriodStart = 0L;
+  protected final long idleStopPeriodNanos;
+  private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -79,32 +79,35 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
     idleStopEnabled = getIdleStopEnabled(context.getConfiguration());
-    idleStopPeriod = getIdleStopPeriod(context.getConfiguration());
+    idleStopPeriodNanos =
+        TimeUnit.MILLISECONDS.toNanos(getIdleStopPeriod(context.getConfiguration()));
   }
 
   protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
     return false;
   }
 
+  /**
+   * @param conf AccumuloConfiguration object
+   * @return The amount of time the process must be idle before it can be stopped, in ms.
+   */
   protected long getIdleStopPeriod(AccumuloConfiguration conf) {
     return 0L;
   }
 
   public boolean shouldStopDueToIdleCondition(Supplier<Boolean> idleCondition) {
-    if (!idleStopEnabled) {
-      return false;
-    }
     boolean idle = idleCondition.get();
-    if (!idle) {
-      idlePeriodStart = 0;
+    if (!idle || idleStopPeriodNanos == 0) {
+      idlePeriodStartNanos = 0;
       return false;
-    } else if (idlePeriodStart == 0) {
-      idlePeriodStart = System.currentTimeMillis();
+    } else if (idlePeriodStartNanos == 0) {
+      idlePeriodStartNanos = System.nanoTime();
       return false;
-    } else if ((System.currentTimeMillis() - idlePeriodStart) > idleStopPeriod) {
-      LOG.info("Idle stop enabled and process idle for longer than {}ms. Process could be stopped.",
-          idleStopPeriod);
-      return true;
+    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleStopPeriodNanos) {
+      processMetrics.incrementIdleCounter();
+      LOG.info("Process idle for longer than {}ms. Idle stop enabled: {}",
+          TimeUnit.NANOSECONDS.toMillis(idleStopPeriodNanos), idleStopEnabled);
+      return idleStopEnabled;
     } else {
       // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
       return false;

@@ -378,6 +378,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   void requestStop() {
     log.info("Stop requested.");
     serverStopRequested = true;
+    try {
+      getLock().unlock();
+    } catch (Exception e) {
+      log.error("Caught exception unlocking TabletServer lock", e);
+    }
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
@@ -636,18 +641,25 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     });
 
     HostAndPort managerHost;
-    while (!serverStopRequested
-        && !shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
+    while (!serverStopRequested) {
+
+      if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
+        requestStop();
+      }
+
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
         ManagerClientService.Client iface = null;
 
         try {
-          // wait until a message is ready to send, or a sever stop
+          // wait until a message is ready to send, or a server stop
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
+              requestStop();
+            }
           }
 
           // have a message to send to the manager, so grab a
@@ -675,6 +687,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
+            if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
+              requestStop();
+            }
           }
 
         } finally {

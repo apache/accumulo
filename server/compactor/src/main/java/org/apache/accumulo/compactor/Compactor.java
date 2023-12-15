@@ -635,8 +635,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
 
       while (!shutdown && !shouldStopDueToIdleCondition(() -> {
-        return timeSinceLastCompletion.get() > 0
-            && (System.currentTimeMillis() - timeSinceLastCompletion.get()) > idleStopPeriod;
+        return timeSinceLastCompletion.get() == 0
+            /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
+                && (System.nanoTime() - timeSinceLastCompletion.get()) > idleStopPeriodNanos);
       })) {
         currentCompactionId.set(null);
         err.set(null);
@@ -775,7 +776,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          timeSinceLastCompletion.set(System.currentTimeMillis());
+          timeSinceLastCompletion.set(System.nanoTime());
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.

@@ -252,6 +252,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
             assertNotNull(a.getTags().get("instance.name"));
 
+            assertNotNull(a.getTags().get("process.name"));
+
             // check resource.group tag exists
             assertNotNull(a.getTags().get("resource.group"));
 
