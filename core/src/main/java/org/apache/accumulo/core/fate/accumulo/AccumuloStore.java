@@ -47,6 +47,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   private static Logger log = LoggerFactory.getLogger(AccumuloStore.class);
@@ -55,6 +57,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   private final String tableName;
 
   private static final int maxRepos = 100;
+  private static final com.google.common.collect.Range<Integer> repoRange =
+      com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
     this.context = Objects.requireNonNull(context);
@@ -124,6 +128,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
+        scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return StreamSupport.stream(scanner.spliterator(), false).map(e -> {
           @SuppressWarnings("unchecked")
@@ -221,9 +226,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       // TODO: should we push find top into the mutator?
       // We also likely need a conditional mutation to make sure we are deleting top
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> {
-        newMutator(tid).deleteRepo(t).mutate();
-      });
+      top.ifPresent(t -> newMutator(tid).deleteRepo(t).mutate());
     }
 
     @Override
@@ -271,6 +274,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     private Optional<Integer> findTop() {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
+        scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return StreamSupport.stream(scanner.spliterator(), false)
             .map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
@@ -279,10 +283,15 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   static Text invertRepo(int position) {
+    Preconditions.checkArgument(repoRange.contains(position),
+        "Position %s is not in the valid range of [0,%s]", position, maxRepos);
     return new Text(String.format("%02d", maxRepos - position));
   }
 
-  static Integer restoreRepo(Text position) {
-    return maxRepos - Integer.parseInt(position.toString());
+  static Integer restoreRepo(Text invertedPosition) {
+    int position = maxRepos - Integer.parseInt(invertedPosition.toString());
+    Preconditions.checkArgument(repoRange.contains(position),
+        "Position %s is not in the valid range of [0,%s]", position, maxRepos);
+    return position;
   }
 }
