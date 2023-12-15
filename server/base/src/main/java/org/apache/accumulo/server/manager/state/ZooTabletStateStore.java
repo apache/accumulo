@@ -176,7 +176,7 @@ class ZooTabletStateStore implements TabletStateStore {
       List<Path> logs = logsForDeadServers.get(futureOrCurrent);
       if (logs != null) {
         for (Path entry : logs) {
-          LogEntry logEntry = new LogEntry(entry.toString());
+          LogEntry logEntry = LogEntry.fromFilePath(entry.toString());
           tabletMutator.putWal(logEntry);
         }
       }

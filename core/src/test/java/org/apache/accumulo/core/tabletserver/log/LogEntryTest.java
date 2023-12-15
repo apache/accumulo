@@ -25,56 +25,60 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
-import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
 
 public class LogEntryTest {
 
-  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
+  private final String validHost = "localhost+9997";
   private final UUID validUUID = UUID.randomUUID();
-  private final String validFilename = validHost + "/" + validUUID;
+  private final String validFilename = "viewfs:/a/accumulo/wal/" + validHost + "/" + validUUID;
 
   @Test
-  public void test() throws Exception {
-    assertEquals(new Text("log"), MetadataSchema.TabletsSection.LogColumnFamily.NAME);
+  public void testColumnFamily() {
+    assertEquals(new Text("log"), LogColumnFamily.NAME);
+  }
 
-    // test from constructor
-    LogEntry one = new LogEntry(validFilename);
-    assertEquals(validFilename, one.toString());
-    assertEquals(validFilename, one.getFilePath());
-    assertEquals(new Text("-/" + validFilename), one.getColumnQualifier());
-    assertEquals(validUUID.toString(), one.getUniqueID());
+  @Test
+  public void testFromFilePath() throws Exception {
+    var logEntry = LogEntry.fromFilePath(validFilename);
+    verifyLogEntry(logEntry);
+  }
 
-    // test from metadata entry
-    LogEntry two = LogEntry.fromMetaWalEntry(new AbstractMap.SimpleImmutableEntry<>(
-        new Key(new Text("1<"), new Text("log"), one.getColumnQualifier()), new Value("unused")));
-    assertNotSame(one, two);
-    assertEquals(one.toString(), two.toString());
-    assertEquals(one.getFilePath(), two.getFilePath());
-    assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
-    assertEquals(one.getUniqueID(), two.getUniqueID());
-    assertEquals(one, two);
+  @Test
+  public void testFromMetadata() throws Exception {
+    var logEntry = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, "-/" + validFilename), null));
+    verifyLogEntry(logEntry);
+  }
+
+  // helper for testing build from constructor or from metadata
+  private void verifyLogEntry(LogEntry logEntry) {
+    assertEquals(validFilename, logEntry.toString());
+    assertEquals(validFilename, logEntry.getFilePath());
+    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals(new Text("-/" + validFilename), logEntry.getColumnQualifier());
+    assertEquals(validUUID, logEntry.getUniqueID());
   }
 
   @Test
   public void testEquals() {
-    LogEntry one = new LogEntry(validFilename);
-    LogEntry two = new LogEntry(validFilename);
+    LogEntry one = LogEntry.fromFilePath(validFilename);
+    LogEntry two = LogEntry.fromFilePath(validFilename);
 
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
     assertEquals(one.getFilePath(), two.getFilePath());
+    assertEquals(one.getTServer(), two.getTServer());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
     assertEquals(one, two);
@@ -83,50 +87,45 @@ public class LogEntryTest {
     assertEquals(two, two);
   }
 
-  @Nested
-  class ValidateFilePath {
+  @Test
+  public void testValidPaths() {
+    Path validPath = Path.of(validHost.toString(), validUUID.toString());
+    Path validPath2 = Path.of("dir1", validPath.toString());
+    Path validPath3 = Path.of("dir2", validPath2.toString());
 
-    @Test
-    public void testValidPaths() {
-      Path validPath = Path.of(validHost.toString(), validUUID.toString());
-      Path validPath2 = Path.of("dir1", validPath.toString());
-      Path validPath3 = Path.of("dir2", validPath2.toString());
+    Stream.of(validPath, validPath2, validPath3).map(Path::toString)
+        .forEach(validFilePath -> assertDoesNotThrow(() -> LogEntry.fromFilePath(validFilePath)));
+  }
 
-      Stream.of(validPath, validPath2, validPath3).map(Path::toString)
-          .forEach(validFilePath -> assertDoesNotThrow(() -> new LogEntry(validFilePath)));
-    }
+  @Test
+  public void testBadPathLength() {
+    List<String> badFilePaths = List.of("foo", "", validHost.toString());
+    badFilePaths.forEach(badFilePath -> {
+      var e =
+          assertThrows(IllegalArgumentException.class, () -> LogEntry.fromFilePath(badFilePath));
+      assertTrue(e.getMessage().contains("The path should end with tserver/UUID."));
+    });
+  }
 
-    @Test
-    public void testBadPathLength() {
-      List<String> badFilePaths = List.of("foo", "", validHost.toString());
+  @Test
+  public void testInvalidHostPort() {
+    Stream.of("default:9997", "default+badPort")
+        .map(badHostAndPort -> Path.of(badHostAndPort, validUUID.toString()))
+        .forEach(badFilepathHostPort -> {
+          var e = assertThrows(IllegalArgumentException.class,
+              () -> LogEntry.fromFilePath(badFilepathHostPort.toString()));
+          assertTrue(e.getMessage().contains(
+              "Expected: host+port. Found '" + badFilepathHostPort.iterator().next() + "'"));
+        });
+  }
 
-      for (String badFilePath : badFilePaths) {
-        IllegalArgumentException iae =
-            assertThrows(IllegalArgumentException.class, () -> new LogEntry(badFilePath));
-        assertTrue(iae.getMessage().contains("The path should at least contain tserver/UUID."));
-      }
-    }
-
-    @Test
-    public void testInvalidHostPort() {
-      final String badHostAndPort = "default:badPort";
-      final Path badFilepathHostPort = Path.of(badHostAndPort, validUUID.toString());
-
-      IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-          () -> new LogEntry(badFilepathHostPort.toString()));
-      assertTrue(
-          iae.getMessage().contains("Expected format: host:port. Found '" + badHostAndPort + "'"));
-    }
-
-    @Test
-    public void testInvalidUUID() {
-      final String badUUID = "badUUID";
-      String filePathWithBadUUID = Path.of(validHost.toString(), badUUID).toString();
-
-      IllegalArgumentException iae =
-          assertThrows(IllegalArgumentException.class, () -> new LogEntry(filePathWithBadUUID));
-      assertTrue(iae.getMessage().contains("Expected valid UUID. Found '" + badUUID + "'"));
-    }
+  @Test
+  public void testInvalidUUID() {
+    var badUUID = "badUUID";
+    var filePathWithBadUUID = Path.of(validHost.toString(), badUUID).toString();
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> LogEntry.fromFilePath(filePathWithBadUUID));
+    assertTrue(e.getMessage().contains("Expected valid UUID. Found '" + badUUID + "'"));
   }
 
 }

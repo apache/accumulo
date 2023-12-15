@@ -27,64 +27,106 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
-public class LogEntry {
+public final class LogEntry {
 
   private final String filePath;
+  private final HostAndPort tserver;
+  private final UUID uniqueId;
 
-  public LogEntry(String filePath) {
-    validateFilePath(filePath);
+  private LogEntry(String filePath, HostAndPort tserver, UUID uniqueId) {
     this.filePath = filePath;
-  }
-
-  public String getFilePath() {
-    return this.filePath;
+    this.tserver = tserver;
+    this.uniqueId = uniqueId;
   }
 
   /**
-   * Validates the expected format of the file path. We expect the path to contain a tserver
-   * (host:port) followed by a UUID as the file name. For example,
-   * localhost:1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid file path.
+   * Creates a new LogEntry object after validating the expected format of the file path. We expect
+   * the path to contain a tserver (host+port) followed by a UUID as the file name as the last two
+   * components.<br>
+   * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
+   * valid file path.
    *
    * @param filePath path to validate
+   * @return an object representation of this log entry
    * @throws IllegalArgumentException if the filePath is invalid
    */
-  private static void validateFilePath(String filePath) {
+  public static LogEntry fromFilePath(String filePath) {
     String[] parts = filePath.split("/");
 
     if (parts.length < 2) {
       throw new IllegalArgumentException(
-          "Invalid filePath format. The path should at least contain tserver/UUID.");
+          "Invalid filePath format. The path should end with tserver/UUID.");
     }
 
     String tserverPart = parts[parts.length - 2];
     String uuidPart = parts[parts.length - 1];
 
+    String badTServerMsg =
+        "Invalid tserver in filePath. Expected: host+port. Found '" + tserverPart + "'";
+    if (tserverPart.contains(":")) {
+      throw new IllegalArgumentException(badTServerMsg);
+    }
+    HostAndPort tserver;
     try {
-      HostAndPort.fromString(tserverPart);
+      tserver = HostAndPort.fromString(tserverPart.replace("+", ":"));
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException(
-          "Invalid tserver format in filePath. Expected format: host:port. Found '" + tserverPart
-              + "'");
+      throw new IllegalArgumentException(badTServerMsg);
     }
 
+    String badUuidMsg = "Expected valid UUID. Found '" + uuidPart + "'";
+    UUID uuid;
     try {
-      UUID.fromString(uuidPart);
+      uuid = UUID.fromString(uuidPart);
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Expected valid UUID. Found '" + uuidPart + "'");
+      throw new IllegalArgumentException(badUuidMsg);
     }
+    if (!uuid.toString().equals(uuidPart)) {
+      throw new IllegalArgumentException(badUuidMsg);
+    }
+
+    return new LogEntry(filePath, tserver, uuid);
   }
 
   /**
-   * Add LogEntry information to the provided mutation.
+   * Construct a new LogEntry object after deserializing it from a metadata entry.
    *
-   * @param mutation the mutation to update
+   * @param entry the metadata entry
+   * @return a new LogEntry object constructed from the filePath stored in the column qualifier
+   * @throws IllegalArgumentException if the filePath stored in the metadata entry is invalid or if
+   *         the serialized format of the entry is unrecognized
    */
-  public void addToMutation(Mutation mutation) {
-    mutation.at().family(LogColumnFamily.NAME).qualifier(getColumnQualifier()).put(new Value());
+  public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
+    Text fam = entry.getKey().getColumnFamily();
+    Preconditions.checkArgument(LogColumnFamily.NAME.equals(fam),
+        "The provided metadata entry's column family is %s instead of %s", fam,
+        LogColumnFamily.NAME);
+    String qualifier = entry.getKey().getColumnQualifier().toString();
+    String[] parts = qualifier.split("/", 2);
+    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
+        "Malformed write-ahead log %s", qualifier);
+    return fromFilePath(parts[1]);
+  }
+
+  @NonNull
+  @VisibleForTesting
+  HostAndPort getTServer() {
+    return tserver;
+  }
+
+  @NonNull
+  public String getFilePath() {
+    return filePath;
+  }
+
+  @NonNull
+  public UUID getUniqueID() {
+    return uniqueId;
   }
 
   @Override
@@ -97,11 +139,10 @@ public class LogEntry {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof LogEntry)) {
-      return false;
+    if (other instanceof LogEntry) {
+      return filePath.equals(((LogEntry) other).filePath);
     }
-    LogEntry logEntry = (LogEntry) other;
-    return this.filePath.equals(logEntry.filePath);
+    return false;
   }
 
   @Override
@@ -109,21 +150,30 @@ public class LogEntry {
     return Objects.hash(filePath);
   }
 
-  public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    String qualifier = entry.getKey().getColumnQualifier().toString();
-    String[] parts = qualifier.split("/", 2);
-    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
-        "Malformed write-ahead log %s", qualifier);
-    return new LogEntry(parts[1]);
+  /**
+   * Get the Text that should be used as the column qualifier to store this as a metadata entry.
+   */
+  @VisibleForTesting
+  Text getColumnQualifier() {
+    return new Text("-/" + getFilePath());
   }
 
-  public String getUniqueID() {
-    String[] parts = filePath.split("/");
-    return parts[parts.length - 1];
+  /**
+   * Put a delete marker in the provided mutation for this LogEntry.
+   *
+   * @param mutation the mutation to update
+   */
+  public void deleteFromMutation(Mutation mutation) {
+    mutation.putDelete(LogColumnFamily.NAME, getColumnQualifier());
   }
 
-  public Text getColumnQualifier() {
-    return new Text("-/" + filePath);
+  /**
+   * Put this LogEntry into the provided mutation.
+   *
+   * @param mutation the mutation to update
+   */
+  public void addToMutation(Mutation mutation) {
+    mutation.put(LogColumnFamily.NAME, getColumnQualifier(), new Value());
   }
 
 }

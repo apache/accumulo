@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -219,7 +220,7 @@ public class ManagerMetadataUtil {
    */
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
       KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
-      TServerInstance tServerInstance, ServiceLock zooLock, Set<String> unusedWalLogs,
+      TServerInstance tServerInstance, ServiceLock zooLock, Set<LogEntry> unusedWalLogs,
       Location lastLocation, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
