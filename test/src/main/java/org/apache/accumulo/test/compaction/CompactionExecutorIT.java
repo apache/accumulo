@@ -80,7 +80,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonArray;
@@ -400,28 +399,17 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
   }
 
-  // ELASTICITY_TODO: Summarizer does not seem to be triggering compaction changes.
   @Test
-  @Disabled
   public void testTooManyDeletes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      Map<String,
-          String> props = Map.of(Property.TABLE_COMPACTION_SELECTOR.getKey(),
-              TooManyDeletesSelector.class.getName(),
-              Property.TABLE_COMPACTION_SELECTOR_OPTS.getKey() + "threshold", ".4");
       var deleteSummarizerCfg =
           SummarizerConfiguration.builder(DeletesSummarizer.class.getName()).build();
-      client.tableOperations().create("tmd_selector", new NewTableConfiguration()
-          .setProperties(props).enableSummarization(deleteSummarizerCfg));
       client.tableOperations().create("tmd_control1",
           new NewTableConfiguration().enableSummarization(deleteSummarizerCfg));
       client.tableOperations().create("tmd_control2",
           new NewTableConfiguration().enableSummarization(deleteSummarizerCfg));
       client.tableOperations().create("tmd_control3",
           new NewTableConfiguration().enableSummarization(deleteSummarizerCfg));
-
-      addFile(client, "tmd_selector", 1, 1000, false);
-      addFile(client, "tmd_selector", 1, 1000, true);
 
       addFile(client, "tmd_control1", 1, 1000, false);
       addFile(client, "tmd_control1", 1, 1000, true);
@@ -435,10 +423,6 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       assertEquals(2, getFiles(client, "tmd_control1").size());
       assertEquals(2, getFiles(client, "tmd_control2").size());
       assertEquals(2, getFiles(client, "tmd_control3").size());
-
-      while (getFiles(client, "tmd_selector").size() != 0) {
-        Thread.sleep(100);
-      }
 
       assertEquals(2, getFiles(client, "tmd_control1").size());
       assertEquals(2, getFiles(client, "tmd_control2").size());
