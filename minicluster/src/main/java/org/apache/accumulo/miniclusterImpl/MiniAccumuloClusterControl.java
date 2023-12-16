@@ -264,7 +264,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         try {
           cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
         } catch (ExecutionException | TimeoutException e) {
-          log.warn("TabletServer did not fully stop after 30 seconds", e);
+          log.warn("Compactor did not fully stop after 30 seconds", e);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
         }
