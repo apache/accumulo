@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.zookeeper;
+package org.apache.accumulo.test.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;

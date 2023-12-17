@@ -37,7 +37,7 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.test.fate.zookeeper.FateIT.TestOperation;
+import org.apache.accumulo.test.fate.FateIT.TestOperation;
 import org.junit.jupiter.api.Test;
 
 public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
