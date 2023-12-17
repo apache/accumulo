@@ -28,26 +28,33 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.test.fate.FateIT.TestOperation;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.fate.FateIT.TestEnv;
+import org.apache.accumulo.test.fate.FateIT.TestRepo;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
+public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
 
-  private static final NamespaceId NS = NamespaceId.of("testNameSpace");
-  private static final TableId TID = TableId.of("testTable");
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(1);
+    return Duration.ofMinutes(5);
   }
 
   @Test
@@ -57,19 +64,19 @@ public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
-      AccumuloStore<Manager> store = new AccumuloStore<>(client, table);
+      AccumuloStore<TestEnv> store = new AccumuloStore<>(client, table);
       // Verify no transactions
       assertEquals(0, store.list().size());
 
       // Create a new transaction and get the store for it
       long tid = store.create();
-      FateTxStore<Manager> txStore = store.reserve(tid);
+      FateTxStore<TestEnv> txStore = store.reserve(tid);
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(1, store.list().size());
 
       // Push a test FATE op and verify we can read it back
-      txStore.push(new TestOperation(NS, TID));
-      TestOperation op = (TestOperation) txStore.top();
+      txStore.push(new TestRepo("testOp"));
+      TestRepo op = (TestRepo) txStore.top();
       assertNotNull(op);
 
       // Test status
@@ -83,25 +90,25 @@ public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
       // Try setting a second test op to test getStack()
       // when listing or popping TestOperation2 should be first
       assertEquals(1, txStore.getStack().size());
-      txStore.push(new TestOperation2(NS, TID));
+      txStore.push(new TestOperation2());
       // test top returns TestOperation2
-      ReadOnlyRepo<Manager> top = txStore.top();
+      ReadOnlyRepo<TestEnv> top = txStore.top();
       assertInstanceOf(TestOperation2.class, top);
 
       // test get stack
-      List<ReadOnlyRepo<Manager>> ops = txStore.getStack();
+      List<ReadOnlyRepo<TestEnv>> ops = txStore.getStack();
       assertEquals(2, ops.size());
       assertInstanceOf(TestOperation2.class, ops.get(0));
-      assertEquals(TestOperation.class, ops.get(1).getClass());
+      assertEquals(TestRepo.class, ops.get(1).getClass());
 
       // test pop, TestOperation should be left
       txStore.pop();
       ops = txStore.getStack();
       assertEquals(1, ops.size());
-      assertEquals(TestOperation.class, ops.get(0).getClass());
+      assertEquals(TestRepo.class, ops.get(0).getClass());
 
       // create second
-      FateTxStore<Manager> txStore2 = store.reserve(store.create());
+      FateTxStore<TestEnv> txStore2 = store.reserve(store.create());
       assertEquals(2, store.list().size());
 
       // test delete
@@ -112,12 +119,12 @@ public class AccumuloStoreReadWriteIT extends AccumuloClusterHarness {
     }
   }
 
-  private static class TestOperation2 extends TestOperation {
+  private static class TestOperation2 extends TestRepo {
 
     private static final long serialVersionUID = 1L;
 
-    public TestOperation2(NamespaceId namespaceId, TableId tableId) {
-      super(namespaceId, tableId);
+    public TestOperation2() {
+      super("testOperation2");
     }
   }
 
