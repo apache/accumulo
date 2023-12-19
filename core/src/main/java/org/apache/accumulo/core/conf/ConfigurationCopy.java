@@ -30,6 +30,8 @@ import java.util.stream.Stream;
  * configuration
  */
 public class ConfigurationCopy extends AccumuloConfiguration {
+
+  AccumuloConfiguration parent = null;
   private long updateCount = 0;
   final Map<String,String> copy = Collections.synchronizedMap(new HashMap<>());
 
@@ -40,6 +42,17 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    */
   public ConfigurationCopy(Map<String,String> config) {
     this(config.entrySet());
+  }
+
+  /**
+   * Creates a new configuration
+   *
+   * @param config - configuration property key/value pairs to copy
+   * @param parent - Higher level accumulo config to allow for property overrides
+   */
+  public ConfigurationCopy(Map<String,String> config, AccumuloConfiguration parent) {
+    this(config.entrySet());
+    this.parent = parent;
   }
 
   /**
@@ -69,11 +82,20 @@ public class ConfigurationCopy extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    return copy.get(property.getKey());
+    if (copy.containsKey(property.getKey())) {
+      return copy.get(property.getKey());
+    } else if (parent != null) {
+      return parent.get(property);
+    } else {
+      return null;
+    }
   }
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
+    if (parent != null) {
+      parent.getProperties(props, filter);
+    }
     for (Entry<String,String> entry : copy.entrySet()) {
       if (filter.test(entry.getKey())) {
         props.put(entry.getKey(), entry.getValue());
