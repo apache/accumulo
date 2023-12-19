@@ -116,8 +116,7 @@ public class LogEntryTest {
   public void testInvalidUUID() {
     var badUUID = "badUUID";
     var pathWithBadUUID = validHost + "/" + badUUID;
-    var e =
-        assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(pathWithBadUUID));
+    var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(pathWithBadUUID));
     assertTrue(e.getMessage().contains("Expected valid UUID. Found '" + badUUID + "'"));
   }
 

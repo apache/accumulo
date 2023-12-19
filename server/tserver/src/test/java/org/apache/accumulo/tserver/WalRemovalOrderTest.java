@@ -56,8 +56,7 @@ public class WalRemovalOrderTest {
   }
 
   private DfsLogger mockLogger(String filename) {
-    var mockLogEntry =
-        LogEntry.fromPath(filename + "+1234/11111111-1111-1111-1111-111111111111");
+    var mockLogEntry = LogEntry.fromPath(filename + "+1234/11111111-1111-1111-1111-111111111111");
     return new DfsLogger(context, mockLogEntry);
   }
 
