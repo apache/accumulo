@@ -141,19 +141,7 @@ public class MetadataConstraintsTest {
     Mutation m;
     List<Short> violations;
 
-    // txid that throws exception
-    m = new Mutation(new Text("0;foo"));
-    m.put(
-        BulkFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value("bad value"));
-    m.put(
-        DataFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new DataFileValue(1, 1).encodeAsValue());
-    assertViolation(mc, m, (short) 8);
-
-    // active txid w/ file
+    // loaded marker w/ file
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
@@ -166,7 +154,7 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
-    // active txid w/o file
+    // loaded marker w/o file
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
@@ -174,7 +162,28 @@ public class MetadataConstraintsTest {
         new Value("5"));
     assertViolation(mc, m, (short) 8);
 
-    // two active txids w/ files
+    // two files w/ same txid
+    m = new Mutation(new Text("0;foo"));
+    m.put(
+        BulkFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
+        new Value("5"));
+    m.put(
+        DataFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
+        new DataFileValue(1, 1).encodeAsValue());
+    m.put(
+        BulkFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
+        new Value("5"));
+    m.put(
+        DataFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    // two files w/ different txid
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
@@ -194,28 +203,7 @@ public class MetadataConstraintsTest {
         new DataFileValue(1, 1).encodeAsValue());
     assertViolation(mc, m, (short) 8);
 
-    // two files w/ one active txid
-    m = new Mutation(new Text("0;foo"));
-    m.put(
-        BulkFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value("5"));
-    m.put(
-        DataFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new DataFileValue(1, 1).encodeAsValue());
-    m.put(
-        BulkFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
-        new Value("5"));
-    m.put(
-        DataFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
-        new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(createEnv(), m);
-    assertNull(violations);
-
-    // two loaded w/ one active txid and one file
+    // two loaded markers but only one file.
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
@@ -231,7 +219,7 @@ public class MetadataConstraintsTest {
         new Value("5"));
     assertViolation(mc, m, (short) 8);
 
-    // active txid, mutation that looks like split
+    // mutation that looks like split
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
@@ -241,32 +229,12 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
-    // inactive txid, mutation that looks like split
-    m = new Mutation(new Text("0;foo"));
-    m.put(
-        BulkFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value("12345"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
-    violations = mc.check(createEnv(), m);
-    assertNull(violations);
-
-    // active txid, mutation that looks like a load
+    // mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new Value("5"));
-    m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
-    violations = mc.check(createEnv(), m);
-    assertNull(violations);
-
-    // inactive txid, mutation that looks like a load
-    m = new Mutation(new Text("0;foo"));
-    m.put(
-        BulkFileColumnFamily.NAME, StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value("12345"));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);

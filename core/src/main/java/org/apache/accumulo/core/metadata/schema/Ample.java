@@ -369,8 +369,6 @@ public interface Ample {
 
     T putWal(LogEntry logEntry);
 
-    T deleteWal(String wal);
-
     T deleteWal(LogEntry logEntry);
 
     T putTime(MetadataTime time);

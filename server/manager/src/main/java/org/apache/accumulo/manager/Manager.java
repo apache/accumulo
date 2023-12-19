@@ -113,7 +113,6 @@ import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
-import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -162,7 +161,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -538,14 +536,12 @@ public class Manager extends AbstractServer
     return splitter;
   }
 
-  private CompactionJobQueues compactionJobQueues;
-
-  public CompactionJobQueues getCompactionQueues() {
-    return compactionJobQueues;
-  }
-
   public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
     return upgradeCoordinator.getStatus();
+  }
+
+  public CompactionCoordinator getCompactionCoordinator() {
+    return compactionCoordinator;
   }
 
   private class MigrationCleanupThread implements Runnable {
@@ -932,17 +928,13 @@ public class Manager extends AbstractServer
     final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
-    this.compactionJobQueues = new CompactionJobQueues(
-        getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
-
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator =
-        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues, nextEvent);
+    compactionCoordinator = new CompactionCoordinator(context, tserverSet, security, nextEvent);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -950,7 +942,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator, haProxy, getContext());
+        compactionCoordinator.getThriftService(), haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1008,10 +1000,8 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
     }
 
-    // Don't call run on the CompactionCoordinator until we have tservers.
-    Thread compactionCoordinatorThread =
-        Threads.createThread("CompactionCoordinator Thread", compactionCoordinator);
-    compactionCoordinatorThread.start();
+    // Don't call start the CompactionCoordinator until we have tservers.
+    compactionCoordinator.start();
 
     ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
 
@@ -1163,11 +1153,6 @@ public class Manager extends AbstractServer
     tableInformationStatusPool.shutdownNow();
 
     compactionCoordinator.shutdown();
-    try {
-      compactionCoordinatorThread.join();
-    } catch (InterruptedException e) {
-      log.error("Exception compaction coordinator thread", e);
-    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1388,8 +1373,6 @@ public class Manager extends AbstractServer
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
-
-    compactionCoordinator.updateTServerSet(current, deleted, added);
 
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
@@ -1671,13 +1654,6 @@ public class Manager extends AbstractServer
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    Gauge.builder(METRICS_MAJC_QUEUED, compactionJobQueues, CompactionJobQueues::getQueuedJobCount)
-        .description("Number of queued major compactions").register(registry);
-    Gauge
-        .builder(METRICS_MAJC_RUNNING, compactionCoordinator,
-            CompactionCoordinator::getNumRunningCompactions)
-        .description("Number of running major compactions").register(registry);
-
+    compactionCoordinator.registerMetrics(registry);
   }
-
 }

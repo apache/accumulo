@@ -57,7 +57,6 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -74,6 +73,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setProperty(Property.TSERV_MAXMEM, "80M");
   }
 
   // private static final Logger log = LoggerFactory.getLogger(FileMetadataIT.class);
@@ -352,7 +352,6 @@ public class FileMetadataIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void splitsWithExistingRangesTest() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
 

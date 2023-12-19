@@ -28,6 +28,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -41,10 +42,8 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
@@ -73,7 +72,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
-        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits)
+            .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);

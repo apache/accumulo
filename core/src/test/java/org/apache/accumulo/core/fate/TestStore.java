@@ -18,17 +18,22 @@
  */
 package org.apache.accumulo.core.fate;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Transient in memory store for transactions.
  */
-public class TestStore extends ZooStore<String> {
+public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
   private Map<Long,TStatus> statuses = new HashMap<>();
@@ -41,67 +46,132 @@ public class TestStore extends ZooStore<String> {
   }
 
   @Override
-  public void reserve(long tid) {
+  public FateTxStore<String> reserve(long tid) {
     if (reserved.contains(tid)) {
       throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
     }
     // twice... if test change, then change this
     reserved.add(tid);
+    return new TestFateTxStore(tid);
   }
 
   @Override
-  public boolean tryReserve(long tid) {
+  public Optional<FateTxStore<String>> tryReserve(long tid) {
     synchronized (this) {
       if (!reserved.contains(tid)) {
         reserve(tid);
-        return true;
+        return Optional.of(new TestFateTxStore(tid));
       }
-      return false;
+      return Optional.empty();
+    }
+  }
+
+  private class TestFateTxStore implements FateTxStore<String> {
+
+    private final long tid;
+
+    TestFateTxStore(long tid) {
+      this.tid = tid;
+    }
+
+    @Override
+    public Repo<String> top() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ReadOnlyRepo<String>> getStack() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TStatus getStatus() {
+      if (!reserved.contains(tid)) {
+        throw new IllegalStateException();
+      }
+
+      TStatus status = statuses.get(tid);
+      if (status == null) {
+        return TStatus.UNKNOWN;
+      }
+      return status;
+    }
+
+    @Override
+    public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long timeCreated() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getID() {
+      return tid;
+    }
+
+    @Override
+    public void push(Repo<String> repo) throws StackOverflowException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void pop() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setStatus(TStatus status) {
+      if (!reserved.contains(tid)) {
+        throw new IllegalStateException();
+      }
+      if (!statuses.containsKey(tid)) {
+        throw new IllegalStateException();
+      }
+      statuses.put(tid, status);
+    }
+
+    @Override
+    public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void delete() {
+      if (!reserved.contains(tid)) {
+        throw new IllegalStateException();
+      }
+      statuses.remove(tid);
+    }
+
+    @Override
+    public void unreserve(long deferTime) {
+      if (!reserved.remove(tid)) {
+        throw new IllegalStateException();
+      }
     }
   }
 
   @Override
-  public void unreserve(long tid, long deferTime) {
-    if (!reserved.remove(tid)) {
-      throw new IllegalStateException();
-    }
-  }
-
-  @Override
-  public org.apache.accumulo.core.fate.TStore.TStatus getStatus(long tid) {
-    if (!reserved.contains(tid)) {
-      throw new IllegalStateException();
-    }
-
-    TStatus status = statuses.get(tid);
-    if (status == null) {
-      return TStatus.UNKNOWN;
-    }
-    return status;
-  }
-
-  @Override
-  public void setStatus(long tid, org.apache.accumulo.core.fate.TStore.TStatus status) {
-    if (!reserved.contains(tid)) {
-      throw new IllegalStateException();
-    }
-    if (!statuses.containsKey(tid)) {
-      throw new IllegalStateException();
-    }
-    statuses.put(tid, status);
-  }
-
-  @Override
-  public void delete(long tid) {
-    if (!reserved.contains(tid)) {
-      throw new IllegalStateException();
-    }
-    statuses.remove(tid);
+  public ReadOnlyFateTxStore<String> read(long tid) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public List<Long> list() {
     return new ArrayList<>(statuses.keySet());
+  }
+
+  @Override
+  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+    throw new UnsupportedOperationException();
   }
 
 }

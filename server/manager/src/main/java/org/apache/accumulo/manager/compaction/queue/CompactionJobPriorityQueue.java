@@ -158,6 +158,9 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized long getLowestPriority() {
+    if (jobQueue.isEmpty()) {
+      return 0;
+    }
     return jobQueue.lastKey().job.getPriority();
   }
 

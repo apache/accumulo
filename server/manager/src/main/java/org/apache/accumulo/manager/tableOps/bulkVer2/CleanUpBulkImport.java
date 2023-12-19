@@ -25,8 +25,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.manager.Manager;
@@ -122,9 +125,10 @@ public class CleanUpBulkImport extends ManagerRepo {
 
           results.forEach((extent, condResult) -> {
             if (condResult.getStatus() != Status.ACCEPTED) {
-              var metadata = condResult.readMetadata();
+              var metadata = Optional.ofNullable(condResult.readMetadata());
               log.debug("Tablet update failed {} {} {} {} ", FateTxId.formatTid(tid), extent,
-                  condResult.getStatus(), metadata.getOperationId());
+                  condResult.getStatus(), metadata.map(TabletMetadata::getOperationId)
+                      .map(AbstractId::toString).orElse("tablet is gone"));
             }
           });
 

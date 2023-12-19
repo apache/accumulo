@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -157,6 +158,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   private void testSingleTabletSingleFile(AccumuloClient c, boolean offline, boolean setTime)
       throws Exception {
+    testSingleTabletSingleFile(c, offline, setTime, () -> {
+      return null;
+    });
+  }
+
+  private void testSingleTabletSingleFile(AccumuloClient c, boolean offline, boolean setTime,
+      Callable<Void> preLoadAction) throws Exception {
     addSplits(c, tableName, "0333");
 
     if (offline) {
@@ -167,6 +175,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     String h1 = writeData(dir + "/f1.", aconf, 0, 332);
 
+    preLoadAction.call();
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
     // running again with ignoreEmptyDir set to true will not throw an exception
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).ignoreEmptyDir(true)
@@ -209,12 +218,73 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // set logical time type so we can set time on bulk import
       newTableConf.setTimeType(TimeType.LOGICAL);
       client.tableOperations().create(tableName, newTableConf);
-      testSingleTabletSingleFile(client, false, true);
 
       var ctx = (ClientContext) client;
-      var tabletTime = ctx.getAmple()
-          .readTablet(new KeyExtent(ctx.getTableId(tableName), new Text("0333"), null)).getTime();
-      assertEquals(new MetadataTime(1, TimeType.LOGICAL), tabletTime);
+
+      var tablet = ctx.getAmple().readTablet(new KeyExtent(ctx.getTableId(tableName), null, null));
+      assertEquals(new MetadataTime(0, TimeType.LOGICAL), tablet.getTime());
+
+      var extent = new KeyExtent(ctx.getTableId(tableName), new Text("0333"), null);
+
+      testSingleTabletSingleFile(client, false, true, () -> {
+        // Want to test with and without a location, assuming the tablet does not have a location
+        // now. Need to validate that assumption.
+        assertNull(ctx.getAmple().readTablet(extent).getLocation());
+        return null;
+      });
+
+      assertEquals(new MetadataTime(1, TimeType.LOGICAL),
+          ctx.getAmple().readTablet(extent).getTime());
+
+      int added = 0;
+      try (var writer = client.createBatchWriter(tableName);
+          var scanner = client.createScanner(tableName)) {
+        for (var entry : scanner) {
+          Mutation m = new Mutation(entry.getKey().getRow());
+          m.at().family(entry.getKey().getColumnFamily())
+              .qualifier(entry.getKey().getColumnFamily())
+              .visibility(entry.getKey().getColumnVisibility())
+              .put(Integer.parseInt(entry.getValue().toString()) * 10 + "");
+          writer.addMutation(m);
+          added++;
+        }
+      }
+
+      // verify data written by batch writer overwrote bulk imported data
+      try (var scanner = client.createScanner(tableName)) {
+        assertEquals(2,
+            scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).min().orElse(-1));
+        assertEquals(2 + added - 1,
+            scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).max().orElse(-1));
+        scanner.forEach((k, v) -> {
+          assertEquals(Integer.parseInt(k.getRow().toString()) * 10,
+              Integer.parseInt(v.toString()));
+        });
+      }
+
+      String dir = getDir("/testSetTime-");
+      writeData(dir + "/f1.", aconf, 0, 332);
+
+      // For this import tablet should be hosted so the bulk import operation will have to
+      // coordinate getting time with the hosted tablet. The time should refect the batch writes
+      // just done.
+      client.tableOperations().importDirectory(dir).to(tableName).tableTime(true).load();
+
+      // verify bulk imported data overwrote batch written data
+      try (var scanner = client.createScanner(tableName)) {
+        assertEquals(2 + added,
+            scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).min().orElse(-1));
+        assertEquals(2 + added,
+            scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).max().orElse(-1));
+        scanner.forEach((k, v) -> {
+          assertEquals(Integer.parseInt(k.getRow().toString()), Integer.parseInt(v.toString()));
+        });
+      }
+
+      client.tableOperations().flush(tableName, null, null, true);
+      assertEquals(new MetadataTime(2 + added, TimeType.LOGICAL),
+          ctx.getAmple().readTablet(extent).getTime());
+
     }
   }
 

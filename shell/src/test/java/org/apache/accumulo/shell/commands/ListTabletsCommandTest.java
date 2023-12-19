@@ -151,8 +151,8 @@ public class ListTabletsCommandTest {
 
     KeyExtent extent = new KeyExtent(tableId, new Text("d"), null);
 
-    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
+    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     TabletMetadata tm1 = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.ONDEMAND)
         .putLocation(TabletMetadata.Location.current(ser1)).putFile(sf11, dfv11)

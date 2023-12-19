@@ -62,7 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +76,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This test verifies that scans will always see data written before the scan started even when
  * there are concurrent scans, writes, and table operations running.
  */
-@Disabled // ELASTICITY_TODO
 public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);

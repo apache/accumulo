@@ -71,7 +71,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -93,7 +92,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -101,8 +99,6 @@ import com.google.common.net.HostAndPort;
  */
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
-
-  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
 
   @Override
   protected Duration defaultTimeout() {
@@ -447,10 +443,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    LogEntry logEntry = new LogEntry(
-        java.nio.file.Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
-    m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-        .put(logEntry.getValue());
+    String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
+    LogEntry logEntry = LogEntry.fromPath(fileName);
+    logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
