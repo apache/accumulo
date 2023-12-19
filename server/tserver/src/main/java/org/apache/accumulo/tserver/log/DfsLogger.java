@@ -57,6 +57,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoCryptoService;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -81,7 +82,7 @@ import com.google.common.base.Preconditions;
  * Wrap a connection to a logger.
  *
  */
-public class DfsLogger implements Comparable<DfsLogger> {
+public final class DfsLogger implements Comparable<DfsLogger> {
   // older version supported for upgrade
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
@@ -114,12 +115,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
     public LogHeaderIncompleteException(EOFException cause) {
       super(cause);
     }
-  }
-
-  public interface ServerResources {
-    AccumuloConfiguration getConfiguration();
-
-    VolumeManager getVolumeManager();
   }
 
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
@@ -281,46 +276,33 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   @Override
   public boolean equals(Object obj) {
-    // filename is unique
     if (obj == null) {
       return false;
     }
     if (obj instanceof DfsLogger) {
-      return getFileName().equals(((DfsLogger) obj).getFileName());
+      return logEntry.equals(((DfsLogger) obj).logEntry);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    // filename is unique
-    return getFileName().hashCode();
+    return logEntry.hashCode();
   }
 
   private final ServerContext context;
-  private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
-  private String logPath;
+  private LogEntry logEntry;
   private Thread syncThread;
 
-  /* Track what's actually in +r/!0 for this logger ref */
-  private String metaReference;
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
   private long writes = 0;
 
-  private DfsLogger(ServerContext context, ServerResources conf) {
-    this.context = context;
-    this.conf = conf;
-    this.slowFlushMillis =
-        conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
-  }
-
-  public DfsLogger(ServerContext context, ServerResources conf, AtomicLong syncCounter,
-      AtomicLong flushCounter) {
-    this(context, conf);
+  public DfsLogger(ServerContext context, AtomicLong syncCounter, AtomicLong flushCounter) {
+    this(context, null);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
   }
@@ -328,12 +310,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Reference a pre-existing log file.
    *
-   * @param meta the cq for the "log" entry in +r/!0
+   * @param logEntry the "log" entry in +r/!0
    */
-  public DfsLogger(ServerContext context, ServerResources conf, String filename, String meta) {
-    this(context, conf);
-    this.logPath = filename;
-    metaReference = meta;
+  public DfsLogger(ServerContext context, LogEntry logEntry) {
+    this.context = context;
+    this.slowFlushMillis =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    this.logEntry = logEntry;
   }
 
   /**
@@ -401,23 +384,24 @@ public class DfsLogger implements Comparable<DfsLogger> {
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
-    VolumeManager fs = conf.getVolumeManager();
+    VolumeManager fs = context.getVolumeManager();
 
     var chooserEnv = new VolumeChooserEnvironmentImpl(
         org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
-    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR + Constants.WAL_DIR
-        + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
+        + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    this.logEntry = LogEntry.fromPath(logPath);
 
-    metaReference = toString();
     LoggerOperation op = null;
+    var serverConf = context.getConfiguration();
     try {
       Path logfilePath = new Path(logPath);
-      short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
+      short replication = (short) serverConf.getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0) {
         replication = fs.getDefaultReplication(logfilePath);
       }
-      long blockSize = getWalBlockSize(conf.getConfiguration());
-      if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC)) {
+      long blockSize = getWalBlockSize(serverConf);
+      if (serverConf.getBoolean(Property.TSERV_WAL_SYNC)) {
         logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
       } else {
         logFile = fs.create(logfilePath, true, 0, replication, blockSize);
@@ -439,8 +423,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       // Initialize the log file with a header and its encryption
       CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL);
-      CryptoService cryptoService = context.getCryptoFactory().getService(env,
-          conf.getConfiguration().getAllCryptoProperties());
+      CryptoService cryptoService =
+          context.getCryptoFactory().getService(env, serverConf.getAllCryptoProperties());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
@@ -491,29 +475,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   @Override
   public String toString() {
-    String fileName = getFileName();
-    if (fileName.contains(":")) {
-      return getLogger() + "/" + getFileName();
-    }
-    return fileName;
+    return logEntry.toString();
   }
 
-  /**
-   * get the cq needed to reference this logger's entry in +r/!0
-   */
-  public String getMeta() {
-    if (metaReference == null) {
-      throw new IllegalStateException("logger doesn't have meta reference. " + this);
-    }
-    return metaReference;
-  }
-
-  public String getFileName() {
-    return logPath;
+  public LogEntry getLogEntry() {
+    return logEntry;
   }
 
   public Path getPath() {
-    return new Path(logPath);
+    return new Path(logEntry.getPath());
   }
 
   public void close() throws IOException {
@@ -670,14 +640,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logKeyData(key, durability);
   }
 
-  private String getLogger() {
-    String[] parts = logPath.split("/");
-    return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
-  }
-
   @Override
   public int compareTo(DfsLogger o) {
-    return getFileName().compareTo(o.getFileName());
+    return logEntry.getPath().compareTo(o.logEntry.getPath());
   }
 
   /*

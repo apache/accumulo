@@ -334,8 +334,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     // Test adding a WAL to a tablet and verifying its presence
     String walFilePath =
-        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-    LogEntry originalLogEntry = new LogEntry(walFilePath);
+        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+    LogEntry originalLogEntry = LogEntry.fromPath(walFilePath);
     ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
     // create a tablet metadata with no write ahead logs
     var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
@@ -352,8 +352,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     // Test adding another WAL and verifying the update
     String walFilePath2 =
-        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-    LogEntry newLogEntry = new LogEntry(walFilePath2);
+        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+    LogEntry newLogEntry = LogEntry.fromPath(walFilePath2);
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(e1).requireAbsentOperation().putWal(newLogEntry).submit(tm -> false);
     results = ctmi.process();
@@ -365,8 +365,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
 
     String walFilePath3 =
-        java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-    LogEntry otherLogEntry = new LogEntry(walFilePath3);
+        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+    LogEntry otherLogEntry = LogEntry.fromPath(walFilePath3);
 
     // create a powerset to ensure all possible subsets fail when using requireSame except the
     // expected current state

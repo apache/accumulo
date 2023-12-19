@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -25,33 +29,38 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
 public class WalRemovalOrderTest {
 
-  private static DfsLogger mockLogger(String filename) {
-    ServerResources conf = new ServerResources() {
-      @Override
-      public AccumuloConfiguration getConfiguration() {
-        return DefaultConfiguration.getInstance();
-      }
+  private ServerContext context;
 
-      @Override
-      public VolumeManager getVolumeManager() {
-        throw new UnsupportedOperationException();
-      }
-    };
-    return new DfsLogger(null, conf, filename, null);
+  @BeforeEach
+  private void createMocks() {
+    context = createMock(ServerContext.class);
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    replay(context);
   }
 
-  private static LinkedHashSet<DfsLogger> mockLoggers(String... logs) {
+  @AfterEach
+  private void verifyMocks() {
+    verify(context);
+  }
+
+  private DfsLogger mockLogger(String filename) {
+    var mockLogEntry = LogEntry.fromPath(filename + "+1234/11111111-1111-1111-1111-111111111111");
+    return new DfsLogger(context, mockLogEntry);
+  }
+
+  private LinkedHashSet<DfsLogger> mockLoggers(String... logs) {
     LinkedHashSet<DfsLogger> logSet = new LinkedHashSet<>();
 
     for (String log : logs) {
@@ -61,7 +70,7 @@ public class WalRemovalOrderTest {
     return logSet;
   }
 
-  private static void runTest(LinkedHashSet<DfsLogger> closedLogs, Set<DfsLogger> inUseLogs,
+  private void runTest(LinkedHashSet<DfsLogger> closedLogs, Set<DfsLogger> inUseLogs,
       Set<DfsLogger> expected) {
     Set<DfsLogger> eligible = TabletServer.findOldestUnreferencedWals(List.copyOf(closedLogs),
         candidates -> candidates.removeAll(inUseLogs));

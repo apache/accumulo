@@ -444,7 +444,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
     String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
-    LogEntry logEntry = new LogEntry(fileName);
+    LogEntry logEntry = LogEntry.fromPath(fileName);
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

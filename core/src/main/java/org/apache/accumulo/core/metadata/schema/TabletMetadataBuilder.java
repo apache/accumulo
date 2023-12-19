@@ -153,11 +153,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder deleteWal(String wal) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public TabletMetadataBuilder deleteWal(LogEntry logEntry) {
     throw new UnsupportedOperationException();
   }

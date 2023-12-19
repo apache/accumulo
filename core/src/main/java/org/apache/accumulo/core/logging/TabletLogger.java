@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -163,7 +164,7 @@ public class TabletLogger {
 
   public static void recovering(KeyExtent extent, Collection<LogEntry> logEntries) {
     if (recoveryLog.isDebugEnabled()) {
-      List<String> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
+      List<UUID> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
       recoveryLog.debug("For {} recovering data from walogs: {}", extent, logIds);
     }
   }
