@@ -505,7 +505,29 @@ public class DefaultCompactionPlannerTest {
         "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\"}, {\"name\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(senv, groups)), "Failed to throw error");
-    assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
+    assertTrue(e.getMessage().contains("Can only have one group w/o a maxSize"),
+        "Error message didn't contain maxSize");
+  }
+
+  /**
+   * Tests groups cannot have the same max size set.
+   */
+  @Test
+  public void testErrorDuplicateMaxSize() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    String groups =
+        "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\", \"maxSize\":\"32M\"}, {\"name\":\"large\"}]";
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, groups)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("Duplicate maxSize set in groups"),
+        "Error message didn't contain maxSize");
   }
 
   private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv, String groups) {
