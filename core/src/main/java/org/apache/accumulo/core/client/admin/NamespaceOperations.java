@@ -205,7 +205,7 @@ public interface NamespaceOperations {
   /**
    * Gets a merged view of the properties of a namespace from its parent configuration. These
    * properties are inherited by tables in this namespace. Note that recently changed properties may
-   * not be available immediately. This new method returns a Map instead of an Iterable.
+   * not be available immediately. This method returns a Map instead of an Iterable.
    *
    * @param namespace the name of the namespace
    * @return all properties visible by this namespace (system and per-table properties). Note that
@@ -221,7 +221,7 @@ public interface NamespaceOperations {
   /**
    * Gets properties specific to this namespace. Note that this does not return a merged view of the
    * properties from its parent configuration. Also note that recently changed properties may not be
-   * available immediately. This new method returns a Map instead of an Iterable.
+   * available immediately. This method returns a Map instead of an Iterable.
    *
    * @param namespace the name of the namespace
    * @return per-table properties specific to this namespace. Note that recently changed properties
