@@ -553,11 +553,11 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Gets a merged view of the properties of a table. This operation is asynchronous and eventually
-   * consistent. It is not guaranteed that all tablets in a table will return the same values.
-   * Within a few seconds without another change, all tablets in a table should be consistent. The
-   * clone table feature can be used if consistency is required. Method calls
-   * {@link #getConfiguration(String)} and then calls .entrySet() on the map.
+   * Gets a merged view of the properties of a table from its parent configuration. This operation
+   * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
+   * will return the same values. Within a few seconds without another change, all tablets in a
+   * table should be consistent. The clone table feature can be used if consistency is required.
+   * Method calls {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
    * @param tableName the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
@@ -571,11 +571,11 @@ public interface TableOperations {
   }
 
   /**
-   * Gets a merged view of the properties of a table. This operation is asynchronous and eventually
-   * consistent. It is not guaranteed that all tablets in a table will return the same values.
-   * Within a few seconds without another change, all tablets in a table should be consistent. The
-   * clone table feature can be used if consistency is required. This new method returns a Map
-   * instead of an Iterable.
+   * Gets a merged view of the properties of a table from its parent configuration. This operation
+   * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
+   * will return the same values. Within a few seconds without another change, all tablets in a
+   * table should be consistent. The clone table feature can be used if consistency is required.
+   * This new method returns a Map instead of an Iterable.
    *
    * @param tableName the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
@@ -588,10 +588,10 @@ public interface TableOperations {
 
   /**
    * Gets per-table properties of a table. Note that this does not return a merged view of the
-   * properties. This operation is asynchronous and eventually consistent. It is not guaranteed that
-   * all tablets in a table will return the same values. Within a few seconds without another
-   * change, all tablets in a table should be consistent. The clone table feature can be used if
-   * consistency is required.
+   * properties from its parent configuration. This operation is asynchronous and eventually
+   * consistent. It is not guaranteed that all tablets in a table will return the same values.
+   * Within a few seconds without another change, all tablets in a table should be consistent. The
+   * clone table feature can be used if consistency is required.
    *
    * @param tableName the name of the table
    * @return per-table properties visible by this table. Note that recently changed properties may
