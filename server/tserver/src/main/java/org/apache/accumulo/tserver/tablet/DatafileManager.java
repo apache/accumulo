@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -355,7 +356,7 @@ class DatafileManager {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
         // moving where the following method is called, examine it and finishClearingUnusedLogs()
         // before moving.
-        Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+        Set<LogEntry> unusedWalLogs = tablet.beginClearingUnusedLogs();
 
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the

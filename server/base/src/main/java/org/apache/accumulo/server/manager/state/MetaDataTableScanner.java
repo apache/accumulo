@@ -176,7 +176,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
-        walogs.add(Collections.singleton(LogEntry.fromMetaWalEntry(entry).getFilePath()));
+        walogs.add(Collections.singleton(LogEntry.fromMetaWalEntry(entry).getPath()));
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
           last = Location.last(new TServerInstance(entry.getValue(), cq));

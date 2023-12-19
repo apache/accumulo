@@ -98,8 +98,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
           List<Collection<String>> logs = new ArrayList<>();
           rootMeta.getLogs().forEach(logEntry -> {
-            logs.add(Collections.singleton(logEntry.getFilePath()));
-            log.debug("root tablet log {}", logEntry.getFilePath());
+            logs.add(Collections.singleton(logEntry.getPath()));
+            log.debug("root tablet log {}", logEntry.getPath());
           });
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
@@ -176,7 +176,7 @@ class ZooTabletStateStore implements TabletStateStore {
       List<Path> logs = logsForDeadServers.get(futureOrCurrent);
       if (logs != null) {
         for (Path entry : logs) {
-          LogEntry logEntry = new LogEntry(entry.toString());
+          LogEntry logEntry = LogEntry.fromPath(entry.toString());
           tabletMutator.putWal(logEntry);
         }
       }

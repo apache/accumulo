@@ -179,18 +179,18 @@ public class VolumeUtilTest {
 
     String walUUID = UUID.randomUUID().toString();
     String fileName = "hdfs://nn1/accumulo/wal/localhost+9997/" + walUUID;
-    LogEntry le = new LogEntry(fileName);
+    LogEntry le = LogEntry.fromPath(fileName);
     LogEntry fixedVolume = VolumeUtil.switchVolumes(le, replacements);
-    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
 
     fileName = "hdfs://nn1:9000/accumulo/wal/localhost+9997/" + walUUID;
-    le = new LogEntry(fileName);
+    le = LogEntry.fromPath(fileName);
     fixedVolume = VolumeUtil.switchVolumes(le, replacements);
-    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
 
     fileName = "hdfs://nn2/accumulo/wal/localhost+9997/" + walUUID;
-    le = new LogEntry(fileName);
+    le = LogEntry.fromPath(fileName);
     fixedVolume = VolumeUtil.switchVolumes(le, replacements);
-    assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getFilePath());
+    assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
   }
 }
