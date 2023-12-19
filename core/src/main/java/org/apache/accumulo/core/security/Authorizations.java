@@ -43,11 +43,11 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
-  private static final Set<ByteSequence> EMPTY_AUTH_SET = Collections.emptySet();
-  private static final List<byte[]> EMPTY_AUTH_LIST = Collections.emptyList();
+  private static final HashSet<ByteSequence> EMPTY_AUTH_SET = new HashSet<>();
+  private static final ArrayList<byte[]> EMPTY_AUTH_LIST = new ArrayList<>();
 
-  private final Set<ByteSequence> auths;
-  private final List<byte[]> authsList; // sorted order
+  private final HashSet<ByteSequence> auths;
+  private final ArrayList<byte[]> authsList; // sorted order
 
   /**
    * An empty set of authorizations.
@@ -103,7 +103,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
-  private static Set<ByteSequence> createInternalSet(int size) {
+  private static HashSet<ByteSequence> createInternalSet(int size) {
     if (size < 1) {
       return EMPTY_AUTH_SET;
     } else {
@@ -111,7 +111,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
-  private static List<byte[]> createInternalList(int size) {
+  private static ArrayList<byte[]> createInternalList(int size) {
     if (size < 1) {
       return EMPTY_AUTH_LIST;
     } else {

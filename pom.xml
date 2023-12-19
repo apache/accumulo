@@ -561,7 +561,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.1.0</version>
+        <version>5.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.freemarker</groupId>
@@ -749,6 +749,7 @@
             <showWarnings>true</showWarnings>
             <compilerArgs>
               <arg>-Xlint:all</arg>
+              <arg>-Xlint:-this-escape</arg>
               <arg>-Xlint:-processing</arg>
               <!-- suppress try to ignore unused variable in try-with-resources -->
               <arg>-Xlint:-try</arg>
