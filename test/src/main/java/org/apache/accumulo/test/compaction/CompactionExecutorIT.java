@@ -81,18 +81,19 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 public class CompactionExecutorIT extends SharedMiniClusterBase {
   public static final List<String> compactionGroups = new LinkedList<>();
+  public static final Logger log = LoggerFactory.getLogger(CompactionExecutorIT.class);
 
   public static class TestPlanner implements CompactionPlanner {
 
     private static class ExecutorConfig {
-      String name;
-      String type;
       String group;
     }
 
@@ -219,7 +220,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       try {
         getCluster().getClusterControl().stopCompactorGroup(group);
       } catch (Exception e) {
-        // Exception is encountered but ignored.
+        log.warn("Compaction group: {} failed to fully stop", group, e);
       } finally {
         iter.remove();
       }
