@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 
 public class CompactionServicesConfigTest {
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
 

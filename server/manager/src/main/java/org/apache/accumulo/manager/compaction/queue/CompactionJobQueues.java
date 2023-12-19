@@ -62,6 +62,10 @@ public class CompactionJobQueues {
     return priorityQueues.keySet();
   }
 
+  public CompactionJobPriorityQueue getQueue(CompactionExecutorId executorId) {
+    return priorityQueues.get(executorId);
+  }
+
   public long getQueueMaxSize(CompactionExecutorId executorId) {
     var prioQ = priorityQueues.get(executorId);
     return prioQ == null ? 0 : prioQ.getMaxSize();

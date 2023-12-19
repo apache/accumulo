@@ -224,9 +224,10 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          && !columnFamily.equals(CompactedColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+          || columnFamily.equals(LogColumnFamily.NAME)
+          || HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          || columnFamily.equals(CompactedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -416,7 +417,7 @@ public class MetadataConstraints implements Constraint {
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:
-        return "Bulk load transaction no longer running";
+        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
       case 9:
         return "Malformed operation id";
       case 10:

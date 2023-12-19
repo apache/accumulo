@@ -181,7 +181,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putWal(LogEntry logEntry) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(LogColumnFamily.NAME, logEntry.getColumnQualifier(), logEntry.getValue());
+    logEntry.addToMutation(mutation);
     return getThis();
   }
 

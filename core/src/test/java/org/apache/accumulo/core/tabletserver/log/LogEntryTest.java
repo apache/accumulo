@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -41,43 +41,30 @@ import com.google.common.net.HostAndPort;
 
 public class LogEntryTest {
 
-  final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
-  final UUID validUUID = UUID.randomUUID();
-  final String validFilename = Path.of(validHost.toString(), validUUID.toString()).toString();
+  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
+  private final UUID validUUID = UUID.randomUUID();
+  private final String validFilename = validHost + "/" + validUUID;
 
   @Test
   public void test() throws Exception {
-    String uuid = UUID.randomUUID().toString();
-    String filename = Path.of("default", uuid).toString();
-    LogEntry entry = new LogEntry(filename);
-
-    assertEquals(filename, entry.getFilePath());
-    assertEquals(filename, entry.toString());
     assertEquals(new Text("log"), MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-    assertEquals(new Text("-/" + filename), entry.getColumnQualifier());
 
-    Key key = new Key(new Text("1<"), new Text("log"), new Text("localhost:1234/default/foo"));
-    var mapEntry = new Entry<Key,Value>() {
-      @Override
-      public Key getKey() {
-        return key;
-      }
+    // test from constructor
+    LogEntry one = new LogEntry(validFilename);
+    assertEquals(validFilename, one.toString());
+    assertEquals(validFilename, one.getFilePath());
+    assertEquals(new Text("-/" + validFilename), one.getColumnQualifier());
+    assertEquals(validUUID.toString(), one.getUniqueID());
 
-      @Override
-      public Value getValue() {
-        return entry.getValue();
-      }
-
-      @Override
-      public Value setValue(Value value) {
-        throw new UnsupportedOperationException();
-      }
-    };
-    LogEntry copy2 = LogEntry.fromMetaWalEntry(mapEntry);
-    assertEquals(entry.toString(), copy2.toString());
-    assertEquals(uuid, entry.getUniqueID());
-    assertEquals("-/" + filename, entry.getColumnQualifier().toString());
-    assertEquals(new Value(filename), entry.getValue());
+    // test from metadata entry
+    LogEntry two = LogEntry.fromMetaWalEntry(new AbstractMap.SimpleImmutableEntry<>(
+        new Key(new Text("1<"), new Text("log"), one.getColumnQualifier()), new Value("unused")));
+    assertNotSame(one, two);
+    assertEquals(one.toString(), two.toString());
+    assertEquals(one.getFilePath(), two.getFilePath());
+    assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
+    assertEquals(one.getUniqueID(), two.getUniqueID());
+    assertEquals(one, two);
   }
 
   @Test
@@ -87,9 +74,9 @@ public class LogEntryTest {
 
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
+    assertEquals(one.getFilePath(), two.getFilePath());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
     assertEquals(one.getUniqueID(), two.getUniqueID());
-    assertEquals(one.getValue(), two.getValue());
     assertEquals(one, two);
 
     assertEquals(one, one);

@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.fate;
 
-import java.io.Serializable;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,7 @@ import org.slf4j.LoggerFactory;
  *
  * No external time source is used. It starts tracking idle time when its created.
  */
-public class AgeOffStore<T> implements TStore<T> {
+public class AgeOffStore<T> implements FateStore<T> {
 
   public interface TimeSource {
     long currentTimeMillis();
@@ -43,7 +44,7 @@ public class AgeOffStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
-  private final ZooStore<T> store;
+  private final FateStore<T> store;
   private Map<Long,Long> candidates;
   private long ageOffTime;
   private long minTime;
@@ -93,13 +94,13 @@ public class AgeOffStore<T> implements TStore<T> {
 
     for (Long txid : oldTxs) {
       try {
-        store.reserve(txid);
+        FateTxStore<T> txStore = store.reserve(txid);
         try {
-          switch (store.getStatus(txid)) {
+          switch (txStore.getStatus()) {
             case NEW:
             case FAILED:
             case SUCCESSFUL:
-              store.delete(txid);
+              txStore.delete();
               log.debug("Aged off FATE tx {}", FateTxId.formatTid(txid));
               break;
             default:
@@ -107,7 +108,7 @@ public class AgeOffStore<T> implements TStore<T> {
           }
 
         } finally {
-          store.unreserve(txid, 0);
+          txStore.unreserve(0);
         }
       } catch (Exception e) {
         log.warn("Failed to age off FATE tx " + FateTxId.formatTid(txid), e);
@@ -115,7 +116,7 @@ public class AgeOffStore<T> implements TStore<T> {
     }
   }
 
-  public AgeOffStore(ZooStore<T> store, long ageOffTime, TimeSource timeSource) {
+  public AgeOffStore(FateStore<T> store, long ageOffTime, TimeSource timeSource) {
     this.store = store;
     this.ageOffTime = ageOffTime;
     this.timeSource = timeSource;
@@ -125,9 +126,9 @@ public class AgeOffStore<T> implements TStore<T> {
 
     List<Long> txids = store.list();
     for (Long txid : txids) {
-      store.reserve(txid);
+      FateTxStore<T> txStore = store.reserve(txid);
       try {
-        switch (store.getStatus(txid)) {
+        switch (txStore.getStatus()) {
           case NEW:
           case FAILED:
           case SUCCESSFUL:
@@ -137,7 +138,7 @@ public class AgeOffStore<T> implements TStore<T> {
             break;
         }
       } finally {
-        store.unreserve(txid, 0);
+        txStore.unreserve(0);
       }
     }
   }
@@ -150,84 +151,50 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public long reserve() {
-    return store.reserve();
+  public FateTxStore<T> reserve(long tid) {
+    return new AgeOffFateTxStore(store.reserve(tid));
   }
 
   @Override
-  public void reserve(long tid) {
-    store.reserve(tid);
+  public Optional<FateTxStore<T>> tryReserve(long tid) {
+    return store.tryReserve(tid).map(AgeOffFateTxStore::new);
   }
 
-  @Override
-  public boolean tryReserve(long tid) {
-    return store.tryReserve(tid);
-  }
+  private class AgeOffFateTxStore extends WrappedFateTxStore<T> {
 
-  @Override
-  public void unreserve(long tid, long deferTime) {
-    store.unreserve(tid, deferTime);
-  }
+    private AgeOffFateTxStore(FateTxStore<T> wrapped) {
+      super(wrapped);
+    }
 
-  @Override
-  public Repo<T> top(long tid) {
-    return store.top(tid);
-  }
+    @Override
+    public void setStatus(FateStore.TStatus status) {
+      super.setStatus(status);
 
-  @Override
-  public void push(long tid, Repo<T> repo) throws StackOverflowException {
-    store.push(tid, repo);
-  }
+      switch (status) {
+        case SUBMITTED:
+        case IN_PROGRESS:
+        case FAILED_IN_PROGRESS:
+          removeCandidate(getID());
+          break;
+        case FAILED:
+        case SUCCESSFUL:
+          addCandidate(getID());
+          break;
+        default:
+          break;
+      }
+    }
 
-  @Override
-  public void pop(long tid) {
-    store.pop(tid);
-  }
-
-  @Override
-  public org.apache.accumulo.core.fate.TStore.TStatus getStatus(long tid) {
-    return store.getStatus(tid);
-  }
-
-  @Override
-  public void setStatus(long tid, org.apache.accumulo.core.fate.TStore.TStatus status) {
-    store.setStatus(tid, status);
-
-    switch (status) {
-      case SUBMITTED:
-      case IN_PROGRESS:
-      case FAILED_IN_PROGRESS:
-        removeCandidate(tid);
-        break;
-      case FAILED:
-      case SUCCESSFUL:
-        addCandidate(tid);
-        break;
-      default:
-        break;
+    @Override
+    public void delete() {
+      super.delete();
+      removeCandidate(getID());
     }
   }
 
   @Override
-  public org.apache.accumulo.core.fate.TStore.TStatus waitForStatusChange(long tid,
-      EnumSet<org.apache.accumulo.core.fate.TStore.TStatus> expected) {
-    return store.waitForStatusChange(tid, expected);
-  }
-
-  @Override
-  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
-    store.setTransactionInfo(tid, txInfo, val);
-  }
-
-  @Override
-  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
-    return store.getTransactionInfo(tid, txInfo);
-  }
-
-  @Override
-  public void delete(long tid) {
-    store.delete(tid);
-    removeCandidate(tid);
+  public ReadOnlyFateTxStore<T> read(long tid) {
+    return store.read(tid);
   }
 
   @Override
@@ -236,12 +203,7 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public long timeCreated(long tid) {
-    return store.timeCreated(tid);
-  }
-
-  @Override
-  public List<ReadOnlyRepo<T>> getStack(long tid) {
-    return store.getStack(tid);
+  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+    return store.runnable(keepWaiting);
   }
 }

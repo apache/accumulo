@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -1598,4 +1599,20 @@ public class Tablet extends TabletBase {
     return !activeScans.isEmpty() || writesInProgress > 0;
   }
 
+  public synchronized OptionalLong allocateTimestamp(int numStamps) {
+    if (isClosing() || isClosed()) {
+      return OptionalLong.empty();
+    }
+
+    Preconditions.checkArgument(numStamps > 0);
+    long timestamp = Long.MIN_VALUE;
+    for (int i = 0; i < numStamps; i++) {
+      timestamp = tabletTime.getAndUpdateTime();
+    }
+
+    getTabletMemory().getCommitSession().updateMaxCommittedTime(timestamp);
+
+    // ELASTICITY_TODO this needs to be persisted in the metadata table or walog
+    return OptionalLong.of(timestamp);
+  }
 }
