@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -56,6 +57,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -236,8 +238,11 @@ public class FateIT {
       assertTrue(fate.cancel(txid));
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+      Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
+      // nothing should have run
+      assertEquals(1, callStarted.getCount());
       fate.delete(txid);
+      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
     } finally {
       fate.shutdown();
     }
@@ -271,14 +276,16 @@ public class FateIT {
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(SUBMITTED, getTxStatus(zk, txid));
+      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), false, "Test Op");
+      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
       assertFalse(fate.cancel(txid));
       callStarted.await();
       finishCall.countDown();
+      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zk, txid));
       fate.delete(txid);
+      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
     } finally {
       fate.shutdown();
     }

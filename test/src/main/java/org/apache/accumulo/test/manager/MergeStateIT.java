@@ -42,7 +42,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
@@ -203,9 +202,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Add a walog which should keep the state from transitioning to MERGING
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
-      LogEntry logEntry = new LogEntry("localhost:1234/" + UUID.randomUUID());
-      m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-          .put(logEntry.getValue());
+      LogEntry logEntry = LogEntry.fromPath("localhost+1234/" + UUID.randomUUID());
+      logEntry.addToMutation(m);
       update(accumuloClient, m);
 
       // Verify state is still WAITING_FOR_OFFLINE
@@ -215,7 +213,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // Delete the walog which will now allow a transition to MERGING
       m = new Mutation(ke.toMetaRow());
-      m.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier());
+      logEntry.deleteFromMutation(m);
       update(accumuloClient, m);
 
       // now we can split

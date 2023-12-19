@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
@@ -47,9 +48,9 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
-import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,17 +182,15 @@ public class TabletServerLogger {
   }
 
   /**
-   * Get the current WAL file
+   * Get the current log entry
    *
-   * @return The name of the current log, or null if there is no current log.
+   * @return the current log entry, or null if there is no current log
    */
-  public String getLogFile() {
+  @Nullable
+  public LogEntry getLogEntry() {
     logIdLock.readLock().lock();
     try {
-      if (currentLog == null) {
-        return null;
-      }
-      return currentLog.getFileName();
+      return currentLog == null ? null : currentLog.getLogEntry();
     } finally {
       logIdLock.readLock().unlock();
     }
@@ -215,7 +214,7 @@ public class TabletServerLogger {
       if (next instanceof DfsLogger) {
         currentLog = (DfsLogger) next;
         logId.incrementAndGet();
-        log.info("Using next log {}", currentLog.getFileName());
+        log.info("Using next log {}", currentLog.getLogEntry());
 
         // When we successfully create a WAL, make sure to reset the Retry.
         if (createRetry != null) {
@@ -261,14 +260,13 @@ public class TabletServerLogger {
     nextLogMaker =
         ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
     nextLogMaker.execute(() -> {
-      final ServerResources conf = tserver.getServerConfig();
-      final VolumeManager fs = conf.getVolumeManager();
+      final VolumeManager fs = tserver.getVolumeManager();
       while (!nextLogMaker.isShutdown()) {
         log.debug("Creating next WAL");
         DfsLogger alog = null;
 
         try {
-          alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
+          alog = new DfsLogger(tserver.getContext(), syncCounter, flushCounter);
           alog.open(tserver.getClientAddressString());
         } catch (Exception t) {
           log.error("Failed to open WAL", t);
@@ -299,13 +297,12 @@ public class TabletServerLogger {
           continue;
         }
 
-        String fileName = alog.getFileName();
-        log.debug("Created next WAL {}", fileName);
+        log.debug("Created next WAL {}", alog.getLogEntry());
 
         try {
           tserver.addNewLogMarker(alog);
         } catch (Exception t) {
-          log.error("Failed to add new WAL marker for " + fileName, t);
+          log.error("Failed to add new WAL marker for " + alog.getLogEntry(), t);
 
           try {
             // Intentionally not deleting walog because it may have been advertised in ZK. See
@@ -323,7 +320,7 @@ public class TabletServerLogger {
           try {
             tserver.walogClosed(alog);
           } catch (Exception e) {
-            log.error("Failed to close WAL that failed to open: " + fileName, e);
+            log.error("Failed to close WAL that failed to open: " + alog.getLogEntry(), e);
           }
 
           try {
@@ -337,7 +334,7 @@ public class TabletServerLogger {
 
         try {
           while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-            log.info("Our WAL was not used for 12 hours: {}", fileName);
+            log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
           }
         } catch (InterruptedException e) {
           // ignore - server is shutting down
@@ -357,7 +354,7 @@ public class TabletServerLogger {
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Exception ex) {
-          log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
+          log.error("Unable to cleanly close log " + currentLog.getLogEntry() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
           currentLog = null;
