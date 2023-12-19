@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -152,7 +151,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     Location last = null;
     SuspendingTServer suspend = null;
     long lastTimestamp = 0;
-    List<Collection<String>> walogs = new ArrayList<>();
+    List<LogEntry> walogs = new ArrayList<>();
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
 
@@ -176,7 +175,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
-        walogs.add(Collections.singleton(LogEntry.fromMetaWalEntry(entry).getPath()));
+        walogs.add(LogEntry.fromMetaWalEntry(entry));
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
           last = Location.last(new TServerInstance(entry.getValue(), cq));

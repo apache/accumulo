@@ -20,7 +20,6 @@ package org.apache.accumulo.server.manager.state;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -96,10 +95,10 @@ class ZooTabletStateStore implements TabletStateStore {
             currentSession = loc;
           }
 
-          List<Collection<String>> logs = new ArrayList<>();
+          List<LogEntry> logs = new ArrayList<>();
           rootMeta.getLogs().forEach(logEntry -> {
-            logs.add(Collections.singleton(logEntry.getPath()));
-            log.debug("root tablet log {}", logEntry.getPath());
+            logs.add(logEntry);
+            log.debug("root tablet log {}", logEntry);
           });
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,

@@ -195,7 +195,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
-      Collection<Collection<String>> walogs = Collections.emptyList();
+      Collection<LogEntry> walogs = Collections.emptyList();
       metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null,
           Location.current(state.someTServer), null, null, walogs)), null);
 
