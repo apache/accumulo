@@ -390,7 +390,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
     String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
         + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
-    this.logEntry = LogEntry.fromFilePath(logPath);
+    this.logEntry = LogEntry.fromPath(logPath);
 
     LoggerOperation op = null;
     var serverConf = context.getConfiguration();
@@ -483,7 +483,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   }
 
   public Path getPath() {
-    return new Path(logEntry.getFilePath());
+    return new Path(logEntry.getPath());
   }
 
   public void close() throws IOException {
@@ -642,7 +642,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   @Override
   public int compareTo(DfsLogger o) {
-    return logEntry.getFilePath().compareTo(o.logEntry.getFilePath());
+    return logEntry.getPath().compareTo(o.logEntry.getPath());
   }
 
   /*

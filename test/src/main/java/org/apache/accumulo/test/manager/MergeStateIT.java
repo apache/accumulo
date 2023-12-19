@@ -202,7 +202,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Add a walog which should keep the state from transitioning to MERGING
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
-      LogEntry logEntry = LogEntry.fromFilePath("localhost+1234/" + UUID.randomUUID());
+      LogEntry logEntry = LogEntry.fromPath("localhost+1234/" + UUID.randomUUID());
       logEntry.addToMutation(m);
       update(accumuloClient, m);
 

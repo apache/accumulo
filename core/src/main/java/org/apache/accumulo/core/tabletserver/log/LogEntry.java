@@ -35,41 +35,41 @@ import com.google.common.net.HostAndPort;
 
 public final class LogEntry {
 
-  private final String filePath;
+  private final String path;
   private final HostAndPort tserver;
   private final UUID uniqueId;
 
-  private LogEntry(String filePath, HostAndPort tserver, UUID uniqueId) {
-    this.filePath = filePath;
+  private LogEntry(String path, HostAndPort tserver, UUID uniqueId) {
+    this.path = path;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
   }
 
   /**
-   * Creates a new LogEntry object after validating the expected format of the file path. We expect
-   * the path to contain a tserver (host+port) followed by a UUID as the file name as the last two
+   * Creates a new LogEntry object after validating the expected format of the path. We expect the
+   * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
    * components.<br>
    * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
-   * valid file path.
+   * valid path.
    *
-   * @param filePath path to validate
+   * @param path path to validate
    * @return an object representation of this log entry
-   * @throws IllegalArgumentException if the filePath is invalid
+   * @throws IllegalArgumentException if the path is invalid
    */
-  public static LogEntry fromFilePath(String filePath) {
-    String[] parts = filePath.split("/");
+  public static LogEntry fromPath(String path) {
+    String[] parts = path.split("/");
 
     if (parts.length < 2) {
       throw new IllegalArgumentException(
-          "Invalid filePath format. The path should end with tserver/UUID.");
+          "Invalid path format. The path should end with tserver/UUID.");
     }
 
     String tserverPart = parts[parts.length - 2];
     String uuidPart = parts[parts.length - 1];
 
     String badTServerMsg =
-        "Invalid tserver in filePath. Expected: host+port. Found '" + tserverPart + "'";
-    if (tserverPart.contains(":")) {
+        "Invalid tserver in path. Expected: host+port. Found '" + tserverPart + "'";
+    if (tserverPart.contains(":") || !tserverPart.contains("+")) {
       throw new IllegalArgumentException(badTServerMsg);
     }
     HostAndPort tserver;
@@ -90,16 +90,16 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-    return new LogEntry(filePath, tserver, uuid);
+    return new LogEntry(path, tserver, uuid);
   }
 
   /**
    * Construct a new LogEntry object after deserializing it from a metadata entry.
    *
    * @param entry the metadata entry
-   * @return a new LogEntry object constructed from the filePath stored in the column qualifier
-   * @throws IllegalArgumentException if the filePath stored in the metadata entry is invalid or if
-   *         the serialized format of the entry is unrecognized
+   * @return a new LogEntry object constructed from the path stored in the column qualifier
+   * @throws IllegalArgumentException if the path stored in the metadata entry is invalid or if the
+   *         serialized format of the entry is unrecognized
    */
   public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
     Text fam = entry.getKey().getColumnFamily();
@@ -110,7 +110,7 @@ public final class LogEntry {
     String[] parts = qualifier.split("/", 2);
     Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
         "Malformed write-ahead log %s", qualifier);
-    return fromFilePath(parts[1]);
+    return fromPath(parts[1]);
   }
 
   @NonNull
@@ -120,8 +120,8 @@ public final class LogEntry {
   }
 
   @NonNull
-  public String getFilePath() {
-    return filePath;
+  public String getPath() {
+    return path;
   }
 
   @NonNull
@@ -131,7 +131,7 @@ public final class LogEntry {
 
   @Override
   public String toString() {
-    return filePath;
+    return path;
   }
 
   @Override
@@ -140,14 +140,14 @@ public final class LogEntry {
       return true;
     }
     if (other instanceof LogEntry) {
-      return filePath.equals(((LogEntry) other).filePath);
+      return path.equals(((LogEntry) other).path);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(filePath);
+    return Objects.hash(path);
   }
 
   /**
@@ -155,7 +155,7 @@ public final class LogEntry {
    */
   @VisibleForTesting
   Text getColumnQualifier() {
-    return new Text("-/" + getFilePath());
+    return new Text("-/" + getPath());
   }
 
   /**
