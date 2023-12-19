@@ -80,30 +80,34 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
 
-  public static void main(String[] args) {
-    /**
-     * @formatter:off
-     * Note: In order to run main,
-     * 1) Build the project
-     * 2) Copy the accumulo test jar (in /test/target/) into your accumulo installation's
-     * lib directory*
-     * 3) Copy the JUnit dependencies into your accumulo installation's lib directory:
-     * "mvn dependency:copy-dependencies -DincludeGroupIds="org.junit.jupiter"
-     * cp test/target/dependency/junit-jupiter-* $ACCUMULO_HOME/lib/"
-     *
-     * *Ensure the test jar is in lib before the tablet servers start. Restart tablet
-     * servers if necessary.
-     *
-     * Now, this can be run with
-     * "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>"
-     *      <props-file>: An accumulo client properties file
-     *      <tmp-dir>: tmpDir field for the TestContext object
-     *      <table>: The name of the table to be created
-     *      <sleep-time>: The time to sleep (ms) after submitting the various concurrent tasks
-     * @formatter:on
-     */
+  /**
+   * Note: In order to run main,<br>
+   * 1) Build the project<br>
+   * 2) Copy the accumulo test jar (in /test/target/) into your accumulo installation's lib
+   * directory*<br>
+   * 3) Copy the JUnit dependencies into your accumulo installation's lib directory:<br>
+   * $ mvn dependency:copy-dependencies -DincludeGroupIds="org.junit.jupiter"<br>
+   * $ cp test/target/dependency/junit-jupiter-* $ACCUMULO_HOME/lib/<br>
+   * <br>
+   * *Ensure the test jar is in lib before the tablet servers start. Restart tablet servers if
+   * necessary.<br>
+   * <br>
+   * Now, this can be run with<br>
+   * $ accumulo org.apache.accumulo.test.ScanConsistencyIT [props-file] [tmp-dir] [table]
+   * [sleep-time]<br>
+   * <br>
+   *
+   * [props-file]: An accumulo client properties file<br>
+   * [tmp-dir]: tmpDir field for the TestContext object<br>
+   * [table]: The name of the table to be created<br>
+   * [sleep-time]: The time to sleep (ms) after submitting the various concurrent tasks<br>
+   * <br>
+   *
+   * @param args The props file, temp directory, table, and sleep time
+   */
+  public static void main(String[] args) throws Exception {
     Preconditions.checkArgument(args.length == 4, "Invalid arguments. Use: "
-        + "accumulo org.apache.accumulo.test.ScanConsistencyIT <props-file> <tmp-dir> <table> <sleep-time>");
+        + "accumulo org.apache.accumulo.test.ScanConsistencyIT [props-file] [tmp-dir] [table] [sleep-time]");
     final String propsFile = args[0];
     final String tmpDir = args[1];
     final String table = args[2];
@@ -112,8 +116,6 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(propsFile).build()) {
       FileSystem fileSystem = FileSystem.get(new Configuration());
       runTest(client, fileSystem, tmpDir, table, sleepTime);
-    } catch (Exception e) {
-      log.error(e.toString());
     }
   }
 
