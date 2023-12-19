@@ -87,9 +87,9 @@ public class LogEntryTest {
 
   @Test
   public void testValidPaths() {
-    var validPath1 = validHost + "/" + validUUID.toString();
-    var validPath2 = "dir1" + "/" + validPath1;
-    var validPath3 = "dir2" + "/" + validPath2;
+    var validPath1 = validHost + "/" + validUUID;
+    var validPath2 = "dir1/" + validPath1;
+    var validPath3 = "dir2/" + validPath2;
 
     Stream.of(validPath1, validPath2, validPath3)
         .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
