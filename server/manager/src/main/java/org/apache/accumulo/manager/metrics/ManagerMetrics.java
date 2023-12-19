@@ -35,7 +35,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class ManagerMetrics implements MetricsProducer {
 
   private final FateMetrics fateMetrics;
-  private final QueueMetrics queueMetrics;
 
   private AtomicLong rootTGWErrorsGauge;
   private AtomicLong metadataTGWErrorsGauge;
@@ -46,7 +45,6 @@ public class ManagerMetrics implements MetricsProducer {
     requireNonNull(conf, "Manager must not be null");
     fateMetrics = new FateMetrics(manager.getContext(),
         conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
-    queueMetrics = new QueueMetrics(manager.getCompactionQueues());
   }
 
   public void incrementTabletGroupWatcherError(DataLevel level) {
@@ -68,7 +66,6 @@ public class ManagerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.registerMetrics(registry);
-    queueMetrics.registerMetrics(registry);
     rootTGWErrorsGauge = registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS,
         MetricsUtil.getCommonTags(), new AtomicLong(0));
     metadataTGWErrorsGauge = registry.gauge(METRICS_MANAGER_META_TGW_ERRORS,
