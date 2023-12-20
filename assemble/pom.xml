@@ -147,11 +147,6 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-semconv</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>jakarta.activation</groupId>
       <artifactId>jakarta.activation-api</artifactId>
       <optional>true</optional>
