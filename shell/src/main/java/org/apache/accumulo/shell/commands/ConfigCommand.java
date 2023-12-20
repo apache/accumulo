@@ -18,21 +18,27 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.client.security.SecurityErrorCode.PERMISSION_DENIED;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -47,6 +53,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.LineReader;
 
@@ -54,7 +62,7 @@ import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt;
+      disablePaginationOpt, outputFileOpt, namespaceOpt, fileOpt;
 
   private int COL1 = 10, COL2 = 7;
   private LineReader reader;
@@ -80,6 +88,12 @@ public class ConfigCommand extends Command {
     reader = shellState.getReader();
 
     boolean force = cl.hasOption(forceOpt);
+
+    String filename = cl.getOptionValue("fs");
+    if (filename != null) {
+      // Call the method to modify properties
+      modifyPropertiesFromFile(cl, shellState, filename, force);
+    }
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
@@ -257,14 +271,35 @@ public class ConfigCommand extends Command {
               "User does not have permission to see entire configuration heirarchy. Property values shown below may be set above the namespace level.");
         }
         try {
-          acuconf =
-              shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
-        } catch (AccumuloSecurityException e) {
-          Shell.log.error(
-              "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission)",
-              StringUtils.isEmpty(namespace) ? "default" : namespace);
+          // Modify properties using modifyProperties
+          Consumer<Map<String,String>> propertyModifier = currProps -> {
+            // Your logic to modify properties goes here
+            // For example, add or update properties based on your requirements
+
+            String newPropertyKey = "new.property.key";
+            String newPropertyValue = "new.property.value";
+            currProps.put(newPropertyKey, newPropertyValue);
+          };
+
+          shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+              propertyModifier);
+        } catch (AccumuloException e) {
+          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException) {
+            AccumuloSecurityException ase = (AccumuloSecurityException) e.getCause();
+            if (ase.getSecurityErrorCode() == PERMISSION_DENIED) {
+              Shell.log.error(
+                  "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
+                  tableName);
+            }
+          }
           throw e;
         }
+      } else if (namespace != null) {
+        if (warned) {
+          Shell.log.warn("User does not have permission to see the entire configuration hierarchy. "
+              + "Property values shown below may be set above the namespace level.");
+        }
+
       }
       final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 
@@ -368,6 +403,69 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
+  // New method for property modification logic
+  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename,
+      boolean force) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      IOException, NamespaceNotFoundException {
+    // Read properties from the file
+    PropertiesConfiguration fileProperties = readPropertiesFromFile(filename);
+
+    // Convert PropertiesConfiguration to Map<String, String>
+    Map<String,String> propertiesMap = new HashMap<>();
+    Iterator<String> keysIterator = fileProperties.getKeys();
+    while (keysIterator.hasNext()) {
+      // Iterate through the keys in the PropertiesConfiguration
+      String key = keysIterator.next();
+      // Get the value associated with the key
+      String value = fileProperties.getString(key);
+      // Add the key-value pair to the propertiesMap
+      propertiesMap.put(key, value);
+    }
+
+    // Create a consumer for property modification
+    Consumer<Map<String,String>> propertyModifier = currProps -> {
+      // Update currProps
+      currProps.putAll(propertiesMap);
+    };
+
+    // Modify properties based on other options
+    if (cl.hasOption("t")) {
+      // Modify table properties
+      shellState.getAccumuloClient().tableOperations().modifyProperties(cl.getOptionValue("t"),
+          propertyModifier);
+    } else if (cl.hasOption("n")) {
+      // Modify namespace properties
+      shellState.getAccumuloClient().namespaceOperations().modifyProperties(cl.getOptionValue("n"),
+          propertyModifier);
+    } else {
+      // Modify system properties
+      // Obtain the InstanceOperations object for the Accumulo client associated with the shell
+      // state
+      InstanceOperations instanceOperations = shellState.getAccumuloClient().instanceOperations();
+
+      // Iterate over each entry in the propertiesMap (which represents properties to be modified)
+      for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
+        // Get the key and value of the current property entry
+        String key = entry.getKey();
+        String value = entry.getValue();
+
+        // Set the system property identified by the key to the specified value
+        instanceOperations.setProperty(key, value);
+      }
+    }
+  }
+
+  // New method to read properties from a file
+  private PropertiesConfiguration readPropertiesFromFile(String filename) throws IOException {
+    var config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(filename, UTF_8)) {
+      config.read(out);
+    } catch (ConfigurationException e) {
+      throw new IOException(e);
+    }
+    return config;
+  }
+
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
     if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
       return true;
@@ -424,7 +522,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-
+    fileOpt = new Option("fs", "file", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
@@ -432,11 +530,13 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
+    fileOpt.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
+    og.addOption(fileOpt);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
