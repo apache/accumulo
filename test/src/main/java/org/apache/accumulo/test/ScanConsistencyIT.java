@@ -81,23 +81,19 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
 
   /**
-   * Note: In order to run main,<br>
-   * 1) Build the project<br>
-   * 2) Copy the accumulo test jar (in /test/target/) into your accumulo installation's lib
-   * directory*<br>
-   * 3) Copy the JUnit dependencies into your accumulo installation's lib directory:<br>
-   * <code>
-   * $ mvn dependency:copy-dependencies -DincludeGroupIds="org.junit.jupiter"<br>
-   * $ cp test/target/dependency/junit-jupiter-* $ACCUMULO_HOME/lib/<br>
-   * </code> <br>
-   * *Ensure the test jar is in lib before the tablet servers start. Restart tablet servers if
-   * necessary.<br>
-   * <br>
-   * Now, this can be run with<br>
-   * <code>
-   * $ accumulo org.apache.accumulo.test.ScanConsistencyIT [props-file] [tmp-dir] [table]
-   * [sleep-time]<br>
-   * </code> <br>
+   * Note: In order to run main,
+   * <ol>
+   * <li>Build the project</li>
+   * <li>Copy the accumulo test jar (in /test/target/) into your accumulo installation's lib
+   * directory</li>
+   * <li>Copy the JUnit dependencies into your accumulo installation's lib directory: mvn
+   * dependency:copy-dependencies -DincludeGroupIds="org.junit.jupiter" and cp
+   * test/target/dependency/junit-jupiter-* $ACCUMULO_HOME/lib/</li>
+   * <li>Ensure the test jar is in lib before the tablet servers start. Restart tablet servers if
+   * necessary.</li>
+   * <li>Run with: accumulo org.apache.accumulo.test.ScanConsistencyIT [props-file] [tmp-dir]
+   * [table] [sleep-time]</li>
+   * </ol>
    *
    * [props-file]: An accumulo client properties file<br>
    * [tmp-dir]: tmpDir field for the TestContext object<br>
