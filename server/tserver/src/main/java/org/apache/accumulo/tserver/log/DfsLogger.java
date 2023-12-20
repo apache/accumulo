@@ -180,9 +180,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         }
         long duration = System.currentTimeMillis() - start;
         if (duration > slowFlushMillis) {
-          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration)
-              .append(" ms, current pipeline: ").append(Arrays.toString(getPipeLine())).toString();
-          log.info(msg);
+          log.info("Slow sync cost: {} ms, current pipeline: {}", duration,
+              Arrays.toString(getPipeLine()));
           if (expectedReplication > 0) {
             int current = expectedReplication;
             try {
@@ -333,11 +332,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
 
-    if (magic4.length != magic3.length) {
-      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
-          + " != " + magic3.length);
-    }
-
     byte[] magicBuffer = new byte[magic4.length];
     try {
       input.readFully(magicBuffer);
@@ -392,7 +386,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
     this.logEntry = LogEntry.fromPath(logPath);
 
-    LoggerOperation op = null;
+    LoggerOperation op;
     var serverConf = context.getConfiguration();
     try {
       Path logfilePath = new Path(logPath);
@@ -433,11 +427,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
-      /**
-       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The
-       * {@link #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing when
-       * crypto is not enabled.
-       **/
+      /*
+       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The {@link
+       * #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing when crypto
+       * is not enabled.
+       */
       OutputStream encryptedStream = encrypter.encryptStream(new NoFlushOutputStream(logFile));
       if (encryptedStream instanceof NoFlushOutputStream) {
         encryptingLogFile = (NoFlushOutputStream) encryptedStream;
