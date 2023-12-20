@@ -400,13 +400,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       }
     }
 
-    var loops = Math.max(1, sortedFiles.size() - maxFilesToCompact + 1);
-    for (int i = 0; i < loops; i++) {
-      var filesToCompact = findDataFilesToCompact(
-          sortedFiles.subList(i, Math.min(sortedFiles.size(), maxFilesToCompact) + i), ratio);
+    int windowStart = 0;
+    int windowEnd = Math.min(sortedFiles.size(), maxFilesToCompact);
+
+    while (windowEnd <= sortedFiles.size()) {
+      var filesToCompact =
+          findDataFilesToCompact(sortedFiles.subList(windowStart, windowEnd), ratio);
       if (!filesToCompact.isEmpty()) {
         return filesToCompact;
       }
+
+      windowStart++;
+      windowEnd++;
     }
 
     return Collections.emptySet();
