@@ -151,7 +151,7 @@
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.23.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
-    <version.opentelemetry>1.32.0</version.opentelemetry>
+    <version.opentelemetry>1.33.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.9</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
@@ -169,7 +169,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.12.0</version>
+        <version>1.12.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -177,7 +177,7 @@
         <!-- for dependency convergence between Micrometer and ZooKeeper -->
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.94.Final</version>
+        <version>4.1.104.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -205,21 +205,21 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.18</version>
+        <version>11.0.19</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.glassfish.hk2</groupId>
         <artifactId>hk2-bom</artifactId>
-        <version>3.0.4</version>
+        <version>3.0.5</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.glassfish.jaxb</groupId>
         <artifactId>jaxb-bom</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -246,17 +246,17 @@
       <dependency>
         <groupId>com.fasterxml</groupId>
         <artifactId>classmate</artifactId>
-        <version>1.5.1</version>
+        <version>1.6.0</version>
       </dependency>
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.1.6</version>
+        <version>3.1.8</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-annotations</artifactId>
-        <version>4.7.3</version>
+        <version>4.8.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -288,7 +288,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>32.1.3-jre</version>
+        <version>33.0.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -298,7 +298,7 @@
       <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
-        <version>3.4.4</version>
+        <version>4.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -571,7 +571,7 @@
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.35.0</version>
+        <version>3.42.0</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -601,12 +601,12 @@
       <dependency>
         <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
-        <version>3.29.2-GA</version>
+        <version>3.30.1-GA</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
-        <version>3.5.1.Final</version>
+        <version>3.5.3.Final</version>
       </dependency>
       <dependency>
         <!-- force convergence of transitive dependency of hibernate-validator -->
@@ -623,7 +623,7 @@
       <dependency>
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.24.0</version>
+        <version>3.24.1</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -676,7 +676,7 @@
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>2.0</version>
+        <version>2.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -985,6 +985,8 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
+                <!-- ignore log4j dep used for annotations and needed for compile time linting -->
+                <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
