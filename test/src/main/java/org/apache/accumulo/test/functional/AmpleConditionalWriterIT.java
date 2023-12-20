@@ -98,7 +98,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
@@ -902,11 +901,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
           "Initially, all tablets should be present");
 
-      HostAndPort server = HostAndPort.fromParts("server1", 8555);
+      String server = "server1+8555";
 
-      String walFilePath =
-          java.nio.file.Path.of(server.toString(), UUID.randomUUID().toString()).toString();
-      LogEntry wal = new LogEntry(walFilePath);
+      String walFilePath = java.nio.file.Path.of(server, UUID.randomUUID().toString()).toString();
+      LogEntry wal = LogEntry.fromPath(walFilePath);
 
       // add wal compact and flush ID to these tablets
       final Set<KeyExtent> tabletsWithWalCompactFlush = Set.of(e1, e2, e3);
@@ -922,7 +920,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new HasWalsFilter()),
           tabletsWithWalCompactFlush, "Combination of filters did not return the expected tablets");
 
-      TServerInstance serverInstance = new TServerInstance(server, "s001");
+      TServerInstance serverInstance = new TServerInstance(server, 1L);
 
       // on a subset of the tablets, put a location
       final Set<KeyExtent> tabletsWithLocation = Set.of(e2, e3, e4);
@@ -1003,8 +1001,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // add a wal to e2
       String walFilePath =
-          java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-      LogEntry wal = new LogEntry(walFilePath);
+          java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+      LogEntry wal = LogEntry.fromPath(walFilePath);
       ctmi.mutateTablet(e2).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
       var results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
@@ -1014,8 +1012,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // add wal to tablet e4
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      walFilePath = java.nio.file.Path.of("tserver:8080", UUID.randomUUID().toString()).toString();
-      wal = new LogEntry(walFilePath);
+      walFilePath = java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+      wal = LogEntry.fromPath(walFilePath);
       ctmi.mutateTablet(e4).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e4).getStatus());

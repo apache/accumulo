@@ -25,12 +25,15 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public class HasWalsFilter extends TabletMetadataFilter {
 
+  private static final EnumSet<TabletMetadata.ColumnType> COLUMNS =
+      EnumSet.copyOf(EnumSet.of(TabletMetadata.ColumnType.LOGS));
+
   private final static Predicate<TabletMetadata> HAS_WALS =
       tabletMetadata -> !tabletMetadata.getLogs().isEmpty();
 
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
-    return EnumSet.of(TabletMetadata.ColumnType.LOGS);
+    return COLUMNS;
   }
 
   @Override

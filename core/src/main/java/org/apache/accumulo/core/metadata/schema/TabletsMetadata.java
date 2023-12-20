@@ -130,6 +130,22 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         return buildExtents(_client);
       }
 
+      if (!tabletMetadataFilters.isEmpty()) {
+        checkState(!checkConsistency, "Can not check tablet consistency and filter tablets");
+        if (!fetchedCols.isEmpty()) {
+          for (var filter : tabletMetadataFilters) {
+            // This defends against the case where the columns needed by the filter were not
+            // fetched. For example, the following code only fetches the file column and then
+            // configures the WAL filter which also needs the column for write ahead logs.
+            // ample.readTablets().forLevel(DataLevel.USER).fetch(ColumnType.FILES).filter(new
+            // HasWalsFilter()).build();
+            checkState(fetchedCols.containsAll(filter.getColumns()),
+                "%s needs cols %s however only %s were fetched", filter.getClass().getSimpleName(),
+                filter.getColumns(), fetchedCols);
+          }
+        }
+      }
+
       checkState((level == null) != (table == null),
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
           level, table);
@@ -171,17 +187,16 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
             configureColumns(scanner);
             int iteratorPriority = 100;
+
+            for (TabletMetadataFilter tmf : tabletMetadataFilters) {
+              IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+              scanner.addScanIterator(iterSetting);
+              iteratorPriority++;
+            }
+
             IteratorSetting iterSetting =
                 new IteratorSetting(iteratorPriority, WholeRowIterator.class);
             scanner.addScanIterator(iterSetting);
-
-            if (!tabletMetadataFilters.isEmpty()) {
-              for (TabletMetadataFilter tmf : tabletMetadataFilters) {
-                iteratorPriority++;
-                iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
-                scanner.addScanIterator(iterSetting);
-              }
-            }
 
             Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
               try {

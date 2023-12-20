@@ -25,12 +25,15 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public class HasExternalCompactionsFilter extends TabletMetadataFilter {
 
+  public static final EnumSet<TabletMetadata.ColumnType> COLUMNS =
+      EnumSet.copyOf(EnumSet.of(TabletMetadata.ColumnType.ECOMP));
+
   private final static Predicate<TabletMetadata> HAS_EXT_COMPS =
       tabletMetadata -> !tabletMetadata.getExternalCompactions().isEmpty();
 
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
-    return EnumSet.of(TabletMetadata.ColumnType.ECOMP);
+    return COLUMNS;
   }
 
   @Override

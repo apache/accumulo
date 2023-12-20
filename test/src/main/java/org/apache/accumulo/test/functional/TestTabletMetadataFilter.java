@@ -33,13 +33,16 @@ public class TestTabletMetadataFilter extends TabletMetadataFilter {
 
   public static final long VALID_FLUSH_ID = 44L;
 
+  public static final EnumSet<TabletMetadata.ColumnType> COLUMNS = EnumSet
+      .copyOf(EnumSet.of(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID));
+
   private final static Predicate<TabletMetadata> TEST =
       tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
           && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
 
   @Override
   public EnumSet<TabletMetadata.ColumnType> getColumns() {
-    return EnumSet.of(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID);
+    return COLUMNS;
   }
 
   @Override
