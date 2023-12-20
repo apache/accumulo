@@ -40,6 +40,7 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -282,6 +283,21 @@ public class CompactionService {
     CompactionPlan plan;
     try {
       plan = planner.makePlan(params);
+
+      if (plan.getJobs().isEmpty()) {
+        int maxScanFiles = context.getTableConfiguration(compactable.getTableId())
+            .getCount(Property.TSERV_SCAN_MAX_OPENFILES);
+
+        if (files.allFiles.size() >= maxScanFiles && files.compacting.isEmpty()) {
+          log.warn(
+              "The tablet {} has {} files and the max files for scan is {}.  No compactions are "
+                  + "running and none were planned for this tablet by {}, so the files will "
+                  + "not be reduced by compaction which could cause scans to fail.  Please "
+                  + "check your compaction configuration.",
+              compactable.getExtent(), files.allFiles.size(), maxScanFiles, myId);
+        }
+      }
+
     } catch (RuntimeException e) {
       log.debug("Planner failed {} {} {} {}", planner.getClass().getName(), compactable.getExtent(),
           kind, files, e);
