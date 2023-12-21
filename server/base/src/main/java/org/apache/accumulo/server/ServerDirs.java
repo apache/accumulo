@@ -144,7 +144,7 @@ public class ServerDirs {
 
   private Map<Path,Path> loadVolumeReplacements() {
 
-    Map<Path,Path> replacementsList;
+    Map<Path,Path> replacementsMap;
     String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
     if (replacements == null || replacements.trim().isEmpty()) {
@@ -204,9 +204,9 @@ public class ServerDirs {
     }
 
     // only set if get here w/o exception
-    replacementsList = ret;
+    replacementsMap = ret;
 
-    return replacementsList;
+    return replacementsMap;
   }
 
   public Map<Path,Path> getVolumeReplacements() {
