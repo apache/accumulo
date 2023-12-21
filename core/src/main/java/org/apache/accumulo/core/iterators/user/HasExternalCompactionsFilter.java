@@ -18,21 +18,23 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import java.util.EnumSet;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
 public class HasExternalCompactionsFilter extends TabletMetadataFilter {
 
-  public static final EnumSet<TabletMetadata.ColumnType> COLUMNS =
-      EnumSet.copyOf(EnumSet.of(TabletMetadata.ColumnType.ECOMP));
+  public static final ImmutableSet<TabletMetadata.ColumnType> COLUMNS =
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.ECOMP);
 
   private final static Predicate<TabletMetadata> HAS_EXT_COMPS =
       tabletMetadata -> !tabletMetadata.getExternalCompactions().isEmpty();
 
   @Override
-  public EnumSet<TabletMetadata.ColumnType> getColumns() {
+  public ImmutableSet<TabletMetadata.ColumnType> getColumns() {
     return COLUMNS;
   }
 

@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.EnumSet;
 import java.util.OptionalLong;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * A filter constructed to test filtering in ample. This filter only allows tablets with compacted
@@ -33,15 +35,15 @@ public class TestTabletMetadataFilter extends TabletMetadataFilter {
 
   public static final long VALID_FLUSH_ID = 44L;
 
-  public static final EnumSet<TabletMetadata.ColumnType> COLUMNS = EnumSet
-      .copyOf(EnumSet.of(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID));
+  public static final ImmutableSet<TabletMetadata.ColumnType> COLUMNS = Sets
+      .immutableEnumSet(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID);
 
   private final static Predicate<TabletMetadata> TEST =
       tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
           && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
 
   @Override
-  public EnumSet<TabletMetadata.ColumnType> getColumns() {
+  public ImmutableSet<TabletMetadata.ColumnType> getColumns() {
     return COLUMNS;
   }
 

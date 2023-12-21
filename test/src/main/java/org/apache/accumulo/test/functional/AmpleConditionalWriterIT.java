@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -884,8 +885,14 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // add the filter(s) to the operation before building
       for (TabletMetadataFilter filter : filters) {
         options.filter(filter);
+        // fetch the columns that the filter needs to evaluate. not necessary but makes the call
+        // more refined.
+        for (TabletMetadata.ColumnType columnType : filter.getColumns()) {
+          options.fetch(columnType);
+        }
       }
-      try (TabletsMetadata tablets = options.build()) {
+      // need to fetch PREV_ROW in order to use getExtent()
+      try (TabletsMetadata tablets = options.fetch(PREV_ROW).build()) {
         Set<KeyExtent> actual =
             tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toSet());
         assertEquals(expectedTablets, actual, message);
@@ -1030,6 +1037,19 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // test that now only the tablet with a wal is returned when using filter()
       testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
+    }
+
+    @Test
+    public void partialFetch() {
+      ServerContext context = cluster.getServerContext();
+      TestTabletMetadataFilter filter = new TestTabletMetadataFilter();
+      // if we only fetch some columns needed by the filter, we should get an exception
+      TabletsMetadata.Options options =
+          context.getAmple().readTablets().forTable(tid).fetch(FLUSH_ID).filter(filter);
+      var ise = assertThrows(IllegalStateException.class, options::build);
+      String expectedMsg = String.format("%s needs cols %s however only %s were fetched",
+          TestTabletMetadataFilter.class.getSimpleName(), filter.getColumns(), Set.of(FLUSH_ID));
+      assertTrue(ise.getMessage().contains(expectedMsg));
     }
 
   }
