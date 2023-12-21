@@ -428,9 +428,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       CryptoUtils.writeParams(cryptoParams, logFile);
 
       /*
-       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The {@link
-       * #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing when crypto
-       * is not enabled.
+       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The method
+       * write(LogFileKey, LogFileValue) will flush crypto data or do nothing when crypto is not
+       * enabled.
        */
       OutputStream encryptedStream = encrypter.encryptStream(new NoFlushOutputStream(logFile));
       if (encryptedStream instanceof NoFlushOutputStream) {
