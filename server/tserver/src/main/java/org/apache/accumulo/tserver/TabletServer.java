@@ -378,11 +378,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   void requestStop() {
     log.info("Stop requested.");
     serverStopRequested = true;
-    try {
-      getLock().unlock();
-    } catch (Exception e) {
-      log.error("Caught exception unlocking TabletServer lock", e);
-    }
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
@@ -643,9 +638,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     HostAndPort managerHost;
     while (!serverStopRequested) {
 
-      if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
-        requestStop();
-      }
+      idleProcessCheck(() -> getOnlineTablets().isEmpty());
 
       // send all of the pending messages
       try {
@@ -657,9 +650,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
-            if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
-              requestStop();
-            }
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -687,9 +678,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
-            if (shouldStopDueToIdleCondition(() -> getOnlineTablets().isEmpty())) {
-              requestStop();
-            }
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
         } finally {
@@ -1234,16 +1223,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         });
       }
     });
-  }
-
-  @Override
-  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
-    return conf.getBoolean(Property.TSERV_IDLE_STOP_ENABLED);
-  }
-
-  @Override
-  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
-    return conf.getTimeInMillis(Property.TSERV_IDLE_STOP_PERIOD);
   }
 
 }

@@ -60,12 +60,12 @@ public class MetricsUtil {
     initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
         conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
         conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address, instanceName,
-        resourceGroup);
+        resourceGroup, conf.get(Property.GENERAL_MICROMETER_USER_TAGS));
   }
 
   private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
       String factoryClass, String appName, HostAndPort address, String instanceName,
-      String resourceGroup) throws ClassNotFoundException, InstantiationException,
+      String resourceGroup, String userTags) throws ClassNotFoundException, InstantiationException,
       IllegalAccessException, IllegalArgumentException, InvocationTargetException,
       NoSuchMethodException, SecurityException {
 
@@ -89,6 +89,19 @@ public class MetricsUtil {
         }
         if (address.getPort() > 0) {
           tags.add(Tag.of("port", Integer.toString(address.getPort())));
+        }
+      }
+
+      if (!userTags.isEmpty()) {
+        String[] userTagList = userTags.split(",");
+        for (String userTag : userTagList) {
+          String[] tagParts = userTag.split("=");
+          if (tagParts.length == 2) {
+            tags.add(Tag.of(tagParts[0], tagParts[1]));
+          } else {
+            LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+                Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+          }
         }
       }
 

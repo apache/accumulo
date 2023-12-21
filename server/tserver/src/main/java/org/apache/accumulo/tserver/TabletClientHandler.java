@@ -1041,6 +1041,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       log.info("Manager requested tablet server halt");
       context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
+      try {
+        server.getLock().unlock();
+      } catch (Exception e) {
+        log.error("Caught exception unlocking TabletServer lock", e);
+      }
     });
   }
 

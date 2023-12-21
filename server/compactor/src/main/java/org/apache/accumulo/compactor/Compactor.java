@@ -634,11 +634,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       final AtomicReference<Throwable> err = new AtomicReference<>();
       final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
 
-      while (!shutdown && !shouldStopDueToIdleCondition(() -> {
-        return timeSinceLastCompletion.get() == 0
-            /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                && (System.nanoTime() - timeSinceLastCompletion.get()) > idleStopPeriodNanos);
-      })) {
+      while (!shutdown) {
+
+        idleProcessCheck(() -> {
+          return timeSinceLastCompletion.get() == 0
+              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
+                  && (System.nanoTime() - timeSinceLastCompletion.get()) > idleStopPeriodNanos);
+        });
+
         currentCompactionId.set(null);
         err.set(null);
         JOB_HOLDER.reset();
@@ -898,13 +901,4 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
-  @Override
-  protected boolean getIdleStopEnabled(AccumuloConfiguration conf) {
-    return conf.getBoolean(Property.COMPACTOR_IDLE_STOP_ENABLED);
-  }
-
-  @Override
-  protected long getIdleStopPeriod(AccumuloConfiguration conf) {
-    return conf.getTimeInMillis(Property.COMPACTOR_IDLE_STOP_PERIOD);
-  }
 }
