@@ -254,6 +254,26 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     stop(server, null);
   }
 
+  public void stopCompactorGroup(String compactorResourceGroup) {
+    synchronized (compactorProcesses) {
+      var group = compactorProcesses.get(compactorResourceGroup);
+      if (group == null) {
+        return;
+      }
+      group.forEach(process -> {
+        try {
+          cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException e) {
+          log.warn("Compactor did not fully stop after 30 seconds", e);
+          throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      });
+      compactorProcesses.remove(compactorResourceGroup);
+    }
+  }
+
   @Override
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {

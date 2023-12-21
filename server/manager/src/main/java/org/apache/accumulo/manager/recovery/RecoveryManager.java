@@ -42,7 +42,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
@@ -161,22 +160,20 @@ public class RecoveryManager {
   public boolean recoverLogs(KeyExtent extent, Collection<LogEntry> walogs) throws IOException {
     boolean recoveryNeeded = false;
 
-    for (LogEntry entry : walogs) {
-      String walog = entry.getFilePath();
+    for (LogEntry walog : walogs) {
 
-      Path switchedWalog = VolumeUtil.switchVolume(new Path(walog), FileType.WAL,
-          manager.getContext().getVolumeReplacements());
+      LogEntry switchedWalog =
+          VolumeUtil.switchVolumes(walog, manager.getContext().getVolumeReplacements());
       if (switchedWalog != null) {
         // replaces the volume used for sorting, but do not change entry in metadata table. When
         // the tablet loads it will change the metadata table entry. If
         // the tablet has the same replacement config, then it will find the sorted log.
         log.info("Volume replaced {} -> {}", walog, switchedWalog);
-        walog = switchedWalog.toString();
+        walog = switchedWalog;
       }
 
-      String[] parts = walog.split("/");
-      String sortId = parts[parts.length - 1];
-      String filename = new Path(walog).toString();
+      String sortId = walog.getUniqueID().toString();
+      String filename = walog.getPath();
       String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
 
       boolean sortQueued;
