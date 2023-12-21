@@ -1127,13 +1127,13 @@ public enum Property {
       "1.3.5"),
   @Deprecated(since = "2.1.3")
   TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
-      "This property is currently only used by the deprecated DefaultCompactionStrategy.  This "
+      "This property is currently only used by the deprecated DefaultCompactionStrategy. This "
           + "property was used by merging minor compaction in previous versions of Accumulo, "
-          + "but that feature was remove prior to the 2.1.0 release.  The way "
+          + "but that feature was remove prior to the 2.1.0 release. The way "
           + "DefaultCompactionStrategy uses this property could result in a quadratic "
-          + "amount of compaction work happening over time.  For example if a tablets "
+          + "amount of compaction work happening over time. For example if a tablets "
           + "smallest files is 1G and a new 1K files is added, if that new files exceeds "
-          + "this max it would compact the 1G and 1K file which is not ideal.  The ideal "
+          + "this max it would compact the 1G and 1K file which is not ideal. The ideal "
           + "way to control the number of tablets per file is by adjusting the "
           + "table.compaction.major.ratio property because it will perform logarithmic "
           + "amounts of compaction work over time versus the quadratic amount of work this "
