@@ -87,7 +87,7 @@ public class VolumeUtil {
     return null;
   }
 
-  protected static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
+  public static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
     Path switchedPath = switchVolume(new Path(le.getPath()), FileType.WAL, replacements);
     if (switchedPath == null) {
       log.trace("Did not switch {}", le);
