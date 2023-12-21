@@ -191,11 +191,6 @@ public class LogReader implements KeywordExecutable {
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
 
-    if (magic4.length != magic3.length) {
-      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
-          + " != " + magic3.length);
-    }
-
     byte[] magicBuffer = new byte[magic4.length];
     try {
       input.readFully(magicBuffer);

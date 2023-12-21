@@ -22,11 +22,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,7 +35,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -55,14 +54,14 @@ public class ServerDirs {
   private Set<String> tablesDirs;
   private Set<String> recoveryDirs;
 
-  private final List<Pair<Path,Path>> replacementsList;
+  private final Map<Path,Path> replacements;
   private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
 
   public ServerDirs(AccumuloConfiguration conf, Configuration hadoopConf) {
     this.conf = Objects.requireNonNull(conf, "Configuration cannot be null");
     this.hadoopConf = Objects.requireNonNull(hadoopConf, "Hadoop configuration cannot be null");
-    this.replacementsList = loadVolumeReplacements();
+    this.replacements = loadVolumeReplacements();
   }
 
   public Set<String> getBaseUris() {
@@ -143,18 +142,18 @@ public class ServerDirs {
     return recoveryDirs;
   }
 
-  private List<Pair<Path,Path>> loadVolumeReplacements() {
+  private Map<Path,Path> loadVolumeReplacements() {
 
-    List<Pair<Path,Path>> replacementsList;
+    Map<Path,Path> replacementsMap;
     String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
     if (replacements == null || replacements.trim().isEmpty()) {
-      return Collections.emptyList();
+      return Collections.emptyMap();
     }
     replacements = replacements.trim();
 
     String[] pairs = replacements.split(",");
-    List<Pair<Path,Path>> ret = new ArrayList<>();
+    Map<Path,Path> ret = new LinkedHashMap<>();
 
     for (String pair : pairs) {
 
@@ -188,7 +187,7 @@ public class ServerDirs {
             + " contains " + uris[1] + " which has a syntax error", e);
       }
 
-      ret.add(new Pair<>(p1, p2));
+      ret.put(p1, p2);
     }
 
     HashSet<Path> baseDirs = new HashSet<>();
@@ -197,21 +196,21 @@ public class ServerDirs {
       baseDirs.add(new Path(baseDir));
     }
 
-    for (Pair<Path,Path> pair : ret) {
-      if (!baseDirs.contains(pair.getSecond())) {
+    for (Path replacement : ret.values()) {
+      if (!baseDirs.contains(replacement)) {
         throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-            + " contains " + pair.getSecond() + " which is not a configured volume");
+            + " contains " + replacement + " which is not a configured volume");
       }
     }
 
     // only set if get here w/o exception
-    replacementsList = ret;
+    replacementsMap = ret;
 
-    return replacementsList;
+    return replacementsMap;
   }
 
-  public List<Pair<Path,Path>> getVolumeReplacements() {
-    return this.replacementsList;
+  public Map<Path,Path> getVolumeReplacements() {
+    return this.replacements;
   }
 
   public Path getDataVersionLocation(Volume v) {

@@ -78,7 +78,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -219,9 +218,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // the metadata for t4, then run the TabletManagementIterator with
       // volume replacements
       addFiles(client, metaCopy4, t4);
-      List<Pair<Path,Path>> replacements = new ArrayList<>();
-      replacements.add(new Pair<Path,Path>(new Path("file:/vol1/accumulo/inst_id"),
-          new Path("file:/vol2/accumulo/inst_id")));
+      Map<Path,Path> replacements =
+          Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
       tabletMgmtParams = createParameters(client, replacements);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have one tablet that needs a volume replacement");
@@ -452,11 +450,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   }
 
   private static TabletManagementParameters createParameters(AccumuloClient client) {
-    return createParameters(client, List.of());
+    return createParameters(client, Map.of());
   }
 
   private static TabletManagementParameters createParameters(AccumuloClient client,
-      List<Pair<Path,Path>> replacements) {
+      Map<Path,Path> replacements) {
     var context = (ClientContext) client;
     Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
         tableId -> context.getTableState(tableId) == TableState.ONLINE);

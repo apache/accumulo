@@ -343,7 +343,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : List.of());
+            : Map.of());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
