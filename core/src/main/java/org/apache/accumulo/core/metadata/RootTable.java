@@ -43,10 +43,6 @@ public class RootTable {
    * ZK path relative to the zookeeper node where the root tablet gc candidates are stored.
    */
   public static final String ZROOT_TABLET_GC_CANDIDATES = ZROOT_TABLET + "/gc_candidates";
-  /*
-   * ZK path relative to the zookeeper node where the root tablet refresh entries are stored.
-   */
-  public static final String ZROOT_TABLET_REFRESHES = ZROOT_TABLET + "/refreshes";
 
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
   public static final KeyExtent OLD_EXTENT =
