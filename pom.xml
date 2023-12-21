@@ -298,7 +298,8 @@
       <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
-        <version>4.0.0</version>
+        <!-- log4j doesn't support 4 yet; see https://github.com/apache/logging-log4j2/issues/1829 -->
+        <version>3.4.4</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
