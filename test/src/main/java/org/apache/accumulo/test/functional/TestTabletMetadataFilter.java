@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /**
@@ -35,7 +35,7 @@ public class TestTabletMetadataFilter extends TabletMetadataFilter {
 
   public static final long VALID_FLUSH_ID = 44L;
 
-  public static final ImmutableSet<TabletMetadata.ColumnType> COLUMNS = Sets
+  public static final Set<TabletMetadata.ColumnType> COLUMNS = Sets
       .immutableEnumSet(TabletMetadata.ColumnType.COMPACTED, TabletMetadata.ColumnType.FLUSH_ID);
 
   private final static Predicate<TabletMetadata> TEST =
@@ -43,7 +43,7 @@ public class TestTabletMetadataFilter extends TabletMetadataFilter {
           && tabletMetadata.getFlushId().equals(OptionalLong.of(VALID_FLUSH_ID));
 
   @Override
-  public ImmutableSet<TabletMetadata.ColumnType> getColumns() {
+  public Set<TabletMetadata.ColumnType> getColumns() {
     return COLUMNS;
   }
 

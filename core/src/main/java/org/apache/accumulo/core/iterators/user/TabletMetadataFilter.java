@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.data.Key;
@@ -26,8 +27,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-
-import com.google.common.collect.ImmutableSet;
 
 public abstract class TabletMetadataFilter extends RowFilter {
 
@@ -38,7 +37,7 @@ public abstract class TabletMetadataFilter extends RowFilter {
     return acceptTablet().test(tm);
   }
 
-  public abstract ImmutableSet<TabletMetadata.ColumnType> getColumns();
+  public abstract Set<TabletMetadata.ColumnType> getColumns();
 
   protected abstract Predicate<TabletMetadata> acceptTablet();
 }

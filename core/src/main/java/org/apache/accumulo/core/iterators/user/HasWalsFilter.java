@@ -18,23 +18,23 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class HasWalsFilter extends TabletMetadataFilter {
 
-  private static final ImmutableSet<TabletMetadata.ColumnType> COLUMNS =
+  private static final Set<TabletMetadata.ColumnType> COLUMNS =
       Sets.immutableEnumSet(TabletMetadata.ColumnType.LOGS);
 
   private final static Predicate<TabletMetadata> HAS_WALS =
       tabletMetadata -> !tabletMetadata.getLogs().isEmpty();
 
   @Override
-  public ImmutableSet<TabletMetadata.ColumnType> getColumns() {
+  public Set<TabletMetadata.ColumnType> getColumns() {
     return COLUMNS;
   }
 
