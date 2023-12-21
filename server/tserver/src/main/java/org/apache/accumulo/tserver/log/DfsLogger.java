@@ -56,7 +56,6 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -339,8 +338,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         FileDecrypter decrypter =
             CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, null, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
-        decryptingInput = cryptoService instanceof NoCryptoService ? input
-            : new DataInputStream(decrypter.decryptStream(input));
+        var stream = decrypter.decryptStream(input);
+        decryptingInput = stream instanceof DataInputStream ? (DataInputStream) stream
+            : new DataInputStream(stream);
       } else if (Arrays.equals(magicBuffer, magic3)) {
         // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
         String cryptoModuleClassname = input.readUTF();
