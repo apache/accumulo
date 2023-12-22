@@ -23,7 +23,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Base64;
-import java.util.Stack;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -41,7 +42,7 @@ public class RestoreZookeeper {
 
   private static class Restore extends DefaultHandler {
     ZooReaderWriter zk = null;
-    Stack<String> cwd = new Stack<>();
+    Deque<String> cwd = new LinkedList<>();
     boolean overwrite = false;
 
     Restore(ZooReaderWriter zk, boolean overwrite) {
@@ -61,7 +62,7 @@ public class RestoreZookeeper {
         if (value == null) {
           value = "";
         }
-        String path = cwd.lastElement() + "/" + child;
+        String path = cwd.element() + "/" + child;
         create(path, value, encoding);
         cwd.push(path);
       } else if ("dump".equals(name)) {

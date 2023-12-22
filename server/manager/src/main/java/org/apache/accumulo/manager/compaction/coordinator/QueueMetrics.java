@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics;
+package org.apache.accumulo.manager.compaction.coordinator;
 
 import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
@@ -97,7 +97,7 @@ public class QueueMetrics implements MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueueMetrics.class);
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
-  private MeterRegistry meterRegistry = null;
+  private volatile MeterRegistry meterRegistry = null;
   private final CompactionJobQueues compactionJobQueues;
   private final Map<CompactionExecutorId,QueueMeters> perQueueMetrics = new HashMap<>();
   private Gauge queueCountMeter = null;
@@ -113,11 +113,14 @@ public class QueueMetrics implements MetricsProducer {
 
   public void update() {
 
+    // read the volatile variable once so the rest of the method has consistent view
+    var localRegistry = meterRegistry;
+
     if (queueCountMeter == null) {
       queueCountMeter = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, compactionJobQueues,
               CompactionJobQueues::getQueueCount)
-          .description("Number of current Queues").tags(getCommonTags()).register(meterRegistry);
+          .description("Number of current Queues").tags(getCommonTags()).register(localRegistry);
     }
     LOG.debug("update - cjq queues: {}", compactionJobQueues.getQueueIds());
 
@@ -131,14 +134,14 @@ public class QueueMetrics implements MetricsProducer {
         Sets.difference(definedQueues, queuesWithMetrics);
     queuesWithoutMetrics.forEach(q -> {
       LOG.debug("update - creating meters for queue: {}", q);
-      perQueueMetrics.put(q, new QueueMeters(meterRegistry, q, compactionJobQueues.getQueue(q)));
+      perQueueMetrics.put(q, new QueueMeters(localRegistry, q, compactionJobQueues.getQueue(q)));
     });
 
     SetView<CompactionExecutorId> metricsWithoutQueues =
         Sets.difference(queuesWithMetrics, definedQueues);
     metricsWithoutQueues.forEach(q -> {
       LOG.debug("update - removing meters for queue: {}", q);
-      perQueueMetrics.get(q).removeMeters(meterRegistry);
+      perQueueMetrics.get(q).removeMeters(localRegistry);
       perQueueMetrics.remove(q);
     });
 

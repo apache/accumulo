@@ -82,7 +82,6 @@ import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.Refreshes.RefreshEntry;
 import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
@@ -92,6 +91,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -109,6 +109,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
@@ -137,7 +138,11 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class CompactionCoordinator implements CompactionCoordinatorService.Iface, Runnable {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class CompactionCoordinator
+    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -178,15 +183,20 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private final Cache<Path,Integer> checked_tablet_dir_cache;
   private final DeadCompactionDetector deadCompactionDetector;
 
+  private final QueueMetrics queueMetrics;
+
   public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
-      SecurityOperation security, CompactionJobQueues jobQueues,
-      EventCoordinator eventCoordinator) {
+      SecurityOperation security, EventCoordinator eventCoordinator) {
     this.ctx = ctx;
     this.tserverSet = tservers;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
-    this.jobQueues = jobQueues;
     this.eventCoordinator = eventCoordinator;
+
+    this.jobQueues = new CompactionJobQueues(
+        ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
+
+    this.queueMetrics = new QueueMetrics(jobQueues);
 
     var refreshLatches = new EnumMap<Ample.DataLevel,CountDownLatch>(Ample.DataLevel.class);
     refreshLatches.put(Ample.DataLevel.ROOT, new CountDownLatch(1));
@@ -219,8 +229,23 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
+  private volatile Thread serviceThread = null;
+
+  public void start() {
+    serviceThread = Threads.createThread("CompactionCoordinator Thread", this);
+    serviceThread.start();
+  }
+
   public void shutdown() {
     shutdown = true;
+    var localThread = serviceThread;
+    if (localThread != null) {
+      try {
+        localThread.join();
+      } catch (InterruptedException e) {
+        LOG.error("Exception stopping compaction coordinator thread", e);
+      }
+    }
   }
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
@@ -352,19 +377,6 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   protected long getTServerCheckInterval() {
     return this.ctx.getConfiguration()
         .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
-  }
-
-  /**
-   * Callback for the LiveTServerSet object to update current set of tablet servers, including ones
-   * that were deleted and added
-   *
-   * @param current current set of live tservers
-   * @param deleted set of tservers that were removed from current since last update
-   * @param added set of tservers that were added to current since last update
-   */
-  public void updateTServerSet(LiveTServerSet current, Set<TServerInstance> deleted,
-      Set<TServerInstance> added) {
-
   }
 
   public long getNumRunningCompactions() {
@@ -627,6 +639,24 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
         TCompactionKind.valueOf(ecm.getKind().name()), fateTxid, overrides);
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
+        .description("Number of queued major compactions").register(registry);
+    Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
+        .description("Number of running major compactions").register(registry);
+
+    queueMetrics.registerMetrics(registry);
+  }
+
+  public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
+    jobQueues.add(tabletMetadata, jobs);
+  }
+
+  public CompactionCoordinatorService.Iface getThriftService() {
+    return this;
   }
 
   class RefreshWriter {
