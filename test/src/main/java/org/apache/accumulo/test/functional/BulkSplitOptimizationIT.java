@@ -90,7 +90,6 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1000");
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
       FileSystem fs = cluster.getFileSystem();
       Path testDir = new Path(cluster.getTemporaryPath(), "testmf");

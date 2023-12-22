@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.conf.Property.INSTANCE_SECRET;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
-import static org.apache.accumulo.core.conf.Property.TABLE_FILE_MAX;
+import static org.apache.accumulo.core.conf.Property.TABLE_FILE_REPLICATION;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
@@ -94,7 +94,7 @@ public class TableConfigurationTest {
 
     var nsPropKey = NamespacePropKey.of(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
-        Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
+        Map.of(TABLE_FILE_REPLICATION.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
     var tablePropKey = TablePropKey.of(instanceId, TID);
@@ -153,8 +153,8 @@ public class TableConfigurationTest {
     String expectedPass = "aPassword1";
 
     reset(propStore);
-    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
-        .andReturn(new VersionedProperties(13, Instant.now(), Map.of(TABLE_FILE_MAX.getKey(), "123",
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID)))).andReturn(
+        new VersionedProperties(13, Instant.now(), Map.of(TABLE_FILE_REPLICATION.getKey(), "123",
             Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
     expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
@@ -163,7 +163,7 @@ public class TableConfigurationTest {
 
     nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
 
-    assertEquals("123", tableConfig.get(TABLE_FILE_MAX)); // from ns
+    assertEquals("123", tableConfig.get(TABLE_FILE_REPLICATION)); // from ns
     assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET)); // from sys
 
     verify(propStore);

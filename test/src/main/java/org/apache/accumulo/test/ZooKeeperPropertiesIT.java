@@ -121,16 +121,17 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       String nid = nsMap.get(namespace);
 
       Map<String,String> properties = client.namespaceOperations().getConfiguration(namespace);
-      assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
+      assertEquals(Property.TABLE_FILE_REPLICATION.getDefaultValue(),
+          properties.get(Property.TABLE_FILE_REPLICATION.getKey()));
 
       final NamespaceId namespaceId = NamespaceId.of(nid);
       final NamespacePropKey namespacePropKey = NamespacePropKey.of(context, namespaceId);
       PropUtil.setProperties(context, namespacePropKey,
-          Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
+          Map.of(Property.TABLE_FILE_REPLICATION.getKey(), "31"));
 
       // add a sleep to give the property change time to propagate
       properties = client.namespaceOperations().getConfiguration(namespace);
-      while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("31")) {
+      while (!properties.get(Property.TABLE_FILE_REPLICATION.getKey()).equals("31")) {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
@@ -140,10 +141,11 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       }
 
       PropUtil.removeProperties(context, namespacePropKey,
-          List.of(Property.TABLE_FILE_MAX.getKey()));
+          List.of(Property.TABLE_FILE_REPLICATION.getKey()));
 
       properties = client.namespaceOperations().getConfiguration(namespace);
-      while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("15")) {
+      while (!properties.get(Property.TABLE_FILE_REPLICATION.getKey())
+          .equals(Property.TABLE_FILE_REPLICATION.getDefaultValue())) {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {

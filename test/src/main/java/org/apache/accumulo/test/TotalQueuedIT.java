@@ -66,7 +66,6 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       // get an idea of how fast the syncs occur
       byte[] row = new byte[250];

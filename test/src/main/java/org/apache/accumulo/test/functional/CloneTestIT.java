@@ -90,7 +90,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
           "1M");
       c.tableOperations().setProperty(table1,
           Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
-      c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
+      c.tableOperations().setProperty(table1, Property.TABLE_FILE_REPLICATION.getKey(), "7");
 
       writeDataAndClone(c, table1, table2);
 
@@ -101,8 +101,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
       Map<String,String> tableProps = Map.copyOf(c.tableOperations().getConfiguration(table2));
 
       assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
-      assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
-          tableProps.get(Property.TABLE_FILE_MAX.getKey()));
+      assertEquals(Property.TABLE_FILE_REPLICATION.getDefaultValue(),
+          tableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
       assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
 
       c.tableOperations().delete(table1);
@@ -201,7 +201,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
 
       Set<String> exclude = new HashSet<>();
-      exclude.add(Property.TABLE_FILE_MAX.getKey());
+      exclude.add(Property.TABLE_FILE_REPLICATION.getKey());
 
       c.tableOperations().clone(table1, table2, true, props, exclude);
 
@@ -284,7 +284,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
 
       Set<String> exclude = new HashSet<>();
-      exclude.add(Property.TABLE_FILE_MAX.getKey());
+      exclude.add(Property.TABLE_FILE_REPLICATION.getKey());
 
       c.tableOperations().clone(table1, table2, CloneConfiguration.builder().setFlush(true)
           .setPropertiesToSet(props).setPropertiesToExclude(exclude).setKeepOffline(true).build());

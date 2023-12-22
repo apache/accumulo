@@ -297,7 +297,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table1);
-      client.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "1001");
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 

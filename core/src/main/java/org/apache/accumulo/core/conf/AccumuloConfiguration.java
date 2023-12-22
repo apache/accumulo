@@ -371,23 +371,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return pathString;
   }
 
-  /**
-   * Gets the maximum number of files per tablet from this configuration.
-   *
-   * @return maximum number of files per tablet
-   * @see Property#TABLE_FILE_MAX
-   * @see Property#TSERV_SCAN_MAX_OPENFILES
-   */
-  public int getMaxFilesPerTablet() {
-    int maxFilesPerTablet = getCount(Property.TABLE_FILE_MAX);
-    if (maxFilesPerTablet <= 0) {
-      maxFilesPerTablet = getCount(Property.TSERV_SCAN_MAX_OPENFILES) - 1;
-      log.debug("Max files per tablet {}", maxFilesPerTablet);
-    }
-
-    return maxFilesPerTablet;
-  }
-
   public class ScanExecutorConfig {
     public final String name;
     public final int maxThreads;

@@ -50,6 +50,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
@@ -188,7 +189,14 @@ public class MajorCompactionRequest implements Cloneable {
   }
 
   public int getMaxFilesPerTablet() {
-    return tableConfig.getMaxFilesPerTablet();
+    int maxFilesPerTablet = tableConfig.getCount(Property.TABLE_FILE_MAX);
+    if (maxFilesPerTablet <= 0) {
+      maxFilesPerTablet = tableConfig.getCount(Property.TSERV_SCAN_MAX_OPENFILES) - 1;
+      LoggerFactory.getLogger(MajorCompactionRequest.class).debug("Max files per tablet {}",
+          maxFilesPerTablet);
+    }
+
+    return maxFilesPerTablet;
   }
 
   @Override

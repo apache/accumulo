@@ -70,7 +70,6 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");
       // create 3 flush files
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation("a");

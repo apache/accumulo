@@ -341,7 +341,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertTrue(checkTableHasProp(t0, k, v));
 
     // test that table properties override namespace properties
-    String k2 = Property.TABLE_FILE_MAX.getKey();
+    String k2 = Property.TABLE_FILE_REPLICATION.getKey();
     String v2 = "42";
     String table_v2 = "13";
 
@@ -436,10 +436,10 @@ public class NamespacesIT extends SharedMiniClusterBase {
     String t1 = namespace + ".1";
     String t2 = namespace + ".2";
     String t3 = namespace2 + ".2";
-    String k1 = Property.TABLE_FILE_MAX.getKey();
+    String k1 = Property.TABLE_SPLIT_THRESHOLD.getKey();
     String k2 = Property.TABLE_FILE_REPLICATION.getKey();
-    String k1v1 = "55";
-    String k1v2 = "66";
+    String k1v1 = "550000";
+    String k1v2 = "660000";
     String k2v1 = "5";
     String k2v2 = "6";
 
@@ -773,38 +773,39 @@ public class NamespacesIT extends SharedMiniClusterBase {
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
       loginAs(user1);
-      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
-          () -> user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42"));
+      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con.tableOperations()
+          .setProperty(t3, Property.TABLE_FILE_REPLICATION.getKey(), "42"));
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
           () -> user1Con.tableOperations().modifyProperties(t3,
-              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
+              properties -> properties.put(Property.TABLE_FILE_REPLICATION.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
       c.securityOperations().grantTablePermission(u1, t3, TablePermission.ALTER_TABLE);
       loginAs(user1);
-      user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_REPLICATION.getKey(), "42");
       user1Con.tableOperations().modifyProperties(t3,
-          properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "43"));
-      user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
+          properties -> properties.put(Property.TABLE_FILE_REPLICATION.getKey(), "43"));
+      user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_REPLICATION.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
 
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con
-          .namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55"));
+          .namespaceOperations().setProperty(n1, Property.TABLE_FILE_REPLICATION.getKey(), "55"));
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
           () -> user1Con.namespaceOperations().modifyProperties(n1,
-              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
+              properties -> properties.put(Property.TABLE_FILE_REPLICATION.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
       loginAs(user1);
-      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_REPLICATION.getKey(),
+          "42");
       user1Con.namespaceOperations().modifyProperties(n1, properties -> {
-        properties.put(Property.TABLE_FILE_MAX.getKey(), "43");
+        properties.put(Property.TABLE_FILE_REPLICATION.getKey(), "43");
       });
-      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_REPLICATION.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
 
@@ -851,13 +852,14 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con
-          .namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33"));
+          .namespaceOperations().setProperty(n1, Property.TABLE_FILE_REPLICATION.getKey(), "33"));
 
       loginAs(root);
       c.securityOperations().grantSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
       loginAs(user1);
-      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
-      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_REPLICATION.getKey(),
+          "33");
+      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_REPLICATION.getKey());
       loginAs(root);
       c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
     }

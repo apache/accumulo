@@ -27,7 +27,7 @@ import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
-import static org.apache.accumulo.core.conf.Property.TABLE_FILE_MAX;
+import static org.apache.accumulo.core.conf.Property.TABLE_FILE_REPLICATION;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.server.MockServerContext.getMockContextWithPropStore;
 import static org.easymock.EasyMock.anyObject;
@@ -243,7 +243,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var tableId = TableId.of("3");
     var tablePropKey = TablePropKey.of(instanceId, tableId);
 
-    var setOnNamespace = Set.of(TABLE_FILE_MAX);
+    var setOnNamespace = Set.of(TABLE_FILE_REPLICATION);
     var nsProps = new VersionedProperties(2, Instant.now(), setToMap(setOnNamespace));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 

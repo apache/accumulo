@@ -103,7 +103,6 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       createTable(client, table1, "cs1");
-      client.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "1001");
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 

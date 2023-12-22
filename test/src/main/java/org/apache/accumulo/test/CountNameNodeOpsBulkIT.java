@@ -102,7 +102,6 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       // disable compactions
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "2000");
-      props.put(Property.TABLE_FILE_MAX.getKey(), "2000");
       // splits to slow down bulk import
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
