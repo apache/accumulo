@@ -221,7 +221,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       this.maxFilesToCompact = Integer.parseInt(params.getServiceEnvironment().getConfiguration()
           .get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     } else {
-      this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
+      this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen",
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue()));
     }
   }
 
