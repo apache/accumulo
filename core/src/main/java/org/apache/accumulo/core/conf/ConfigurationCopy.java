@@ -138,6 +138,10 @@ public class ConfigurationCopy extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(Property prop) {
-    return copy.containsKey(prop.getKey());
+    if (parent != null) {
+      return copy.containsKey(prop.getKey()) || parent.isPropertySet(prop);
+    } else {
+      return copy.containsKey(prop.getKey());
+    }
   }
 }
