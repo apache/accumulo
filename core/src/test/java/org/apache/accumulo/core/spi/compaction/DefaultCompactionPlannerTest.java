@@ -191,8 +191,8 @@ public class DefaultCompactionPlannerTest {
     EasyMock.replay(senv);
 
     // Use the CompactionServicesConfig to create options based on default property values
-    var CompactionServices = new CompactionServicesConfig(aconf, log::warn);
-    var options = CompactionServices.getOptions().get("default");
+    var compactionServices = new CompactionServicesConfig(aconf, log::warn);
+    var options = compactionServices.getOptions().get("default");
 
     var initParams =
         new CompactionPlannerInitParams(CompactionServiceId.of("default"), options, senv);
@@ -232,7 +232,7 @@ public class DefaultCompactionPlannerTest {
   @Test
   @SuppressWarnings("removal")
   public void testOverrideMaxOpen() {
-    ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    ConfigurationCopy aconf = new ConfigurationCopy(Map.of(), DefaultConfiguration.getInstance());
     // Set old property and use that for max open files.
     aconf.set(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "17");
     ConfigurationImpl config = new ConfigurationImpl(aconf);
