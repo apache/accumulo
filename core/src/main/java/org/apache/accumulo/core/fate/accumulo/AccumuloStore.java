@@ -44,20 +44,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
 
-  private static Logger log = LoggerFactory.getLogger(AccumuloStore.class);
-
   private final ClientContext context;
   private final String tableName;
 
   private static final int maxRepos = 100;
-  private static final com.google.common.collect.Range<Integer> repoRange =
+  private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
@@ -69,7 +65,6 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   public long create() {
     long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
 
-    // TODO = conditional mutation and retry if exists?
     newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
 
     return tid;
@@ -203,9 +198,6 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-
-        // TODO: should we push find top into the mutator?
-        // We also likely need a conditional mutation to make sure we are incrementing the latest
         Optional<Integer> top = findTop();
 
         if (top.filter(t -> t >= maxRepos).isPresent()) {
@@ -223,8 +215,6 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void pop() {
       verifyReserved(true);
 
-      // TODO: should we push find top into the mutator?
-      // We also likely need a conditional mutation to make sure we are deleting top
       Optional<Integer> top = findTop();
       top.ifPresent(t -> newMutator(tid).deleteRepo(t).mutate());
     }
@@ -234,13 +224,13 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       newMutator(tid).putStatus(status).mutate();
-
       observedStatus = status;
     }
 
     @Override
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReserved(true);
+
       FateMutator<T> fateMutator = newMutator(tid);
       final byte[] serialized = serializeTxInfo(so);
 
@@ -283,14 +273,14 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   static Text invertRepo(int position) {
-    Preconditions.checkArgument(repoRange.contains(position),
+    Preconditions.checkArgument(REPO_RANGE.contains(position),
         "Position %s is not in the valid range of [0,%s]", position, maxRepos);
     return new Text(String.format("%02d", maxRepos - position));
   }
 
   static Integer restoreRepo(Text invertedPosition) {
     int position = maxRepos - Integer.parseInt(invertedPosition.toString());
-    Preconditions.checkArgument(repoRange.contains(position),
+    Preconditions.checkArgument(REPO_RANGE.contains(position),
         "Position %s is not in the valid range of [0,%s]", position, maxRepos);
     return position;
   }

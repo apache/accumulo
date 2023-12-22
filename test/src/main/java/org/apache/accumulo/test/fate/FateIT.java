@@ -132,10 +132,9 @@ public abstract class FateIT extends SharedMiniClusterBase {
       finishCall.countDown();
 
       // TODO: This check seems like a race condition that might
-      // need to be fixed if it transitions to fast and removes the
-      // entry before successful is checked
-
-      // Check that it transitions to SUCCESSFUL
+      // need to be fixed as occasionally the test fails because it was
+      // already removed so that seems to indicate things are removed
+      // before can check it was SUCCESSFUL
       TStatus s = getTxStatus(sctx, txid);
       while (s != SUCCESSFUL) {
         s = getTxStatus(sctx, txid);
