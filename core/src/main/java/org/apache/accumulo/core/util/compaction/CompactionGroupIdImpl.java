@@ -20,14 +20,12 @@ package org.apache.accumulo.core.util.compaction;
 
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
-import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 
 import com.google.common.base.Preconditions;
 
-@SuppressWarnings("removal")
-public class CompactionExecutorIdImpl extends CompactionExecutorId {
+public class CompactionGroupIdImpl extends CompactionGroupId {
 
-  protected CompactionExecutorIdImpl(String canonical) {
+  protected CompactionGroupIdImpl(String canonical) {
     super(canonical);
   }
 
@@ -42,16 +40,13 @@ public class CompactionExecutorIdImpl extends CompactionExecutorId {
     return canonical().substring("e.".length());
   }
 
-  public static CompactionExecutorId internalId(CompactionServiceId csid, String executorName) {
-    return new CompactionExecutorIdImpl("i." + csid + "." + executorName);
+  public static CompactionGroupId groupId(String groupName) {
+    // Use the "e." prefix until the removal of CompactionExecutorId
+    return new CompactionGroupIdImpl("e." + groupName);
   }
 
-  public static CompactionExecutorId externalId(String executorName) {
-    return new CompactionExecutorIdImpl("e." + executorName);
+  @SuppressWarnings("removal")
+  public static CompactionGroupId convertExecutorId(CompactionExecutorId ceid) {
+    return new CompactionGroupIdImpl(ceid.canonical());
   }
-
-  public static CompactionExecutorId convertGroupId(CompactionGroupId cgid) {
-    return new CompactionExecutorIdImpl(cgid.canonical());
-  }
-
 }

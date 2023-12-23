@@ -58,6 +58,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   private static final Logger log = LoggerFactory.getLogger(InternalCompactionExecutor.class);
 
   private PriorityBlockingQueue<Runnable> queue;
+  @SuppressWarnings("removal")
   private final CompactionExecutorId ceid;
   private AtomicLong cancelCount = new AtomicLong();
   private ThreadPoolExecutor threadPool;
@@ -164,6 +165,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
   }
 
+  @SuppressWarnings("removal")
   InternalCompactionExecutor(CompactionExecutorId ceid, int threads,
       CompactionExecutorsMetrics ceMetrics, RateLimiter readLimiter, RateLimiter writeLimiter) {
     this.ceid = ceid;
@@ -185,6 +187,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public SubmittedJob submit(CompactionServiceId csid, CompactionJob job, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     Preconditions.checkArgument(job.getExecutor().equals(ceid));

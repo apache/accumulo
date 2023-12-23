@@ -18,40 +18,19 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import java.util.Set;
-
-import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.AbstractId;
 
 /**
- * An immutable object that describes what files to compact and where to compact them.
+ * A unique identifier for a compaction group that a {@link CompactionPlanner} can schedule
+ * compactions on using a {@link CompactionJob}.
  *
- * @since 2.1.0
+ * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-public interface CompactionJob {
+public class CompactionGroupId extends AbstractId<CompactionGroupId> {
+  private static final long serialVersionUID = 1L;
 
-  short getPriority();
-
-  /**
-   * @return The executor to run the job.
-   */
-  @Deprecated(since = "3.1", forRemoval = true)
-  @SuppressWarnings("removal")
-  CompactionExecutorId getExecutor();
-
-  /**
-   * @return The compaction group to run the job.
-   */
-  CompactionGroupId getGroup();
-
-  /**
-   * @return The files to compact
-   */
-  Set<CompactableFile> getFiles();
-
-  /**
-   * @return The kind of compaction this is.
-   */
-  CompactionKind getKind();
-
+  protected CompactionGroupId(String canonical) {
+    super(canonical);
+  }
 }

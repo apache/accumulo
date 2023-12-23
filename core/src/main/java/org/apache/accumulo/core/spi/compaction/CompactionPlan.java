@@ -42,12 +42,24 @@ public interface CompactionPlan {
      * @param priority This determines the order in which the job is taken off the execution queue.
      *        Larger numbers are taken off the queue first. If two jobs are on the queue, one with a
      *        priority of 4 and another with 5, then the one with 5 will be taken first.
-     * @param executor Where the job should run.
-     * @param group The files to compact.
+     * @param ceid Where the job should run.
+     * @param files The files to compact.
      * @return this
      */
-    Builder addJob(short priority, CompactionExecutorId executor,
-        Collection<CompactableFile> group);
+    @SuppressWarnings("removal")
+    @Deprecated(since = "3.1", forRemoval = true)
+    Builder addJob(short priority, CompactionExecutorId ceid, Collection<CompactableFile> files);
+
+    /**
+     * @param priority This determines the order in which the job is taken off the execution queue.
+     *        Priority level matches the numeric size of the priority value. For instance, two jobs
+     *        are in the same queue. One with a priority of "4" and another with "5". The job with
+     *        the priority of "5" will be taken first.
+     * @param cgid The compaction group where the job will run.
+     * @param files The files to compact.
+     * @return this
+     */
+    Builder addJob(short priority, CompactionGroupId cgid, Collection<CompactableFile> files);
 
     CompactionPlan build();
   }

@@ -40,6 +40,7 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.FileSelectionStatus;
@@ -444,7 +445,13 @@ public class CompactableImplFileManagerTest {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public CompactionExecutorId getExecutor() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompactionGroupId getGroup() {
       throw new UnsupportedOperationException();
     }
 

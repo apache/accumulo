@@ -32,9 +32,9 @@ import java.util.UUID;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.junit.jupiter.api.Test;
 
 public class CompactableImplTest {
@@ -52,10 +52,10 @@ public class CompactableImplTest {
     StoredTabletFile compactTmpName = newFile("C00000A.rf_tmp");
     String compactorId = "cid";
     short priority = 9;
-    CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("ecs1");
+    CompactionGroupId cgid = CompactionGroupIdImpl.groupId("ecs1");
 
     return new ExternalCompactionMetadata(jobFiles, nextFiles, compactTmpName.getTabletFile(),
-        compactorId, kind, priority, ceid, propagateDeletes, initiallySelectedAll, compactionId);
+        compactorId, kind, priority, cgid, propagateDeletes, initiallySelectedAll, compactionId);
   }
 
   ExternalCompactionId newEcid() {

@@ -26,14 +26,17 @@ package org.apache.accumulo.core.spi.compaction;
  * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
  * @see org.apache.accumulo.core.spi.compaction
  */
+@Deprecated(since = "3.1", forRemoval = true)
 public interface ExecutorManager {
   /**
    * Create a thread pool executor within a compaction service.
    */
+  @SuppressWarnings("removal")
   public CompactionExecutorId createExecutor(String name, int threads);
 
   /**
    * @return an id for a configured external execution queue.
    */
+  @SuppressWarnings("removal")
   public CompactionExecutorId getExternalExecutor(String name);
 }

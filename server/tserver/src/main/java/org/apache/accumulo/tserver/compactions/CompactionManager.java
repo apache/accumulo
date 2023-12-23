@@ -37,14 +37,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -78,7 +78,7 @@ public class CompactionManager {
 
   private CompactionExecutorsMetrics ceMetrics;
 
-  private Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
+  private Map<CompactionGroupId,ExternalCompactionExecutor> externalExecutors;
 
   private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
 
@@ -87,11 +87,11 @@ public class CompactionManager {
 
   static class ExtCompInfo {
     final KeyExtent extent;
-    final CompactionExecutorId executor;
+    final CompactionGroupId group;
 
-    public ExtCompInfo(KeyExtent extent, CompactionExecutorId executor) {
+    public ExtCompInfo(KeyExtent extent, CompactionGroupId group) {
       this.extent = extent;
-      this.executor = executor;
+      this.group = group;
     }
   }
 
@@ -274,8 +274,8 @@ public class CompactionManager {
 
         this.services = Map.copyOf(tmpServices);
 
-        HashSet<CompactionExecutorId> activeExternalExecs = new HashSet<>();
-        services.values().forEach(cs -> cs.getExternalExecutorsInUse(activeExternalExecs::add));
+        HashSet<CompactionGroupId> activeExternalExecs = new HashSet<>();
+        services.values().forEach(cs -> cs.getExternalGroupsInUse(activeExternalExecs::add));
         // clean up an external compactors that are no longer in use by any compaction service
         externalExecutors.keySet().retainAll(activeExternalExecs);
 
@@ -332,17 +332,17 @@ public class CompactionManager {
     return ecJob;
   }
 
-  ExternalCompactionExecutor getExternalExecutor(CompactionExecutorId ceid) {
-    return externalExecutors.computeIfAbsent(ceid, id -> new ExternalCompactionExecutor(id));
+  ExternalCompactionExecutor getExternalExecutor(CompactionGroupId cgid) {
+    return externalExecutors.computeIfAbsent(cgid, ExternalCompactionExecutor::new);
   }
 
   ExternalCompactionExecutor getExternalExecutor(String queueName) {
-    return getExternalExecutor(CompactionExecutorIdImpl.externalId(queueName));
+    return getExternalExecutor(CompactionGroupIdImpl.groupId(queueName));
   }
 
   public void registerExternalCompaction(ExternalCompactionId ecid, KeyExtent extent,
-      CompactionExecutorId ceid) {
-    runningExternalCompactions.put(ecid, new ExtCompInfo(extent, ceid));
+      CompactionGroupId cgid) {
+    runningExternalCompactions.put(ecid, new ExtCompInfo(extent, cgid));
   }
 
   public void commitExternalCompaction(ExternalCompactionId extCompactionId,
@@ -377,31 +377,31 @@ public class CompactionManager {
   }
 
   public List<TCompactionQueueSummary> getCompactionQueueSummaries() {
-    return externalExecutors.values().stream().flatMap(ece -> ece.summarize())
+    return externalExecutors.values().stream().flatMap(ExternalCompactionExecutor::summarize)
         .collect(Collectors.toList());
   }
 
   public static class ExtCompMetric {
-    public CompactionExecutorId ceid;
+    public CompactionGroupId cgid;
     public int running;
     public int queued;
     public int paused;
   }
 
   public Collection<ExtCompMetric> getExternalMetrics() {
-    Map<CompactionExecutorId,ExtCompMetric> metrics = new HashMap<>();
+    Map<CompactionGroupId,ExtCompMetric> metrics = new HashMap<>();
 
     externalExecutors.forEach((eeid, ece) -> {
       ExtCompMetric ecm = new ExtCompMetric();
-      ecm.ceid = eeid;
+      ecm.cgid = eeid;
       ecm.queued = ece.getCompactionsQueued(CType.EXTERNAL);
       metrics.put(eeid, ecm);
     });
 
     runningExternalCompactions.values().forEach(eci -> {
-      var ecm = metrics.computeIfAbsent(eci.executor, id -> {
+      var ecm = metrics.computeIfAbsent(eci.group, id -> {
         var newEcm = new ExtCompMetric();
-        newEcm.ceid = id;
+        newEcm.cgid = id;
         return newEcm;
       });
 

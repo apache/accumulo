@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.compactions.CompactionManager.ExtCompMetric;
 
@@ -45,8 +46,9 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   private volatile Supplier<Collection<ExtCompMetric>> externalMetricsSupplier;
 
   private volatile List<CeMetrics> ceMetricsList = List.of();
+  @SuppressWarnings("removal")
   private final Map<CompactionExecutorId,CeMetrics> ceMetricsMap = new HashMap<>();
-  private final Map<CompactionExecutorId,ExMetrics> exCeMetricsMap = new HashMap<>();
+  private final Map<CompactionGroupId,ExMetrics> exCeMetricsMap = new HashMap<>();
   private MeterRegistry registry = null;
 
   // public so it can be closed by outside callers
@@ -80,6 +82,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
         minimumRefreshDelay, minimumRefreshDelay, TimeUnit.MILLISECONDS));
   }
 
+  @SuppressWarnings("removal")
   public synchronized CeMetrics addExecutor(CompactionExecutorId ceid, IntSupplier runningSupplier,
       IntSupplier queuedSupplier) {
 
@@ -110,18 +113,18 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
 
     if (externalMetricsSupplier != null) {
 
-      Set<CompactionExecutorId> seenIds = new HashSet<>();
+      Set<CompactionGroupId> seenIds = new HashSet<>();
 
       synchronized (exCeMetricsMap) {
         externalMetricsSupplier.get().forEach(ecm -> {
-          seenIds.add(ecm.ceid);
+          seenIds.add(ecm.cgid);
 
-          ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> {
+          ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.cgid, id -> {
             ExMetrics m = new ExMetrics();
             if (registry != null) {
-              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.ceid.canonical()),
+              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.cgid.canonical()),
                   new AtomicInteger(0));
-              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.ceid.canonical()),
+              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.cgid.canonical()),
                   new AtomicInteger(0));
             }
             return m;

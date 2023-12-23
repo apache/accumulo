@@ -43,7 +43,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan;
@@ -51,6 +51,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -69,7 +70,7 @@ import com.google.common.collect.Sets;
 
 public class CompactionService {
   private CompactionPlanner planner;
-  private Map<CompactionExecutorId,CompactionExecutor> executors;
+  private Map<CompactionGroupId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
   private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
   private ServerContext context;
@@ -82,14 +83,15 @@ public class CompactionService {
   private RateLimiter readLimiter;
   private RateLimiter writeLimiter;
   private AtomicLong rateLimit = new AtomicLong(0);
-  private Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
+  private Function<CompactionGroupId,ExternalCompactionExecutor> externExecutorSupplier;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
+  @SuppressWarnings("removal")
   public CompactionService(String serviceName, String plannerClass, String plannerPrefix,
       Long maxRate, Map<String,String> plannerOptions, ServerContext context,
       CompactionExecutorsMetrics ceMetrics,
-      Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier) {
+      Function<CompactionGroupId,ExternalCompactionExecutor> externExecutorSupplier) {
 
     Preconditions.checkArgument(maxRate >= 0);
 
@@ -104,7 +106,7 @@ public class CompactionService {
         new ServiceEnvironmentImpl(context));
     planner = createPlanner(myId, plannerClass, plannerOptions, initParams);
 
-    Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
+    Map<CompactionGroupId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
     this.rateLimit.set(maxRate);
 
@@ -114,12 +116,12 @@ public class CompactionService {
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.getRequestedExecutors().forEach((ceid, numThreads) -> {
-      tmpExecutors.put(ceid,
+      tmpExecutors.put(CompactionGroupIdImpl.convertExecutorId(ceid),
           new InternalCompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter));
     });
 
-    initParams.getRequestedExternalExecutors().forEach(ceid -> {
-      tmpExecutors.put(ceid, externExecutorSupplier.apply(ceid));
+    initParams.getRequestedGroups().forEach(cgid -> {
+      tmpExecutors.put(cgid, externExecutorSupplier.apply(cgid));
     });
 
     this.executors = Map.copyOf(tmpExecutors);
@@ -292,9 +294,11 @@ public class CompactionService {
     return convertPlan(plan, kind, files.allFiles, files.candidates);
   }
 
+  @SuppressWarnings("removal")
   private void submitCompactionJob(CompactionPlan plan, Compactable.Files files,
       Compactable compactable, Consumer<Compactable> completionCallback) {
     // log error if tablet is metadata and compaction is external
+    @SuppressWarnings("removal")
     var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
     if (compactable.getExtent().isMeta()
         && execIds.anyMatch(CompactionExecutorIdImpl::isExternalId)) {
@@ -320,7 +324,7 @@ public class CompactionService {
 
     if (reconcile(jobs, submitted)) {
       for (CompactionJob job : jobs) {
-        CompactionExecutor executor = executors.get(job.getExecutor());
+        CompactionExecutor executor = executors.get(job.getGroup());
         var submittedJob = executor.submit(myId, job, compactable, completionCallback);
         // its important that the collection created in computeIfAbsent supports concurrency
         submittedJobs.computeIfAbsent(compactable.getExtent(), k -> new ConcurrentLinkedQueue<>())
@@ -337,6 +341,7 @@ public class CompactionService {
     }
   }
 
+  @SuppressWarnings("removal")
   private CompactionPlan convertPlan(CompactionPlan plan, CompactionKind kind,
       Set<CompactableFile> allFiles, Set<CompactableFile> candidates) {
 
@@ -360,6 +365,7 @@ public class CompactionService {
         .anyMatch(job -> job.getStatus() == Status.QUEUED);
   }
 
+  @SuppressWarnings("removal")
   public void configurationChanged(String plannerClassName, String plannerPrefix, Long maxRate,
       Map<String,String> plannerOptions) {
     Preconditions.checkArgument(maxRate >= 0);
@@ -377,25 +383,26 @@ public class CompactionService {
         new ServiceEnvironmentImpl(context));
     var tmpPlanner = createPlanner(myId, plannerClassName, plannerOptions, initParams);
 
-    Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
+    Map<CompactionGroupId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
     initParams.getRequestedExecutors().forEach((ceid, numThreads) -> {
-      InternalCompactionExecutor executor = (InternalCompactionExecutor) executors.get(ceid);
+      InternalCompactionExecutor executor =
+          (InternalCompactionExecutor) executors.get(CompactionGroupIdImpl.convertExecutorId(ceid));
       if (executor == null) {
         executor =
             new InternalCompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter);
       } else {
         executor.setThreads(numThreads);
       }
-      tmpExecutors.put(ceid, executor);
+      tmpExecutors.put(CompactionGroupIdImpl.convertExecutorId(ceid), executor);
     });
 
-    initParams.getRequestedExternalExecutors().forEach(ceid -> {
-      ExternalCompactionExecutor executor = (ExternalCompactionExecutor) executors.get(ceid);
+    initParams.getRequestedGroups().forEach(cgid -> {
+      ExternalCompactionExecutor executor = (ExternalCompactionExecutor) executors.get(cgid);
       if (executor == null) {
-        executor = externExecutorSupplier.apply(ceid);
+        executor = externExecutorSupplier.apply(cgid);
       }
-      tmpExecutors.put(ceid, executor);
+      tmpExecutors.put(cgid, executor);
     });
 
     Sets.difference(executors.keySet(), tmpExecutors.keySet()).forEach(ceid -> {
@@ -424,10 +431,10 @@ public class CompactionService {
     return executors.values().stream().mapToInt(ce -> ce.getCompactionsQueued(ctype)).sum();
   }
 
-  public void getExternalExecutorsInUse(Consumer<CompactionExecutorId> idConsumer) {
-    executors.forEach((ceid, ce) -> {
-      if (ce instanceof ExternalCompactionExecutor) {
-        idConsumer.accept(ceid);
+  public void getExternalGroupsInUse(Consumer<CompactionGroupId> idConsumer) {
+    executors.forEach((cgid, cg) -> {
+      if (cg instanceof ExternalCompactionExecutor) {
+        idConsumer.accept(cgid);
       }
     });
   }
