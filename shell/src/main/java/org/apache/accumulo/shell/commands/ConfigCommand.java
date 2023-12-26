@@ -294,12 +294,6 @@ public class ConfigCommand extends Command {
           }
           throw e;
         }
-      } else if (namespace != null) {
-        if (warned) {
-          Shell.log.warn("User does not have permission to see the entire configuration hierarchy. "
-              + "Property values shown below may be set above the namespace level.");
-        }
-
       }
       final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 
