@@ -270,30 +270,6 @@ public class ConfigCommand extends Command {
           Shell.log.warn(
               "User does not have permission to see entire configuration heirarchy. Property values shown below may be set above the namespace level.");
         }
-        try {
-          // Modify properties using modifyProperties
-          Consumer<Map<String,String>> propertyModifier = currProps -> {
-            // Your logic to modify properties goes here
-            // For example, add or update properties based on your requirements
-
-            String newPropertyKey = "new.property.key";
-            String newPropertyValue = "new.property.value";
-            currProps.put(newPropertyKey, newPropertyValue);
-          };
-
-          shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
-              propertyModifier);
-        } catch (AccumuloException e) {
-          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException) {
-            AccumuloSecurityException ase = (AccumuloSecurityException) e.getCause();
-            if (ase.getSecurityErrorCode() == PERMISSION_DENIED) {
-              Shell.log.error(
-                  "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
-                  tableName);
-            }
-          }
-          throw e;
-        }
       }
       final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 
