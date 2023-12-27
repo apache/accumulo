@@ -23,7 +23,6 @@ import static org.apache.accumulo.tserver.log.DfsLogger.LOG_FILE_HEADER_V4;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.DataInputStream;
@@ -39,8 +38,6 @@ import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.beust.jcommander.ParameterException;
-
 public class CreateEmptyWalTest {
 
   @TempDir
@@ -48,7 +45,7 @@ public class CreateEmptyWalTest {
 
   @Test
   public void createTest() throws Exception {
-    String[] args = {"-d", tempDir.getAbsolutePath()};
+    String[] args = {"-w", tempDir.getAbsolutePath() + "/empty.wal"};
     CreateEmptyWal uut = new CreateEmptyWal();
     uut.execute(args);
     Path expected = Path.of(tempDir.getAbsolutePath() + "/empty.wal");
@@ -75,15 +72,4 @@ public class CreateEmptyWalTest {
       assertNull(key.filename);
     }
   }
-
-  /**
-   * test the validator directly, during normal execution, command parsing will print help and then
-   * exit with an error code. This causes issues trying to test with maven when the VM exits.
-   */
-  @Test
-  public void noDIrFailsTest() {
-    var validator = new CreateEmptyWal.DirValidator();
-    assertThrows(ParameterException.class, () -> validator.validate("-d", "a/b/c/afakedirectory"));
-  }
-
 }

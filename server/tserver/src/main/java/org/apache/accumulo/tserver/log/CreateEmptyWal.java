@@ -19,13 +19,13 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.apache.accumulo.tserver.log.DfsLogger.LOG_FILE_HEADER_V4;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.crypto.CryptoUtils;
@@ -34,9 +34,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 
-import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,27 +43,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CreateEmptyWal implements KeywordExecutable {
   private static final LogFileValue EMPTY = new LogFileValue();
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "file output path provided by an admin")
-  // public to allow jcommander access
-  public static class DirValidator implements IParameterValidator {
-    @Override
-    public void validate(String name, String value) throws ParameterException {
-      Path path = Paths.get(value);
-      if (!Files.exists(path)) {
-        throw new ParameterException("Directory " + path.toAbsolutePath() + " does not exist");
-      }
-      if (!Files.isDirectory(path)) {
-        throw new ParameterException(path.toAbsolutePath() + " is not a directory");
-      }
-    }
-  }
-
   static class Opts extends Help {
-    @Parameter(names = {"-d", "--dir"},
-        description = " <dir> the output directory, output will be [dir]/empty.wal",
-        required = true, validateWith = DirValidator.class)
-    String dirName;
+    @Parameter(names = {"-w", "--wal-file"},
+        description = " <path> the path / filename of the created empty wal file."
+            + " The file cannot exist",
+        required = true)
+    String walFilename;
   }
 
   @Override
@@ -78,17 +61,19 @@ public class CreateEmptyWal implements KeywordExecutable {
     return "creates an empty wal file in the directory specified";
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "file output path provided by an admin")
   @Override
   public void execute(String[] args) throws Exception {
 
     Opts opts = new Opts();
     opts.parseArgs("accumulo create-empty-wal", args);
 
-    var path = Path.of(opts.dirName + "/empty.wal");
+    var path = Path.of(opts.walFilename);
 
     System.out.println("Output file: " + path.toAbsolutePath());
 
-    try (var out = new DataOutputStream(Files.newOutputStream(path))) {
+    try (var out = new DataOutputStream(Files.newOutputStream(path, CREATE_NEW))) {
       out.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
       byte[] decryptionParams = new NoFileEncrypter().getDecryptionParameters();
       CryptoUtils.writeParams(decryptionParams, out);
