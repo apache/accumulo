@@ -67,6 +67,18 @@ public class PrintBCInfo {
     }
   }
 
+  public String getCompressionType() throws IOException {
+    FSDataInputStream fsin = fs.open(path);
+    try (BCFile.Reader bcfr =
+        new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
+
+      Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
+
+      return es.stream().filter(entry -> entry.getKey().equals("RFile.index")).findFirst()
+          .map(entry -> entry.getValue().getCompressionAlgorithm().getName()).orElse(null);
+    }
+  }
+
   static class Opts extends ConfigOpts {
     @Parameter(description = " <file>")
     String file;
