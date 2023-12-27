@@ -62,7 +62,7 @@ import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt, fileOpt;
+      disablePaginationOpt, outputFileOpt, namespaceOpt, propFile;
 
   private int COL1 = 10, COL2 = 7;
   private LineReader reader;
@@ -89,7 +89,7 @@ public class ConfigCommand extends Command {
 
     boolean force = cl.hasOption(forceOpt);
 
-    String filename = cl.getOptionValue("fs");
+    String filename = cl.getOptionValue("p");
     if (filename != null) {
       // Call the method to modify properties
       modifyPropertiesFromFile(cl, shellState, filename, force);
@@ -269,6 +269,15 @@ public class ConfigCommand extends Command {
         if (warned) {
           Shell.log.warn(
               "User does not have permission to see entire configuration heirarchy. Property values shown below may be set above the namespace level.");
+        }
+        try {
+          acuconf =
+              shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
+        } catch (AccumuloSecurityException e) {
+          Shell.log.error(
+              "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission)",
+              StringUtils.isEmpty(namespace) ? "default" : namespace);
+          throw e;
         }
       }
       final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
@@ -492,7 +501,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-    fileOpt = new Option("fs", "file", true, "file containing properties to set");
+    propFile = new Option("p", "propFile", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
@@ -500,13 +509,13 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
-    fileOpt.setArgName("filename");
+    propFile.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
-    og.addOption(fileOpt);
+    og.addOption(propFile);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);

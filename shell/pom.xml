@@ -31,6 +31,10 @@
   <description>An interactive shell for accessing Apache Accumulo via a command line interface.</description>
   <dependencies>
     <dependency>
+     <groupId>org.apache.commons</groupId>
+     <artifactId>commons-configuration2</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
     </dependency>
