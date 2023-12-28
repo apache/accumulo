@@ -27,28 +27,22 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Collection;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class TabletLocationStateTest {
-  private static final Collection<String> innerWalogs = new java.util.HashSet<>();
-  private static final Collection<Collection<String>> walogs = new java.util.HashSet<>();
-
-  @BeforeAll
-  public static void setUpClass() {
-    walogs.add(innerWalogs);
-    innerWalogs.add("somelog");
-  }
+  private static final Set<LogEntry> walogs =
+      Set.of(LogEntry.fromPath("file:///dir/tserver+9997/" + UUID.randomUUID()));
 
   private KeyExtent keyExtent;
   private Location future;

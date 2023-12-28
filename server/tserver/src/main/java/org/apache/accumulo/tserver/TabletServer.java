@@ -1103,7 +1103,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     List<Path> recoveryDirs = new ArrayList<>();
     for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -1129,21 +1129,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
-  }
-
-  public DfsLogger.ServerResources getServerConfig() {
-    return new DfsLogger.ServerResources() {
-
-      @Override
-      public VolumeManager getVolumeManager() {
-        return TabletServer.this.getVolumeManager();
-      }
-
-      @Override
-      public AccumuloConfiguration getConfiguration() {
-        return TabletServer.this.getConfiguration();
-      }
-    };
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {

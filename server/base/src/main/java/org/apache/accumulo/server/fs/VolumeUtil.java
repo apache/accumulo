@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -54,60 +55,34 @@ public class VolumeUtil {
   }
 
   public static Path removeTrailingSlash(Path path) {
-    String pathStr = Objects.requireNonNull(path).toString();
+    String pathStr = requireNonNull(path).toString();
     if (pathStr.endsWith("/")) {
       return new Path(removeTrailingSlash(pathStr));
     }
     return path;
   }
 
-  public static Path switchVolume(Path path, FileType ft, List<Pair<Path,Path>> replacements) {
-    if (replacements.isEmpty()) {
-      log.trace("Not switching volume because there are no replacements");
-      return null;
+  public static Path switchVolume(Path path, FileType ft, Map<Path,Path> replacements) {
+    Path replacement = null;
+    if (!replacements.isEmpty()) {
+      // removing trailing slash for exact match comparison on the volume itself
+      Path volume = removeTrailingSlash(ft.getVolume(requireNonNull(path)));
+      replacement = replacements.entrySet().stream()
+          .filter(entry -> removeTrailingSlash(entry.getKey()).equals(volume))
+          .map(entry -> new Path(entry.getValue(), requireNonNull(ft.removeVolume(path))))
+          .findFirst().orElse(null);
     }
-
-    // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
-    // false
-    Path volume = removeTrailingSlash(ft.getVolume(Objects.requireNonNull(path)));
-
-    for (Pair<Path,Path> pair : replacements) {
-      Path key = removeTrailingSlash(pair.getFirst());
-
-      if (key.equals(volume)) {
-        Path replacement =
-            new Path(pair.getSecond(), Objects.requireNonNull(ft.removeVolume(path)));
-        log.trace("Replacing {} with {}", path, replacement);
-        return replacement;
-      }
+    if (replacement != null) {
+      log.trace("Replacing {} with {} for {}", path, replacement, ft);
+      return replacement;
     }
-
-    log.trace("Could not find replacement for {} at {}", ft, path);
-
+    log.trace("No replacement available for {} at {}", ft, path);
     return null;
   }
 
-  protected static LogEntry switchVolumes(LogEntry le, List<Pair<Path,Path>> replacements) {
-    Path switchedPath = switchVolume(new Path(le.getFilePath()), FileType.WAL, replacements);
-    String switchedString;
-    int numSwitched = 0;
-    if (switchedPath != null) {
-      switchedString = switchedPath.toString();
-      numSwitched++;
-    } else {
-      switchedString = le.getFilePath();
-    }
-
-    if (numSwitched == 0) {
-      log.trace("Did not switch {}", le);
-      return null;
-    }
-
-    LogEntry newLogEntry = new LogEntry(switchedString);
-
-    log.trace("Switched {} to {}", le, newLogEntry);
-
-    return newLogEntry;
+  public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
+    Path switchedPath = switchVolume(new Path(le.getPath()), FileType.WAL, replacements);
+    return switchedPath == null ? null : LogEntry.fromPath(switchedPath.toString());
   }
 
   public static class TabletFiles {
@@ -135,7 +110,7 @@ public class VolumeUtil {
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
       KeyExtent extent, TabletFiles tabletFiles) {
-    List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
+    Map<Path,Path> replacements = context.getVolumeReplacements();
     if (replacements.isEmpty()) {
       return tabletFiles;
     }
@@ -150,13 +125,13 @@ public class VolumeUtil {
     TabletFiles ret = new TabletFiles();
 
     for (LogEntry logEntry : tabletFiles.logEntries) {
-      LogEntry switchedLogEntry = switchVolumes(logEntry, replacements);
+      LogEntry switchedLogEntry = switchVolume(logEntry, replacements);
       if (switchedLogEntry != null) {
         logsToRemove.add(logEntry);
         logsToAdd.add(switchedLogEntry);
         ret.logEntries.add(switchedLogEntry);
-        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.getFilePath(),
-            switchedLogEntry.getFilePath());
+        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.getPath(),
+            switchedLogEntry.getPath());
       } else {
         ret.logEntries.add(logEntry);
       }

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -182,14 +181,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator deleteWal(LogEntry logEntry) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier());
-    return this;
-  }
-
-  @Override
-  public Ample.TabletMutator deleteWal(String wal) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(LogColumnFamily.STR_NAME, wal);
+    logEntry.deleteFromMutation(mutation);
     return this;
   }
 

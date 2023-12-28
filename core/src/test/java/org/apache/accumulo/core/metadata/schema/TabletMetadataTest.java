@@ -102,9 +102,9 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
+    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     le1.addToMutation(mutation);
-    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
+    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     le2.addToMutation(mutation);
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
@@ -137,8 +137,7 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(Set.of(le1.getColumnQualifier(), le2.getColumnQualifier()),
-        tm.getLogs().stream().map(LogEntry::getColumnQualifier).collect(toSet()));
+    assertEquals(Set.of(le1, le2), tm.getLogs().stream().collect(toSet()));
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());

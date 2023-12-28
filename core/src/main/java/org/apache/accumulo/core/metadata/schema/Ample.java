@@ -292,9 +292,7 @@ public interface Ample {
 
     TabletMutator putWal(LogEntry logEntry);
 
-    TabletMutator deleteWal(String wal);
-
-    TabletMutator deleteWal(LogEntry logEntry);
+    TabletMutator deleteWal(LogEntry wal);
 
     TabletMutator putTime(MetadataTime time);
 
