@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
@@ -43,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -83,6 +83,7 @@ public class CreateEmptyWal implements KeywordExecutable {
       createEmptyWal(context, path);
     }
   }
+
   @VisibleForTesting
   void createEmptyWal(final ServerContext context, final Path path) throws IOException {
     try (var out = new DataOutputStream(Files.newOutputStream(path, CREATE_NEW))) {
