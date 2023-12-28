@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -279,12 +280,13 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     determineMaxFilesToCompact(params);
   }
 
+  @SuppressWarnings("deprecation")
   private void determineMaxFilesToCompact(InitParameters params) {
 
     String maxOpen = params.getOptions().get("maxOpen");
     if (maxOpen == null) {
-      maxOpen = "10";
-      log.trace("default maxOpen not set, defaulting to 10");
+      maxOpen = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue();
+      log.trace("default maxOpen not set, defaulting to {}", maxOpen);
     }
     this.maxFilesToCompact = Integer.parseInt(maxOpen);
   }
