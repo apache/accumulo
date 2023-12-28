@@ -229,12 +229,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       if (type == GcCandidateType.VALID) {
         for (GcCandidate candidate : candidates) {
           Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes all versions of the candidate to avoid reprocessing deleted file entries
           m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
           writer.addMutation(m);
         }
       } else {
         for (GcCandidate candidate : candidates) {
           Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes this and older versions while allowing newer candidate versions to persist
           m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
           writer.addMutation(m);
         }
