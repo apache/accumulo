@@ -20,6 +20,9 @@ package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.log.DfsLogger.LOG_FILE_HEADER_V4;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -31,8 +34,13 @@ import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
-import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.junit.jupiter.api.Test;
@@ -45,9 +53,16 @@ public class CreateEmptyWalTest {
 
   @Test
   public void createTest() throws Exception {
-    String[] args = {"-w", tempDir.getAbsolutePath() + "/empty.wal"};
+
+    ServerContext context = mock(ServerContext.class);
+    expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    replay(context);
+
+    var path = Path.of(tempDir.getAbsolutePath() + "/empty.wal");
     CreateEmptyWal uut = new CreateEmptyWal();
-    uut.execute(args);
+    uut.createEmptyWal(context, path);
+
     Path expected = Path.of(tempDir.getAbsolutePath() + "/empty.wal");
     assertTrue(Files.exists(expected));
 
@@ -59,7 +74,11 @@ public class CreateEmptyWalTest {
       assertEquals(LOG_FILE_HEADER_V4,
           new String(headerBuf, 0, LOG_FILE_HEADER_V4.length(), UTF_8));
 
-      byte[] decryptionParams = new NoFileEncrypter().getDecryptionParameters();
+      CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.WAL);
+      CryptoService cryptoService = context.getCryptoFactory().getService(env,
+          context.getConfiguration().getAllCryptoProperties());
+
+      byte[] decryptionParams = cryptoService.getFileEncrypter(env).getDecryptionParameters();
 
       var cryptParams = CryptoUtils.readParams(dis);
       assertArrayEquals(decryptionParams, cryptParams);
