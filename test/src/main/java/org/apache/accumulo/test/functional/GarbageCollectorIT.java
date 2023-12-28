@@ -285,6 +285,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.info("User GcCandidate Deletion test of table: {}", table);
       log.info("GcCandidates will be added/removed from table: {}", DataLevel.USER.metaTable());
       createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.INUSE);
+      createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.VALID);
     }
   }
 
@@ -295,6 +296,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     log.info("Metadata GcCandidate Deletion test");
     log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.VALID);
   }
 
   /**
@@ -467,6 +469,13 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private void createAndDeleteUniqueMutation(TableId tableId, Ample.GcCandidateType type) {
+    int totalCandidates = 2;
+    boolean inUseDelete = true;
+
+    if (type == Ample.GcCandidateType.VALID) {
+      totalCandidates = 1;
+      inUseDelete = false;
+    }
     Ample ample = cluster.getServerContext().getAmple();
     DataLevel datalevel = Ample.DataLevel.of(tableId);
 
@@ -504,7 +513,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     ample.putGcCandidates(tableId, List.of(new StoredTabletFile(deleteCandidate.getPath())));
 
     log.debug("Deleting Candidate {}", deleteCandidate);
-    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), Ample.GcCandidateType.INUSE);
+    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), type);
 
     candidate = ample.getGcCandidates(datalevel);
 
@@ -519,7 +528,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       }
       counter++;
     }
-    assertEquals(2, counter);
-    assertTrue(foundNewCandidate);
+    assertEquals(totalCandidates, counter);
+    assertEquals(inUseDelete, foundNewCandidate);
+
+    // Cleanup from test
+    ample.deleteGcCandidates(datalevel, candidates, Ample.GcCandidateType.VALID);
   }
 }
