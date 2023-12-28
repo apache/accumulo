@@ -66,12 +66,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   public static byte[] serialize(Object o) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
       oos.writeObject(o);
-      oos.close();
-
       return baos.toByteArray();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -82,9 +79,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
           + " for backwards compatibility")
   public static Object deserialize(byte[] ser) {
-    try {
-      ByteArrayInputStream bais = new ByteArrayInputStream(ser);
-      ObjectInputStream ois = new ObjectInputStream(bais);
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(ser);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
       return ois.readObject();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -144,20 +140,16 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       synchronized (this) {
         runnableTids.removeIf(txid -> {
-          var deferedTime = defered.get(txid);
-          if (deferedTime != null) {
-            if (deferedTime >= System.currentTimeMillis()) {
+          var deferredTime = defered.get(txid);
+          if (deferredTime != null) {
+            if (deferredTime >= System.currentTimeMillis()) {
               return true;
             } else {
               defered.remove(txid);
             }
           }
 
-          if (reserved.contains(txid)) {
-            return true;
-          }
-
-          return false;
+          return reserved.contains(txid);
         });
       }
 
@@ -180,7 +172,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     }
 
-    return List.<Long>of().iterator();
+    return Collections.emptyIterator();
   }
 
   @Override
