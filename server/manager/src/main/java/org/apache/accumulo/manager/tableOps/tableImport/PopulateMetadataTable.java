@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -129,8 +130,18 @@ class PopulateMetadataTable extends ManagerRepo {
             Text cq;
 
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-              final StoredTabletFile oldTabletFile = StoredTabletFile.of(key.getColumnQualifier());
-              String oldName = oldTabletFile.getFileName();
+              StoredTabletFile exportedRef;
+              var dataFileCQ = key.getColumnQualifier().toString();
+              if (tableInfo.exportedVersion == null || (tableInfo.exportedVersion < VERSION
+                  && StoredTabletFile.fileNeedsConversion(dataFileCQ))) {
+                // written without fenced range information (accumulo < 3.1), use default
+                // (null,null)
+                exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
+              } else {
+                exportedRef = StoredTabletFile.of(key.getColumnQualifier());
+              }
+
+              String oldName = exportedRef.getFileName();
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
@@ -140,7 +151,7 @@ class PopulateMetadataTable extends ManagerRepo {
               }
 
               // Copy over the range for the new file
-              cq = StoredTabletFile.of(URI.create(newName), oldTabletFile.getRange())
+              cq = StoredTabletFile.of(URI.create(newName), exportedRef.getRange())
                   .getMetadataText();
             } else {
               cq = key.getColumnQualifier();

@@ -36,6 +36,7 @@ class ImportedTableInfo implements Serializable {
   public String exportFile;
   public boolean keepMappings;
   public boolean onlineTable;
+  public Integer exportedVersion = null;
 
   static class DirectoryMapping implements Serializable {
     private static final long serialVersionUID = 1L;
