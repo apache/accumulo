@@ -167,6 +167,15 @@ public interface InstanceOperations {
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Retrieve a map of the system properties set in Zookeeper. Note that this does not return a
+   * merged view of the properties from its parent configuration. See
+   * {@link #getSystemConfiguration} for a merged view.
+   *
+   * @return A map of the system properties set in Zookeeper only.
+   */
+  Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
+
+  /**
    * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in <code>hostname:port</code> form.
