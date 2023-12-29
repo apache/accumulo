@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -62,7 +61,7 @@ import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt, propFile;
+      disablePaginationOpt, outputFileOpt, namespaceOpt, propFileOpt;
 
   private int COL1 = 10, COL2 = 7;
   private LineReader reader;
@@ -89,12 +88,6 @@ public class ConfigCommand extends Command {
 
     boolean force = cl.hasOption(forceOpt);
 
-    String filename = cl.getOptionValue("p");
-    if (filename != null) {
-      // Call the method to modify properties
-      modifyPropertiesFromFile(cl, shellState, filename, force);
-    }
-
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
@@ -103,6 +96,10 @@ public class ConfigCommand extends Command {
     if (namespace != null
         && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
+    String filename = cl.getOptionValue(propFileOpt.getOpt());
+    if (filename != null) {
+      modifyPropertiesFromFile(cl, shellState, filename);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table
@@ -382,65 +379,41 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
-  // New method for property modification logic
-  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename,
-      boolean force) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, NamespaceNotFoundException {
-    // Read properties from the file
+  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
+      NamespaceNotFoundException {
     PropertiesConfiguration fileProperties = readPropertiesFromFile(filename);
 
-    // Convert PropertiesConfiguration to Map<String, String>
     Map<String,String> propertiesMap = new HashMap<>();
     Iterator<String> keysIterator = fileProperties.getKeys();
     while (keysIterator.hasNext()) {
-      // Iterate through the keys in the PropertiesConfiguration
       String key = keysIterator.next();
-      // Get the value associated with the key
       String value = fileProperties.getString(key);
-      // Add the key-value pair to the propertiesMap
       propertiesMap.put(key, value);
     }
 
-    // Create a consumer for property modification
     Consumer<Map<String,String>> propertyModifier = currProps -> {
-      // Update currProps
       currProps.putAll(propertiesMap);
     };
 
-    // Modify properties based on other options
-    if (cl.hasOption("t")) {
-      // Modify table properties
-      shellState.getAccumuloClient().tableOperations().modifyProperties(cl.getOptionValue("t"),
-          propertyModifier);
-    } else if (cl.hasOption("n")) {
-      // Modify namespace properties
-      shellState.getAccumuloClient().namespaceOperations().modifyProperties(cl.getOptionValue("n"),
-          propertyModifier);
+    if (cl.hasOption(tableOpt.getOpt())) {
+      shellState.getAccumuloClient().tableOperations()
+          .modifyProperties(cl.getOptionValue(tableOpt.getOpt()), propertyModifier);
+    } else if (cl.hasOption(namespaceOpt.getOpt())) {
+      shellState.getAccumuloClient().namespaceOperations()
+          .modifyProperties(cl.getOptionValue(namespaceOpt.getOpt()), propertyModifier);
     } else {
-      // Modify system properties
-      // Obtain the InstanceOperations object for the Accumulo client associated with the shell
-      // state
-      InstanceOperations instanceOperations = shellState.getAccumuloClient().instanceOperations();
-
-      // Iterate over each entry in the propertiesMap (which represents properties to be modified)
-      for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
-        // Get the key and value of the current property entry
-        String key = entry.getKey();
-        String value = entry.getValue();
-
-        // Set the system property identified by the key to the specified value
-        instanceOperations.setProperty(key, value);
-      }
+      shellState.getAccumuloClient().instanceOperations().modifyProperties(propertyModifier);
     }
   }
 
-  // New method to read properties from a file
   private PropertiesConfiguration readPropertiesFromFile(String filename) throws IOException {
     var config = new PropertiesConfiguration();
     try (FileReader out = new FileReader(filename, UTF_8)) {
       config.read(out);
     } catch (ConfigurationException e) {
-      throw new IOException(e);
+      Shell.log.error("Property file {} contains invalid configuration. Please verify file format",
+          filename, e);
     }
     return config;
   }
@@ -501,7 +474,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-    propFile = new Option("p", "propFile", true, "file containing properties to set");
+    propFileOpt = new Option("p", "propFileOpt", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
@@ -509,13 +482,13 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
-    propFile.setArgName("filename");
+    propFileOpt.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
-    og.addOption(propFile);
+    og.addOption(propFileOpt);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
