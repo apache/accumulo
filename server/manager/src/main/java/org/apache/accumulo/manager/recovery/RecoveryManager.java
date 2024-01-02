@@ -163,7 +163,7 @@ public class RecoveryManager {
     for (LogEntry walog : walogs) {
 
       LogEntry switchedWalog =
-          VolumeUtil.switchVolumes(walog, manager.getContext().getVolumeReplacements());
+          VolumeUtil.switchVolume(walog, manager.getContext().getVolumeReplacements());
       if (switchedWalog != null) {
         // replaces the volume used for sorting, but do not change entry in metadata table. When
         // the tablet loads it will change the metadata table entry. If
