@@ -637,16 +637,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
+
+      idleProcessCheck(() -> getOnlineTablets().isEmpty());
+
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
         ManagerClientService.Client iface = null;
 
         try {
-          // wait until a message is ready to send, or a sever stop
+          // wait until a message is ready to send, or a server stop
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -674,6 +678,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
         } finally {
@@ -1204,4 +1209,5 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
   }
+
 }
