@@ -639,7 +639,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         idleProcessCheck(() -> {
           return timeSinceLastCompletion.get() == 0
               /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                  && (System.nanoTime() - timeSinceLastCompletion.get()) > idleStopPeriodNanos);
+                  && (System.nanoTime() - timeSinceLastCompletion.get())
+                      > idleReportingPeriodNanos);
         });
 
         currentCompactionId.set(null);

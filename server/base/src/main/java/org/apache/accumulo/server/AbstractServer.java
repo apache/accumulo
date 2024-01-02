@@ -48,7 +48,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private final String hostname;
   private final String resourceGroup;
   private final ProcessMetrics processMetrics;
-  protected final long idleStopPeriodNanos;
+  protected final long idleReportingPeriodNanos;
   private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
@@ -75,18 +75,20 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
-    idleStopPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
+    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
         context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
   }
 
   protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
     boolean idle = idleCondition.get();
-    if (!idle || idleStopPeriodNanos == 0) {
+    if (!idle || idleReportingPeriodNanos == 0) {
       idlePeriodStartNanos = 0;
     } else if (idlePeriodStartNanos == 0) {
       idlePeriodStartNanos = System.nanoTime();
-    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleStopPeriodNanos) {
+    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
+      // increment the counter and reset the start of the idle period.
       processMetrics.incrementIdleCounter();
+      idlePeriodStartNanos = 0;
     } else {
       // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
     }

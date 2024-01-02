@@ -60,9 +60,9 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       // Add servers in a resource group that will not get any work. These
       // are the servers that should stop because they are idle.
-      cfg.getClusterServerConfiguration().addTabletServerResourceGroup("IDLE_STOP_TEST", 1);
-      cfg.getClusterServerConfiguration().addScanServerResourceGroup("IDLE_STOP_TEST", 1);
-      cfg.getClusterServerConfiguration().addCompactorResourceGroup("IDLE_STOP_TEST", 1);
+      cfg.getClusterServerConfiguration().addTabletServerResourceGroup("IDLE_PROCESS_TEST", 1);
+      cfg.getClusterServerConfiguration().addScanServerResourceGroup("IDLE_PROCESS_TEST", 1);
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup("IDLE_PROCESS_TEST", 1);
 
       cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL, "10s");
 
@@ -101,7 +101,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
   @Test
   public void testIdleStopMetrics() throws Exception {
 
-    // The server processes in the IDLE_STOP_TEST resource group
+    // The server processes in the IDLE_PROCESS_TEST resource group
     // should emit the idle metric after 10s of being idle based
     // on the configuration for this test. Wait 20s before checking
     // for it.
