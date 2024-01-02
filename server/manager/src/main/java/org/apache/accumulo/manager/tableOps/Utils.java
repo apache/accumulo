@@ -22,11 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -167,7 +169,22 @@ public class Utils {
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
-    if (lock == null) {
+    if (lock != null) {
+
+      // Validate the recovered lock type
+      boolean isWriteLock = lock instanceof WriteLock;
+      if ((writeLock && !isWriteLock) || (!writeLock && isWriteLock)) {
+        // Lock type does not match the expected type
+        throw new IllegalStateException("Unexpected lock type recovered. " + "Expected "
+            + (writeLock ? "write" : "read") + " lock, but recovered "
+            + (isWriteLock ? "write" : "read") + " lock. Lock ID: " + Arrays.toString(lockData)); // <--
+                                                                                                  // Replace
+                                                                                                  // this
+                                                                                                  // line
+        // with the following line:
+        // + Arrays.toString(lockData));
+      }
+    } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
       if (writeLock) {
         lock = locker.writeLock();
