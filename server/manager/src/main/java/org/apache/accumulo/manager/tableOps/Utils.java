@@ -175,14 +175,9 @@ public class Utils {
       boolean isWriteLock = lock instanceof WriteLock;
       if ((writeLock && !isWriteLock) || (!writeLock && isWriteLock)) {
         // Lock type does not match the expected type
-        throw new IllegalStateException("Unexpected lock type recovered. " + "Expected "
+        throw new IllegalStateException("Unexpected lock type recovered. Expected "
             + (writeLock ? "write" : "read") + " lock, but recovered "
-            + (isWriteLock ? "write" : "read") + " lock. Lock ID: " + Arrays.toString(lockData)); // <--
-                                                                                                  // Replace
-                                                                                                  // this
-                                                                                                  // line
-        // with the following line:
-        // + Arrays.toString(lockData));
+            + (isWriteLock ? "write" : "read") + " lock. Lock ID: " + Arrays.toString(lockData));
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
