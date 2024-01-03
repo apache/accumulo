@@ -395,10 +395,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           maxTabletFiles);
     }
 
-    log.trace(
-        "Found {} files to compact lowering compaction ratio from {} to {} because the tablet "
+    log.info(
+        "For {} found {} files to compact lowering compaction ratio from {} to {} because the tablet "
             + "exceeded {} files, it had {}",
-        found.size(), params.getRatio(), lowRatio, maxTabletFiles, params.getCandidates().size());
+        params.getTableId(), found.size(), params.getRatio(), lowRatio, maxTabletFiles,
+        params.getCandidates().size());
 
     return found;
   }
