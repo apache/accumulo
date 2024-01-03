@@ -32,6 +32,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +108,16 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>{@code tserver.compaction.major.service.<service>.opts.maxOpen} This determines the maximum
  * number of files that will be included in a single compaction.
  * </ul>
+ *
+ * <p>
+ * Starting with Accumulo 2.1.3, this plugin will use the table config option
+ * {@code "table.file.max"}. When a tablet has no compactions running, its number of files exceeds
+ * table.file.max, and system compactions are not finding anything to compact then this plugin will
+ * try to find a lower compaction ratio that will result in a compaction. For example if the
+ * compaction ratio is set to 3, a tablet has 20 files, table.file.max is 15 and no compactions are
+ * planned, then this plugin will find the largest compaction ratio less than 3 that results in a
+ * compaction.
+ * </p>
  *
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
@@ -290,12 +301,25 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         group = Set.of();
       }
 
-      if (group.isEmpty()
-          && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
-              || params.getKind() == CompactionKind.CHOP)
-          && params.getRunningCompactions().stream()
-              .noneMatch(job -> job.getKind() == params.getKind())) {
-        group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
+      if (group.isEmpty()) {
+
+        if ((params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
+            || params.getKind() == CompactionKind.CHOP)
+            && params.getRunningCompactions().stream()
+                .noneMatch(job -> job.getKind() == params.getKind())) {
+          group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
+        } else if (params.getKind() == CompactionKind.SYSTEM
+            && params.getRunningCompactions().isEmpty()
+            && params.getAll().size() == params.getCandidates().size()) {
+          int maxTabletFiles = getMaxTabletFiles(
+              params.getServiceEnvironment().getConfiguration(params.getTableId()));
+          if (params.getAll().size() > maxTabletFiles) {
+            // The tablet is above its max files, there are no compactions running, all files are
+            // candidates for a system compaction, and no files were found to compact. Attempt to
+            // find a set of files to compact by lowering the compaction ratio.
+            group = findFilesToCompactWithLowerRatio(params, maxSizeToCompact, maxTabletFiles);
+          }
+        }
       }
 
       if (group.isEmpty()) {
@@ -310,6 +334,73 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     } catch (RuntimeException e) {
       throw e;
     }
+  }
+
+  static int getMaxTabletFiles(ServiceEnvironment.Configuration configuration) {
+    int maxTabletFiles = Integer.parseInt(configuration.get(Property.TABLE_FILE_MAX.getKey()));
+    if (maxTabletFiles <= 0) {
+      maxTabletFiles =
+          Integer.parseInt(configuration.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey())) - 1;
+    }
+    return maxTabletFiles;
+  }
+
+  /**
+   * Searches for the highest compaction ratio that is less than the configured ratio that will
+   * lower the number of files.
+   */
+  private Collection<CompactableFile> findFilesToCompactWithLowerRatio(PlanningParameters params,
+      long maxSizeToCompact, int maxTabletFiles) {
+    double lowRatio = 1.0;
+    double highRatio = params.getRatio();
+
+    Preconditions.checkArgument(highRatio >= lowRatio);
+
+    var candidates = Set.copyOf(params.getCandidates());
+    Collection<CompactableFile> found = Set.of();
+
+    int goalCompactionSize = candidates.size() - maxTabletFiles + 1;
+    if (goalCompactionSize > maxFilesToCompact) {
+      // The tablet is way over max tablet files, so multiple compactions will be needed. Therefore,
+      // do not set a goal size for this compaction and find the largest compaction ratio that will
+      // compact some set of files.
+      goalCompactionSize = 0;
+    }
+
+    // Do a binary search of the compaction ratios.
+    while (highRatio - lowRatio > .1) {
+      double ratioToCheck = (highRatio - lowRatio) / 2 + lowRatio;
+
+      // This is continually resorting the list of files in the following call, could optimize this
+      var filesToCompact =
+          findDataFilesToCompact(candidates, ratioToCheck, maxFilesToCompact, maxSizeToCompact);
+
+      log.trace("Tried ratio {} and found {} {} {}", ratioToCheck, filesToCompact,
+          filesToCompact.size() >= goalCompactionSize, goalCompactionSize);
+
+      if (filesToCompact.isEmpty() || filesToCompact.size() < goalCompactionSize) {
+        highRatio = ratioToCheck;
+      } else {
+        lowRatio = ratioToCheck;
+        found = filesToCompact;
+      }
+    }
+
+    if (found.isEmpty() && lowRatio == 1.0) {
+      // in this case the data must be really skewed, operator intervention may be needed.
+      log.warn(
+          "Attempted to lower compaction ration from {} to {} for {} because there are {} files "
+              + "and the max tablet files is {}, however no set of files to compact were found.",
+          params.getRatio(), highRatio, params.getTableId(), params.getCandidates().size(),
+          maxTabletFiles);
+    }
+
+    log.trace(
+        "Found {} files to compact lowering compaction ratio from {} to {} because the tablet "
+            + "exceeded {} files, it had {}",
+        found.size(), params.getRatio(), lowRatio, maxTabletFiles, params.getCandidates().size());
+
+    return found;
   }
 
   private static short createPriority(PlanningParameters params,
