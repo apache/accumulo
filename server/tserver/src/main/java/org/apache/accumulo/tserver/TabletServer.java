@@ -637,16 +637,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
+
+      idleProcessCheck(() -> getOnlineTablets().isEmpty());
+
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
         ManagerClientService.Client iface = null;
 
         try {
-          // wait until a message is ready to send, or a sever stop
+          // wait until a message is ready to send, or a server stop
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -674,6 +678,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
+            idleProcessCheck(() -> getOnlineTablets().isEmpty());
           }
 
         } finally {
@@ -907,7 +912,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     List<Path> recoveryDirs = new ArrayList<>();
     for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -933,21 +938,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
-  }
-
-  public DfsLogger.ServerResources getServerConfig() {
-    return new DfsLogger.ServerResources() {
-
-      @Override
-      public VolumeManager getVolumeManager() {
-        return TabletServer.this.getVolumeManager();
-      }
-
-      @Override
-      public AccumuloConfiguration getConfiguration() {
-        return TabletServer.this.getConfiguration();
-      }
-    };
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
@@ -1219,4 +1209,5 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
   }
+
 }

@@ -203,10 +203,6 @@
       <artifactId>junit-jupiter-params</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.opentest4j</groupId>
-      <artifactId>opentest4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>

@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,8 +212,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     String maxOpen = params.getOptions().get("maxOpen");
     if (maxOpen == null) {
-      maxOpen = "10";
-      log.trace("default maxOpen not set, defaulting to 10");
+      maxOpen = Property.COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue();
+      log.trace("default maxOpen not set, defaulting to {}", maxOpen);
     }
     this.maxFilesToCompact = Integer.parseInt(maxOpen);
   }
@@ -408,13 +409,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       }
     }
 
-    var loops = Math.max(1, sortedFiles.size() - maxFilesToCompact + 1);
-    for (int i = 0; i < loops; i++) {
-      var filesToCompact = findDataFilesToCompact(
-          sortedFiles.subList(i, Math.min(sortedFiles.size(), maxFilesToCompact) + i), ratio);
+    int windowStart = 0;
+    int windowEnd = Math.min(sortedFiles.size(), maxFilesToCompact);
+
+    while (windowEnd <= sortedFiles.size()) {
+      var filesToCompact =
+          findDataFilesToCompact(sortedFiles.subList(windowStart, windowEnd), ratio);
       if (!filesToCompact.isEmpty()) {
         return filesToCompact;
       }
+
+      windowStart++;
+      windowEnd++;
     }
 
     return Collections.emptySet();
