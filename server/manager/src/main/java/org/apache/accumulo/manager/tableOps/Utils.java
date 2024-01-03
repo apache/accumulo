@@ -22,13 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -41,6 +39,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
@@ -168,16 +168,15 @@ public class Utils {
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock != null) {
 
       // Validate the recovered lock type
-      boolean isWriteLock = lock instanceof WriteLock;
-      if ((writeLock && !isWriteLock) || (!writeLock && isWriteLock)) {
-        // Lock type does not match the expected type
-        throw new IllegalStateException("Unexpected lock type recovered. Expected "
-            + (writeLock ? "write" : "read") + " lock, but recovered "
-            + (isWriteLock ? "write" : "read") + " lock. Lock ID: " + Arrays.toString(lockData));
+      boolean isWriteLock = lock.getType() == LockType.WRITE;
+      if (writeLock != isWriteLock) {
+        throw new IllegalStateException("Unexpected lock type " + lock.getType()
+            + " recovered for transaction " + tid + " on object " + id + ". Expected "
+            + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
