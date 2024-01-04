@@ -27,6 +27,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -38,6 +40,8 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
@@ -297,10 +301,31 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     return new FateTxStoreImpl(tid, isReserved);
   }
 
+  private static class ZooFateIdStatus extends FateIdStatus {
+
+    private final Supplier<TStatus> statusSupplier;
+
+    public ZooFateIdStatus(long txid, Supplier<TStatus> statusSupplier) {
+      super(txid);
+      this.statusSupplier = statusSupplier;
+    }
+
+    @Override
+    public TStatus getStatus() {
+      return statusSupplier.get();
+    }
+  }
+
   @Override
-  protected List<String> getTransactions() {
+  protected Stream<FateIdStatus> getTransactions() {
     try {
-      return zk.getChildren(path);
+      return zk.getChildren(path).stream().map(strTxid -> {
+        long txid = parseTid(strTxid);
+        // Memoizing for two reasons. First the status may never be requested, so in the case avoid
+        // the lookup. Second, if its requested multiple times the result will always be consistent.
+        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(txid));
+        return new ZooFateIdStatus(txid, statusSupplier);
+      });
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
