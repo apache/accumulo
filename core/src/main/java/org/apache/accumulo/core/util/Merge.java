@@ -22,9 +22,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
@@ -149,17 +148,37 @@ public class Merge {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
       }
       List<Size> sizes = new ArrayList<>();
-      long totalSize = 0;
-      // Merge any until you get larger than the goal size, and then merge one less tablet
-      Iterator<Size> sizeIterator = getSizeIterator(client, table, start, end);
-      while (sizeIterator.hasNext()) {
-        Size next = sizeIterator.next();
-        totalSize += next.size;
-        sizes.add(next);
-        if (totalSize > goalSize) {
-          totalSize = mergeMany(client, table, sizes, goalSize, force, false);
-        }
+      AtomicLong totalSize = new AtomicLong();
+
+      TableId tableId;
+      ClientContext context = (ClientContext) client;
+      try {
+        tableId = context.getTableId(table);
+      } catch (Exception e) {
+        throw new MergeException(e);
       }
+      try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
+          .build()) {
+        tablets.stream().map(tm -> {
+          long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+          return new Size(tm.getExtent(), size);
+        }).forEach(next -> {
+          totalSize.addAndGet(next.size);
+          sizes.add(next);
+          // Merge many until you get larger than the goal size
+          if (totalSize.get() > goalSize) {
+            long size;
+            try {
+              size = mergeMany(client, table, sizes, goalSize, force, false);
+            } catch (MergeException e) {
+              throw new RuntimeException(e);
+            }
+            totalSize.set(size);
+          }
+        });
+      }
+      // merge one less tablet
       if (sizes.size() > 1) {
         mergeMany(client, table, sizes, goalSize, force, true);
       }
@@ -237,27 +256,6 @@ public class Merge {
       client.tableOperations().merge(table, start, end);
     } catch (Exception ex) {
       throw new MergeException(ex);
-    }
-  }
-
-  protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename, Text start,
-      Text end) throws MergeException {
-    // open up metadata, walk through the tablets.
-
-    TableId tableId;
-    ClientContext context = (ClientContext) client;
-    try {
-      tableId = context.getTableId(tablename);
-    } catch (Exception e) {
-      throw new MergeException(e);
-    }
-    try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-        .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
-        .build()) {
-      return tablets.stream().map(tm -> {
-        long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-        return new Size(tm.getExtent(), size);
-      }).collect(Collectors.toList()).iterator();
     }
   }
 

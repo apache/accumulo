@@ -22,13 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -103,7 +97,7 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @VisibleForTesting
-  interface TabletIterFactory {
+  interface TabletIterFactory extends AutoCloseable {
     Iterator<KeyExtent> newTabletIter(Text startRow);
   }
 
@@ -195,6 +189,34 @@ public class PrepBulkImport extends ManagerRepo {
     return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
   }
 
+  private static class TabletIterFactoryImpl implements TabletIterFactory {
+    private final List<AutoCloseable> resourcesToClose = new ArrayList<>();
+    private final Manager manager;
+    private final BulkInfo bulkInfo;
+
+    public TabletIterFactoryImpl(Manager manager, BulkInfo bulkInfo) {
+      this.manager = manager;
+      this.bulkInfo = bulkInfo;
+    }
+
+    @Override
+    public Iterator<KeyExtent> newTabletIter(Text startRow) {
+      TabletsMetadata tabletsMetadata =
+          TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
+              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build();
+      resourcesToClose.add(tabletsMetadata);
+      return tabletsMetadata.stream().map(TabletMetadata::getExtent).collect(Collectors.toList())
+          .iterator();
+    }
+
+    @Override
+    public void close() throws Exception {
+      for (AutoCloseable resource : resourcesToClose) {
+        resource.close();
+      }
+    }
+  }
+
   private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
@@ -203,18 +225,10 @@ public class PrepBulkImport extends ManagerRepo {
     int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
         .getCount(Property.TABLE_BULK_MAX_TABLETS);
 
-    try (LoadMappingIterator lmi =
-        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-
-      TabletIterFactory tabletIterFactory = startRow -> {
-        try (TabletsMetadata tabletsMetadata =
-            TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
-                .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build()) {
-          return tabletsMetadata.stream().map(TabletMetadata::getExtent)
-              .collect(Collectors.toList()).iterator();
-        }
-      };
-
+    try (
+        LoadMappingIterator lmi =
+            BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
+        TabletIterFactory tabletIterFactory = new TabletIterFactoryImpl(manager, bulkInfo)) {
       return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
           tid);
     }

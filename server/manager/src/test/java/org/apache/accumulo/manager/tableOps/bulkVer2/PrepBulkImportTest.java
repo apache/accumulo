@@ -25,18 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -96,21 +85,29 @@ public class PrepBulkImportTest {
 
   public void runTest(Map<KeyExtent,String> loadRanges, List<KeyExtent> tabletRanges,
       int maxTablets) throws Exception {
-    TabletIterFactory tabletIterFactory = startRow -> {
-      int start = -1;
+    TabletIterFactory tabletIterFactory = new TabletIterFactory() {
+      @Override
+      public Iterator<KeyExtent> newTabletIter(Text startRow) {
+        int start = -1;
 
-      if (startRow == null) {
-        start = 0;
-      } else {
-        for (int i = 0; i < tabletRanges.size(); i++) {
-          if (tabletRanges.get(i).contains(startRow)) {
-            start = i;
-            break;
+        if (startRow == null) {
+          start = 0;
+        } else {
+          for (int i = 0; i < tabletRanges.size(); i++) {
+            if (tabletRanges.get(i).contains(startRow)) {
+              start = i;
+              break;
+            }
           }
         }
+
+        return tabletRanges.subList(start, tabletRanges.size()).iterator();
       }
 
-      return tabletRanges.subList(start, tabletRanges.size()).iterator();
+      @Override
+      public void close() {
+        // nothing to close
+      }
     };
 
     var sortedExtents = loadRanges.keySet().stream().sorted().collect(Collectors.toList());
