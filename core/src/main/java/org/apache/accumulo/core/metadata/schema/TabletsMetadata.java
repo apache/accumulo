@@ -522,7 +522,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * Adds a filter to be applied while fetching the data. Filters are applied in the order they
      * are added. This method can be called multiple times to chain multiple filters together. The
      * first filter added has the highest priority and each subsequent filter is applied with a
-     * sequentially lower priority.
+     * sequentially lower priority. If columns needed by a filter are not fetched then a runtime exception is thrown.
      */
     Options filter(TabletMetadataFilter filter);
   }
