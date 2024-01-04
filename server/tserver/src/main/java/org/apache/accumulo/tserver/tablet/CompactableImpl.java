@@ -134,7 +134,8 @@ public class CompactableImpl implements Compactable {
   public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
 
-    Map<String,String> getConfigOverrides(Set<CompactableFile> files);
+    Map<String,String> getConfigOverrides(Set<CompactableFile> inputFiles,
+        Set<StoredTabletFile> selectedFiles, CompactionKind kind);
 
   }
 
@@ -1128,8 +1129,8 @@ public class CompactableImpl implements Compactable {
     var cInfo = ocInfo.orElseThrow();
 
     try {
-      Map<String,String> overrides =
-          CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
+      Map<String,String> overrides = CompactableUtils.getOverrides(job.getKind(), tablet,
+          cInfo.localHelper, job.getFiles(), cInfo.selectedFiles);
 
       ReferencedTabletFile compactTmpName =
           tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
