@@ -558,6 +558,15 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void propFileNotFoundTest() throws IOException {
+    String fileName = "src/main/resources/org/apache/accumulo/test/propFile.shellit";
+
+    Shell.log.debug("Starting prop file not found test --------------------------");
+    exec("config --propFile " + fileName, false,
+        "FileNotFoundException: " + fileName + "(No such file or directory)");
+  }
+
+  @Test
   public void setIterTest() throws IOException {
     Shell.log.debug("Starting setiter test --------------------------");
     exec("createtable t", true);
