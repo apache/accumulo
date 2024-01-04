@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -144,7 +145,7 @@ public class FateCommandTest {
     expectLastCall().once();
     zs.setStatus(tid, ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS);
     expectLastCall().once();
-    zs.unreserve(tid, 0);
+    zs.unreserve(tid, 0, TimeUnit.MILLISECONDS);
     expectLastCall().once();
 
     TestHelper helper = new TestHelper(true);
