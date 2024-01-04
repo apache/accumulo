@@ -69,12 +69,9 @@ public class ZooStore<T> implements TStore<T> {
 
   private byte[] serialize(Object o) {
 
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
       oos.writeObject(o);
-      oos.close();
-
       return baos.toByteArray();
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -85,9 +82,8 @@ public class ZooStore<T> implements TStore<T> {
       justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
           + " for backwards compatibility")
   private Object deserialize(byte[] ser) {
-    try {
-      ByteArrayInputStream bais = new ByteArrayInputStream(ser);
-      ObjectInputStream ois = new ObjectInputStream(bais);
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(ser);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
       return ois.readObject();
     } catch (Exception e) {
       throw new RuntimeException(e);
