@@ -111,13 +111,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * <p>
  * Starting with Accumulo 2.1.3, this plugin will use the table config option
- * {@code "table.file.max"}. When a tablet has no compactions running, its number of files exceeds
- * table.file.max, and system compactions are not finding anything to compact then this plugin will
- * try to find a lower compaction ratio that will result in a compaction. For example if the
- * compaction ratio is set to 3, a tablet has 20 files, table.file.max is 15 and no compactions are
- * planned, then this plugin will find the largest compaction ratio less than 3 that results in a
- * compaction.
+ * {@code "table.file.max"}. When the following four conditions are met, then this plugin will try
+ * to find a lower compaction ratio that will result in a compaction:
+ * <ol>
+ * <li>When a tablet has no compactions running</li>
+ * <li>Its number of files exceeds table.file.max</li>
+ * <li>System compactions are not finding anything to compact</li>
+ * <li>No files are selected for user compaction</li>
+ * </ol>
+ * For example, given a tablet with 20 files, and table.file.max is 15 and no compactions are
+ * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
+ * ratio less than 3 that results in a compaction.
  * </p>
+ *
  *
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
