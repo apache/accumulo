@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
@@ -80,7 +79,7 @@ public class ScannerIT extends AccumuloClusterHarness {
           nanosWithWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          Thread.sleep(100L);
           iterator.next();
           startTime = System.nanoTime();
         }
@@ -100,7 +99,7 @@ public class ScannerIT extends AccumuloClusterHarness {
           nanosWithNoWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          Thread.sleep(100L);
           iterator.next();
           startTime = System.nanoTime();
         }

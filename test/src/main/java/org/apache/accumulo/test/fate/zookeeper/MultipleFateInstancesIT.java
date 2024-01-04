@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -79,6 +80,8 @@ public class MultipleFateInstancesIT {
 
     Set<Long> allIds = new HashSet<>();
 
+    AtomicBoolean keepRunning = new AtomicBoolean(true);
+
     for (int i = 0; i < 100; i++) {
       assertTrue(allIds.add(zooStore1.create()));
       assertTrue(allIds.add(zooStore2.create()));
@@ -87,18 +90,16 @@ public class MultipleFateInstancesIT {
     var pd1 = new PartitionData(0, 2);
     var pd2 = new PartitionData(1, 2);
 
-    // nothing should be ready to run
-    assertFalse(zooStore1.runnable(pd1).hasNext());
-    assertFalse(zooStore2.runnable(pd2).hasNext());
-
     for (var txid : allIds) {
       if (txid % 2 == 0) {
         var rfo = zooStore1.reserve(txid);
+        assertEquals(ReadOnlyFateStore.TStatus.NEW, rfo.getStatus());
         assertTrue(zooStore2.tryReserve(txid).isEmpty());
         rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
       } else {
         var rfo = zooStore2.reserve(txid);
+        assertEquals(ReadOnlyFateStore.TStatus.NEW, rfo.getStatus());
         assertTrue(zooStore1.tryReserve(txid).isEmpty());
         rfo.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
         rfo.unreserve(0);
@@ -106,9 +107,9 @@ public class MultipleFateInstancesIT {
     }
 
     HashSet<Long> runnable1 = new HashSet<>();
-    zooStore1.runnable(pd1).forEachRemaining(txid -> assertTrue(runnable1.add(txid)));
+    zooStore1.runnable(keepRunning, pd1).forEachRemaining(txid -> assertTrue(runnable1.add(txid)));
     HashSet<Long> runnable2 = new HashSet<>();
-    zooStore2.runnable(pd2).forEachRemaining(txid -> assertTrue(runnable2.add(txid)));
+    zooStore2.runnable(keepRunning, pd2).forEachRemaining(txid -> assertTrue(runnable2.add(txid)));
 
     assertFalse(runnable1.isEmpty());
     assertFalse(runnable2.isEmpty());
@@ -120,6 +121,14 @@ public class MultipleFateInstancesIT {
       assertTrue(zooStore2.tryReserve(txid).isEmpty());
       rfo.delete();
       rfo.unreserve(0);
+    }
+
+    for (var txid : allIds) {
+      assertEquals(ReadOnlyFateStore.TStatus.UNKNOWN, zooStore1.read(txid).getStatus());
+      assertEquals(ReadOnlyFateStore.TStatus.UNKNOWN, zooStore2.read(txid).getStatus());
+      // TODO this will block forever, should probably throw an exception
+      // zooStore1.reserve(txid);
+
     }
   }
 

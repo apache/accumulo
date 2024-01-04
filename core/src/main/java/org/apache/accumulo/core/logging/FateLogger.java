@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.fate.Fate;
@@ -125,8 +126,8 @@ public class FateLogger {
       }
 
       @Override
-      public Iterator<Long> runnable(PartitionData partitionData) {
-        return store.runnable(partitionData);
+      public Iterator<Long> runnable(AtomicBoolean keepWaiting, PartitionData partitionData) {
+        return store.runnable(keepWaiting, partitionData);
       }
 
     };

@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.manager.PartitionData;
 
@@ -126,10 +127,12 @@ public interface ReadOnlyFateStore<T> {
    */
   List<Long> list();
 
+  // TODO need to handle partitionDataChanging, probably pass a supplier
   /**
    * @return an iterator over fate op ids that are (IN_PROGRESS or FAILED_IN_PROGRESS) and
-   *         unreserved. Also filter the transaction using the partitioning data so that each fate
-   *         instance sees a different subset of all fate transactions.
+   *         unreserved. This method will block until it finds something that is runnable or until
+   *         the keepWaiting parameter is false. Also filter the transaction using the partitioning
+   *         data so that each fate instance sees a different subset of all fate transactions.
    */
-  Iterator<Long> runnable(PartitionData partitionData);
+  Iterator<Long> runnable(AtomicBoolean keepWaiting, PartitionData partitionData);
 }

@@ -31,18 +31,14 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -54,7 +50,6 @@ import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.PartitionData;
-import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -80,8 +75,7 @@ public class Fate<T> {
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final Supplier<PartitionData> partitionDataSupplier;
-  private final BlockingQueue<Long> workQueue;
-  private final Set<Long> queuedWork;
+  private final TransferQueue<Long> workQueue;
   private final Thread workFinder;
 
   public enum TxInfo {
@@ -110,54 +104,24 @@ public class Fate<T> {
    */
   private class WorkFinder implements Runnable {
 
-    private Retry newRetry() {
-      // ELASTICITY_TODO the max time to retry may be store depependent, depends on how expensive
-      // the read is in the impl. The more expensive the read is the high we may want to make the
-      // max. Can figure this out after we have an Accumulo table store.
-      return Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
-          .incrementBy(25, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.5)
-          .logInterval(3, MINUTES).createRetry();
-    }
-
     @Override
     public void run() {
+      while (keepRunning.get()) {
+        try {
+          PartitionData partitionData = partitionDataSupplier.get();
+          var iter = store.runnable(keepRunning, partitionData);
 
-      try {
-        Retry retry = newRetry();
-        PartitionData lastPartitionData = partitionDataSupplier.get();
-
-        while (keepRunning.get()) {
-          var partitionData = partitionDataSupplier.get();
-          if (!partitionData.equals(lastPartitionData)) {
-            // Partition data changed, so lets clear anything queued to avoid unnecessary
-            // contention.
-            // The queue does not have to be cleared here for overall correctness, this is just an
-            // attempt to avoid some unnecessary work caused by multiple processes trying to reserve
-            // the same fate transaction.
-            workQueue.clear();
-            queuedWork.clear();
-          }
-          lastPartitionData = partitionData;
-
-          if (workQueue.isEmpty()) {
-            queuedWork.clear();
-          }
-
-          var iter = store.runnable(partitionData);
-
-          int added = 0;
-          while (iter.hasNext() && keepRunning.get()) {
+          while (iter.hasNext() && keepRunning.get()
+              && partitionData.equals(partitionDataSupplier.get())) {
             Long txid = iter.next();
             try {
-              if (queuedWork.contains(txid)) {
-                // Avoid adding the same id to the queue multiple times as this will cause
-                // unnecessary work when multiple threads try to work on the same id.
-                continue;
-              }
-              added++;
-              queuedWork.add(txid);
-              while (keepRunning.get()) {
-                if (workQueue.offer(txid, 100, TimeUnit.MILLISECONDS)) {
+              while (keepRunning.get() && partitionData.equals(partitionDataSupplier.get())) {
+                // The reason for calling transfer instead of queueing is avoid rescanning the
+                // storage layer and adding the same thing over and over. For example if all threads
+                // were busy, the queue size was 100, and there are three runnable things in the
+                // store. Do not want to keep scanning the store adding those same 3 runnable things
+                // until the queue is full.
+                if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
                   break;
                 }
               }
@@ -166,37 +130,36 @@ public class Fate<T> {
               throw new IllegalStateException(e);
             }
           }
-
-          if (added == 0) {
-            // When nothing was added to the queue, then start doing exponential backoff before
-            // reading from the store again in order to avoid overwhelming the store.
-            try {
-              retry.waitForNextAttempt(log,
-                  "Find work for fate partition " + partitionData.toString());
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              throw new IllegalStateException(e);
-            }
+        } catch (Exception e) {
+          if (keepRunning.get()) {
+            log.warn("Failure while attempting to find work for fate", e);
           } else {
-            // reset the retry object
-            retry.logCompletion(log, "Find work for fate partition " + partitionData.toString());
-            retry = newRetry();
+            log.debug("Failure while attempting to find work for fate", e);
           }
-        }
-      } catch (Exception e) {
-        if (keepRunning.get()) {
-          log.warn("Failure while attempting to find work for fate", e);
-        } else {
-          log.debug("Failure while attempting to find work for fate", e);
-        }
 
-        queuedWork.clear();
-        workQueue.clear();
+          workQueue.clear();
+        }
       }
     }
   }
 
   private class TransactionRunner implements Runnable {
+
+    private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
+      while (keepRunning.get()) {
+        var unreservedTid = workQueue.poll(100, MILLISECONDS);
+
+        if (unreservedTid == null) {
+          continue;
+        }
+        var optionalopStore = store.tryReserve(unreservedTid);
+        if (optionalopStore.isPresent()) {
+          return optionalopStore;
+        }
+      }
+
+      return Optional.empty();
+    }
 
     @Override
     public void run() {
@@ -204,12 +167,7 @@ public class Fate<T> {
         long deferTime = 0;
         FateStore.FateTxStore<T> txStore = null;
         try {
-          var unreservedTid = workQueue.poll(100, MILLISECONDS);
-          if (unreservedTid == null) {
-            continue;
-          }
-          queuedWork.remove(unreservedTid);
-          var optionalopStore = store.tryReserve(unreservedTid);
+          var optionalopStore = reserveFateTx();
           if (optionalopStore.isPresent()) {
             txStore = optionalopStore.orElseThrow();
           } else {
@@ -365,10 +323,7 @@ public class Fate<T> {
     this.partitionDataSupplier = partitionDataSupplier;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    // TODO this queue does not resize when config changes
-    this.workQueue =
-        new ArrayBlockingQueue<>(conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) * 4);
-    this.queuedWork = Collections.synchronizedSet(new HashSet<>());
+    this.workQueue = new LinkedTransferQueue<>();
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
@@ -542,6 +497,11 @@ public class Fate<T> {
       executor.shutdown();
     }
     workFinder.interrupt();
+    try {
+      workFinder.join();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

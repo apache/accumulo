@@ -304,6 +304,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  protected CompactorService.Iface getCompactorThriftHandlerInterface() {
+    return this;
+  }
+
   /**
    * Start this Compactors thrift service to handle incoming client requests
    *
@@ -313,7 +317,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
 
     ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
-    var processor = ThriftProcessorTypes.getCompactorTProcessor(clientHandler, this, getContext());
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(clientHandler,
+        getCompactorThriftHandlerInterface(), getContext());
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);

@@ -47,7 +47,7 @@ public class CompactionServicesConfig {
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private static final Property oldPrefix = Property.TSERV_COMPACTION_SERVICE_PREFIX;
   private static final Property newPrefix = Property.COMPACTION_SERVICE_PREFIX;
 
@@ -143,13 +143,11 @@ public class CompactionServicesConfig {
           if (eprop == null || isSetPredicate.test(eprop)) {
             rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
           }
-        } else if (!(tokens.length == 2 && tokens[1].equals("planner"))) {
+        } else if (tokens.length == 2 && tokens[1].equals("planner")) {
+          return; // moves to next opt
+        } else {
           throw new IllegalArgumentException(
               "Malformed compaction service property " + prefix + prop);
-        } else {
-          log.warn(
-              "Ignoring compaction property {} as does not match the prefix used by the referenced planner definition",
-              prop);
         }
       });
     });

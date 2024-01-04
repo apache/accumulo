@@ -42,8 +42,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -72,6 +74,12 @@ public class ZooStore<T> implements FateStore<T> {
   private ZooReaderWriter zk;
 
   private Map<Long,Long> defered;
+
+  // This is incremented each time a transaction was unreserved that was non new
+  private final SignalCount unreservedNonNewCount = new SignalCount();
+
+  // This is incremented each time a transaction is unreserved that was runnable
+  private final SignalCount unreservedRunnableCount = new SignalCount();
 
   // The zookeeper lock for the process that running this store instance.
   private final ZooUtil.LockID lockID;
@@ -249,6 +257,8 @@ public class ZooStore<T> implements FateStore<T> {
     private UUID reservationUUID;
     private boolean deleted = false;
 
+    private TStatus observedStatus = null;
+
     private FateTxStoreImpl(long tid) {
       this.tid = tid;
       this.reservationUUID = null;
@@ -293,6 +303,14 @@ public class ZooStore<T> implements FateStore<T> {
       }
 
       unreserve();
+
+      if (observedStatus != null && isRunnable(observedStatus)) {
+        unreservedRunnableCount.increment();
+      }
+
+      if (observedStatus != TStatus.NEW) {
+        unreservedNonNewCount.increment();
+      }
     }
 
     private void verifyReserved(boolean isWrite) {
@@ -406,11 +424,16 @@ public class ZooStore<T> implements FateStore<T> {
     @Override
     public TStatus getStatus() {
       verifyReserved(false);
-      return _getStatus();
+      var status = _getStatus();
+      observedStatus = status;
+      return status;
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
+      Preconditions.checkState(reservationUUID == null,
+          "Attempted to wait for status change while reserved " + FateTxId.formatTid(getID()));
+
       verifyReserved(false);
       // TODO make the max time a function of the number of concurrent callers, as the number of
       // concurrent callers increases then increase the max wait time
@@ -422,12 +445,17 @@ public class ZooStore<T> implements FateStore<T> {
           .logInterval(3, MINUTES).createRetry();
 
       while (true) {
+        // TODO from merge
+        // long countBefore = unreservedNonNewCount.getCount();
+
         TStatus status = _getStatus();
         if (expected.contains(status)) {
           retry.logCompletion(log, "Waiting on status change for " + FateTxId.formatTid(tid)
               + " expected:" + expected + " status:" + status);
           return status;
         }
+        // TODO from merge
+        // unreservedNonNewCount.waitFor(count -> count != countBefore, 1000, () -> true);
 
         try {
           retry.waitForNextAttempt(log, "Waiting on status change for " + FateTxId.formatTid(tid)
@@ -453,6 +481,8 @@ public class ZooStore<T> implements FateStore<T> {
       } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
         throw new IllegalStateException(e);
       }
+
+      observedStatus = status;
     }
 
     @Override
@@ -570,6 +600,16 @@ public class ZooStore<T> implements FateStore<T> {
     }
   }
 
+  private TStatus _getStatus(long tid) {
+    try {
+      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
+    } catch (NoNodeException nne) {
+      return TStatus.UNKNOWN;
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   @Override
   public ReadOnlyFateTxStore<T> read(long tid) {
     return new FateTxStoreImpl(tid);
@@ -589,40 +629,71 @@ public class ZooStore<T> implements FateStore<T> {
     }
   }
 
+  private boolean isRunnable(TStatus status) {
+    return status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS
+        || status == TStatus.SUBMITTED;
+  }
+
   @Override
-  public Iterator<Long> runnable(PartitionData partitionData) {
+  public Iterator<Long> runnable(AtomicBoolean keepWaiting, PartitionData partitionData) {
     try {
-      ArrayList<Long> runnableTids = new ArrayList<>();
-      List<String> transactions = zk.getChildren(path);
-      for (String txid : transactions) {
-        try {
-          var nodeVal = new NodeValue(zk.getData(path + "/" + txid));
-          var tid = parseTid(txid);
-          if (!nodeVal.isReserved()
-              && (nodeVal.status == TStatus.IN_PROGRESS
-                  || nodeVal.status == TStatus.FAILED_IN_PROGRESS
-                  || nodeVal.status == TStatus.SUBMITTED)
-              && tid % partitionData.getTotalInstances() == partitionData.getPartition()) {
-            runnableTids.add(tid);
+      while (keepWaiting.get()) {
+
+        long beforeCount = unreservedRunnableCount.getCount();
+
+        ArrayList<Long> runnableTids = new ArrayList<>();
+        List<String> transactions = zk.getChildren(path);
+        for (String txid : transactions) {
+          try {
+            var nodeVal = new NodeValue(zk.getData(path + "/" + txid));
+            var tid = parseTid(txid);
+            if (!nodeVal.isReserved() && isRunnable(nodeVal.status)
+                && tid % partitionData.getTotalInstances() == partitionData.getPartition()) {
+              runnableTids.add(tid);
+            }
+          } catch (NoNodeException nne) {
+            // expected race condition that node could be deleted after getting list of children
+            log.trace("Skipping missing node {}", txid);
           }
-        } catch (NoNodeException nne) {
-          // expected race condition that node could be deleted after getting list of children
-          log.trace("Skipping missing node {}", txid);
+        }
+
+        // Anything that is not runnable in this partition should be removed from the defered set
+        defered.keySet().retainAll(runnableTids);
+
+        // Filter out any transactions that are not read to run because of deferment
+        runnableTids.removeIf(runnableTid -> {
+          var deferedTime = defered.get(runnableTid);
+          if (deferedTime != null) {
+            if (deferedTime < System.currentTimeMillis()) {
+              return true;
+            } else {
+              defered.remove(runnableTid);
+            }
+          }
+          return false;
+        });
+
+        if (runnableTids.isEmpty()) {
+          if (beforeCount == unreservedRunnableCount.getCount()) {
+            long waitTime = 5000;
+            if (!defered.isEmpty()) {
+              Long minTime = Collections.min(defered.values());
+              waitTime = minTime - System.currentTimeMillis();
+            }
+
+            if (waitTime > 0) {
+              unreservedRunnableCount.waitFor(count -> count != beforeCount, waitTime,
+                  keepWaiting::get);
+            }
+          }
+        } else {
+          return runnableTids.iterator();
         }
       }
-
-      // Anything that is not runnable in this partition should be removed from the defered set
-      defered.keySet().retainAll(runnableTids);
-
-      // Filter out any transactions that are not read to run because of deferment
-      runnableTids.removeIf(runnableTid -> {
-        var deferedTime = defered.get(runnableTid);
-        return deferedTime != null && deferedTime < System.currentTimeMillis();
-      });
-
-      return runnableTids.iterator();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
+
+    return List.<Long>of().iterator();
   }
 }

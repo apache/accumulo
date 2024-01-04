@@ -88,7 +88,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * longer interact with it.
      *
      * @param deferTime time in millis to keep this transaction from being returned by
-     *        {@link #runnable(PartitionData)}. Must be non-negative.
+     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, PartitionData)}. Must be
+     *        non-negative.
      */
     void unreserve(long deferTime);
   }
