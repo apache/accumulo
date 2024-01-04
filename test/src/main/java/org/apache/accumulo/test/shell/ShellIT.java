@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
@@ -564,6 +566,18 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("Starting prop file not found test --------------------------");
     exec("config --propFile " + fileName, false,
         "FileNotFoundException: " + fileName + "(No such file or directory)");
+  }
+
+  @Test
+  public void setpropsViaFile() throws Exception {
+    // execfile
+    File file = File.createTempFile("propFile", ".conf",
+        new File("src/main/resources/org/apache/accumulo/test/"));
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), true);
+    file.deleteOnExit();
   }
 
   @Test
