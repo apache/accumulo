@@ -345,19 +345,21 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       Map<String,String> sysProps = client.instanceOperations().getSystemProperties();
       // merged view
       Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
-      assertEquals(0, sysProps.size());
+      // sysProps is non-merged view, so should be empty at this point
+      assertTrue(sysProps.isEmpty());
+      // sysConfig is merged view, so will have props set already
       assertFalse(sysConfig.isEmpty());
       client.instanceOperations().setProperty(customPropKey1, customPropVal1);
       client.instanceOperations().setProperty(customPropKey2, customPropVal2);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey1)
+          .equals(customPropVal1), 5000, 500);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey2)
+          .equals(customPropVal2), 5000, 500);
       sysProps = client.instanceOperations().getSystemProperties();
-      sysConfig = client.instanceOperations().getSystemConfiguration();
-      // The props should be present in the merged and non-merged view
+      // The props should be present (and the only props) in the non-merged view
       assertEquals(2, sysProps.size());
       assertEquals(customPropVal1, sysProps.get(customPropKey1));
       assertEquals(customPropVal2, sysProps.get(customPropKey2));
-      assertTrue(sysConfig.size() > 2);
-      assertEquals(customPropVal1, sysConfig.get(customPropKey1));
-      assertEquals(customPropVal2, sysConfig.get(customPropKey2));
     }
   }
 

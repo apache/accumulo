@@ -172,6 +172,7 @@ public interface InstanceOperations {
    * {@link #getSystemConfiguration} for a merged view.
    *
    * @return A map of the system properties set in Zookeeper only.
+   * @since 3.1
    */
   Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
