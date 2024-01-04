@@ -474,7 +474,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-    propFileOpt = new Option("p", "propFileOpt", true, "file containing properties to set");
+    propFileOpt = new Option("p", "propFile", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
