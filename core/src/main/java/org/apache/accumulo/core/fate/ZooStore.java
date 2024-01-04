@@ -204,9 +204,10 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              Long minTime = Collections.min(deferred.values());
-              long waitTime = minTime - System.nanoTime();
-              waitTime = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              long waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
               if (waitTime > 0) {
                 this.wait(Math.min(waitTime, 5000));
               }
