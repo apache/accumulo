@@ -301,30 +301,19 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     return new FateTxStoreImpl(tid, isReserved);
   }
 
-  private static class ZooFateIdStatus extends FateIdStatus {
-
-    private final Supplier<TStatus> statusSupplier;
-
-    public ZooFateIdStatus(long txid, Supplier<TStatus> statusSupplier) {
-      super(txid);
-      this.statusSupplier = statusSupplier;
-    }
-
-    @Override
-    public TStatus getStatus() {
-      return statusSupplier.get();
-    }
-  }
-
   @Override
   protected Stream<FateIdStatus> getTransactions() {
     try {
       return zk.getChildren(path).stream().map(strTxid -> {
-        long txid = parseTid(strTxid);
-        // Memoizing for two reasons. First the status may never be requested, so in the case avoid
+        // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
-        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(txid));
-        return new ZooFateIdStatus(txid, statusSupplier);
+        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(parseTid(strTxid)));
+        return new FateIdStatus(parseTid(strTxid)) {
+          @Override
+          public TStatus getStatus() {
+            return statusSupplier.get();
+          }
+        };
       });
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
