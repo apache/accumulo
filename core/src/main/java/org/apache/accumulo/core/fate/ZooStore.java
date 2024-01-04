@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -160,7 +161,7 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              if (deferred.get(tid) < System.currentTimeMillis()) {
+              if ((deferred.get(tid) - System.nanoTime()) < 0) {
                 deferred.remove(tid);
               } else {
                 continue;
@@ -199,8 +200,10 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              Long minTime = Collections.min(deferred.values());
-              long waitTime = minTime - System.currentTimeMillis();
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              long waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
               if (waitTime > 0) {
                 this.wait(Math.min(waitTime, 5000));
               }
@@ -267,7 +270,8 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime) {
+  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
+    deferTime = TimeUnit.NANOSECONDS.convert(deferTime, deferTimeUnit);
 
     if (deferTime < 0) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
@@ -280,7 +284,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       if (deferTime > 0) {
-        deferred.put(tid, System.currentTimeMillis() + deferTime);
+        deferred.put(tid, System.nanoTime() + deferTime);
       }
 
       this.notifyAll();
