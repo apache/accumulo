@@ -40,6 +40,7 @@ import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
@@ -59,6 +60,10 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   public AccumuloStore(ClientContext context, String tableName) {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
+  }
+
+  public AccumuloStore(ClientContext context) {
+    this(context, FateTable.NAME);
   }
 
   @Override

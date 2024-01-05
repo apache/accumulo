@@ -68,10 +68,13 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -118,18 +121,21 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public long beginFateOperation(TInfo tinfo, TCredentials credentials)
+  public TFateId beginFateOperation(TInfo tinfo, TCredentials credentials, TFateInstanceType type)
       throws ThriftSecurityException {
     authenticate(credentials);
-    return manager.fate().startTransaction();
+    return new TFateId(type,
+        manager.fate(FateInstanceType.valueOf(type.name())).startTransaction());
   }
 
   @Override
-  public void executeFateOperation(TInfo tinfo, TCredentials c, long opid, FateOperation op,
+  public void executeFateOperation(TInfo tinfo, TCredentials c, TFateId opid, FateOperation op,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     authenticate(c);
     String goalMessage = op.toString() + " ";
+    long tid = opid.getTid();
+    FateInstanceType type = getType(opid);
 
     switch (op) {
       case NAMESPACE_CREATE: {
@@ -142,7 +148,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Create " + namespace + " namespace.";
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new CreateNamespace(c.getPrincipal(), namespace, options)), autoCleanup,
             goalMessage);
         break;
@@ -161,7 +167,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Rename " + oldName + " namespace to " + newName;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new RenameNamespace(namespaceId, oldName, newName)), autoCleanup,
             goalMessage);
         break;
@@ -179,7 +185,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Delete namespace Id: " + namespaceId;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new DeleteNamespace(namespaceId)), autoCleanup, goalMessage);
         break;
       }
@@ -242,7 +248,7 @@ class FateServiceHandler implements FateService.Iface {
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
             + " splits and initial hosting goal of " + initialHostingGoal;
 
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState, initialHostingGoal,
                 namespaceId)),
@@ -278,7 +284,7 @@ class FateServiceHandler implements FateService.Iface {
         goalMessage += "Rename table " + oldTableName + "(" + tableId + ") to " + oldTableName;
 
         try {
-          manager.fate().seedTransaction(op.toString(), opid,
+          manager.fate(type).seedTransaction(op.toString(), tid,
               new TraceRepo<>(new RenameTable(namespaceId, tableId, oldTableName, newTableName)),
               autoCleanup, goalMessage);
         } catch (NamespaceNotFoundException e) {
@@ -349,8 +355,8 @@ class FateServiceHandler implements FateService.Iface {
           goalMessage += " and keep offline.";
         }
 
-        manager.fate().seedTransaction(
-            op.toString(), opid, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId,
+        manager.fate(type).seedTransaction(
+            op.toString(), tid, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId,
                 srcTableId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
             autoCleanup, goalMessage);
 
@@ -379,7 +385,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Delete table " + tableName + "(" + tableId + ")";
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new PreDeleteTable(namespaceId, tableId)), autoCleanup, goalMessage);
         break;
       }
@@ -402,7 +408,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Online table " + tableId;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
             goalMessage);
         break;
@@ -427,7 +433,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Offline table " + tableId;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
             goalMessage);
         break;
@@ -462,7 +468,7 @@ class FateServiceHandler implements FateService.Iface {
             startRowStr, endRowStr);
         goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRowStr
             + " to " + endRowStr;
-        manager.fate().seedTransaction(op.toString(), opid, new TraceRepo<>(
+        manager.fate(type).seedTransaction(op.toString(), tid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)),
             autoCleanup, goalMessage);
         break;
@@ -494,7 +500,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage +=
             "Delete table " + tableName + "(" + tableId + ") range " + startRow + " to " + endRow;
-        manager.fate().seedTransaction(op.toString(), opid, new TraceRepo<>(
+        manager.fate(type).seedTransaction(op.toString(), tid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.DELETE, namespaceId, tableId, startRow, endRow)),
             autoCleanup, goalMessage);
         break;
@@ -520,7 +526,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Compact table (" + tableId + ") with config " + compactionConfig;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new CompactRange(namespaceId, tableId, compactionConfig)), autoCleanup,
             goalMessage);
         break;
@@ -544,7 +550,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Cancel compaction of table (" + tableId + ")";
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new CancelCompactions(namespaceId, tableId)), autoCleanup, goalMessage);
         break;
       }
@@ -585,9 +591,9 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
-        manager.fate()
+        manager.fate(type)
             .seedTransaction(
-                op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
+                op.toString(), tid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
                     exportDirs, namespaceId, keepMappings, !keepOffline)),
                 autoCleanup, goalMessage);
         break;
@@ -616,7 +622,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Export table " + tableName + "(" + tableId + ") to " + exportDir;
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new ExportTable(namespaceId, tableName, tableId, exportDir)),
             autoCleanup, goalMessage);
         break;
@@ -653,7 +659,7 @@ class FateServiceHandler implements FateService.Iface {
         manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
 
         goalMessage += "Bulk import (v2)  " + dir + " to " + tableName + "(" + tableId + ")";
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
       }
@@ -695,7 +701,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Set Hosting Goal for table: " + tableName + "(" + tableId + ") range: "
             + tRange + " to: " + goal.name();
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(new SetHostingGoal(tableId, namespaceId, tRange, goal)), autoCleanup,
             goalMessage);
         break;
@@ -772,7 +778,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage = "Splitting " + extent + " for user into " + (splits.size() + 1) + " tablets";
-        manager.fate().seedTransaction(op.toString(), opid, new PreSplit(extent, splits),
+        manager.fate(type).seedTransaction(op.toString(), tid, new PreSplit(extent, splits),
             autoCleanup, goalMessage);
         break;
       }
@@ -819,13 +825,14 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public String waitForFateOperation(TInfo tinfo, TCredentials credentials, long opid)
+  public String waitForFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(credentials);
 
-    TStatus status = manager.fate().waitForCompletion(opid);
+    FateInstanceType type = getType(opid);
+    TStatus status = manager.fate(type).waitForCompletion(opid.getTid());
     if (status == TStatus.FAILED) {
-      Exception e = manager.fate().getException(opid);
+      Exception e = manager.fate(type).getException(opid.getTid());
       if (e instanceof ThriftTableOperationException) {
         throw (ThriftTableOperationException) e;
       } else if (e instanceof ThriftSecurityException) {
@@ -837,7 +844,7 @@ class FateServiceHandler implements FateService.Iface {
       }
     }
 
-    String ret = manager.fate().getReturn(opid);
+    String ret = manager.fate(type).getReturn(opid.getTid());
     if (ret == null) {
       ret = ""; // thrift does not like returning null
     }
@@ -845,10 +852,10 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public void finishFateOperation(TInfo tinfo, TCredentials credentials, long opid)
+  public void finishFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
       throws ThriftSecurityException {
     authenticate(credentials);
-    manager.fate().delete(opid);
+    manager.fate(getType(opid)).delete(opid.getTid());
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
@@ -927,9 +934,9 @@ class FateServiceHandler implements FateService.Iface {
    *
    * @return the path of the created directory
    */
-  public Path mkTempDir(long opid) throws IOException {
+  public Path mkTempDir(TFateId opid) throws IOException {
     Volume vol = manager.getVolumeManager().getFirst();
-    Path p = vol.prefixChild("/tmp/fate-" + FastFormat.toHexString(opid));
+    Path p = vol.prefixChild("/tmp/fate-" + FastFormat.toHexString(opid.getTid()));
     FileSystem fs = vol.getFileSystem();
     if (fs.exists(p)) {
       fs.delete(p, true);
@@ -939,7 +946,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, long opid)
+  public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
       throws ThriftSecurityException, ThriftNotActiveServiceException {
 
     if (!manager.security.canPerformSystemActions(credentials)) {
@@ -947,7 +954,10 @@ class FateServiceHandler implements FateService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    return manager.fate().cancel(opid);
+    return manager.fate(getType(opid)).cancel(opid.getTid());
   }
 
+  private static FateInstanceType getType(TFateId opid) {
+    return FateInstanceType.valueOf(opid.getType().name());
+  }
 }

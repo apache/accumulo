@@ -41,6 +41,8 @@ class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
+  // config for only fate table
+  private final HashMap<String,String> initialFateTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
@@ -88,6 +90,8 @@ class InitialConfiguration {
         SimpleCompactionDispatcher.class.getName());
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
 
+    // TODO configure initial fate table config.. probably needs compaction config??
+
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
     int min = Math.max(hadoopConf.getInt("dfs.replication.min", 1),
@@ -124,6 +128,10 @@ class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
+  }
+
+  HashMap<String,String> getFateTableConf() {
+    return initialFateTableConf;
   }
 
   Configuration getHadoopConf() {

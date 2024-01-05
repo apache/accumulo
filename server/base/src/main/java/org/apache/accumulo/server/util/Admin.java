@@ -61,6 +61,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -809,8 +811,10 @@ public class Admin implements KeywordExecutable {
   private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
       throws AccumuloException {
     for (String txStr : txList) {
+      // TODO: We need to pass and then parse the instance type to create TFateId,
+      // maybe something like <type>:txid
       long txid = Long.parseLong(txStr, 16);
-      boolean cancelled = cancelFateOperation(context, txid);
+      boolean cancelled = cancelFateOperation(context, new TFateId(TFateInstanceType.META, txid));
       if (cancelled) {
         System.out.println("FaTE transaction " + FateTxId.formatTid(txid)
             + " was cancelled or already completed.");
@@ -821,7 +825,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private boolean cancelFateOperation(ClientContext context, long txid) throws AccumuloException {
+  private boolean cancelFateOperation(ClientContext context, TFateId txid)
+      throws AccumuloException {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
