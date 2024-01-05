@@ -122,7 +122,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * For example, given a tablet with 20 files, and table.file.max is 15 and no compactions are
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
  * ratio less than 3 that results in a compaction.
- * </p>
  *
  *
  * @since 2.1.0
