@@ -50,10 +50,10 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import org.apache.accumulo.core.util.ConfigurationImpl;
-import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
+import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
@@ -177,7 +177,7 @@ public class DefaultCompactionPlannerTest {
     // planner should compact.
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
   }
 
   @Test
@@ -200,7 +200,7 @@ public class DefaultCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
@@ -218,7 +218,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -228,7 +228,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("huge"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("huge"), job.getGroup());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files that meets the compaction ratio
@@ -238,7 +238,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -247,7 +247,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
 
   }
 
@@ -264,14 +264,14 @@ public class DefaultCompactionPlannerTest {
     // should only compact files less than max size
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("large"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("large"), job.getGroup());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("large"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("large"), job.getGroup());
   }
 
   @Test
@@ -297,7 +297,7 @@ public class DefaultCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
+        assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -372,7 +372,7 @@ public class DefaultCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
+        assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -441,7 +441,7 @@ public class DefaultCompactionPlannerTest {
 
     var job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -449,7 +449,7 @@ public class DefaultCompactionPlannerTest {
 
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionGroupIdImpl.groupId("midsize"), job.getGroup());
+    assertEquals(CompactorGroupIdImpl.groupId("midsize"), job.getGroup());
   }
 
   /**
@@ -498,7 +498,7 @@ public class DefaultCompactionPlannerTest {
 
     var e = assertThrows(IllegalStateException.class, () -> planner.init(groupParams),
         "Failed to throw error");
-    assertEquals("No defined compaction groups for this planner", e.getMessage(),
+    assertEquals("No defined compactor groups for this planner", e.getMessage(),
         "Error message was not equal");
   }
 
@@ -630,7 +630,7 @@ public class DefaultCompactionPlannerTest {
     // ensure when a compaction is running and we are over files max but below the compaction ratio
     // that a compaction is not planned
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
-    var job = new CompactionJobImpl((short) 1, CompactionGroupIdImpl.groupId("ee1"),
+    var job = new CompactionJobImpl((short) 1, CompactorGroupIdImpl.groupId("ee1"),
         createCFs("F1", "1000"), CompactionKind.SYSTEM, Optional.of(false));
     params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
@@ -668,7 +668,7 @@ public class DefaultCompactionPlannerTest {
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
-        .addJob((short) all.size(), CompactionGroupIdImpl.groupId("small"), files).build().getJobs()
+        .addJob((short) all.size(), CompactorGroupIdImpl.groupId("small"), files).build().getJobs()
         .iterator().next();
   }
 

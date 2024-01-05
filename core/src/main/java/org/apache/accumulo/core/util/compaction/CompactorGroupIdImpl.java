@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
-import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
-public class CompactionGroupIdImpl extends CompactionGroupId {
+public class CompactorGroupIdImpl extends CompactorGroupId {
 
-  protected CompactionGroupIdImpl(String canonical) {
+  protected CompactorGroupIdImpl(String canonical) {
     super(canonical);
   }
 
   private static final long serialVersionUID = 1L;
 
-  public static CompactionGroupId groupId(String groupName) {
-    return new CompactionGroupIdImpl(groupName);
+  public static CompactorGroupId groupId(String groupName) {
+    return new CompactorGroupIdImpl(groupName);
   }
 }

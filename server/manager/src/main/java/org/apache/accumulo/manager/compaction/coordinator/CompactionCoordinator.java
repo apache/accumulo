@@ -107,7 +107,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.core.util.compaction.CompactionGroupIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -409,7 +409,7 @@ public class CompactionCoordinator
 
     TExternalCompactionJob result = null;
 
-    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(CompactionGroupIdImpl.groupId(groupName));
+    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(CompactorGroupIdImpl.groupId(groupName));
 
     while (metaJob != null) {
 
@@ -441,7 +441,7 @@ public class CompactionCoordinator
       } else {
         LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
             metaJob.getTabletMetadata().getExtent());
-        metaJob = jobQueues.poll(CompactionGroupIdImpl.groupId(groupName));
+        metaJob = jobQueues.poll(CompactorGroupIdImpl.groupId(groupName));
       }
     }
 

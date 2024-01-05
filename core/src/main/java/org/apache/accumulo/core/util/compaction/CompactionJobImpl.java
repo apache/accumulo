@@ -24,9 +24,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
 /**
  * An immutable object that describes what files to compact and where to compact them.
@@ -37,7 +37,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 public class CompactionJobImpl implements CompactionJob {
 
   private final short priority;
-  private final CompactionGroupId group;
+  private final CompactorGroupId group;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
   // Tracks if a job selected all the tablet's files that existed at the time the job was created.
@@ -49,7 +49,7 @@ public class CompactionJobImpl implements CompactionJob {
    *        to start compaction. After a job is running, its not used. So when a job object is
    *        recreated for a running external compaction this parameter can be empty.
    */
-  public CompactionJobImpl(short priority, CompactionGroupId group,
+  public CompactionJobImpl(short priority, CompactorGroupId group,
       Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
     this.priority = priority;
     this.group = Objects.requireNonNull(group);
@@ -67,7 +67,7 @@ public class CompactionJobImpl implements CompactionJob {
    * @return The group to run the job.
    */
   @Override
-  public CompactionGroupId getGroup() {
+  public CompactorGroupId getGroup() {
     return group;
   }
 

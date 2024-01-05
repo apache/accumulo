@@ -59,12 +59,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * <li>Note that the CompactionCoordinator and at least one Compactor for the "large" compaction
- * group must be running.
+ * <li>Note that the CompactionCoordinator and at least one running Compactor must be assigned to
+ * the "large" compactor group.
  * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
  * that will be included in a single compaction.
- * <li>{@code compaction.service.<service>.opts.groups} This is a json array of group objects which
- * have the following fields:
+ * <li>{@code compaction.service.<service>.opts.groups} This is a json array of compactor group
+ * objects which have the following fields:
  * <table>
  * <caption>Default Compaction Planner Group options</caption>
  * <tr>
@@ -73,7 +73,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * <tr>
  * <td>name</td>
- * <td>name of the group (required)</td>
+ * <td>name of the compactor group (required)</td>
  * </tr>
  * <tr>
  * <td>maxSize</td>
@@ -81,17 +81,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * </table>
  * <br>
- * This 'groups' object is used for defining compaction groups. The maxSize field determines the
- * maximum size of compaction that will run in a group. The maxSize field can have a suffix of K,M,G
- * for kilobytes, megabytes, or gigabytes and represents the sum of the input files for a given
- * compaction. One group can have no max size and it will run everything that is too large for the
- * other groups. If all groups have a max size, then system compactions will only run for
- * compactions smaller than the largest max size. User and selector compactions will always run,
- * even if there is no group for their size. These compactions will run on the group with the
- * largest max size. The following example value for this property will create three separate
- * compaction groups. "small" will run compactions of files whose file size sum is less than 100M,
- * "medium" will run compactions of files whose file size sum is less than 500M, and "large" will
- * run all other compactions on Compactors configured to pull jobs from the large group.
+ * This 'groups' object provides information that is used for mapping a compaction job to a
+ * compactor group. The maxSize field determines the maximum size of compaction that will run in a
+ * group. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and
+ * represents the sum of the input files for a given compaction. One group can have no max size and
+ * it will run everything that is too large for the other groups. If all groups have a max size,
+ * then system compactions will only run for compactions smaller than the largest max size. User and
+ * selector compactions will always run, even if there is no group for their size. These compactions
+ * will run on the group with the largest max size. The following example value for this property
+ * will create three separate compactor groups. "small" will run compactions of files whose file
+ * size sum is less than 100M, "medium" will run compactions of files whose file size sum is less
+ * than 500M, and "large" will run all other compactions on Compactors configured to pull jobs from
+ * the large group.
  *
  * <pre>
  * {@code
@@ -117,7 +118,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
  * ratio less than 3 that results in a compaction.
  *
- *
  * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
@@ -132,10 +132,10 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   private static class CompactionGroup {
-    final CompactionGroupId cgid;
+    final CompactorGroupId cgid;
     final Long maxSize;
 
-    public CompactionGroup(CompactionGroupId cgid, Long maxSize) {
+    public CompactionGroup(CompactorGroupId cgid, Long maxSize) {
       Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
       this.cgid = Objects.requireNonNull(cgid, "Compaction ID is null");
       this.maxSize = maxSize;
@@ -191,7 +191,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         Long maxSize = groupConfig.maxSize == null ? null
             : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
-        CompactionGroupId cgid;
+        CompactorGroupId cgid;
         String group = Objects.requireNonNull(groupConfig.name, "'name' must be specified");
         cgid = params.getGroupManager().getGroup(group);
         tmpGroups.add(new CompactionGroup(cgid, maxSize));
@@ -199,7 +199,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (tmpGroups.size() < 1) {
-      throw new IllegalStateException("No defined compaction groups for this planner");
+      throw new IllegalStateException("No defined compactor groups for this planner");
     }
 
     tmpGroups.sort(Comparator.comparing(CompactionGroup::getMaxSize,
@@ -603,7 +603,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, larsmaIndex + 1);
   }
 
-  CompactionGroupId getGroup(Collection<CompactableFile> files) {
+  CompactorGroupId getGroup(Collection<CompactableFile> files) {
 
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 

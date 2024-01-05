@@ -118,7 +118,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       planner.init(initParams);
 
       initParams.getRequestedGroups().forEach(
-          (groupId -> log.info("Compaction service '{}' requested with compaction group '{}'",
+          (groupId -> log.info("Compaction service '{}' requested with compactor group '{}'",
               serviceId, groupId)));
     }
 

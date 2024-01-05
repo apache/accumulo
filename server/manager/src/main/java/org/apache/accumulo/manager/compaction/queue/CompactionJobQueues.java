@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class CompactionJobQueues {
   // can be observed that scoped locks are acquired. Other concurrent map impls may run the compute
   // lambdas concurrently for a given key, which may still be correct but is more difficult to
   // analyze.
-  private final ConcurrentHashMap<CompactionGroupId,CompactionJobPriorityQueue> priorityQueues =
+  private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
   private final int queueSize;
@@ -58,35 +58,35 @@ public class CompactionJobQueues {
     }
   }
 
-  public KeySetView<CompactionGroupId,CompactionJobPriorityQueue> getQueueIds() {
+  public KeySetView<CompactorGroupId,CompactionJobPriorityQueue> getQueueIds() {
     return priorityQueues.keySet();
   }
 
-  public CompactionJobPriorityQueue getQueue(CompactionGroupId groupId) {
+  public CompactionJobPriorityQueue getQueue(CompactorGroupId groupId) {
     return priorityQueues.get(groupId);
   }
 
-  public long getQueueMaxSize(CompactionGroupId groupId) {
+  public long getQueueMaxSize(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
-  public long getQueuedJobs(CompactionGroupId groupId) {
+  public long getQueuedJobs(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
-  public long getDequeuedJobs(CompactionGroupId groupId) {
+  public long getDequeuedJobs(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getDequeuedJobs();
   }
 
-  public long getRejectedJobs(CompactionGroupId groupId) {
+  public long getRejectedJobs(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getRejectedJobs();
   }
 
-  public long getLowestPriority(CompactionGroupId groupId) {
+  public long getLowestPriority(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getLowestPriority();
   }
@@ -123,7 +123,7 @@ public class CompactionJobQueues {
     }
   }
 
-  public MetaJob poll(CompactionGroupId groupId) {
+  public MetaJob poll(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     if (prioQ == null) {
       return null;
@@ -142,7 +142,7 @@ public class CompactionJobQueues {
     return mj;
   }
 
-  private void add(TabletMetadata tabletMetadata, CompactionGroupId groupId,
+  private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
       Collection<CompactionJob> jobs) {
 
     // TODO log level

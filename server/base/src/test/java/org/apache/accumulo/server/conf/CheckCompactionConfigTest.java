@@ -135,7 +135,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "compaction.service.cs1.planner.opts.groups=\\\n"
         + "[{'name':'small','maxSize':'16M'},{'name':'medium','maxSize':'128M'},\\\n"
         + "{'name':'small'}]").replaceAll("'", "\"");
-    String expectedErrorMsg = "Duplicate compaction group for group: small";
+    String expectedErrorMsg = "Duplicate compactor group for group: small";
 
     final String filePath = writeToFileAndReturnPath(inputString);
 

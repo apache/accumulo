@@ -706,7 +706,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         cp.init(initParams);
         initParams.getRequestedGroups().forEach(gid -> groupNames.add(gid.canonical()));
       } catch (Exception e) {
-        log.error("For compaction service {}, failed to get compaction groups from planner {}.",
+        log.error("For compaction service {}, failed to get compactor groups from planner {}.",
             serviceId, plannerClass, e);
       }
     }

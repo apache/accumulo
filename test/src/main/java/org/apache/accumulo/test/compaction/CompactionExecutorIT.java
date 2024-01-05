@@ -65,10 +65,10 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -98,7 +98,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     }
 
     private int filesPerCompaction;
-    private List<CompactionGroupId> groupIds;
+    private List<CompactorGroupId> groupIds;
     private EnumSet<CompactionKind> kindsToProcess = EnumSet.noneOf(CompactionKind.class);
 
     @Override

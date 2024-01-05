@@ -35,7 +35,7 @@ public interface CompactionJob {
   /**
    * @return The group to run the job.
    */
-  CompactionGroupId getGroup();
+  CompactorGroupId getGroup();
 
   /**
    * @return The files to compact
