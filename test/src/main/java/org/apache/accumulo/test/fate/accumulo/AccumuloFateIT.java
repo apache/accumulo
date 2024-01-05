@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
-import java.util.NoSuchElementException;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -69,20 +68,10 @@ public class AccumuloFateIT extends FateIT {
       scanner.setRange(getRow(txid));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElseThrow();
+          .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(table + " not found!", e);
     }
-  }
-
-  @Override
-  protected boolean verifyRemoved(ServerContext sctx, long txid) {
-    try {
-      getTxStatus(sctx, txid);
-    } catch (NoSuchElementException e) {
-      return true;
-    }
-    return false;
   }
 
   private static Range getRow(long tid) {

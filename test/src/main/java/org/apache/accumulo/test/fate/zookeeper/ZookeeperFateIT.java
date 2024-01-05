@@ -23,7 +23,6 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.UUID;
@@ -79,30 +78,9 @@ public class ZookeeperFateIT extends FateIT {
   }
 
   @Override
-  protected Class<? extends Exception> getNoTxExistsException() {
-    return KeeperException.NoNodeException.class;
-  }
-
-  @Override
   protected TStatus getTxStatus(ServerContext sctx, long txid)
       throws InterruptedException, KeeperException {
     return getTxStatus(sctx.getZooReaderWriter(), txid);
-  }
-
-  @Override
-  protected boolean verifyRemoved(ServerContext sctx, long txid) {
-    try {
-      getTxStatus(sctx, txid);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NONODE) {
-        return true;
-      } else {
-        fail("Unexpected error thrown: " + e.getMessage());
-      }
-    } catch (InterruptedException e) {
-      throw new IllegalStateException(e);
-    }
-    return false;
   }
 
   /*
@@ -113,7 +91,11 @@ public class ZookeeperFateIT extends FateIT {
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
-    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
+    try {
+      return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
+    } catch (KeeperException.NoNodeException e) {
+      return TStatus.UNKNOWN;
+    }
   }
 
 }

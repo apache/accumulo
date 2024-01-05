@@ -60,6 +60,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -77,6 +78,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -616,8 +618,18 @@ public class CompactionCoordinator
   TExternalCompactionJob createThriftJob(String externalCompactionId, CompactionMetadata ecm,
       CompactionJobQueues.MetaJob metaJob, Optional<CompactionConfig> compactionConfig) {
 
+    Set<CompactableFile> selectedFiles;
+    if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+      selectedFiles = Set.of();
+    } else {
+      selectedFiles = metaJob.getTabletMetadata().getSelectedFiles().getFiles().stream()
+          .map(file -> new CompactableFileImpl(file,
+              metaJob.getTabletMetadata().getFilesMap().get(file)))
+          .collect(Collectors.toUnmodifiableSet());
+    }
+
     Map<String,String> overrides = CompactionPluginUtils.computeOverrides(compactionConfig, ctx,
-        metaJob.getTabletMetadata().getExtent(), metaJob.getJob().getFiles());
+        metaJob.getTabletMetadata().getExtent(), metaJob.getJob().getFiles(), selectedFiles);
 
     IteratorConfig iteratorSettings = SystemIteratorUtil
         .toIteratorConfig(compactionConfig.map(CompactionConfig::getIterators).orElse(List.of()));
@@ -1213,9 +1225,9 @@ public class CompactionCoordinator
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER).fetch(ECOMP).build()
-        .stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
-        .collect(Collectors.toSet());
+    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+        .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build().stream()
+        .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
   }
 
   /**

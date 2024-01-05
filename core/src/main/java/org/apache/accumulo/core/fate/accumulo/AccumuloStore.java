@@ -26,7 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -71,13 +71,22 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected List<String> getTransactions() {
-    return scanTx(scanner -> {
+  protected Stream<FateIdStatus> getTransactions() {
+    try {
+      Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> e.getKey().getRow().toString()).collect(Collectors.toList());
-    });
+      return scanner.stream().onClose(scanner::close).map(e -> {
+        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+          @Override
+          public TStatus getStatus() {
+            return TStatus.valueOf(e.getValue().toString());
+          }
+        };
+      });
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
   }
 
   @Override
@@ -85,8 +94,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     return scanTx(scanner -> {
       scanner.setRange(getRow(tid));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
+      return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
+          .orElse(TStatus.UNKNOWN);
     });
   }
 
@@ -125,7 +134,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         scanner.setRange(getRow(tid));
         scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false).map(e -> {
+        return scanner.stream().map(e -> {
           @SuppressWarnings("unchecked")
           var repo = (Repo<T>) deserialize(e.getValue().get());
           return repo;
@@ -140,7 +149,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false).map(e -> {
+        return scanner.stream().map(e -> {
           @SuppressWarnings("unchecked")
           var repo = (ReadOnlyRepo<T>) deserialize(e.getValue().get());
           return repo;
@@ -174,8 +183,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         }
         scanner.fetchColumn(cq.getColumnFamily(), cq.getColumnQualifier());
 
-        return StreamSupport.stream(scanner.spliterator(), false)
-            .map(e -> deserializeTxInfo(txInfo, e.getValue().get())).findFirst().orElse(null);
+        return scanner.stream().map(e -> deserializeTxInfo(txInfo, e.getValue().get())).findFirst()
+            .orElse(null);
       } catch (TableNotFoundException e) {
         throw new IllegalStateException(tableName + " not found!", e);
       }
@@ -188,8 +197,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       return scanTx(scanner -> {
         scanner.setRange(getRow(tid));
         TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
-        return StreamSupport.stream(scanner.spliterator(), false)
-            .map(e -> Long.parseLong(e.getValue().toString())).findFirst().orElse(0L);
+        return scanner.stream().map(e -> Long.parseLong(e.getValue().toString())).findFirst()
+            .orElse(0L);
       });
     }
 
@@ -197,18 +206,14 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void push(Repo<T> repo) throws StackOverflowException {
       verifyReserved(true);
 
-      try {
-        Optional<Integer> top = findTop();
+      Optional<Integer> top = findTop();
 
-        if (top.filter(t -> t >= maxRepos).isPresent()) {
-          throw new StackOverflowException("Repo stack size too large");
-        }
-
-        FateMutator<T> fateMutator = newMutator(tid);
-        fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
-      } catch (StackOverflowException soe) {
-        throw soe;
+      if (top.filter(t -> t >= maxRepos).isPresent()) {
+        throw new StackOverflowException("Repo stack size too large");
       }
+
+      FateMutator<T> fateMutator = newMutator(tid);
+      fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
     @Override
@@ -266,8 +271,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         scanner.setRange(getRow(tid));
         scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        return StreamSupport.stream(scanner.spliterator(), false)
-            .map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
+        return scanner.stream().map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
       });
     }
   }

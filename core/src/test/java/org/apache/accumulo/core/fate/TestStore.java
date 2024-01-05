@@ -23,12 +23,14 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 /**
  * Transient in memory store for transactions.
@@ -152,7 +154,7 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public void unreserve(long deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
       if (!reserved.remove(tid)) {
         throw new IllegalStateException();
       }
@@ -165,12 +167,12 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public List<Long> list() {
-    return new ArrayList<>(statuses.keySet());
+  public Stream<Long> list() {
+    return new ArrayList<>(statuses.keySet()).stream();
   }
 
   @Override
-  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
     throw new UnsupportedOperationException();
   }
 

@@ -27,17 +27,17 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   private static final Logger log = LoggerFactory.getLogger(AbstractFateStore.class);
 
   protected final Set<Long> reserved;
-  protected final Map<Long,Long> defered;
+  protected final Map<Long,Long> deferred;
 
   // This is incremented each time a transaction was unreserved that was non new
   protected final SignalCount unreservedNonNewCount = new SignalCount();
@@ -62,16 +62,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   public AbstractFateStore() {
     this.reserved = new HashSet<>();
-    this.defered = new HashMap<>();
+    this.deferred = new HashMap<>();
   }
 
   public static byte[] serialize(Object o) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
       oos.writeObject(o);
-      oos.close();
-
       return baos.toByteArray();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -82,9 +79,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
           + " for backwards compatibility")
   public static Object deserialize(byte[] ser) {
-    try {
-      ByteArrayInputStream bais = new ByteArrayInputStream(ser);
-      ObjectInputStream ois = new ObjectInputStream(bais);
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(ser);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
       return ois.readObject();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -97,7 +93,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
    * Attempt to reserve transaction
    *
    * @param tid transaction id
-   * @return true if reserved by this call, false if already reserved
+   * @return An Optional containing the FateTxStore if the transaction was successfully reserved, or
+   *         an empty Optional if the transaction was already reserved.
    */
   @Override
   public Optional<FateTxStore<T>> tryReserve(long tid) {
@@ -127,46 +124,41 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
 
-    while (keepWaiting.get()) {
-      ArrayList<Long> runnableTids = new ArrayList<>();
+    AtomicLong seen = new AtomicLong(0);
 
+    while (keepWaiting.get() && seen.get() == 0) {
       final long beforeCount = unreservedRunnableCount.getCount();
 
-      List<String> transactions = getTransactions();
-      for (String txidStr : transactions) {
-        long txid = parseTid(txidStr);
-        if (isRunnable(_getStatus(txid))) {
-          runnableTids.add(txid);
-        }
+      try (Stream<FateIdStatus> transactions = getTransactions()) {
+        transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
+            .mapToLong(FateIdStatus::getTxid).filter(txid -> {
+              synchronized (AbstractFateStore.this) {
+                var deferredTime = deferred.get(txid);
+                if (deferredTime != null) {
+                  if ((deferredTime - System.nanoTime()) >= 0) {
+                    return false;
+                  } else {
+                    deferred.remove(txid);
+                  }
+                }
+                return !reserved.contains(txid);
+              }
+            }).forEach(txid -> {
+              seen.incrementAndGet();
+              idConsumer.accept(txid);
+            });
       }
 
-      synchronized (this) {
-        runnableTids.removeIf(txid -> {
-          var deferedTime = defered.get(txid);
-          if (deferedTime != null) {
-            if (deferedTime >= System.currentTimeMillis()) {
-              return true;
-            } else {
-              defered.remove(txid);
-            }
-          }
-
-          if (reserved.contains(txid)) {
-            return true;
-          }
-
-          return false;
-        });
-      }
-
-      if (runnableTids.isEmpty()) {
+      if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
-          if (!defered.isEmpty()) {
-            Long minTime = Collections.min(defered.values());
-            waitTime = minTime - System.currentTimeMillis();
+          if (!deferred.isEmpty()) {
+            long currTime = System.nanoTime();
+            long minWait =
+                deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+            waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
           }
 
           if (waitTime > 0) {
@@ -174,23 +166,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
                 keepWaiting::get);
           }
         }
-      } else {
-        return runnableTids.iterator();
       }
-
     }
-
-    return List.<Long>of().iterator();
   }
 
   @Override
-  public List<Long> list() {
-    ArrayList<Long> l = new ArrayList<>();
-    List<String> transactions = getTransactions();
-    for (String txid : transactions) {
-      l.add(parseTid(txid));
-    }
-    return l;
+  public Stream<Long> list() {
+    return getTransactions().map(fateIdStatus -> fateIdStatus.txid);
   }
 
   @Override
@@ -207,7 +189,21 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  protected abstract List<String> getTransactions();
+  public static abstract class FateIdStatus {
+    private final long txid;
+
+    public FateIdStatus(long txid) {
+      this.txid = txid;
+    }
+
+    public long getTxid() {
+      return txid;
+    }
+
+    public abstract TStatus getStatus();
+  }
+
+  protected abstract Stream<FateIdStatus> getTransactions();
 
   protected abstract TStatus _getStatus(long tid);
 
@@ -242,7 +238,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(long deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
+      deferTime = TimeUnit.NANOSECONDS.convert(deferTime, timeUnit);
 
       if (deferTime < 0) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
@@ -258,7 +255,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         AbstractFateStore.this.notifyAll();
 
         if (deferTime > 0) {
-          defered.put(tid, System.currentTimeMillis() + deferTime);
+          deferred.put(tid, System.nanoTime() + deferTime);
         }
       }
 
