@@ -702,8 +702,6 @@ public class DefaultCompactionPlannerTest {
     var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     var plan = planner.makePlan(params);
 
-    System.out.println(plan.getJobs());
-
     assertTrue(plan.getJobs().isEmpty());
 
     // ensure when a compaction is running and we are over files max but below the compaction ratio

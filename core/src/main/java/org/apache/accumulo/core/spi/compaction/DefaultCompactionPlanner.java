@@ -526,7 +526,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       var filesToCompact =
           findDataFilesToCompact(candidates, ratioToCheck, maxFilesToCompact, maxSizeToCompact);
 
-      log.info("Tried ratio {} and found {} {} {} {}", ratioToCheck, filesToCompact,
+      log.trace("Tried ratio {} and found {} {} {} {}", ratioToCheck, filesToCompact,
           filesToCompact.size() >= goalCompactionSize, goalCompactionSize, maxFilesToCompact);
 
       if (filesToCompact.isEmpty() || filesToCompact.size() < goalCompactionSize) {
