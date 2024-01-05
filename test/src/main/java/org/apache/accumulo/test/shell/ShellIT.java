@@ -570,13 +570,25 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void setpropsViaFile() throws Exception {
-    // execfile
+
     File file = File.createTempFile("propFile", ".conf",
         new File("src/main/resources/org/apache/accumulo/test/"));
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
     writer.close();
     exec("config --propFile " + file.getAbsolutePath(), true);
+    file.deleteOnExit();
+  }
+
+  @Test
+  public void invalidPropFileTest() throws Exception {
+    File file = File.createTempFile("invalidPropFile", ".conf",
+        new File("src/main/resources/org/apache/accumulo/test/"));
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("this is not a valid property file");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), false,
+        "InvalidPropertyFile: " + file.getAbsolutePath());
     file.deleteOnExit();
   }
 

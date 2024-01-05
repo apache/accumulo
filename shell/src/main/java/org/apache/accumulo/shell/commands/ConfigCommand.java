@@ -380,16 +380,30 @@ public class ConfigCommand extends Command {
   }
 
   private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      NamespaceNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
     PropertiesConfiguration fileProperties = readPropertiesFromFile(filename);
 
     Map<String,String> propertiesMap = new HashMap<>();
     Iterator<String> keysIterator = fileProperties.getKeys();
+    boolean foundErrors = false;
     while (keysIterator.hasNext()) {
       String key = keysIterator.next();
       String value = fileProperties.getString(key);
-      propertiesMap.put(key, value);
+      if (!Property.isValidPropertyKey(key)) {
+        Shell.log.error("Property: \"{}\" is invalid", key);
+        foundErrors = true;
+      } else if (!Property.isValidProperty(key, value)) {
+        Shell.log.error("Property: \"{}\" has an invalid value: \"{}\"", key, value);
+        foundErrors = true;
+      } else {
+        propertiesMap.put(key, value);
+      }
+    }
+    // Error for the whole file as this should be an atomic properties update
+    if (foundErrors) {
+      Shell.log.error("Property file {} contains invalid properties", filename);
+      throw new AccumuloException("InvalidPropertyFile: " + filename);
+
     }
 
     Consumer<Map<String,String>> propertyModifier = currProps -> {
