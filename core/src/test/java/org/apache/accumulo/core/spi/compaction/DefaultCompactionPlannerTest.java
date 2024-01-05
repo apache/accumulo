@@ -25,10 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -51,6 +55,8 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class DefaultCompactionPlannerTest {
 
@@ -464,11 +470,189 @@ public class DefaultCompactionPlannerTest {
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
+  // Test cases where a tablet has more than table.file.max files, but no files were found using the
+  // compaction ratio. The planner should try to find the highest ratio that will result in a
+  // compaction.
+  @Test
+  public void testMaxTabletFiles() {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','numThreads':3}]";
+
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen",
+        "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+
+    // For this case need to compact three files and the highest ratio that achieves that is 1.8
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1000, 1.1, 1.9, 1.8, 1.6, 1.3, 1.4, 1.3, 1.2, 1.1);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 1.9, 1.8), job.getFiles());
+
+    // For this case need to compact two files and the highest ratio that achieves that is 2.9
+    all = createCFs(1000, 2, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 2, 2.9), job.getFiles());
+
+    all =
+        createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9, 2.8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9), job.getFiles());
+
+    all = createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), job.getFiles());
+
+    // In this case the tablet can not be brought below the max files limit in a single compaction,
+    // so it should find the highest ratio to compact
+    for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
+      all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1,
+          1.1, 1.1);
+      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      plan = planner.makePlan(params);
+      job = getOnlyElement(plan.getJobs());
+      assertEquals(createCFs(1000, 1.9), job.getFiles());
+    }
+
+    // In this case the tablet can be brought below the max limit in single compaction, so it should
+    // find this
+    all =
+        createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1), job.getFiles());
+
+    // each file is 10x the size of the file smaller than it
+    all = createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1), job.getFiles());
+
+    // test with some files growing 20x, ensure those are not included
+    for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
+      all = createCFs(10, 1.05, 1.05, 1.25, 1.75, 1.25, 1.05, 1.05, 1.05);
+      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      plan = planner.makePlan(params);
+      job = getOnlyElement(plan.getJobs());
+      assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
+    }
+
+  }
+
+  @Test
+  public void testMaxTabletFilesNoCompaction() {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}]";
+
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen",
+        "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+
+    // ensure that when a compaction would be over the max size limit that it is not planned
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1_000_000_000, 2, 2, 2, 2, 2, 2, 2);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+
+    assertTrue(plan.getJobs().isEmpty());
+
+    // ensure when a compaction is running and we are over files max but below the compaction ratio
+    // that a compaction is not planned
+    all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
+    var job = new CompactionJobImpl((short) 1, CompactionExecutorIdImpl.externalId("ee1"),
+        createCFs("F1", "1000"), CompactionKind.SYSTEM, Optional.of(false));
+    params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+
+    assertTrue(plan.getJobs().isEmpty());
+
+    // a really bad situation, each file is 20 times the size of its smaller file. The algorithm
+    // does not search that for ratios that low.
+    all = createCFs(10, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    assertTrue(plan.getJobs().isEmpty());
+  }
+
+  // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
+  @Test
+  public void testMaxTableFilesFallback() {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','numThreads':3}]";
+
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen",
+        "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "0");
+    overrides.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4), job.getFiles());
+  }
+
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
         .addJob((short) all.size(), CompactionExecutorIdImpl.internalId(csid, "small"), files)
         .build().getJobs().iterator().next();
+  }
+
+  // Create a set of files whose sizes would require certain compaction ratios to compact
+  private Set<CompactableFile> createCFs(int initialSize, double... desiredRatios) {
+    List<String> pairs = new ArrayList<>();
+    pairs.add("F1");
+    pairs.add(initialSize + "");
+
+    double previousFileSizes = initialSize;
+
+    int i = 2;
+    for (double desiredRatio : desiredRatios) {
+      Preconditions.checkArgument(desiredRatio > 1.0);
+      Preconditions.checkArgument(desiredRatio <= i);
+
+      /*
+       * The compaction ratio formula is fileSize * ratio < fileSize + previousFileSizes. Solved the
+       * following equation to compute a file size given a desired ratio.
+       *
+       * fileSize * ratio = fileSize + previousFileSizes
+       *
+       * fileSize * ratio - fileSize = previousFileSizes
+       *
+       * fileSize * (ratio - 1) = previousFileSizes
+       *
+       * fileSize = previousFileSizes / (ratio - 1)
+       */
+
+      double fileSize = previousFileSizes / (desiredRatio - 1);
+      pairs.add("F" + i + "_" + desiredRatio);
+      pairs.add(Math.round(fileSize) + "");
+
+      previousFileSizes += fileSize;
+      i++;
+    }
+
+    return createCFs(pairs.toArray(new String[0]));
   }
 
   private static Set<CompactableFile> createCFs(String... namesSizePairs) {
@@ -515,6 +699,12 @@ public class DefaultCompactionPlannerTest {
   private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
       Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
       CompactionKind kind) {
+    return createPlanningParams(all, candidates, compacting, ratio, kind, defaultConf);
+  }
+
+  private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
+      Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
+      CompactionKind kind, Configuration conf) {
     return new CompactionPlanner.PlanningParameters() {
 
       @Override
@@ -524,7 +714,11 @@ public class DefaultCompactionPlannerTest {
 
       @Override
       public ServiceEnvironment getServiceEnvironment() {
-        throw new UnsupportedOperationException();
+        ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+        EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+        EasyMock.expect(senv.getConfiguration(TableId.of("42"))).andReturn(conf).anyTimes();
+        EasyMock.replay(senv);
+        return senv;
       }
 
       @Override
