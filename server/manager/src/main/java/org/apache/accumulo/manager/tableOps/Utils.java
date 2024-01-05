@@ -175,8 +175,8 @@ public class Utils {
       boolean isWriteLock = lock.getType() == LockType.WRITE;
       if (writeLock != isWriteLock) {
         throw new IllegalStateException("Unexpected lock type " + lock.getType()
-            + " recovered for transaction " + tid + " on object " + id + ". Expected "
-            + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
+            + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
+            + ". Expected " + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
