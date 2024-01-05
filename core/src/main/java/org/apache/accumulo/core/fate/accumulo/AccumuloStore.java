@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -70,12 +71,22 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected List<String> getTransactions() {
-    return scanTx(scanner -> {
+  protected Stream<FateIdStatus> getTransactions() {
+    try {
+      Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      return scanner.stream().map(e -> e.getKey().getRow().toString()).collect(Collectors.toList());
-    });
+      return scanner.stream().onClose(scanner::close).map(e -> {
+        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+          @Override
+          public TStatus getStatus() {
+            return TStatus.valueOf(e.getValue().toString());
+          }
+        };
+      });
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
   }
 
   @Override

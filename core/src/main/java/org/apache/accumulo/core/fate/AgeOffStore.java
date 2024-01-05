@@ -20,13 +20,15 @@ package org.apache.accumulo.core.fate;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,7 +127,9 @@ public class AgeOffStore<T> implements FateStore<T> {
 
     minTime = Long.MAX_VALUE;
 
-    List<Long> txids = store.list();
+    // ELASTICITY_TODO need to rework how this class works so that it does not buffer everything in
+    // memory.
+    List<Long> txids = store.list().collect(Collectors.toList());
     for (Long txid : txids) {
       FateTxStore<T> txStore = store.reserve(txid);
       try {
@@ -199,12 +203,12 @@ public class AgeOffStore<T> implements FateStore<T> {
   }
 
   @Override
-  public List<Long> list() {
+  public Stream<Long> list() {
     return store.list();
   }
 
   @Override
-  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
-    return store.runnable(keepWaiting);
+  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+    store.runnable(keepWaiting, idConsumer);
   }
 }

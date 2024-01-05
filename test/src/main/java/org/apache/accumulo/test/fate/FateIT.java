@@ -23,13 +23,11 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -131,22 +129,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
       // tell the op to exit the method
       finishCall.countDown();
 
-      // TODO: This check seems like a race condition that might
-      // need to be fixed as occasionally the test fails because it was
-      // already removed so that seems to indicate things are removed
-      // before can check it was SUCCESSFUL
-      TStatus s = getTxStatus(sctx, txid);
-      while (s != SUCCESSFUL) {
-        s = getTxStatus(sctx, txid);
-        Thread.sleep(10);
-      }
-      // Check that it gets removed
-      boolean removed = false;
-      while (!removed) {
-        removed = verifyRemoved(sctx, txid);
-        Thread.sleep(10);
-      }
-
+      Wait.waitFor(() -> getTxStatus(sctx, txid) == UNKNOWN);
     } finally {
       fate.shutdown();
     }
@@ -184,7 +167,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
       // nothing should have run
       assertEquals(1, callStarted.getCount());
       fate.delete(txid);
-      assertThrows(getNoTxExistsException(), () -> getTxStatus(sctx, txid));
+      assertEquals(UNKNOWN, getTxStatus(sctx, txid));
     } finally {
       fate.shutdown();
     }
@@ -223,7 +206,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
       finishCall.countDown();
       Wait.waitFor(() -> IN_PROGRESS != getTxStatus(sctx, txid));
       fate.delete(txid);
-      assertThrows(getNoTxExistsException(), () -> getTxStatus(sctx, txid));
+      assertEquals(UNKNOWN, getTxStatus(sctx, txid));
     } finally {
       fate.shutdown();
     }
@@ -267,8 +250,6 @@ public abstract class FateIT extends SharedMiniClusterBase {
 
   protected abstract TStatus getTxStatus(ServerContext sctx, long txid) throws Exception;
 
-  protected abstract boolean verifyRemoved(ServerContext sctx, long txid);
-
   protected abstract void executeTest(FateTestExecutor testMethod) throws Exception;
 
   protected interface FateTestExecutor {
@@ -281,9 +262,4 @@ public abstract class FateIT extends SharedMiniClusterBase {
     // wait for the signal to exit the method
     finishCall.await();
   }
-
-  protected Class<? extends Exception> getNoTxExistsException() {
-    return NoSuchElementException.class;
-  }
-
 }

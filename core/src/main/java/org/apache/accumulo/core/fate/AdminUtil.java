@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
@@ -339,44 +340,45 @@ public class AdminUtil<T> {
       EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
 
-    List<Long> transactions = zs.list();
-    List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
+    try (Stream<Long> tids = zs.list()) {
+      List<TransactionStatus> statuses = new ArrayList<>();
 
-    for (Long tid : transactions) {
+      tids.forEach(tid -> {
 
-      ReadOnlyFateTxStore<T> txStore = zs.read(tid);
+        ReadOnlyFateTxStore<T> txStore = zs.read(tid);
 
-      String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+        String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-      List<String> hlocks = heldLocks.remove(tid);
+        List<String> hlocks = heldLocks.remove(tid);
 
-      if (hlocks == null) {
-        hlocks = Collections.emptyList();
-      }
+        if (hlocks == null) {
+          hlocks = Collections.emptyList();
+        }
 
-      List<String> wlocks = waitingLocks.remove(tid);
+        List<String> wlocks = waitingLocks.remove(tid);
 
-      if (wlocks == null) {
-        wlocks = Collections.emptyList();
-      }
+        if (wlocks == null) {
+          wlocks = Collections.emptyList();
+        }
 
-      String top = null;
-      ReadOnlyRepo<T> repo = txStore.top();
-      if (repo != null) {
-        top = repo.getName();
-      }
+        String top = null;
+        ReadOnlyRepo<T> repo = txStore.top();
+        if (repo != null) {
+          top = repo.getName();
+        }
 
-      TStatus status = txStore.getStatus();
+        TStatus status = txStore.getStatus();
 
-      long timeCreated = txStore.timeCreated();
+        long timeCreated = txStore.timeCreated();
 
-      if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
-      }
+        if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
+          statuses
+              .add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
+        }
+      });
+
+      return new FateStatus(statuses, heldLocks, waitingLocks);
     }
-
-    return new FateStatus(statuses, heldLocks, waitingLocks);
-
   }
 
   private boolean includeByStatus(TStatus status, EnumSet<TStatus> filterStatus) {

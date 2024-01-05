@@ -27,18 +27,17 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.slf4j.Logger;
@@ -125,37 +124,34 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
+  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
 
-    while (keepWaiting.get()) {
-      ArrayList<Long> runnableTids = new ArrayList<>();
+    AtomicLong seen = new AtomicLong(0);
 
+    while (keepWaiting.get() && seen.get() == 0) {
       final long beforeCount = unreservedRunnableCount.getCount();
 
-      List<String> transactions = getTransactions();
-      for (String txidStr : transactions) {
-        long txid = parseTid(txidStr);
-        if (isRunnable(_getStatus(txid))) {
-          runnableTids.add(txid);
-        }
+      try (Stream<FateIdStatus> transactions = getTransactions()) {
+        transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
+            .mapToLong(FateIdStatus::getTxid).filter(txid -> {
+              synchronized (AbstractFateStore.this) {
+                var deferredTime = deferred.get(txid);
+                if (deferredTime != null) {
+                  if ((deferredTime - System.nanoTime()) >= 0) {
+                    return false;
+                  } else {
+                    deferred.remove(txid);
+                  }
+                }
+                return !reserved.contains(txid);
+              }
+            }).forEach(txid -> {
+              seen.incrementAndGet();
+              idConsumer.accept(txid);
+            });
       }
 
-      synchronized (this) {
-        runnableTids.removeIf(txid -> {
-          var deferredTime = deferred.get(txid);
-          if (deferredTime != null) {
-            if ((deferredTime - System.nanoTime()) > 0) {
-              return true;
-            } else {
-              deferred.remove(txid);
-            }
-          }
-
-          return reserved.contains(txid);
-        });
-      }
-
-      if (runnableTids.isEmpty()) {
+      if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
           if (!deferred.isEmpty()) {
@@ -170,23 +166,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
                 keepWaiting::get);
           }
         }
-      } else {
-        return runnableTids.iterator();
       }
-
     }
-
-    return Collections.emptyIterator();
   }
 
   @Override
-  public List<Long> list() {
-    ArrayList<Long> l = new ArrayList<>();
-    List<String> transactions = getTransactions();
-    for (String txid : transactions) {
-      l.add(parseTid(txid));
-    }
-    return l;
+  public Stream<Long> list() {
+    return getTransactions().map(fateIdStatus -> fateIdStatus.txid);
   }
 
   @Override
@@ -203,7 +189,21 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  protected abstract List<String> getTransactions();
+  public static abstract class FateIdStatus {
+    private final long txid;
+
+    public FateIdStatus(long txid) {
+      this.txid = txid;
+    }
+
+    public long getTxid() {
+      return txid;
+    }
+
+    public abstract TStatus getStatus();
+  }
+
+  protected abstract Stream<FateIdStatus> getTransactions();
 
   protected abstract TStatus _getStatus(long tid);
 

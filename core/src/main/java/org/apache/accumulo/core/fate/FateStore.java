@@ -86,7 +86,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * longer interact with it.
      *
      * @param deferTime time in millis to keep this transaction from being returned by
-     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean)}. Must be non-negative.
+     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.LongConsumer)}.
+     *        Must be non-negative.
      */
     void unreserve(long deferTime, TimeUnit timeUnit);
   }

@@ -66,13 +66,13 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
 
       AccumuloStore<TestEnv> store = new AccumuloStore<>(client, table);
       // Verify no transactions
-      assertEquals(0, store.list().size());
+      assertEquals(0, store.list().count());
 
       // Create a new transaction and get the store for it
       long tid = store.create();
       FateTxStore<TestEnv> txStore = store.reserve(tid);
       assertTrue(txStore.timeCreated() > 0);
-      assertEquals(1, store.list().size());
+      assertEquals(1, store.list().count());
 
       // Push a test FATE op and verify we can read it back
       txStore.push(new TestRepo("testOp"));
@@ -109,13 +109,13 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
 
       // create second
       FateTxStore<TestEnv> txStore2 = store.reserve(store.create());
-      assertEquals(2, store.list().size());
+      assertEquals(2, store.list().count());
 
       // test delete
       txStore.delete();
-      assertEquals(1, store.list().size());
+      assertEquals(1, store.list().count());
       txStore2.delete();
-      assertEquals(0, store.list().size());
+      assertEquals(0, store.list().count());
     }
   }
 

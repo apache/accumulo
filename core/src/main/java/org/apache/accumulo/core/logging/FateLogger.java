@@ -21,11 +21,11 @@ package org.apache.accumulo.core.logging;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
@@ -115,13 +115,13 @@ public class FateLogger {
       }
 
       @Override
-      public List<Long> list() {
+      public Stream<Long> list() {
         return store.list();
       }
 
       @Override
-      public Iterator<Long> runnable(AtomicBoolean keepWaiting) {
-        return store.runnable(keepWaiting);
+      public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+        store.runnable(keepWaiting, idConsumer);
       }
 
       @Override

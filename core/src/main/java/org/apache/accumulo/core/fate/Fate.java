@@ -90,12 +90,9 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         try {
-          var iter = store.runnable(keepRunning);
-
-          while (iter.hasNext() && keepRunning.get()) {
-            Long txid = iter.next();
-            try {
-              while (keepRunning.get()) {
+          store.runnable(keepRunning, txid -> {
+            while (keepRunning.get()) {
+              try {
                 // The reason for calling transfer instead of queueing is avoid rescanning the
                 // storage layer and adding the same thing over and over. For example if all threads
                 // were busy, the queue size was 100, and there are three runnable things in the
@@ -104,12 +101,12 @@ public class Fate<T> {
                 if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
                   break;
                 }
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
               }
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              throw new IllegalStateException(e);
             }
-          }
+          });
         } catch (Exception e) {
           if (keepRunning.get()) {
             log.warn("Failure while attempting to find work for fate", e);
