@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
@@ -451,7 +452,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
     return state;
   }
@@ -497,7 +498,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
 
     return state;

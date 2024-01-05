@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AgeOffStore.TimeSource;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -52,7 +53,7 @@ public class AgeOffStoreTest {
     long txid1 = aoStore.create();
     var txStore1 = aoStore.reserve(txid1);
     txStore1.setStatus(TStatus.IN_PROGRESS);
-    txStore1.unreserve(0);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     aoStore.ageOff();
 
@@ -60,7 +61,7 @@ public class AgeOffStoreTest {
     var txStore2 = aoStore.reserve(txid2);
     txStore2.setStatus(TStatus.IN_PROGRESS);
     txStore2.setStatus(TStatus.FAILED);
-    txStore2.unreserve(0);
+    txStore2.unreserve(0, TimeUnit.MILLISECONDS);
 
     tts.time = 6;
 
@@ -68,7 +69,7 @@ public class AgeOffStoreTest {
     var txStore3 = aoStore.reserve(txid3);
     txStore3.setStatus(TStatus.IN_PROGRESS);
     txStore3.setStatus(TStatus.SUCCESSFUL);
-    txStore3.unreserve(0);
+    txStore3.unreserve(0, TimeUnit.MILLISECONDS);
 
     Long txid4 = aoStore.create();
 
@@ -101,19 +102,19 @@ public class AgeOffStoreTest {
     long txid1 = testStore.create();
     var txStore1 = testStore.reserve(txid1);
     txStore1.setStatus(TStatus.IN_PROGRESS);
-    txStore1.unreserve(0);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     long txid2 = testStore.create();
     var txStore2 = testStore.reserve(txid2);
     txStore2.setStatus(TStatus.IN_PROGRESS);
     txStore2.setStatus(TStatus.FAILED);
-    txStore2.unreserve(0);
+    txStore2.unreserve(0, TimeUnit.MILLISECONDS);
 
     long txid3 = testStore.create();
     var txStore3 = testStore.reserve(txid3);
     txStore3.setStatus(TStatus.IN_PROGRESS);
     txStore3.setStatus(TStatus.SUCCESSFUL);
-    txStore3.unreserve(0);
+    txStore3.unreserve(0, TimeUnit.MILLISECONDS);
 
     Long txid4 = testStore.create();
 
@@ -136,7 +137,7 @@ public class AgeOffStoreTest {
 
     txStore1 = aoStore.reserve(txid1);
     txStore1.setStatus(TStatus.FAILED_IN_PROGRESS);
-    txStore1.unreserve(0);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     tts.time = 30;
 
@@ -147,7 +148,7 @@ public class AgeOffStoreTest {
 
     txStore1 = aoStore.reserve(txid1);
     txStore1.setStatus(TStatus.FAILED);
-    txStore1.unreserve(0);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     aoStore.ageOff();
 

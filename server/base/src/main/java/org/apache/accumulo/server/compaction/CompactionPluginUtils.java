@@ -210,11 +210,12 @@ public class CompactionPluginUtils {
   }
 
   public static Map<String,String> computeOverrides(Optional<CompactionConfig> compactionConfig,
-      ServerContext context, KeyExtent extent, Set<CompactableFile> files) {
+      ServerContext context, KeyExtent extent, Set<CompactableFile> inputFiles,
+      Set<CompactableFile> selectedFiles) {
 
     if (compactionConfig.isPresent()
         && !UserCompactionUtils.isDefault(compactionConfig.orElseThrow().getConfigurer())) {
-      return CompactionPluginUtils.computeOverrides(context, extent, files,
+      return CompactionPluginUtils.computeOverrides(context, extent, inputFiles, selectedFiles,
           compactionConfig.orElseThrow().getConfigurer());
     }
 
@@ -228,12 +229,12 @@ public class CompactionPluginUtils {
     var opts =
         tableConf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
 
-    return CompactionPluginUtils.computeOverrides(context, extent, files,
+    return CompactionPluginUtils.computeOverrides(context, extent, inputFiles, selectedFiles,
         new PluginConfig(configurorClass, opts));
   }
 
   public static Map<String,String> computeOverrides(ServerContext context, KeyExtent extent,
-      Set<CompactableFile> files, PluginConfig cfg) {
+      Set<CompactableFile> inputFiles, Set<CompactableFile> selectedFiles, PluginConfig cfg) {
 
     CompactionConfigurer configurer = newInstance(context.getTableConfiguration(extent.tableId()),
         cfg.getClassName(), CompactionConfigurer.class);
@@ -260,7 +261,12 @@ public class CompactionPluginUtils {
     var overrides = configurer.override(new CompactionConfigurer.InputParameters() {
       @Override
       public Collection<CompactableFile> getInputFiles() {
-        return files;
+        return inputFiles;
+      }
+
+      @Override
+      public Set<CompactableFile> getSelectedFiles() {
+        return selectedFiles;
       }
 
       @Override

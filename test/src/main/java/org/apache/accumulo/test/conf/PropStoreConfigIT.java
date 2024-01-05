@@ -331,6 +331,47 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void getSystemPropertiesTest() throws Exception {
+
+    // Tests that getSystemProperties() does not return a merged view (only returns props set at the
+    // system level).
+    // Compares this with getSystemConfiguration() which does return a merged view (system + site +
+    // default).
+
+    String customPropKey1 = "table.custom.prop1";
+    String customPropKey2 = "table.custom.prop2";
+    String customPropVal1 = "v1";
+    String customPropVal2 = "v2";
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // non-merged view
+      Map<String,String> sysProps = client.instanceOperations().getSystemProperties();
+      // merged view
+      Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
+      // sysProps is non-merged view, so should be empty at this point (no system props set yet)
+      assertTrue(sysProps.isEmpty());
+      // sysConfig is merged view, so will have some props already (default properties and those
+      // inherited from site config)
+      assertFalse(sysConfig.isEmpty());
+      client.instanceOperations().setProperty(customPropKey1, customPropVal1);
+      client.instanceOperations().setProperty(customPropKey2, customPropVal2);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey1)
+          .equals(customPropVal1), 5000, 500);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey2)
+          .equals(customPropVal2), 5000, 500);
+      sysProps = client.instanceOperations().getSystemProperties();
+      // The custom props should be present (and the only props) in the non-merged view
+      assertEquals(2, sysProps.size());
+      assertEquals(customPropVal1, sysProps.get(customPropKey1));
+      assertEquals(customPropVal2, sysProps.get(customPropKey2));
+      sysConfig = client.instanceOperations().getSystemConfiguration();
+      // The custom props should be present in the merged view
+      assertTrue(sysConfig.size() > 2);
+      assertEquals(customPropVal1, sysConfig.get(customPropKey1));
+      assertEquals(customPropVal2, sysConfig.get(customPropKey2));
+    }
+  }
+
+  @Test
   public void modifyTablePropTest() throws Exception {
     String table = getUniqueNames(1)[0];
 

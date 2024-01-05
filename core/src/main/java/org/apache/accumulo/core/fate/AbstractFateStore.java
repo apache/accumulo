@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
@@ -143,7 +144,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         runnableTids.removeIf(txid -> {
           var deferredTime = deferred.get(txid);
           if (deferredTime != null) {
-            if (deferredTime >= System.currentTimeMillis()) {
+            if ((deferredTime - System.nanoTime()) > 0) {
               return true;
             } else {
               deferred.remove(txid);
@@ -158,8 +159,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
           if (!deferred.isEmpty()) {
-            Long minTime = Collections.min(deferred.values());
-            waitTime = minTime - System.currentTimeMillis();
+            long currTime = System.nanoTime();
+            long minWait =
+                deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+            waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
           }
 
           if (waitTime > 0) {
@@ -235,7 +238,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(long deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
+      deferTime = TimeUnit.NANOSECONDS.convert(deferTime, timeUnit);
 
       if (deferTime < 0) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
@@ -251,7 +255,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         AbstractFateStore.this.notifyAll();
 
         if (deferTime > 0) {
-          deferred.put(tid, System.currentTimeMillis() + deferTime);
+          deferred.put(tid, System.nanoTime() + deferTime);
         }
       }
 
