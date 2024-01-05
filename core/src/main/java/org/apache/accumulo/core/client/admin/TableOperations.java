@@ -553,7 +553,7 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Gets a merged view of the properties of a table from its parent configuration. This operation
+   * Gets a merged view of the properties of a table with its parent configuration. This operation
    * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
    * will return the same values. Within a few seconds without another change, all tablets in a
    * table should be consistent. The clone table feature can be used if consistency is required.
@@ -571,7 +571,7 @@ public interface TableOperations {
   }
 
   /**
-   * Gets a merged view of the properties of a table from its parent configuration. This operation
+   * Gets a merged view of the properties of a table with its parent configuration. This operation
    * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
    * will return the same values. Within a few seconds without another change, all tablets in a
    * table should be consistent. The clone table feature can be used if consistency is required.
@@ -588,7 +588,7 @@ public interface TableOperations {
 
   /**
    * Gets per-table properties of a table. Note that this does not return a merged view of the
-   * properties from its parent configuration. This operation is asynchronous and eventually
+   * properties with its parent configuration. This operation is asynchronous and eventually
    * consistent. It is not guaranteed that all tablets in a table will return the same values.
    * Within a few seconds without another change, all tablets in a table should be consistent. The
    * clone table feature can be used if consistency is required.

@@ -184,7 +184,7 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Gets a merged view of the properties of a namespace from its parent configuration. These
+   * Gets a merged view of the properties of a namespace with its parent configuration. These
    * properties are inherited by tables in this namespace. Note that recently changed properties may
    * not be available immediately. Method calls {@link #getConfiguration(String)} and then calls
    * .entrySet() on the map.
@@ -203,7 +203,7 @@ public interface NamespaceOperations {
   }
 
   /**
-   * Gets a merged view of the properties of a namespace from its parent configuration. These
+   * Gets a merged view of the properties of a namespace with its parent configuration. These
    * properties are inherited by tables in this namespace. Note that recently changed properties may
    * not be available immediately. This method returns a Map instead of an Iterable.
    *
@@ -220,7 +220,7 @@ public interface NamespaceOperations {
 
   /**
    * Gets properties specific to this namespace. Note that this does not return a merged view of the
-   * properties from its parent configuration. Also note that recently changed properties may not be
+   * properties with its parent configuration. Also note that recently changed properties may not be
    * available immediately. This method returns a Map instead of an Iterable.
    *
    * @param namespace the name of the namespace
