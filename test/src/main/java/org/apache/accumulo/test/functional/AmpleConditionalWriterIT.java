@@ -881,21 +881,36 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
      */
     private void testFilterApplied(ServerContext context, Set<TabletMetadataFilter> filters,
         Set<KeyExtent> expectedTablets, String message) {
+      // test with just the needed columns fetched and then with all columns fetched. both should
+      // yield the same result
+      addFiltersFetchAndAssert(context, filters, true, expectedTablets, message);
+      addFiltersFetchAndAssert(context, filters, false, expectedTablets, message);
+    }
+
+    private void addFiltersFetchAndAssert(ServerContext context, Set<TabletMetadataFilter> filters,
+        boolean shouldFetchNeededCols, Set<KeyExtent> expectedTablets, String message) {
       TabletsMetadata.TableRangeOptions options = context.getAmple().readTablets().forTable(tid);
       // add the filter(s) to the operation before building
       for (TabletMetadataFilter filter : filters) {
         options.filter(filter);
-        // fetch the columns that the filter needs to evaluate. not necessary but makes the call
-        // more refined.
-        for (TabletMetadata.ColumnType columnType : filter.getColumns()) {
-          options.fetch(columnType);
+        // test fetching just the needed columns
+        if (shouldFetchNeededCols) {
+          for (TabletMetadata.ColumnType columnType : filter.getColumns()) {
+            options.fetch(columnType);
+          }
         }
       }
-      // need to fetch PREV_ROW in order to use getExtent()
-      try (TabletsMetadata tablets = options.fetch(PREV_ROW).build()) {
+      if (shouldFetchNeededCols) {
+        // if some columns were fetched, also need to fetch PREV_ROW in order to use getExtent()
+        options.fetch(PREV_ROW);
+      }
+      try (TabletsMetadata tablets = options.build()) {
         Set<KeyExtent> actual =
             tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toSet());
-        assertEquals(expectedTablets, actual, message);
+        assertEquals(expectedTablets, actual,
+            message + (shouldFetchNeededCols
+                ? ". Only needed columns were fetched in the readTablets operation."
+                : ". All columns were fetched in the readTablets operation."));
       }
     }
 
