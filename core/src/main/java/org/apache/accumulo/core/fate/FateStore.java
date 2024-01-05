@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Transaction Store: a place to save transactions
@@ -88,7 +89,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.LongConsumer)}.
      *        Must be non-negative.
      */
-    void unreserve(long deferTime);
+    void unreserve(long deferTime, TimeUnit timeUnit);
   }
 
   /**

@@ -957,8 +957,12 @@ public enum Property {
           + " adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make"
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
-          + " from having more RFiles than can be opened. Setting this property low may"
-          + " throttle ingest and increase query performance.",
+          + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
+          + " was used to trigger merging minor compactions, but merging minor compactions"
+          + " were removed in 2.1.0. Now this property is only used by the"
+          + " DefaultCompactionStrategy and the DefaultCompactionPlanner."
+          + " The DefaultCompactionPlanner started using this property in 2.1.3, before"
+          + " that it did not use the property.",
       "1.4.0"),
   TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
       "The maximum number of files that a merge operation will process.  Before "

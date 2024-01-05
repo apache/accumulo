@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
@@ -110,7 +111,7 @@ public class AgeOffStore<T> implements FateStore<T> {
           }
 
         } finally {
-          txStore.unreserve(0);
+          txStore.unreserve(0, TimeUnit.MILLISECONDS);
         }
       } catch (Exception e) {
         log.warn("Failed to age off FATE tx " + FateTxId.formatTid(txid), e);
@@ -142,7 +143,7 @@ public class AgeOffStore<T> implements FateStore<T> {
             break;
         }
       } finally {
-        txStore.unreserve(0);
+        txStore.unreserve(0, TimeUnit.MILLISECONDS);
       }
     }
   }

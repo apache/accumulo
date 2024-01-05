@@ -38,6 +38,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -201,7 +202,7 @@ public class Fate<T> {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           if (txStore != null) {
-            txStore.unreserve(deferTime);
+            txStore.unreserve(deferTime, TimeUnit.MILLISECONDS);
           }
         }
       }
@@ -361,7 +362,7 @@ public class Fate<T> {
         txStore.setStatus(SUBMITTED);
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
 
   }
@@ -399,7 +400,7 @@ public class Fate<T> {
             return false;
           }
         } finally {
-          txStore.unreserve(0);
+          txStore.unreserve(0, TimeUnit.MILLISECONDS);
         }
       } else {
         // reserved, lets retry.
@@ -430,7 +431,7 @@ public class Fate<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -443,7 +444,7 @@ public class Fate<T> {
       }
       return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -457,7 +458,7 @@ public class Fate<T> {
       }
       return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 

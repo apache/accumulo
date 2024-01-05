@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
@@ -153,7 +154,7 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public void unreserve(long deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
       if (!reserved.remove(tid)) {
         throw new IllegalStateException();
       }
