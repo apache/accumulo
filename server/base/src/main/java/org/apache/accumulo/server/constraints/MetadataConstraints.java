@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -82,10 +83,10 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          Upgrade12to13.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          Upgrade12to13.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,

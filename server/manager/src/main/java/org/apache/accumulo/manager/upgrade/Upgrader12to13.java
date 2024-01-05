@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -77,6 +78,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
+    LOG.info("Looking for partial splits");
+    handlePartialSplits(context, RootTable.NAME);
     LOG.info("Setting metadata table hosting goal");
     addHostingGoalToMetadataTable(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
@@ -87,6 +90,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext context) {
+    LOG.info("Looking for partial splits");
+    handlePartialSplits(context, MetadataTable.NAME);
     LOG.info("Setting hosting goal on user tables");
     addHostingGoalToUserTables(context);
     LOG.info("Deleting external compaction final states from user tables");
@@ -120,6 +125,7 @@ public class Upgrader12to13 implements Upgrader {
           Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
               "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
           Mutation m = new Mutation(row);
+          // TODO will metadata contraint fail when this is written?
           COMPACT_COL.putDelete(m);
           mutations.add(m);
         }
@@ -264,6 +270,19 @@ public class Upgrader12to13 implements Upgrader {
             "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
         writer.addMutation(m);
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void handlePartialSplits(ServerContext context, String table) {
+    try (var scanner = context.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(TabletsSection.getRange());
+      TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN.fetch(scanner);
+
+      for (var entry : scanner) {
+        SplitRecovery12to13.fixSplit(context, entry.getKey().getRow());
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
