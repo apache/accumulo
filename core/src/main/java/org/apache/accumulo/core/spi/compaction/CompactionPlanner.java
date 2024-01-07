@@ -155,8 +155,8 @@ public interface CompactionPlanner {
    * {@code [F3,F4,F5]} and it must eventually compact those three files to one.
    *
    * <p>
-   * When a planner returns a compactions plan, task will be queued on executors. Previously queued
-   * task that do not match the latest plan are removed. The planner is called periodically,
+   * When a planner returns a compactions plan, task will be queued on a compactor group. Previously
+   * queued task that do not match the latest plan are removed. The planner is called periodically,
    * whenever a new file is added, and whenever a compaction finishes.
    *
    * <p>
