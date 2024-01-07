@@ -74,7 +74,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -383,8 +383,8 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::getCompacted);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-    ExternalCompactionMetadata ecm = new ExternalCompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
-        CompactionKind.USER, (short) 3, CompactionExecutorIdImpl.externalId("Q1"), true, 99L);
+    CompactionMetadata ecm = new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
+        CompactionKind.USER, (short) 3, CompactorGroupIdImpl.groupId("Q1"), true, 99L);
 
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());

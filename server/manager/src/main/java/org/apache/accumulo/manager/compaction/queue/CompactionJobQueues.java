@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class CompactionJobQueues {
   // can be observed that scoped locks are acquired. Other concurrent map impls may run the compute
   // lambdas concurrently for a given key, which may still be correct but is more difficult to
   // analyze.
-  private final ConcurrentHashMap<CompactionExecutorId,CompactionJobPriorityQueue> priorityQueues =
+  private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
   private final int queueSize;
@@ -50,44 +50,44 @@ public class CompactionJobQueues {
 
   public void add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     if (jobs.size() == 1) {
-      var executorId = jobs.iterator().next().getExecutor();
+      var executorId = jobs.iterator().next().getGroup();
       add(tabletMetadata, executorId, jobs);
     } else {
-      jobs.stream().collect(Collectors.groupingBy(CompactionJob::getExecutor)).forEach(
-          ((executorId, compactionJobs) -> add(tabletMetadata, executorId, compactionJobs)));
+      jobs.stream().collect(Collectors.groupingBy(CompactionJob::getGroup))
+          .forEach(((groupId, compactionJobs) -> add(tabletMetadata, groupId, compactionJobs)));
     }
   }
 
-  public KeySetView<CompactionExecutorId,CompactionJobPriorityQueue> getQueueIds() {
+  public KeySetView<CompactorGroupId,CompactionJobPriorityQueue> getQueueIds() {
     return priorityQueues.keySet();
   }
 
-  public CompactionJobPriorityQueue getQueue(CompactionExecutorId executorId) {
-    return priorityQueues.get(executorId);
+  public CompactionJobPriorityQueue getQueue(CompactorGroupId groupId) {
+    return priorityQueues.get(groupId);
   }
 
-  public long getQueueMaxSize(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public long getQueueMaxSize(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
-  public long getQueuedJobs(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public long getQueuedJobs(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
-  public long getDequeuedJobs(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public long getDequeuedJobs(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getDequeuedJobs();
   }
 
-  public long getRejectedJobs(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public long getRejectedJobs(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getRejectedJobs();
   }
 
-  public long getLowestPriority(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public long getLowestPriority(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getLowestPriority();
   }
 
@@ -123,15 +123,15 @@ public class CompactionJobQueues {
     }
   }
 
-  public MetaJob poll(CompactionExecutorId executorId) {
-    var prioQ = priorityQueues.get(executorId);
+  public MetaJob poll(CompactorGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
     if (prioQ == null) {
       return null;
     }
     MetaJob mj = prioQ.poll();
 
     if (mj == null) {
-      priorityQueues.computeIfPresent(executorId, (eid, pq) -> {
+      priorityQueues.computeIfPresent(groupId, (eid, pq) -> {
         if (pq.closeIfEmpty()) {
           return null;
         } else {
@@ -142,23 +142,23 @@ public class CompactionJobQueues {
     return mj;
   }
 
-  private void add(TabletMetadata tabletMetadata, CompactionExecutorId executorId,
+  private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
       Collection<CompactionJob> jobs) {
 
     // TODO log level
     if (log.isDebugEnabled()) {
-      log.debug("Adding jobs to queue {} {} {}", executorId, tabletMetadata.getExtent(),
+      log.debug("Adding jobs to queue {} {} {}", groupId, tabletMetadata.getExtent(),
           jobs.stream().map(job -> "#files:" + job.getFiles().size() + ",prio:" + job.getPriority()
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
-    var pq = priorityQueues.computeIfAbsent(executorId,
-        eid -> new CompactionJobPriorityQueue(eid, queueSize));
+    var pq = priorityQueues.computeIfAbsent(groupId,
+        gid -> new CompactionJobPriorityQueue(gid, queueSize));
     while (!pq.add(tabletMetadata, jobs)) {
       // This loop handles race condition where poll() closes empty priority queues. The queue could
       // be closed after its obtained from the map and before add is called.
-      pq = priorityQueues.computeIfAbsent(executorId,
-          eid -> new CompactionJobPriorityQueue(eid, queueSize));
+      pq = priorityQueues.computeIfAbsent(groupId,
+          gid -> new CompactionJobPriorityQueue(gid, queueSize));
     }
   }
 }

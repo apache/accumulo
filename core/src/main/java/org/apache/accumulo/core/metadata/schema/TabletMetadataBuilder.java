@@ -190,7 +190,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder putExternalCompaction(ExternalCompactionId ecid,
-      ExternalCompactionMetadata ecMeta) {
+      CompactionMetadata ecMeta) {
     fetched.add(ECOMP);
     internalBuilder.putExternalCompaction(ecid, ecMeta);
     return this;

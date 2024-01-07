@@ -44,7 +44,7 @@ public class CompactionPrioritizerTest {
     // TODO pass numFiles
     return new CompactionJobImpl(
         CompactionJobPrioritizer.createPriority(kind, totalFiles, numFiles),
-        CompactionExecutorIdImpl.externalId("test"), files, kind, Optional.of(false));
+        CompactorGroupIdImpl.groupId("test"), files, kind, Optional.of(false));
   }
 
   @Test
