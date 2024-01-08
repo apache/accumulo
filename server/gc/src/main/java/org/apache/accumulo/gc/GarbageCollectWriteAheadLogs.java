@@ -85,11 +85,11 @@ public class GarbageCollectWriteAheadLogs {
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
         context.getAmple().readTablets().forLevel(DataLevel.ROOT).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
         context.getAmple().readTablets().forLevel(DataLevel.METADATA).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
         context.getAmple().readTablets().forLevel(DataLevel.USER).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator());
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator());
   }
 
   /**
