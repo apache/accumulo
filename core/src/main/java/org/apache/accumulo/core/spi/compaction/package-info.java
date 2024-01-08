@@ -37,13 +37,13 @@
  * <ul>
  * <li><b>Compaction Service</b> A non pluggable component that compacts tablets. One or more of
  * these are created based on user configuration. Users can assign a table to a compaction service.
- * Has a single compaction planner and one ore more compaction executors.
+ * Has a single compaction planner and one or more compactor groups.
  * <ul>
- * <li><b>Compaction Executor</b> A non pluggable component that executes compactions using multiple
- * threads and has a priority queue.
+ * <li><b>Compactor Group</b> A non pluggable component that executes compactions using multiple
+ * compactor instances and has a priority queue.
  * <li><b>Compaction Planner</b> A pluggable component that can be configured by users when they
  * configure a compaction service. It makes decisions about which files to compact on which
- * executors. See {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner},
+ * compactor groups. See {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner},
  * {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner#makePlan(org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters)},
  * and {@link org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner}
  * </ul>

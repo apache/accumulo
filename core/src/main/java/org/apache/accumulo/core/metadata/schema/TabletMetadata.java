@@ -111,7 +111,7 @@ public class TabletMetadata {
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
@@ -386,7 +386,7 @@ public class TabletMetadata {
     return keyValues;
   }
 
-  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+  public Map<ExternalCompactionId,CompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
   }
@@ -421,8 +421,7 @@ public class TabletMetadata {
     final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
     final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     final var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var extCompBuilder =
-        ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
+    final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
     final var compactedBuilder = ImmutableSet.<Long>builder();
     ByteSequence row = null;
@@ -505,8 +504,7 @@ public class TabletMetadata {
           logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
           break;
         case ExternalCompactionColumnFamily.STR_NAME:
-          extCompBuilder.put(ExternalCompactionId.of(qual),
-              ExternalCompactionMetadata.fromJson(val));
+          extCompBuilder.put(ExternalCompactionId.of(qual), CompactionMetadata.fromJson(val));
           break;
         case MergedColumnFamily.STR_NAME:
           te.merged = true;

@@ -241,7 +241,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta) {
+  public T putExternalCompaction(ExternalCompactionId ecid, CompactionMetadata ecMeta) {
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
     return getThis();
   }

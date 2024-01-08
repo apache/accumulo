@@ -44,12 +44,12 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       // Configure all compaction planners to use the default resource group so
       // that only 1 compactor is started by MiniAccumuloCluster
-      cfg.setProperty("tserver.compaction.major.service.root.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
-      cfg.setProperty("tserver.compaction.major.service.meta.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
-      cfg.setProperty("tserver.compaction.major.service.default.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
+      cfg.setProperty("compaction.service.root.planner.opts.groups",
+          "[{'name':'default'}]".replaceAll("'", "\""));
+      cfg.setProperty("compaction.service.meta.planner.opts.groups",
+          "[{'name':'default'}]".replaceAll("'", "\""));
+      cfg.setProperty("compaction.service.default.planner.opts.groups",
+          "[{'name':'default'}]".replaceAll("'", "\""));
 
       // Disable the default scan servers and compactors, just start 1
       // tablet server in the default group to host the root and metadata

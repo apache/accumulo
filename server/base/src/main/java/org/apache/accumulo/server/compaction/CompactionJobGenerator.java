@@ -266,7 +266,7 @@ public class CompactionJobGenerator {
           Collection<CompactableFile> files = ecMeta.getJobFiles().stream()
               .map(f -> new CompactableFileImpl(f, allFiles2.get(f))).collect(Collectors.toList());
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-              ecMeta.getCompactionExecutorId(), files, ecMeta.getKind(), Optional.empty());
+              ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
           return job;
         }).collect(Collectors.toUnmodifiableList());
       }

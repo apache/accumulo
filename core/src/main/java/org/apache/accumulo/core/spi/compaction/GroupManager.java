@@ -18,20 +18,16 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import org.apache.accumulo.core.data.AbstractId;
-
 /**
- * A unique identifier for a a compaction executor that a {@link CompactionPlanner} can schedule
- * compactions on using a {@link CompactionJob}.
+ * Offered to a Compaction Planner at initialization time, so it can create compactor groups.
  *
- * @since 2.1.0
+ * @since 3.1.0
+ * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
  * @see org.apache.accumulo.core.spi.compaction
  */
-public class CompactionExecutorId extends AbstractId<CompactionExecutorId> {
-  // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
-  private static final long serialVersionUID = 1L;
-
-  protected CompactionExecutorId(String canonical) {
-    super(canonical);
-  }
+public interface GroupManager {
+  /**
+   * @return an id for a configured compactor group.
+   */
+  CompactorGroupId getGroup(String name);
 }

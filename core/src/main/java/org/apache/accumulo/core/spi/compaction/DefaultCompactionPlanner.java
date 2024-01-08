@@ -59,85 +59,49 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * compaction service you are configuring.
  *
  * <ul>
- * <li>{@code compaction.service.<service>.opts.executors} This is a json array of objects where
- * each object has the fields:
+ * <li>Note that the CompactionCoordinator and at least one running Compactor must be assigned to
+ * the "large" compactor group.
+ * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
+ * that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.opts.groups} This is a json array of compactor group
+ * objects which have the following fields:
  * <table>
- * <caption>Default Compaction Planner Executor options</caption>
+ * <caption>Default Compaction Planner Group options</caption>
  * <tr>
  * <th>Field Name</th>
  * <th>Description</th>
  * </tr>
  * <tr>
  * <td>name</td>
- * <td>name or alias of the executor (required)</td>
- * </tr>
- * <tr>
- * <td>type</td>
- * <td>valid values 'internal' or 'external' (required)</td>
+ * <td>name of the compactor group (required)</td>
  * </tr>
  * <tr>
  * <td>maxSize</td>
  * <td>threshold sum of the input files (required for all but one of the configs)</td>
  * </tr>
- * <tr>
- * <td>numThreads</td>
- * <td>number of threads for this executor configuration (required for 'internal', cannot be
- * specified for 'external')</td>
- * </tr>
- * <tr>
- * <td>group</td>
- * <td>name of the external compaction group (required for 'external', cannot be specified for
- * 'internal')</td>
- * </tr>
  * </table>
  * <br>
- * Note: The "executors" option has been deprecated in 3.1 and will be removed in a future release.
- * This example uses the new `compaction.service` prefix. The property prefix
- * "tserver.compaction.major.service" has also been deprecated in 3.1 and will be removed in a
- * future release. The maxSize field determines the maximum size of compaction that will run on an
- * executor. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and
- * represents the sum of the input files for a given compaction. One executor can have no max size
- * and it will run everything that is too large for the other executors. If all executors have a max
- * size, then system compactions will only run for compactions smaller than the largest max size.
- * User, chop, and selector compactions will always run, even if there is no executor for their
- * size. These compactions will run on the executor with the largest max size. The following example
- * value for this property will create 3 threads to run compactions of files whose file size sum is
- * less than 100M, 3 threads to run compactions of files whose file size sum is less than 500M, and
- * run all other compactions on Compactors configured to run compactions for Queue1:
+ * This 'groups' object provides information that is used for mapping a compaction job to a
+ * compactor group. The maxSize field determines the maximum size of compaction that will run in a
+ * group. The maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and
+ * represents the sum of the input files for a given compaction. One group can have no max size and
+ * it will run everything that is too large for the other groups. If all groups have a max size,
+ * then system compactions will only run for compactions smaller than the largest max size. User and
+ * selector compactions will always run, even if there is no group for their size. These compactions
+ * will run on the group with the largest max size. The following example value for this property
+ * will create three separate compactor groups. "small" will run compactions of files whose file
+ * size sum is less than 100M, "medium" will run compactions of files whose file size sum is less
+ * than 500M, and "large" will run all other compactions on Compactors configured to pull jobs from
+ * the large group.
  *
  * <pre>
  * {@code
  * [
- *  {"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
- *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
- *  {"name": "large", "type": "external", "group", "Queue1"}
+ *  {"name":"small", "maxSize":"100M"},
+ *  {"name":"medium", "maxSize":"500M"},
+ *  {"name": "large"}
  * ]}
  * </pre>
- *
- * Note that the use of 'external' requires that the CompactionCoordinator and at least one
- * Compactor for Queue1 is running.
- * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
- * that will be included in a single compaction.
- * <li>{@code compaction.service.<service>.opts.queues} This is a json array of queue objects which
- * have the following fields:
- * <table>
- * <caption>Default Compaction Planner Queue options</caption>
- * <tr>
- * <th>Field Name</th>
- * <th>Description</th>
- * </tr>
- * <tr>
- * <td>name</td>
- * <td>name or alias of the queue (required)</td>
- * </tr>
- * <tr>
- * <td>maxSize</td>
- * <td>threshold sum of the input files (required for all but one of the configs)</td>
- * </tr>
- * </table>
- * <br>
- * This 'queues' object is used for defining external compaction queues without needing to use the
- * thread-based 'executors' property.
  * </ul>
  *
  * <p>
@@ -154,7 +118,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
  * ratio less than 3 that results in a compaction.
  *
- *
  * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
@@ -163,67 +126,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
-  private static class ExecutorConfig {
-    String type;
-    String name;
-    String maxSize;
-    Integer numThreads;
-    String group;
-
-    public String getType() {
-      return type;
-    }
-
-    public void setType(String type) {
-      this.type = type;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public String getMaxSize() {
-      return maxSize;
-    }
-
-    public void setMaxSize(String maxSize) {
-      this.maxSize = maxSize;
-    }
-
-    public Integer getNumThreads() {
-      return numThreads;
-    }
-
-    public void setNumThreads(Integer numThreads) {
-      this.numThreads = numThreads;
-    }
-
-    public String getQueue() {
-      return group;
-    }
-
-    public void setGroup(String group) {
-      this.group = group;
-    }
-
-  }
-
-  private static class QueueConfig {
+  private static class GroupConfig {
     String name;
     String maxSize;
   }
 
-  private static class Executor {
-    final CompactionExecutorId ceid;
+  private static class CompactionGroup {
+    final CompactorGroupId cgid;
     final Long maxSize;
 
-    public Executor(CompactionExecutorId ceid, Long maxSize) {
+    public CompactionGroup(CompactorGroupId cgid, Long maxSize) {
       Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
-      this.ceid = Objects.requireNonNull(ceid, "Compaction ID is null");
+      this.cgid = Objects.requireNonNull(cgid, "Compaction ID is null");
       this.maxSize = maxSize;
     }
 
@@ -233,7 +147,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     @Override
     public String toString() {
-      return "[ceid=" + ceid + ", maxSize=" + maxSize + "]";
+      return "[cgid=" + cgid + ", maxSize=" + maxSize + "]";
     }
   }
 
@@ -253,112 +167,68 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private List<Executor> executors;
+  private List<CompactionGroup> groups;
   private int maxFilesToCompact;
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    List<Executor> tmpExec = new ArrayList<>();
+    List<CompactionGroup> tmpGroups = new ArrayList<>();
     String values;
 
-    if (params.getOptions().containsKey("executors")
-        && !params.getOptions().get("executors").isBlank()) {
-      values = params.getOptions().get("executors");
+    if (params.getOptions().containsKey("groups") && !params.getOptions().get("groups").isBlank()) {
+      values = params.getOptions().get("groups");
 
       // Generate a list of fields from the desired object.
-      final List<String> execFields = Arrays.stream(ExecutorConfig.class.getDeclaredFields())
+      final List<String> groupFields = Arrays.stream(GroupConfig.class.getDeclaredFields())
           .map(Field::getName).collect(Collectors.toList());
 
       for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
-        validateConfig(element, execFields, ExecutorConfig.class.getName());
-        ExecutorConfig executorConfig = GSON.get().fromJson(element, ExecutorConfig.class);
+        validateConfig(element, groupFields, GroupConfig.class.getName());
+        GroupConfig groupConfig = GSON.get().fromJson(element, GroupConfig.class);
 
-        Long maxSize = executorConfig.maxSize == null ? null
-            : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
-        CompactionExecutorId ceid;
+        Long maxSize = groupConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
-        // If not supplied, GSON will leave type null. Default to internal
-        if (executorConfig.type == null) {
-          executorConfig.type = "internal";
-        }
-
-        switch (executorConfig.type) {
-          case "internal":
-            Preconditions.checkArgument(null == executorConfig.group,
-                "'group' should not be specified for internal compactions");
-            int numThreads = Objects.requireNonNull(executorConfig.numThreads,
-                "'numThreads' must be specified for internal type");
-            ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
-            break;
-          case "external":
-            Preconditions.checkArgument(null == executorConfig.numThreads,
-                "'numThreads' should not be specified for external compactions");
-            String group = Objects.requireNonNull(executorConfig.group,
-                "'group' must be specified for external type");
-            ceid = params.getExecutorManager().getExternalExecutor(group);
-            break;
-          default:
-            throw new IllegalArgumentException("type must be 'internal' or 'external'");
-        }
-        tmpExec.add(new Executor(ceid, maxSize));
+        CompactorGroupId cgid;
+        String group = Objects.requireNonNull(groupConfig.name, "'name' must be specified");
+        cgid = params.getGroupManager().getGroup(group);
+        tmpGroups.add(new CompactionGroup(cgid, maxSize));
       }
     }
 
-    if (params.getOptions().containsKey("queues") && !params.getOptions().get("queues").isBlank()) {
-      values = params.getOptions().get("queues");
-
-      // Generate a list of fields from the desired object.
-      final List<String> queueFields = Arrays.stream(QueueConfig.class.getDeclaredFields())
-          .map(Field::getName).collect(Collectors.toList());
-
-      for (JsonElement element : GSON.get().fromJson(values, JsonArray.class)) {
-        validateConfig(element, queueFields, QueueConfig.class.getName());
-        QueueConfig queueConfig = GSON.get().fromJson(element, QueueConfig.class);
-
-        Long maxSize = queueConfig.maxSize == null ? null
-            : ConfigurationTypeHelper.getFixedMemoryAsBytes(queueConfig.maxSize);
-
-        CompactionExecutorId ceid;
-        String queue = Objects.requireNonNull(queueConfig.name, "'name' must be specified");
-        ceid = params.getExecutorManager().getExternalExecutor(queue);
-        tmpExec.add(new Executor(ceid, maxSize));
-      }
+    if (tmpGroups.size() < 1) {
+      throw new IllegalStateException("No defined compactor groups for this planner");
     }
 
-    if (tmpExec.size() < 1) {
-      throw new IllegalStateException("No defined executors or queues for this planner");
-    }
-
-    tmpExec.sort(Comparator.comparing(Executor::getMaxSize,
+    tmpGroups.sort(Comparator.comparing(CompactionGroup::getMaxSize,
         Comparator.nullsLast(Comparator.naturalOrder())));
 
-    executors = List.copyOf(tmpExec);
+    groups = List.copyOf(tmpGroups);
 
-    if (executors.stream().filter(e -> e.getMaxSize() == null).count() > 1) {
+    if (groups.stream().filter(g -> g.getMaxSize() == null).count() > 1) {
       throw new IllegalArgumentException(
-          "Can only have one executor w/o a maxSize. " + params.getOptions().get("executors"));
+          "Can only have one group w/o a maxSize. " + params.getOptions().get("groups"));
     }
 
     // use the add method on the Set interface to check for duplicate maxSizes
     Set<Long> maxSizes = new HashSet<>();
-    executors.forEach(e -> {
-      if (!maxSizes.add(e.getMaxSize())) {
+    groups.forEach(g -> {
+      if (!maxSizes.add(g.getMaxSize())) {
         throw new IllegalArgumentException(
-            "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
+            "Duplicate maxSize set in groups. " + params.getOptions().get("groups"));
       }
     });
 
     determineMaxFilesToCompact(params);
   }
 
-  @SuppressWarnings("deprecation")
   private void determineMaxFilesToCompact(InitParameters params) {
 
     String maxOpen = params.getOptions().get("maxOpen");
     if (maxOpen == null) {
-      maxOpen = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue();
+      maxOpen = Property.COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue();
       log.trace("default maxOpen not set, defaulting to {}", maxOpen);
     }
     this.maxFilesToCompact = Integer.parseInt(maxOpen);
@@ -391,7 +261,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     long maxSizeToCompact = getMaxSizeToCompact(params.getKind());
 
     // This set represents future files that will be produced by running compactions. If the optimal
-    // set of files to compact is computed and contains one of these files, then its optimal to wait
+    // set of files to compact is computed and contains one of these files, then it's optimal to
+    // wait
     // for this compaction to finish.
     Set<CompactableFile> expectedFiles = new HashSet<>();
     params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
@@ -482,8 +353,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     var builder = params.createPlanBuilder();
-    compactionJobs.forEach(jobFiles -> builder.addJob(createPriority(params, jobFiles),
-        getExecutor(jobFiles), jobFiles));
+    compactionJobs.forEach(
+        jobFiles -> builder.addJob(createPriority(params, jobFiles), getGroup(jobFiles), jobFiles));
     return builder.build();
   }
 
@@ -567,7 +438,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private long getMaxSizeToCompact(CompactionKind kind) {
     if (kind == CompactionKind.SYSTEM) {
-      Long max = executors.get(executors.size() - 1).maxSize;
+      Long max = groups.get(groups.size() - 1).maxSize;
       if (max != null) {
         return max;
       }
@@ -732,17 +603,17 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, larsmaIndex + 1);
   }
 
-  CompactionExecutorId getExecutor(Collection<CompactableFile> files) {
+  CompactorGroupId getGroup(Collection<CompactableFile> files) {
 
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 
-    for (Executor executor : executors) {
-      if (executor.maxSize == null || size < executor.maxSize) {
-        return executor.ceid;
+    for (CompactionGroup group : groups) {
+      if (group.maxSize == null || size < group.maxSize) {
+        return group.cgid;
       }
     }
 
-    return executors.get(executors.size() - 1).ceid;
+    return groups.get(groups.size() - 1).cgid;
   }
 
   private static List<CompactableFile> sortByFileSize(Collection<CompactableFile> files) {

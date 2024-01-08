@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 
 import com.google.common.base.Preconditions;
@@ -48,7 +48,7 @@ import com.google.common.base.Preconditions;
  */
 public class CompactionJobPriorityQueue {
   // ELASTICITY_TODO unit test this class
-  private final CompactionExecutorId executorId;
+  private final CompactorGroupId groupId;
 
   private class CjpqKey implements Comparable<CjpqKey> {
     private final CompactionJob job;
@@ -106,11 +106,11 @@ public class CompactionJobPriorityQueue {
 
   private boolean closed = false;
 
-  public CompactionJobPriorityQueue(CompactionExecutorId executorId, int maxSize) {
+  public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
     this.maxSize = maxSize;
     this.tabletJobs = new HashMap<>();
-    this.executorId = executorId;
+    this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
   }
@@ -120,8 +120,7 @@ public class CompactionJobPriorityQueue {
       return false;
     }
 
-    Preconditions
-        .checkArgument(jobs.stream().allMatch(job -> job.getExecutor().equals(executorId)));
+    Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 

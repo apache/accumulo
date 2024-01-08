@@ -381,7 +381,7 @@ public interface Ample {
 
     T deleteSuspension();
 
-    T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
+    T putExternalCompaction(ExternalCompactionId ecid, CompactionMetadata ecMeta);
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
