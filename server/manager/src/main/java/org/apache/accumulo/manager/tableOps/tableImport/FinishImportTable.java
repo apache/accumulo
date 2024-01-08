@@ -52,9 +52,8 @@ class FinishImportTable extends ManagerRepo {
       }
     }
 
-    if (tableInfo.onlineTable) {
-      env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
-    }
+    final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
+    env.getTableManager().transitionTableState(tableInfo.tableId, newState);
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);

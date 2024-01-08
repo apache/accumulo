@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -320,6 +321,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // verify the new table is offline
       assertFalse(client.tableOperations().isOnline(destTable), "Table should have been offline.");
+      assertEquals(getServerContext().getTableState(TableId.of(tableId)), TableState.OFFLINE);
       client.tableOperations().online(destTable, true);
 
       // Get all `file` colfams from the metadata table for the new table
