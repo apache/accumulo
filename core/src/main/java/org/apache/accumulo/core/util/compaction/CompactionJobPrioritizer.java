@@ -20,8 +20,12 @@ package org.apache.accumulo.core.util.compaction;
 
 import java.util.Comparator;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+
+import com.google.common.base.Preconditions;
 
 public class CompactionJobPrioritizer {
 
@@ -29,31 +33,43 @@ public class CompactionJobPrioritizer {
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles) {
+  public static short createPriority(TableId tableId, CompactionKind kind, int totalFiles,
+      int compactingFiles) {
 
-    int prio = totalFiles + compactingFiles;
+    Preconditions.checkArgument(totalFiles >= 0, "totalFiles is negative %s", totalFiles);
+    Preconditions.checkArgument(compactingFiles >= 0, "compactingFiles is negative %s",
+        compactingFiles);
 
-    switch (kind) {
+    // This holds the two bits used to encode the priority of the table.
+    int tablePrefix;
+
+    switch (Ample.DataLevel.of(tableId)) {
+      case ROOT:
+        tablePrefix = 0b0100_0000_0000_0000;
+        break;
+      case METADATA:
+        tablePrefix = 0;
+        break;
       case USER:
-        // user-initiated compactions will have a positive priority
-        // based on number of files
-        if (prio > Short.MAX_VALUE) {
-          return Short.MAX_VALUE;
-        }
-        return (short) prio;
-      case SELECTOR:
-      case SYSTEM:
-        // system-initiated compactions will have a negative priority
-        // starting at -32768 and increasing based on number of files
-        // maxing out at -1
-        if (prio > Short.MAX_VALUE) {
-          return -1;
-        } else {
-          return (short) (Short.MIN_VALUE + prio);
-        }
+        tablePrefix = 0b1000_0000_0000_0000;
+        break;
       default:
-        throw new AssertionError("Unknown kind " + kind);
+        throw new IllegalStateException("Unknown data level" + Ample.DataLevel.of(tableId));
     }
+
+    int kindBit;
+
+    if (kind == CompactionKind.USER) {
+      kindBit = 0b0010_0000_0000_0000;
+    } else {
+      kindBit = 0;
+    }
+
+    int fileBits = Math.min(0b0001_1111_1111_1111, totalFiles + compactingFiles);
+
+    // Encode the table, kind, and files into a short using two bits for the table, one bit for the
+    // kind, and 13 bits for the file count.
+    return (short) (tablePrefix | kindBit | fileBits);
   }
 
 }
