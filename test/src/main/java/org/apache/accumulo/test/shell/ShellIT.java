@@ -50,6 +50,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -559,9 +560,12 @@ public class ShellIT extends SharedMiniClusterBase {
     assertGoodExit("Unknown command", false);
   }
 
+  @TempDir
+  private static File tempDir;
+
   @Test
   public void propFileNotFoundTest() throws IOException {
-    String fileName = "src/main/resources/org/apache/accumulo/test/propFile.shellit";
+    String fileName = new File(tempDir, "propFile.shellit").getAbsolutePath();
 
     Shell.log.debug("Starting prop file not found test --------------------------");
     exec("config --propFile " + fileName, false,
