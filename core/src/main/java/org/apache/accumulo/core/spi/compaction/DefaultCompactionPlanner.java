@@ -432,8 +432,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private static short createPriority(PlanningParameters params,
       Collection<CompactableFile> group) {
-    return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size(),
-        group.size());
+    return CompactionJobPrioritizer.createPriority(params.getTableId(), params.getKind(),
+        params.getAll().size(), group.size());
   }
 
   private long getMaxSizeToCompact(CompactionKind kind) {

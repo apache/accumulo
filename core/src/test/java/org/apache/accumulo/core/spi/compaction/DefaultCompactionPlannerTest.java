@@ -51,6 +51,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
+import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
@@ -201,6 +202,8 @@ public class DefaultCompactionPlannerTest {
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactionJobPrioritizer.createPriority(TableId.of("42"), CompactionKind.USER,
+        all.size(), job.getFiles().size()), job.getPriority());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
