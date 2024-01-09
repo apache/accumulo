@@ -33,6 +33,19 @@ public class CompactionJobPrioritizer {
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
+  private static final short ROOT_USER_MAX = Short.MAX_VALUE;
+  private static final short ROOT_USER_MIN = ROOT_USER_MAX - 1000;
+  private static final short ROOT_SYSTEM_MAX = ROOT_USER_MIN - 1;
+  private static final short ROOT_SYSTEM_MIN = ROOT_SYSTEM_MAX - 1000;
+  private static final short METADATA_USER_MAX = ROOT_SYSTEM_MIN - 1;
+  private static final short METADATA_USER_MIN = METADATA_USER_MAX - 1000;
+  private static final short METADATA_SYSTEM_MAX = METADATA_USER_MIN - 1;
+  private static final short METADATA_SYSTEM_MIN = METADATA_SYSTEM_MAX - 1000;
+  private static final short USER_USER_MAX = METADATA_SYSTEM_MIN - 1;
+  private static final short USER_USER_MIN = USER_USER_MAX - 30768;
+  private static final short USER_SYSTEM_MAX = USER_USER_MIN - 1;
+  private static final short USER_SYSTEM_MIN = Short.MIN_VALUE;
+
   public static short createPriority(TableId tableId, CompactionKind kind, int totalFiles,
       int compactingFiles) {
 
@@ -40,36 +53,44 @@ public class CompactionJobPrioritizer {
     Preconditions.checkArgument(compactingFiles >= 0, "compactingFiles is negative %s",
         compactingFiles);
 
+    int min;
+    int max;
     // This holds the two bits used to encode the priority of the table.
     int tablePrefix;
 
     switch (Ample.DataLevel.of(tableId)) {
       case ROOT:
-        tablePrefix = 0b0100_0000_0000_0000;
+        if (kind == CompactionKind.USER) {
+          min = ROOT_USER_MIN;
+          max = ROOT_USER_MAX;
+        } else {
+          min = ROOT_SYSTEM_MIN;
+          max = ROOT_SYSTEM_MAX;
+        }
         break;
       case METADATA:
-        tablePrefix = 0;
+        if (kind == CompactionKind.USER) {
+          min = METADATA_USER_MIN;
+          max = METADATA_USER_MAX;
+        } else {
+          min = METADATA_SYSTEM_MIN;
+          max = METADATA_SYSTEM_MAX;
+        }
         break;
       case USER:
-        tablePrefix = 0b1000_0000_0000_0000;
+        if (kind == CompactionKind.USER) {
+          min = USER_USER_MIN;
+          max = USER_USER_MAX;
+        } else {
+          min = USER_SYSTEM_MIN;
+          max = USER_SYSTEM_MAX;
+        }
         break;
       default:
         throw new IllegalStateException("Unknown data level" + Ample.DataLevel.of(tableId));
     }
 
-    int kindBit;
-
-    if (kind == CompactionKind.USER) {
-      kindBit = 0b0010_0000_0000_0000;
-    } else {
-      kindBit = 0;
-    }
-
-    int fileBits = Math.min(0b0001_1111_1111_1111, totalFiles + compactingFiles);
-
-    // Encode the table, kind, and files into a short using two bits for the table, one bit for the
-    // kind, and 13 bits for the file count.
-    return (short) (tablePrefix | kindBit | fileBits);
+    return (short) Math.min(max, min + totalFiles + compactingFiles);
   }
 
 }

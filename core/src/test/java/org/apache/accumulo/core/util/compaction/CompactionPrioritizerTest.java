@@ -56,34 +56,34 @@ public class CompactionPrioritizerTest {
   public void testOrdering() {
     short pr1 = createPriority(RootTable.ID, CompactionKind.USER, 10000, 1);
     assertEquals(Short.MAX_VALUE, pr1);
-    short pr2 = createPriority(RootTable.ID, CompactionKind.USER, 1000, 30);
+    short pr2 = createPriority(RootTable.ID, CompactionKind.USER, 100, 30);
     assertTrue(pr1 > pr2);
-    short pr3 = createPriority(RootTable.ID, CompactionKind.USER, 1000, 1);
+    short pr3 = createPriority(RootTable.ID, CompactionKind.USER, 100, 1);
     assertTrue(pr2 > pr3);
     short pr4 = createPriority(RootTable.ID, CompactionKind.USER, 1, 1);
     assertTrue(pr3 > pr4);
     short pr5 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 10000, 1);
     assertTrue(pr4 > pr5);
-    short pr6 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 1000, 30);
+    short pr6 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 100, 30);
     assertTrue(pr5 > pr6);
-    short pr7 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 1000, 1);
+    short pr7 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 100, 1);
     assertTrue(pr6 > pr7);
     short pr8 = createPriority(RootTable.ID, CompactionKind.SYSTEM, 1, 1);
     assertTrue(pr7 > pr8);
 
     short pm1 = createPriority(MetadataTable.ID, CompactionKind.USER, 10000, 1);
     assertTrue(pr8 > pm1);
-    short pm2 = createPriority(MetadataTable.ID, CompactionKind.USER, 1000, 30);
+    short pm2 = createPriority(MetadataTable.ID, CompactionKind.USER, 100, 30);
     assertTrue(pm1 > pm2);
-    short pm3 = createPriority(MetadataTable.ID, CompactionKind.USER, 1000, 1);
+    short pm3 = createPriority(MetadataTable.ID, CompactionKind.USER, 100, 1);
     assertTrue(pm2 > pm3);
     short pm4 = createPriority(MetadataTable.ID, CompactionKind.USER, 1, 1);
     assertTrue(pm3 > pm4);
     short pm5 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 10000, 1);
     assertTrue(pm4 > pm5);
-    short pm6 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 1000, 30);
+    short pm6 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 100, 30);
     assertTrue(pm5 > pm6);
-    short pm7 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 1000, 1);
+    short pm7 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 100, 1);
     assertTrue(pm6 > pm7);
     short pm8 = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 1, 1);
     assertTrue(pm7 > pm8);
@@ -112,27 +112,29 @@ public class CompactionPrioritizerTest {
 
   @Test
   public void testBoundary() {
-    // test the boundary condition around the max number of files to encode
-    int maxFiles = (1 << 13) - 1;
-    for (var tableId : List.of(TableId.of("1"), TableId.of("2"), RootTable.ID, MetadataTable.ID)) {
-      for (var kind : CompactionKind.values()) {
-        short p1 = createPriority(tableId, kind, maxFiles + 10, 10);
-        short p2 = createPriority(tableId, kind, maxFiles + 10, 5);
-        assertEquals(p1, p2);
-        short p3 = createPriority(tableId, kind, maxFiles - 2, 5);
-        assertEquals(p1, p3);
-        short p4 = createPriority(tableId, kind, maxFiles - 5, 5);
-        assertEquals(p1, p4);
-        short p5 = createPriority(tableId, kind, maxFiles - 6, 5);
-        assertEquals(p1 - 1, p5);
-        short p6 = createPriority(tableId, kind, maxFiles - 7, 5);
-        assertEquals(p1 - 2, p6);
-        short p7 = createPriority(tableId, kind, maxFiles - 17, 15);
-        assertEquals(p1 - 2, p7);
-        short p8 = createPriority(tableId, kind, 1, 1);
-        assertEquals(p1 - maxFiles + 2, p8);
-      }
+    var userTable = TableId.of("1");
+
+    short minRootUser = createPriority(RootTable.ID, CompactionKind.USER, 1, 1);
+    short minRootSystem = createPriority(RootTable.ID, CompactionKind.SYSTEM, 1, 1);
+    short minMetaUser = createPriority(MetadataTable.ID, CompactionKind.USER, 1, 1);
+    short minMetaSystem = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, 1, 1);
+    short minUserUser = createPriority(userTable, CompactionKind.USER, 1, 1);
+
+    // Test the boundary condition around the max number of files to encode. Ensure the next level
+    // is always greater no matter how many files.
+    for (int files = 1; files < 100_000; files += 1) {
+      short rootSystem = createPriority(RootTable.ID, CompactionKind.SYSTEM, files, 1);
+      assertTrue(minRootUser > rootSystem);
+      short metaUser = createPriority(MetadataTable.ID, CompactionKind.USER, files, 1);
+      assertTrue(minRootSystem > metaUser);
+      short metaSystem = createPriority(MetadataTable.ID, CompactionKind.SYSTEM, files, 1);
+      assertTrue(minMetaUser > metaSystem);
+      short userUser = createPriority(userTable, CompactionKind.USER, files, 1);
+      assertTrue(minMetaSystem > userUser);
+      short userSystem = createPriority(userTable, CompactionKind.SYSTEM, files, 1);
+      assertTrue(minUserUser > userSystem);
     }
+
   }
 
   @Test
