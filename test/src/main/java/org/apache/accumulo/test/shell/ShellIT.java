@@ -580,7 +580,6 @@ public class ShellIT extends SharedMiniClusterBase {
     writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
     writer.close();
     exec("config --propFile " + file.getAbsolutePath(), true);
-    file.deleteOnExit();
   }
 
   @Test
@@ -591,7 +590,6 @@ public class ShellIT extends SharedMiniClusterBase {
     writer.close();
     exec("config --propFile " + file.getAbsolutePath(), false,
         "InvalidPropertyFile: " + file.getAbsolutePath());
-    file.deleteOnExit();
   }
 
   @Test
