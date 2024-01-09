@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -66,6 +68,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
 public class CompactionService {
@@ -84,6 +88,9 @@ public class CompactionService {
   private RateLimiter writeLimiter;
   private AtomicLong rateLimit = new AtomicLong(0);
   private Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
+
+  // use to limit logging of max scan files exceeded
+  private final Cache<TableId,Long> maxScanFilesExceededErrorCache;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
@@ -132,6 +139,8 @@ public class CompactionService {
     for (CompactionKind kind : CompactionKind.values()) {
       queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
     }
+
+    maxScanFilesExceededErrorCache = CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     log.debug("Created new compaction service id:{} rate limit:{} planner:{} planner options:{}",
         myId, maxRate, plannerClass, plannerOptions);
@@ -283,18 +292,24 @@ public class CompactionService {
     CompactionPlan plan;
     try {
       plan = planner.makePlan(params);
+      var tableId = compactable.getTableId();
 
       if (plan.getJobs().isEmpty()) {
-        int maxScanFiles = context.getTableConfiguration(compactable.getTableId())
-            .getCount(Property.TSERV_SCAN_MAX_OPENFILES);
+        int maxScanFiles =
+            context.getTableConfiguration(tableId).getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
         if (files.allFiles.size() >= maxScanFiles && files.compacting.isEmpty()) {
-          log.warn(
-              "The tablet {} has {} files and the max files for scan is {}.  No compactions are "
-                  + "running and none were planned for this tablet by {}, so the files will "
-                  + "not be reduced by compaction which could cause scans to fail.  Please "
-                  + "check your compaction configuration.",
-              compactable.getExtent(), files.allFiles.size(), maxScanFiles, myId);
+          var last = maxScanFilesExceededErrorCache.getIfPresent(tableId);
+
+          if (last == null) {
+            log.warn(
+                "The tablet {} has {} files and the max files for scan is {}.  No compactions are "
+                    + "running and none were planned for this tablet by {}, so the files will "
+                    + "not be reduced by compaction which could cause scans to fail.  Please "
+                    + "check your compaction configuration. This log message is temporarily suppressed for the entire table.",
+                compactable.getExtent(), files.allFiles.size(), maxScanFiles, myId);
+            maxScanFilesExceededErrorCache.put(tableId, System.currentTimeMillis());
+          }
         }
       }
 
