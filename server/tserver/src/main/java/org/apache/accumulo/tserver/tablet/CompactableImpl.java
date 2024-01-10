@@ -1408,7 +1408,8 @@ public class CompactableImpl implements Compactable {
           successful = true;
         } catch (Exception e) {
           metaFile = Optional.empty();
-          log.error("Error committing external compaction {}", extCompactionId, e);
+          log.error("Error committing external compaction: id: {}, extent: {}", extCompactionId,
+              getExtent(), e);
           throw new RuntimeException(e);
         } finally {
           completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile, successful);
@@ -1450,7 +1451,7 @@ public class CompactableImpl implements Compactable {
             .mutate();
         completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), Optional.empty(), false);
         externalCompactions.remove(ecid);
-        log.debug("Processed external compaction failure {}", ecid);
+        log.debug("Processed external compaction failure: id: {}, extent: {}", ecid, getExtent());
       } else {
         log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
       }
