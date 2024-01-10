@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -65,6 +66,9 @@ import com.google.common.base.Preconditions;
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
+  @SuppressWarnings("deprecation")
+  private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
+      Property.TSERV_LAST_LOCATION_MODE;
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
@@ -216,7 +220,7 @@ public class ManagerMetadataUtil {
    */
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
       KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
-      TServerInstance tServerInstance, ServiceLock zooLock, Set<String> unusedWalLogs,
+      TServerInstance tServerInstance, ServiceLock zooLock, Set<LogEntry> unusedWalLogs,
       Location lastLocation, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -257,7 +261,8 @@ public class ManagerMetadataUtil {
 
     // if the location mode is assignment, then preserve the current location in the last
     // location value
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("assignment"
+        .equals(context.getConfiguration().get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY))) {
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }
@@ -275,7 +280,8 @@ public class ManagerMetadataUtil {
       Location lastLocation, TServerInstance tServerInstance) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
-    if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("compaction"
+        .equals(context.getConfiguration().get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY))) {
       Location newLocation = Location.last(tServerInstance);
       updateLocation(tabletMutator, lastLocation, newLocation);
     }

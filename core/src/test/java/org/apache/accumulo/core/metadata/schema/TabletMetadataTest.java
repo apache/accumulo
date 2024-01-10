@@ -20,6 +20,8 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
@@ -57,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -101,17 +102,17 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
-        .put(le1.getValue());
-    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
-        .put(le2.getValue());
+    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    le1.addToMutation(mutation);
+    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    le2.addToMutation(mutation);
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetadata()).put("");
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadata()).put("");
+
+    MERGED_COLUMN.put(mutation, new Value());
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -136,13 +137,13 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(Set.of(le1.getValue(), le2.getValue()),
-        tm.getLogs().stream().map(LogEntry::getValue).collect(toSet()));
+    assertEquals(Set.of(le1, le2), tm.getLogs().stream().collect(toSet()));
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
+    assertTrue(tm.hasMerged());
   }
 
   @Test
@@ -256,6 +257,30 @@ public class TabletMetadataTest {
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
+  }
+
+  @Test
+  public void testMergedColumn() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    // Test merged column set
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    MERGED_COLUMN.put(mutation, MERGED_VALUE);
+    TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.MERGED), true);
+    assertTrue(tm.hasMerged());
+
+    // Column not set
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.MERGED), true);
+    assertFalse(tm.hasMerged());
+
+    // MERGED Column not fetched
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.PREV_ROW), true);
+    assertThrows(IllegalStateException.class, tm::hasMerged);
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

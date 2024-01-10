@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -86,7 +85,11 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
       // the purpose of this constraint is to just randomly hold up inserts on the server side
       if (rand.nextBoolean()) {
-        UtilWaitThread.sleep(4000);
+        try {
+          Thread.sleep(4000);
+        } catch (InterruptedException ex) {
+          throw new IllegalStateException("Interrupted during sleep", ex);
+        }
       }
 
       return null;

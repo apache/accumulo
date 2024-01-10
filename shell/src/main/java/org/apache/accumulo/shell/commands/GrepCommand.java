@@ -49,6 +49,20 @@ public class GrepCommand extends ScanCommand {
       if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No terms specified");
       }
+      // Configure formatting options
+      final FormatterConfig config = new FormatterConfig();
+      config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
+      if (cl.hasOption(showFewOpt.getOpt())) {
+        final String showLength = cl.getOptionValue(showFewOpt.getOpt());
+        try {
+          final int length = Integer.parseInt(showLength);
+          config.setShownLength(length);
+        } catch (NumberFormatException nfe) {
+          Shell.log.error("Arg must be an integer.", nfe);
+        } catch (IllegalArgumentException iae) {
+          Shell.log.error("Invalid length argument", iae);
+        }
+      }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to
@@ -84,8 +98,6 @@ public class GrepCommand extends ScanCommand {
         fetchColumns(cl, scanner);
 
         // output the records
-        final FormatterConfig config = new FormatterConfig();
-        config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
         printRecords(cl, shellState, config, scanner, formatter, printFile);
       } finally {
         scanner.close();

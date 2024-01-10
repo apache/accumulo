@@ -124,7 +124,7 @@ public class MergeStats {
             info.getExtent());
       }
     }
-    if (state == MergeState.MERGING) {
+    if (state == MergeState.MERGING || state == MergeState.MERGED) {
       if (hosted != 0) {
         // Shouldn't happen
         log.error("Unexpected state: hosted tablets should be zero {} merge {}", hosted,

@@ -56,9 +56,10 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
 
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt,
-      outputFileOpt, scanOptCf, scanOptCq;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, outputFileOpt,
+      scanOptCf, scanOptCq;
 
+  protected Option showFewOpt;
   protected Option timestampOpt;
   protected Option profileOpt;
   private Option optStartRowExclusive;
@@ -106,8 +107,7 @@ public class ScanCommand extends Command {
       if (cl.hasOption(contextOpt.getOpt())) {
         classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
       }
-      // handle first argument, if present, the authorizations list to
-      // scan with
+      // handle first argument, if present, the authorizations list to scan with
       final Authorizations auths = getAuths(cl, shellState);
       final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
       if (classLoaderContext != null) {
@@ -148,7 +148,7 @@ public class ScanCommand extends Command {
         } catch (NumberFormatException nfe) {
           Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
-          Shell.log.error("Arg must be greater than one.", iae);
+          Shell.log.error("Invalid length argument", iae);
         }
       }
       printRecords(cl, shellState, config, scanner, formatter, printFile);
@@ -388,13 +388,13 @@ public class ScanCommand extends Command {
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
     o.addOption(OptUtil.tableOpt("table to be scanned"));
-    o.addOption(showFewOpt);
     o.addOption(timeoutOption);
     if (Arrays.asList(ScanCommand.class.getName(), GrepCommand.class.getName(),
         EGrepCommand.class.getName()).contains(this.getClass().getName())) {
       // supported subclasses must handle the output file option properly
       // only add this option to commands which handle it correctly
       o.addOption(outputFileOpt);
+      o.addOption(showFewOpt);
     }
     o.addOption(profileOpt);
     o.addOption(sampleOpt);

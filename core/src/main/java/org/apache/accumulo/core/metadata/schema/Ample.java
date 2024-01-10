@@ -98,7 +98,7 @@ public interface Ample {
     /**
      * @return The Id of the Accumulo table in which this data level stores its metadata.
      */
-    public TableId tableId() {
+    public TableId metaTableId() {
       if (id == null) {
         throw new UnsupportedOperationException();
       }
@@ -292,9 +292,7 @@ public interface Ample {
 
     TabletMutator putWal(LogEntry logEntry);
 
-    TabletMutator deleteWal(String wal);
-
-    TabletMutator deleteWal(LogEntry logEntry);
+    TabletMutator deleteWal(LogEntry wal);
 
     TabletMutator putTime(MetadataTime time);
 

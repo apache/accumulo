@@ -24,11 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeInfo.Operation;
 import org.apache.accumulo.server.manager.state.MergeState;
@@ -60,10 +62,11 @@ public class MergeStatsTest {
 
     // Verify that if there are Walogs the return true, else false
     assertTrue(stats.verifyWalogs(getState(keyExtent, List.of())));
-    assertFalse(stats.verifyWalogs(getState(keyExtent, List.of(List.of("log1")))));
+    LogEntry log1 = LogEntry.fromPath("file:///dir/tserver+9997/" + UUID.randomUUID());
+    assertFalse(stats.verifyWalogs(getState(keyExtent, List.of(log1))));
   }
 
-  private TabletLocationState getState(KeyExtent keyExtent, Collection<Collection<String>> walogs)
+  private TabletLocationState getState(KeyExtent keyExtent, Collection<LogEntry> walogs)
       throws BadLocationStateException {
     return new TabletLocationState(keyExtent, null, null, null, null, walogs);
   }

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
@@ -453,8 +452,8 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
     InstanceId instanceId = VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf);
-    for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
-      if (aBasePath.equals(replacementVolume.getFirst())) {
+    for (Path replacedVolume : serverDirs.getVolumeReplacements().keySet()) {
+      if (aBasePath.equals(replacedVolume)) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
                 + " It is highly recommended that this property be removed as data"

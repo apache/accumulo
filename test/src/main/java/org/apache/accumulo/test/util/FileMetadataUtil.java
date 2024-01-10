@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -167,6 +168,14 @@ public class FileMetadataUtil {
 
     // Bring back online after metadata updates
     ctx.tableOperations().online(tableName, true);
+  }
+
+  // Verifies that the MERGED marker was cleared and doesn't exist on any tablet
+  public static void verifyMergedMarkerCleared(final ServerContext ctx, TableId tableId) {
+    try (var tabletsMetadata =
+        ctx.getAmple().readTablets().forTable(tableId).fetch(ColumnType.MERGED).build()) {
+      assertTrue(tabletsMetadata.stream().noneMatch(TabletMetadata::hasMerged));
+    }
   }
 
   public interface FileMutator {

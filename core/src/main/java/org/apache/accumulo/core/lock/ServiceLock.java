@@ -106,7 +106,7 @@ public class ServiceLock implements Watcher {
   private LockWatcher lockWatcher;
   private String lockNodeName;
   private volatile boolean lockWasAcquired;
-  private volatile boolean watchingParent = false;
+  private volatile boolean watchingParent;
 
   private String createdNodeName;
   private String watchingNodeName;
@@ -194,14 +194,18 @@ public class ServiceLock implements Watcher {
     children.forEach(c -> {
       LOG.trace("Validating {}", c);
       if (c.startsWith(ZLOCK_PREFIX)) {
-        String candidate = c.substring(ZLOCK_PREFIX.length() + 1);
+        String candidate = c.substring(ZLOCK_PREFIX.length());
         if (candidate.contains("#")) {
           int idx = candidate.indexOf('#');
-          String uuid = candidate.substring(0, idx - 1);
+          String uuid = candidate.substring(0, idx);
           String sequenceNum = candidate.substring(idx + 1);
           try {
             LOG.trace("Testing uuid format of {}", uuid);
-            UUID.fromString(uuid);
+            // string check guards uuids like "1-1-1-1-1" that parse to
+            // "00000001-0001-0001-0001-000000000001"
+            if (!uuid.equals(UUID.fromString(uuid).toString())) {
+              throw new IllegalArgumentException(uuid + " is an invalid UUID");
+            }
             if (sequenceNum.length() == 10) {
               try {
                 LOG.trace("Testing number format of {}", sequenceNum);
@@ -281,7 +285,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zooKeeper.getChildren(path.toString(), null));
 
-    if (null == children || !children.contains(createdEphemeralNode)) {
+    if (!children.contains(createdEphemeralNode)) {
       LOG.error("Expected ephemeral node {} to be in the list of children {}", createdEphemeralNode,
           children);
       throw new IllegalStateException(
@@ -409,8 +413,7 @@ public class ServiceLock implements Watcher {
       // were created but the client missed the response for some reason. Find the ephemeral nodes
       // with this ZLOCK_UUID and lowest sequential number.
       List<String> children = validateAndSort(path, zooKeeper.getChildren(path.toString(), null));
-      if (null == children
-          || !children.contains(createPath.substring(path.toString().length() + 1))) {
+      if (!children.contains(createPath.substring(path.toString().length() + 1))) {
         LOG.error("Expected ephemeral node {} to be in the list of children {}", createPath,
             children);
         throw new IllegalStateException(
@@ -641,7 +644,7 @@ public class ServiceLock implements Watcher {
     var zLockPath = path(lid.path);
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       return false;
     }
 
@@ -659,7 +662,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       return Optional.empty();
     }
 
@@ -677,7 +680,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       return Optional.empty();
     }
 
@@ -698,7 +701,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       return 0;
     }
 
@@ -730,7 +733,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);
     }
 
@@ -751,7 +754,7 @@ public class ServiceLock implements Watcher {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
 
-    if (children == null || children.isEmpty()) {
+    if (children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);
     }
 

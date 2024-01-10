@@ -87,22 +87,22 @@ public interface InstanceOperations {
    *         {@code
    *             AccumuloClient client = getClient();
    *             Map<String,String> acceptedProps = client.instanceOperations().modifyProperties(currProps -> {
-   *               var planner = currProps.get("tserver.compaction.major.service.default.planner");
+   *               var planner = currProps.get("compaction.service.default.planner");
    *               //This code will only change the compaction planner if its currently set to default settings.
    *               //The endsWith() function was used to make the example short, would be better to use equals().
    *               if(planner != null && planner.endsWith("DefaultCompactionPlanner") {
    *                 // tservers will eventually see these compaction planner changes and when they do they will see all of the changes at once
    *                 currProps.keySet().removeIf(
-   *                    prop -> prop.startsWith("tserver.compaction.major.service.default.planner.opts."));
-   *                 currProps.put("tserver.compaction.major.service.default.planner","MyPlannerClassName");
-   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt1","val1");
-   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt2","val2");
+   *                    prop -> prop.startsWith("compaction.service.default.planner.opts."));
+   *                 currProps.put("compaction.service.default.planner","MyPlannerClassName");
+   *                 currProps.put("compaction.service.default.planner.opts.myOpt1","val1");
+   *                 currProps.put("compaction.service.default.planner.opts.myOpt2","val2");
    *                }
    *             });
    *
    *             // Since three properties were set may want to check for the values of all
    *             // three, just checking one in this example to keep it short.
-   *             if("MyPlannerClassName".equals(acceptedProps.get("tserver.compaction.major.service.default.planner"))){
+   *             if("MyPlannerClassName".equals(acceptedProps.get("compaction.service.default.planner"))){
    *                // the compaction planner change was accepted or already existed, so take action for that outcome
    *             } else {
    *                // the compaction planner change was not done, so take action for that outcome
@@ -165,6 +165,16 @@ public interface InstanceOperations {
    *         in an accumulo.properties file, the default value for each property will be used.
    */
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Retrieve a map of the system properties set in Zookeeper. Note that this does not return a
+   * merged view of the properties from its parent configuration. See
+   * {@link #getSystemConfiguration} for a merged view.
+   *
+   * @return A map of the system properties set in Zookeeper only.
+   * @since 3.1
+   */
+  Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns the location(s) of the accumulo manager and any redundant servers.

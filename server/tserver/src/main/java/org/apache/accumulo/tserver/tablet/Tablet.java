@@ -369,8 +369,7 @@ public class Tablet extends TabletBase {
       // make some closed references that represent the recovered logs
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
-        currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
-            logEntry.getFilePath(), logEntry.getColumnQualifier().toString()));
+        currentLogs.add(new DfsLogger(tabletServer.getContext(), logEntry));
       }
 
       rebuildReferencedLogs();
@@ -1727,18 +1726,41 @@ public class Tablet extends TabletBase {
 
     // Clients timeout and will think that this operation failed.
     // Don't do it if we spent too long waiting for the lock
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime();
     synchronized (this) {
       if (isClosed()) {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      // TODO check seems unneeded now - ACCUMULO-1291
-      long lockWait = System.currentTimeMillis() - now;
-      if (lockWait
-          > getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
-        throw new IOException(
-            "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
+      long rpcTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(
+          (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
+              * 1.1));
+
+      // wait for any files that are bulk importing up to the RPC timeout limit
+      while (!Collections.disjoint(bulkImporting, fileMap.keySet())) {
+        try {
+          wait(1_000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
+        }
+
+        long lockWait = System.nanoTime() - now;
+        if (lockWait > rpcTimeoutNanos) {
+          throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+              + " seconds to get tablet lock for " + extent + " " + tid);
+        }
+      }
+
+      // need to check this again because when wait is called above the lock is released.
+      if (isClosed()) {
+        throw new IOException("tablet " + extent + " is closed");
+      }
+
+      long lockWait = System.nanoTime() - now;
+      if (lockWait > rpcTimeoutNanos) {
+        throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+            + " seconds to get tablet lock for " + extent + " " + tid);
       }
 
       List<ReferencedTabletFile> alreadyImported = bulkImported.get(tid);
@@ -1749,14 +1771,6 @@ public class Tablet extends TabletBase {
           }
         }
       }
-
-      fileMap.keySet().removeIf(file -> {
-        if (bulkImporting.contains(file)) {
-          log.info("Ignoring import of bulk file currently importing: " + file);
-          return true;
-        }
-        return false;
-      });
 
       if (fileMap.isEmpty()) {
         return;
@@ -1773,6 +1787,11 @@ public class Tablet extends TabletBase {
       getDatafileManager().importDataFiles(tid, entries, setTime);
       lastDataFileImportTime = System.currentTimeMillis();
 
+      synchronized (this) {
+        // only mark the bulk import a success if no exception was thrown
+        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
+      }
+
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
       } else {
@@ -1787,11 +1806,6 @@ public class Tablet extends TabletBase {
               "Likely bug in code, always expect to remove something.  Please open an Accumulo issue.");
         }
 
-        try {
-          bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
-        } catch (Exception ex) {
-          log.info(ex.toString(), ex);
-        }
         tabletServer.removeBulkImportState(files);
       }
     }
@@ -1855,7 +1869,7 @@ public class Tablet extends TabletBase {
         List<DfsLogger> oldClosed = closedLogs.subList(0, closedLogs.size() - maxLogs);
         for (DfsLogger closedLog : oldClosed) {
           if (currentLogs.contains(closedLog)) {
-            reason = "referenced at least one old write ahead log " + closedLog.getFileName();
+            reason = "referenced at least one old write ahead log " + closedLog.getLogEntry();
             break;
           }
         }
@@ -1873,12 +1887,12 @@ public class Tablet extends TabletBase {
     return logLock;
   }
 
-  Set<String> beginClearingUnusedLogs() {
+  Set<LogEntry> beginClearingUnusedLogs() {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
-    Set<String> unusedLogs = new HashSet<>();
+    Set<LogEntry> unusedLogs = new HashSet<>();
 
-    ArrayList<String> otherLogsCopy = new ArrayList<>();
-    ArrayList<String> currentLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>();
 
     synchronized (this) {
       if (removingLogs) {
@@ -1887,13 +1901,13 @@ public class Tablet extends TabletBase {
       }
 
       for (DfsLogger logger : otherLogs) {
-        otherLogsCopy.add(logger.toString());
-        unusedLogs.add(logger.getMeta());
+        otherLogsCopy.add(logger.getLogEntry());
+        unusedLogs.add(logger.getLogEntry());
       }
 
       for (DfsLogger logger : currentLogs) {
-        currentLogsCopy.add(logger.toString());
-        unusedLogs.remove(logger.getMeta());
+        currentLogsCopy.add(logger.getLogEntry());
+        unusedLogs.remove(logger.getLogEntry());
       }
 
       if (!unusedLogs.isEmpty()) {
@@ -1902,16 +1916,16 @@ public class Tablet extends TabletBase {
     }
 
     // do debug logging outside tablet lock
-    for (String logger : otherLogsCopy) {
-      log.trace("Logs for memory compacted: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : otherLogsCopy) {
+      log.trace("Logs for memory compacted: {} {}", getExtent(), logEntry);
     }
 
-    for (String logger : currentLogsCopy) {
-      log.trace("Logs for current memory: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : currentLogsCopy) {
+      log.trace("Logs for current memory: {} {}", getExtent(), logEntry);
     }
 
-    for (String logger : unusedLogs) {
-      log.trace("Logs to be destroyed: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : unusedLogs) {
+      log.trace("Logs to be destroyed: {} {}", getExtent(), logEntry);
     }
 
     return unusedLogs;
@@ -2077,7 +2091,7 @@ public class Tablet extends TabletBase {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
-      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<LogEntry> unusedWalLogs,
       long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {

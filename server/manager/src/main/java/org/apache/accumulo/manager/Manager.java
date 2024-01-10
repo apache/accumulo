@@ -657,6 +657,7 @@ public class Manager extends AbstractServer
                 return TabletGoalState.UNASSIGNED;
               }
             case MERGING:
+            case MERGED:
               return TabletGoalState.UNASSIGNED;
           }
         } else {
@@ -1102,7 +1103,7 @@ public class Manager extends AbstractServer
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress());
+          sa.getAddress(), getContext().getInstanceName());
       ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException

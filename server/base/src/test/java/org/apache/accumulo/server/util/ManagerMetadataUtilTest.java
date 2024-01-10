@@ -43,7 +43,9 @@ public class ManagerMetadataUtilTest {
   @BeforeEach
   public void before() {
     conf = EasyMock.createMock(AccumuloConfiguration.class);
-    EasyMock.expect(conf.get(Property.TSERV_LAST_LOCATION_MODE)).andReturn("assignment");
+    @SuppressWarnings("deprecation")
+    Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY = Property.TSERV_LAST_LOCATION_MODE;
+    EasyMock.expect(conf.get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY)).andReturn("assignment");
     context = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(conf).once();
     tabletMutator = EasyMock.createMock(Ample.TabletMutator.class);

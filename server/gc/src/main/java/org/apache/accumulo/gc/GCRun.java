@@ -64,7 +64,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -287,7 +286,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS, false);
 
-    final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
+    final Map<Path,Path> replacements = context.getVolumeReplacements();
 
     for (final GcCandidate delete : confirmedDeletes.values()) {
 

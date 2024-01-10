@@ -197,37 +197,37 @@ public class ExternalCompactionTestUtils {
     clProps.put(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "2s");
     cfg.setClientProps(clProps);
 
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
         "[{'name':'all', 'type': 'external', 'queue': '" + QUEUE1 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE2 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE3 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE4 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE5 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE6 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE7 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': '" + QUEUE8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");

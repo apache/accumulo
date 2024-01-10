@@ -39,8 +39,6 @@ public class MemoryConsumingIterator extends WrappingIterator {
 
   private static final List<byte[]> BUFFERS = new ArrayList<>();
 
-  private static final int TEN_MiB = 10 * 1024 * 1024;
-
   public static void freeBuffers() {
     BUFFERS.clear();
   }
@@ -50,23 +48,17 @@ public class MemoryConsumingIterator extends WrappingIterator {
     System.gc();
     Runtime runtime = Runtime.getRuntime();
     long maxConfiguredMemory = runtime.maxMemory();
-    long allocatedMemory = runtime.totalMemory();
-    long allocatedFreeMemory = runtime.freeMemory();
-    long freeMemory = maxConfiguredMemory - (allocatedMemory - allocatedFreeMemory);
-    long minimumFreeMemoryThreshold =
-        (long) (maxConfiguredMemory * MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD);
+    long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+    long freeMemory = maxConfiguredMemory - usedMemory;
+    long minFreeMemory = (long) (maxConfiguredMemory * MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD);
 
-    int amountToConsume = 0;
-    if (freeMemory > minimumFreeMemoryThreshold) {
-      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - TEN_MiB));
-    }
-    if (amountToConsume < 0) {
-      throw new IllegalStateException(
-          "Overflow. Unsupported memory size for tablet server when using this iterator");
-    }
-    LOG.info("max: {}, free: {}, minFree: {}, amountToConsume: {}", maxConfiguredMemory, freeMemory,
-        minimumFreeMemoryThreshold, amountToConsume);
-    return amountToConsume;
+    // consume free memory, and exceed the minimum threshold by just a little bit
+    // don't exceed typical JDK byte array limit
+    long amountToConsume =
+        Math.min(Math.max(0, freeMemory + 1 - minFreeMemory), Integer.MAX_VALUE - 8);
+    LOG.info("max: {}, used: {}, free: {}, minFree: {}, amountToConsume: {}", maxConfiguredMemory,
+        usedMemory, freeMemory, minFreeMemory, amountToConsume);
+    return (int) amountToConsume;
   }
 
   @Override
@@ -80,10 +72,11 @@ public class MemoryConsumingIterator extends WrappingIterator {
         BUFFERS.add(new byte[amountToConsume]);
         LOG.info("memory allocated");
       } else {
-        LOG.info("Waiting for LowMemoryDetector to recognize low on memory condition.");
+        LOG.info("consumed enough; no more memory allocated");
       }
+      LOG.info("Waiting for LowMemoryDetector to recognize low on memory condition.");
       try {
-        Thread.sleep(SECONDS.toMillis(1));
+        Thread.sleep(SECONDS.toMillis(5));
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
         throw new IOException("interrupted during sleep", ex);

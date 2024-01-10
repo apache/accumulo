@@ -70,6 +70,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -90,6 +92,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -97,6 +100,7 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -266,7 +270,10 @@ public class ScanServer extends AbstractServer
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
-    TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(this, getContext());
+    ClientServiceHandler clientHandler =
+        new ClientServiceHandler(context, new TransactionWatcher(context));
+    TProcessor processor =
+        ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
 
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
@@ -332,8 +339,14 @@ public class ScanServer extends AbstractServer
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
-        if (scanServerLock.tryLock(lw, new ServiceLockData(serverLockUUID, getClientAddressString(),
-            ThriftService.TABLET_SCAN, this.groupName))) {
+        ServiceDescriptors descriptors = new ServiceDescriptors();
+        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
+            ThriftService.TABLET_SCAN}) {
+          descriptors.addService(
+              new ServiceDescriptor(serverLockUUID, svc, getClientAddressString(), this.groupName));
+        }
+
+        if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
           LOG.debug("Obtained scan server lock {}", scanServerLock.getLockPath());
           return scanServerLock;
         }
@@ -363,7 +376,7 @@ public class ScanServer extends AbstractServer
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress);
+          clientAddress, getContext().getInstanceName());
       scanMetrics = new TabletServerScanMetrics();
       MetricsUtil.initializeProducers(this, scanMetrics);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException

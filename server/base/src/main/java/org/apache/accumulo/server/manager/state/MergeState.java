@@ -33,10 +33,15 @@ public enum MergeState {
    */
   WAITING_FOR_OFFLINE,
   /**
-   * when the number of chopped, offline tablets equals the number of merge tablets, begin the
-   * metadata updates
+   * when the number of offline tablets equals the number of merge tablets, begin the metadata
+   * updates
    */
   MERGING,
+  /**
+   * when the operation has finished metadata updates for merge. We can now remove the merged
+   * tablets and clear the MERGED marker. Not used for delete
+   */
+  MERGED,
   /**
    * merge is complete, the resulting tablet can be brought online, remove the marker in zookeeper
    */

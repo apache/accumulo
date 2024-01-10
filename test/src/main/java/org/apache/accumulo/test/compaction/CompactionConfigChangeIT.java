@@ -57,10 +57,10 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       final String table = getUniqueNames(1)[0];
 
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
           DefaultCompactionPlanner.class.getName());
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
           ("[{'name':'small','type':'internal','maxSize':'2M','numThreads':2},"
               + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
               + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\""));
@@ -91,7 +91,7 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       // compactions. Because the compactions are running slow, expect this config change to overlap
       // with running compactions.
       client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
           ("[{'name':'little','type':'internal','maxSize':'128M','numThreads':8},"
               + "{'name':'big','type':'internal','numThreads':2}]").replaceAll("'", "\""));
 

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +108,7 @@ public class AgeOffStore<T> implements TStore<T> {
           }
 
         } finally {
-          store.unreserve(txid, 0);
+          store.unreserve(txid, 0, TimeUnit.MILLISECONDS);
         }
       } catch (Exception e) {
         log.warn("Failed to age off FATE tx " + FateTxId.formatTid(txid), e);
@@ -137,7 +138,7 @@ public class AgeOffStore<T> implements TStore<T> {
             break;
         }
       } finally {
-        store.unreserve(txid, 0);
+        store.unreserve(txid, 0, TimeUnit.MILLISECONDS);
       }
     }
   }
@@ -165,8 +166,8 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime) {
-    store.unreserve(tid, deferTime);
+  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
+    store.unreserve(tid, deferTime, deferTimeUnit);
   }
 
   @Override

@@ -24,10 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -40,6 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -47,16 +46,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +85,9 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.COMPACT_COLUMN);
 
+  @SuppressWarnings("deprecation")
+  private static final Text CHOPPED = ChoppedColumnFamily.NAME;
+
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
           LogColumnFamily.NAME,
@@ -98,7 +98,8 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ClonedColumnFamily.NAME,
           ExternalCompactionColumnFamily.NAME,
-          UpgraderDeprecatedConstants.ChoppedColumnFamily.NAME
+          CHOPPED,
+          MergedColumnFamily.NAME
       );
   // @formatter:on
 
@@ -212,7 +213,8 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+          || columnFamily.equals(LogColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -294,14 +296,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (!isSplitMutation && !isLocationMutation) {
-            long tid = BulkFileColumnFamily.getBulkLoadTid(new Value(tidString));
-
-            try {
-              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)
-                  .transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
-                violations = addViolation(violations, 8);
-              }
-            } catch (Exception ex) {
+            if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)) {
               violations = addViolation(violations, 8);
             }
           }
@@ -362,11 +357,6 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
 
-  protected Arbitrator getArbitrator(ServerContext context) {
-    Objects.requireNonNull(context);
-    return new ZooArbitrator(context);
-  }
-
   @Override
   public String getViolationDescription(short violationCode) {
     switch (violationCode) {
@@ -385,7 +375,7 @@ public class MetadataConstraints implements Constraint {
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:
-        return "Bulk load transaction no longer running";
+        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
       case 9:
         return "Invalid data file metadata format";
     }
