@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -409,20 +410,17 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       }
 
       LOG.info("Validating metadata table contents.");
-      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
-          .fetch(ColumnType.ECOMP).build();
-      List<TabletMetadata> md = new ArrayList<>();
-      tm.forEach(t -> md.add(t));
-      assertEquals(1, md.size());
-      TabletMetadata m = md.get(0);
-      Map<ExternalCompactionId,ExternalCompactionMetadata> em = m.getExternalCompactions();
-      assertEquals(1, em.size());
-      List<ExternalCompactionFinalState> finished = new ArrayList<>();
-      getFinalStatesForTable(getCluster(), tid).forEach(f -> finished.add(f));
-      assertEquals(1, finished.size());
-      assertEquals(em.entrySet().iterator().next().getKey(),
-          finished.get(0).getExternalCompactionId());
-      tm.close();
+      try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
+          .forTable(tid).fetch(ColumnType.ECOMP).build()) {
+        TabletMetadata m = tm.stream().collect(onlyElement());
+        Map<ExternalCompactionId,ExternalCompactionMetadata> em = m.getExternalCompactions();
+        assertEquals(1, em.size());
+        List<ExternalCompactionFinalState> finished = new ArrayList<>();
+        getFinalStatesForTable(getCluster(), tid).forEach(f -> finished.add(f));
+        assertEquals(1, finished.size());
+        assertEquals(em.entrySet().iterator().next().getKey(),
+            finished.get(0).getExternalCompactionId());
+      }
 
       // Force a flush on the metadata table before killing our tserver
       client.tableOperations().flush(MetadataTable.NAME);

@@ -377,18 +377,22 @@ public class CompactionIT extends AccumuloClusterHarness {
       ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(1000, tm.getFiles().size());
+      try (TabletsMetadata tms =
+          ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1000, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
       setting.addOption(ErrorThrowingIterator.TIMES, "3");
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      tm = tms.iterator().next();
-      assertEquals(1, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1, tm.getFiles().size());
+      }
 
       ReadWriteIT.verify(client, MAX_DATA, 1, 1, 0, table1);
 
@@ -408,9 +412,11 @@ public class CompactionIT extends AccumuloClusterHarness {
       ReadWriteIT.verify(client, 50, 1, 1, 0, table1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(50, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(50, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "ageoff", AgeOffFilter.class);
       setting.addOption("ttl", "0");
@@ -424,8 +430,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting2, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      assertThrows(NoSuchElementException.class, () -> ample.readTablets().forTable(tid)
-          .fetch(ColumnType.FILES).build().iterator().next());
+      try (TabletsMetadata tm = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        assertThrows(NoSuchElementException.class, () -> tm.iterator().next());
+      }
       assertEquals(0, client.createScanner(table1).stream().count());
     }
   }

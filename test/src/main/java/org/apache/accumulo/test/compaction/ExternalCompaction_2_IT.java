@@ -336,10 +336,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.CANCELLED);
 
-      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
-          .fetch(ColumnType.ECOMP).build();
-      assertEquals(0, tm.stream().count());
-      tm.close();
+      try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
+          .forTable(tid).fetch(ColumnType.ECOMP).build()) {
+        assertEquals(0, tm.stream().count());
+      }
 
     }
   }

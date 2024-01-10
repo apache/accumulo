@@ -364,7 +364,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
-      return StreamSupport.stream(scanner.spliterator(), false)
+      return scanner.stream().onClose(scanner::close)
           .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {

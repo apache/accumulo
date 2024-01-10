@@ -149,19 +149,43 @@ public class Merge {
       }
       List<Size> sizes = new ArrayList<>();
       long totalSize = 0;
-      // Merge any until you get larger than the goal size, and then merge one less tablet
-      Iterator<Size> sizeIterator = getSizeIterator(client, table, start, end);
-      while (sizeIterator.hasNext()) {
-        Size next = sizeIterator.next();
-        totalSize += next.size;
-        sizes.add(next);
-        if (totalSize > goalSize) {
-          totalSize = mergeMany(client, table, sizes, goalSize, force, false);
+
+      TableId tableId;
+      ClientContext context = (ClientContext) client;
+      try {
+        tableId = context.getTableId(table);
+      } catch (Exception e) {
+        throw new MergeException(e);
+      }
+
+      try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
+          .build()) {
+
+        Iterator<Size> sizeIterator = tablets.stream().map(tm -> {
+          long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+          return new Size(tm.getExtent(), size);
+        }).iterator();
+
+        while (sizeIterator.hasNext()) {
+          Size next = sizeIterator.next();
+          totalSize += next.size;
+          sizes.add(next);
+
+          if (totalSize > goalSize) {
+            mergeMany(client, table, sizes, goalSize, force, false);
+            sizes.clear();
+            sizes.add(next);
+            totalSize = next.size;
+          }
         }
       }
+
+      // merge one less tablet
       if (sizes.size() > 1) {
         mergeMany(client, table, sizes, goalSize, force, true);
       }
+
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
@@ -237,28 +261,6 @@ public class Merge {
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
-  }
-
-  protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename, Text start,
-      Text end) throws MergeException {
-    // open up metadata, walk through the tablets.
-
-    TableId tableId;
-    TabletsMetadata tablets;
-    try {
-      ClientContext context = (ClientContext) client;
-      tableId = context.getTableId(tablename);
-      tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
-          .build();
-    } catch (Exception e) {
-      throw new MergeException(e);
-    }
-
-    return tablets.stream().map(tm -> {
-      long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-      return new Size(tm.getExtent(), size);
-    }).iterator();
   }
 
 }
