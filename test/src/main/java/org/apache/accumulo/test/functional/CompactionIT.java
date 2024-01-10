@@ -304,6 +304,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1001");
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100.0");
 
       var beforeCount = countFiles(c);

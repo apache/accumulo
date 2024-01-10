@@ -62,17 +62,17 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
@@ -694,11 +694,11 @@ public class MergeIT extends AccumuloClusterHarness {
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
-          CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+          CompactorGroupId ceid = CompactorGroupIdImpl.groupId("G1");
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
-          ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, tmpFile,
-              "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, 44L);
+          CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
+              CompactionKind.SYSTEM, (short) 2, ceid, false, 44L);
           tablet.putExternalCompaction(ecid, ecMeta);
           tablet.mutate();
         }

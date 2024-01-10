@@ -35,7 +35,7 @@ class ImportedTableInfo implements Serializable {
   public List<DirectoryMapping> directories;
   public String exportFile;
   public boolean keepMappings;
-  public boolean onlineTable;
+  public boolean keepOffline;
 
   static class DirectoryMapping implements Serializable {
     private static final long serialVersionUID = 1L;

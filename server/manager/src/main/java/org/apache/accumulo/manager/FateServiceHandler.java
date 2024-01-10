@@ -592,10 +592,9 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
         manager.fate(type)
-            .seedTransaction(
-                op.toString(), tid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
-                    exportDirs, namespaceId, keepMappings, !keepOffline)),
-                autoCleanup, goalMessage);
+            .seedTransaction(op.toString(), tid, new TraceRepo<>(new ImportTable(c.getPrincipal(),
+                tableName, exportDirs, namespaceId, keepMappings, keepOffline)), autoCleanup,
+                goalMessage);
         break;
       }
       case TABLE_EXPORT: {
