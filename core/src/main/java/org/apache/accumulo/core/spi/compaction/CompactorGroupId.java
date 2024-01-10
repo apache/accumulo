@@ -37,6 +37,7 @@ public class CompactorGroupId extends AbstractId<CompactorGroupId> implements Cl
 
   @Override
   public CompactorGroupId clone() throws CloneNotSupportedException {
+    super.clone();
     return new CompactorGroupId(this.canonical());
   }
 
