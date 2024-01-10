@@ -145,7 +145,7 @@ public class ShellOptionsJC {
   }
 
   public boolean isTabCompletionDisabled() {
-    return tabCompletionDisabled;
+    return execCommand != null || tabCompletionDisabled;
   }
 
   public boolean isHelpEnabled() {
