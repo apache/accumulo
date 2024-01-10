@@ -27,11 +27,17 @@ import org.apache.accumulo.core.data.AbstractId;
  * @since 3.1.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-public class CompactorGroupId extends AbstractId<CompactorGroupId> {
+public class CompactorGroupId extends AbstractId<CompactorGroupId> implements Cloneable {
   // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
   private static final long serialVersionUID = 1L;
 
   protected CompactorGroupId(String canonical) {
     super(canonical);
   }
+
+  @Override
+  public CompactorGroupId clone() throws CloneNotSupportedException {
+    return new CompactorGroupId(this.canonical());
+  }
+
 }

@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.compaction.coordinator;
 import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -139,7 +140,16 @@ public class QueueMetrics implements MetricsProducer {
 
     SetView<CompactorGroupId> metricsWithoutQueues =
         Sets.difference(queuesWithMetrics, definedQueues);
-    metricsWithoutQueues.forEach(q -> {
+    Set<CompactorGroupId> toRemove = new HashSet<>(metricsWithoutQueues.size());
+    for (CompactorGroupId orig : metricsWithoutQueues) {
+      try {
+        toRemove.add(orig.clone());
+      } catch (CloneNotSupportedException e) {
+        // Should not happen
+        LOG.error("Call to clone() not supported on CompactorGroupId", e);
+      }
+    }
+    toRemove.forEach(q -> {
       LOG.debug("update - removing meters for queue: {}", q);
       perQueueMetrics.get(q).removeMeters(localRegistry);
       perQueueMetrics.remove(q);
