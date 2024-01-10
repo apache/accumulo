@@ -22,8 +22,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
@@ -148,7 +148,7 @@ public class Merge {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
       }
       List<Size> sizes = new ArrayList<>();
-      AtomicLong totalSize = new AtomicLong();
+      long totalSize = 0;
 
       TableId tableId;
       ClientContext context = (ClientContext) client;
@@ -157,31 +157,35 @@ public class Merge {
       } catch (Exception e) {
         throw new MergeException(e);
       }
+
       try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build()) {
-        tablets.stream().map(tm -> {
+
+        Iterator<Size> sizeIterator = tablets.stream().map(tm -> {
           long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
           return new Size(tm.getExtent(), size);
-        }).forEach(next -> {
-          totalSize.addAndGet(next.size);
+        }).iterator();
+
+        while (sizeIterator.hasNext()) {
+          Size next = sizeIterator.next();
+          totalSize += next.size;
           sizes.add(next);
-          // Merge many until you get larger than the goal size
-          if (totalSize.get() > goalSize) {
-            long size;
-            try {
-              size = mergeMany(client, table, sizes, goalSize, force, false);
-            } catch (MergeException e) {
-              throw new RuntimeException(e);
-            }
-            totalSize.set(size);
+
+          if (totalSize > goalSize) {
+            mergeMany(client, table, sizes, goalSize, force, false);
+            sizes.clear();
+            sizes.add(next);
+            totalSize = next.size;
           }
-        });
+        }
       }
+
       // merge one less tablet
       if (sizes.size() > 1) {
         mergeMany(client, table, sizes, goalSize, force, true);
       }
+
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
