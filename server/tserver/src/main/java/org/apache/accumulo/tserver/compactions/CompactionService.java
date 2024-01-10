@@ -67,9 +67,9 @@ import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
 public class CompactionService {
@@ -140,7 +140,7 @@ public class CompactionService {
       queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
     }
 
-    maxScanFilesExceededErrorCache = CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
+    maxScanFilesExceededErrorCache = Caffeine.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     log.debug("Created new compaction service id:{} rate limit:{} planner:{} planner options:{}",
         myId, maxRate, plannerClass, plannerOptions);
