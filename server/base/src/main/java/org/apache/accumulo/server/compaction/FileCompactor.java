@@ -191,10 +191,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     return outputFile.toString();
   }
 
-  protected String getOutputFileName() {
-    return outputFile.getFileName();
-  }
-
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
       throws IOException {
     try {
@@ -287,10 +283,13 @@ public class FileCompactor implements Callable<CompactionStats> {
       log.debug("Compaction canceled {}", extent);
       throw e;
     } catch (IOException | RuntimeException e) {
-      log.error("Compaction error. Compaction info: "
-          + "extent: {}, input files: {}, output file: {}, iterators: {}, start date: {}. Error message: {}",
-          getExtent(), getFileNamesToCompact(), getOutputFileName(), getIterators(),
-          threadStartDate, e.getMessage(), e);
+      Collection<String> inputFileNames =
+          Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
+      String outputFileName = outputFile.getFileName();
+      log.error(
+          "Compaction error. Compaction info: "
+              + "extent: {}, input files: {}, output file: {}, iterators: {}, start date: {}",
+          getExtent(), inputFileNames, outputFileName, getIterators(), threadStartDate, e);
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);
@@ -470,10 +469,6 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   Collection<StoredTabletFile> getFilesToCompact() {
     return filesToCompact.keySet();
-  }
-
-  Collection<String> getFileNamesToCompact() {
-    return Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
   }
 
   boolean hasIMM() {
