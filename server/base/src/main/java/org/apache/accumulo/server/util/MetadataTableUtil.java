@@ -51,8 +51,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
@@ -70,15 +68,12 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -158,124 +153,12 @@ public class MetadataTableUtil {
     return newFiles;
   }
 
-  public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock, TabletHostingGoal goal) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.prevEndRow());
-    tablet.putDirName(path);
-    tablet.putTime(new MetadataTime(0, timeType));
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.putHostingGoal(goal);
-    tablet.mutate();
-
-  }
-
-  public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
-      ServiceLock zooLock) {
-    KeyExtent ke = KeyExtent.fromMetaRow(metadataEntry, oldPrevEndRow);
-    Mutation m = TabletColumnFamily.createPrevRowMutation(ke);
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
-  }
-
-  public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
-      ServerContext context, ServiceLock zooLock, Set<ExternalCompactionId> ecids) {
-    Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
-
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
-
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-        TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
-
-    ecids.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical()));
-
-    update(context, zooLock, m, extent);
-  }
-
-  public static void finishSplit(Text metadataEntry,
-      Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, final ServerContext context,
-      ServiceLock zooLock) {
-    Mutation m = new Mutation(metadataEntry);
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-
-    for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
-          new Value(entry.getValue().encode()));
-    }
-
-    for (StoredTabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
-    }
-
-    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
-  }
-
-  public static void finishSplit(KeyExtent extent,
-      Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ServiceLock zooLock) {
-    finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
-  }
-
   public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     scanFiles.forEach(tablet::deleteScan);
     tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
-  }
-
-  public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
-      SortedMap<StoredTabletFile,DataFileValue> datafiles,
-      SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
-      SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove) {
-
-    for (Entry<StoredTabletFile,DataFileValue> entry : datafiles.entrySet()) {
-
-      Text firstRow = null;
-      Text lastRow = null;
-
-      boolean rowsKnown = false;
-
-      FileUtil.FileInfo mfi = firstAndLastRows.get(entry.getKey());
-
-      if (mfi != null) {
-        firstRow = mfi.getFirstRow();
-        lastRow = mfi.getLastRow();
-        rowsKnown = true;
-      }
-
-      if (rowsKnown && firstRow.compareTo(midRow) > 0) {
-        // only in high
-        long highSize = entry.getValue().getSize();
-        long highEntries = entry.getValue().getNumEntries();
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      } else if (rowsKnown && lastRow.compareTo(midRow) <= 0) {
-        // only in low
-        long lowSize = entry.getValue().getSize();
-        long lowEntries = entry.getValue().getNumEntries();
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        highDatafilesToRemove.add(entry.getKey());
-      } else {
-        long lowSize = (long) Math.floor((entry.getValue().getSize() * splitRatio));
-        long lowEntries = (long) Math.floor((entry.getValue().getNumEntries() * splitRatio));
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
-        long highEntries =
-            (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      }
-    }
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,

@@ -21,9 +21,7 @@ package org.apache.accumulo.tserver;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
-import java.util.Arrays;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -109,27 +107,6 @@ class AssignmentHandler implements Runnable {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
       canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
-
-      if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
-        KeyExtent fixedExtent = tabletMetadata.getExtent();
-
-        synchronized (server.openingTablets) {
-          server.openingTablets.remove(extent);
-          server.openingTablets.notifyAll();
-          // it expected that the new extent will overlap the old one... if it does not, it
-          // should not be added to unopenedTablets
-          if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(fixedExtent)))
-              .contains(fixedExtent)) {
-            throw new IllegalStateException(
-                "Fixed split does not overlap " + extent + " " + fixedExtent);
-          }
-          server.unopenedTablets.add(fixedExtent);
-        }
-        // split was rolled back... try again
-        new AssignmentHandler(server, fixedExtent).run();
-        return;
-
-      }
     } catch (Exception e) {
       synchronized (server.openingTablets) {
         server.openingTablets.remove(extent);
