@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.compaction.coordinator;
 import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -127,7 +128,9 @@ public class QueueMetrics implements MetricsProducer {
     Set<CompactorGroupId> definedQueues = compactionJobQueues.getQueueIds();
     LOG.debug("update - defined queues: {}", definedQueues);
 
-    Set<CompactorGroupId> queuesWithMetrics = perQueueMetrics.keySet();
+    // Copy the keySet into a new Set so that changes to perQueueMetrics
+    // don't affect the collection
+    Set<CompactorGroupId> queuesWithMetrics = new HashSet<>(perQueueMetrics.keySet());
     LOG.debug("update - queues with metrics: {}", queuesWithMetrics);
 
     SetView<CompactorGroupId> queuesWithoutMetrics =
