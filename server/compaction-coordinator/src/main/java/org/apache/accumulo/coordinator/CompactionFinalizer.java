@@ -128,8 +128,8 @@ public class CompactionFinalizer {
             ecfs.getExternalCompactionId().canonical(), ecfs.getExtent().toThrift(),
             ecfs.getFileSize(), ecfs.getEntries());
       } else if (ecfs.getFinalState() == FinalState.FAILED) {
-        LOG.debug("Notifying tserver {} that compaction {} with {} has failed.", loc, ecfs,
-            ecfs.getExternalCompactionId());
+        LOG.debug("Notifying tserver {} that compaction {} with {} has failed.", loc,
+            ecfs.getExternalCompactionId(), ecfs);
         client.compactionJobFailed(TraceUtil.traceInfo(), context.rpcCreds(),
             ecfs.getExternalCompactionId().canonical(), ecfs.getExtent().toThrift());
       } else {
