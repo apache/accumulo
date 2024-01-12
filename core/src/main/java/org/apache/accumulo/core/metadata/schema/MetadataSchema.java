@@ -436,6 +436,9 @@ public class MetadataSchema {
       public static final String SPLIT_RATIO_QUAL = "splitRatio";
       public static final ColumnFQ SPLIT_RATIO_COLUMN =
           new ColumnFQ(TabletColumnFamily.NAME, new Text(SPLIT_RATIO_QUAL));
+
+      public static final ColumnFQ COMPACT_COL =
+          new ColumnFQ(ServerColumnFamily.NAME, new Text("compact"));
     }
   }
 
