@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -53,6 +52,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -160,6 +160,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
@@ -219,7 +220,8 @@ public class Manager extends AbstractServer
   // should already have been set; ConcurrentHashMap will guarantee that all threads will see
   // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
-  private final Map<FateInstanceType,Fate<Manager>> fateRefs = new ConcurrentHashMap<>();
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
+      new AtomicReference<>();
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -291,7 +293,7 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return fateRefs.get(type);
+    return getFateRefs().get(type);
   }
 
   static final boolean X = true;
@@ -334,7 +336,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (!fateRefs.isEmpty()) {
+      if (!getFateRefs().isEmpty()) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -1073,11 +1075,16 @@ public class Manager extends AbstractServer
     }
 
     try {
-      initializeFateInstance(context, FateInstanceType.META,
+      var metaInstance = initializeFateInstance(context, FateInstanceType.META,
           new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
-      initializeFateInstance(context, FateInstanceType.USER,
+      var userInstance = initializeFateInstance(context, FateInstanceType.USER,
           new AccumuloStore<>(context, FateTable.NAME));
 
+      if (!fateRefs.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
+        throw new IllegalStateException(
+            "Unexpected previous fate reference map already initialized");
+      }
       fateReadyLatch.countDown();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
@@ -1139,7 +1146,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fateRefs.keySet().forEach(type -> fate(type).shutdown());
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown());
 
     splitter.stop();
 
@@ -1178,15 +1185,18 @@ public class Manager extends AbstractServer
     log.info("exiting");
   }
 
-  private void initializeFateInstance(ServerContext context, FateInstanceType type,
+  private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
       FateStore<Manager> store) {
     final AgeOffStore<Manager> ageOffStore =
         new AgeOffStore<>(store, HOURS.toMillis(8), System::currentTimeMillis);
 
-    fateRefs.put(type, new Fate<>(this, ageOffStore, TraceRepo::toLogString, getConfiguration()));
+    final Fate<Manager> fateInstance =
+        new Fate<>(this, ageOffStore, TraceRepo::toLogString, getConfiguration());
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(ageOffStore::ageOff, 63000, 63000, MILLISECONDS));
+
+    return fateInstance;
   }
 
   /**
@@ -1666,5 +1676,11 @@ public class Manager extends AbstractServer
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     compactionCoordinator.registerMetrics(registry);
+  }
+
+  private Map<FateInstanceType,Fate<Manager>> getFateRefs() {
+    var fateRefs = this.fateRefs.get();
+    Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
+    return fateRefs;
   }
 }

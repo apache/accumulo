@@ -124,8 +124,7 @@ class FateServiceHandler implements FateService.Iface {
   public TFateId beginFateOperation(TInfo tinfo, TCredentials credentials, TFateInstanceType type)
       throws ThriftSecurityException {
     authenticate(credentials);
-    return new TFateId(type,
-        manager.fate(FateInstanceType.valueOf(type.name())).startTransaction());
+    return new TFateId(type, manager.fate(FateInstanceType.fromThrift(type)).startTransaction());
   }
 
   @Override
@@ -135,7 +134,7 @@ class FateServiceHandler implements FateService.Iface {
     authenticate(c);
     String goalMessage = op.toString() + " ";
     long tid = opid.getTid();
-    FateInstanceType type = getType(opid);
+    FateInstanceType type = FateInstanceType.fromThrift(opid.getType());
 
     switch (op) {
       case NAMESPACE_CREATE: {
@@ -828,7 +827,7 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(credentials);
 
-    FateInstanceType type = getType(opid);
+    FateInstanceType type = FateInstanceType.fromThrift(opid.getType());
     TStatus status = manager.fate(type).waitForCompletion(opid.getTid());
     if (status == TStatus.FAILED) {
       Exception e = manager.fate(type).getException(opid.getTid());
@@ -854,7 +853,7 @@ class FateServiceHandler implements FateService.Iface {
   public void finishFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
       throws ThriftSecurityException {
     authenticate(credentials);
-    manager.fate(getType(opid)).delete(opid.getTid());
+    manager.fate(FateInstanceType.fromThrift(opid.getType())).delete(opid.getTid());
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
@@ -935,7 +934,8 @@ class FateServiceHandler implements FateService.Iface {
    */
   public Path mkTempDir(TFateId opid) throws IOException {
     Volume vol = manager.getVolumeManager().getFirst();
-    Path p = vol.prefixChild("/tmp/fate-" + FastFormat.toHexString(opid.getTid()));
+    Path p = vol
+        .prefixChild("/tmp/fate-" + opid.getType() + "-" + FastFormat.toHexString(opid.getTid()));
     FileSystem fs = vol.getFileSystem();
     if (fs.exists(p)) {
       fs.delete(p, true);
@@ -953,10 +953,6 @@ class FateServiceHandler implements FateService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    return manager.fate(getType(opid)).cancel(opid.getTid());
-  }
-
-  private static FateInstanceType getType(TFateId opid) {
-    return FateInstanceType.valueOf(opid.getType().name());
+    return manager.fate(FateInstanceType.fromThrift(opid.getType())).cancel(opid.getTid());
   }
 }

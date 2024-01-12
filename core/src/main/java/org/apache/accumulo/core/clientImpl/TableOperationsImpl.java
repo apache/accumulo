@@ -132,6 +132,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -393,8 +394,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TFateId opid = null;
 
     try {
-      TFateInstanceType t = tableOrNamespaceName.startsWith(Namespace.ACCUMULO.name())
-          ? TFateInstanceType.META : TFateInstanceType.USER;
+      TFateInstanceType t =
+          FateInstanceType.fromNamespaceOrTableName(tableOrNamespaceName).toThrift();
       opid = beginFateOperation(t);
       executeFateOperation(opid, op, args, opts, !wait);
       if (!wait) {
