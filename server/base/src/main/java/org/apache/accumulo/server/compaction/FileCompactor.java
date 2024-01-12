@@ -266,7 +266,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         throw ex;
       }
 
-      log.trace(String.format(
+      log.debug(String.format(
           "Compaction %s %,d read | %,d written | %,6d entries/sec"
               + " | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
           extent, majCStats.getEntriesRead(), majCStats.getEntriesWritten(),
