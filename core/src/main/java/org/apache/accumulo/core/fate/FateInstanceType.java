@@ -23,7 +23,7 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 public enum FateInstanceType {
   META, USER;
 
-  public static FateInstanceType toType(String tableOrNamespaceName) {
+  public static FateInstanceType fromNamespaceOrTableName(String tableOrNamespaceName) {
     return tableOrNamespaceName.startsWith(Namespace.ACCUMULO.name()) ? FateInstanceType.META
         : FateInstanceType.USER;
   }
