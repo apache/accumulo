@@ -65,6 +65,10 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   public long create() {
     long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
 
+    // once requireAbsentTransaction() is implemented, use it here
+    // newMutator(tid).requireAbsentTransaction().putStatus(TStatus.NEW)
+    // .putCreateTime(System.currentTimeMillis()).mutate();
+
     newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
 
     return tid;
@@ -236,27 +240,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReserved(true);
 
-      FateMutator<T> fateMutator = newMutator(tid);
       final byte[] serialized = serializeTxInfo(so);
 
-      switch (txInfo) {
-        case TX_NAME:
-          fateMutator.putName(serialized);
-          break;
-        case AUTO_CLEAN:
-          fateMutator.putAutoClean(serialized);
-          break;
-        case EXCEPTION:
-          fateMutator.putException(serialized);
-          break;
-        case RETURN_VALUE:
-          fateMutator.putReturnValue(serialized);
-          break;
-        default:
-          throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
-      }
-
-      fateMutator.mutate();
+      newMutator(tid).putTxInfo(txInfo, serialized).mutate();
     }
 
     @Override

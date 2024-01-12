@@ -24,11 +24,14 @@ import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
 
 import java.util.Objects;
 
-import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Condition;
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -45,13 +48,13 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   private final ClientContext context;
   private final String tableName;
   private final long tid;
-  private final Mutation mutation;
+  private final ConditionalMutation mutation;
 
-  FateMutatorImpl(ClientContext context, String tableName, long tid) {
+  public FateMutatorImpl(ClientContext context, String tableName, long tid) {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
     this.tid = tid;
-    this.mutation = new Mutation(new Text("tx_" + FastFormat.toHexString(tid)));
+    this.mutation = new ConditionalMutation(new Text("tx_" + FastFormat.toHexString(tid)));
   }
 
   @Override
@@ -105,13 +108,20 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
       case RETURN_VALUE:
         putReturnValue(data);
         break;
+      default:
+        throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
     }
     return this;
   }
 
   @Override
   public FateMutator<T> putRepo(int position, Repo<T> repo) {
-    mutation.put(RepoColumnFamily.NAME, invertRepo(position), new Value(serialize(repo)));
+    final Text cq = invertRepo(position);
+    // ensure this repo is not already set
+    mutation.addCondition(new Condition(RepoColumnFamily.NAME, cq));
+    // TODO: would be nice to make sure that the previous repo is there but not sure we can do that
+    // without knowing its value
+    mutation.put(RepoColumnFamily.NAME, cq, new Value(serialize(repo)));
     return this;
   }
 
@@ -132,12 +142,29 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
+  /**
+   * Require that the transaction does not exist.
+   */
+  // TODO: need to figure out how to use TabletExistsIterator since its in a different module
+  // public FateMutator<T> requireAbsentTransaction() {
+  // IteratorSetting is = new IteratorSetting(1000000, TabletExistsIterator.class);
+  // Condition c = new Condition("", "").setIterators(is);
+  // mutation.addCondition(c);
+  // return this;
+  // }
+
   @Override
   public void mutate() {
-    try (BatchWriter writer = context.createBatchWriter(tableName)) {
-      writer.addMutation(mutation);
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
+    try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
+      if (mutation.getConditions().isEmpty()) {
+        mutation.addCondition(new Condition("", ""));
+      }
+      ConditionalWriter.Result result = writer.write(mutation);
+      if (result.getStatus() != ConditionalWriter.Status.ACCEPTED) {
+        throw new IllegalStateException("Failed to write mutation " + mutation);
+      }
+    } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
     }
   }
 }
