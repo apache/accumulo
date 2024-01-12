@@ -55,8 +55,6 @@ public class CompactionJobPrioritizer {
 
     int min;
     int max;
-    // This holds the two bits used to encode the priority of the table.
-    int tablePrefix;
 
     switch (Ample.DataLevel.of(tableId)) {
       case ROOT:
@@ -92,5 +90,4 @@ public class CompactionJobPrioritizer {
 
     return (short) Math.min(max, min + totalFiles + compactingFiles);
   }
-
 }
