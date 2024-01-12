@@ -155,7 +155,7 @@ public class CompactionCoordinator
   private final SecurityOperation security;
   private final CompactionJobQueues jobQueues;
   private final EventCoordinator eventCoordinator;
-  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fate;
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
@@ -181,7 +181,7 @@ public class CompactionCoordinator
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
-    this.fate = fateInstances;
+    this.fateInstances = fateInstances;
 
     completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
         .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -650,10 +650,10 @@ public class CompactionCoordinator
     }
 
     // maybe fate has not started yet
-    var localFates = fate.get();
+    var localFates = fateInstances.get();
     while (localFates == null && !shutdown) {
       UtilWaitThread.sleep(100);
-      localFates = fate.get();
+      localFates = fateInstances.get();
     }
 
     var extent = KeyExtent.fromThrift(textent);
