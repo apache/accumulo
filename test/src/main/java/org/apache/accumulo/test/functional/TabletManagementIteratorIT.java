@@ -61,6 +61,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -400,10 +401,10 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key k = entry.getKey();
+
           if (m == null) {
             m = new Mutation(k.getRow());
           }
-
           m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
               k.getTimestamp(), entry.getValue());
         }
@@ -412,9 +413,10 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       }
     }
 
-    // metadata should be stable with only 6 rows (2 for each table)
+    // metadata should be stable with only 9 rows (2 for each table) + 1 for the FateTable
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals(8, mutations.size(), "Metadata should have 8 rows (2 for each table)");
+    assertEquals(9, mutations.size(),
+        "Metadata should have 8 rows (2 for each table) + one row for " + FateTable.ID.canonical());
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {
