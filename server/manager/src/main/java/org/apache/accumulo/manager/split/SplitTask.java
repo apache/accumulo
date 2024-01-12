@@ -84,8 +84,7 @@ public class SplitTask implements Runnable {
         return;
       }
 
-      var fateInstanceType = FateInstanceType
-          .fromNamespaceOrTableName(context.getTableIdToNameMap().get(tablet.getTableId()));
+      var fateInstanceType = FateInstanceType.fromTableId((tablet.getTableId()));
       long fateTxId = manager.fate(fateInstanceType).startTransaction();
 
       manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT", fateTxId,
