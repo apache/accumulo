@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_SERVICE_PREFIX;
 import static org.apache.accumulo.core.conf.Property.MONITOR_RESOURCES_EXTERNAL;
-import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -49,7 +49,6 @@ public class ConfigSetIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConfigSetIT.class);
 
   @Test
-  @SuppressWarnings("deprecation")
   public void setInvalidJson() throws Exception {
     log.debug("Starting setInvalidJson test ------------------");
 
@@ -62,8 +61,8 @@ public class ConfigSetIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client =
         getCluster().createAccumuloClient("root", new PasswordToken(getRootPassword()))) {
-      client.instanceOperations().setProperty(TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getKey(),
-          validJson);
+      client.instanceOperations().setProperty(
+          COMPACTION_SERVICE_PREFIX.getKey() + "test.planner.opts.executors", validJson);
       assertThrows(AccumuloException.class, () -> client.instanceOperations()
           .setProperty(MONITOR_RESOURCES_EXTERNAL.getKey(), invalidJson));
 

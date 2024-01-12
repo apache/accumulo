@@ -42,7 +42,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
 
   @SuppressWarnings("deprecation")
   protected Property getThroughputProp() {
-    return Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT;
+    return Property.COMPACTION_DEFAULT_RATE_LIMIT;
   }
 
   @Override

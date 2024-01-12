@@ -164,6 +164,26 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
+      // Default Compactor
+      mergeProp("tserver.compaction.major.service.default.planner",
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp("tserver.compaction.major.service.default.planner.opts.maxOpen", "10");
+      mergeProp("tserver.compaction.major.service.default.planner.opts.executors",
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]");
+
+      // Meta Compactor
+      mergeProp("tserver.compaction.major.service.meta.planner",
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp("tserver.compaction.major.service.meta.planner.opts.maxOpen", "30");
+      mergeProp("tserver.compaction.major.service.meta.planner.opts.executors",
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]");
+      // Root Compactor
+      mergeProp("tserver.compaction.major.service.root.planner",
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp("tserver.compaction.major.service.root.planner.opts.maxOpen", "30");
+      mergeProp("tserver.compaction.major.service.root.planner.opts.executors",
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]");
+
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
       }

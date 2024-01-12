@@ -55,7 +55,7 @@ public class CompactionServicesConfig {
   @SuppressWarnings("deprecation")
   private long getDefaultThroughput() {
     return ConfigurationTypeHelper
-        .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
+        .getMemoryAsBytes(Property.COMPACTION_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
   private Map<String,Map<String,String>> getConfiguration(AccumuloConfiguration aconf) {
