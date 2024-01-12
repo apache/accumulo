@@ -71,14 +71,14 @@ public class TabletManagementParameters {
   private final Map<Long,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
-  private final List<Pair<Path,Path>> volumeReplacements;
+  private final Map<Path,Path> volumeReplacements;
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
       Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints,
-      boolean canSuspendTablets, List<Pair<Path,Path>> volumeReplacements) {
+      boolean canSuspendTablets, Map<Path,Path> volumeReplacements) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -125,7 +125,8 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
-    this.volumeReplacements = jdata.volumeReplacements;
+    this.volumeReplacements = jdata.volumeReplacements.stream()
+        .collect(toUnmodifiableMap(Pair::getFirst, Pair::getSecond));
   }
 
   public ManagerState getManagerState() {
@@ -176,7 +177,7 @@ public class TabletManagementParameters {
     return canSuspendTablets;
   }
 
-  public List<Pair<Path,Path>> getVolumeReplacements() {
+  public Map<Path,Path> getVolumeReplacements() {
     return volumeReplacements;
   }
 
@@ -244,7 +245,8 @@ public class TabletManagementParameters {
               .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints;
       canSuspendTablets = params.canSuspendTablets;
-      volumeReplacements = params.volumeReplacements;
+      volumeReplacements =
+          params.volumeReplacements.entrySet().stream().map(Pair::fromEntry).collect(toList());
     }
 
   }

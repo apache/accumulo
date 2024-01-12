@@ -658,6 +658,8 @@ public interface MetricsProducer {
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
   String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
+  String METRICS_SERVER_IDLE = "accumulo.server.idle";
+
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
   String METRICS_COMPACTOR_QUEUE_PREFIX = METRICS_COMPACTOR_PREFIX + "queue.";

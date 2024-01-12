@@ -38,6 +38,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -89,12 +90,9 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         try {
-          var iter = store.runnable(keepRunning);
-
-          while (iter.hasNext() && keepRunning.get()) {
-            Long txid = iter.next();
-            try {
-              while (keepRunning.get()) {
+          store.runnable(keepRunning, txid -> {
+            while (keepRunning.get()) {
+              try {
                 // The reason for calling transfer instead of queueing is avoid rescanning the
                 // storage layer and adding the same thing over and over. For example if all threads
                 // were busy, the queue size was 100, and there are three runnable things in the
@@ -103,12 +101,12 @@ public class Fate<T> {
                 if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
                   break;
                 }
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
               }
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              throw new IllegalStateException(e);
             }
-          }
+          });
         } catch (Exception e) {
           if (keepRunning.get()) {
             log.warn("Failure while attempting to find work for fate", e);
@@ -204,7 +202,7 @@ public class Fate<T> {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           if (txStore != null) {
-            txStore.unreserve(deferTime);
+            txStore.unreserve(deferTime, TimeUnit.MILLISECONDS);
           }
         }
       }
@@ -364,7 +362,7 @@ public class Fate<T> {
         txStore.setStatus(SUBMITTED);
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
 
   }
@@ -402,7 +400,7 @@ public class Fate<T> {
             return false;
           }
         } finally {
-          txStore.unreserve(0);
+          txStore.unreserve(0, TimeUnit.MILLISECONDS);
         }
       } else {
         // reserved, lets retry.
@@ -433,7 +431,7 @@ public class Fate<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -446,7 +444,7 @@ public class Fate<T> {
       }
       return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -460,7 +458,7 @@ public class Fate<T> {
       }
       return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {
-      txStore.unreserve(0);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 

@@ -69,9 +69,11 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
       Map<String,String> siteCfg = new HashMap<>();
+      siteCfg.put(CSP + "default.planner", DefaultCompactionPlanner.class.getName());
+      siteCfg.put(CSP + "default.planner.opts.groups", "[{\"name\":\"default_group\"}]");
       siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
       // place invalid json in the planners config
-      siteCfg.put(CSP + "cs1.planner.opts.executors", "{{'name]");
+      siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'name]");
       cfg.setSiteConfig(siteCfg);
     }
   }
@@ -126,8 +128,8 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
                 .collect(MoreCollectors.onlyElement()));
           }
 
-          var value = "[{'name':'all', 'type': 'external', 'group':'cs1q1'}]".replaceAll("'", "\"");
-          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
+          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
 
           // start the compactor, it was not started initially because of bad config
           getCluster().getConfig().getClusterServerConfiguration()
@@ -152,7 +154,7 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
 
       // misconfigure the service, test how going from good config to bad config works. The test
       // started with an initial state of bad config.
-      client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", "]o.o[");
+      client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", "]o.o[");
       try (var writer = client.createBatchWriter(table)) {
         writer.addMutation(new Mutation("0").at().family("f").qualifier("q").put("v"));
       }
@@ -164,8 +166,8 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
       fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
-          var value = "[{'name':'all', 'type': 'external', 'group':'cs1q1'}]".replaceAll("'", "\"");
-          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.executors", value);
+          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

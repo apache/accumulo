@@ -21,13 +21,14 @@ package org.apache.accumulo.manager.compaction.coordinator;
 import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
@@ -50,7 +51,7 @@ public class QueueMetrics implements MetricsProducer {
     private final Gauge jobsRejected;
     private final Gauge jobsLowestPriority;
 
-    public QueueMeters(MeterRegistry meterRegistry, CompactionExecutorId queueId,
+    public QueueMeters(MeterRegistry meterRegistry, CompactorGroupId queueId,
         CompactionJobPriorityQueue queue) {
       length =
           Gauge.builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, queue, q -> q.getMaxSize())
@@ -99,7 +100,7 @@ public class QueueMetrics implements MetricsProducer {
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
   private volatile MeterRegistry meterRegistry = null;
   private final CompactionJobQueues compactionJobQueues;
-  private final Map<CompactionExecutorId,QueueMeters> perQueueMetrics = new HashMap<>();
+  private final Map<CompactorGroupId,QueueMeters> perQueueMetrics = new HashMap<>();
   private Gauge queueCountMeter = null;
 
   public QueueMetrics(CompactionJobQueues compactionJobQueues) {
@@ -124,20 +125,22 @@ public class QueueMetrics implements MetricsProducer {
     }
     LOG.debug("update - cjq queues: {}", compactionJobQueues.getQueueIds());
 
-    Set<CompactionExecutorId> definedQueues = compactionJobQueues.getQueueIds();
+    Set<CompactorGroupId> definedQueues = compactionJobQueues.getQueueIds();
     LOG.debug("update - defined queues: {}", definedQueues);
 
-    Set<CompactionExecutorId> queuesWithMetrics = perQueueMetrics.keySet();
+    // Copy the keySet into a new Set so that changes to perQueueMetrics
+    // don't affect the collection
+    Set<CompactorGroupId> queuesWithMetrics = new HashSet<>(perQueueMetrics.keySet());
     LOG.debug("update - queues with metrics: {}", queuesWithMetrics);
 
-    SetView<CompactionExecutorId> queuesWithoutMetrics =
+    SetView<CompactorGroupId> queuesWithoutMetrics =
         Sets.difference(definedQueues, queuesWithMetrics);
     queuesWithoutMetrics.forEach(q -> {
       LOG.debug("update - creating meters for queue: {}", q);
       perQueueMetrics.put(q, new QueueMeters(localRegistry, q, compactionJobQueues.getQueue(q)));
     });
 
-    SetView<CompactionExecutorId> metricsWithoutQueues =
+    SetView<CompactorGroupId> metricsWithoutQueues =
         Sets.difference(queuesWithMetrics, definedQueues);
     metricsWithoutQueues.forEach(q -> {
       LOG.debug("update - removing meters for queue: {}", q);

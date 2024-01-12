@@ -16,22 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.core.iterators.user;
 
-import org.apache.accumulo.core.data.AbstractId;
+import java.util.Set;
+import java.util.function.Predicate;
 
-/**
- * A unique identifier for a a compaction executor that a {@link CompactionPlanner} can schedule
- * compactions on using a {@link CompactionJob}.
- *
- * @since 2.1.0
- * @see org.apache.accumulo.core.spi.compaction
- */
-public class CompactionExecutorId extends AbstractId<CompactionExecutorId> {
-  // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
-  private static final long serialVersionUID = 1L;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-  protected CompactionExecutorId(String canonical) {
-    super(canonical);
+import com.google.common.collect.Sets;
+
+public class HasWalsFilter extends TabletMetadataFilter {
+
+  private static final Set<TabletMetadata.ColumnType> COLUMNS =
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.LOGS);
+
+  private final static Predicate<TabletMetadata> HAS_WALS =
+      tabletMetadata -> !tabletMetadata.getLogs().isEmpty();
+
+  @Override
+  public Set<TabletMetadata.ColumnType> getColumns() {
+    return COLUMNS;
+  }
+
+  @Override
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return HAS_WALS;
   }
 }

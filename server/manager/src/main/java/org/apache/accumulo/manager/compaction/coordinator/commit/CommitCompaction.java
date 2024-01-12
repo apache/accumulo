@@ -40,9 +40,9 @@ import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -109,7 +109,7 @@ public class CommitCompaction extends ManagerRepo {
         .logInterval(3, MINUTES).createRetry();
 
     while (canCommitCompaction(ecid, tablet)) {
-      ExternalCompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
+      CompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
 
       // the compacted files should not exists in the tablet already
       var tablet2 = tablet;
@@ -155,8 +155,8 @@ public class CommitCompaction extends ManagerRepo {
   }
 
   private void updateTabletForCompaction(TCompactionStats stats, ExternalCompactionId ecid,
-      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile,
-      ExternalCompactionMetadata ecm, Ample.ConditionalTabletMutator tabletMutator) {
+      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile, CompactionMetadata ecm,
+      Ample.ConditionalTabletMutator tabletMutator) {
     // ELASTICITY_TODO improve logging adapt to use existing tablet files logging
     if (ecm.getKind() == CompactionKind.USER) {
       if (tablet.getSelectedFiles().getFiles().equals(ecm.getJobFiles())) {
@@ -235,7 +235,7 @@ public class CommitCompaction extends ManagerRepo {
       return false;
     }
 
-    ExternalCompactionMetadata ecm = tabletMetadata.getExternalCompactions().get(ecid);
+    CompactionMetadata ecm = tabletMetadata.getExternalCompactions().get(ecid);
 
     if (ecm == null) {
       LOG.debug("Received completion notification for unknown compaction {} {}", ecid, extent);

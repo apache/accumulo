@@ -20,8 +20,12 @@ package org.apache.accumulo.core.util.compaction;
 
 import java.util.Comparator;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+
+import com.google.common.base.Preconditions;
 
 public class CompactionJobPrioritizer {
 
@@ -29,31 +33,61 @@ public class CompactionJobPrioritizer {
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles) {
+  private static final short ROOT_USER_MAX = Short.MAX_VALUE;
+  private static final short ROOT_USER_MIN = ROOT_USER_MAX - 1000;
+  private static final short ROOT_SYSTEM_MAX = ROOT_USER_MIN - 1;
+  private static final short ROOT_SYSTEM_MIN = ROOT_SYSTEM_MAX - 1000;
+  private static final short METADATA_USER_MAX = ROOT_SYSTEM_MIN - 1;
+  private static final short METADATA_USER_MIN = METADATA_USER_MAX - 1000;
+  private static final short METADATA_SYSTEM_MAX = METADATA_USER_MIN - 1;
+  private static final short METADATA_SYSTEM_MIN = METADATA_SYSTEM_MAX - 1000;
+  private static final short USER_USER_MAX = METADATA_SYSTEM_MIN - 1;
+  private static final short USER_USER_MIN = USER_USER_MAX - 30768;
+  private static final short USER_SYSTEM_MAX = USER_USER_MIN - 1;
+  private static final short USER_SYSTEM_MIN = Short.MIN_VALUE;
 
-    int prio = totalFiles + compactingFiles;
+  public static short createPriority(TableId tableId, CompactionKind kind, int totalFiles,
+      int compactingFiles) {
 
-    switch (kind) {
-      case USER:
-        // user-initiated compactions will have a positive priority
-        // based on number of files
-        if (prio > Short.MAX_VALUE) {
-          return Short.MAX_VALUE;
-        }
-        return (short) prio;
-      case SELECTOR:
-      case SYSTEM:
-        // system-initiated compactions will have a negative priority
-        // starting at -32768 and increasing based on number of files
-        // maxing out at -1
-        if (prio > Short.MAX_VALUE) {
-          return -1;
+    Preconditions.checkArgument(totalFiles >= 0, "totalFiles is negative %s", totalFiles);
+    Preconditions.checkArgument(compactingFiles >= 0, "compactingFiles is negative %s",
+        compactingFiles);
+
+    int min;
+    int max;
+
+    switch (Ample.DataLevel.of(tableId)) {
+      case ROOT:
+        if (kind == CompactionKind.USER) {
+          min = ROOT_USER_MIN;
+          max = ROOT_USER_MAX;
         } else {
-          return (short) (Short.MIN_VALUE + prio);
+          min = ROOT_SYSTEM_MIN;
+          max = ROOT_SYSTEM_MAX;
         }
+        break;
+      case METADATA:
+        if (kind == CompactionKind.USER) {
+          min = METADATA_USER_MIN;
+          max = METADATA_USER_MAX;
+        } else {
+          min = METADATA_SYSTEM_MIN;
+          max = METADATA_SYSTEM_MAX;
+        }
+        break;
+      case USER:
+        if (kind == CompactionKind.USER) {
+          min = USER_USER_MIN;
+          max = USER_USER_MAX;
+        } else {
+          min = USER_SYSTEM_MIN;
+          max = USER_SYSTEM_MAX;
+        }
+        break;
       default:
-        throw new AssertionError("Unknown kind " + kind);
+        throw new IllegalStateException("Unknown data level" + Ample.DataLevel.of(tableId));
     }
-  }
 
+    return (short) Math.min(max, min + totalFiles + compactingFiles);
+  }
 }

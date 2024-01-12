@@ -380,7 +380,7 @@ public interface Ample {
 
     T deleteSuspension();
 
-    T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
+    T putExternalCompaction(ExternalCompactionId ecid, CompactionMetadata ecMeta);
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
@@ -556,7 +556,7 @@ public interface Ample {
      * second cause is ample resubmitting on unknown as mentioned above. Below are a few examples
      * that go over how Ample will handle these different situations.
      *
-     * <h3>Example 1</h3>
+     * <h4>Example 1</h4>
      *
      * <ul>
      * <li>Conditional mutation CM1 with a condition requiring an absent location that sets a future
@@ -573,7 +573,7 @@ public interface Ample {
      * everything is ok, therefore ample reports the status as ACCEPTED.</li>
      * </ul>
      *
-     * <h3>Example 2</h3>
+     * <h4>Example 2</h4>
      *
      * <ul>
      * <li>Conditional mutation CM2 with a condition requiring an absent location that sets a future
@@ -589,7 +589,7 @@ public interface Ample {
      * as accepted.</li>
      * </ul>
      *
-     * <h3>Example 3</h3>
+     * <h4>Example 3</h4>
      *
      * <ul>
      * <li>Conditional mutation CM3 with a condition requiring an absent operation that sets the

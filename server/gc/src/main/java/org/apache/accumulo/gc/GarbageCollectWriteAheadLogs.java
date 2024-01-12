@@ -37,6 +37,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -83,12 +84,12 @@ public class GarbageCollectWriteAheadLogs {
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
-        context.getAmple().readTablets().forLevel(DataLevel.ROOT)
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.METADATA)
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.USER)
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).checkConsistency().build().iterator());
+        context.getAmple().readTablets().forLevel(DataLevel.ROOT).filter(new HasWalsFilter())
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
+        context.getAmple().readTablets().forLevel(DataLevel.METADATA).filter(new HasWalsFilter())
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
+        context.getAmple().readTablets().forLevel(DataLevel.USER).filter(new HasWalsFilter())
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator());
   }
 
   /**
@@ -264,10 +265,6 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  private UUID path2uuid(Path path) {
-    return UUID.fromString(path.getName());
-  }
-
   private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
       Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState,
       Map<UUID,Path> recoveryLogs) {
@@ -294,9 +291,8 @@ public class GarbageCollectWriteAheadLogs {
       }
       // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
       // that made the WALs.
-      for (LogEntry wals : tabletMetadata.getLogs()) {
-        String wal = wals.getPath();
-        UUID walUUID = path2uuid(new Path(wal));
+      for (LogEntry wal : tabletMetadata.getLogs()) {
+        UUID walUUID = wal.getUniqueID();
         TServerInstance dead = result.get(walUUID);
         // There's a reference to a log file, so skip that server's logs
         Set<UUID> idsToIgnore = candidates.remove(dead);
@@ -362,7 +358,7 @@ public class GarbageCollectWriteAheadLogs {
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {
           try {
-            UUID logId = path2uuid(status.getPath());
+            UUID logId = UUID.fromString(status.getPath().getName());
             result.put(logId, status.getPath());
           } catch (IllegalArgumentException iae) {
             log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");

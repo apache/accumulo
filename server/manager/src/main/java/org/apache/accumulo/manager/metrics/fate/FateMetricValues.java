@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
@@ -110,7 +111,7 @@ class FateMetricValues {
     try {
 
       List<AdminUtil.TransactionStatus> currFates =
-          admin.getTransactionStatus(zooStore, null, null);
+          admin.getTransactionStatus(Map.of(FateInstanceType.META, zooStore), null, null);
 
       builder.withCurrentFateOps(currFates.size());
 

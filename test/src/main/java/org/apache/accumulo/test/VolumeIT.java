@@ -69,6 +69,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.Initialize;
@@ -333,6 +334,7 @@ public class VolumeIT extends ConfigurableMacBase {
               }
             }
             log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
+            UtilWaitThread.sleep(100);
             continue retry;
           }
         } catch (WalMarkerException e) {

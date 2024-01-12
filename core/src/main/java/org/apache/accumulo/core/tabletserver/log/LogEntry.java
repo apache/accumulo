@@ -38,11 +38,13 @@ public final class LogEntry {
   private final String path;
   private final HostAndPort tserver;
   private final UUID uniqueId;
+  private final Text columnQualifier;
 
-  private LogEntry(String path, HostAndPort tserver, UUID uniqueId) {
+  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
     this.path = path;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
+    this.columnQualifier = columnQualifier;
   }
 
   /**
@@ -57,6 +59,10 @@ public final class LogEntry {
    * @throws IllegalArgumentException if the path is invalid
    */
   public static LogEntry fromPath(String path) {
+    return validatedLogEntry(path, null);
+  }
+
+  private static LogEntry validatedLogEntry(String path, Text columnQualifier) {
     String[] parts = path.split("/");
 
     if (parts.length < 2) {
@@ -90,7 +96,7 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-    return new LogEntry(path, tserver, uuid);
+    return new LogEntry(path, tserver, uuid, columnQualifier);
   }
 
   /**
@@ -106,11 +112,10 @@ public final class LogEntry {
     Preconditions.checkArgument(LogColumnFamily.NAME.equals(fam),
         "The provided metadata entry's column family is %s instead of %s", fam,
         LogColumnFamily.NAME);
-    String qualifier = entry.getKey().getColumnQualifier().toString();
-    String[] parts = qualifier.split("/", 2);
-    Preconditions.checkArgument(parts.length == 2 && parts[0].equals("-"),
-        "Malformed write-ahead log %s", qualifier);
-    return fromPath(parts[1]);
+    Text qualifier = entry.getKey().getColumnQualifier();
+    String[] parts = qualifier.toString().split("/", 2);
+    Preconditions.checkArgument(parts.length == 2, "Malformed write-ahead log %s", qualifier);
+    return validatedLogEntry(parts[1], qualifier);
   }
 
   @NonNull
@@ -154,6 +159,10 @@ public final class LogEntry {
    * Get the Text that should be used as the column qualifier to store this as a metadata entry.
    */
   public Text getColumnQualifier() {
+    return columnQualifier == null ? newCQ() : new Text(columnQualifier);
+  }
+
+  private Text newCQ() {
     return new Text("-/" + getPath());
   }
 
@@ -172,7 +181,7 @@ public final class LogEntry {
    * @param mutation the mutation to update
    */
   public void addToMutation(Mutation mutation) {
-    mutation.put(LogColumnFamily.NAME, getColumnQualifier(), new Value());
+    mutation.put(LogColumnFamily.NAME, newCQ(), new Value());
   }
 
 }

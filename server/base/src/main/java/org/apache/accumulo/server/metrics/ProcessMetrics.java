@@ -18,16 +18,17 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import java.util.List;
-
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ProcessMetrics implements MetricsProducer {
 
   private final ServerContext context;
+  private Counter idleCounter;
 
   public ProcessMetrics(final ServerContext context) {
     this.context = context;
@@ -35,7 +36,14 @@ public class ProcessMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(METRICS_LOW_MEMORY, List.of(), this, this::lowMemDetected);
+    registry.gauge(METRICS_LOW_MEMORY, MetricsUtil.getCommonTags(), this, this::lowMemDetected);
+    idleCounter = registry.counter(METRICS_SERVER_IDLE, MetricsUtil.getCommonTags());
+  }
+
+  public void incrementIdleCounter() {
+    if (idleCounter != null) {
+      idleCounter.increment();
+    }
   }
 
   private int lowMemDetected(ProcessMetrics processMetrics) {

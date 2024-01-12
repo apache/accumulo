@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,11 +44,15 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -192,11 +197,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   private boolean findFate(String aTableName) {
+    boolean isMeta = aTableName.startsWith(Namespace.ACCUMULO.name());
     log.debug("Look for fate {}", aTableName);
     for (int retry = 0; retry < 5; retry++) {
       try {
-        boolean found = lookupFateInZookeeper(aTableName);
-        log.trace("Try {}: Fate in zk for table {} : {}", retry, aTableName, found);
+        boolean found =
+            isMeta ? lookupFateInZookeeper(aTableName) : lookupFateInAccumulo(aTableName);
+        log.trace("Try {}: Fate in {} for table {} : {}", retry, isMeta ? "zk" : "accumulo",
+            aTableName, found);
         if (found) {
           log.debug("Found fate {}", aTableName);
           return true;
@@ -257,11 +265,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
+        AccumuloStore<String> as = new AccumuloStore<>(context);
+        Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
+            Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
 
-        withLocks = admin.getStatus(zs, zk, lockPath, null, null);
+        withLocks = admin.getStatus(fateStores, zk, lockPath, null, null);
 
         // call method that does not use locks.
-        noLocks = admin.getTransactionStatus(zs, null, null);
+        noLocks = admin.getTransactionStatus(fateStores, null, null);
 
         // no zk exception, no need to retry
         break;
@@ -353,6 +364,33 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
+        if (isCompaction(tx)) {
+          return true;
+        }
+      }
+
+    } catch (TableNotFoundException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
+    }
+
+    // did not find appropriate fate transaction for compaction.
+    return Boolean.FALSE;
+  }
+
+  private boolean lookupFateInAccumulo(final String tableName) throws KeeperException {
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    try {
+      TableId tableId = context.getTableId(tableName);
+
+      log.trace("tid: {}", tableId);
+
+      AccumuloStore<String> as = new AccumuloStore<>(context);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(as, null, null);
+
+      log.trace("current fates: {}", fateStatus.getTransactions().size());
+
+      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
         if (isCompaction(tx)) {
           return true;
         }

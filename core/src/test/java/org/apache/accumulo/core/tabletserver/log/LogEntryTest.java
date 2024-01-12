@@ -49,22 +49,23 @@ public class LogEntryTest {
   @Test
   public void testFromPath() {
     var logEntry = LogEntry.fromPath(validPath);
-    verifyLogEntry(logEntry);
+    verifyLogEntry(logEntry, new Text("-/" + validPath));
   }
 
   @Test
   public void testFromMetadata() {
-    var logEntry = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
-        new Key("1<", LogColumnFamily.STR_NAME, "-/" + validPath), null));
-    verifyLogEntry(logEntry);
+    var columnQualifier = "prefix/" + validPath;
+    var logEntry = LogEntry.fromMetaWalEntry(
+        new SimpleImmutableEntry<>(new Key("1<", LogColumnFamily.STR_NAME, columnQualifier), null));
+    verifyLogEntry(logEntry, new Text(columnQualifier));
   }
 
   // helper for testing build from constructor or from metadata
-  private void verifyLogEntry(LogEntry logEntry) {
+  private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
     assertEquals(validPath, logEntry.getPath());
     assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
-    assertEquals(new Text("-/" + validPath), logEntry.getColumnQualifier());
+    assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
   }
 

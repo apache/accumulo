@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -84,6 +85,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "1s");
     cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_MICROMETER_USER_TAGS, "tag1=value1,tag2=value2");
 
     // Tell the server processes to use a StatsDMeterRegistry that will be configured
     // to push all metrics to the sink we started.
@@ -99,7 +101,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
         METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM, METRICS_SCAN_RETURN_FOR_MEM,
-        METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED);
+        METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED, METRICS_SERVER_IDLE);
     Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
         METRICS_PROPSTORE_EVICTION_COUNT, METRICS_PROPSTORE_REFRESH_COUNT,
         METRICS_PROPSTORE_REFRESH_LOAD_COUNT, METRICS_PROPSTORE_ZK_ERROR_COUNT,
@@ -252,8 +254,14 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
             assertNotNull(a.getTags().get("instance.name"));
 
+            assertNotNull(a.getTags().get("process.name"));
+
             // check resource.group tag exists
             assertNotNull(a.getTags().get("resource.group"));
+
+            // check that the user tags are present
+            assertEquals("value1", a.getTags().get("tag1"));
+            assertEquals("value2", a.getTags().get("tag2"));
 
             // check the length of the tag value is sane
             final int MAX_EXPECTED_TAG_LEN = 128;

@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.core.metadata;
 
-/**
- * Offered to a Compaction Planner at initialization time so it can create executors.
- *
- *
- * @since 2.1.0
- * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
- * @see org.apache.accumulo.core.spi.compaction
- */
-public interface ExecutorManager {
-  /**
-   * Create a thread pool executor within a compaction service.
-   */
-  public CompactionExecutorId createExecutor(String name, int threads);
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.TableId;
 
-  /**
-   * @return an id for a configured external execution queue.
-   */
-  public CompactionExecutorId getExternalExecutor(String name);
+public class FateTable {
+  public static final TableId ID = TableId.of("+fate");
+  public static final String NAME = Namespace.ACCUMULO.name() + ".fate";
 }

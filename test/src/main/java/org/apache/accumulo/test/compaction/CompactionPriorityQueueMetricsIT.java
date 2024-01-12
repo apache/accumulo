@@ -155,9 +155,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       // Create a new queue with zero compactors.
       cfg.setProperty("tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner",
           DefaultCompactionPlanner.class.getName());
-      cfg.setProperty(
-          "tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner.opts.executors",
-          "[{'name':'all', 'type': 'external', 'group': '" + QUEUE1 + "'}]");
+      cfg.setProperty("tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner.opts.groups",
+          "[{'name':'" + QUEUE1 + "'}]");
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);

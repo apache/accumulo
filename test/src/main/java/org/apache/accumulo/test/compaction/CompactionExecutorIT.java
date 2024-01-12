@@ -65,10 +65,10 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -93,27 +93,27 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
   public static class TestPlanner implements CompactionPlanner {
 
-    private static class ExecutorConfig {
-      String group;
+    private static class GroupConfig {
+      String name;
     }
 
     private int filesPerCompaction;
-    private List<CompactionExecutorId> executorIds;
+    private List<CompactorGroupId> groupIds;
     private EnumSet<CompactionKind> kindsToProcess = EnumSet.noneOf(CompactionKind.class);
 
     @Override
     public void init(InitParameters params) {
-      var executors = params.getOptions().get("executors");
+      var groups = params.getOptions().get("groups");
       this.filesPerCompaction = Integer.parseInt(params.getOptions().get("filesPerCompaction"));
-      this.executorIds = new ArrayList<>();
+      this.groupIds = new ArrayList<>();
       for (String kind : params.getOptions().get("process").split(",")) {
         kindsToProcess.add(CompactionKind.valueOf(kind.toUpperCase()));
       }
 
-      for (JsonElement element : GSON.get().fromJson(executors, JsonArray.class)) {
-        ExecutorConfig executorConfig = GSON.get().fromJson(element, ExecutorConfig.class);
-        var ceid = params.getExecutorManager().getExternalExecutor(executorConfig.group);
-        executorIds.add(ceid);
+      for (JsonElement element : GSON.get().fromJson(groups, JsonArray.class)) {
+        GroupConfig groupConfig = GSON.get().fromJson(element, GroupConfig.class);
+        var cgid = params.getGroupManager().getGroup(groupConfig.name);
+        groupIds.add(cgid);
       }
 
     }
@@ -127,7 +127,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
         return params
             .createPlanBuilder().addJob((short) 1,
-                executorIds.get(RANDOM.get().nextInt(executorIds.size())), params.getCandidates())
+                groupIds.get(RANDOM.get().nextInt(groupIds.size())), params.getCandidates())
             .build();
       }
 
@@ -140,8 +140,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
         params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
             .values().forEach(files -> {
               for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob((short) 1,
-                    executorIds.get(RANDOM.get().nextInt(executorIds.size())),
+                planBuilder.addJob((short) 1, groupIds.get(RANDOM.get().nextInt(groupIds.size())),
                     files.subList(i - filesPerCompaction, i));
               }
             });
@@ -158,37 +157,29 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
       var csp = Property.COMPACTION_SERVICE_PREFIX.getKey();
       cfg.setProperty(csp + "cs1.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs1.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'e1'},"
-              + "{'name':'two', 'type':'external', 'group':'e2'}, {'name':'three', 'type':'external','group':'e3'}]");
+      cfg.setProperty(csp + "cs1.planner.opts.groups",
+          "[{'name':'e1'},{'name':'e2'},{'name':'e3'}]");
       cfg.setProperty(csp + "cs1.planner.opts.filesPerCompaction", "5");
       cfg.setProperty(csp + "cs1.planner.opts.process", "SYSTEM");
 
       cfg.setProperty(csp + "cs2.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs2.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'f1'},"
-              + "{'name':'two', 'type':'external', 'group':'f2'}]");
+      cfg.setProperty(csp + "cs2.planner.opts.groups", "[{'name':'f1'},{'name':'f2'}]");
       cfg.setProperty(csp + "cs2.planner.opts.filesPerCompaction", "7");
       cfg.setProperty(csp + "cs2.planner.opts.process", "SYSTEM");
 
       cfg.setProperty(csp + "cs3.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs3.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'g1'}]");
+      cfg.setProperty(csp + "cs3.planner.opts.groups", "[{'name':'g1'}]");
       cfg.setProperty(csp + "cs3.planner.opts.filesPerCompaction", "3");
       cfg.setProperty(csp + "cs3.planner.opts.process", "USER");
 
       cfg.setProperty(csp + "cs4.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs4.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'h1'},"
-              + "{'name':'two', 'type':'external', 'group':'h2'}]");
+      cfg.setProperty(csp + "cs4.planner.opts.groups", "[{'name':'h1'},{'name':'h2'}]");
       cfg.setProperty(csp + "cs4.planner.opts.filesPerCompaction", "11");
       cfg.setProperty(csp + "cs4.planner.opts.process", "USER");
 
       // this is meant to be dynamically reconfigured
       cfg.setProperty(csp + "recfg.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "recfg.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'i1'},"
-              + "{'name':'two', 'type':'external', 'group':'i2'}]");
+      cfg.setProperty(csp + "recfg.planner.opts.groups", "[{'name':'i1'},{'name':'i2'}]");
       cfg.setProperty(csp + "recfg.planner.opts.filesPerCompaction", "11");
       cfg.setProperty(csp + "recfg.planner.opts.process", "SYSTEM");
 
@@ -262,8 +253,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.filesPerCompaction",
           "5");
       client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.executors",
-          "[{'name':'small', 'type':'external', 'group':'group1'}]");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.groups",
+          "[{'name':'group1'}]");
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup("group1",
           1);
       compactionGroups.add("group1");
@@ -288,9 +279,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.process", "SYSTEM");
       client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors",
-          "[{'name':'one', 'type':'external', 'group':'add1'},"
-              + "{'name':'two', 'type':'external', 'group':'add2'}, {'name':'three', 'type':'external','group':'add3'}]");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
+          "[{'name':'add1'},{'name':'add2'}, {'name':'add3'}]");
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
           TestPlanner.class.getName());
