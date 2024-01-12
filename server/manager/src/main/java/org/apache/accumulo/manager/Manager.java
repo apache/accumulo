@@ -73,6 +73,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -94,6 +98,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -155,6 +160,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
@@ -210,11 +216,12 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
-  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
-  // thread's cached view shows that fateRef is still null after the latch is ready
+  // fateReadyLatch and fateRefs go together; when this latch is ready, then the fate references
+  // should already have been set; ConcurrentHashMap will guarantee that all threads will see
+  // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
-  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
+      new AtomicReference<>();
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -265,7 +272,7 @@ public class Manager extends AbstractServer
    *
    * @return the Fate object, only after the fate components are running and ready
    */
-  public Fate<Manager> fate() {
+  public Fate<Manager> fate(FateInstanceType type) {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -286,7 +293,7 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return fateRef.get();
+    return getFateRefs().get(type);
   }
 
   static final boolean X = true;
@@ -329,7 +336,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fateRef.get() != null) {
+      if (!getFateRefs().isEmpty()) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -1068,17 +1075,17 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(
-          new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()),
-          HOURS.toMillis(8), System::currentTimeMillis);
+      var metaInstance = initializeFateInstance(context, FateInstanceType.META,
+          new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
+      var userInstance = initializeFateInstance(context, FateInstanceType.USER,
+          new AccumuloStore<>(context, FateTable.NAME));
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
-      fateRef.set(f);
+      if (!fateRefs.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
+        throw new IllegalStateException(
+            "Unexpected previous fate reference map already initialized");
+      }
       fateReadyLatch.countDown();
-
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1139,7 +1146,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fate().shutdown();
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown());
 
     splitter.stop();
 
@@ -1176,6 +1183,20 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
+      FateStore<Manager> store) {
+    final AgeOffStore<Manager> ageOffStore =
+        new AgeOffStore<>(store, HOURS.toMillis(8), System::currentTimeMillis);
+
+    final Fate<Manager> fateInstance =
+        new Fate<>(this, ageOffStore, TraceRepo::toLogString, getConfiguration());
+
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(ageOffStore::ageOff, 63000, 63000, MILLISECONDS));
+
+    return fateInstance;
   }
 
   /**
@@ -1655,5 +1676,11 @@ public class Manager extends AbstractServer
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     compactionCoordinator.registerMetrics(registry);
+  }
+
+  private Map<FateInstanceType,Fate<Manager>> getFateRefs() {
+    var fateRefs = this.fateRefs.get();
+    Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
+    return fateRefs;
   }
 }

@@ -62,6 +62,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
@@ -92,6 +93,7 @@ public class SplitIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+    cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
   }
 
   private String tservMaxMem, tservMajcDelay;

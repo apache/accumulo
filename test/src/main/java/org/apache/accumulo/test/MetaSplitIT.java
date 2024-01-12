@@ -188,10 +188,11 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   private void verifyMetadataTableScan(AccumuloClient client) throws Exception {
     var tables = client.tableOperations().tableIdMap();
     var expectedExtents = tables.entrySet().stream()
-        .filter(e -> !e.getKey().startsWith("accumulo.")).map(Map.Entry::getValue).map(TableId::of)
-        .map(tid -> new KeyExtent(tid, null, null)).collect(Collectors.toSet());
-    // Verify we have 10 tablets for metadata
-    assertEquals(10, expectedExtents.size());
+        .filter(e -> !e.getKey().equals(RootTable.NAME) && !e.getKey().equals(MetadataTable.NAME))
+        .map(Map.Entry::getValue).map(TableId::of).map(tid -> new KeyExtent(tid, null, null))
+        .collect(Collectors.toSet());
+    // Verify we have 11 tablets for metadata (Includes FateTable)
+    assertEquals(11, expectedExtents.size());
 
     // Scan each tablet to verify data exists
     var ample = ((ClientContext) client).getAmple();

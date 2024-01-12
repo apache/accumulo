@@ -132,12 +132,15 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -277,12 +280,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private long beginFateOperation() throws ThriftSecurityException, TException {
+  private TFateId beginFateOperation(TFateInstanceType type)
+      throws ThriftSecurityException, TException {
     while (true) {
       FateService.Client client = null;
       try {
         client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
-        return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
+        return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), type);
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
@@ -298,7 +302,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   // This method is for retrying in the case of network failures;
   // anything else it passes to the caller to deal with
-  private void executeFateOperation(long opid, FateOperation op, List<ByteBuffer> args,
+  private void executeFateOperation(TFateId opid, FateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
@@ -321,7 +325,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private String waitForFateOperation(long opid)
+  private String waitForFateOperation(TFateId opid)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
       FateService.Client client = null;
@@ -341,7 +345,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
+  private void finishFateOperation(TFateId opid) throws ThriftSecurityException, TException {
     while (true) {
       FateService.Client client = null;
       try {
@@ -387,10 +391,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       String tableOrNamespaceName, boolean wait)
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
-    Long opid = null;
+    TFateId opid = null;
 
     try {
-      opid = beginFateOperation();
+      TFateInstanceType t =
+          FateInstanceType.fromNamespaceOrTableName(tableOrNamespaceName).toThrift();
+      opid = beginFateOperation(t);
       executeFateOperation(opid, op, args, opts, !wait);
       if (!wait) {
         opid = null;

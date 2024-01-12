@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.split;
 import java.time.Duration;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
@@ -83,9 +84,11 @@ public class SplitTask implements Runnable {
         return;
       }
 
-      long fateTxId = manager.fate().startTransaction();
+      var fateInstanceType = FateInstanceType.fromTableId((tablet.getTableId()));
+      long fateTxId = manager.fate(fateInstanceType).startTransaction();
 
-      manager.fate().seedTransaction("SYSTEM_SPLIT", fateTxId, new PreSplit(extent, splits), true,
+      manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT", fateTxId,
+          new PreSplit(extent, splits), true,
           "System initiated split of tablet " + extent + " into " + splits.size() + " splits");
     } catch (Exception e) {
       log.error("Failed to split {}", tablet.getExtent(), e);
