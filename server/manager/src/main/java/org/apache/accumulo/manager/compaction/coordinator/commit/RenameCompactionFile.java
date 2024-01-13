@@ -26,8 +26,11 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RenameCompactionFile extends ManagerRepo {
+  private static final Logger log = LoggerFactory.getLogger(RenameCompactionFile.class);
   private static final long serialVersionUID = 1L;
   private final CompactionCommitData commitData;
 
@@ -40,19 +43,46 @@ public class RenameCompactionFile extends ManagerRepo {
     ReferencedTabletFile newDatafile = null;
     var ctx = manager.getContext();
 
-    var tmpPath = commitData.outputTmpPath;
+    var tmpPath = new Path(commitData.outputTmpPath);
 
     if (commitData.stats.getEntriesWritten() == 0) {
       // the compaction produced no output so do not need to rename or add a file to the metadata
       // table, only delete the input files.
-      if (!ctx.getVolumeManager().delete(new Path(tmpPath))) {
-        throw new IOException("delete returned false");
+      try {
+        if (!ctx.getVolumeManager().delete(tmpPath)) {
+          throw new IOException("delete returned false for " + tmpPath);
+        }
+      } catch (IOException ioe) {
+        // Log something in case there is an exception while doing the check, will have the original
+        // exception.
+        log.debug("Attempting to see if file exists after delete failure of {}", tmpPath, ioe);
+        if (!ctx.getVolumeManager().exists(tmpPath)) {
+          log.debug(
+              "Failed to delete file {}, but it does not exists.  Assuming this is a 2nd run.",
+              tmpPath, ioe);
+        } else {
+          throw ioe;
+        }
       }
     } else {
-      newDatafile =
-          TabletNameGenerator.computeCompactionFileDest(ReferencedTabletFile.of(new Path(tmpPath)));
-      if (!ctx.getVolumeManager().rename(new Path(tmpPath), newDatafile.getPath())) {
-        throw new IOException("rename returned false");
+      newDatafile = TabletNameGenerator.computeCompactionFileDest(ReferencedTabletFile.of(tmpPath));
+      try {
+        if (!ctx.getVolumeManager().rename(tmpPath, newDatafile.getPath())) {
+          throw new IOException("rename returned false for " + tmpPath);
+        }
+      } catch (IOException ioe) {
+        // Log something in case there is an exception while doing the check, will have the original
+        // exception.
+        log.debug("Attempting to see if file exists after rename failure of {} to {}", tmpPath,
+            newDatafile, ioe);
+        if (ctx.getVolumeManager().exists(newDatafile.getPath())
+            && !ctx.getVolumeManager().exists(tmpPath)) {
+          log.debug(
+              "Failed to rename {} to {}, but destination exists and source does not.  Assuming this is a 2nd run.",
+              tmpPath, newDatafile, ioe);
+        } else {
+          throw ioe;
+        }
       }
     }
 
