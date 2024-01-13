@@ -651,8 +651,11 @@ public class CompactionCoordinator
 
     // maybe fate has not started yet
     var localFates = fateInstances.get();
-    while (localFates == null && !shutdown) {
+    while (localFates == null) {
       UtilWaitThread.sleep(100);
+      if (shutdown) {
+        return;
+      }
       localFates = fateInstances.get();
     }
 
