@@ -338,10 +338,4 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       throw new IllegalStateException(e);
     }
   }
-
-  @Override
-  public Refreshes refreshes(DataLevel dataLevel) {
-    return new RefreshesImpl(context, dataLevel);
-  }
-
 }

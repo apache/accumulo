@@ -533,17 +533,4 @@ public class MetadataSchema {
       return section.getRowPrefix();
     }
   }
-
-  public static class RefreshSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "refresh", true, RESERVED_PREFIX + "refresi", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-  }
 }
