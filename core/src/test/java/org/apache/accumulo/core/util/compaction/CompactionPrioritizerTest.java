@@ -87,11 +87,28 @@ public class CompactionPrioritizerTest {
     short pm8 = createPriority(AccumuloTable.METADATA.tableId(), CompactionKind.SYSTEM, 1, 1);
     assertTrue(pm7 > pm8);
 
+    short pf1 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, 10000, 1);
+    assertTrue(pm8 > pf1);
+    short pf2 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, 100, 30);
+    assertTrue(pf1 > pf2);
+    short pf3 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, 100, 1);
+    assertTrue(pf2 > pf3);
+    short pf4 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, 1, 1);
+    assertTrue(pf3 > pf4);
+    short pf5 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, 10000, 1);
+    assertTrue(pf4 > pf5);
+    short pf6 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, 100, 30);
+    assertTrue(pf5 > pf6);
+    short pf7 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, 100, 1);
+    assertTrue(pf6 > pf7);
+    short pf8 = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, 1, 1);
+    assertTrue(pm7 > pf8);
+
     var userTable1 = TableId.of("1");
     var userTable2 = TableId.of("2");
 
     short pu1 = createPriority(userTable1, CompactionKind.USER, 10000, 1);
-    assertTrue(pm8 > pu1);
+    assertTrue(pf8 > pu1);
     short pu2 = createPriority(userTable2, CompactionKind.USER, 1000, 30);
     assertTrue(pu1 > pu2);
     short pu3 = createPriority(userTable1, CompactionKind.USER, 1000, 1);
@@ -118,6 +135,8 @@ public class CompactionPrioritizerTest {
     short minMetaUser = createPriority(AccumuloTable.METADATA.tableId(), CompactionKind.USER, 1, 1);
     short minMetaSystem =
         createPriority(AccumuloTable.METADATA.tableId(), CompactionKind.SYSTEM, 1, 1);
+    short minFateUser = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, 1, 1);
+    short minFateSystem = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, 1, 1);
     short minUserUser = createPriority(userTable, CompactionKind.USER, 1, 1);
 
     // Test the boundary condition around the max number of files to encode. Ensure the next level
@@ -132,8 +151,13 @@ public class CompactionPrioritizerTest {
       short metaSystem =
           createPriority(AccumuloTable.METADATA.tableId(), CompactionKind.SYSTEM, files, 1);
       assertTrue(minMetaUser > metaSystem);
+      short fateUser = createPriority(AccumuloTable.FATE.tableId(), CompactionKind.USER, files, 1);
+      assertTrue(minMetaSystem > fateUser);
+      short fateSystem =
+          createPriority(AccumuloTable.FATE.tableId(), CompactionKind.SYSTEM, files, 1);
+      assertTrue(minFateUser > fateSystem);
       short userUser = createPriority(userTable, CompactionKind.USER, files, 1);
-      assertTrue(minMetaSystem > userUser);
+      assertTrue(minFateSystem > userUser);
       short userSystem = createPriority(userTable, CompactionKind.SYSTEM, files, 1);
       assertTrue(minUserUser > userSystem);
     }
