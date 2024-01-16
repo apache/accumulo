@@ -46,7 +46,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -86,7 +86,7 @@ class CompactionDriver extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
 
-    if (tableId.equals(RootTable.ID)) {
+    if (tableId.equals(AccumuloTable.ROOT.tableId())) {
       // this codes not properly handle the root table. See #798
       return 0;
     }

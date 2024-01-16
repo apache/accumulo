@@ -23,15 +23,14 @@ import java.util.Set;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.FateTable;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 
 public enum FateInstanceType {
   META, USER;
 
   private static final Set<TableId> META_TABLES =
-      Set.of(RootTable.ID, MetadataTable.ID, FateTable.ID);
+      Set.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(), FateTable.ID);
 
   public static FateInstanceType fromNamespaceOrTableName(String tableOrNamespaceName) {
     return tableOrNamespaceName.startsWith(Namespace.ACCUMULO.name()) ? FateInstanceType.META

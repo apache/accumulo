@@ -63,8 +63,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -104,8 +103,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @BeforeEach
   public void before() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      Wait.waitFor(() -> countTabletsWithLocation(client, RootTable.ID) > 0);
-      Wait.waitFor(() -> countTabletsWithLocation(client, MetadataTable.ID) > 0);
+      Wait.waitFor(() -> countTabletsWithLocation(client, AccumuloTable.ROOT.tableId()) > 0);
+      Wait.waitFor(() -> countTabletsWithLocation(client, AccumuloTable.METADATA.tableId()) > 0);
     }
   }
 
@@ -114,13 +113,13 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       // Confirm that the root and metadata tables are hosted
-      Locations rootLocations =
-          c.tableOperations().locate(RootTable.NAME, Collections.singletonList(new Range()));
+      Locations rootLocations = c.tableOperations().locate(AccumuloTable.ROOT.tableName(),
+          Collections.singletonList(new Range()));
       rootLocations.groupByTablet().keySet()
           .forEach(tid -> assertNotNull(rootLocations.getTabletLocation(tid)));
 
-      Locations metadataLocations =
-          c.tableOperations().locate(MetadataTable.NAME, Collections.singletonList(new Range()));
+      Locations metadataLocations = c.tableOperations().locate(AccumuloTable.METADATA.tableName(),
+          Collections.singletonList(new Range()));
       metadataLocations.groupByTablet().keySet()
           .forEach(tid -> assertNotNull(metadataLocations.getTabletLocation(tid)));
 
@@ -385,12 +384,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertEquals(Set.of("f", "m", "t"), c.tableOperations().listSplits(tableName).stream()
           .map(Text::toString).collect(Collectors.toSet()));
 
-      c.securityOperations().grantTablePermission(getPrincipal(), MetadataTable.NAME,
-          TablePermission.WRITE);
+      c.securityOperations().grantTablePermission(getPrincipal(),
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       // Set the OperationId on one tablet, which will cause that tablet
       // to not be assigned
-      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
         Mutation m = new Mutation(extent.toMetaRow());
@@ -406,7 +405,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned
-      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         Mutation m = new Mutation(extent.toMetaRow());
         TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
@@ -416,7 +415,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // Set the OperationId on one tablet, which will cause that tablet
       // to be unhosted
-      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
         Mutation m = new Mutation(extent.toMetaRow());
@@ -429,7 +428,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned again
-      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
         Mutation m = new Mutation(extent.toMetaRow());
         TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
@@ -580,7 +579,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // could potentially send a kill -9 to the process. Shut the tablet
       // servers down in a more graceful way.
 
-      Locations locs = client.tableOperations().locate(RootTable.NAME,
+      Locations locs = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
           Collections.singletonList(TabletsSection.getRange()));
       locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
         HostAndPort address = HostAndPort.fromString(location);

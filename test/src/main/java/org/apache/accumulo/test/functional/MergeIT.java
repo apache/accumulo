@@ -59,7 +59,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
@@ -188,7 +188,7 @@ public class MergeIT extends AccumuloClusterHarness {
       // Verify that the MERGED marker was cleared
       verifyMergedMarkerCleared(getServerContext(),
           TableId.of(c.tableOperations().tableIdMap().get(tableName)));
-      try (Scanner s = c.createScanner(MetadataTable.NAME)) {
+      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName())) {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);

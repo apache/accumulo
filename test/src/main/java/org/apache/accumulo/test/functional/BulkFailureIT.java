@@ -60,7 +60,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -271,10 +271,11 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
-      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+      c.securityOperations().grantTablePermission(c.whoami(), AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
 
-      BatchDeleter bd = c.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1);
+      BatchDeleter bd =
+          c.createBatchDeleter(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1);
       bd.setRanges(Collections.singleton(extent.toMetaRange()));
       bd.fetchColumnFamily(BulkFileColumnFamily.NAME);
       bd.delete();
@@ -340,7 +341,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       throws TableNotFoundException {
     HashSet<Path> files = new HashSet<>();
 
-    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner =
+        connector.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
     scanner.setRange(extent.toMetaRange());
     scanner.fetchColumnFamily(fam);
 

@@ -56,8 +56,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -138,7 +137,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   private void checkMetadata(String table, AccumuloClient client) throws Exception {
-    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
 
       s.fetchColumnFamily(DataFileColumnFamily.NAME);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -339,16 +339,16 @@ public class CloneTestIT extends AccumuloClusterHarness {
   @Test
   public void testCloneRootTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      assertThrows(AccumuloException.class,
-          () -> client.tableOperations().clone(RootTable.NAME, "rc1", CloneConfiguration.empty()));
+      assertThrows(AccumuloException.class, () -> client.tableOperations()
+          .clone(AccumuloTable.ROOT.tableName(), "rc1", CloneConfiguration.empty()));
     }
   }
 
   @Test
   public void testCloneMetadataTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      assertThrows(AccumuloException.class, () -> client.tableOperations().clone(MetadataTable.NAME,
-          "mc1", CloneConfiguration.empty()));
+      assertThrows(AccumuloException.class, () -> client.tableOperations()
+          .clone(AccumuloTable.METADATA.tableName(), "mc1", CloneConfiguration.empty()));
     }
   }
 }

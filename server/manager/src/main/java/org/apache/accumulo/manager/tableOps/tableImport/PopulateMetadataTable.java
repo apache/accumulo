@@ -44,7 +44,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
@@ -99,7 +99,9 @@ class PopulateMetadataTable extends ManagerRepo {
 
     VolumeManager fs = manager.getVolumeManager();
 
-    try (BatchWriter mbw = manager.getContext().createBatchWriter(MetadataTable.NAME);
+    try (
+        BatchWriter mbw =
+            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
         ZipInputStream zis = new ZipInputStream(fs.open(path))) {
 
       Map<String,String> fileNameMappings = new HashMap<>();

@@ -51,8 +51,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -271,8 +270,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, MetadataTable.NAME,
-          getCountOfHostedTablets(client, MetadataTable.NAME));
+      testResourceGroupPropertyChange(client, AccumuloTable.METADATA.tableName(),
+          getCountOfHostedTablets(client, AccumuloTable.METADATA.tableName()));
     }
   }
 
@@ -282,8 +281,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, RootTable.NAME,
-          getCountOfHostedTablets(client, RootTable.NAME));
+      testResourceGroupPropertyChange(client, AccumuloTable.ROOT.tableName(),
+          getCountOfHostedTablets(client, AccumuloTable.ROOT.tableName()));
     }
   }
 

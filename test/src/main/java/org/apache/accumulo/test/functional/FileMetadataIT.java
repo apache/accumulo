@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -119,7 +119,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       // Need permission to write to metadata
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       final int rows = 10000;
       final String tableName = getUniqueNames(1)[0];
@@ -190,7 +190,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       // Need permission to write to metadata
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       final int rows = 10000;
       final int ranges = 4;
@@ -281,7 +281,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       // Need permission to write to metadata
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       final int rows = 100000;
       final String tableName = getUniqueNames(1)[0];
@@ -358,7 +358,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       // Need permission to write to metadata
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       final int rows = 100000;
       final int ranges = 4;

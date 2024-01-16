@@ -55,8 +55,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
@@ -71,7 +71,7 @@ public class ClientTabletCacheImplTest {
 
   private static final KeyExtent ROOT_TABLE_EXTENT = RootTable.EXTENT;
   private static final KeyExtent METADATA_TABLE_EXTENT =
-      new KeyExtent(MetadataTable.ID, null, ROOT_TABLE_EXTENT.endRow());
+      new KeyExtent(AccumuloTable.METADATA.tableId(), null, ROOT_TABLE_EXTENT.endRow());
 
   static KeyExtent createNewKeyExtent(String table, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
@@ -168,8 +168,8 @@ public class ClientTabletCacheImplTest {
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache =
-        new ClientTabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab1TabletCache =
         new ClientTabletCacheImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
     // disable hosting requests for these tests
@@ -204,9 +204,10 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
-    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
-        .anyTimes();
+    EasyMock.expect(context.getTableName(AccumuloTable.ROOT.tableId()))
+        .andReturn(AccumuloTable.ROOT.tableName()).anyTimes();
+    EasyMock.expect(context.getTableName(AccumuloTable.METADATA.tableId()))
+        .andReturn(AccumuloTable.METADATA.tableName()).anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
@@ -721,8 +722,8 @@ public class ClientTabletCacheImplTest {
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache =
-        new ClientTabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab1TabletCache =
         new ClientTabletCacheImpl(TableId.of("tab1"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -795,9 +796,10 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
-    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
-        .anyTimes();
+    EasyMock.expect(context.getTableName(AccumuloTable.ROOT.tableId()))
+        .andReturn(AccumuloTable.ROOT.tableName()).anyTimes();
+    EasyMock.expect(context.getTableName(AccumuloTable.METADATA.tableId()))
+        .andReturn(AccumuloTable.METADATA.tableName()).anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
@@ -817,9 +819,9 @@ public class ClientTabletCacheImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3");
 
     // simulate the metadata table splitting
-    KeyExtent mte1 =
-        new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, tab1e21.toMetaRow());
+    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e21.toMetaRow(),
+        ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, tab1e21.toMetaRow());
 
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte1, "tserver5");
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte2, "tserver6");
@@ -857,9 +859,10 @@ public class ClientTabletCacheImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
     // simulate a hole in the metadata, caused by a partial split
-    KeyExtent mte11 =
-        new KeyExtent(MetadataTable.ID, tab1e1.toMetaRow(), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte12 = new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), tab1e1.toMetaRow());
+    KeyExtent mte11 = new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e1.toMetaRow(),
+        ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte12 =
+        new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e21.toMetaRow(), tab1e1.toMetaRow());
     deleteServer(tservers, "tserver10");
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
@@ -1472,15 +1475,16 @@ public class ClientTabletCacheImplTest {
   @Test
   public void testBug1() throws Exception {
     // a bug that occurred while running continuous ingest
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("0;0bc"), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("0;0bc"));
+    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("0;0bc"),
+        ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("0;0bc"));
 
     TServers tservers = new TServers();
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache =
-        new ClientTabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -1501,15 +1505,16 @@ public class ClientTabletCacheImplTest {
   @Test
   public void testBug2() throws Exception {
     // a bug that occurred while running a functional test
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("~"), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("~"));
+    KeyExtent mte1 =
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("~"), ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("~"));
 
     TServers tservers = new TServers();
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache =
-        new ClientTabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -1530,11 +1535,15 @@ public class ClientTabletCacheImplTest {
   // being merged away, caused locating tablets to fail
   @Test
   public void testBug3() throws Exception {
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("1;c"), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(MetadataTable.ID, new Text("1;f"), new Text("1;c"));
-    KeyExtent mte3 = new KeyExtent(MetadataTable.ID, new Text("1;j"), new Text("1;f"));
-    KeyExtent mte4 = new KeyExtent(MetadataTable.ID, new Text("1;r"), new Text("1;j"));
-    KeyExtent mte5 = new KeyExtent(MetadataTable.ID, null, new Text("1;r"));
+    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;c"),
+        ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte2 =
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;f"), new Text("1;c"));
+    KeyExtent mte3 =
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;j"), new Text("1;f"));
+    KeyExtent mte4 =
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;r"), new Text("1;j"));
+    KeyExtent mte5 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("1;r"));
 
     KeyExtent ke1 = new KeyExtent(TableId.of("1"), null, null);
 
@@ -1543,8 +1552,8 @@ public class ClientTabletCacheImplTest {
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
 
-    ClientTabletCacheImpl rootTabletCache =
-        new ClientTabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("1"), rootTabletCache, ttlo, new YesLockChecker());
 

@@ -44,10 +44,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.FateTable;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -102,11 +101,11 @@ class FileSystemInitializer {
     Text splitPoint = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(
-        VolumeChooserEnvironment.Scope.INIT, MetadataTable.ID, splitPoint, context);
+        VolumeChooserEnvironment.Scope.INIT, AccumuloTable.METADATA.tableId(), splitPoint, context);
     String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
+            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + tableMetadataTabletDirName;
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT, FateTable.ID,
         null, context);
     String fateTableDefaultTabletDirName =
@@ -115,12 +114,12 @@ class FileSystemInitializer {
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + FateTable.ID + Path.SEPARATOR + fateTableDefaultTabletDirName;
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-        MetadataTable.ID, null, context);
+        AccumuloTable.METADATA.tableId(), null, context);
     String defaultMetadataTabletDirName =
         MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
+            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
@@ -134,10 +133,10 @@ class FileSystemInitializer {
     createMetadataFile(fs, metadataFileName, siteConfig, fateTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint,
-        StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
-    Tablet defaultTablet =
-        new Tablet(MetadataTable.ID, defaultMetadataTabletDirName, splitPoint, null);
+    Tablet tablesTablet = new Tablet(AccumuloTable.METADATA.tableId(), tableMetadataTabletDirName,
+        null, splitPoint, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
+    Tablet defaultTablet = new Tablet(AccumuloTable.METADATA.tableId(),
+        defaultMetadataTabletDirName, splitPoint, null);
     createMetadataFile(fs, rootTabletFileUri, siteConfig, tablesTablet, defaultTablet);
   }
 
@@ -162,10 +161,10 @@ class FileSystemInitializer {
 
   private void initSystemTablesConfig(final ServerContext context)
       throws IOException, InterruptedException, KeeperException {
-    setTableProperties(context, RootTable.ID, initConfig.getRootTableConf());
-    setTableProperties(context, RootTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(context, MetadataTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(context, MetadataTable.ID, initConfig.getMetaTableConf());
+    setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootTableConf());
+    setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootMetaConf());
+    setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getRootMetaConf());
+    setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getMetaTableConf());
     setTableProperties(context, FateTable.ID, initConfig.getFateTableConf());
   }
 
