@@ -143,55 +143,57 @@ public class GarbageCollectionAlgorithm {
     List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>();
-    Iterator<Reference> iter = gce.getReferences().iterator();
-    while (iter.hasNext()) {
-      Reference ref = iter.next();
-      tableIdsSeen.add(ref.getTableId());
+    try (Stream<Reference> references = gce.getReferences()) {
+      references.forEach(ref -> {
+        tableIdsSeen.add(ref.getTableId());
 
-      if (ref.isDirectory()) {
-        var dirReference = (ReferenceDirectory) ref;
-        ServerColumnFamily.validateDirCol(dirReference.getTabletDir());
+        if (ref.isDirectory()) {
+          var dirReference = (ReferenceDirectory) ref;
+          ServerColumnFamily.validateDirCol(dirReference.getTabletDir());
 
-        String dir = "/" + dirReference.tableId + "/" + dirReference.getTabletDir();
+          String dir = "/" + dirReference.tableId + "/" + dirReference.getTabletDir();
 
-        dir = makeRelative(dir, 2);
+          dir = makeRelative(dir, 2);
 
-        GcCandidate gcTemp = candidateMap.remove(dir);
-        if (gcTemp != null) {
-          log.debug("Directory Candidate was still in use by dir ref: {}", dir);
-          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
-        }
-      } else {
-        String reference = ref.getMetadataPath();
-        if (reference.startsWith("/")) {
-          log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-              ref.getTableId());
-          reference = "/" + ref.getTableId() + ref.getMetadataPath();
-        } else if (!reference.contains(":") && !reference.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + reference);
-        }
+          GcCandidate gcTemp = candidateMap.remove(dir);
+          if (gcTemp != null) {
+            log.debug("Directory Candidate was still in use by dir ref: {}", dir);
+            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
+            // once.
+          }
+        } else {
+          String reference = ref.getMetadataPath();
+          if (reference.startsWith("/")) {
+            log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
+                ref.getTableId());
+            reference = "/" + ref.getTableId() + ref.getMetadataPath();
+          } else if (!reference.contains(":") && !reference.startsWith("../")) {
+            throw new RuntimeException("Bad file reference " + reference);
+          }
 
-        String relativePath = makeRelative(reference, 3);
+          String relativePath = makeRelative(reference, 3);
 
-        // WARNING: This line is EXTREMELY IMPORTANT.
-        // You MUST REMOVE candidates that are still in use
-        GcCandidate gcTemp = candidateMap.remove(relativePath);
-        if (gcTemp != null) {
-          log.debug("File Candidate was still in use: {}", relativePath);
-          // Prevent deletion of candidates that are still in use by scans, because they won't be
-          // recreated once the scan is finished.
-          if (!ref.isScan()) {
-            candidateEntriesToBeDeleted.add(gcTemp);
+          // WARNING: This line is EXTREMELY IMPORTANT.
+          // You MUST REMOVE candidates that are still in use
+          GcCandidate gcTemp = candidateMap.remove(relativePath);
+          if (gcTemp != null) {
+            log.debug("File Candidate was still in use: {}", relativePath);
+            // Prevent deletion of candidates that are still in use by scans, because they won't be
+            // recreated once the scan is finished.
+            if (!ref.isScan()) {
+              candidateEntriesToBeDeleted.add(gcTemp);
+            }
+          }
+
+          String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
+          GcCandidate gcT = candidateMap.remove(dir);
+          if (gcT != null) {
+            log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
+            // once.
           }
         }
-
-        String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-        GcCandidate gcT = candidateMap.remove(dir);
-        if (gcT != null) {
-          log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
-          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
-        }
-      }
+      });
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),

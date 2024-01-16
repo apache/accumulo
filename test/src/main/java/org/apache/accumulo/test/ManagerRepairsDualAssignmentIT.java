@@ -33,8 +33,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
@@ -73,9 +72,10 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       ClientContext context = (ClientContext) c;
       ServerContext serverContext = cluster.getServerContext();
       String table = this.getUniqueNames(1)[0];
-      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      c.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
-      c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
+      c.securityOperations().grantTablePermission("root", AccumuloTable.ROOT.tableName(),
+          TablePermission.WRITE);
       SortedSet<Text> partitions = new TreeSet<>();
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
@@ -134,8 +134,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // wait for the manager to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
-      tabletMutator =
-          serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
+      tabletMutator = serverContext.getAmple()
+          .mutateTablet(new KeyExtent(AccumuloTable.METADATA.tableId(), null, null));
       tabletMutator.putLocation(moved.current);
       tabletMutator.mutate();
       waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));

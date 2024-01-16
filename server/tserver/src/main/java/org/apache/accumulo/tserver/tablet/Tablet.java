@@ -70,7 +70,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -1103,8 +1103,8 @@ public class Tablet extends TabletBase {
       }
 
       if (!tabletMeta.getLogs().isEmpty()) {
-        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
-            + tabletMeta.getLogs();
+        String msg = "Closed tablet " + extent + " has walog entries in "
+            + AccumuloTable.METADATA.tableName() + " " + tabletMeta.getLogs();
         log.error(msg);
         throw new RuntimeException(msg);
       }

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -161,13 +162,13 @@ public class Initialize implements KeywordExecutable {
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
-      var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
+      var chooserEnv =
+          new VolumeChooserEnvironmentImpl(Scope.INIT, AccumuloTable.ROOT.tableId(), null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-      String rootTabletFileUri = new Path(
-          fs.choose(chooserEnv, initConfig.getVolumeUris()) + SEPARATOR + TABLE_DIR + SEPARATOR
-              + RootTable.ID + SEPARATOR + rootTabletDirName + SEPARATOR + "00000_00000." + ext)
-          .toString();
+      String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
+          + SEPARATOR + TABLE_DIR + SEPARATOR + AccumuloTable.ROOT.tableId() + SEPARATOR
+          + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
       zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
           rootTabletFileUri);
 
@@ -176,8 +177,8 @@ public class Initialize implements KeywordExecutable {
       }
       var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, instanceId);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
-      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + SEPARATOR
-          + rootTabletDirName);
+      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR
+          + AccumuloTable.ROOT.tableId() + SEPARATOR + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);

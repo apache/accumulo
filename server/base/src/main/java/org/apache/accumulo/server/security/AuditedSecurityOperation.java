@@ -39,7 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -81,8 +81,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   private boolean shouldAudit(TCredentials credentials, TableId tableId) {
-    return (audit.isInfoEnabled() || audit.isWarnEnabled()) && !tableId.equals(MetadataTable.ID)
-        && shouldAudit(credentials);
+    return (audit.isInfoEnabled() || audit.isWarnEnabled())
+        && !tableId.equals(AccumuloTable.METADATA.tableId()) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?

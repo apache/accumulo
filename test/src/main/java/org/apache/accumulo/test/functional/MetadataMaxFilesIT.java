@@ -33,8 +33,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -65,8 +64,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));
       }
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "10000");
+      c.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
       // propagation time
       Thread.sleep(SECONDS.toMillis(5));
       for (int i = 0; i < 2; i++) {
@@ -75,8 +74,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-        c.tableOperations().flush(RootTable.NAME, null, null, true);
+        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
       }
 
       while (true) {
