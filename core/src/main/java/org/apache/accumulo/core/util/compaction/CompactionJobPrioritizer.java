@@ -48,7 +48,7 @@ public class CompactionJobPrioritizer {
   private static final short ACCUMULO_OTHER_SYSTEM_MAX = ACCUMULO_OTHER_USER_MIN - 1;
   private static final short ACCUMULO_OTHER_SYSTEM_MIN = ACCUMULO_OTHER_SYSTEM_MAX - 1000;
   private static final short USER_USER_MAX = ACCUMULO_OTHER_SYSTEM_MIN - 1;
-  private static final short USER_USER_MIN = USER_USER_MAX - (USER_USER_MAX - Short.MIN_VALUE) / 2;
+  private static final short USER_USER_MIN = (USER_USER_MAX + Short.MIN_VALUE) / 2;
   private static final short USER_SYSTEM_MAX = USER_USER_MIN - 1;
   private static final short USER_SYSTEM_MIN = Short.MIN_VALUE;
 
