@@ -1142,12 +1142,15 @@ public enum Property {
 
   private final String key;
   private final String defaultValue;
+
+  private final String exampleValue;
   private final String description;
   private String deprecatedSince;
   private final String availableSince;
   private boolean annotationsComputed = false;
   private boolean isSensitive;
   private boolean isDeprecated;
+  private boolean isExample;
   private boolean isExperimental;
   private boolean isReplaced;
   private Property replacedBy = null;
@@ -1155,8 +1158,14 @@ public enum Property {
 
   Property(String name, String defaultValue, PropertyType type, String description,
       String availableSince) {
+    this(name, defaultValue, null, type, description, availableSince);
+  }
+
+  Property(String name, String defaultValue, String exampleValue, PropertyType type,
+      String description, String availableSince) {
     this.key = name;
     this.defaultValue = defaultValue;
+    this.exampleValue = exampleValue;
     this.description = description;
     this.availableSince = availableSince;
     this.type = type;
@@ -1187,6 +1196,15 @@ public enum Property {
   }
 
   /**
+   * Gets the example value for this property.
+   *
+   * @return example value
+   */
+  public String getExampleValue() {
+    return this.exampleValue;
+  }
+
+  /**
    * Gets the type of this property.
    *
    * @return property type
@@ -1202,6 +1220,17 @@ public enum Property {
    */
   public String getDescription() {
     return this.description;
+  }
+
+  /**
+   * Checks if this property is an example.
+   *
+   * @return true if this property is an example
+   */
+  public boolean isExample() {
+    Preconditions.checkState(annotationsComputed,
+        "precomputeAnnotations() must be called before calling this method");
+    return isExample;
   }
 
   /**
@@ -1298,6 +1327,7 @@ public enum Property {
     } else {
       isReplaced = false;
     }
+    isExample = hasAnnotation(Example.class) || hasPrefixWithAnnotation(getKey(), Example.class);
     annotationsComputed = true;
   }
 
