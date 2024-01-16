@@ -298,10 +298,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
       LoggerFactory.getLogger(getClass()).debug("Confirmed compaction cancelled.");
 
-      TabletsMetadata tm =
-          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.PREV_ROW).build();
-      assertEquals(0, tm.stream().count());
-      tm.close();
+      try (TabletsMetadata tm =
+          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.PREV_ROW).build()) {
+        assertEquals(0, tm.stream().count());
+      }
 
       t.join();
       assertNull(error.get());

@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -174,12 +175,16 @@ public class MetadataIT extends AccumuloClusterHarness {
       Text startRow = new Text("a");
       Text endRow = new Text("z");
 
-      // Call up Ample from the client context using table "t" and build
-      TabletsMetadata tablets = cc.getAmple().readTablets().forTable(TableId.of("1"))
-          .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
+      TabletMetadata tabletMetadata0;
+      TabletMetadata tabletMetadata1;
 
-      TabletMetadata tabletMetadata0 = tablets.stream().findFirst().orElseThrow();
-      TabletMetadata tabletMetadata1 = tablets.stream().skip(1).findFirst().orElseThrow();
+      // Call up Ample from the client context using table "t" and build
+      try (TabletsMetadata tm = cc.getAmple().readTablets().forTable(TableId.of("1"))
+          .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build()) {
+        var tablets = tm.stream().limit(2).collect(Collectors.toList());
+        tabletMetadata0 = tablets.get(0);
+        tabletMetadata1 = tablets.get(1);
+      }
 
       String infoTabletId0 = tabletMetadata0.getTableId().toString();
       String infoExtent0 = tabletMetadata0.getExtent().toString();
