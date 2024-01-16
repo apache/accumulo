@@ -69,6 +69,31 @@ public enum Property {
           + " been deprecated in anticipation of it being removed in a future release that"
           + " removes the rate limiting feature.",
       "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER(COMPACTION_SERVICE_PREFIX + "default.planner", null,
+      "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner", PropertyType.CLASSNAME,
+      "Planner for default compaction service.", "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER_MAXOPEN(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.maxOpen", null, "10", PropertyType.STRING,
+      "The maximum number of files a compaction will open.", "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER_GROUPS(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups", null,
+      "[{'name':'default'},{'name':'large'}]".replaceAll("'", "\""), PropertyType.JSON,
+      "The various compactor groups for this compaction service."
+          + " See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}",
+      "3.1.0"),
+  @Example
+  @Deprecated(since = "3.1")
+  @ReplacedBy(property = COMPACTION_SERVICE_DEFAULT_PLANNER_GROUPS)
+  COMPACTION_SERVICE_DEFAULT_PLANNER_EXECUTORS(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.executors", null,
+      "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
+          .replaceAll("'", "\""),
+      PropertyType.JSON,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "2.1.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
       "3.1.0"),

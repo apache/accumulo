@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -82,7 +83,7 @@ public class SlowOps {
     final int target = numParallelExpected + 1;
     try {
       client.instanceOperations().setProperty(
-          "tserver.compaction.major.service.default.planner.opts.executors",
+          Property.COMPACTION_SERVICE_DEFAULT_PLANNER_EXECUTORS.getKey(),
           "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
       Thread.sleep(3_000); // give it time to propagate
     } catch (AccumuloException | AccumuloSecurityException | InterruptedException
