@@ -35,7 +35,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -127,8 +126,9 @@ public class ZooKeeperInitializer {
     TableManager.prepareNewTableState(context, AccumuloTable.METADATA.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.METADATA.tableName(), TableState.ONLINE,
         ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(context, FateTable.ID, Namespace.ACCUMULO.id(),
-        FateTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(context, AccumuloTable.FATE.tableId(),
+        Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
+        ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,

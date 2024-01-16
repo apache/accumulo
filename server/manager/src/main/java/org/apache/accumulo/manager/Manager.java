@@ -99,7 +99,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -1079,7 +1078,7 @@ public class Manager extends AbstractServer
       var metaInstance = initializeFateInstance(context, FateInstanceType.META,
           new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
       var userInstance = initializeFateInstance(context, FateInstanceType.USER,
-          new AccumuloStore<>(context, FateTable.NAME));
+          new AccumuloStore<>(context, AccumuloTable.FATE.tableName()));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {

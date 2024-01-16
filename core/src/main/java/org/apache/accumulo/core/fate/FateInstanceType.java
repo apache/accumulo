@@ -18,19 +18,13 @@
  */
 package org.apache.accumulo.core.fate;
 
-import java.util.Set;
-
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.FateTable;
 
 public enum FateInstanceType {
   META, USER;
-
-  private static final Set<TableId> META_TABLES =
-      Set.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(), FateTable.ID);
 
   public static FateInstanceType fromNamespaceOrTableName(String tableOrNamespaceName) {
     return tableOrNamespaceName.startsWith(Namespace.ACCUMULO.name()) ? FateInstanceType.META
@@ -60,6 +54,6 @@ public enum FateInstanceType {
   }
 
   public static FateInstanceType fromTableId(TableId tableId) {
-    return META_TABLES.contains(tableId) ? META : USER;
+    return AccumuloTable.allTableIds().contains(tableId) ? META : USER;
   }
 }

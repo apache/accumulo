@@ -45,7 +45,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -106,13 +105,13 @@ class FileSystemInitializer {
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + tableMetadataTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT, FateTable.ID,
-        null, context);
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        AccumuloTable.FATE.tableId(), null, context);
     String fateTableDefaultTabletDirName =
         MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String fateTableDefaultTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + FateTable.ID + Path.SEPARATOR + fateTableDefaultTabletDirName;
+            + AccumuloTable.FATE.tableId() + Path.SEPARATOR + fateTableDefaultTabletDirName;
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
         AccumuloTable.METADATA.tableId(), null, context);
     String defaultMetadataTabletDirName =
@@ -129,7 +128,8 @@ class FileSystemInitializer {
 
     // populate the metadata tablet with info about the fate tablet
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
-    Tablet fateTablet = new Tablet(FateTable.ID, fateTableDefaultTabletDirName, null, null);
+    Tablet fateTablet =
+        new Tablet(AccumuloTable.FATE.tableId(), fateTableDefaultTabletDirName, null, null);
     createMetadataFile(fs, metadataFileName, siteConfig, fateTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
@@ -165,7 +165,7 @@ class FileSystemInitializer {
     setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootMetaConf());
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getRootMetaConf());
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getMetaTableConf());
-    setTableProperties(context, FateTable.ID, initConfig.getFateTableConf());
+    setTableProperties(context, AccumuloTable.FATE.tableId(), initConfig.getFateTableConf());
   }
 
   private void setTableProperties(final ServerContext context, TableId tableId,
