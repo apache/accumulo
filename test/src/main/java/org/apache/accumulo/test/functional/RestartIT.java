@@ -39,7 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -264,8 +264,8 @@ public class RestartIT extends AccumuloClusterHarness {
       }
       assertNotNull(splitThreshold);
       try {
-        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-            "20K");
+        c.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
+            Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
         TestIngest.ingest(c, params);
         c.tableOperations().flush(tableName, null, null, false);
         VerifyIngest.verifyIngest(c, params);
@@ -273,7 +273,7 @@ public class RestartIT extends AccumuloClusterHarness {
       } finally {
         if (getClusterType() == ClusterType.STANDALONE) {
           getCluster().start();
-          c.tableOperations().setProperty(MetadataTable.NAME,
+          c.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
               Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
         }
       }

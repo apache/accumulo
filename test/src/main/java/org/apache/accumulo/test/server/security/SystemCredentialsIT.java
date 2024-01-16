@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -82,7 +82,8 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
       try (AccumuloClient client = Accumulo.newClient().from(context.getProperties())
           .as(creds.getPrincipal(), creds.getToken()).build()) {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
-        try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+        try (Scanner scan =
+            client.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
           scan.forEach((k, v) -> {});
         } catch (RuntimeException e) {
           e.printStackTrace(System.err);

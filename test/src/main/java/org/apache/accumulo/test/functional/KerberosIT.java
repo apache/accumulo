@@ -58,8 +58,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -176,7 +175,8 @@ public class KerberosIT extends AccumuloITBase {
       }
 
       // and the ability to modify the root and metadata tables
-      for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
+      for (String table : Arrays.asList(AccumuloTable.ROOT.tableName(),
+          AccumuloTable.METADATA.tableName())) {
         assertTrue(client.securityOperations().hasTablePermission(client.whoami(), table,
             TablePermission.ALTER_TABLE));
       }

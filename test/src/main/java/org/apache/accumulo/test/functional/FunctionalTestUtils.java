@@ -61,7 +61,7 @@ import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -82,7 +82,8 @@ import com.google.common.collect.Iterators;
 public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
-    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -98,7 +99,8 @@ public class FunctionalTestUtils {
   public static List<StoredTabletFile> getStoredTabletFiles(AccumuloClient c, String tableName)
       throws Exception {
     List<StoredTabletFile> files = new ArrayList<>();
-    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -109,7 +111,8 @@ public class FunctionalTestUtils {
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
-    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);

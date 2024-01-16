@@ -69,7 +69,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -312,14 +312,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createuser xyzzy", true);
     ts.exec("users", true, "xyzzy", true);
     String perms = ts.exec("userpermissions -u xyzzy", true);
-    assertTrue(perms.contains("Table permissions (" + MetadataTable.NAME + "): Table.READ"));
+    assertTrue(perms
+        .contains("Table permissions (" + AccumuloTable.METADATA.tableName() + "): Table.READ"));
     ts.exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
-    ts.exec("grant -u " + getPrincipal() + " -t " + MetadataTable.NAME + " Table.WRITE", true);
-    ts.exec("grant -u " + getPrincipal() + " -t " + MetadataTable.NAME + " Table.GOOFY", false);
+    ts.exec(
+        "grant -u " + getPrincipal() + " -t " + AccumuloTable.METADATA.tableName() + " Table.WRITE",
+        true);
+    ts.exec(
+        "grant -u " + getPrincipal() + " -t " + AccumuloTable.METADATA.tableName() + " Table.GOOFY",
+        false);
     ts.exec("grant -u " + getPrincipal() + " -s foo", false);
-    ts.exec("grant -u xyzzy -t " + MetadataTable.NAME + " foo", false);
+    ts.exec("grant -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " foo", false);
     if (!kerberosEnabled) {
       ts.input.set("secret\nsecret\n");
       ts.exec("user xyzzy", true);
@@ -334,9 +339,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     ts.exec("revoke -u xyzzy -s System.GOOFY", false);
     ts.exec("revoke -u xyzzy -s foo", false);
-    ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.WRITE", true);
-    ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.GOOFY", false);
-    ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " foo", false);
+    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " Table.WRITE", true);
+    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " Table.GOOFY", false);
+    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " foo", false);
     ts.exec("deleteuser xyzzy", true, "deleteuser { xyzzy } (yes|no)?", true);
     ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
@@ -997,7 +1002,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     // constraint
-    ts.exec("constraint -l -t " + MetadataTable.NAME, true, "MetadataConstraints=1", true);
+    ts.exec("constraint -l -t " + AccumuloTable.METADATA.tableName(), true, "MetadataConstraints=1",
+        true);
     ts.exec("createtable " + table + " -evc");
 
     // Make sure the table is fully propagated through zoocache
@@ -1400,12 +1406,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("merge --all", true);
     ts.exec("getsplits", true, "z", false);
     ts.exec("deletetable -f " + table);
-    ts.exec("getsplits -t " + MetadataTable.NAME, true);
+    ts.exec("getsplits -t " + AccumuloTable.METADATA.tableName(), true);
     assertEquals(2, ts.output.get().split("\n").length);
     ts.exec("getsplits -t accumulo.root", true);
     assertEquals(1, ts.output.get().split("\n").length);
-    ts.exec("merge --all -t " + MetadataTable.NAME);
-    ts.exec("getsplits -t " + MetadataTable.NAME, true);
+    ts.exec("merge --all -t " + AccumuloTable.METADATA.tableName());
+    ts.exec("getsplits -t " + AccumuloTable.METADATA.tableName(), true);
     assertEquals(1, ts.output.get().split("\n").length);
   }
 
@@ -1925,8 +1931,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private List<String> getFiles(String tableId) {
     ts.output.clear();
 
-    ts.exec(
-        "scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
+    ts.exec("scan -t " + AccumuloTable.METADATA.tableName() + " -np -c file -b " + tableId + " -e "
+        + tableId + "~");
 
     log.debug("countFiles(): {}", ts.output.get());
 

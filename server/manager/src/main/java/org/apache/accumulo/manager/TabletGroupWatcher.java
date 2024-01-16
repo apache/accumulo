@@ -60,8 +60,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -285,8 +284,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               switch (dependentLevel) {
                 case USER:
                   Set<TableId> onlineTables = manager.onlineTables();
-                  onlineTables.remove(RootTable.ID);
-                  onlineTables.remove(MetadataTable.ID);
+                  onlineTables.remove(AccumuloTable.ROOT.tableId());
+                  onlineTables.remove(AccumuloTable.METADATA.tableId());
                   userTablesExist = !onlineTables.isEmpty();
                   break;
                 case METADATA:
@@ -504,9 +503,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<Key,Value> future = new HashMap<>();
       Map<Key,Value> assigned = new HashMap<>();
       KeyExtent extent = KeyExtent.fromMetaRow(row);
-      String table = MetadataTable.NAME;
+      String table = AccumuloTable.METADATA.tableName();
       if (extent.isMeta()) {
-        table = RootTable.NAME;
+        table = AccumuloTable.ROOT.tableName();
       }
       Scanner scanner = manager.getContext().createScanner(table, Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
@@ -735,7 +734,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     final KeyExtent extent =
         new KeyExtent(info.getExtent().tableId(), deletionEndRow, deletionStartRow);
     Manager.log.debug("Tablet deletion range is {}", extent);
-    String targetSystemTable = extent.isMeta() ? RootTable.NAME : MetadataTable.NAME;
+    String targetSystemTable =
+        extent.isMeta() ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
     Manager.log.debug("Deleting tablets for {}", extent);
     KeyExtent followingTablet = null;
     if (extent.endRow() != null) {
@@ -843,9 +843,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       start = new Text();
     }
 
-    String targetSystemTable = MetadataTable.NAME;
+    String targetSystemTable = AccumuloTable.METADATA.tableName();
     if (range.isMeta()) {
-      targetSystemTable = RootTable.NAME;
+      targetSystemTable = AccumuloTable.ROOT.tableName();
     }
 
     AccumuloClient client = manager.getContext();
@@ -1032,9 +1032,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     Range scanRange =
         new Range(TabletsSection.encodeRow(range.tableId(), start), false, stopRow, false);
-    String targetSystemTable = MetadataTable.NAME;
+    String targetSystemTable = AccumuloTable.METADATA.tableName();
     if (range.isMeta()) {
-      targetSystemTable = RootTable.NAME;
+      targetSystemTable = AccumuloTable.ROOT.tableName();
     }
 
     AccumuloClient client = manager.getContext();
@@ -1116,9 +1116,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws AccumuloException {
     final KeyExtent range = info.getExtent();
 
-    String targetSystemTable = MetadataTable.NAME;
+    String targetSystemTable = AccumuloTable.METADATA.tableName();
     if (range.isMeta()) {
-      targetSystemTable = RootTable.NAME;
+      targetSystemTable = AccumuloTable.ROOT.tableName();
     }
     final Pair<KeyExtent,KeyExtent> startAndEndTablets;
 
@@ -1276,8 +1276,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // either disappear entirely or not all.. this is important for the case
     // where the process terminates in the loop below...
     Manager.log.debug("Inside delete tablets");
-    scanner = client.createScanner(info.getExtent().isMeta() ? RootTable.NAME : MetadataTable.NAME,
-        Authorizations.EMPTY);
+    scanner = client.createScanner(info.getExtent().isMeta() ? AccumuloTable.ROOT.tableName()
+        : AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
     Manager.log.debug("Deleting range {}", scanRange);
     scanner.setRange(scanRange);
     RowIterator rowIter = new RowIterator(scanner);
@@ -1325,7 +1325,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private HighTablet getHighTablet(KeyExtent range) throws AccumuloException {
     try {
       AccumuloClient client = manager.getContext();
-      Scanner scanner = client.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
+      Scanner scanner = client.createScanner(
+          range.isMeta() ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName(),
           Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       MergedColumnFamily.MERGED_COLUMN.fetch(scanner);

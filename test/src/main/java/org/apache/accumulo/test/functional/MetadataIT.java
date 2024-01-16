@@ -45,8 +45,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -80,7 +79,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       // create a table to write some data to metadata table
       c.tableOperations().create(tableNames[0]);
 
-      try (Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner rootScanner =
+          c.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
         rootScanner.setRange(TabletsSection.getRange());
         rootScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
@@ -90,7 +90,7 @@ public class MetadataIT extends AccumuloClusterHarness {
         }
 
         c.tableOperations().create(tableNames[1]);
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
 
         Set<String> files2 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner) {
@@ -101,7 +101,7 @@ public class MetadataIT extends AccumuloClusterHarness {
         assertTrue(!files2.isEmpty());
         assertNotEquals(files1, files2);
 
-        c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
+        c.tableOperations().compact(AccumuloTable.METADATA.tableName(), null, null, false, true);
 
         Set<String> files3 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner) {
@@ -122,17 +122,17 @@ public class MetadataIT extends AccumuloClusterHarness {
       for (String id : "1 2 3 4 5".split(" ")) {
         splits.add(new Text(id));
       }
-      c.tableOperations().addSplits(MetadataTable.NAME, splits);
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), splits);
       for (String tableName : names) {
         c.tableOperations().create(tableName);
       }
-      c.tableOperations().merge(MetadataTable.NAME, null, null);
-      try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+      c.tableOperations().merge(AccumuloTable.METADATA.tableName(), null, null);
+      try (Scanner s = c.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
         while (s.stream().findAny().isEmpty()) {
           Thread.sleep(100);
         }
-        assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
+        assertEquals(0, c.tableOperations().listSplits(AccumuloTable.METADATA.tableName()).size());
       }
     }
   }
@@ -144,13 +144,13 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
 
       // batch scan regular metadata table
-      try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME)) {
+      try (BatchScanner s = c.createBatchScanner(AccumuloTable.METADATA.tableName())) {
         s.setRanges(Collections.singleton(new Range()));
         assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
 
       // batch scan root metadata table
-      try (BatchScanner s = c.createBatchScanner(RootTable.NAME)) {
+      try (BatchScanner s = c.createBatchScanner(AccumuloTable.ROOT.tableName())) {
         s.setRanges(Collections.singleton(new Range()));
         assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
@@ -161,7 +161,7 @@ public class MetadataIT extends AccumuloClusterHarness {
   public void testAmpleReadTablets() throws Exception {
 
     try (ClientContext cc = (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      cc.securityOperations().grantTablePermission(cc.whoami(), MetadataTable.NAME,
+      cc.securityOperations().grantTablePermission(cc.whoami(), AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
 
       SortedSet<Text> partitionKeys = new TreeSet<>();
