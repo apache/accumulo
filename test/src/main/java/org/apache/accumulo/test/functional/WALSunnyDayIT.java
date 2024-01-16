@@ -50,7 +50,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.FateTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -123,7 +122,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
       // flush the tables
       for (String table : new String[] {tableName, AccumuloTable.METADATA.tableName(),
-          AccumuloTable.ROOT.tableName(), FateTable.NAME}) {
+          AccumuloTable.ROOT.tableName(), AccumuloTable.FATE.tableName()}) {
         c.tableOperations().flush(table, null, null, true);
       }
       Thread.sleep(SECONDS.toMillis(1));
@@ -155,7 +154,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
           markers.keySet().stream().anyMatch(extent -> extent.tableId().canonical().equals("1")),
           "tableId of the keyExtent should be 1");
       assertTrue(
-          markers.keySet().stream().anyMatch(extent -> extent.tableId().equals(FateTable.ID)),
+          markers.keySet().stream()
+              .anyMatch(extent -> extent.tableId().equals(AccumuloTable.FATE.tableId())),
           "tableId of the FateTable can't be found");
 
       // put some data in the WAL
