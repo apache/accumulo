@@ -18,16 +18,15 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 public class RootTable {
 
-  public static final TableId ID = TableId.of("+r");
+  public static final TableId ID = AccumuloTable.ROOT.tableId();
 
-  public static final String NAME = Namespace.ACCUMULO.name() + ".root";
+  public static final String NAME = AccumuloTable.ROOT.tableName();
 
   /**
    * DFS location relative to the Accumulo directory

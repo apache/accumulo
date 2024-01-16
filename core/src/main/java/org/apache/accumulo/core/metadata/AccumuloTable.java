@@ -18,9 +18,29 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 
-public class MetadataTable {
-  public static final TableId ID = AccumuloTable.METADATA.tableId();
-  public static final String NAME = AccumuloTable.METADATA.tableName();
+/**
+ * Defines the name and id of all tables in the accumulo table namespace.
+ */
+public enum AccumuloTable {
+
+  ROOT("root", "+r"), METADATA("metadata", "!0");
+
+  private final String name;
+  private final TableId tableId;
+
+  public String tableName() {
+    return name;
+  }
+
+  public TableId tableId() {
+    return tableId;
+  }
+
+  AccumuloTable(String name, String id) {
+    this.name = Namespace.ACCUMULO.name() + "." + name;
+    this.tableId = TableId.of(id);
+  }
 }
