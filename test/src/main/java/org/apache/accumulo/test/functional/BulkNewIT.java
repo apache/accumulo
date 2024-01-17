@@ -71,7 +71,7 @@ import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -702,12 +702,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
   static void setupBulkConstraint(String principal, AccumuloClient c)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // add a constraint to the metadata table that disallows bulk import files to be added
-    c.securityOperations().grantTablePermission(principal, MetadataTable.NAME,
+    c.securityOperations().grantTablePermission(principal, AccumuloTable.METADATA.tableName(),
         TablePermission.WRITE);
-    c.securityOperations().grantTablePermission(principal, MetadataTable.NAME,
+    c.securityOperations().grantTablePermission(principal, AccumuloTable.METADATA.tableName(),
         TablePermission.ALTER_TABLE);
 
-    c.tableOperations().addConstraint(MetadataTable.NAME, NoBulkConstratint.class.getName());
+    c.tableOperations().addConstraint(AccumuloTable.METADATA.tableName(),
+        NoBulkConstratint.class.getName());
 
     var metaConstraints = new MetadataConstraints();
     SystemEnvironment env = EasyMock.createMock(SystemEnvironment.class);
@@ -717,7 +718,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     // wait for the constraint to be active on the metadata table
     Wait.waitFor(() -> {
-      try (var bw = c.createBatchWriter(MetadataTable.NAME)) {
+      try (var bw = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         Mutation m = new Mutation("~garbage");
         m.put("", "", NoBulkConstratint.CANARY_VALUE);
         // This test assume the metadata constraint check will not flag this mutation, the following
@@ -732,7 +733,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     });
 
     // delete the junk added to the metadata table
-    try (var bw = c.createBatchWriter(MetadataTable.NAME)) {
+    try (var bw = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       Mutation m = new Mutation("~garbage");
       m.putDelete("", "");
       bw.addMutation(m);
@@ -741,12 +742,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   static void removeBulkConstraint(String principal, AccumuloClient c)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    int constraintNum = c.tableOperations().listConstraints(MetadataTable.NAME)
+    int constraintNum = c.tableOperations().listConstraints(AccumuloTable.METADATA.tableName())
         .get(NoBulkConstratint.class.getName());
-    c.tableOperations().removeConstraint(MetadataTable.NAME, constraintNum);
-    c.securityOperations().revokeTablePermission(principal, MetadataTable.NAME,
+    c.tableOperations().removeConstraint(AccumuloTable.METADATA.tableName(), constraintNum);
+    c.securityOperations().revokeTablePermission(principal, AccumuloTable.METADATA.tableName(),
         TablePermission.WRITE);
-    c.securityOperations().revokeTablePermission(principal, MetadataTable.NAME,
+    c.securityOperations().revokeTablePermission(principal, AccumuloTable.METADATA.tableName(),
         TablePermission.ALTER_TABLE);
   }
 }

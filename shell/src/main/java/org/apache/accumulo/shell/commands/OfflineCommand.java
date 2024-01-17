@@ -21,7 +21,7 @@ package org.apache.accumulo.shell.commands;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -40,8 +40,8 @@ public class OfflineCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(MetadataTable.NAME)) {
-      Shell.log.info("  You cannot take the {} offline.", MetadataTable.NAME);
+    if (tableName.equals(AccumuloTable.METADATA.tableName())) {
+      Shell.log.info("  You cannot take the {} offline.", AccumuloTable.METADATA.tableName());
     } else {
       shellState.getAccumuloClient().tableOperations().offline(tableName, wait);
       Shell.log.info("Offline of table {} {}", tableName, wait ? " completed." : " initiated...");

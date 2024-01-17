@@ -50,7 +50,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -188,7 +188,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", tableId);
 
-      try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -325,7 +326,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       client.tableOperations().online(destTable, true);
 
       // Get all `file` colfams from the metadata table for the new table
-      try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);

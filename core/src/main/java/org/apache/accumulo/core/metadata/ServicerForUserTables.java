@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.TableId;
 class ServicerForUserTables extends TableMetadataServicer {
 
   public ServicerForUserTables(ClientContext context, TableId tableId) {
-    super(context, MetadataTable.NAME, tableId);
+    super(context, AccumuloTable.METADATA.tableName(), tableId);
   }
 
 }

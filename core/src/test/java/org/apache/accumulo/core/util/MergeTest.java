@@ -28,7 +28,7 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.Merge.Size;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ public class MergeTest {
     @Override
     public void mergomatic(AccumuloClient client, String table, Text start, Text end, long goalSize,
         boolean force) throws MergeException {
-      if (table.equals(MetadataTable.NAME)) {
+      if (table.equals(AccumuloTable.METADATA.tableName())) {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
       }
 

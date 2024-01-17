@@ -42,8 +42,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.monitor.Monitor;
@@ -142,11 +141,11 @@ public class TablesResource {
     }
 
     TreeSet<String> locs = new TreeSet<>();
-    if (RootTable.ID.equals(tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
-      String systemTableName =
-          MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
+      String systemTableName = AccumuloTable.METADATA.tableId().equals(tableId)
+          ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
           new Range(TabletsSection.encodeRow(tableId, new Text()),
               TabletsSection.encodeRow(tableId, null)),

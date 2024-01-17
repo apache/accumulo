@@ -54,8 +54,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -124,16 +123,19 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
       HostAndPort metadataServer = HostAndPort.fromString(tservers.get(0));
       log.info("Configuring balancer to assign all metadata tablets to {}", metadataServer);
-      iops.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME,
+      iops.setProperty(
+          HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + AccumuloTable.METADATA.tableName(),
           metadataServer.toString());
 
       // Wait for the balancer to assign all metadata tablets to the chosen server.
       ClientContext ctx = (ClientContext) client;
-      TabletLocations tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+      TabletLocations tl = TabletLocations.retrieve(ctx, AccumuloTable.METADATA.tableName(),
+          AccumuloTable.ROOT.tableName());
       while (tl.hosted.keySet().size() != 1 || !tl.hosted.containsKey(metadataServer)) {
         log.info("Metadata tablets are not hosted on the correct server. Waiting for balancer...");
         Thread.sleep(1000L);
-        tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+        tl = TabletLocations.retrieve(ctx, AccumuloTable.METADATA.tableName(),
+            AccumuloTable.ROOT.tableName());
       }
       log.info("Metadata tablets are now hosted on {}", metadataServer);
     }
@@ -180,7 +182,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Set<TServerInstance> tserverSet = new HashSet<>();
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
-      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
+      TabletLocator tl = TabletLocator.getLocator(ctx, AccumuloTable.METADATA.tableId());
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
           // add to set of all servers
@@ -396,7 +398,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
         throws Exception {
-      return retrieve(ctx, tableName, MetadataTable.NAME);
+      return retrieve(ctx, tableName, AccumuloTable.METADATA.tableName());
     }
 
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName,

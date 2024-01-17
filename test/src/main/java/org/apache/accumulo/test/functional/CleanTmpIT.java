@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -89,7 +89,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
       // create a fake _tmp file in its directory
       String id = c.tableOperations().tableIdMap().get(tableName);
       Path file;
-      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(Range.prefix(id));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         Entry<Key,Value> entry = getOnlyElement(s);
