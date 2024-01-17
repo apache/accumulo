@@ -308,7 +308,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
         Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(parseTid(strTxid)));
-        return new FateIdStatus(parseTid(strTxid)) {
+        return new FateIdStatusBase(parseTid(strTxid)) {
           @Override
           public TStatus getStatus() {
             return statusSupplier.get();

@@ -82,7 +82,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
-        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+        return new FateIdStatusBase(parseTid(e.getKey().getRow().toString())) {
           @Override
           public TStatus getStatus() {
             return TStatus.valueOf(e.getValue().toString());

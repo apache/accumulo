@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
@@ -368,7 +369,7 @@ public class AdminUtil<T> {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     fateStores.forEach((type, store) -> {
-      try (Stream<Long> tids = store.list()) {
+      try (Stream<Long> tids = store.list().map(FateIdStatus::getTxid)) {
         tids.forEach(tid -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(tid);

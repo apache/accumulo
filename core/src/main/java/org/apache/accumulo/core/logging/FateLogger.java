@@ -115,7 +115,7 @@ public class FateLogger {
       }
 
       @Override
-      public Stream<Long> list() {
+      public Stream<FateIdStatus> list() {
         return store.list();
       }
 

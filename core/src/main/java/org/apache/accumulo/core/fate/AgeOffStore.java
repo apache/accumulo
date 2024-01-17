@@ -129,7 +129,7 @@ public class AgeOffStore<T> implements FateStore<T> {
 
     // ELASTICITY_TODO need to rework how this class works so that it does not buffer everything in
     // memory.
-    List<Long> txids = store.list().collect(Collectors.toList());
+    List<Long> txids = store.list().map(FateIdStatus::getTxid).collect(Collectors.toList());
     for (Long txid : txids) {
       FateTxStore<T> txStore = store.reserve(txid);
       try {
@@ -203,7 +203,7 @@ public class AgeOffStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Stream<Long> list() {
+  public Stream<FateIdStatus> list() {
     return store.list();
   }
 
