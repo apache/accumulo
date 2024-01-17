@@ -47,7 +47,11 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -104,6 +108,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -618,6 +624,92 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
+    }
+  }
+
+  @Test
+  public void testConcurrentCompactions() throws Exception {
+    // run test with bulk imports happening in parallel
+    testConcurrentCompactions(true);
+    // run the test with bulk imports happening serially
+    testConcurrentCompactions(false);
+  }
+
+  private void testConcurrentCompactions(boolean parallelBulkImports) throws Exception {
+    // Tests compactions running concurrently with bulk import to ensure that data is not bulk
+    // imported twice. Doing a large number of bulk imports should naturally cause compactions to
+    // happen. This test ensures that compactions running concurrently with bulk import does not
+    // cause duplicate imports of a files. For example if a files is imported into a tablet and then
+    // compacted away then the file should not be imported again by the FATE operation doing the
+    // bulk import. The test is structured in such a way that duplicate imports would be detected.
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().delete(tableName);
+      // Create table without versioning iterator. This done to detect the same file being imported
+      // more than once.
+      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+
+      addSplits(c, tableName, "0999 1999 2999 3999 4999 5999 6999 7999 8999");
+
+      String dir = getDir("/testBulkFile-");
+
+      final int N = 100;
+
+      ExecutorService executor;
+      if (parallelBulkImports) {
+        executor = Executors.newFixedThreadPool(16);
+      } else {
+        // execute the bulk imports in the current thread which will cause them to run serially
+        executor = MoreExecutors.newDirectExecutorService();
+      }
+
+      // Do N bulk imports of the exact same data.
+      var futures = IntStream.range(0, N).mapToObj(i -> executor.submit(() -> {
+        try {
+          String iterationDir = dir + "/iteration" + i;
+          // Create 10 files for the bulk import.
+          for (int f = 0; f < 10; f++) {
+            writeData(iterationDir + "/f" + f + ".", aconf, f * 1000, (f + 1) * 1000 - 1);
+          }
+          c.tableOperations().importDirectory(iterationDir).to(tableName).tableTime(true).load();
+          getCluster().getFileSystem().delete(new Path(iterationDir), true);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      })).collect(Collectors.toList());
+
+      // wait for all bulk imports and check for errors in background threads
+      for (var future : futures) {
+        future.get();
+      }
+
+      executor.shutdown();
+
+      try (var scanner = c.createScanner(tableName)) {
+        // Count the number of times each row is seen.
+        Map<String,Long> rowCounts = scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        var expectedRows = IntStream.range(0, 10000).mapToObj(i -> String.format("%04d", i))
+            .collect(Collectors.toSet());
+        assertEquals(expectedRows, rowCounts.keySet());
+        // Each row should be duplicated once for each bulk import. If a file were imported twice,
+        // then would see a higher count.
+        assertTrue(rowCounts.values().stream().allMatch(l -> l == N));
+      }
+
+      // Its expected that compactions ran while the bulk imports were running. If no compactions
+      // ran, then each tablet would have N files. Verify each tablet has less than N files.
+      try (var scanner = c.createScanner("accumulo.metadata")) {
+        scanner.setRange(MetadataSchema.TabletsSection
+            .getRange(getCluster().getServerContext().getTableId(tableName)));
+        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        // Get the count of files for each tablet.
+        Map<String,Long> rowCounts = scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        assertTrue(rowCounts.values().stream().allMatch(l -> l < N));
+        // expect to see 10 tablets
+        assertEquals(10, rowCounts.size());
+      }
     }
   }
 
