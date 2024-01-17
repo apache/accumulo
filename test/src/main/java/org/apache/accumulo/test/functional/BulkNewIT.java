@@ -47,6 +47,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -106,6 +108,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -625,6 +629,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testConcurrentCompactions() throws Exception {
+    // run test with bulk imports happening in parallel
+    testConcurrentCompactions(true);
+    // run the test with bulk imports happening serially
+    testConcurrentCompactions(false);
+  }
+
+  private void testConcurrentCompactions(boolean parallelBulkImports) throws Exception {
     // Tests compactions running concurrently with bulk import to ensure that data is not bulk
     // imported twice. Doing a large number of bulk imports should naturally cause compactions to
     // happen. This test ensures that compactions running concurrently with bulk import does not
@@ -644,15 +655,35 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       final int N = 100;
 
-      // Do N bulk imports of the exact same data.
-      for (int i = 0; i < N; i++) {
-        // Create 10 files for the bulk import.
-        for (int f = 0; f < 10; f++) {
-          writeData(dir + "/f" + f + ".", aconf, f * 1000, (f + 1) * 1000 - 1);
-        }
-        c.tableOperations().importDirectory(dir).to(tableName).tableTime(true).load();
-        getCluster().getFileSystem().delete(new Path(dir), true);
+      ExecutorService executor;
+      if (parallelBulkImports) {
+        executor = Executors.newFixedThreadPool(16);
+      } else {
+        // execute the bulk imports in the current thread which will cause them to run serially
+        executor = MoreExecutors.newDirectExecutorService();
       }
+
+      // Do N bulk imports of the exact same data.
+      var futures = IntStream.range(0, N).mapToObj(i -> executor.submit(() -> {
+        try {
+          String iterationDir = dir + "/iteration" + i;
+          // Create 10 files for the bulk import.
+          for (int f = 0; f < 10; f++) {
+            writeData(iterationDir + "/f" + f + ".", aconf, f * 1000, (f + 1) * 1000 - 1);
+          }
+          c.tableOperations().importDirectory(iterationDir).to(tableName).tableTime(true).load();
+          getCluster().getFileSystem().delete(new Path(iterationDir), true);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      })).collect(Collectors.toList());
+
+      // wait for all bulk imports and check for errors in background threads
+      for (var future : futures) {
+        future.get();
+      }
+
+      executor.shutdown();
 
       try (var scanner = c.createScanner(tableName)) {
         // Count the number of times each row is seen.
