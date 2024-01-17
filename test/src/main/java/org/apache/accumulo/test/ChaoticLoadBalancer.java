@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -133,7 +133,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
         TableId id = TableId.of(tableId);
-        if (!moveMetadata && MetadataTable.ID.equals(id)) {
+        if (!moveMetadata && AccumuloTable.METADATA.tableId().equals(id)) {
           continue;
         }
         try {

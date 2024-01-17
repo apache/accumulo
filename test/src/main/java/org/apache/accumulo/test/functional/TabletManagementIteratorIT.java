@@ -61,8 +61,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.FateTable;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -135,14 +134,14 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       var unused = Iterables.size(s); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, MetadataTable.NAME, metaCopy1);
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
       TabletManagementParameters tabletMgmtParams = createParameters(client);
       int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       while (tabletsInFlux > 0) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
-        copyTable(client, MetadataTable.NAME, metaCopy1);
+        copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       }
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
@@ -416,7 +415,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     // metadata should be stable with only 9 rows (2 for each table) + 1 for the FateTable
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
     assertEquals(9, mutations.size(),
-        "Metadata should have 8 rows (2 for each table) + one row for " + FateTable.ID.canonical());
+        "Metadata should have 8 rows (2 for each table) + one row for "
+            + AccumuloTable.FATE.tableId().canonical());
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {

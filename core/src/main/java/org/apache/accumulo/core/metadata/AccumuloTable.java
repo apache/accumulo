@@ -18,10 +18,40 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 
-public class FateTable {
-  public static final TableId ID = TableId.of("+fate");
-  public static final String NAME = Namespace.ACCUMULO.name() + ".fate";
+/**
+ * Defines the name and id of all tables in the accumulo table namespace.
+ */
+public enum AccumuloTable {
+
+  ROOT("root", "+r"), METADATA("metadata", "!0"), FATE("fate", "+fate");
+
+  private final String name;
+  private final TableId tableId;
+
+  public String tableName() {
+    return name;
+  }
+
+  public TableId tableId() {
+    return tableId;
+  }
+
+  AccumuloTable(String name, String id) {
+    this.name = Namespace.ACCUMULO.name() + "." + name;
+    this.tableId = TableId.of(id);
+  }
+
+  private static final Set<TableId> ALL_IDS =
+      Arrays.stream(values()).map(AccumuloTable::tableId).collect(Collectors.toUnmodifiableSet());
+
+  public static Set<TableId> allTableIds() {
+    return ALL_IDS;
+  }
 }

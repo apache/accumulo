@@ -52,7 +52,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -241,7 +241,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       // ELASTICITY_TODO make delete table fate op get operation ids before deleting
       // there should be no metadata for the table, check to see if the compaction wrote anything
       // after table delete
-      try (var scanner = client.createScanner(MetadataTable.NAME)) {
+      try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tid));
         assertEquals(0, scanner.stream().count());
       }
@@ -298,10 +298,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
       LoggerFactory.getLogger(getClass()).debug("Confirmed compaction cancelled.");
 
-      TabletsMetadata tm =
-          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.PREV_ROW).build();
-      assertEquals(0, tm.stream().count());
-      tm.close();
+      try (TabletsMetadata tm =
+          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.PREV_ROW).build()) {
+        assertEquals(0, tm.stream().count());
+      }
 
       t.join();
       assertNull(error.get());

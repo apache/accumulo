@@ -37,9 +37,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -67,8 +66,8 @@ public class TableDiskUsageTest {
 
   @BeforeAll
   public static void beforeClass() {
-    tableIdToNameMap.put(RootTable.ID, MetadataTable.NAME);
-    tableIdToNameMap.put(MetadataTable.ID, MetadataTable.NAME);
+    tableIdToNameMap.put(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableName());
+    tableIdToNameMap.put(AccumuloTable.METADATA.tableId(), AccumuloTable.METADATA.tableName());
     tableIdToNameMap.put(tableId1, "table1");
     tableIdToNameMap.put(tableId2, "table2");
     tableIdToNameMap.put(tableId3, "table3");
@@ -136,20 +135,21 @@ public class TableDiskUsageTest {
     final Scanner scanner = EasyMock.createMock(Scanner.class);
 
     // Expect root table instead to be scanned
-    EasyMock.expect(client.createScanner(RootTable.NAME, Authorizations.EMPTY)).andReturn(scanner);
+    EasyMock.expect(client.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY))
+        .andReturn(scanner);
     EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
 
     Map<Key,Value> tableEntries = new HashMap<>();
-    appendFileMetadata(tableEntries,
-        getTabletFile(MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), 1024);
-    mockTableScan(scanner, tableEntries, MetadataTable.ID);
+    appendFileMetadata(tableEntries, getTabletFile(AccumuloTable.METADATA.tableId(),
+        AccumuloTable.METADATA.tableName(), "C0001.rf"), 1024);
+    mockTableScan(scanner, tableEntries, AccumuloTable.METADATA.tableId());
 
     EasyMock.replay(client, scanner);
 
     Map<SortedSet<String>,Long> result =
-        TableDiskUsage.getDiskUsage(tableSet(MetadataTable.ID), client);
+        TableDiskUsage.getDiskUsage(tableSet(AccumuloTable.METADATA.tableId()), client);
 
-    assertEquals(1024, getTotalUsage(result, MetadataTable.ID));
+    assertEquals(1024, getTotalUsage(result, AccumuloTable.METADATA.tableId()));
     assertEquals(1, result.size());
     Map.Entry<SortedSet<String>,Long> firstResult =
         result.entrySet().stream().findFirst().orElseThrow();
@@ -296,7 +296,7 @@ public class TableDiskUsageTest {
   }
 
   private void mockScan(ServerContext client, Scanner scanner, int times) throws Exception {
-    EasyMock.expect(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
+    EasyMock.expect(client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY))
         .andReturn(scanner).times(times);
     EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
   }

@@ -24,8 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -85,22 +84,22 @@ public class FindOfflineTablets {
       return offline;
     }
 
-    if (RootTable.NAME.equals(tableName)) {
+    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + RootTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
     Iterator<TabletMetadata> rootScanner =
         context.getAmple().readTablets().forLevel(DataLevel.METADATA).build().iterator();
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
       return offline;
     }
 
-    if (MetadataTable.NAME.equals(tableName)) {
+    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + MetadataTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.METADATA.tableName());
 
     try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
       return checkTablets(context, metaScanner.iterator(), tservers);

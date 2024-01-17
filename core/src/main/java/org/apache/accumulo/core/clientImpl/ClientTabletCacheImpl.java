@@ -54,8 +54,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -653,7 +652,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     // System tables should always be hosted
-    if (RootTable.ID == tableId || MetadataTable.ID == tableId) {
+    if (AccumuloTable.ROOT.tableId() == tableId || AccumuloTable.METADATA.tableId() == tableId) {
       return;
     }
 

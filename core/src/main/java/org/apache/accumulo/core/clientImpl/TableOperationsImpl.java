@@ -141,8 +141,7 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
@@ -217,7 +216,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean exists(String tableName) {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+    if (tableName.equals(AccumuloTable.METADATA.tableName())
+        || tableName.equals(AccumuloTable.ROOT.tableName())) {
       return true;
     }
 
@@ -637,9 +637,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TableId tableId = context.getTableId(tableName);
 
     while (true) {
-      try {
-        return context.getAmple().readTablets().forTable(tableId).fetch(PREV_ROW).checkConsistency()
-            .build().stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
+      try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forTable(tableId)
+          .fetch(PREV_ROW).checkConsistency().build()) {
+        return tabletsMetadata.stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
             .collect(Collectors.toList());
       } catch (TabletDeletedException tde) {
         // see if the table was deleted
@@ -1295,9 +1295,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
         range = new Range(startRow, lastRow);
       }
 
-      TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build();
-
       KeyExtent lastExtent = null;
 
       int total = 0;
@@ -1306,37 +1303,41 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Text continueRow = null;
       MapCounter<String> serverCounts = new MapCounter<>();
 
-      for (TabletMetadata tablet : tablets) {
-        total++;
-        Location loc = tablet.getLocation();
-        TabletHostingGoal goal = tablet.getHostingGoal();
+      try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
 
-        if ((expectedState == TableState.ONLINE
-            && (goal == TabletHostingGoal.ALWAYS
-                || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
-            && (loc == null || loc.getType() == LocationType.FUTURE))
-            || (expectedState == TableState.OFFLINE && loc != null)) {
-          if (continueRow == null) {
-            continueRow = tablet.getExtent().toMetaRow();
+        for (TabletMetadata tablet : tablets) {
+          total++;
+          Location loc = tablet.getLocation();
+          TabletHostingGoal goal = tablet.getHostingGoal();
+
+          if ((expectedState == TableState.ONLINE
+              && (goal == TabletHostingGoal.ALWAYS
+                  || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
+              && (loc == null || loc.getType() == LocationType.FUTURE))
+              || (expectedState == TableState.OFFLINE && loc != null)) {
+            if (continueRow == null) {
+              continueRow = tablet.getExtent().toMetaRow();
+            }
+            waitFor++;
+            lastRow = tablet.getExtent().toMetaRow();
+
+            if (loc != null) {
+              serverCounts.increment(loc.getHostPortSession(), 1);
+            }
           }
-          waitFor++;
-          lastRow = tablet.getExtent().toMetaRow();
 
-          if (loc != null) {
-            serverCounts.increment(loc.getHostPortSession(), 1);
+          if (!tablet.getExtent().tableId().equals(tableId)) {
+            throw new AccumuloException(
+                "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
           }
-        }
 
-        if (!tablet.getExtent().tableId().equals(tableId)) {
-          throw new AccumuloException(
-              "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
-        }
+          if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
+            holes++;
+          }
 
-        if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
-          holes++;
+          lastExtent = tablet.getExtent();
         }
-
-        lastExtent = tablet.getExtent();
       }
 
       if (continueRow != null) {
@@ -1406,13 +1407,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = FateOperation.TABLE_OFFLINE;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+        if (tableName.equals(AccumuloTable.METADATA.tableName())
+            || tableName.equals(AccumuloTable.ROOT.tableName())) {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
       case ONLINE:
         op = FateOperation.TABLE_ONLINE;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+        if (tableName.equals(AccumuloTable.METADATA.tableName())
+            || tableName.equals(AccumuloTable.ROOT.tableName())) {
           // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
@@ -2098,9 +2101,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public TimeType getTimeType(final String tableName) throws TableNotFoundException {
     TableId tableId = context.getTableId(tableName);
-    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
-        .fetch(TIME).checkConsistency().build().stream().findFirst();
-
+    Optional<TabletMetadata> tabletMetadata;
+    try (TabletsMetadata tabletsMetadata =
+        context.getAmple().readTablets().forTable(tableId).fetch(TIME).checkConsistency().build()) {
+      tabletMetadata = tabletsMetadata.stream().findFirst();
+    }
     TabletMetadata timeData =
         tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();

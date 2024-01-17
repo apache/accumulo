@@ -65,7 +65,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -442,7 +442,7 @@ public class Admin implements KeywordExecutable {
       try {
         Set<String> tables = context.tableOperations().tableIdMap().keySet();
         for (String table : tables) {
-          if (table.equals(MetadataTable.NAME)) {
+          if (table.equals(AccumuloTable.METADATA.tableName())) {
             continue;
           }
           try {
