@@ -171,8 +171,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Stream<Long> list() {
-    return getTransactions().map(fateIdStatus -> fateIdStatus.txid);
+  public Stream<FateIdStatus> list() {
+    return getTransactions();
   }
 
   @Override
@@ -189,10 +189,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public static abstract class FateIdStatus {
+  public static abstract class FateIdStatusBase implements FateIdStatus {
     private final long txid;
 
-    public FateIdStatus(long txid) {
+    public FateIdStatusBase(long txid) {
       this.txid = txid;
     }
 

@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AgeOffStore.TimeSource;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
@@ -75,19 +76,21 @@ public class AgeOffStoreTest {
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1, txid2, txid3, txid4), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1, txid2, txid3, txid4),
+        aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     tts.time = 15;
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1, txid3, txid4), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1, txid3, txid4),
+        aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     tts.time = 30;
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1), aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
   }
 
   @Test
@@ -117,17 +120,19 @@ public class AgeOffStoreTest {
 
     AgeOffStore<String> aoStore = new AgeOffStore<>(testStore, 10, tts);
 
-    assertEquals(Set.of(txid1, txid2, txid3, txid4), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1, txid2, txid3, txid4),
+        aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1, txid2, txid3, txid4), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1, txid2, txid3, txid4),
+        aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     tts.time = 15;
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1), aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     txStore1 = aoStore.reserve(txid1);
     txStore1.setStatus(TStatus.FAILED_IN_PROGRESS);
@@ -137,7 +142,7 @@ public class AgeOffStoreTest {
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1), aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     txStore1 = aoStore.reserve(txid1);
     txStore1.setStatus(TStatus.FAILED);
@@ -145,7 +150,7 @@ public class AgeOffStoreTest {
 
     aoStore.ageOff();
 
-    assertEquals(Set.of(txid1), aoStore.list().collect(toSet()));
+    assertEquals(Set.of(txid1), aoStore.list().map(FateIdStatus::getTxid).collect(toSet()));
 
     tts.time = 42;
 

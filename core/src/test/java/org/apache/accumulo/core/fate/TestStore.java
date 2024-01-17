@@ -167,8 +167,18 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Stream<Long> list() {
-    return new ArrayList<>(statuses.keySet()).stream();
+  public Stream<FateIdStatus> list() {
+    return new ArrayList<>(statuses.entrySet()).stream().map(e -> new FateIdStatus() {
+      @Override
+      public long getTxid() {
+        return e.getKey();
+      }
+
+      @Override
+      public TStatus getStatus() {
+        return e.getValue();
+      }
+    });
   }
 
   @Override
