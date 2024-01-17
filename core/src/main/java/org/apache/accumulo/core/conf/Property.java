@@ -82,7 +82,7 @@ public enum Property {
       COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups", null,
       "[{'name':'default'},{'name':'large'}]".replaceAll("'", "\""), PropertyType.JSON,
       "The various compactor groups for this compaction service."
-          + " See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}",
+          + " See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "3.1.0"),
   @Example
   @Deprecated(since = "3.1")
