@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
-import java.util.Set;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -49,7 +49,7 @@ class FinishCloneTable extends ManagerRepo {
     // may never create files.. therefore there is no need to consume namenode space w/ directories
     // that are not used... tablet will create directories as needed
 
-    final Set<TableState> expectedCurrStates = Set.of(TableState.NEW);
+    final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
     if (cloneInfo.keepOffline) {
       environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.OFFLINE,
           expectedCurrStates);

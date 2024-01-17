@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -389,7 +390,8 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Online table " + tableId;
-        final Set<TableState> expectedCurrStates = Set.of(TableState.ONLINE, TableState.OFFLINE);
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(
                 new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
@@ -416,7 +418,8 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Offline table " + tableId;
-        final Set<TableState> expectedCurrStates = Set.of(TableState.ONLINE, TableState.OFFLINE);
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(
                 new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),

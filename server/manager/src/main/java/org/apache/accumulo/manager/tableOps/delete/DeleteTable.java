@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
-import java.util.Set;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -49,7 +49,8 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager env) {
-    final Set<TableState> expectedCurrStates = Set.of(TableState.ONLINE, TableState.OFFLINE);
+    final EnumSet<TableState> expectedCurrStates =
+        EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
     env.getTableManager().transitionTableState(tableId, TableState.DELETING, expectedCurrStates);
     env.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);

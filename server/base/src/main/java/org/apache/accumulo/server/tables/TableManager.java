@@ -21,6 +21,7 @@ package org.apache.accumulo.server.tables;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -135,7 +136,7 @@ public class TableManager {
   }
 
   public synchronized void transitionTableState(final TableId tableId, final TableState newState,
-      final Set<TableState> expectedCurrStates) {
+      final EnumSet<TableState> expectedCurrStates) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
     String statePath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 

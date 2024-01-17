@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
-import java.util.Set;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -34,10 +34,10 @@ public class ChangeTableState extends ManagerRepo {
   private TableId tableId;
   private NamespaceId namespaceId;
   private TableOperation top;
-  private final Set<TableState> expectedCurrStates;
+  private final EnumSet<TableState> expectedCurrStates;
 
   public ChangeTableState(NamespaceId namespaceId, TableId tableId, TableOperation top,
-      Set<TableState> expectedCurrStates) {
+      EnumSet<TableState> expectedCurrStates) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.top = top;
