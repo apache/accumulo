@@ -196,11 +196,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       this.txid = txid;
     }
 
+    @Override
     public long getTxid() {
       return txid;
     }
-
-    public abstract TStatus getStatus();
   }
 
   protected abstract Stream<FateIdStatus> getTransactions();
