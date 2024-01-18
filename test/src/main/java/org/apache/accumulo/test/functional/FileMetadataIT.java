@@ -376,6 +376,10 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().flush(tableName, null, null, true);
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
 
+      // Its possible that multiple minor compactions happen, but the test expects one file. Force a
+      // compaction to ensure there is one file.
+      accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
       // Bring tablet offline so we can modify file metadata
       accumuloClient.tableOperations().offline(tableName, true);
 
