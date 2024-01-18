@@ -153,6 +153,18 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   // return this;
   // }
 
+  /**
+   * Require that the transaction status is one of the given statuses. If no statuses are provided,
+   * require that the status column is absent.
+   *
+   * @param statuses The statuses to check against.
+   */
+  public FateMutator<T> requireStatus(TStatus... statuses) {
+    Condition condition = StatusMappingIterator.createCondition(statuses);
+    mutation.addCondition(condition);
+    return this;
+  }
+
   @Override
   public void mutate() {
     try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {

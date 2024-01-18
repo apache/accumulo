@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.accumulo.FateMutatorImpl;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
@@ -86,6 +87,65 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
           () -> fateMutator4.putRepo(99, new FateIT.TestRepo("test")).mutate(),
           "Repo in position 99 already exists. Expected to not be able to add it again.");
     }
+  }
+
+  @Test
+  public void requireStatus() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table, ntc);
+
+      ClientContext context = (ClientContext) client;
+
+      final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+
+      // use require status passing all statuses. without the status column present this should fail
+      // FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, tid);
+      // assertThrows(IllegalStateException.class,
+      // () -> fateMutator.requireStatus(ReadOnlyFateStore.TStatus.values())
+      // .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate());
+      //
+      // logAllEntriesInTable(table, client); // this prints nothing on the table as we expect
+
+      // use require status without passing any statuses to require that the status column is absent
+      FateMutatorImpl<FateIT.TestEnv> fateMutator0 = new FateMutatorImpl<>(context, table, tid);
+      fateMutator0.requireStatus().putStatus(ReadOnlyFateStore.TStatus.NEW).mutate();
+
+      // try again with requiring an absent status column. this time it should fail because we just
+      // put status NEW
+      log.info("Asserting that requireStatus() throws when we pass in no statuses");
+      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, tid);
+      assertThrows(IllegalStateException.class,
+          () -> fateMutator1.requireStatus().putStatus(ReadOnlyFateStore.TStatus.NEW).mutate(),
+          "Expected to not be able to use requireStatus() without passing any statuses");
+
+      // now use require same with the current status, NEW passed in
+      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, tid);
+      fateMutator2.requireStatus(ReadOnlyFateStore.TStatus.NEW)
+          .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).mutate();
+
+      // use require same with an array of statuses, none of which are the current status
+      // (SUBMITTED)
+      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, tid);
+      assertThrows(IllegalStateException.class,
+          () -> fateMutator3
+              .requireStatus(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN)
+              .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).mutate(),
+          "Expected to not be able to use requireStatus() with statuses that do not match the current status");
+
+      // use require same with an array of statuses, one of which is the current status (SUBMITTED)
+      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, tid);
+      fateMutator4
+          .requireStatus(ReadOnlyFateStore.TStatus.UNKNOWN, ReadOnlyFateStore.TStatus.SUBMITTED)
+          .putStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS).mutate();
+
+      // one more time check that we can use require same with the current status (IN_PROGRESS)
+      FateMutatorImpl<FateIT.TestEnv> fateMutator5 = new FateMutatorImpl<>(context, table, tid);
+      fateMutator5.requireStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS)
+          .putStatus(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS).mutate();
+
+    }
+
   }
 
   void logAllEntriesInTable(String tableName, AccumuloClient client) throws Exception {
