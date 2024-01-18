@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -78,7 +78,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-        Thread.sleep(SECONDS.toMillis(4));
+        Wait.waitFor(() -> FunctionalTestUtils.countRFiles(c, tableName) == 0);
 
         FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 
