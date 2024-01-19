@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
-import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION;
+import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION_2;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -134,7 +134,7 @@ class PopulateMetadataTable extends ManagerRepo {
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
-              if (tableInfo.exportedVersion == null || (tableInfo.exportedVersion < VERSION
+              if (tableInfo.exportedVersion == null || (tableInfo.exportedVersion < VERSION_2
                   && StoredTabletFile.fileNeedsConversion(dataFileCQ))) {
                 // written without fenced range information (accumulo < 3.1), use default
                 // (null,null)

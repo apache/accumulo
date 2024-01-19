@@ -142,7 +142,7 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.VERSION) {
+    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.CURR_VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible export version " + tableInfo.exportedVersion);
