@@ -78,10 +78,10 @@ public class SetHostingGoal extends ManagerRepo {
     // row is always inclusive.
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
 
-    TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build();
-
-    try (TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
+    try (
+        TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
+            .overlapping(scanRangeStart, true, null).build();
+        TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
       for (TabletMetadata tm : m) {
         final KeyExtent tabletExtent = tm.getExtent();
         LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
