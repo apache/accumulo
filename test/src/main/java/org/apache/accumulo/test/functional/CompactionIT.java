@@ -73,7 +73,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -538,8 +538,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       // creating a user table should cause a write to the metadata table
       c.tableOperations().create(tableNames[0]);
 
-      var mfiles1 = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()
-          .iterator().next().getFiles();
+      var mfiles1 = getServerContext().getAmple().readTablets()
+          .forTable(AccumuloTable.METADATA.tableId()).build().iterator().next().getFiles();
       var rootFiles1 = getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
 
       log.debug("mfiles1 {}",
@@ -547,8 +547,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       log.debug("rootFiles1 {}",
           rootFiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
 
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
+      c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
       // create another table to cause more metadata writes
       c.tableOperations().create(tableNames[1]);
@@ -560,15 +560,15 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableNames[1], null, null, true);
 
       // create another metadata file
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
+      c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
       // The multiple flushes should create multiple files. We expect the file sets to changes and
       // eventually equal one.
 
       Wait.waitFor(() -> {
-        var mfiles2 = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()
-            .iterator().next().getFiles();
+        var mfiles2 = getServerContext().getAmple().readTablets()
+            .forTable(AccumuloTable.METADATA.tableId()).build().iterator().next().getFiles();
         log.debug("mfiles2 {}",
             mfiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
         return mfiles2.size() == 1 && !mfiles2.equals(mfiles1);
@@ -800,7 +800,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   private int countFiles(AccumuloClient c) throws Exception {
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       s.fetchColumnFamily(new Text(TabletColumnFamily.NAME));
       s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));
       return Iterators.size(s.iterator());

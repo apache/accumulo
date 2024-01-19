@@ -18,16 +18,10 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 public class RootTable {
-
-  public static final TableId ID = TableId.of("+r");
-
-  public static final String NAME = Namespace.ACCUMULO.name() + ".root";
 
   /**
    * DFS location relative to the Accumulo directory
@@ -43,13 +37,9 @@ public class RootTable {
    * ZK path relative to the zookeeper node where the root tablet gc candidates are stored.
    */
   public static final String ZROOT_TABLET_GC_CANDIDATES = ZROOT_TABLET + "/gc_candidates";
-  /*
-   * ZK path relative to the zookeeper node where the root tablet refresh entries are stored.
-   */
-  public static final String ZROOT_TABLET_REFRESHES = ZROOT_TABLET + "/refreshes";
 
-  public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
-  public static final KeyExtent OLD_EXTENT =
-      new KeyExtent(MetadataTable.ID, TabletsSection.encodeRow(MetadataTable.ID, null), null);
+  public static final KeyExtent EXTENT = new KeyExtent(AccumuloTable.ROOT.tableId(), null, null);
+  public static final KeyExtent OLD_EXTENT = new KeyExtent(AccumuloTable.METADATA.tableId(),
+      TabletsSection.encodeRow(AccumuloTable.METADATA.tableId(), null), null);
 
 }

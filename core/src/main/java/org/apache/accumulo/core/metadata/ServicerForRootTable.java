@@ -38,7 +38,7 @@ class ServicerForRootTable extends MetadataServicer {
 
   @Override
   public TableId getServicedTableId() {
-    return RootTable.ID;
+    return AccumuloTable.ROOT.tableId();
   }
 
   @Override

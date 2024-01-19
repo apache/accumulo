@@ -43,8 +43,9 @@ public class MetadataServicerTest {
   @BeforeAll
   public static void setupContext() {
     HashMap<String,String> tableNameToIdMap = new HashMap<>();
-    tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonical());
-    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonical());
+    tableNameToIdMap.put(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId().canonical());
+    tableNameToIdMap.put(AccumuloTable.METADATA.tableName(),
+        AccumuloTable.METADATA.tableId().canonical());
     tableNameToIdMap.put(userTableName, userTableId.canonical());
 
     context = EasyMock.createMock(ClientContext.class);
@@ -56,44 +57,48 @@ public class MetadataServicerTest {
 
   @Test
   public void checkSystemTableIdentifiers() {
-    assertNotEquals(RootTable.ID, MetadataTable.ID);
-    assertNotEquals(RootTable.NAME, MetadataTable.NAME);
+    assertNotEquals(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId());
+    assertNotEquals(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName());
   }
 
   @Test
   public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException {
-    MetadataServicer ms = MetadataServicer.forTableId(context, RootTable.ID);
+    MetadataServicer ms = MetadataServicer.forTableId(context, AccumuloTable.ROOT.tableId());
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);
-    assertEquals(RootTable.ID, ms.getServicedTableId());
+    assertEquals(AccumuloTable.ROOT.tableId(), ms.getServicedTableId());
 
-    ms = MetadataServicer.forTableId(context, MetadataTable.ID);
+    ms = MetadataServicer.forTableId(context, AccumuloTable.METADATA.tableId());
     assertTrue(ms instanceof ServicerForMetadataTable);
     assertTrue(ms instanceof TableMetadataServicer);
-    assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
-    assertEquals(MetadataTable.ID, ms.getServicedTableId());
+    assertEquals(AccumuloTable.ROOT.tableName(),
+        ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(AccumuloTable.METADATA.tableId(), ms.getServicedTableId());
 
     ms = MetadataServicer.forTableId(context, userTableId);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
-    assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(AccumuloTable.METADATA.tableName(),
+        ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(userTableId, ms.getServicedTableId());
 
-    ms = MetadataServicer.forTableName(context, RootTable.NAME);
+    ms = MetadataServicer.forTableName(context, AccumuloTable.ROOT.tableName());
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);
-    assertEquals(RootTable.ID, ms.getServicedTableId());
+    assertEquals(AccumuloTable.ROOT.tableId(), ms.getServicedTableId());
 
-    ms = MetadataServicer.forTableName(context, MetadataTable.NAME);
+    ms = MetadataServicer.forTableName(context, AccumuloTable.METADATA.tableName());
     assertTrue(ms instanceof ServicerForMetadataTable);
     assertTrue(ms instanceof TableMetadataServicer);
-    assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
-    assertEquals(MetadataTable.ID, ms.getServicedTableId());
+    assertEquals(AccumuloTable.ROOT.tableName(),
+        ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(AccumuloTable.METADATA.tableId(), ms.getServicedTableId());
 
     ms = MetadataServicer.forTableName(context, userTableName);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
-    assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(AccumuloTable.METADATA.tableName(),
+        ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(userTableId, ms.getServicedTableId());
   }
 }

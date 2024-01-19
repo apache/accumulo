@@ -53,7 +53,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
@@ -175,9 +175,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
+      TabletsMetadata tm = TabletsMetadata.builder(context).scanTable(level.metaTable())
           .checkConsistency().fetch(DIR, FILES, SCANS).build();
-      tabletStream = tabletsMetadata.stream();
+      tabletStream = tm.stream().onClose(tm::close);
     }
 
     // there is a lot going on in this "one line" so see below for more info
@@ -265,7 +265,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       throws TableNotFoundException {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
-        ? context.getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
+        ? context.getZooKeeperRoot() + " for " + AccumuloTable.ROOT.tableName() : level.metaTable();
 
     if (inSafeMode()) {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
@@ -541,9 +541,9 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {
     if (level == DataLevel.ROOT) {
-      return Set.of(RootTable.ID);
+      return Set.of(AccumuloTable.ROOT.tableId());
     } else if (level == DataLevel.METADATA) {
-      return Set.of(MetadataTable.ID);
+      return Set.of(AccumuloTable.METADATA.tableId());
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
@@ -553,8 +553,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           tableIds.add(k);
         }
       });
-      tableIds.remove(MetadataTable.ID);
-      tableIds.remove(RootTable.ID);
+      tableIds.remove(AccumuloTable.METADATA.tableId());
+      tableIds.remove(AccumuloTable.ROOT.tableId());
       return tableIds;
     } else {
       throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());

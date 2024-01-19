@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -117,7 +117,7 @@ public class MetadataConstraintsTest {
 
     assertNull(violations);
 
-    m = new Mutation(new Text(MetadataTable.ID.canonical() + "<"));
+    m = new Mutation(new Text(AccumuloTable.METADATA.tableId().canonical() + "<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);

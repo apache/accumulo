@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -41,6 +41,8 @@ class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
+  // config for only fate table
+  private final HashMap<String,String> initialFateTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
@@ -88,6 +90,8 @@ class InitialConfiguration {
         SimpleCompactionDispatcher.class.getName());
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
 
+    // TODO configure initial fate table config.. probably needs compaction config??
+
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
     int min = Math.max(hadoopConf.getInt("dfs.replication.min", 1),
@@ -103,8 +107,9 @@ class InitialConfiguration {
   private void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
-            + MetadataTable.NAME + " replication of 5. What do you want to set your "
-            + MetadataTable.NAME + " replication to? (" + replication + ") ");
+            + AccumuloTable.METADATA.tableName()
+            + " replication of 5. What do you want to set your "
+            + AccumuloTable.METADATA.tableName() + " replication to? (" + replication + ") ");
     if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {
@@ -124,6 +129,10 @@ class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
+  }
+
+  HashMap<String,String> getFateTableConf() {
+    return initialFateTableConf;
   }
 
   Configuration getHadoopConf() {

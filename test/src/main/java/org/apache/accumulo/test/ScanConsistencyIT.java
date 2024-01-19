@@ -58,7 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -153,7 +153,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           while (keepLogging.get()) {
             Thread.sleep(10000);
             if (keepLogging.get()) {
-              try (var scanner = client.createScanner(MetadataTable.NAME)) {
+              try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
                 log.debug("Scanning metadata table");
                 scanner.forEach((k, v) -> log.debug(k.toStringNoTruncate() + " " + v));
               }

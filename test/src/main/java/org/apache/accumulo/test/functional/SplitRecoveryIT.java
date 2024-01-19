@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,7 +54,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -63,29 +64,25 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.manager.upgrade.SplitRecovery12to13;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Disabled // ELASTICITY_TODO
 public class SplitRecoveryIT extends ConfigurableMacBase {
-
-  // ELASTICITY_TODO: This functionality needs to be adpated to work on upgrade
 
   @Override
   protected Duration defaultTimeout() {
@@ -167,7 +164,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String dirName = "dir_" + i;
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
-      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl,
+      SplitRecovery12to13.addTablet(extent, dirName, context, TimeType.LOGICAL, zl,
           TabletHostingGoal.ONDEMAND);
       SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
@@ -209,10 +206,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
+    SplitRecovery12to13.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
-    MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
+    SplitRecovery12to13.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
@@ -223,19 +220,29 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     if (steps >= 1) {
       Map<Long,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
-      ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
-          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, zl);
+      SplitRecovery12to13.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
+          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L);
     }
     if (steps >= 2) {
-      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
+      SplitRecovery12to13.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
     }
-
-    TabletMetadata meta = context.getAmple().readTablet(high);
-    KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
 
     if (steps < 2) {
-      assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
+      Double persistedSplitRatio = null;
+
+      try (var scanner =
+          context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        scanner.setRange(high.toMetaRange());
+        for (var entry : scanner) {
+          if (SPLIT_RATIO_COLUMN.hasColumns(entry.getKey())) {
+            persistedSplitRatio = Double.parseDouble(entry.getValue().toString());
+          }
+        }
+      }
+      assertEquals(splitRatio, persistedSplitRatio, 0.0);
     }
+
+    KeyExtent fixedExtent = SplitRecovery12to13.fixSplit(context, high.toMetaRow());
 
     if (steps >= 1) {
       assertEquals(high, fixedExtent);
@@ -262,7 +269,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
-    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        new ScannerImpl(context, AccumuloTable.METADATA.tableId(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
@@ -277,6 +285,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       expectedColumnFamilies.add(CurrentLocationColumnFamily.NAME);
       expectedColumnFamilies.add(LastLocationColumnFamily.NAME);
       expectedColumnFamilies.add(BulkFileColumnFamily.NAME);
+      expectedColumnFamilies.add(HostingColumnFamily.NAME);
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -287,8 +296,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         Key key = entry.getKey();
 
         if (!key.getRow().equals(extent.toMetaRow())) {
-          throw new Exception(
-              "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+          throw new Exception("Tablet " + extent + " contained unexpected "
+              + AccumuloTable.METADATA.tableName() + " entry " + key);
         }
 
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -306,9 +315,12 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           continue;
         }
 
-        throw new Exception(
-            "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        throw new Exception("Tablet " + extent + " contained unexpected "
+            + AccumuloTable.METADATA.tableName() + " entry " + key);
       }
+
+      // This is not always present
+      expectedColumns.remove(ServerColumnFamily.LOCK_COLUMN);
 
       if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
         throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
@@ -349,5 +361,4 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   public void test() throws Exception {
     assertEquals(0, exec(SplitRecoveryIT.class).waitFor());
   }
-
 }

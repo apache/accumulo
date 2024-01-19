@@ -25,9 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -55,8 +53,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -97,8 +94,6 @@ public class TabletMetadata {
   private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
-  private Text oldPrevEndRow;
-  private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
   private Map<StoredTabletFile,DataFileValue> files;
@@ -115,7 +110,6 @@ public class TabletMetadata {
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
-  private Double splitRatio = null;
   private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
@@ -135,7 +129,6 @@ public class TabletMetadata {
   public enum ColumnType {
     LOCATION,
     PREV_ROW,
-    OLD_PREV_ROW,
     FILES,
     LAST,
     LOADED,
@@ -145,7 +138,6 @@ public class TabletMetadata {
     CLONED,
     FLUSH_ID,
     LOGS,
-    SPLIT_RATIO,
     SUSPEND,
     ECOMP,
     MERGED,
@@ -280,21 +272,6 @@ public class TabletMetadata {
     return sawPrevEndRow;
   }
 
-  public Text getOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    if (!sawOldPrevEndRow) {
-      throw new IllegalStateException(
-          "No old prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
-    }
-    return oldPrevEndRow;
-  }
-
-  // ELASTICITY_TODO remove and handle in upgrade
-  public boolean sawOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    return sawOldPrevEndRow;
-  }
-
   public Text getEndRow() {
     return endRow;
   }
@@ -369,18 +346,14 @@ public class TabletMetadata {
     return flush;
   }
 
-  public Double getSplitRatio() {
-    ensureFetched(ColumnType.SPLIT_RATIO);
-    return splitRatio;
-  }
-
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
     return merged;
   }
 
   public TabletHostingGoal getHostingGoal() {
-    if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
+    if (AccumuloTable.ROOT.tableId().equals(getTableId())
+        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
       // Override the goal for the system tables
       return TabletHostingGoal.ALWAYS;
     }
@@ -397,14 +370,13 @@ public class TabletMetadata {
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
         .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
-        .append("oldPrevEndRow", oldPrevEndRow).append("sawOldPrevEndRow", sawOldPrevEndRow)
         .append("endRow", endRow).append("location", location).append("files", files)
         .append("scans", scans).append("loadedFiles", loadedFiles)
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
-        .append("goal", goal).append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("extCompactions", extCompactions).append("goal", goal)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }
@@ -477,18 +449,9 @@ public class TabletMetadata {
 
       switch (fam.toString()) {
         case TabletColumnFamily.STR_NAME:
-          switch (qual) {
-            case PREV_ROW_QUAL:
-              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawPrevEndRow = true;
-              break;
-            case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawOldPrevEndRow = true;
-              break;
-            case SPLIT_RATIO_QUAL:
-              te.splitRatio = Double.parseDouble(val);
-              break;
+          if (qual.equals(PREV_ROW_QUAL)) {
+            te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
+            te.sawPrevEndRow = true;
           }
           break;
         case ServerColumnFamily.STR_NAME:
@@ -558,7 +521,7 @@ public class TabletMetadata {
               te.onDemandHostingRequested = true;
               break;
             default:
-              throw new IllegalStateException("Unexpected qualifier " + fam);
+              throw new IllegalStateException("Unexpected qualifier " + qual);
           }
           break;
         default:
@@ -567,7 +530,8 @@ public class TabletMetadata {
       }
     }
 
-    if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(te.tableId)
+        || AccumuloTable.METADATA.tableId().equals(te.tableId)) {
       // Override the goal for the system tables
       te.goal = TabletHostingGoal.ALWAYS;
     }

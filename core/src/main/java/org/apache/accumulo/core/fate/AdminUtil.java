@@ -75,6 +75,7 @@ public class AdminUtil<T> {
   public static class TransactionStatus {
 
     private final long txid;
+    private final FateInstanceType instanceType;
     private final TStatus status;
     private final String txName;
     private final List<String> hlocks;
@@ -82,10 +83,11 @@ public class AdminUtil<T> {
     private final String top;
     private final long timeCreated;
 
-    private TransactionStatus(Long tid, TStatus status, String txName, List<String> hlocks,
-        List<String> wlocks, String top, Long timeCreated) {
+    private TransactionStatus(Long tid, FateInstanceType instanceType, TStatus status,
+        String txName, List<String> hlocks, List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
+      this.instanceType = instanceType;
       this.status = status;
       this.txName = txName;
       this.hlocks = Collections.unmodifiableList(hlocks);
@@ -101,6 +103,10 @@ public class AdminUtil<T> {
      */
     public String getTxid() {
       return FastFormat.toHexString(txid);
+    }
+
+    public FateInstanceType getInstanceType() {
+      return instanceType;
     }
 
     public TStatus getStatus() {
@@ -216,15 +222,16 @@ public class AdminUtil<T> {
    * method does not process lock information, if lock information is desired, use
    * {@link #getStatus(ReadOnlyFateStore, ZooReader, ServiceLockPath, Set, EnumSet)}
    *
-   * @param zs read-only zoostore
+   * @param fateStores read-only fate stores
    * @param filterTxid filter results to include for provided transaction ids.
    * @param filterStatus filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
-  public List<TransactionStatus> getTransactionStatus(ReadOnlyFateStore<T> zs, Set<Long> filterTxid,
+  public List<TransactionStatus> getTransactionStatus(
+      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<Long> filterTxid,
       EnumSet<TStatus> filterStatus) {
 
-    FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
+    FateStatus status = getTransactionStatus(fateStores, filterTxid, filterStatus,
         Collections.<Long,List<String>>emptyMap(), Collections.<Long,List<String>>emptyMap());
 
     return status.getTransactions();
@@ -251,7 +258,26 @@ public class AdminUtil<T> {
 
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
-    return getTransactionStatus(zs, filterTxid, filterStatus, heldLocks, waitingLocks);
+    return getTransactionStatus(Map.of(FateInstanceType.META, zs), filterTxid, filterStatus,
+        heldLocks, waitingLocks);
+  }
+
+  public FateStatus getStatus(ReadOnlyFateStore<T> as, Set<Long> filterTxid,
+      EnumSet<TStatus> filterStatus) throws KeeperException, InterruptedException {
+
+    return getTransactionStatus(Map.of(FateInstanceType.USER, as), filterTxid, filterStatus,
+        new HashMap<>(), new HashMap<>());
+  }
+
+  public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
+      ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+      throws KeeperException, InterruptedException {
+    Map<Long,List<String>> heldLocks = new HashMap<>();
+    Map<Long,List<String>> waitingLocks = new HashMap<>();
+
+    findLocks(zk, lockPath, heldLocks, waitingLocks);
+
+    return getTransactionStatus(fateStores, filterTxid, filterStatus, heldLocks, waitingLocks);
   }
 
   /**
@@ -327,7 +353,7 @@ public class AdminUtil<T> {
   /**
    * Returns fate status, possibly filtered
    *
-   * @param zs read-only access to a populated transaction store.
+   * @param fateStores read-only access to populated transaction stores.
    * @param filterTxid Optional. List of transactions to filter results - if null, all transactions
    *        are returned
    * @param filterStatus Optional. List of status types to filter results - if null, all
@@ -336,49 +362,49 @@ public class AdminUtil<T> {
    * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(ReadOnlyFateStore<T> zs, Set<Long> filterTxid,
-      EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
+  private FateStatus getTransactionStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores,
+      Set<Long> filterTxid, EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
+    final List<TransactionStatus> statuses = new ArrayList<>();
 
-    try (Stream<Long> tids = zs.list()) {
-      List<TransactionStatus> statuses = new ArrayList<>();
+    fateStores.forEach((type, store) -> {
+      try (Stream<Long> tids = store.list()) {
+        tids.forEach(tid -> {
 
-      tids.forEach(tid -> {
+          ReadOnlyFateTxStore<T> txStore = store.read(tid);
 
-        ReadOnlyFateTxStore<T> txStore = zs.read(tid);
+          String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-        String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+          List<String> hlocks = heldLocks.remove(tid);
 
-        List<String> hlocks = heldLocks.remove(tid);
+          if (hlocks == null) {
+            hlocks = Collections.emptyList();
+          }
 
-        if (hlocks == null) {
-          hlocks = Collections.emptyList();
-        }
+          List<String> wlocks = waitingLocks.remove(tid);
 
-        List<String> wlocks = waitingLocks.remove(tid);
+          if (wlocks == null) {
+            wlocks = Collections.emptyList();
+          }
 
-        if (wlocks == null) {
-          wlocks = Collections.emptyList();
-        }
+          String top = null;
+          ReadOnlyRepo<T> repo = txStore.top();
+          if (repo != null) {
+            top = repo.getName();
+          }
 
-        String top = null;
-        ReadOnlyRepo<T> repo = txStore.top();
-        if (repo != null) {
-          top = repo.getName();
-        }
+          TStatus status = txStore.getStatus();
 
-        TStatus status = txStore.getStatus();
+          long timeCreated = txStore.timeCreated();
 
-        long timeCreated = txStore.timeCreated();
-
-        if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-          statuses
-              .add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
-        }
-      });
-
-      return new FateStatus(statuses, heldLocks, waitingLocks);
-    }
+          if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
+            statuses.add(
+                new TransactionStatus(tid, type, status, txName, hlocks, wlocks, top, timeCreated));
+          }
+        });
+      }
+    });
+    return new FateStatus(statuses, heldLocks, waitingLocks);
   }
 
   private boolean includeByStatus(TStatus status, EnumSet<TStatus> filterStatus) {
@@ -389,15 +415,15 @@ public class AdminUtil<T> {
     return (filterTxid == null) || filterTxid.isEmpty() || filterTxid.contains(tid);
   }
 
-  public void printAll(ReadOnlyFateStore<T> zs, ZooReader zk,
+  public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
       ServiceLock.ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
-    print(zs, zk, tableLocksPath, new Formatter(System.out), null, null);
+    print(fateStores, zk, tableLocksPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyFateStore<T> zs, ZooReader zk,
+  public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
       ServiceLock.ServiceLockPath tableLocksPath, Formatter fmt, Set<Long> filterTxid,
       EnumSet<TStatus> filterStatus) throws KeeperException, InterruptedException {
-    FateStatus fateStatus = getStatus(zs, zk, tableLocksPath, filterTxid, filterStatus);
+    FateStatus fateStatus = getStatus(fateStores, zk, tableLocksPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(

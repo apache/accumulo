@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -98,7 +98,7 @@ class CleanUp extends ManagerRepo {
       // look for other tables that references this table's files
       AccumuloClient client = manager.getContext();
       try (BatchScanner bs =
-          client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
+          client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 8)) {
         Range allTables = TabletsSection.getRange();
         Range tableRange = TabletsSection.getRange(tableId);
         Range beforeTable =
@@ -119,8 +119,8 @@ class CleanUp extends ManagerRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table "
-          + tableId, e);
+      log.error("Failed to scan " + AccumuloTable.METADATA.tableName()
+          + " looking for references to deleted table " + tableId, e);
     }
 
     // remove metadata table entries
