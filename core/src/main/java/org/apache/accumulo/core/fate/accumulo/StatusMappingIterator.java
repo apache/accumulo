@@ -44,9 +44,6 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
   private static final String ABSENT = "absent";
   private static final String STATUS_SET_KEY = "statusSet";
 
-  private static final Condition CONDITION =
-      new Condition(STATUS_COLUMN.getColumnFamily(), STATUS_COLUMN.getColumnQualifier());
-
   private SortedKeyValueIterator<Key,Value> source;
   private final Set<String> acceptableStatuses = new HashSet<>();
   private Value mappedValue;
@@ -110,16 +107,19 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
    * @return A condition configured to use this iterator.
    */
   public static Condition createCondition(ReadOnlyFateStore.TStatus... statuses) {
+    Condition condition =
+        new Condition(STATUS_COLUMN.getColumnFamily(), STATUS_COLUMN.getColumnQualifier());
+
     if (statuses.length == 0) {
       // If no statuses are provided, require the status column to be absent. Return the condition
       // with no value.
-      return CONDITION;
+      return condition;
     } else {
       IteratorSetting is = new IteratorSetting(100, StatusMappingIterator.class);
       is.addOption(STATUS_SET_KEY, encodeStatuses(statuses));
 
       // The iterator will map the status to "present" if it's in the acceptable set
-      return CONDITION.setValue(PRESENT).setIterators(is);
+      return condition.setValue(PRESENT).setIterators(is);
     }
   }
 

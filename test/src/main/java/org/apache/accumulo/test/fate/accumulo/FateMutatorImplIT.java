@@ -100,12 +100,12 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
 
       // use require status passing all statuses. without the status column present this should fail
-      // FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, tid);
-      // assertThrows(IllegalStateException.class,
-      // () -> fateMutator.requireStatus(ReadOnlyFateStore.TStatus.values())
-      // .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate());
-      //
-      // logAllEntriesInTable(table, client); // this prints nothing on the table as we expect
+      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, tid);
+      assertThrows(IllegalStateException.class,
+          () -> fateMutator.requireStatus(ReadOnlyFateStore.TStatus.values())
+              .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate());
+
+      logAllEntriesInTable(table, client); // this prints nothing on the table as we expect
 
       // use require status without passing any statuses to require that the status column is absent
       FateMutatorImpl<FateIT.TestEnv> fateMutator0 = new FateMutatorImpl<>(context, table, tid);
