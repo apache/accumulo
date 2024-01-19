@@ -70,11 +70,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   public long create() {
     long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
 
-    // once requireAbsentTransaction() is implemented, use it here
-    // newMutator(tid).requireAbsentTransaction().putStatus(TStatus.NEW)
-    // .putCreateTime(System.currentTimeMillis()).mutate();
-
-    newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
+    newMutator(tid).requireStatus().putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis())
+        .mutate();
 
     return tid;
   }

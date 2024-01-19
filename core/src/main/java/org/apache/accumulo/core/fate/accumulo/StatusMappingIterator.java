@@ -38,6 +38,11 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+/**
+ * A specialized iterator that maps the value of the status column to "present" or "absent". This
+ * iterator allows for checking of the status column's value against a set of acceptable statuses
+ * within a conditional mutation.
+ */
 public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> {
 
   private static final String PRESENT = "present";
@@ -48,6 +53,10 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
   private final Set<String> acceptableStatuses = new HashSet<>();
   private Value mappedValue;
 
+  /**
+   * The set of acceptable must be provided as an option to the iterator using the
+   * {@link #STATUS_SET_KEY} key.
+   */
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
@@ -76,6 +85,10 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
     mapValue();
   }
 
+  /**
+   * Maps the value of the status column to "present" or "absent" based on its presence within the
+   * set of statuses.
+   */
   private void mapValue() {
     if (source.hasTop()) {
       String currentValue = source.getTopValue().toString();
@@ -112,13 +125,14 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
 
     if (statuses.length == 0) {
       // If no statuses are provided, require the status column to be absent. Return the condition
-      // with no value.
+      // with no value set so that the mutation will be rejected if the status column is present.
       return condition;
     } else {
       IteratorSetting is = new IteratorSetting(100, StatusMappingIterator.class);
       is.addOption(STATUS_SET_KEY, encodeStatuses(statuses));
 
-      // The iterator will map the status to "present" if it's in the acceptable set
+      // If the value of the status column is in the set, it will be mapped to "present", so set the
+      // value of the condition to "present".
       return condition.setValue(PRESENT).setIterators(is);
     }
   }
