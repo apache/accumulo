@@ -132,4 +132,17 @@ public interface ReadOnlyFateStore<T> {
    * found were passed to the consumer.
    */
   void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer);
+
+  /**
+   * Returns true if the deferred map was cleared and if deferred executions are currently disabled
+   * because of too many deferred transactions
+   *
+   * @return true if the map is in a deferred overflow state, else false
+   */
+  boolean isDeferredOverflow();
+
+  /**
+   * @return the current number of transactions that have been deferred
+   */
+  int getDeferredCount();
 }

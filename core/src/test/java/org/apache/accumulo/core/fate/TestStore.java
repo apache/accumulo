@@ -176,4 +176,13 @@ public class TestStore implements FateStore<String> {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public int getDeferredCount() {
+    return 0;
+  }
+
+  @Override
+  public boolean isDeferredOverflow() {
+    return false;
+  }
 }

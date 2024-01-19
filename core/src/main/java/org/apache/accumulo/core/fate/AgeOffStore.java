@@ -211,4 +211,14 @@ public class AgeOffStore<T> implements FateStore<T> {
   public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
     store.runnable(keepWaiting, idConsumer);
   }
+
+  @Override
+  public int getDeferredCount() {
+    return store.getDeferredCount();
+  }
+
+  @Override
+  public boolean isDeferredOverflow() {
+    return store.isDeferredOverflow();
+  }
 }
