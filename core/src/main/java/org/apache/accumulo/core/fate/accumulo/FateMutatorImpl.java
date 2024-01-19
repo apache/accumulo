@@ -119,8 +119,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     final Text cq = invertRepo(position);
     // ensure this repo is not already set
     mutation.addCondition(new Condition(RepoColumnFamily.NAME, cq));
-    // TODO: would be nice to make sure that the previous repo is there but not sure we can do that
-    // without knowing its value
     mutation.put(RepoColumnFamily.NAME, cq, new Value(serialize(repo)));
     return this;
   }
@@ -141,17 +139,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     }
     return this;
   }
-
-  /**
-   * Require that the transaction does not exist.
-   */
-  // TODO: need to figure out how to use TabletExistsIterator since its in a different module
-  // public FateMutator<T> requireAbsentTransaction() {
-  // IteratorSetting is = new IteratorSetting(1000000, TabletExistsIterator.class);
-  // Condition c = new Condition("", "").setIterators(is);
-  // mutation.addCondition(c);
-  // return this;
-  // }
 
   /**
    * Require that the transaction status is one of the given statuses. If no statuses are provided,
