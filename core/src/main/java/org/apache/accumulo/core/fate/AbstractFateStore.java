@@ -98,7 +98,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
    */
   @Override
   public Optional<FateTxStore<T>> tryReserve(long tid) {
-    synchronized (this) {
+    synchronized (AbstractFateStore.this) {
       if (!reserved.contains(tid)) {
         return Optional.of(reserve(tid));
       }
@@ -154,11 +154,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
-          if (!deferred.isEmpty()) {
-            long currTime = System.nanoTime();
-            long minWait =
-                deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-            waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+          synchronized (AbstractFateStore.this) {
+            if (!deferred.isEmpty()) {
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+            }
           }
 
           if (waitTime > 0) {
