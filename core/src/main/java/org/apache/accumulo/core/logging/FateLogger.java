@@ -22,11 +22,13 @@ import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -131,6 +133,20 @@ public class FateLogger {
           storeLog.trace("{} created fate transaction", formatTid(tid));
         }
         return tid;
+      }
+
+      @Override
+      public OptionalLong create(String keyType, ByteSequence key) {
+        var txid = store.create(keyType, key);
+        if (storeLog.isTraceEnabled()) {
+          if (txid.isPresent()) {
+            storeLog.trace("{} created fate transaction for key : {} {}",
+                formatTid(txid.getAsLong()), keyType, key);
+          } else {
+            storeLog.trace("unable to create fate transaction for key : {} {}", keyType, key);
+          }
+        }
+        return txid;
       }
     };
   }

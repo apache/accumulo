@@ -18,15 +18,18 @@
  */
 package org.apache.accumulo.manager.split;
 
-import java.time.Duration;
-import java.util.SortedSet;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.OptionalLong;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.split.PreSplit;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,64 +37,37 @@ public class SplitTask implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(SplitTask.class);
   private final Manager manager;
+  private KeyExtent extent;
 
-  private final ServerContext context;
-  private TabletMetadata tablet;
-  private final long creationTime;
-
-  public SplitTask(ServerContext context, TabletMetadata tablet, Manager manager) {
-    this.context = context;
-    this.tablet = tablet;
+  public SplitTask(Manager manager, KeyExtent extent) {
     this.manager = manager;
-    this.creationTime = System.nanoTime();
+    this.extent = extent;
   }
 
   @Override
   public void run() {
     try {
-      if (Duration.ofNanos(System.nanoTime() - creationTime).compareTo(Duration.ofMinutes(2)) > 0) {
-        // the tablet was in the thread pool queue for a bit, lets reread its metadata
-        tablet = manager.getContext().getAmple().readTablet(tablet.getExtent());
-        if (tablet == null) {
-          // the tablet no longer exists
-          return;
-        }
-      }
+      var fateInstanceType = FateInstanceType.fromTableId((extent.tableId()));
 
-      if (tablet.getOperationId() != null) {
-        // This will be checked in the FATE op, but no need to inspect files and start a FATE op if
-        // it currently has an operation running against it.
-        log.debug("Not splitting {} because it has operation id {}", tablet.getExtent(),
-            tablet.getOperationId());
-        manager.getSplitter().removeSplitStarting(tablet.getExtent());
-        return;
-      }
+      OptionalLong fateTxId =
+          manager.fate(fateInstanceType).startTransaction("SYSTEM_SPLIT", createSplitKey(extent));
 
-      var extent = tablet.getExtent();
+      fateTxId.ifPresent(txid -> manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT",
+          txid, new FindSplits(extent), true, "System initiated split of tablet " + extent));
 
-      SortedSet<Text> splits = SplitUtils.findSplits(context, tablet);
-
-      if (tablet.getEndRow() != null) {
-        splits.remove(tablet.getEndRow());
-      }
-
-      if (splits.size() == 0) {
-        log.info("Tablet {} needs to split, but no split points could be found.",
-            tablet.getExtent());
-
-        manager.getSplitter().rememberUnsplittable(tablet);
-        manager.getSplitter().removeSplitStarting(tablet.getExtent());
-        return;
-      }
-
-      var fateInstanceType = FateInstanceType.fromTableId((tablet.getTableId()));
-      long fateTxId = manager.fate(fateInstanceType).startTransaction();
-
-      manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT", fateTxId,
-          new PreSplit(extent, splits), true,
-          "System initiated split of tablet " + extent + " into " + splits.size() + " splits");
     } catch (Exception e) {
-      log.error("Failed to split {}", tablet.getExtent(), e);
+      log.error("Failed to split {}", extent, e);
     }
+  }
+
+  private ByteSequence createSplitKey(KeyExtent extent) {
+    try (var baos = new ByteArrayOutputStream(); var dos = new DataOutputStream(baos)) {
+      extent.writeTo(dos);
+      dos.close();
+      return new ArrayByteSequence(baos.toByteArray());
+    } catch (IOException ioe) {
+      throw new UncheckedIOException(ioe);
+    }
+
   }
 }

@@ -27,11 +27,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +66,19 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   public AbstractFateStore() {
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
+  }
+
+  // ELASTICITY_TODO this it temporary. This functionality needs to be pushed into the storage
+  // layer.
+  private final Set<String> createKeys = Collections.synchronizedSet(new HashSet<>());
+
+  @Override
+  public OptionalLong create(String keyType, ByteSequence key) {
+    if (createKeys.add(keyType + ":" + key)) {
+      return OptionalLong.of(create());
+    } else {
+      return OptionalLong.empty();
+    }
   }
 
   public static byte[] serialize(Object o) {

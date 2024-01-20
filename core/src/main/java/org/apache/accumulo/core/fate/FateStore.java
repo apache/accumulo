@@ -20,7 +20,10 @@ package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.core.data.ByteSequence;
 
 /**
  * Transaction Store: a place to save transactions
@@ -38,6 +41,11 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * @return a transaction id
    */
   long create();
+
+  /**
+   * Only creates a transaction if there is not one currently running with the same key.
+   */
+  OptionalLong create(String keyType, ByteSequence key);
 
   /**
    * An interface that allows read/write access to the data related to a single fate operation.

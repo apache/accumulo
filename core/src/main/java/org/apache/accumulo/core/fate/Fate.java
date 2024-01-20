@@ -33,6 +33,7 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -46,6 +47,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
@@ -334,6 +336,11 @@ public class Fate<T> {
   // get a transaction id back to the requester before doing any work
   public long startTransaction() {
     return store.create();
+  }
+
+  // TODO combine with seed
+  public OptionalLong startTransaction(String keyType, ByteSequence key) {
+    return store.create(keyType, key);
   }
 
   // start work in the transaction.. it is safe to call this

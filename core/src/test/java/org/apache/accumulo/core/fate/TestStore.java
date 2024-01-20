@@ -26,11 +26,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
+
+import org.apache.accumulo.core.data.ByteSequence;
 
 /**
  * Transient in memory store for transactions.
@@ -45,6 +48,11 @@ public class TestStore implements FateStore<String> {
   public long create() {
     statuses.put(nextId, TStatus.NEW);
     return nextId++;
+  }
+
+  @Override
+  public OptionalLong create(String keyType, ByteSequence key) {
+    throw new UnsupportedOperationException();
   }
 
   @Override

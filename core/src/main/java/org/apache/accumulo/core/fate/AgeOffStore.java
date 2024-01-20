@@ -24,12 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +154,13 @@ public class AgeOffStore<T> implements FateStore<T> {
   public long create() {
     long txid = store.create();
     addCandidate(txid);
+    return txid;
+  }
+
+  @Override
+  public OptionalLong create(String keyType, ByteSequence key) {
+    var txid = store.create(keyType, key);
+    txid.ifPresent(this::addCandidate);
     return txid;
   }
 

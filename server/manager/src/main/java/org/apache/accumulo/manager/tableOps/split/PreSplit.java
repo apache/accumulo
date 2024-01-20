@@ -126,8 +126,6 @@ public class PreSplit extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
-    manager.getSplitter().removeSplitStarting(splitInfo.getOriginal());
-
     TabletMetadata tabletMetadata = manager.getContext().getAmple()
         .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID);
 
@@ -165,8 +163,5 @@ public class PreSplit extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager manager) throws Exception {
-    // TODO is this called if isReady fails?
-    manager.getSplitter().removeSplitStarting(splitInfo.getOriginal());
-  }
+  public void undo(long tid, Manager manager) throws Exception {}
 }
