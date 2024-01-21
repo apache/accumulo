@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -156,49 +156,56 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       // Should still be false as we are at thet max but not over yet
       assertFalse(store.isDeferredOverflow());
 
+      var executor = Executors.newCachedThreadPool();
       AtomicBoolean keepRunning = new AtomicBoolean(true);
-      // Run and verify all 10 transactions still exist and were not
-      // run because of the deferral time of all the transactions
       try {
-        ForkJoinPool.commonPool().execute(() -> store.runnable(keepRunning, transactions::remove));
-        Thread.sleep(2000);
-        assertEquals(10, transactions.size());
+        // Run and verify all 10 transactions still exist and were not
+        // run because of the deferral time of all the transactions
+        try {
+          executor.execute(() -> store.runnable(keepRunning, transactions::remove));
+          Thread.sleep(2000);
+          assertEquals(10, transactions.size());
+        } finally {
+          // Should terminate the task if waiting
+          keepRunning.set(false);
+        }
+
+        // Store one more that should go over the max deferred of 10
+        // and should clear the map and set the overflow flag
+        long tid = store.create();
+        transactions.add(tid);
+        FateTxStore<TestEnv> txStore = store.reserve(tid);
+        txStore.setStatus(TStatus.SUBMITTED);
+        txStore.unreserve(30, TimeUnit.SECONDS);
+
+        // Verify we have 11 transactions stored and none
+        // deferred anymore because of the overflow
+        assertEquals(11, store.list().count());
+        assertEquals(0, store.getDeferredCount());
+        assertTrue(store.isDeferredOverflow());
+
+        // Run and verify all 11 transactions were processed
+        // and removed from the store
+        keepRunning.set(true);
+        try {
+          executor.execute(() -> store.runnable(keepRunning, transactions::remove));
+          Wait.waitFor(transactions::isEmpty);
+        } finally {
+          // Should terminate the task if waiting
+          keepRunning.set(false);
+        }
+
+        // Overflow should now be reset to false so adding another deferred
+        // transaction should now go back into the deferral map and flag should
+        // still be false as we are under the limit
+        assertFalse(store.isDeferredOverflow());
+        txStore = store.reserve(store.create());
+        txStore.unreserve(30, TimeUnit.SECONDS);
+        assertEquals(1, store.getDeferredCount());
+        assertFalse(store.isDeferredOverflow());
       } finally {
-        keepRunning.set(false);
+        executor.shutdownNow();
       }
-
-      // Store one more that should go over the max deferred of 10
-      // and should clear the map and set the overflow flag
-      long tid = store.create();
-      transactions.add(tid);
-      FateTxStore<TestEnv> txStore = store.reserve(tid);
-      txStore.setStatus(TStatus.SUBMITTED);
-      txStore.unreserve(30, TimeUnit.SECONDS);
-
-      // Verify we have 11 transactions stored and none
-      // deferred anymore because of the overflow
-      assertEquals(11, store.list().count());
-      assertEquals(0, store.getDeferredCount());
-      assertTrue(store.isDeferredOverflow());
-
-      // Run and verify all 11 transactions were processed
-      // and removed from the store
-      keepRunning.set(true);
-      try {
-        ForkJoinPool.commonPool().execute(() -> store.runnable(keepRunning, transactions::remove));
-        Wait.waitFor(transactions::isEmpty);
-      } finally {
-        keepRunning.set(false);
-      }
-
-      // Overflow should now be reset to false so adding another deferred
-      // transaction should now go back into the deferral map and flag should
-      // still be false as we are under the limit
-      assertFalse(store.isDeferredOverflow());
-      txStore = store.reserve(store.create());
-      txStore.unreserve(30, TimeUnit.SECONDS);
-      assertEquals(1, store.getDeferredCount());
-      assertFalse(store.isDeferredOverflow());
     }
   }
 
