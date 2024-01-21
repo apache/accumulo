@@ -28,7 +28,6 @@ import java.io.File;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -72,14 +71,13 @@ public class ZookeeperFateIT extends FateIT {
   @Override
   protected void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
     final ZooStore<TestEnv> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred);
-    final AgeOffStore<TestEnv> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(store, sctx);
+    testMethod.execute(zooStore, sctx);
   }
 
   @Override

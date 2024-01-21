@@ -118,12 +118,18 @@ public interface ReadOnlyFateStore<T> {
     long getID();
   }
 
+  interface FateIdStatus {
+    long getTxid();
+
+    TStatus getStatus();
+  }
+
   /**
    * list all transaction ids in store.
    *
    * @return all outstanding transactions, including those reserved by others.
    */
-  Stream<Long> list();
+  Stream<FateIdStatus> list();
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids

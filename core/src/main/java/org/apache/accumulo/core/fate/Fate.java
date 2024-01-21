@@ -77,7 +77,7 @@ public class Fate<T> {
   private final Thread workFinder;
 
   public enum TxInfo {
-    TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+    TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
   }
 
   /**

@@ -39,6 +39,7 @@ public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
   private Map<Long,TStatus> statuses = new HashMap<>();
+  private Map<Long,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
   private Set<Long> reserved = new HashSet<>();
 
   @Override
@@ -106,7 +107,12 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      throw new UnsupportedOperationException();
+      var submap = txInfos.get(tid);
+      if (submap == null) {
+        return null;
+      }
+
+      return submap.get(txInfo);
     }
 
     @Override
@@ -142,7 +148,11 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
-      throw new UnsupportedOperationException();
+      if (!reserved.contains(tid)) {
+        throw new IllegalStateException();
+      }
+
+      txInfos.computeIfAbsent(tid, t -> new HashMap<>()).put(txInfo, val);
     }
 
     @Override
@@ -167,8 +177,18 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Stream<Long> list() {
-    return new ArrayList<>(statuses.keySet()).stream();
+  public Stream<FateIdStatus> list() {
+    return new ArrayList<>(statuses.entrySet()).stream().map(e -> new FateIdStatus() {
+      @Override
+      public long getTxid() {
+        return e.getKey();
+      }
+
+      @Override
+      public TStatus getStatus() {
+        return e.getValue();
+      }
+    });
   }
 
   @Override

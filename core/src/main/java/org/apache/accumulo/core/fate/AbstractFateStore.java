@@ -109,7 +109,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
    */
   @Override
   public Optional<FateTxStore<T>> tryReserve(long tid) {
-    synchronized (this) {
+    synchronized (AbstractFateStore.this) {
       if (!reserved.contains(tid)) {
         return Optional.of(reserve(tid));
       }
@@ -169,11 +169,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
-          if (!deferred.isEmpty()) {
-            long currTime = System.nanoTime();
-            long minWait =
-                deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-            waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+          synchronized (AbstractFateStore.this) {
+            if (!deferred.isEmpty()) {
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+            }
           }
 
           if (waitTime > 0) {
@@ -195,8 +197,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Stream<Long> list() {
-    return getTransactions().map(fateIdStatus -> fateIdStatus.txid);
+  public Stream<FateIdStatus> list() {
+    return getTransactions();
   }
 
   @Override
@@ -213,18 +215,17 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public static abstract class FateIdStatus {
+  public static abstract class FateIdStatusBase implements FateIdStatus {
     private final long txid;
 
-    public FateIdStatus(long txid) {
+    public FateIdStatusBase(long txid) {
       this.txid = txid;
     }
 
+    @Override
     public long getTxid() {
       return txid;
     }
-
-    public abstract TStatus getStatus();
   }
 
   @Override
