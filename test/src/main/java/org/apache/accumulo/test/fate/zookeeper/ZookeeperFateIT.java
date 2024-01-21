@@ -65,7 +65,12 @@ public class ZookeeperFateIT extends FateIT {
 
   @Override
   protected void executeTest(FateTestExecutor testMethod) throws Exception {
-    final ZooStore<TestEnv> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    executeTest(testMethod, 1000);
+  }
+
+  @Override
+  protected void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+    final ZooStore<TestEnv> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred);
 
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
@@ -76,9 +81,12 @@ public class ZookeeperFateIT extends FateIT {
   }
 
   @Override
-  protected TStatus getTxStatus(ServerContext sctx, long txid)
-      throws InterruptedException, KeeperException {
-    return getTxStatus(sctx.getZooReaderWriter(), txid);
+  protected TStatus getTxStatus(ServerContext sctx, long txid) {
+    try {
+      return getTxStatus(sctx.getZooReaderWriter(), txid);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /*

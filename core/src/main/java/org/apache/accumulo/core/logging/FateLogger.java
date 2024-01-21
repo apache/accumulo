@@ -125,6 +125,16 @@ public class FateLogger {
       }
 
       @Override
+      public int getDeferredCount() {
+        return store.getDeferredCount();
+      }
+
+      @Override
+      public boolean isDeferredOverflow() {
+        return store.isDeferredOverflow();
+      }
+
+      @Override
       public long create() {
         long tid = store.create();
         if (storeLog.isTraceEnabled()) {

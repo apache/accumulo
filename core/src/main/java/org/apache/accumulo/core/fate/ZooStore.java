@@ -57,7 +57,12 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
-    super();
+    this(path, zk, DEFAULT_MAX_DEFERRED);
+  }
+
+  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred)
+      throws KeeperException, InterruptedException {
+    super(maxDeferred);
     this.path = path;
     this.zk = zk;
 

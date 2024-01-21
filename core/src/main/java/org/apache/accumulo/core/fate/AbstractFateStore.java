@@ -51,8 +51,14 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractFateStore.class);
 
+  // Default maximum size of 100,000 transactions before deferral is stopped and
+  // all existing transactions are processed immediately again
+  protected static final int DEFAULT_MAX_DEFERRED = 100_000;
+
   protected final Set<Long> reserved;
   protected final Map<Long,Long> deferred;
+  private final int maxDeferred;
+  private final AtomicBoolean deferredOverflow = new AtomicBoolean();
 
   // This is incremented each time a transaction was unreserved that was non new
   protected final SignalCount unreservedNonNewCount = new SignalCount();
@@ -61,6 +67,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   protected final SignalCount unreservedRunnableCount = new SignalCount();
 
   public AbstractFateStore() {
+    this(DEFAULT_MAX_DEFERRED);
+  }
+
+  public AbstractFateStore(int maxDeferred) {
+    this.maxDeferred = maxDeferred;
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
   }
@@ -130,6 +141,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     while (keepWaiting.get() && seen.get() == 0) {
       final long beforeCount = unreservedRunnableCount.getCount();
+      final boolean beforeDeferredOverflow = deferredOverflow.get();
 
       try (Stream<FateIdStatus> transactions = getTransactions()) {
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
@@ -151,6 +163,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             });
       }
 
+      // If deferredOverflow was previously marked true then the deferred map
+      // would have been cleared and seen.get() should be greater than 0 as there would
+      // be a lot of transactions to process in the previous run, so we won't be sleeping here
       if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
@@ -169,6 +184,15 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           }
         }
       }
+
+      // Reset if the current state only if it matches the state before the execution.
+      // This is to avoid a race condition where the flag was set during the run.
+      // We should ensure at least one of the FATE executors will run through the
+      // entire transaction list first before clearing the flag and allowing more
+      // deferred entries into the map again. In other words, if the before state
+      // was false and during the execution at some point it was marked true this would
+      // not reset until after the next run
+      deferredOverflow.compareAndSet(beforeDeferredOverflow, false);
     }
   }
 
@@ -201,6 +225,21 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     @Override
     public long getTxid() {
       return txid;
+    }
+  }
+
+  @Override
+  public boolean isDeferredOverflow() {
+    return deferredOverflow.get();
+  }
+
+  @Override
+  public int getDeferredCount() {
+    // This method is primarily used right now for unit testing but
+    // if this synchronization becomes an issue we could add an atomic
+    // counter instead to track it separately so we don't need to lock
+    synchronized (AbstractFateStore.this) {
+      return deferred.size();
     }
   }
 
@@ -255,8 +294,20 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         // notify any threads waiting to reserve
         AbstractFateStore.this.notifyAll();
 
-        if (deferTime > 0) {
-          deferred.put(tid, System.nanoTime() + deferTime);
+        // If deferred map has overflowed then skip adding to the deferred map
+        // and clear the map and set the flag. This will cause the next execution
+        // of runnable to process all the transactions and to not defer as we
+        // have a large backlog and want to make progress
+        if (deferTime > 0 && !deferredOverflow.get()) {
+          if (deferred.size() >= maxDeferred) {
+            log.info(
+                "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
+                deferred.size());
+            deferredOverflow.set(true);
+            deferred.clear();
+          } else {
+            deferred.put(tid, System.nanoTime() + deferTime);
+          }
         }
       }
 
