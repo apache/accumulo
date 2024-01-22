@@ -280,38 +280,42 @@ public class Manager extends AbstractServer
       /* UNLOAD_ROOT_TABLET */      {O, O, O, X, X, X, X},
       /* STOP */                    {O, O, O, O, O, X, X}};
   //@formatter:on
-  synchronized void setManagerState(ManagerState newState) {
-    if (state.equals(newState)) {
+  synchronized void setManagerState(final ManagerState newState) {
+    if (state == newState) {
       return;
     }
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
       log.error("Programmer error: manager should not transition from {} to {}", state, newState);
     }
-    ManagerState oldState = state;
+    final ManagerState oldState = state;
     state = newState;
     nextEvent.event("State changed from %s to %s", oldState, newState);
-    if (newState == ManagerState.STOP) {
-      // Give the server a little time before shutdown so the client
-      // thread requesting the stop can return
-      ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
-        // This frees the main thread and will cause the manager to exit
-        clientService.stop();
-        Manager.this.nextEvent.event("stopped event loop");
-      }, 100L, 1000L, MILLISECONDS);
-      ThreadPools.watchNonCriticalScheduledTask(future);
-    }
-
-    if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
-      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
-    }
-
-    if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fateRef.get() != null) {
-        throw new IllegalStateException("Access to Fate should not have been"
-            + " initialized prior to the Manager finishing upgrades. Please save"
-            + " all logs and file a bug.");
-      }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+    switch (newState) {
+      case STOP:
+        // Give the server a little time before shutdown so the client
+        // thread requesting the stop can return
+        final var future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+          // This frees the main thread and will cause the manager to exit
+          clientService.stop();
+          Manager.this.nextEvent.event("stopped event loop");
+        }, 100L, 1000L, MILLISECONDS);
+        ThreadPools.watchNonCriticalScheduledTask(future);
+        break;
+      case HAVE_LOCK:
+        upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
+        break;
+      case NORMAL:
+        // fate isn't started until after upgrades are done, so non-null fateRef implies isUpgrading
+        // should return false
+        if (fateRef.get() != null && isUpgrading()) {
+          throw new IllegalStateException("Access to Fate should not have been"
+              + " initialized prior to the Manager finishing upgrades. Please save"
+              + " all logs and file a bug.");
+        }
+        upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+        break;
+      default:
+        break;
     }
   }
 
@@ -773,10 +777,8 @@ public class Manager extends AbstractServer
               setManagerState(ManagerState.NORMAL);
               break;
             case SAFE_MODE:
-              if (getManagerState() == ManagerState.NORMAL) {
-                setManagerState(ManagerState.SAFE_MODE);
-              }
-              if (getManagerState() == ManagerState.HAVE_LOCK) {
+              if (getManagerState() == ManagerState.NORMAL
+                  || getManagerState() == ManagerState.HAVE_LOCK) {
                 setManagerState(ManagerState.SAFE_MODE);
               }
               break;
@@ -1691,11 +1693,11 @@ public class Manager extends AbstractServer
   }
 
   public void assignedTablet(KeyExtent extent) {
-    if (extent.isMeta() && getManagerState().equals(ManagerState.UNLOAD_ROOT_TABLET)) {
+    if (extent.isMeta() && getManagerState() == ManagerState.UNLOAD_ROOT_TABLET) {
       setManagerState(ManagerState.UNLOAD_METADATA_TABLETS);
     }
     // probably too late, but try anyhow
-    if (extent.isRootTablet() && getManagerState().equals(ManagerState.STOP)) {
+    if (extent.isRootTablet() && getManagerState() == ManagerState.STOP) {
       setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
     }
   }
