@@ -42,9 +42,9 @@ public abstract class MetadataServicer {
 
   public static MetadataServicer forTableId(ClientContext context, TableId tableId) {
     checkArgument(tableId != null, "tableId is null");
-    if (RootTable.ID.equals(tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       return new ServicerForRootTable(context);
-    } else if (MetadataTable.ID.equals(tableId)) {
+    } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
       return new ServicerForMetadataTable(context);
     } else {
       return new ServicerForUserTables(context, tableId);

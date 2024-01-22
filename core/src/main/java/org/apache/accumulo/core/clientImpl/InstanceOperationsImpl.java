@@ -207,6 +207,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public Map<String,String> getSystemProperties()
+      throws AccumuloException, AccumuloSecurityException {
+    return ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
+  }
+
+  @Override
   public List<String> getManagerLocations() {
     return context.getManagerLocations();
   }

@@ -41,7 +41,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -137,7 +136,8 @@ public class ManagerMetadataUtil {
     // check to see if prev tablet exist in metadata tablet
     Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
 
-    try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+    try (ScannerImpl scanner2 =
+        new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(), Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
       if (scanner2.iterator().hasNext()) {
@@ -150,7 +150,8 @@ public class ManagerMetadataUtil {
         SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
 
         Key rowKey = new Key(metadataEntry);
-        try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+        try (Scanner scanner3 = new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(),
+            Authorizations.EMPTY)) {
 
           scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
           scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));

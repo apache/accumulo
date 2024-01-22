@@ -77,6 +77,7 @@ import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -152,10 +153,15 @@ public class ScanServer extends AbstractServer
     @Override
     public Map<? extends KeyExtent,? extends TabletMetadata>
         loadAll(Set<? extends KeyExtent> keys) {
+      Map<KeyExtent,TabletMetadata> tms;
       long t1 = System.currentTimeMillis();
       @SuppressWarnings("unchecked")
-      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys, Optional.empty())
-          .build().stream().collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
+      Collection<KeyExtent> extents = (Collection<KeyExtent>) keys;
+      try (TabletsMetadata tabletsMetadata =
+          ample.readTablets().forTablets(extents, Optional.empty()).build()) {
+        tms = tabletsMetadata.stream().onClose(tabletsMetadata::close)
+            .collect(Collectors.toMap(TabletMetadata::getExtent, tm -> tm));
+      }
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
       return tms;

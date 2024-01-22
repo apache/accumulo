@@ -28,10 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +63,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -65,6 +73,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -72,7 +81,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -81,6 +91,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -177,6 +188,51 @@ public class CompactionIT extends AccumuloClusterHarness {
     public Selection select(SelectionParameters sparams) {
       return new Selection(Set.of());
     }
+  }
+
+  /**
+   * A CompactionConfigurer that can be used to configure the compression type used for intermediate
+   * and final compactions. An intermediate compaction is a compaction whose result is short-lived.
+   * For instance, if 10 files are selected for compaction, 5 of these files are compacted to a file
+   * 'f0', then f0 is compacted with the 5 remaining files creating file 'f1', then f0 would be an
+   * intermediate file and f1 would be the final file.
+   */
+  public static class CompressionTypeConfigurer implements CompactionConfigurer {
+    public static final String COMPRESS_TYPE_KEY = Property.TABLE_FILE_COMPRESSION_TYPE.getKey();
+    public static final String FINAL_COMPRESS_TYPE_KEY = "final.compress.type";
+    public static final String INTERMEDIATE_COMPRESS_TYPE_KEY = "intermediate.compress.type";
+    private String finalCompressTypeVal;
+    private String interCompressTypeVal;
+
+    @Override
+    public void init(InitParameters iparams) {
+      var options = iparams.getOptions();
+      String finalCompressTypeVal = options.get(FINAL_COMPRESS_TYPE_KEY);
+      String interCompressTypeVal = options.get(INTERMEDIATE_COMPRESS_TYPE_KEY);
+      if (finalCompressTypeVal != null && interCompressTypeVal != null) {
+        this.finalCompressTypeVal = finalCompressTypeVal;
+        this.interCompressTypeVal = interCompressTypeVal;
+      } else {
+        throw new IllegalArgumentException(
+            "Must set " + FINAL_COMPRESS_TYPE_KEY + " and " + INTERMEDIATE_COMPRESS_TYPE_KEY);
+      }
+    }
+
+    @Override
+    public Overrides override(InputParameters params) {
+      var inputFiles = params.getInputFiles();
+      var selectedFiles = params.getSelectedFiles();
+      // If this is the final compaction, set the compression type to the value set for
+      // finalCompressTypeVal
+      // If this is an intermediate compaction, set the compression type to the value set for
+      // interCompressTypeVal
+      if (selectedFiles.equals(inputFiles instanceof Set ? inputFiles : Set.copyOf(inputFiles))) {
+        return new Overrides(Map.of(COMPRESS_TYPE_KEY, finalCompressTypeVal));
+      } else {
+        return new Overrides(Map.of(COMPRESS_TYPE_KEY, interCompressTypeVal));
+      }
+    }
+
   }
 
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
@@ -321,18 +377,22 @@ public class CompactionIT extends AccumuloClusterHarness {
       ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(1000, tm.getFiles().size());
+      try (TabletsMetadata tms =
+          ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1000, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
       setting.addOption(ErrorThrowingIterator.TIMES, "3");
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      tm = tms.iterator().next();
-      assertEquals(1, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1, tm.getFiles().size());
+      }
 
       ReadWriteIT.verify(client, MAX_DATA, 1, 1, 0, table1);
 
@@ -344,6 +404,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table1);
+      client.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "1001");
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "51");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
@@ -351,9 +412,11 @@ public class CompactionIT extends AccumuloClusterHarness {
       ReadWriteIT.verify(client, 50, 1, 1, 0, table1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(50, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(50, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "ageoff", AgeOffFilter.class);
       setting.addOption("ttl", "0");
@@ -367,8 +430,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting2, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      assertThrows(NoSuchElementException.class, () -> ample.readTablets().forTable(tid)
-          .fetch(ColumnType.FILES).build().iterator().next());
+      try (TabletsMetadata tm = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        assertThrows(NoSuchElementException.class, () -> tm.iterator().next());
+      }
       assertEquals(0, client.createScanner(table1).stream().count());
     }
   }
@@ -598,6 +662,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1001");
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100.0");
 
       var beforeCount = countFiles(c);
@@ -699,8 +764,141 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testGetSelectedFilesForCompaction() throws Exception {
+
+    // Tests CompactionConfigurer.InputParameters.getSelectedFiles()
+
+    String tableName = this.getUniqueNames(1)[0];
+    // Disable GC so intermediate compaction files are not deleted
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+      // This is done to avoid system compactions - we want to do all the compactions ourselves
+      props.put("table.compaction.dispatcher.opts.service.system", "nonexitant");
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
+      client.tableOperations().create(tableName, ntc);
+
+      // The following will create 4 small and 4 large RFiles
+      // The 4 small files will be compacted into one file (an "intermediate compaction" file)
+      // Then, this file will be compacted with the 4 large files, creating the final compaction
+      // file
+      byte[] largeData = new byte[1_000_000];
+      byte[] smallData = new byte[100_000];
+      final int numFiles = 8;
+      Arrays.fill(largeData, (byte) 65);
+      Arrays.fill(smallData, (byte) 65);
+      try (var writer = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < numFiles; i++) {
+          Mutation mut = new Mutation("r" + i);
+          if (i < numFiles / 2) {
+            mut.at().family("f").qualifier("q").put(largeData);
+          } else {
+            mut.at().family("f").qualifier("q").put(smallData);
+          }
+          writer.addMutation(mut);
+          writer.flush();
+          client.tableOperations().flush(tableName, null, null, true);
+        }
+      }
+
+      client.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true)
+              .setConfigurer(new PluginConfig(CompressionTypeConfigurer.class.getName(),
+                  Map.of(CompressionTypeConfigurer.FINAL_COMPRESS_TYPE_KEY, "snappy",
+                      CompressionTypeConfigurer.INTERMEDIATE_COMPRESS_TYPE_KEY, "gz"))));
+
+      var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      // The directory of the RFiles
+      java.nio.file.Path rootPath = null;
+      // The path to the final compaction RFile (located within rootPath)
+      java.nio.file.Path finalCompactionFilePath = null;
+      int count = 0;
+      try (var tabletsMeta =
+          TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
+        for (TabletMetadata tm : tabletsMeta) {
+          for (StoredTabletFile stf : tm.getFiles()) {
+            // Since the 8 files should be compacted down to 1 file, these should only be set once
+            finalCompactionFilePath = Paths.get(stf.getPath().toUri().getRawPath());
+            rootPath = Paths.get(stf.getPath().getParent().toUri().getRawPath());
+            count++;
+          }
+        }
+      }
+      assertEquals(1, count);
+      assertNotNull(finalCompactionFilePath);
+      assertNotNull(rootPath);
+      String finalCompactionFile = finalCompactionFilePath.toString();
+      // The following will find the intermediate compaction file in the root path.
+      // Intermediate compaction files begin with 'C' and end with '.rf'
+      final String[] interCompactionFile = {null};
+      Files.walkFileTree(rootPath, new SimpleFileVisitor<java.nio.file.Path>() {
+        @Override
+        public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs)
+            throws IOException {
+          String regex = "^C.*\\.rf$";
+          java.nio.file.Path fileName = (file != null) ? file.getFileName() : null;
+          if (fileName != null && fileName.toString().matches(regex)) {
+            interCompactionFile[0] = file.toString();
+            return FileVisitResult.TERMINATE;
+          }
+          return FileVisitResult.CONTINUE;
+        }
+      });
+      assertNotNull(interCompactionFile[0]);
+      String[] args = new String[3];
+      args[0] = "--props";
+      args[1] = getCluster().getAccumuloPropertiesPath();
+      args[2] = finalCompactionFile;
+      PrintBCInfo bcInfo = new PrintBCInfo(args);
+      String finalCompressionType = bcInfo.getCompressionType();
+      // The compression type used on the final compaction file should be 'snappy'
+      assertEquals("snappy", finalCompressionType);
+      args[2] = interCompactionFile[0];
+      bcInfo = new PrintBCInfo(args);
+      String interCompressionType = bcInfo.getCompressionType();
+      // The compression type used on the intermediate compaction file should be 'gz'
+      assertEquals("gz", interCompressionType);
+    } finally {
+      // Re-enable GC
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+    }
+  }
+
+  /**
+   * Was used in debugging {@link #testGetSelectedFilesForCompaction}. May be useful later.
+   *
+   * @param client An accumulo client
+   * @param tableName The name of the table
+   * @return a map of the RFiles to their size in bytes
+   */
+  private Map<String,Long> getFileSizeMap(AccumuloClient client, String tableName) {
+    var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    Map<String,Long> map = new HashMap<>();
+
+    try (var tabletsMeta =
+        TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
+      for (TabletMetadata tm : tabletsMeta) {
+        for (StoredTabletFile stf : tm.getFiles()) {
+          try {
+            String filePath = stf.getPath().toString();
+            Long fileSize =
+                FileSystem.getLocal(new Configuration()).getFileStatus(stf.getPath()).getLen();
+            map.put(filePath, fileSize);
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        }
+      }
+
+      return map;
+    }
+  }
+
   private int countFiles(AccumuloClient c) throws Exception {
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       s.fetchColumnFamily(new Text(TabletColumnFamily.NAME));
       s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));
       return Iterators.size(s.iterator());

@@ -41,8 +41,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -132,7 +131,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   /**
    * Checks if safemode is set - files will not be deleted.
    *
-   * @return number of delete threads
+   * @return true if safe mode is set, false otherwise
    */
   boolean inSafeMode() {
     return getConfiguration().getBoolean(Property.GC_SAFEMODE);
@@ -262,12 +261,16 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           switch (action) {
             case "compact":
-              accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-              accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+              accumuloClient.tableOperations().compact(AccumuloTable.METADATA.tableName(), null,
+                  null, true, true);
+              accumuloClient.tableOperations().compact(AccumuloTable.ROOT.tableName(), null, null,
+                  true, true);
               break;
             case "flush":
-              accumuloClient.tableOperations().flush(MetadataTable.NAME, null, null, true);
-              accumuloClient.tableOperations().flush(RootTable.NAME, null, null, true);
+              accumuloClient.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null,
+                  true);
+              accumuloClient.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null,
+                  true);
               break;
             default:
               log.trace("'none - no action' or invalid value provided: {}", action);

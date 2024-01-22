@@ -21,7 +21,7 @@ package org.apache.accumulo.shell.commands;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -40,8 +40,8 @@ public class OnlineCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(RootTable.NAME)) {
-      Shell.log.info("  The {} is always online.", RootTable.NAME);
+    if (tableName.equals(AccumuloTable.ROOT.tableName())) {
+      Shell.log.info("  The {} is always online.", AccumuloTable.ROOT.tableName());
     } else {
       shellState.getAccumuloClient().tableOperations().online(tableName, wait);
       Shell.log.info("Online of table {} {}", tableName, wait ? " completed." : " initiated...");

@@ -26,8 +26,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -54,18 +53,18 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().addSplits(MetadataTable.NAME,
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(),
           FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
       String[] names = getUniqueNames(10);
       for (String name : names) {
         c.tableOperations().create(name);
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-        c.tableOperations().flush(RootTable.NAME, null, null, true);
+        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
       }
       cluster.stop();
       cluster.start();
-      assertTrue(
-          c.createScanner(RootTable.NAME, Authorizations.EMPTY).stream().findAny().isPresent());
+      assertTrue(c.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY).stream()
+          .findAny().isPresent());
     }
   }
 

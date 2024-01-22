@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -60,7 +60,8 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   boolean isOffline(String tablename, AccumuloClient client) throws TableNotFoundException {
     String tableId = client.tableOperations().tableIdMap().get(tablename);
-    try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return scanner.stream().findAny().isEmpty();
@@ -88,8 +89,8 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         }
 
         // poke a partial split into the metadata table
-        client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
-            TablePermission.WRITE);
+        client.securityOperations().grantTablePermission(getAdminPrincipal(),
+            AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
         TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
         KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
@@ -97,13 +98,13 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
         TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5)));
         TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, TabletColumnFamily.encodePrevEndRow(null));
-        try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
           bw.addMutation(m);
 
           if (tn == 1) {
             bw.flush();
 
-            try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+            try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
               scanner.setRange(extent.toMetaRange());
               scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 

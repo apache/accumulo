@@ -48,7 +48,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -122,7 +122,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
-    if (RootTable.ID.equals(tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
@@ -163,7 +163,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -178,7 +178,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -189,9 +189,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void removeBulkLoadEntries(TableId tableId, long tid, Text firstSplit, Text lastSplit) {
     Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
     try (
-        Scanner mscanner =
-            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+        Scanner mscanner = new IsolatedScanner(
+            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY));
+        BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       mscanner.setRange(new KeyExtent(tableId, lastSplit, firstSplit).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 
@@ -364,7 +364,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
-      return StreamSupport.stream(scanner.spliterator(), false)
+      return scanner.stream().onClose(scanner::close)
           .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {
