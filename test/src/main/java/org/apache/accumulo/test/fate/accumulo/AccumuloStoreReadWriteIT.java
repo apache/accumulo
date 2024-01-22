@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -61,7 +62,7 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(5);
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -157,18 +158,18 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       assertFalse(store.isDeferredOverflow());
 
       var executor = Executors.newCachedThreadPool();
+      Future<?> future;
       AtomicBoolean keepRunning = new AtomicBoolean(true);
       try {
         // Run and verify all 10 transactions still exist and were not
         // run because of the deferral time of all the transactions
-        try {
-          executor.execute(() -> store.runnable(keepRunning, transactions::remove));
-          Thread.sleep(2000);
-          assertEquals(10, transactions.size());
-        } finally {
-          // Should terminate the task if waiting
-          keepRunning.set(false);
-        }
+        future = executor.submit(() -> store.runnable(keepRunning, transactions::remove));
+        Thread.sleep(2000);
+        assertEquals(10, transactions.size());
+        // Setting this flag to false should terminate the task if sleeping
+        keepRunning.set(false);
+        // wait for the future to finish to verify the task finished
+        future.get();
 
         // Store one more that should go over the max deferred of 10
         // and should clear the map and set the overflow flag
@@ -187,13 +188,12 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
         // Run and verify all 11 transactions were processed
         // and removed from the store
         keepRunning.set(true);
-        try {
-          executor.execute(() -> store.runnable(keepRunning, transactions::remove));
-          Wait.waitFor(transactions::isEmpty);
-        } finally {
-          // Should terminate the task if waiting
-          keepRunning.set(false);
-        }
+        future = executor.submit(() -> store.runnable(keepRunning, transactions::remove));
+        Wait.waitFor(transactions::isEmpty);
+        // Setting this flag to false should terminate the task if sleeping
+        keepRunning.set(false);
+        // wait for the future to finish to verify the task finished
+        future.get();
 
         // Overflow should now be reset to false so adding another deferred
         // transaction should now go back into the deferral map and flag should
