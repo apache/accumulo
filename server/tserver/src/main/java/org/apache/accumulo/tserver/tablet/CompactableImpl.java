@@ -1108,10 +1108,11 @@ public class CompactableImpl implements Compactable {
       log.debug("Compaction canceled {} ", getExtent());
     } catch (Exception e) {
       newFile = Optional.empty();
+      TabletLogger.compactionFailed(getExtent(), job, cInfo.localCompactionCfg);
       throw new RuntimeException(e);
     } finally {
       completeCompaction(job, cInfo.jobFiles, newFile, successful);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile.isEmpty());
     }
   }
 
@@ -1161,6 +1162,8 @@ public class CompactableImpl implements Compactable {
 
     } catch (Exception e) {
       externalCompactions.remove(externalCompactionId);
+      TabletLogger.externalCompactionFailed(getExtent(), externalCompactionId, job,
+          cInfo.localCompactionCfg);
       completeCompaction(job, cInfo.jobFiles, Optional.empty(), false);
       throw new RuntimeException(e);
     }
@@ -1199,7 +1202,8 @@ public class CompactableImpl implements Compactable {
           successful = true;
         } catch (Exception e) {
           metaFile = Optional.empty();
-          log.error("Error committing external compaction {}", extCompactionId, e);
+          log.error("Error committing external compaction: id: {}, extent: {}", extCompactionId,
+              getExtent(), e);
           throw new RuntimeException(e);
         } finally {
           completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile, successful);
@@ -1241,7 +1245,7 @@ public class CompactableImpl implements Compactable {
             .mutate();
         completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), Optional.empty(), false);
         externalCompactions.remove(ecid);
-        log.debug("Processed external compaction failure {}", ecid);
+        log.debug("Processed external compaction failure: id: {}, extent: {}", ecid, getExtent());
       } else {
         log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
       }
