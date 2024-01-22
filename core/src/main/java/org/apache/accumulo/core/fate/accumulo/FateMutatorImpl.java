@@ -26,7 +26,9 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -154,15 +156,25 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public void mutate() {
-    try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
+    try {
+      // if there are no conditions attached, then we can use a batch writer
       if (mutation.getConditions().isEmpty()) {
-        mutation.addCondition(new Condition("", ""));
+        try (BatchWriter writer = context.createBatchWriter(tableName)) {
+          writer.addMutation(mutation);
+        } catch (MutationsRejectedException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
+          ConditionalWriter.Result result = writer.write(mutation);
+          if (result.getStatus() != ConditionalWriter.Status.ACCEPTED) {
+            throw new IllegalStateException("Failed to write mutation " + mutation);
+          }
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          throw new RuntimeException(e);
+        }
       }
-      ConditionalWriter.Result result = writer.write(mutation);
-      if (result.getStatus() != ConditionalWriter.Status.ACCEPTED) {
-        throw new IllegalStateException("Failed to write mutation " + mutation);
-      }
-    } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+    } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
