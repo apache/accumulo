@@ -134,8 +134,7 @@ class PopulateMetadataTable extends ManagerRepo {
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
-              if (tableInfo.exportedVersion == null || (tableInfo.exportedVersion < VERSION_2
-                  && StoredTabletFile.fileNeedsConversion(dataFileCQ))) {
+              if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
                 // written without fenced range information (accumulo < 3.1), use default
                 // (null,null)
                 exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
