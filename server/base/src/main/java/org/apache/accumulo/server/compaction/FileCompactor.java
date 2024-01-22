@@ -75,6 +75,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Collections2;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -207,11 +209,13 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     boolean remove = runningCompactions.add(this);
 
+    String threadStartDate = dateFormatter.format(new Date());
+
     clearStats();
 
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName = "MajC compacting " + extent + " started "
-        + dateFormatter.format(new Date()) + " file: " + outputFile;
+    String newThreadName =
+        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();
     try {
@@ -279,7 +283,13 @@ public class FileCompactor implements Callable<CompactionStats> {
       log.debug("Compaction canceled {}", extent);
       throw e;
     } catch (IOException | RuntimeException e) {
-      log.error("{}", e.getMessage(), e);
+      Collection<String> inputFileNames =
+          Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
+      String outputFileName = outputFile.getFileName();
+      log.error(
+          "Compaction error. Compaction info: "
+              + "extent: {}, input files: {}, output file: {}, iterators: {}, start date: {}",
+          getExtent(), inputFileNames, outputFileName, getIterators(), threadStartDate, e);
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);

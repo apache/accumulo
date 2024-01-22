@@ -39,6 +39,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -367,8 +369,7 @@ public class CompactorTest {
     expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
-    TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    TKeyExtent extent = new KeyExtent(TableId.of("testTable"), null, null).toThrift();
 
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();

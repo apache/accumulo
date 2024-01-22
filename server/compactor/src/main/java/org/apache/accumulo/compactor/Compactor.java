@@ -559,7 +559,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       } catch (FileCompactor.CompactionCanceledException cce) {
         LOG.debug("Compaction canceled {}", job.getExternalCompactionId());
       } catch (Exception e) {
-        LOG.error("Compaction failed", e);
+        KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+        LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
+            fromThriftExtent, e);
         err.set(e);
       } finally {
         stopped.countDown();
@@ -728,14 +730,17 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
               currentCompactionId.set(null);
             }
           } else if (err.get() != null) {
+            KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
             try {
-              LOG.info("Updating coordinator with compaction failure.");
+              LOG.info("Updating coordinator with compaction failure: id: {}, extent: {}",
+                  job.getExternalCompactionId(), fromThriftExtent);
               TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.FAILED,
                   "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1);
               updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
-              LOG.error("Error updating coordinator with compaction failure.", e);
+              LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
+                  job.getExternalCompactionId(), fromThriftExtent, e);
             } finally {
               currentCompactionId.set(null);
             }

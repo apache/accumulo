@@ -29,6 +29,7 @@ import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
@@ -77,7 +78,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
         throw new CompactionCanceledException();
 
       } catch (Exception e) {
-        LOG.error("Compaction failed", e);
+        KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+        LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
+            fromThriftExtent, e);
         err.set(e);
       } finally {
         stopped.countDown();
