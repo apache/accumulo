@@ -35,6 +35,7 @@ import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +71,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -407,9 +409,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Online table " + tableId;
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate(type).seedTransaction(op.toString(), tid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
-            goalMessage);
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_OFFLINE: {
@@ -432,9 +437,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Offline table " + tableId;
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate(type).seedTransaction(op.toString(), tid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
-            goalMessage);
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_MERGE: {
