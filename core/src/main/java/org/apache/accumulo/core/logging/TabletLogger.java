@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -146,6 +147,18 @@ public class TabletLogger {
   public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asMinimalString(job.getFiles()));
+  }
+
+  public static void compactionFailed(KeyExtent extent, CompactionJob job,
+      CompactionConfig config) {
+    fileLog.debug("Failed to compact: extent: {}, input files: {}, iterators: {}", extent,
+        asMinimalString(job.getFiles()), config.getIterators());
+  }
+
+  public static void externalCompactionFailed(KeyExtent extent, ExternalCompactionId id,
+      CompactionJob job, CompactionConfig config) {
+    fileLog.debug("Failed to compact: id: {}, extent: {}, input files: {}, iterators: {}", id,
+        extent, asMinimalString(job.getFiles()), config.getIterators());
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {

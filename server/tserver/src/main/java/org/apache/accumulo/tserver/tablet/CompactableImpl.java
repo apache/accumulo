@@ -1108,10 +1108,11 @@ public class CompactableImpl implements Compactable {
       log.debug("Compaction canceled {} ", getExtent());
     } catch (Exception e) {
       newFile = Optional.empty();
+      TabletLogger.compactionFailed(getExtent(), job, cInfo.localCompactionCfg);
       throw new RuntimeException(e);
     } finally {
       completeCompaction(job, cInfo.jobFiles, newFile, successful);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile.isEmpty());
     }
   }
 
@@ -1161,6 +1162,8 @@ public class CompactableImpl implements Compactable {
 
     } catch (Exception e) {
       externalCompactions.remove(externalCompactionId);
+      TabletLogger.externalCompactionFailed(getExtent(), externalCompactionId, job,
+          cInfo.localCompactionCfg);
       completeCompaction(job, cInfo.jobFiles, Optional.empty(), false);
       throw new RuntimeException(e);
     }
