@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -159,6 +161,10 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     return this;
   }
 
+  private byte[] convertStringToByteArray(String string) {
+    return string.getBytes();
+  }
+
   private byte[] convertTextToByteArray(Text text) {
     return text.getBytes();
   }
@@ -176,10 +182,23 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case FILES: {
         // ELASTICITY_TODO compare values?
-        Condition c = SetEqualityIterator.createSetCondition(tabletMetadata.getFiles(),
-            storedTabletFile -> convertTextToByteArray(storedTabletFile.getMetadataText()),
+
+        // Create condition for checking values (StoredTabletFile instances)
+        Condition valuesCondition =
+            SetEqualityIterator.createSetCondition(tabletMetadata.getFiles(),
+                storedTabletFile -> convertTextToByteArray(storedTabletFile.getMetadataText()),
+                DataFileColumnFamily.NAME);
+
+        // Create condition for checking keys (e.g., using the path as the key)
+        @SuppressWarnings("unchecked")
+        Condition keysCondition = SetEqualityIterator.createSetCondition(
+            ((Map<ExternalCompactionId,CompactionMetadata>) tabletMetadata.getFiles()).keySet(),
+            path -> convertStringToByteArray(path.toString()), // Assuming path is the key
             DataFileColumnFamily.NAME);
-        mutation.addCondition(c);
+
+        // Add both conditions to mutation
+        mutation.addCondition(valuesCondition);
+        mutation.addCondition(keysCondition);
       }
         break;
       case SELECTED: {

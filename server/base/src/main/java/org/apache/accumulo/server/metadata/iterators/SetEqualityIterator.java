@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -186,17 +187,44 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
   }
 
-  /**
-   * If two sets are equals and they are encoded with this method then the resulting byte arrays
-   * should be equal.
-   */
-  private static <T> byte[] encodeSet(Set<T> set, Function<T,byte[]> encoder) {
+  private static <K,T> Set<T> extractValuesFromMap(Map<K,T> map) {
+    return new HashSet<>(map.values());
+  }
+
+  private static <K,T> Set<K> extractKeysFromMap(Map<K,T> map) {
+    return new HashSet<>(map.keySet());
+  }
+
+  public static <K,T> byte[] encodeMapValues(Map<K,T> map, Function<T,byte[]> encoder) {
+    Set<T> valuesSet = extractValuesFromMap(map);
+    return encode(valuesSet, encoder);
+  }
+
+  public static <K,T> byte[] encodeMapKeys(Map<K,T> map, Function<K,byte[]> encoder) {
+    Set<K> keysSet = extractKeysFromMap(map);
+    return encode(keysSet, encoder);
+  }
+
+  public static <K,T> Condition createMapValuesCondition(Map<K,T> map, Function<T,byte[]> encoder,
+      Text family) {
+    Preconditions.checkArgument(map instanceof Map);
+    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
+        SetEqualityIterator.class);
+    return new Condition(family, EMPTY).setValue(encodeMapValues(map, encoder)).setIterators(is);
+  }
+
+  public static <K,T> Condition createMapKeysCondition(Map<K,T> map, Function<K,byte[]> encoder,
+      Text family) {
+    Preconditions.checkArgument(map instanceof Map);
+    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
+        SetEqualityIterator.class);
+    return new Condition(family, EMPTY).setValue(encodeMapKeys(map, encoder)).setIterators(is);
+  }
+
+  public static <T> byte[] encodeSet(Set<T> set, Function<T,byte[]> encoder) {
     return encode(set, encoder);
   }
 
-  /**
-   * Custom method to check equality of the entire set of StoredTabletFile instances
-   */
   public static <T> Condition createSetCondition(Set<T> set, Function<T,byte[]> encoder,
       Text family) {
     Preconditions.checkArgument(set instanceof Set);
@@ -204,5 +232,4 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
         SetEqualityIterator.class);
     return new Condition(family, EMPTY).setValue(encodeSet(set, encoder)).setIterators(is);
   }
-
 }
