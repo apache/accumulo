@@ -60,7 +60,6 @@ import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -161,14 +160,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     return this;
   }
 
-  private byte[] convertStringToByteArray(String string) {
-    return string.getBytes();
-  }
-
-  private byte[] convertTextToByteArray(Text text) {
-    return text.getBytes();
-  }
-
   private void requireSameSingle(TabletMetadata tabletMetadata, ColumnType type) {
     switch (type) {
       case PREV_ROW:
@@ -186,14 +177,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         // Create condition for checking values (StoredTabletFile instances)
         Condition valuesCondition =
             SetEqualityIterator.createSetCondition(tabletMetadata.getFiles(),
-                storedTabletFile -> convertTextToByteArray(storedTabletFile.getMetadataText()),
+                storedTabletFile -> storedTabletFile.getMetadataText().toString().getBytes(UTF_8),
                 DataFileColumnFamily.NAME);
 
         // Create condition for checking keys (e.g., using the path as the key)
         @SuppressWarnings("unchecked")
         Condition keysCondition = SetEqualityIterator.createSetCondition(
             ((Map<ExternalCompactionId,CompactionMetadata>) tabletMetadata.getFiles()).keySet(),
-            path -> convertStringToByteArray(path.toString()), // Assuming path is the key
+            path -> path.toString().getBytes(UTF_8), // Assuming path is the key
             DataFileColumnFamily.NAME);
 
         // Add both conditions to mutation
