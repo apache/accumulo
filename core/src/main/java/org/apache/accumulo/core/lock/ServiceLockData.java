@@ -170,7 +170,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   public HostAndPort getAddress(ThriftService service) {
     String s = getAddressString(service);
-    return s == null ? null : AddressUtil.parseAddress(s, false);
+    return s == null ? null : AddressUtil.parseAddress(s);
   }
 
   public String getGroup(ThriftService service) {

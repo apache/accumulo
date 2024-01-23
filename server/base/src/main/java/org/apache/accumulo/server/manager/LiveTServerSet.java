@@ -398,11 +398,11 @@ public class LiveTServerSet implements Watcher {
       if (index == -1) {
         throw new IllegalArgumentException("Could not parse tabletserver '" + tabletServer + "'");
       }
-      addr = AddressUtil.parseAddress(tabletServer.substring(0, index), false);
+      addr = AddressUtil.parseAddress(tabletServer.substring(0, index));
       // Strip off the last bracket
       sessionId = tabletServer.substring(index + 1, tabletServer.length() - 1);
     } else {
-      addr = AddressUtil.parseAddress(tabletServer, false);
+      addr = AddressUtil.parseAddress(tabletServer);
     }
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
       if (entry.getValue().instance.getHostAndPort().equals(addr)) {
