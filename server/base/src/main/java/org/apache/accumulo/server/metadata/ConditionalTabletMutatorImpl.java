@@ -58,6 +58,7 @@ import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -158,6 +159,10 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     return this;
   }
 
+  private byte[] convertTextToByteArray(Text text) {
+    return text.getBytes();
+  }
+
   private void requireSameSingle(TabletMetadata tabletMetadata, ColumnType type) {
     switch (type) {
       case PREV_ROW:
@@ -171,8 +176,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case FILES: {
         // ELASTICITY_TODO compare values?
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFiles(),
-            stf -> stf.getMetadata().getBytes(UTF_8), DataFileColumnFamily.NAME);
+        Condition c = SetEqualityIterator.createSetCondition(tabletMetadata.getFiles(),
+            storedTabletFile -> convertTextToByteArray(storedTabletFile.getMetadataText()),
+            DataFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

@@ -501,10 +501,6 @@ public interface Ample {
     }
   }
 
-  static <K,V> boolean compareMaps(Map<K,V> map1, Map<K,V> map2) {
-    return map1.equals(map2);
-  }
-
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
     /**
@@ -532,17 +528,8 @@ public interface Ample {
      * as what is in the passed in tabletMetadata object.
      */
 
-    default ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
-        ColumnType... otherTypes) {
-      // Assuming tabletFiles is the map you want to compare
-      Map<StoredTabletFile,DataFileValue> tabletFiles = tabletMetadata.getFilesMap();
-
-      if (!compareMaps(tabletFiles, tabletFiles)) {
-        // Maps are not the same, throw an exception
-        throw new RuntimeException("Tablet files are not the same.");
-      }
-      return this;
-    }
+    ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
+        ColumnType... otherTypes);
 
     /**
      * <p>

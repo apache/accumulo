@@ -186,4 +186,23 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
   }
 
+  /**
+   * If two sets are equals and they are encoded with this method then the resulting byte arrays
+   * should be equal.
+   */
+  private static <T> byte[] encodeSet(Set<T> set, Function<T,byte[]> encoder) {
+    return encode(set, encoder);
+  }
+
+  /**
+   * Custom method to check equality of the entire set of StoredTabletFile instances
+   */
+  public static <T> Condition createSetCondition(Set<T> set, Function<T,byte[]> encoder,
+      Text family) {
+    Preconditions.checkArgument(set instanceof Set);
+    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
+        SetEqualityIterator.class);
+    return new Condition(family, EMPTY).setValue(encodeSet(set, encoder)).setIterators(is);
+  }
+
 }

@@ -55,6 +55,10 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private static final Comparator<StoredTabletFile> comparator = Comparator
       .comparing(StoredTabletFile::getMetadataPath).thenComparing(StoredTabletFile::getRange);
 
+  public byte[] getMetadataBytes() {
+    return getMetadataText().getBytes();
+  }
+
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
    * the entry can be deleted.
