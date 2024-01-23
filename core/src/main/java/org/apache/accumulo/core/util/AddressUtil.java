@@ -31,11 +31,10 @@ public class AddressUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AddressUtil.class);
 
-  public static HostAndPort parseAddress(String address, boolean ignoreMissingPort)
-      throws NumberFormatException {
+  public static HostAndPort parseAddress(String address) throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);
-    if (!ignoreMissingPort && !hap.hasPort()) {
+    if (!hap.hasPort()) {
       throw new IllegalArgumentException(
           "Address was expected to contain port. address=" + address);
     }
@@ -44,7 +43,7 @@ public class AddressUtil {
   }
 
   public static HostAndPort parseAddress(String address, int defaultPort) {
-    return parseAddress(address, true).withDefaultPort(defaultPort);
+    return HostAndPort.fromString(address).withDefaultPort(defaultPort);
   }
 
   /**
