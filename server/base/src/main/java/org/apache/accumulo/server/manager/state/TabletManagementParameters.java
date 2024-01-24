@@ -126,7 +126,7 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
-    this.volumeReplacements = jdata.volumeReplacements;
+    this.volumeReplacements = Collections.unmodifiableMap(jdata.volumeReplacements);
   }
 
   public ManagerState getManagerState() {
