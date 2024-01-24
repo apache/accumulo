@@ -38,31 +38,32 @@ import java.util.stream.Stream;
 public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
-  private Map<Long,TStatus> statuses = new HashMap<>();
-  private Set<Long> reserved = new HashSet<>();
+  private Map<FateId,TStatus> statuses = new HashMap<>();
+  private Set<FateId> reserved = new HashSet<>();
 
   @Override
-  public long create() {
-    statuses.put(nextId, TStatus.NEW);
-    return nextId++;
+  public FateId create() {
+    FateId fateId = FateId.from(FateInstanceType.USER, nextId++);
+    statuses.put(fateId, TStatus.NEW);
+    return fateId;
   }
 
   @Override
-  public FateTxStore<String> reserve(long tid) {
-    if (reserved.contains(tid)) {
+  public FateTxStore<String> reserve(FateId fateId) {
+    if (reserved.contains(fateId)) {
       throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
     }
     // twice... if test change, then change this
-    reserved.add(tid);
-    return new TestFateTxStore(tid);
+    reserved.add(fateId);
+    return new TestFateTxStore(fateId);
   }
 
   @Override
-  public Optional<FateTxStore<String>> tryReserve(long tid) {
+  public Optional<FateTxStore<String>> tryReserve(FateId fateId) {
     synchronized (this) {
-      if (!reserved.contains(tid)) {
-        reserve(tid);
-        return Optional.of(new TestFateTxStore(tid));
+      if (!reserved.contains(fateId)) {
+        reserve(fateId);
+        return Optional.of(new TestFateTxStore(fateId));
       }
       return Optional.empty();
     }
@@ -70,10 +71,10 @@ public class TestStore implements FateStore<String> {
 
   private class TestFateTxStore implements FateTxStore<String> {
 
-    private final long tid;
+    private final FateId fateId;
 
-    TestFateTxStore(long tid) {
-      this.tid = tid;
+    TestFateTxStore(FateId fateId) {
+      this.fateId = fateId;
     }
 
     @Override
@@ -88,11 +89,11 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public TStatus getStatus() {
-      if (!reserved.contains(tid)) {
+      if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
 
-      TStatus status = statuses.get(tid);
+      TStatus status = statuses.get(fateId);
       if (status == null) {
         return TStatus.UNKNOWN;
       }
@@ -115,8 +116,8 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public long getID() {
-      return tid;
+    public FateId getID() {
+      return fateId;
     }
 
     @Override
@@ -131,13 +132,13 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public void setStatus(TStatus status) {
-      if (!reserved.contains(tid)) {
+      if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
-      if (!statuses.containsKey(tid)) {
+      if (!statuses.containsKey(fateId)) {
         throw new IllegalStateException();
       }
-      statuses.put(tid, status);
+      statuses.put(fateId, status);
     }
 
     @Override
@@ -147,27 +148,27 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public void delete() {
-      if (!reserved.contains(tid)) {
+      if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
-      statuses.remove(tid);
+      statuses.remove(fateId);
     }
 
     @Override
     public void unreserve(long deferTime, TimeUnit timeUnit) {
-      if (!reserved.remove(tid)) {
+      if (!reserved.remove(fateId)) {
         throw new IllegalStateException();
       }
     }
   }
 
   @Override
-  public ReadOnlyFateTxStore<String> read(long tid) {
+  public ReadOnlyFateTxStore<String> read(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Stream<Long> list() {
+  public Stream<FateId> list() {
     return new ArrayList<>(statuses.keySet()).stream();
   }
 

@@ -34,6 +34,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -43,7 +45,6 @@ import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFami
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -53,6 +54,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   private final ClientContext context;
   private final String tableName;
 
+  private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
   private static final int maxRepos = 100;
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
@@ -67,12 +69,13 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public long create() {
+  public FateId create() {
     long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+    FateId fateId = FateId.from(fateInstanceType, tid);
 
-    newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
+    newMutator(fateId).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
 
-    return tid;
+    return fateId;
   }
 
   @Override
@@ -82,7 +85,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
-        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+        FateId fateId =
+            FateId.from("FATE:" + fateInstanceType + ":" + e.getKey().getRow().toString());
+        return new FateIdStatus(fateId) {
           @Override
           public TStatus getStatus() {
             return TStatus.valueOf(e.getValue().toString());
@@ -95,9 +100,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected TStatus _getStatus(long tid) {
+  protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
-      scanner.setRange(getRow(tid));
+      scanner.setRange(getRow(fateId));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
           .orElse(TStatus.UNKNOWN);
@@ -105,16 +110,16 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected FateTxStore<T> newFateTxStore(long tid, boolean isReserved) {
-    return new FateTxStoreImpl(tid, isReserved);
+  protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
+    return new FateTxStoreImpl(fateId, isReserved);
   }
 
-  static Range getRow(long tid) {
-    return new Range("tx_" + FastFormat.toHexString(tid));
+  static Range getRow(FateId fateId) {
+    return new Range("tx_" + fateId.getHexTid());
   }
 
-  private FateMutatorImpl<T> newMutator(long tid) {
-    return new FateMutatorImpl<>(context, tableName, tid);
+  private FateMutatorImpl<T> newMutator(FateId fateId) {
+    return new FateMutatorImpl<>(context, tableName, fateId);
   }
 
   private <R> R scanTx(Function<Scanner,R> func) {
@@ -127,8 +132,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
 
-    private FateTxStoreImpl(long tid, boolean isReserved) {
-      super(tid, isReserved);
+    private FateTxStoreImpl(FateId fateId, boolean isReserved) {
+      super(fateId, isReserved);
     }
 
     @Override
@@ -136,7 +141,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       return scanTx(scanner -> {
-        scanner.setRange(getRow(tid));
+        scanner.setRange(getRow(fateId));
         scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return scanner.stream().map(e -> {
@@ -152,7 +157,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       return scanTx(scanner -> {
-        scanner.setRange(getRow(tid));
+        scanner.setRange(getRow(fateId));
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return scanner.stream().map(e -> {
           @SuppressWarnings("unchecked")
@@ -167,7 +172,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(getRow(tid));
+        scanner.setRange(getRow(fateId));
 
         final ColumnFQ cq;
         switch (txInfo) {
@@ -200,7 +205,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       return scanTx(scanner -> {
-        scanner.setRange(getRow(tid));
+        scanner.setRange(getRow(fateId));
         TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
         return scanner.stream().map(e -> Long.parseLong(e.getValue().toString())).findFirst()
             .orElse(0L);
@@ -217,7 +222,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
-      FateMutator<T> fateMutator = newMutator(tid);
+      FateMutator<T> fateMutator = newMutator(fateId);
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
@@ -226,14 +231,14 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newMutator(tid).deleteRepo(t).mutate());
+      top.ifPresent(t -> newMutator(fateId).deleteRepo(t).mutate());
     }
 
     @Override
     public void setStatus(TStatus status) {
       verifyReserved(true);
 
-      newMutator(tid).putStatus(status).mutate();
+      newMutator(fateId).putStatus(status).mutate();
       observedStatus = status;
     }
 
@@ -241,7 +246,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReserved(true);
 
-      FateMutator<T> fateMutator = newMutator(tid);
+      FateMutator<T> fateMutator = newMutator(fateId);
       final byte[] serialized = serializeTxInfo(so);
 
       switch (txInfo) {
@@ -268,12 +273,12 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void delete() {
       verifyReserved(true);
 
-      newMutator(tid).delete().mutate();
+      newMutator(fateId).delete().mutate();
     }
 
     private Optional<Integer> findTop() {
       return scanTx(scanner -> {
-        scanner.setRange(getRow(tid));
+        scanner.setRange(getRow(fateId));
         scanner.setBatchSize(1);
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return scanner.stream().map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();

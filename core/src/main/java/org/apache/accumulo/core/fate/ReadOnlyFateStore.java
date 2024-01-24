@@ -56,7 +56,7 @@ public interface ReadOnlyFateStore<T> {
   /**
    * Reads the data related to fate transaction without reserving it.
    */
-  ReadOnlyFateTxStore<T> read(long tid);
+  ReadOnlyFateTxStore<T> read(FateId fateId);
 
   /**
    * Storage for an individual fate transaction
@@ -115,7 +115,7 @@ public interface ReadOnlyFateStore<T> {
     /**
      * @return the id of the FATE transaction
      */
-    long getID();
+    FateId getID();
   }
 
   /**
@@ -123,7 +123,7 @@ public interface ReadOnlyFateStore<T> {
    *
    * @return all outstanding transactions, including those reserved by others.
    */
-  Stream<Long> list();
+  Stream<FateId> list();
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids

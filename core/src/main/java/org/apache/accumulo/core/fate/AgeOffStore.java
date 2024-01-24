@@ -48,7 +48,7 @@ public class AgeOffStore<T> implements FateStore<T> {
   private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
   private final FateStore<T> store;
-  private Map<Long,Long> candidates;
+  private Map<FateId,Long> candidates;
   private long ageOffTime;
   private long minTime;
   private TimeSource timeSource;
@@ -63,28 +63,28 @@ public class AgeOffStore<T> implements FateStore<T> {
     }
   }
 
-  private synchronized void addCandidate(long txid) {
+  private synchronized void addCandidate(FateId fateId) {
     long time = timeSource.currentTimeMillis();
-    candidates.put(txid, time);
+    candidates.put(fateId, time);
     if (time < minTime) {
       minTime = time;
     }
   }
 
-  private synchronized void removeCandidate(long txid) {
-    Long time = candidates.remove(txid);
+  private synchronized void removeCandidate(FateId fateId) {
+    Long time = candidates.remove(fateId);
     if (time != null && time <= minTime) {
       updateMinTime();
     }
   }
 
   public void ageOff() {
-    HashSet<Long> oldTxs = new HashSet<>();
+    HashSet<FateId> oldTxs = new HashSet<>();
 
     synchronized (this) {
       long time = timeSource.currentTimeMillis();
       if (minTime < time && time - minTime >= ageOffTime) {
-        for (Entry<Long,Long> entry : candidates.entrySet()) {
+        for (Entry<FateId,Long> entry : candidates.entrySet()) {
           if (time - entry.getValue() >= ageOffTime) {
             oldTxs.add(entry.getKey());
           }
@@ -95,16 +95,16 @@ public class AgeOffStore<T> implements FateStore<T> {
       }
     }
 
-    for (Long txid : oldTxs) {
+    for (FateId oldTx : oldTxs) {
       try {
-        FateTxStore<T> txStore = store.reserve(txid);
+        FateTxStore<T> txStore = store.reserve(oldTx);
         try {
           switch (txStore.getStatus()) {
             case NEW:
             case FAILED:
             case SUCCESSFUL:
               txStore.delete();
-              log.debug("Aged off FATE tx {}", FateTxId.formatTid(txid));
+              log.debug("Aged off FATE tx {}", oldTx);
               break;
             default:
               break;
@@ -114,7 +114,7 @@ public class AgeOffStore<T> implements FateStore<T> {
           txStore.unreserve(0, TimeUnit.MILLISECONDS);
         }
       } catch (Exception e) {
-        log.warn("Failed to age off FATE tx " + FateTxId.formatTid(txid), e);
+        log.warn("Failed to age off FATE tx " + oldTx, e);
       }
     }
   }
@@ -129,15 +129,15 @@ public class AgeOffStore<T> implements FateStore<T> {
 
     // ELASTICITY_TODO need to rework how this class works so that it does not buffer everything in
     // memory.
-    List<Long> txids = store.list().collect(Collectors.toList());
-    for (Long txid : txids) {
-      FateTxStore<T> txStore = store.reserve(txid);
+    List<FateId> fateIds = store.list().collect(Collectors.toList());
+    for (FateId fateId : fateIds) {
+      FateTxStore<T> txStore = store.reserve(fateId);
       try {
         switch (txStore.getStatus()) {
           case NEW:
           case FAILED:
           case SUCCESSFUL:
-            addCandidate(txid);
+            addCandidate(fateId);
             break;
           default:
             break;
@@ -149,20 +149,20 @@ public class AgeOffStore<T> implements FateStore<T> {
   }
 
   @Override
-  public long create() {
-    long txid = store.create();
-    addCandidate(txid);
-    return txid;
+  public FateId create() {
+    FateId fateId = store.create();
+    addCandidate(fateId);
+    return fateId;
   }
 
   @Override
-  public FateTxStore<T> reserve(long tid) {
-    return new AgeOffFateTxStore(store.reserve(tid));
+  public FateTxStore<T> reserve(FateId fateId) {
+    return new AgeOffFateTxStore(store.reserve(fateId));
   }
 
   @Override
-  public Optional<FateTxStore<T>> tryReserve(long tid) {
-    return store.tryReserve(tid).map(AgeOffFateTxStore::new);
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    return store.tryReserve(fateId).map(AgeOffFateTxStore::new);
   }
 
   private class AgeOffFateTxStore extends WrappedFateTxStore<T> {
@@ -198,12 +198,12 @@ public class AgeOffStore<T> implements FateStore<T> {
   }
 
   @Override
-  public ReadOnlyFateTxStore<T> read(long tid) {
-    return store.read(tid);
+  public ReadOnlyFateTxStore<T> read(FateId fateId) {
+    return store.read(fateId);
   }
 
   @Override
-  public Stream<Long> list() {
+  public Stream<FateId> list() {
     return store.list();
   }
 

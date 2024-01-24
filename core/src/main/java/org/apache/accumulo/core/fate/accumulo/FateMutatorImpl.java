@@ -31,27 +31,27 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.io.Text;
 
 public class FateMutatorImpl<T> implements FateMutator<T> {
 
   private final ClientContext context;
   private final String tableName;
-  private final long tid;
+  private final FateId fateId;
   private final Mutation mutation;
 
-  FateMutatorImpl(ClientContext context, String tableName, long tid) {
+  FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
-    this.tid = tid;
-    this.mutation = new Mutation(new Text("tx_" + FastFormat.toHexString(tid)));
+    this.fateId = fateId;
+    this.mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
   }
 
   @Override
@@ -123,7 +123,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   public FateMutator<T> delete() {
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(getRow(tid));
+      scanner.setRange(getRow(fateId));
       scanner.forEach(
           (key, value) -> mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier()));
     } catch (TableNotFoundException e) {
