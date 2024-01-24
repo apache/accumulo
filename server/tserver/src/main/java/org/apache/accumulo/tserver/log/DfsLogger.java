@@ -56,6 +56,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -116,12 +117,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     }
   }
 
-  private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
+  private final LinkedBlockingQueue<LogWork> workQueue = new LinkedBlockingQueue<>();
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER =
-      new DfsLogger.LogWork(null, Durability.FLUSH);
+  private static final LogWork CLOSED_MARKER = new LogWork(null, Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -132,7 +132,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
     @Override
     public void run() {
-      ArrayList<DfsLogger.LogWork> work = new ArrayList<>();
+      ArrayList<LogWork> work = new ArrayList<>();
       boolean sawClosedMarker = false;
       while (!sawClosedMarker) {
         work.clear();
@@ -205,7 +205,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        for (DfsLogger.LogWork logWork : work) {
+        for (LogWork logWork : work) {
           if (logWork == CLOSED_MARKER) {
             sawClosedMarker = true;
           } else {
@@ -215,9 +215,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       }
     }
 
-    private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
+    private void fail(ArrayList<LogWork> work, Exception ex, String why) {
       log.warn("Exception {} {}", why, ex, ex);
-      for (DfsLogger.LogWork logWork : work) {
+      for (LogWork logWork : work) {
         logWork.exception = ex;
       }
     }
@@ -291,7 +291,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   private final ServerContext context;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
-  private LogEntry logEntry;
+  private final LogEntry logEntry;
   private Thread syncThread;
 
   private AtomicLong syncCounter;
@@ -299,8 +299,28 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   private final long slowFlushMillis;
   private long writes = 0;
 
-  public DfsLogger(ServerContext context, AtomicLong syncCounter, AtomicLong flushCounter) {
-    this(context, null);
+  public static DfsLogger fromCounters(ServerContext context, AtomicLong syncCounter,
+      AtomicLong flushCounter, String address) {
+
+    String filename = UUID.randomUUID().toString();
+    String logger = Joiner.on("+").join(address.split(":"));
+    VolumeManager fs = context.getVolumeManager();
+
+    var chooserEnv =
+        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
+    String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
+        + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+
+    return new DfsLogger(context, syncCounter, flushCounter, LogEntry.fromPath(logPath));
+  }
+
+  public static DfsLogger fromExistingLogEntry(ServerContext context, LogEntry logEntry) {
+    return new DfsLogger(context, logEntry);
+  }
+
+  private DfsLogger(ServerContext context, AtomicLong syncCounter, AtomicLong flushCounter,
+      LogEntry logEntry) {
+    this(context, logEntry);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
   }
@@ -310,7 +330,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param logEntry the "log" entry in +r/!0
    */
-  public DfsLogger(ServerContext context, LogEntry logEntry) {
+  private DfsLogger(ServerContext context, LogEntry logEntry) {
     this.context = context;
     this.slowFlushMillis =
         context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
@@ -380,11 +400,10 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = context.getVolumeManager();
 
-    var chooserEnv = new VolumeChooserEnvironmentImpl(
-        org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
+    var chooserEnv =
+        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
     String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
         + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
-    this.logEntry = LogEntry.fromPath(logPath);
 
     LoggerOperation op;
     var serverConf = context.getConfiguration();
@@ -548,7 +567,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
       Durability durability) throws IOException {
-    DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
+    LogWork work = new LogWork(new CountDownLatch(1), durability);
     try {
       for (Pair<LogFileKey,LogFileValue> pair : keys) {
         write(pair.getFirst(), pair.getSecond());

@@ -369,7 +369,7 @@ public class Tablet extends TabletBase {
       // make some closed references that represent the recovered logs
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
-        currentLogs.add(new DfsLogger(tabletServer.getContext(), logEntry));
+        currentLogs.add(DfsLogger.fromExistingLogEntry(tabletServer.getContext(), logEntry));
       }
 
       rebuildReferencedLogs();
