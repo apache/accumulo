@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.stream.Stream;
+
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -46,9 +49,11 @@ public class GetTabletHostingGoalCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    HOSTING GOAL");
-    shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)
-        .forEach(p -> shellState.getWriter()
-            .println(String.format("%-10s   %s", p.getTabletId(), p.getHostingGoal())));
+    try (Stream<TabletInformation> tabletInformation =
+        shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)) {
+      tabletInformation.forEach(p -> shellState.getWriter()
+          .println(String.format("%-10s   %s", p.getTabletId(), p.getHostingGoal())));
+    }
   }
 
   @Override

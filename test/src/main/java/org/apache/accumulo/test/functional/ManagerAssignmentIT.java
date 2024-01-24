@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
@@ -461,8 +462,11 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   }
 
   public static long countTabletsWithLocation(AccumuloClient c, TableId tableId) {
-    return getAmple(c).readTablets().forTable(tableId).fetch(TabletMetadata.ColumnType.LOCATION)
-        .build().stream().filter(tabletMetadata -> tabletMetadata.getLocation() != null).count();
+    try (TabletsMetadata tabletsMetadata = getAmple(c).readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.LOCATION).build()) {
+      return tabletsMetadata.stream().filter(tabletMetadata -> tabletMetadata.getLocation() != null)
+          .count();
+    }
   }
 
   public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)

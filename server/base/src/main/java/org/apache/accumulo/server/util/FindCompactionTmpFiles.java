@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
@@ -111,11 +112,13 @@ public class FindCompactionTmpFiles {
     // tmp files found on the filesystem. This must be done *after* gathering the
     // matches on the filesystem.
     for (DataLevel level : DataLevel.values()) {
-      context.getAmple().readTablets().forLevel(level).fetch(ColumnType.ECOMP).build()
-          .forEach(tm -> {
-            tm.getExternalCompactions().values()
-                .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
-          });
+      try (TabletsMetadata tabletsMetadata =
+          context.getAmple().readTablets().forLevel(level).fetch(ColumnType.ECOMP).build()) {
+        tabletsMetadata.forEach(tm -> {
+          tm.getExternalCompactions().values()
+              .forEach(ecm -> matches.remove(ecm.getCompactTmpName().getPath()));
+        });
+      }
     }
     LOG.trace("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;

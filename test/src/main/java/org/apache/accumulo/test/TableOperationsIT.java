@@ -40,6 +40,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -688,12 +689,14 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   private void verifyTabletGoals(String tableName, Range range,
       List<HostingGoalForTablet> expectedGoals) throws TableNotFoundException {
-    List<TabletInformation> tabletInfo = accumuloClient.tableOperations()
-        .getTabletInformation(tableName, range).collect(Collectors.toList());
-    assertEquals(expectedGoals.size(), tabletInfo.size());
-    for (var i = 0; i < expectedGoals.size(); i++) {
-      assertEquals(expectedGoals.get(i).getTabletId(), tabletInfo.get(i).getTabletId());
-      assertEquals(expectedGoals.get(i).getHostingGoal(), tabletInfo.get(i).getHostingGoal());
+    try (Stream<TabletInformation> tabletInformation =
+        accumuloClient.tableOperations().getTabletInformation(tableName, range)) {
+      List<TabletInformation> tabletInfo = tabletInformation.collect(Collectors.toList());
+      assertEquals(expectedGoals.size(), tabletInfo.size());
+      for (var i = 0; i < expectedGoals.size(); i++) {
+        assertEquals(expectedGoals.get(i).getTabletId(), tabletInfo.get(i).getTabletId());
+        assertEquals(expectedGoals.get(i).getHostingGoal(), tabletInfo.get(i).getHostingGoal());
+      }
     }
   }
 

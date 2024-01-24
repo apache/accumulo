@@ -117,8 +117,12 @@ public class SplitMillionIT extends AccumuloClusterHarness {
         log.info("Row: {} scan1: {}ms write: {}ms scan2: {}ms", row, t2 - t1, t3 - t2, t4 - t3);
       }
 
+      long count;
       long t1 = System.currentTimeMillis();
-      long count = c.tableOperations().getTabletInformation(tableName, new Range()).count();
+      try (var tabletInformation =
+          c.tableOperations().getTabletInformation(tableName, new Range())) {
+        count = tabletInformation.count();
+      }
       long t2 = System.currentTimeMillis();
       assertEquals(1_000_000, count);
       log.info("Time to scan all tablets information : {}ms", t2 - t1);
@@ -128,7 +132,6 @@ public class SplitMillionIT extends AccumuloClusterHarness {
       c.tableOperations().compact(tableName,
           new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true).setFlush(true));
       t2 = System.currentTimeMillis();
-      assertEquals(1_000_000, count);
       log.info("Time to compact all tablets : {}ms", t2 - t1);
 
       var expected = Map.of("y", "900", "z", "300");

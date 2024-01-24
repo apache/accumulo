@@ -44,6 +44,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -914,13 +916,16 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     assertEquals(iterSetting, client.tableOperations().getIteratorSetting(table, "fam9",
         IteratorUtil.IteratorScope.scan));
 
-    client.tableOperations().getTabletInformation(table, new Range()).forEach(tabletInformation -> {
-      if (tabletInformation.getTabletId().getEndRow() == null) {
-        assertEquals(TabletHostingGoal.ALWAYS, tabletInformation.getHostingGoal());
-      } else {
-        assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getHostingGoal());
-      }
-    });
+    try (Stream<TabletInformation> tabletInfo =
+        client.tableOperations().getTabletInformation(table, new Range())) {
+      tabletInfo.forEach(tabletInformation -> {
+        if (tabletInformation.getTabletId().getEndRow() == null) {
+          assertEquals(TabletHostingGoal.ALWAYS, tabletInformation.getHostingGoal());
+        } else {
+          assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getHostingGoal());
+        }
+      });
+    }
 
     verifyData(client, table, Authorizations.EMPTY,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.vis.isEmpty()));

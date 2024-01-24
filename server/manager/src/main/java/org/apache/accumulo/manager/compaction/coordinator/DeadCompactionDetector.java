@@ -36,6 +36,7 @@ import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -78,13 +79,15 @@ public class DeadCompactionDetector {
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
     //
     // find what external compactions tablets think are running
-    context.getAmple().readTablets().forLevel(DataLevel.USER)
+    try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forLevel(DataLevel.USER)
         .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
-        .build().forEach(tm -> {
-          tm.getExternalCompactions().keySet().forEach(ecid -> {
-            tabletCompactions.put(ecid, tm.getExtent());
-          });
+        .build()) {
+      tabletsMetadata.forEach(tm -> {
+        tm.getExternalCompactions().keySet().forEach(ecid -> {
+          tabletCompactions.put(ecid, tm.getExtent());
         });
+      });
+    }
 
     if (tabletCompactions.isEmpty()) {
       // Clear out dead compactions, tservers don't think anything is running
