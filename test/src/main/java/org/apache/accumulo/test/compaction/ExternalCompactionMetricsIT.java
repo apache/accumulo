@@ -194,7 +194,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
   private static boolean match(Metric input, String queue, String value) {
     if (input.getTags() != null) {
       String id = input.getTags().get("queue.id");
-      if (id != null && id.equals("e." + queue) && input.getValue().equals(value)) {
+      if (id != null && id.equals(queue) && input.getValue().equals(value)) {
         return true;
       }
     }
