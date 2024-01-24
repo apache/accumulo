@@ -58,6 +58,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+//TODO when removing this class, also remove MetadataSchema.Upgrader12to13
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);

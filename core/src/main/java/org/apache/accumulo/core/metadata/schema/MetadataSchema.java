@@ -421,7 +421,7 @@ public class MetadataSchema {
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
 
-    // These can be removed when the corresponding upgrade code is removed
+    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
     public static class Upgrade12to13 {
 
       /**
