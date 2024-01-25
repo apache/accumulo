@@ -70,7 +70,6 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.ScanServerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.log.CreateEmptyWal;
 import org.apache.accumulo.tserver.logger.LogReader;
 import org.apache.accumulo.tserver.util.CreateEmpty;
 import org.junit.jupiter.api.Tag;
@@ -133,7 +132,6 @@ public class KeywordStartIT {
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("create-empty", CreateEmpty.class);
-    expectSet.put("create-empty-wal", CreateEmptyWal.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("dump-zoo", DumpZookeeper.class);
     expectSet.put("ec-admin", ECAdmin.class);
