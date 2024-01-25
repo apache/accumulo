@@ -34,10 +34,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.iterators.user.HasWalsFilter;
+import org.apache.accumulo.core.iterators.user.GcWalsFilter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -69,7 +70,7 @@ public class GarbageCollectWriteAheadLogs {
   private final VolumeManager fs;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final Iterable<TabletMetadata> store;
+  private final Function<Set<TServerInstance>,Iterable<TabletMetadata>> store;
 
   /**
    * Creates a new GC WAL object.
@@ -83,13 +84,18 @@ public class GarbageCollectWriteAheadLogs {
     this.fs = fs;
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
-    this.store = () -> Iterators.concat(
-        context.getAmple().readTablets().forLevel(DataLevel.ROOT).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.METADATA).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
-        context.getAmple().readTablets().forLevel(DataLevel.USER).filter(new HasWalsFilter())
-            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator());
+
+    this.store = liveTserverSet -> {
+      var gcWalsFilter = new GcWalsFilter(liveTserverSet);
+
+      return () -> Iterators.concat(
+          context.getAmple().readTablets().forLevel(DataLevel.ROOT).filter(gcWalsFilter)
+              .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
+          context.getAmple().readTablets().forLevel(DataLevel.METADATA).filter(gcWalsFilter)
+              .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator(),
+          context.getAmple().readTablets().forLevel(DataLevel.USER).filter(gcWalsFilter)
+              .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build().iterator());
+    };
   }
 
   /**
@@ -101,7 +107,8 @@ public class GarbageCollectWriteAheadLogs {
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletMetadata> store) {
+      LiveTServerSet liveTServerSet, WalStateManager walMarker,
+      Function<Set<TServerInstance>,Iterable<TabletMetadata>> store) {
     this.context = context;
     this.fs = fs;
     this.liveServers = liveTServerSet;
@@ -279,7 +286,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    for (TabletMetadata tabletMetadata : store) {
+    for (TabletMetadata tabletMetadata : store.apply(liveServers)) {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (TabletState.compute(tabletMetadata, liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {

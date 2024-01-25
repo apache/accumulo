@@ -67,8 +67,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.iterators.user.GcWalsFilter;
 import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
-import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -939,7 +939,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.ACCEPTED, results.get(ke).getStatus());
       }
       // check that applying a combination of filters returns only tablets that meet the criteria
-      testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new HasWalsFilter()),
+      testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new GcWalsFilter(Set.of())),
           tabletsWithWalCompactFlush, "Combination of filters did not return the expected tablets");
 
       TServerInstance serverInstance = new TServerInstance(server, 1L);
@@ -961,7 +961,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Set<KeyExtent> expected = Sets.intersection(tabletsWithWalCompactFlush, tabletsWithLocation);
       assertFalse(expected.isEmpty());
       testFilterApplied(context,
-          Set.of(new HasCurrentFilter(), new HasWalsFilter(), new TestTabletMetadataFilter()),
+          Set.of(new HasCurrentFilter(), new GcWalsFilter(Set.of()),
+              new TestTabletMetadataFilter()),
           expected, "Combination of filters did not return the expected tablets");
     }
 
@@ -1015,7 +1016,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     public void walFilter() {
       ServerContext context = cluster.getServerContext();
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-      Set<TabletMetadataFilter> filter = Set.of(new HasWalsFilter());
+      Set<TabletMetadataFilter> filter = Set.of(new GcWalsFilter(Set.of()));
 
       // make sure we read all tablets on table initially with no filters
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
@@ -1052,6 +1053,41 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // test that now only the tablet with a wal is returned when using filter()
       testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
+
+      var ts1 = new TServerInstance("localhost:9997", 5000L);
+      var ts2 = new TServerInstance("localhost:9997", 6000L);
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts1)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.current(ts1)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.current(ts2)).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+
+      testFilterApplied(context, filter, Set.of(e1, e2, e3, e4),
+          "All tablets should appear to be assigned to dead tservers and be returned");
+
+      // add ts1 to live tservers set and make ts2 look like a dead tserver
+      filter = Set.of(new GcWalsFilter(Set.of(ts1)));
+      testFilterApplied(context, filter, Set.of(e2, e3, e4),
+          "Tablets assigned to ts2 or with a wal should be returned");
+
+      // add ts2 to live tservers set and make ts1 look like a dead tserver
+      filter = Set.of(new GcWalsFilter(Set.of(ts2)));
+      testFilterApplied(context, filter, Set.of(e1, e2),
+          "Tablets assigned to ts1 or with a wal should be returned");
+
+      // add ts1 and ts2 to live tserver set, so nothing should look dead
+      filter = Set.of(new GcWalsFilter(Set.of(ts1, ts2)));
+      testFilterApplied(context, filter, Set.of(e2), "Only tablets with a wal should be returned");
     }
 
     @Test
