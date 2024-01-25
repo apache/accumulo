@@ -32,7 +32,7 @@ public class AddressUtil {
   private static final Logger log = LoggerFactory.getLogger(AddressUtil.class);
 
   public static HostAndPort parseAddress(final String address) throws NumberFormatException {
-    String normalized = normalizePortSeparator(address);
+    String normalized = fromDfsFileFormat(address);
     HostAndPort hap = HostAndPort.fromString(normalized);
     if (!hap.hasPort()) {
       throw new IllegalArgumentException(
@@ -43,12 +43,31 @@ public class AddressUtil {
   }
 
   public static HostAndPort parseAddress(final String address, final int defaultPort) {
-    String normalized = normalizePortSeparator(address);
+    String normalized = fromDfsFileFormat(address);
     return HostAndPort.fromString(normalized).withDefaultPort(defaultPort);
   }
 
-  private static String normalizePortSeparator(final String address) {
+  /**
+   * Converts address string into as standard format of host:port string. The port separator
+   * character ':' is illegal in a dfs file path. In places where host:port are stored as a path the
+   * ':' character is replaced with '+'. This method reverses the '+' substitution if present
+   *
+   * @param address An host / port pair as either host:port or host+port.
+   * @return a standardize host:port pair string.
+   */
+  private static String fromDfsFileFormat(final String address) {
     return address.replace('+', ':');
+  }
+
+  /**
+   * Encodes a host:port pair into host+port that can be used as a dfs file path. See
+   * {@link #fromDfsFileFormat(String)}
+   *
+   * @param address An host / port pair as either host:port or host+port.
+   * @return the host and port as host+port for using it in a dfs path
+   */
+  public static String toDfsFileFormat(final String address) {
+    return address.replace(':', '+');
   }
 
   /**

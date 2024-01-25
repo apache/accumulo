@@ -30,10 +30,9 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class LogEntryTest {
 
@@ -64,7 +63,7 @@ public class LogEntryTest {
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
     assertEquals(validPath, logEntry.getPath());
-    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals(AddressUtil.parseAddress(validHost), logEntry.getTServer());
     assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
   }
