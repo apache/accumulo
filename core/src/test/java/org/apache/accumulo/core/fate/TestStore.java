@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -41,9 +41,11 @@ public class TestStore implements FateStore<String> {
   private Map<FateId,TStatus> statuses = new HashMap<>();
   private Set<FateId> reserved = new HashSet<>();
 
+  private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
+
   @Override
   public FateId create() {
-    FateId fateId = FateId.from(FateInstanceType.USER, nextId++);
+    FateId fateId = FateId.from(fateInstanceType, nextId++);
     statuses.put(fateId, TStatus.NEW);
     return fateId;
   }
@@ -173,7 +175,7 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
     throw new UnsupportedOperationException();
   }
 

@@ -22,7 +22,7 @@ import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -131,5 +131,5 @@ public interface ReadOnlyFateStore<T> {
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids
    * found were passed to the consumer.
    */
-  void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer);
+  void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer);
 }

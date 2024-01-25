@@ -306,7 +306,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   protected Stream<FateIdStatus> getTransactions() {
     try {
       return zk.getChildren(path).stream().map(strTxid -> {
-        FateId fateId = FateId.from("FATE:" + fateInstanceType + ":" + strTxid);
+        FateId fateId = FateId.from(fateInstanceType, strTxid);
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
         Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(fateId));

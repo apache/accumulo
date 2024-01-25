@@ -31,8 +31,6 @@ import org.apache.accumulo.core.util.FastFormat;
 public class FateId extends AbstractId<FateId> {
 
   private static final String PREFIX = "FATE:";
-  private static final Pattern PATTERN =
-      Pattern.compile("^" + PREFIX + "(USER|META)" + ":" + "[0-9a-fA-F]+$");
 
   private FateId(String canonical) {
     super(canonical);
@@ -71,29 +69,18 @@ public class FateId extends AbstractId<FateId> {
   }
 
   /**
-   * Creates a new FateId object from the given string
+   * Creates a new FateId object from the given parameters
    *
-   * @param fateIdStr Should be of the form "FATE:[{@link FateInstanceType}]:[hex long tid]"
-   *        (without the brackets)
+   * @param type the {@link FateInstanceType}
+   * @param hexTid the hexadecimal transaction id
    * @return a new FateId object
    */
-  public static FateId from(String fateIdStr) {
-    return new FateId(validate(fateIdStr));
-  }
-
-  /**
-   * Validates that a fateIdStr is of the form "FATE:[{@link FateInstanceType}]:[hex long tid]"
-   * (without the brackets).
-   *
-   * @param fateIdStr The string to validate
-   * @return the given string, if the string is valid. An {@link IllegalArgumentException} is thrown
-   *         otherwise.
-   */
-  public static String validate(String fateIdStr) {
-    if (PATTERN.matcher(fateIdStr).matches()) {
-      return fateIdStr;
+  public static FateId from(FateInstanceType type, String hexTid) {
+    Pattern hexPattern = Pattern.compile("^[0-9a-fA-F]+$");
+    if (hexPattern.matcher(hexTid).matches()) {
+      return new FateId(PREFIX + type + ":" + hexTid);
     } else {
-      throw new IllegalArgumentException("Invalid FATE ID: " + fateIdStr);
+      throw new IllegalArgumentException("Invalid Hex Transaction ID: " + hexTid);
     }
   }
 

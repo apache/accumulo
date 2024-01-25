@@ -21,8 +21,8 @@ package org.apache.accumulo.core.logging;
 import java.io.Serializable;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
@@ -119,7 +119,7 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+      public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }
 

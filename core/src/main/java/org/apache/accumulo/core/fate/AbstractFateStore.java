@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
@@ -124,7 +124,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -147,7 +147,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
               }
             }).forEach(fateId -> {
               seen.incrementAndGet();
-              idConsumer.accept(fateId.getTid());
+              idConsumer.accept(fateId);
             });
       }
 
