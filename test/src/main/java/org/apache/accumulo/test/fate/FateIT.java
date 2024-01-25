@@ -28,7 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -97,6 +101,54 @@ public abstract class FateIT extends SharedMiniClusterBase {
     }
   }
 
+  /**
+   * Test Repo that allows configuring a delay time to be returned in isReady().
+   */
+  public static class DeferredTestRepo implements Repo<TestEnv> {
+    private static final long serialVersionUID = 1L;
+
+    private final String data;
+
+    // These are static as we don't want to serialize them and they should
+    // be shared across all instances during the test
+    private static final AtomicInteger executedCalls = new AtomicInteger();
+    private static final AtomicLong delay = new AtomicLong();
+    private static final CountDownLatch callLatch = new CountDownLatch(1);
+
+    public DeferredTestRepo(String data) {
+      this.data = data;
+    }
+
+    @Override
+    public long isReady(long tid, TestEnv environment) {
+      LOG.debug("Fate {} delayed {}", tid, delay.get());
+      return delay.get();
+    }
+
+    @Override
+    public String getName() {
+      return "TestRepo_" + data;
+    }
+
+    @Override
+    public Repo<TestEnv> call(long tid, TestEnv environment) throws Exception {
+      callLatch.await();
+      LOG.debug("Executing call {}, total executed {}", FateTxId.formatTid(tid),
+          executedCalls.incrementAndGet());
+      return null;
+    }
+
+    @Override
+    public void undo(long tid, TestEnv environment) {
+
+    }
+
+    @Override
+    public String getReturn() {
+      return data + "_ret";
+    }
+  }
+
   @Test
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
@@ -105,11 +157,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
 
   protected void testTransactionStatus(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    TestEnv testEnv = new TestEnv();
-    Fate<TestEnv> fate = new Fate<>(testEnv, store, r -> r + "", config);
+    Fate<TestEnv> fate = initializeFate(store);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -141,11 +189,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
   }
 
   protected void testCancelWhileNew(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    TestEnv testEnv = new TestEnv();
-    Fate<TestEnv> fate = new Fate<>(testEnv, store, r -> r + "", config);
+    Fate<TestEnv> fate = initializeFate(store);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -180,11 +224,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
 
   protected void testCancelWhileSubmittedAndRunning(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    TestEnv testEnv = new TestEnv();
-    Fate<TestEnv> fate = new Fate<>(testEnv, store, r -> r + "", config);
+    Fate<TestEnv> fate = initializeFate(store);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -219,11 +259,7 @@ public abstract class FateIT extends SharedMiniClusterBase {
 
   protected void testCancelWhileInCall(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    TestEnv testEnv = new TestEnv();
-    Fate<TestEnv> fate = new Fate<>(testEnv, store, r -> r + "", config);
+    Fate<TestEnv> fate = initializeFate(store);
     try {
 
       // Wait for the transaction runner to be scheduled.
@@ -248,9 +284,99 @@ public abstract class FateIT extends SharedMiniClusterBase {
 
   }
 
-  protected abstract TStatus getTxStatus(ServerContext sctx, long txid) throws Exception;
+  @Test
+  @Timeout(30)
+  public void testDeferredOverflow() throws Exception {
+    // Set a maximum deferred map size of 10 transactions so that when the 11th
+    // is seen the Fate store should clear the deferred map and mark
+    // the flag as overflow so that all the deferred transactions will be run
+    executeTest(this::testDeferredOverflow, 10);
+  }
+
+  protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    Fate<TestEnv> fate = initializeFate(store);
+    try {
+
+      // Wait for the transaction runner to be scheduled.
+      Thread.sleep(3000);
+
+      DeferredTestRepo.executedCalls.set(0);
+      // Initialize the repo to have a delay of 30 seconds
+      // so it will be deferred when submitted
+      DeferredTestRepo.delay.set(30000);
+
+      Set<Long> transactions = new HashSet<>();
+
+      // Start by creating 10 transactions that are all deferred which should
+      // fill up the deferred map with all 10 as we set the max deferred limit
+      // to only allow 10 transactions
+      for (int i = 0; i < 10; i++) {
+        submitDeferred(fate, sctx, transactions);
+      }
+
+      // Verify all 10 are deferred in the map and each will
+      // We should not be in an overflow state yet
+      Wait.waitFor(() -> store.getDeferredCount() == 10);
+      assertFalse(store.isDeferredOverflow());
+
+      // After verifying all 10 are deferred, submit another 10
+      // which should trigger an overflow. We are blocking in the
+      // call method of DeferredTestRepo at this point using a countdown
+      // latch to prevent fate executor from running early and clearing
+      // the deferred overflow flag before we can check it below
+      for (int i = 0; i < 10; i++) {
+        submitDeferred(fate, sctx, transactions);
+      }
+      // Verify deferred overflow is true and map is now empty
+      Wait.waitFor(() -> store.getDeferredCount() == 0);
+      Wait.waitFor(store::isDeferredOverflow);
+
+      // Set the delay to 0 and countdown so we will process the
+      // call method in the repos. We need to change the delay because
+      // due to the async nature of Fate it's possible some of the submitted
+      // repos previously wouldn't be processed in the first batch until
+      // after the flag was cleared which would trigger a long delay again
+      DeferredTestRepo.delay.set(0);
+      DeferredTestRepo.callLatch.countDown();
+
+      // Verify the flag was cleared and everything ran
+      Wait.waitFor(() -> !store.isDeferredOverflow());
+      Wait.waitFor(() -> DeferredTestRepo.executedCalls.get() == 20);
+
+      // Verify all 20 unique transactions finished
+      Wait.waitFor(() -> {
+        transactions.removeIf(txid -> getTxStatus(sctx, txid) == UNKNOWN);
+        return transactions.isEmpty();
+      });
+
+    } finally {
+      fate.shutdown();
+    }
+  }
+
+  private void submitDeferred(Fate<TestEnv> fate, ServerContext sctx, Set<Long> transactions) {
+    long txid = fate.startTransaction();
+    transactions.add(txid);
+    assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
+    fate.seedTransaction("TestOperation", txid, new DeferredTestRepo("testDeferredOverflow"), true,
+        "Test Op");
+    assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, txid));
+  }
+
+  protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    return new Fate<>(new TestEnv(), store, r -> r + "", config);
+  }
+
+  protected abstract TStatus getTxStatus(ServerContext sctx, long txid);
 
   protected abstract void executeTest(FateTestExecutor testMethod) throws Exception;
+
+  protected abstract void executeTest(FateTestExecutor testMethod, int maxDeferred)
+      throws Exception;
 
   protected interface FateTestExecutor {
     void execute(FateStore<TestEnv> store, ServerContext sctx) throws Exception;

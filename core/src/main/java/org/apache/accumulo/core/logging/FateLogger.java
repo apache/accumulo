@@ -114,7 +114,7 @@ public class FateLogger {
       }
 
       @Override
-      public Stream<FateId> list() {
+      public Stream<FateIdStatus> list() {
         return store.list();
       }
 
@@ -130,6 +130,15 @@ public class FateLogger {
           storeLog.trace("{} created fate transaction", fateId);
         }
         return fateId;
+      }
+
+      public int getDeferredCount() {
+        return store.getDeferredCount();
+      }
+
+      @Override
+      public boolean isDeferredOverflow() {
+        return store.isDeferredOverflow();
       }
     };
   }

@@ -538,8 +538,11 @@ public class CompactionIT extends AccumuloClusterHarness {
       // creating a user table should cause a write to the metadata table
       c.tableOperations().create(tableNames[0]);
 
-      var mfiles1 = getServerContext().getAmple().readTablets()
-          .forTable(AccumuloTable.METADATA.tableId()).build().iterator().next().getFiles();
+      Set<StoredTabletFile> mfiles1;
+      try (TabletsMetadata tabletsMetadata = getServerContext().getAmple().readTablets()
+          .forTable(AccumuloTable.METADATA.tableId()).build()) {
+        mfiles1 = tabletsMetadata.iterator().next().getFiles();
+      }
       var rootFiles1 = getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
 
       log.debug("mfiles1 {}",
@@ -567,8 +570,11 @@ public class CompactionIT extends AccumuloClusterHarness {
       // eventually equal one.
 
       Wait.waitFor(() -> {
-        var mfiles2 = getServerContext().getAmple().readTablets()
-            .forTable(AccumuloTable.METADATA.tableId()).build().iterator().next().getFiles();
+        Set<StoredTabletFile> mfiles2;
+        try (TabletsMetadata tabletsMetadata = getServerContext().getAmple().readTablets()
+            .forTable(AccumuloTable.METADATA.tableId()).build()) {
+          mfiles2 = tabletsMetadata.iterator().next().getFiles();
+        }
         log.debug("mfiles2 {}",
             mfiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
         return mfiles2.size() == 1 && !mfiles2.equals(mfiles1);

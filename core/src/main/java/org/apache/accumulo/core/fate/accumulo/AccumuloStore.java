@@ -60,6 +60,11 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
+    this(context, tableName, DEFAULT_MAX_DEFERRED);
+  }
+
+  public AccumuloStore(ClientContext context, String tableName, int maxDeferred) {
+    super(maxDeferred);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
@@ -86,7 +91,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         FateId fateId = FateId.from(fateInstanceType, e.getKey().getRow().toString());
-        return new FateIdStatus(fateId) {
+        return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
             return TStatus.valueOf(e.getValue().toString());

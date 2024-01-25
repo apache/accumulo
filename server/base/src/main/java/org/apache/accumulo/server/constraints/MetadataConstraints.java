@@ -93,7 +93,8 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.OPID_COLUMN,
           HostingColumnFamily.GOAL_COLUMN,
           HostingColumnFamily.REQUESTED_COLUMN,
-          ServerColumnFamily.SELECTED_COLUMN);
+          ServerColumnFamily.SELECTED_COLUMN,
+              Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;

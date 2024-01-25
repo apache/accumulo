@@ -369,17 +369,18 @@ public class ExternalCompactionTestUtils {
 
   public static void assertNoCompactionMetadata(ServerContext ctx, String tableName) {
     var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
-    var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build();
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
 
-    int count = 0;
+      int count = 0;
 
-    for (var tabletMetadata : tabletsMetadata) {
-      assertEquals(Set.of(), tabletMetadata.getCompacted());
-      assertNull(tabletMetadata.getSelectedFiles());
-      assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
-      count++;
+      for (var tabletMetadata : tabletsMetadata) {
+        assertEquals(Set.of(), tabletMetadata.getCompacted());
+        assertNull(tabletMetadata.getSelectedFiles());
+        assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+        count++;
+      }
+
+      assertTrue(count > 0);
     }
-
-    assertTrue(count > 0);
   }
 }

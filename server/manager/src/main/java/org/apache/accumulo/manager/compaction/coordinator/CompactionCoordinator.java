@@ -82,6 +82,7 @@ import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -708,7 +709,8 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.info("Compaction failed, id: {}", externalCompactionId);
+    KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
+    LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
@@ -840,9 +842,12 @@ public class CompactionCoordinator
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
-        .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build().stream()
-        .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
+    try (TabletsMetadata tabletsMetadata =
+        this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+            .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build()) {
+      return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
+          .collect(Collectors.toSet());
+    }
   }
 
   /**

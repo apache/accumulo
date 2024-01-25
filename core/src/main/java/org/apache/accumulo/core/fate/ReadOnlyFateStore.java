@@ -118,12 +118,18 @@ public interface ReadOnlyFateStore<T> {
     FateId getID();
   }
 
+  interface FateIdStatus {
+    FateId getFateId();
+
+    TStatus getStatus();
+  }
+
   /**
    * list all transaction ids in store.
    *
    * @return all outstanding transactions, including those reserved by others.
    */
-  Stream<FateId> list();
+  Stream<FateIdStatus> list();
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids
@@ -132,4 +138,17 @@ public interface ReadOnlyFateStore<T> {
    * found were passed to the consumer.
    */
   void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer);
+
+  /**
+   * Returns true if the deferred map was cleared and if deferred executions are currently disabled
+   * because of too many deferred transactions
+   *
+   * @return true if the map is in a deferred overflow state, else false
+   */
+  boolean isDeferredOverflow();
+
+  /**
+   * @return the current number of transactions that have been deferred
+   */
+  int getDeferredCount();
 }

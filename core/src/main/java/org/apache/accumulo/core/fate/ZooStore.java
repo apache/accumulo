@@ -57,7 +57,12 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
-    super();
+    this(path, zk, DEFAULT_MAX_DEFERRED);
+  }
+
+  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred)
+      throws KeeperException, InterruptedException {
+    super(maxDeferred);
     this.path = path;
     this.zk = zk;
 
@@ -310,7 +315,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
         Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(fateId));
-        return new FateIdStatus(fateId) {
+        return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
             return statusSupplier.get();

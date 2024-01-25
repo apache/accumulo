@@ -42,6 +42,7 @@ public class TestStore implements FateStore<String> {
   private Set<FateId> reserved = new HashSet<>();
 
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
+  private Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
 
   @Override
   public FateId create() {
@@ -109,7 +110,12 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      throw new UnsupportedOperationException();
+      var submap = txInfos.get(fateId);
+      if (submap == null) {
+        return null;
+      }
+
+      return submap.get(txInfo);
     }
 
     @Override
@@ -145,7 +151,11 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
-      throw new UnsupportedOperationException();
+      if (!reserved.contains(fateId)) {
+        throw new IllegalStateException();
+      }
+
+      txInfos.computeIfAbsent(fateId, t -> new HashMap<>()).put(txInfo, val);
     }
 
     @Override
@@ -170,8 +180,18 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Stream<FateId> list() {
-    return new ArrayList<>(statuses.keySet()).stream();
+  public Stream<FateIdStatus> list() {
+    return new ArrayList<>(statuses.entrySet()).stream().map(e -> new FateIdStatus() {
+      @Override
+      public FateId getFateId() {
+        return e.getKey();
+      }
+
+      @Override
+      public TStatus getStatus() {
+        return e.getValue();
+      }
+    });
   }
 
   @Override
@@ -179,4 +199,13 @@ public class TestStore implements FateStore<String> {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public int getDeferredCount() {
+    return 0;
+  }
+
+  @Override
+  public boolean isDeferredOverflow() {
+    return false;
+  }
 }
