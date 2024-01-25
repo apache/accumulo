@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -69,6 +70,10 @@ public class PropertyTest {
       assertFalse(prop.getDescription() == null || prop.getDescription().isEmpty(),
           "Description not set for " + prop);
 
+      // make sure property description ends with a period
+      assertTrue(prop.getDescription().endsWith("."),
+          "Property: " + prop.getKey() + " description does not end with period.");
+
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
       for (String pre : validPrefixes) {
@@ -97,6 +102,34 @@ public class PropertyTest {
         assertFalse(usedPorts.contains(port), "Port already in use: " + port);
         usedPorts.add(port);
         assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+      }
+    }
+  }
+
+  @Test
+  public void testJson() {
+    // using "real" example
+    String json1 =
+        "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
+            .replaceAll("'", "\"");
+    // use synthetic, but valid json
+    String json2 =
+        "[{'foo':'bar','type':'test','fooBar':'32'},{'foo':'bar','type':'test','fooBar':32}]"
+            .replaceAll("'", "\"");
+    String json3 = "{'foo':'bar','type':'test','fooBar':'32'}".replaceAll("'", "\"");
+
+    List<String> valids = List.of(json1, json2, json3);
+
+    List<String> invalids = List.of("notJson", "also not json", "{\"x}", "{\"y\"", "{name:value}",
+        "{ \"foo\" : \"bar\", \"foo\" : \"baz\" }", "{\"y\":123}extra");
+
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.JSON)) {
+        valids.forEach(j -> assertTrue(Property.isValidProperty(prop.getKey(), j)));
+        valids.forEach(j -> assertTrue(prop.getType().isValidFormat(j)));
+
+        invalids.forEach(j -> assertFalse(Property.isValidProperty(prop.getKey(), j)));
+        invalids.forEach(j -> assertFalse(prop.getType().isValidFormat(j)));
       }
     }
   }
@@ -157,6 +190,9 @@ public class PropertyTest {
           break;
         case BOOLEAN:
           invalidValue = "fooFalse";
+          break;
+        case JSON:
+          invalidValue = "not json";
           break;
         default:
           LOG.debug("Property type: {} has no defined test case", propertyType);

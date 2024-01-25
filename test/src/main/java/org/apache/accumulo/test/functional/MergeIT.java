@@ -20,14 +20,19 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,10 +42,20 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.Merge;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -212,6 +227,54 @@ public class MergeIT extends AccumuloClusterHarness {
 
       if (!currentSplits.equals(ess)) {
         throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
+      }
+    }
+  }
+
+  // Test that merge handles metadata from compactions
+  @Test
+  public void testCompactionMetadata() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+
+      var split = new Text("m");
+      c.tableOperations().addSplits(tableName, new TreeSet<>(List.of(split)));
+
+      TableId tableId = getServerContext().getTableId(tableName);
+
+      // add metadata from compactions to tablets prior to merge
+      try (var tabletsMutator = getServerContext().getAmple().mutateTablets()) {
+        for (var extent : List.of(new KeyExtent(tableId, split, null),
+            new KeyExtent(tableId, null, split))) {
+          var tablet = tabletsMutator.mutateTablet(extent);
+          ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+
+          TabletFile tmpFile = new TabletFile(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+          CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+          Set<StoredTabletFile> jobFiles =
+              Set.of(new StoredTabletFile("file:///accumulo/tables/t-0/b-0/b2.rf"));
+          ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, jobFiles,
+              tmpFile, "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, false, 44L);
+          tablet.putExternalCompaction(ecid, ecMeta);
+          tablet.mutate();
+        }
+      }
+
+      // ensure data is in metadata table as expected
+      try (var tablets = getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+        for (var tablet : tablets) {
+          assertFalse(tablet.getExternalCompactions().isEmpty());
+        }
+      }
+
+      c.tableOperations().merge(tableName, null, null);
+
+      // ensure merge operation remove compaction entries
+      try (var tablets = getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+        for (var tablet : tablets) {
+          assertTrue(tablet.getExternalCompactions().isEmpty());
+        }
       }
     }
   }

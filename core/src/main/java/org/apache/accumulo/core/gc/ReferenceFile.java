@@ -29,18 +29,33 @@ import org.apache.accumulo.core.data.TableId;
 public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
+  public final boolean isScan;
 
   // the exact string that is stored in the metadata
   protected final String metadataEntry;
 
-  public ReferenceFile(TableId tableId, String metadataEntry) {
+  protected ReferenceFile(TableId tableId, String metadataEntry, boolean isScan) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
+    this.isScan = isScan;
+  }
+
+  public static ReferenceFile forFile(TableId tableId, String metadataEntry) {
+    return new ReferenceFile(tableId, metadataEntry, false);
+  }
+
+  public static ReferenceFile forScan(TableId tableId, String metadataEntry) {
+    return new ReferenceFile(tableId, metadataEntry, true);
   }
 
   @Override
   public boolean isDirectory() {
     return false;
+  }
+
+  @Override
+  public boolean isScan() {
+    return isScan;
   }
 
   @Override

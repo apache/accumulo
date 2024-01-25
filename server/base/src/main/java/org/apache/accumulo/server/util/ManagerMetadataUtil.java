@@ -41,7 +41,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -132,7 +131,8 @@ public class ManagerMetadataUtil {
     // check to see if prev tablet exist in metadata tablet
     Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
 
-    try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+    try (ScannerImpl scanner2 =
+        new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(), Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
       if (scanner2.iterator().hasNext()) {
@@ -145,7 +145,8 @@ public class ManagerMetadataUtil {
         SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
 
         Key rowKey = new Key(metadataEntry);
-        try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+        try (Scanner scanner3 = new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(),
+            Authorizations.EMPTY)) {
 
           scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
           scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
@@ -180,6 +181,8 @@ public class ManagerMetadataUtil {
       TServerInstance tServerInstance, Location lastLocation, ServiceLock zooLock,
       Optional<ExternalCompactionId> ecid) {
 
+    // Write candidates before the mutation to ensure that a process failure after a mutation would
+    // not affect candidate creation
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -204,6 +207,8 @@ public class ManagerMetadataUtil {
     tablet.putZooLock(zooLock);
 
     tablet.mutate();
+    // Write candidates again to avoid a possible race condition when removing InUse candidates
+    context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
   }
 
   /**

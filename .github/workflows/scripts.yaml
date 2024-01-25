@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 3
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
@@ -51,7 +51,7 @@ jobs:
     timeout-minutes: 3
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 3
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Show the first log message
       run: git log -n1
     - name: Update package repository

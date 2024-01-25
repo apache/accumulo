@@ -216,7 +216,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     if (level == DataLevel.ROOT) {
       if (type == GcCandidateType.INUSE) {
-        // Deletion of INUSE candidates is not supported in 2.1.x.
+        // Since there is only a single root tablet, supporting INUSE candidate deletions would add
+        // additional code complexity without any substantial benefit.
+        // Therefore, deletion of root INUSE candidates is not supported.
         return;
       }
       mutateRootGcCandidates(rgcc -> rgcc.remove(candidates.stream()));
@@ -224,10 +226,20 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
 
     try (BatchWriter writer = context.createBatchWriter(level.metaTable())) {
-      for (GcCandidate candidate : candidates) {
-        Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
-        m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
-        writer.addMutation(m);
+      if (type == GcCandidateType.VALID) {
+        for (GcCandidate candidate : candidates) {
+          Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes all versions of the candidate to avoid reprocessing deleted file entries
+          m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+          writer.addMutation(m);
+        }
+      } else {
+        for (GcCandidate candidate : candidates) {
+          Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes this and older versions while allowing newer candidate versions to persist
+          m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
+          writer.addMutation(m);
+        }
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);

@@ -75,6 +75,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
+@SuppressWarnings("deprecation")
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Tag(MINI_CLUSTER_ONLY)
 @Deprecated

@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.fate.Repo;
@@ -50,13 +51,14 @@ class FinishCreateTable extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
+    final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
 
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
-          TableState.OFFLINE);
+          TableState.OFFLINE, expectedCurrStates);
     } else {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
-          TableState.ONLINE);
+          TableState.ONLINE, expectedCurrStates);
     }
 
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);

@@ -32,7 +32,8 @@ assignees: ''
   - [ ] Downloads page
   - [ ] If LTM release, update previous LTM release entry on downloads page and release notes with an EOL date 1 year from the current release date
   - [ ] DOAP file
-  - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs` using at least JDK 17)
+  - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs`)
+  - [ ] Add updated properties documentation (see [the website README](https://github.com/apache/accumulo-website#updating-property-documentation-for-releases))
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version
   - [ ] Update any older release notes front-matter to indicate they are either `archived: true` or `archived_critical: true`
@@ -43,7 +44,4 @@ assignees: ''
   - [ ] Close this issue
   - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project
   - [ ] Close the project that corresponds to this release
-- Twitter
-  - [ ] [Tweet it](https://tweetdeck.twitter.com)
-  - [ ] [Confirm the tweet](https://twitter.com/ApacheAccumulo)
 

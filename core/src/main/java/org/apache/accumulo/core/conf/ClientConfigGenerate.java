@@ -86,7 +86,7 @@ public class ClientConfigGenerate {
     @Override
     void pageHeader() {
       doc.println("---");
-      doc.println("title: Client Properties");
+      doc.println("title: Client Properties (2.x)");
       doc.println("category: configuration");
       doc.println("order: 3");
       doc.println("---\n");

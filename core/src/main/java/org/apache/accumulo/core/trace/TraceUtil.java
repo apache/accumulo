@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
@@ -43,7 +44,6 @@ import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 
 public class TraceUtil {
 
@@ -124,9 +124,9 @@ public class TraceUtil {
     if (enabled) {
       span.setStatus(StatusCode.ERROR);
       span.recordException(e,
-          Attributes.builder().put(SemanticAttributes.EXCEPTION_TYPE, e.getClass().getName())
-              .put(SemanticAttributes.EXCEPTION_MESSAGE, e.getMessage())
-              .put(SemanticAttributes.EXCEPTION_ESCAPED, rethrown).build());
+          Attributes.builder().put(AttributeKey.stringKey("exception.type"), e.getClass().getName())
+              .put(AttributeKey.stringKey("exception.message"), e.getMessage())
+              .put(AttributeKey.booleanKey("exception.escaped"), rethrown).build());
     }
   }
 

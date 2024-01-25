@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -61,19 +62,16 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,Long> defered;
+  private Map<Long,Long> deferred;
   private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
   private byte[] serialize(Object o) {
 
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
       oos.writeObject(o);
-      oos.close();
-
       return baos.toByteArray();
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -84,9 +82,8 @@ public class ZooStore<T> implements TStore<T> {
       justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
           + " for backwards compatibility")
   private Object deserialize(byte[] ser) {
-    try {
-      ByteArrayInputStream bais = new ByteArrayInputStream(ser);
-      ObjectInputStream ois = new ObjectInputStream(bais);
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(ser);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
       return ois.readObject();
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -106,7 +103,7 @@ public class ZooStore<T> implements TStore<T> {
     this.path = path;
     this.zk = zk;
     this.reserved = new HashSet<>();
-    this.defered = new HashMap<>();
+    this.deferred = new HashMap<>();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -163,9 +160,9 @@ public class ZooStore<T> implements TStore<T> {
               continue;
             }
 
-            if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis()) {
-                defered.remove(tid);
+            if (deferred.containsKey(tid)) {
+              if ((deferred.get(tid) - System.nanoTime()) < 0) {
+                deferred.remove(tid);
               } else {
                 continue;
               }
@@ -200,11 +197,13 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.isEmpty()) {
+            if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              Long minTime = Collections.min(defered.values());
-              long waitTime = minTime - System.currentTimeMillis();
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              long waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
               if (waitTime > 0) {
                 this.wait(Math.min(waitTime, 5000));
               }
@@ -271,7 +270,8 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime) {
+  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
+    deferTime = TimeUnit.NANOSECONDS.convert(deferTime, deferTimeUnit);
 
     if (deferTime < 0) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
@@ -284,7 +284,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       if (deferTime > 0) {
-        defered.put(tid, System.currentTimeMillis() + deferTime);
+        deferred.put(tid, System.nanoTime() + deferTime);
       }
 
       this.notifyAll();

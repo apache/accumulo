@@ -33,8 +33,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -95,15 +97,15 @@ public class FateCommandTest {
     }
 
     @Override
-    protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-        throws InterruptedException, KeeperException {
+    protected boolean deleteTx(PrintWriter out, AdminUtil<FateCommand> admin,
+        ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
+        String[] args) throws InterruptedException, KeeperException {
       deleteCalled = true;
       return true;
     }
 
     @Override
-    public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+    public boolean failTx(PrintWriter out, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
         ZooReaderWriter zk, ServiceLockPath managerLockPath, String[] args) {
       failCalled = true;
       return true;
@@ -144,7 +146,7 @@ public class FateCommandTest {
     expectLastCall().once();
     zs.setStatus(tid, ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS);
     expectLastCall().once();
-    zs.unreserve(tid, 0);
+    zs.unreserve(tid, 0, TimeUnit.MILLISECONDS);
     expectLastCall().once();
 
     TestHelper helper = new TestHelper(true);
@@ -153,9 +155,10 @@ public class FateCommandTest {
 
     FateCommand cmd = new FateCommand();
     // require number for Tx
-    assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
+    var out = new PrintWriter(System.out);
+    assertFalse(cmd.failTx(out, helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
     // fail the long configured above
-    assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
+    assertTrue(cmd.failTx(out, helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
 
     verify(zs);
   }

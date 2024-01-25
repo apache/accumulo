@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,6 +62,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
@@ -388,9 +390,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Online table " + tableId;
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
-            goalMessage);
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_OFFLINE: {
@@ -413,9 +418,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Offline table " + tableId;
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
         manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
-            goalMessage);
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_MERGE: {
@@ -607,10 +615,9 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
         manager.fate()
-            .seedTransaction(
-                op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
-                    exportDirs, namespaceId, keepMappings, !keepOffline)),
-                autoCleanup, goalMessage);
+            .seedTransaction(op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(),
+                tableName, exportDirs, namespaceId, keepMappings, keepOffline)), autoCleanup,
+                goalMessage);
         break;
       }
       case TABLE_EXPORT: {

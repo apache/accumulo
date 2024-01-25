@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -159,25 +160,25 @@ public class FateCommand extends Command {
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());
       validateArgs(txids);
-      System.out.println(
+      throw new ParseException(
           "Option not available. Use 'accumulo admin fate -c " + String.join(" ", txids) + "'");
     } else if (cl.hasOption(fail.getOpt())) {
       String[] txids = cl.getOptionValues(fail.getOpt());
       validateArgs(txids);
-      failedCommand = failTx(admin, zs, zk, managerLockPath, txids);
+      failedCommand = failTx(shellState.getWriter(), admin, zs, zk, managerLockPath, txids);
     } else if (cl.hasOption(delete.getOpt())) {
       String[] txids = cl.getOptionValues(delete.getOpt());
       validateArgs(txids);
-      failedCommand = deleteTx(admin, zs, zk, managerLockPath, txids);
+      failedCommand = deleteTx(shellState.getWriter(), admin, zs, zk, managerLockPath, txids);
     } else if (cl.hasOption(list.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
     } else if (cl.hasOption(summary.getOpt())) {
-      System.out.println("Option not available. Use 'accumulo admin fate --summary'");
+      throw new ParseException("Option not available. Use 'accumulo admin fate --summary'");
     } else if (cl.hasOption(dump.getOpt())) {
       String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
-      System.out.println(output);
+      shellState.getWriter().println(output);
     } else {
       throw new ParseException("Invalid command option");
     }
@@ -234,14 +235,14 @@ public class FateCommand extends Command {
         !cl.hasOption(disablePaginationOpt.getOpt()));
   }
 
-  protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
+  protected boolean deleteTx(PrintWriter out, AdminUtil<FateCommand> admin,
+      ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
       throws InterruptedException, KeeperException {
     for (int i = 1; i < args.length; i++) {
       if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
         admin.deleteLocks(zk, zLockManagerPath, args[i]);
       } else {
-        System.out.printf("Could not delete transaction: %s%n", args[i]);
+        out.printf("Could not delete transaction: %s%n", args[i]);
         return false;
       }
     }
@@ -254,12 +255,12 @@ public class FateCommand extends Command {
     }
   }
 
-  public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
-      ServiceLockPath managerLockPath, String[] args) {
+  public boolean failTx(PrintWriter out, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+      ZooReaderWriter zk, ServiceLockPath managerLockPath, String[] args) {
     boolean success = true;
     for (int i = 1; i < args.length; i++) {
       if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
-        System.out.printf("Could not fail transaction: %s%n", args[i]);
+        out.printf("Could not fail transaction: %s%n", args[i]);
         return !success;
       }
     }

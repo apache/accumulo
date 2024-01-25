@@ -60,7 +60,7 @@ public class GarbageCollectionTest {
     Map<String,Reference> references = new TreeMap<>();
     HashSet<TableId> tableIds = new HashSet<>();
 
-    ArrayList<GcCandidate> deletes = new ArrayList<>();
+    ArrayList<GcCandidate> fileDeletions = new ArrayList<>();
     ArrayList<TableId> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
     boolean deleteInUseRefs = false;
@@ -121,6 +121,9 @@ public class GarbageCollectionTest {
     public void deleteGcCandidates(Collection<GcCandidate> refCandidates, GcCandidateType type) {
       // Mimic ServerAmpleImpl behavior for root InUse Candidates
       if (type.equals(GcCandidateType.INUSE) && this.level.equals(Ample.DataLevel.ROOT)) {
+        // Since there is only a single root tablet, supporting INUSE candidate deletions would add
+        // additional code complexity without any substantial benefit.
+        // Therefore, deletion of root INUSE candidates is not supported.
         return;
       }
       refCandidates.forEach(gcCandidate -> deletedCandidates.put(gcCandidate, type));
@@ -136,7 +139,7 @@ public class GarbageCollectionTest {
 
     @Override
     public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> candidateMap) {
-      deletes.addAll(candidateMap.values());
+      fileDeletions.addAll(candidateMap.values());
       this.candidates.removeAll(candidateMap.values());
     }
 
@@ -147,7 +150,7 @@ public class GarbageCollectionTest {
 
     public void addFileReference(String tableId, String endRow, String file) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow + ":" + file, new ReferenceFile(tid, file));
+      references.put(tableId + ":" + endRow + ":" + file, ReferenceFile.forFile(tid, file));
       tableIds.add(tid);
     }
 
@@ -164,6 +167,17 @@ public class GarbageCollectionTest {
 
     public void removeDirReference(String tableId, String endRow) {
       references.remove(tableId + ":" + endRow);
+      removeLastTableIdRef(TableId.of(tableId));
+    }
+
+    public void addScanReference(String tableId, String endRow, String scan) {
+      TableId tid = TableId.of(tableId);
+      references.put(tableId + ":" + endRow + ":scan:" + scan, ReferenceFile.forScan(tid, scan));
+      tableIds.add(tid);
+    }
+
+    public void removeScanReference(String tableId, String endRow, String scan) {
+      references.remove(tableId + ":" + endRow + ":scan:" + scan);
       removeLastTableIdRef(TableId.of(tableId));
     }
 
@@ -216,12 +230,12 @@ public class GarbageCollectionTest {
     }
   }
 
-  private void assertRemoved(TestGCE gce, GcCandidate... candidates) {
+  private void assertFileDeleted(TestGCE gce, GcCandidate... candidates) {
     for (GcCandidate candidate : candidates) {
-      assertTrue(gce.deletes.remove(candidate));
+      assertTrue(gce.fileDeletions.remove(candidate));
     }
 
-    assertEquals(0, gce.deletes.size(), "Deletes not empty: " + gce.deletes);
+    assertEquals(0, gce.fileDeletions.size(), "Deletes not empty: " + gce.fileDeletions);
   }
 
   private void assertNoCandidatesRemoved(TestGCE gce) {
@@ -257,7 +271,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     gca.collect(gce);
 
-    assertRemoved(gce, candidate);
+    assertFileDeleted(gce, candidate);
   }
 
   @Test
@@ -276,29 +290,29 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // Remove the reference to this flush file, run the GC which should not trim it from the
     // candidates, and assert that it's gone
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
     gca.collect(gce);
-    assertRemoved(gce, candOne);
+    assertFileDeleted(gce, candOne);
 
     // Removing a reference to a file that wasn't in the candidates should do nothing
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // Remove the reference to a file in the candidates should cause it to be removed
     gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
     gca.collect(gce);
-    assertRemoved(gce, candTwo);
+    assertFileDeleted(gce, candTwo);
 
     // Adding more candidates which do not have references should be removed
     var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
     var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
     gca.collect(gce);
-    assertRemoved(gce, candThree, candFour);
+    assertFileDeleted(gce, candThree, candFour);
 
   }
 
@@ -353,29 +367,29 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     gca.collect(gce);
-    assertRemoved(gce, toBeRemoved);
+    assertFileDeleted(gce, toBeRemoved);
 
     // Remove the reference to this flush file, run the GC which should not trim it from the
     // candidates, and assert that it's gone
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
     gca.collect(gce);
-    assertRemoved(gce, candOne);
+    assertFileDeleted(gce, candOne);
 
     // Removing a reference to a file that wasn't in the candidates should do nothing
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // Remove the reference to a file in the candidates should cause it to be removed
     gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
     gca.collect(gce);
-    assertRemoved(gce, candTwo);
+    assertFileDeleted(gce, candTwo);
 
     // Adding more candidates which do no have references should be removed
     var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
     var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
     gca.collect(gce);
-    assertRemoved(gce, candThree, candFour);
+    assertFileDeleted(gce, candThree, candFour);
   }
 
   /**
@@ -397,7 +411,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     gca.collect(gce);
 
-    assertRemoved(gce, candidate);
+    assertFileDeleted(gce, candidate);
   }
 
   @Test
@@ -418,7 +432,7 @@ public class GarbageCollectionTest {
 
     // All candidates currently have references
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     List<String[]> refsToRemove = new ArrayList<>();
     refsToRemove.add(new String[] {"4", "/t0/F000.rf"});
@@ -430,28 +444,28 @@ public class GarbageCollectionTest {
     for (int i = 0; i < 2; i++) {
       gce.removeFileReference(refsToRemove.get(i)[0], null, refsToRemove.get(i)[1]);
       gca.collect(gce);
-      assertRemoved(gce);
+      assertFileDeleted(gce);
     }
 
     gce.removeFileReference(refsToRemove.get(2)[0], null, refsToRemove.get(2)[1]);
     gca.collect(gce);
-    assertRemoved(gce, candOne);
+    assertFileDeleted(gce, candOne);
 
     gce.removeFileReference("4", null, "/t0/F001.rf");
     gca.collect(gce);
-    assertRemoved(gce, candThree);
+    assertFileDeleted(gce, candThree);
 
     // add absolute candidate for file that already has a relative candidate
     var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     gce.removeFileReference("4", null, "/t0/F002.rf");
     gca.collect(gce);
-    assertRemoved(gce, candFour);
+    assertFileDeleted(gce, candFour);
 
     gca.collect(gce);
-    assertRemoved(gce, candTwo);
+    assertFileDeleted(gce, candTwo);
   }
 
   @Test
@@ -472,7 +486,7 @@ public class GarbageCollectionTest {
 
     // Nothing should be removed because all candidates exist within a blip
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // Remove the first blip
     gce.blips.remove("/4/b-0");
@@ -480,18 +494,18 @@ public class GarbageCollectionTest {
     // And we should lose all files in that blip and the blip directory itself -- relative and
     // absolute
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/4/b-0", 0L), new GcCandidate("/4/b-0/F002.rf", 1L),
+    assertFileDeleted(gce, new GcCandidate("/4/b-0", 0L), new GcCandidate("/4/b-0/F002.rf", 1L),
         new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf", 2L));
 
     gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 
     // Same as above, we should lose relative and absolute for a relative or absolute blip
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/5/b-0", 3L), new GcCandidate("/5/b-0/F002.rf", 4L),
+    assertFileDeleted(gce, new GcCandidate("/5/b-0", 3L), new GcCandidate("/5/b-0/F002.rf", 4L),
         new GcCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-0/F001.rf", 5L));
 
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
   }
 
   @Test
@@ -528,21 +542,21 @@ public class GarbageCollectionTest {
 
     // A directory reference does not preclude a candidate file beneath that directory from deletion
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/4/t-0/F002.rf", 1L));
+    assertFileDeleted(gce, new GcCandidate("/4/t-0/F002.rf", 1L));
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tables/5/t-0", 2L));
+    assertFileDeleted(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tables/5/t-0", 2L));
 
     gce.removeDirReference("4", null);
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/4/t-0", 0L));
+    assertFileDeleted(gce, new GcCandidate("/4/t-0", 0L));
 
     gce.removeDirReference("6", null);
     gce.removeDirReference("7", null);
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/6/t-0", 3L),
+    assertFileDeleted(gce, new GcCandidate("/6/t-0", 3L),
         new GcCandidate("hdfs://foo:6000/accumulo/tables/7/t-0/", 4L));
 
     gce.removeFileReference("8", "m", "/t-0/F00.rf");
@@ -552,13 +566,13 @@ public class GarbageCollectionTest {
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
     gca.collect(gce);
-    assertRemoved(gce, new GcCandidate("/8/t-0", 5L),
+    assertFileDeleted(gce, new GcCandidate("/8/t-0", 5L),
         new GcCandidate("hdfs://foo:6000/accumulo/tables/9/t-0", 6L), new GcCandidate("/a/t-0", 7L),
         new GcCandidate("hdfs://foo:6000/accumulo/tables/b/t-0", 8L), new GcCandidate("/c/t-0", 9L),
         new GcCandidate("hdfs://foo:6000/accumulo/tables/d/t-0", 10L));
 
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
   }
 
   @Test
@@ -596,23 +610,23 @@ public class GarbageCollectionTest {
 
     // A directory reference does not preclude a candidate file beneath that directory from deletion
     gca.collect(gce);
-    assertRemoved(gce, candidates.get(2));
+    assertFileDeleted(gce, candidates.get(2));
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
     // but we need to add a file ref
     gce.addFileReference("8", "m", "/t-0/F00.rf");
     gca.collect(gce);
-    assertRemoved(gce, candidates.get(3));
+    assertFileDeleted(gce, candidates.get(3));
 
     gce.removeDirReference("4", null);
     gca.collect(gce);
-    assertRemoved(gce, candidates.get(1));
+    assertFileDeleted(gce, candidates.get(1));
 
     gce.removeDirReference("6", null);
     gce.removeDirReference("7", null);
     gca.collect(gce);
-    assertRemoved(gce, candidates.get(4), candidates.get(5));
+    assertFileDeleted(gce, candidates.get(4), candidates.get(5));
 
     gce.removeFileReference("8", "m", "/t-0/F00.rf");
     gce.removeFileReference("9", "m", "/t-0/F00.rf");
@@ -621,11 +635,11 @@ public class GarbageCollectionTest {
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
     gca.collect(gce);
-    assertRemoved(gce, candidates.get(6), candidates.get(7), candidates.get(8), candidates.get(9),
-        candidates.get(10), candidates.get(11));
+    assertFileDeleted(gce, candidates.get(6), candidates.get(7), candidates.get(8),
+        candidates.get(9), candidates.get(10), candidates.get(11));
 
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
   }
 
   private void badRefTest(String ref) {
@@ -696,8 +710,8 @@ public class GarbageCollectionTest {
     gce.addCandidate("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf");
 
     gca.collect(gce);
-    System.out.println(gce.deletes);
-    assertRemoved(gce);
+    System.out.println(gce.fileDeletions);
+    assertFileDeleted(gce);
   }
 
   @Test
@@ -709,17 +723,17 @@ public class GarbageCollectionTest {
     gce.addCandidate("/1636/default_tablet");
     gce.addDirReference("1636", null, "default_tablet");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     gce.candidates.clear();
     var tempCandidate = gce.addCandidate("/1636/default_tablet/someFile");
     gca.collect(gce);
-    assertRemoved(gce, tempCandidate);
+    assertFileDeleted(gce, tempCandidate);
 
     gce.addFileReference("1636", null, "/default_tablet/someFile");
     gce.addCandidate("/1636/default_tablet/someFile");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // have an indirect file reference
     gce = new TestGCE();
@@ -728,19 +742,19 @@ public class GarbageCollectionTest {
     gce.addDirReference("1636", null, "default_tablet");
     gce.addCandidate("/9/default_tablet/someFile");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     // have an indirect file reference and a directory candidate
     gce.candidates.clear();
     gce.addCandidate("/9/default_tablet");
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
 
     gce.candidates.clear();
     gce.addCandidate("/9/default_tablet");
     gce.addCandidate("/9/default_tablet/someFile");
     long blipCount = gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertEquals(0, blipCount);
 
     gce = new TestGCE();
@@ -748,7 +762,7 @@ public class GarbageCollectionTest {
     gce.blips.add("/1636/b-0001");
     gce.addCandidate("/1636/b-0001/I0000");
     blipCount = gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertEquals(1, blipCount);
 
     gce = new TestGCE();
@@ -762,7 +776,7 @@ public class GarbageCollectionTest {
     gce.addCandidate("/1000/b-1002/I0007");
     var candidate = gce.addCandidate("/1000/t-0003/I0008");
     blipCount = gca.collect(gce);
-    assertRemoved(gce, candidate);
+    assertFileDeleted(gce, candidate);
     assertEquals(5, blipCount);
   }
 
@@ -810,7 +824,7 @@ public class GarbageCollectionTest {
 
     // No refs to A000002.rf, and a closed, finished repl for A000001.rf should not preclude
     // it from being deleted
-    assertEquals(2, gce.deletes.size());
+    assertEquals(2, gce.fileDeletions.size());
   }
 
   @Test
@@ -829,8 +843,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
-    assertEquals(candidate, gce.deletes.get(0));
+    assertEquals(1, gce.fileDeletions.size());
+    assertEquals(candidate, gce.fileDeletions.get(0));
   }
 
   @Test
@@ -851,8 +865,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
-    assertEquals(candidate, gce.deletes.get(0));
+    assertEquals(1, gce.fileDeletions.size());
+    assertEquals(candidate, gce.fileDeletions.get(0));
   }
 
   @Test
@@ -861,7 +875,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
 
-    assertEquals(0, gce.deletes.size());
+    assertEquals(0, gce.fileDeletions.size());
 
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
@@ -873,9 +887,9 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
+    assertEquals(1, gce.fileDeletions.size());
     assertEquals(new GcCandidate("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", 1L),
-        gce.deletes.get(0));
+        gce.fileDeletions.get(0));
   }
 
   @Test
@@ -915,13 +929,13 @@ public class GarbageCollectionTest {
     gce.deleteInUseRefs = false;
     // All candidates currently have references
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertNoCandidatesRemoved(gce);
 
     // Enable InUseRefs to be removed if the file ref is found.
     gce.deleteInUseRefs = true;
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
 
     var cand1 = gce.addCandidate("/9/t0/F003.rf");
@@ -932,7 +946,7 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertNoCandidatesRemoved(gce);
     // File references did not exist, so candidates are processed
-    assertRemoved(gce, cand1, cand2);
+    assertFileDeleted(gce, cand1, cand2);
   }
 
   @Test
@@ -958,14 +972,14 @@ public class GarbageCollectionTest {
     gce.deleteInUseRefs = false;
     // No InUse Candidates should be removed.
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertNoCandidatesRemoved(gce);
 
     gce.deleteInUseRefs = true;
     // Due to the gce Datalevel of ROOT, InUse candidate deletion is not supported regardless of
     // property setting.
     gca.collect(gce);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     assertNoCandidatesRemoved(gce);
 
     gce.removeFileReference("+r", null, "/t0/F000.rf");
@@ -975,7 +989,7 @@ public class GarbageCollectionTest {
 
     // With file references deleted, the GC should now process the candidates
     gca.collect(gce);
-    assertRemoved(gce, toBeRemoved);
+    assertFileDeleted(gce, toBeRemoved);
     assertNoCandidatesRemoved(gce);
   }
 
@@ -993,7 +1007,7 @@ public class GarbageCollectionTest {
     gce.addDirReference("6", null, "t-0");
 
     gca.collect(gce);
-    assertRemoved(gce, candTwo);
+    assertFileDeleted(gce, candTwo);
     assertNoCandidatesRemoved(gce);
     assertEquals(1, gce.candidates.size());
 
@@ -1001,7 +1015,7 @@ public class GarbageCollectionTest {
     gce.removeDirReference("6", null);
 
     gca.collect(gce);
-    assertRemoved(gce, candOne);
+    assertFileDeleted(gce, candOne);
     assertNoCandidatesRemoved(gce);
 
     assertEquals(0, gce.candidates.size());
@@ -1019,10 +1033,36 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, removedCandidate);
-    assertRemoved(gce);
+    assertFileDeleted(gce);
     // Check and make sure the InUse directory candidates are not removed.
     assertEquals(1, gce.candidates.size());
     assertTrue(gce.candidates.contains(candidate));
+  }
+
+  @Test
+  public void testInUseScanReferenceCandidates() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    // InUse Scan Refs should not be removed.
+    var scanCandidate = gce.addCandidate("/4/t0/F010.rf");
+    var candOne = gce.addCandidate("/4/t0/F000.rf");
+    var candTwo = gce.addCandidate("/6/t0/F123.rf");
+    gce.addScanReference("4", null, "/t0/F010.rf");
+    gce.addFileReference("4", null, "/t0/F000.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gce.deleteInUseRefs = true;
+
+    gca.collect(gce);
+    assertFileDeleted(gce, candTwo);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne);
+    assertEquals(Set.of(scanCandidate), gce.candidates);
+
+    gce.removeScanReference("4", null, "/t0/F010.rf");
+    gca.collect(gce);
+    assertFileDeleted(gce, scanCandidate);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(0, gce.candidates.size());
   }
 
   // below are tests for potential failure conditions of the GC process. Some of these cases were

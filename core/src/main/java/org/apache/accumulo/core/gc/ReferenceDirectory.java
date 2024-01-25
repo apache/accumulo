@@ -28,7 +28,7 @@ public class ReferenceDirectory extends ReferenceFile {
   private final String tabletDir; // t-0003
 
   public ReferenceDirectory(TableId tableId, String dirName) {
-    super(tableId, dirName);
+    super(tableId, dirName, false);
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
     this.tabletDir = dirName;
   }

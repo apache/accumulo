@@ -62,7 +62,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     ample.putGcFileAndDirCandidates(tableId,
-        Collections.singleton(new ReferenceFile(tableId, bulkDir.toString())));
+        Collections.singleton(ReferenceFile.forFile(tableId, bulkDir.toString())));
     log.debug("removing the metadata table markers for loaded files");
     ample.removeBulkLoadEntries(tableId, tid, null, null);
     log.debug("releasing HDFS reservations for " + source + " and " + error);

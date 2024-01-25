@@ -332,8 +332,8 @@ public class MetadataTableUtil {
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-            bw.addMutation(
-                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
+            bw.addMutation(ample
+                .createDeleteMutation(ReferenceFile.forFile(tableId, stf.getMetaUpdateDelete())));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {

@@ -143,7 +143,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   /**
    * Checks if safemode is set - files will not be deleted.
    *
-   * @return number of delete threads
+   * @return true if safe mode is set, false otherwise
    */
   boolean inSafeMode() {
     return getConfiguration().getBoolean(Property.GC_SAFEMODE);
@@ -168,7 +168,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address,
+          getContext().getInstanceName());
       MetricsUtil.initializeProducers(new GcMetrics(this));
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException

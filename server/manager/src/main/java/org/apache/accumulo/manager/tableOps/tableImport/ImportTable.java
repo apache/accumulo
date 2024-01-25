@@ -62,14 +62,14 @@ public class ImportTable extends ManagerRepo {
   private final ImportedTableInfo tableInfo;
 
   public ImportTable(String user, String tableName, Set<String> exportDirs, NamespaceId namespaceId,
-      boolean keepMappings, boolean onlineTable) {
+      boolean keepMappings, boolean keepOffline) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
     tableInfo.directories = parseExportDir(exportDirs);
     tableInfo.keepMappings = keepMappings;
-    tableInfo.onlineTable = onlineTable;
+    tableInfo.keepOffline = keepOffline;
   }
 
   @Override

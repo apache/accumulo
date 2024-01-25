@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
  *
  * @since 2.0.0
  */
+@SuppressWarnings("deprecation")
 @Path("/replication")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 @Deprecated

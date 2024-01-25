@@ -189,36 +189,40 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     // there is a lot going on in this "one line" so see below for more info
     var tabletReferences = tabletStream.flatMap(tm -> {
+      var tableId = tm.getTableId();
 
       // verify that dir and prev row entries present for to check for complete row scan
-      log.trace("tablet metadata table id: {}, end row:{}, dir:{}, saw: {}, prev row: {}",
-          tm.getTableId(), tm.getEndRow(), tm.getDirName(), tm.sawPrevEndRow(), tm.getPrevEndRow());
+      log.trace("tablet metadata table id: {}, end row:{}, dir:{}, saw: {}, prev row: {}", tableId,
+          tm.getEndRow(), tm.getDirName(), tm.sawPrevEndRow(), tm.getPrevEndRow());
       if (tm.getDirName() == null || tm.getDirName().isEmpty() || !tm.sawPrevEndRow()) {
-        throw new IllegalStateException("possible incomplete metadata scan for table id: "
-            + tm.getTableId() + ", end row: " + tm.getEndRow() + ", dir: " + tm.getDirName()
-            + ", saw prev row: " + tm.sawPrevEndRow());
+        throw new IllegalStateException("possible incomplete metadata scan for table id: " + tableId
+            + ", end row: " + tm.getEndRow() + ", dir: " + tm.getDirName() + ", saw prev row: "
+            + tm.sawPrevEndRow());
       }
 
       // combine all the entries read from file and scan columns in the metadata table
-      Stream<StoredTabletFile> fileStream = tm.getFiles().stream();
+      Stream<StoredTabletFile> stfStream = tm.getFiles().stream();
+      // map the files to Reference objects
+      var fileStream = stfStream.map(f -> ReferenceFile.forFile(tableId, f.getMetaUpdateDelete()));
+
       // scans are normally empty, so only introduce a layer of indirection when needed
       final var tmScans = tm.getScans();
       if (!tmScans.isEmpty()) {
-        fileStream = Stream.concat(fileStream, tmScans.stream());
+        var scanStream =
+            tmScans.stream().map(s -> ReferenceFile.forScan(tableId, s.getMetaUpdateDelete()));
+        fileStream = Stream.concat(fileStream, scanStream);
       }
-      // map the files to Reference objects
-      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
-      // if dirName is populated then we have a tablet directory aka srv:dir
+      // if dirName is populated, then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
-        var tabletDir = new ReferenceDirectory(tm.getTableId(), tm.getDirName());
-        stream = Stream.concat(stream, Stream.of(tabletDir));
+        var tabletDir = new ReferenceDirectory(tableId, tm.getDirName());
+        fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
       }
-      return stream;
+      return fileStream;
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getPathStr()));
+        .map(sfr -> ReferenceFile.forScan(sfr.getTableId(), sfr.getPathStr()));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }

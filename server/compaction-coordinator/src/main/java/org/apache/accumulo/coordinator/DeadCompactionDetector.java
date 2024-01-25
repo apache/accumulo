@@ -128,8 +128,8 @@ public class DeadCompactionDetector {
         this.deadCompactions.entrySet().stream().filter(e -> e.getValue() > 2).map(e -> e.getKey())
             .collect(Collectors.toCollection(TreeSet::new));
     tabletCompactions.keySet().retainAll(toFail);
-    tabletCompactions.forEach((eci, v) -> {
-      log.warn("Compaction {} believed to be dead, failing it.", eci);
+    tabletCompactions.forEach((ecid, extent) -> {
+      log.warn("Compaction believed to be dead, failing it: id: {}, extent: {}", ecid, extent);
     });
     coordinator.compactionFailed(tabletCompactions);
     this.deadCompactions.keySet().removeAll(toFail);

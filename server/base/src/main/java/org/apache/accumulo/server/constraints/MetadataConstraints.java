@@ -24,10 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -54,8 +52,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,7 +208,7 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-
+        // Do nothing if ScanFile ref
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
@@ -252,14 +248,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (!isSplitMutation && !isLocationMutation) {
-            long tid = BulkFileColumnFamily.getBulkLoadTid(new Value(tidString));
-
-            try {
-              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)
-                  .transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
-                violations = addViolation(violations, 8);
-              }
-            } catch (Exception ex) {
+            if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)) {
               violations = addViolation(violations, 8);
             }
           }
@@ -320,11 +309,6 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
 
-  protected Arbitrator getArbitrator(ServerContext context) {
-    Objects.requireNonNull(context);
-    return new ZooArbitrator(context);
-  }
-
   @Override
   public String getViolationDescription(short violationCode) {
     switch (violationCode) {
@@ -343,7 +327,7 @@ public class MetadataConstraints implements Constraint {
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:
-        return "Bulk load transaction no longer running";
+        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
     }
     return null;
   }

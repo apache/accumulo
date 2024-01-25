@@ -70,6 +70,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressWarnings("deprecation")
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Tag(MINI_CLUSTER_ONLY)
 @Deprecated

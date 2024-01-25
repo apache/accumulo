@@ -658,6 +658,12 @@ public class Manager extends AbstractServer
 
               return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
+              // If we have walogs we need to be HOSTED to recover
+              if (!tls.walogs.isEmpty()) {
+                return TabletGoalState.HOSTED;
+              } else {
+                return TabletGoalState.UNASSIGNED;
+              }
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }
@@ -1093,7 +1099,7 @@ public class Manager extends AbstractServer
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress());
+          sa.getAddress(), getContext().getInstanceName());
       ManagerMetrics.init(getConfiguration(), this);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException

@@ -21,6 +21,7 @@ package org.apache.accumulo.server.tables;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -134,19 +135,20 @@ public class TableManager {
     return tableStateCache.get(tableId);
   }
 
-  public synchronized void transitionTableState(final TableId tableId, final TableState newState) {
+  public synchronized void transitionTableState(final TableId tableId, final TableState newState,
+      final EnumSet<TableState> expectedCurrStates) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
     String statePath = zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
-      zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), oldData -> {
-        TableState oldState = TableState.UNKNOWN;
-        if (oldData != null) {
-          oldState = TableState.valueOf(new String(oldData, UTF_8));
+      zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), currData -> {
+        TableState currState = TableState.UNKNOWN;
+        if (currData != null) {
+          currState = TableState.valueOf(new String(currData, UTF_8));
         }
 
         // this check makes the transition operation idempotent
-        if (oldState == newState) {
+        if (currState == newState) {
           return null; // already at desired state, so nothing to do
         }
 
@@ -154,7 +156,7 @@ public class TableManager {
         // +--------+
         // v |
         // NEW -> (ONLINE|OFFLINE)+--- DELETING
-        switch (oldState) {
+        switch (currState) {
           case NEW:
             transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
             break;
@@ -168,10 +170,10 @@ public class TableManager {
             transition = false;
             break;
         }
-        if (!transition) {
-          throw new IllegalTableTransitionException(oldState, newState);
+        if (!transition || !expectedCurrStates.contains(currState)) {
+          throw new IllegalTableTransitionException(currState, newState);
         }
-        log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
+        log.debug("Transitioning state for table {} from {} to {}", tableId, currState, newState);
         return newState.name().getBytes(UTF_8);
       });
     } catch (Exception e) {
