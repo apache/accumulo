@@ -31,12 +31,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.tserver.util.CreateEmpty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -95,7 +95,8 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
           Path rfile = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath();
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
-          Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
+          Process processInfo =
+              cluster.exec(CreateEmpty.class, "--type", "rfile", rfile.toString()).getProcess();
           assertEquals(0, processInfo.waitFor());
         }
         assertTrue(foundFile);
