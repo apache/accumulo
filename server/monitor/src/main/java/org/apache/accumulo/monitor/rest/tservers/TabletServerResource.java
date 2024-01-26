@@ -125,7 +125,7 @@ public class TabletServerResource {
     for (TabletServerStatus server : mmi.tServerInfo) {
       if (server.logSorts != null) {
         for (RecoveryStatus recovery : server.logSorts) {
-          String serv = AddressUtil.parseAddress(server.name, false).getHost();
+          String serv = AddressUtil.parseAddress(server.name).getHost();
           String log = recovery.name;
           int time = recovery.runtime;
           double progress = recovery.progress;
