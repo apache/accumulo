@@ -29,8 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,9 +50,13 @@ import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -174,9 +180,14 @@ public class CreateEmptyTest {
     createEmpty.createEmptyWal(opts, context);
 
     checkWalContext(file1);
+    readLogFile(file1);
+
     checkWalContext(file2);
   }
 
+  /**
+   * Reads the log file and looks for specific information (crypto id, event == OPEN)
+   */
   private void checkWalContext(final String expected) throws IOException {
     Path path = new Path(expected);
     VolumeManager vm = context.getVolumeManager();
@@ -206,6 +217,40 @@ public class CreateEmptyTest {
       assertEquals(key.event, LogEvents.OPEN);
       assertEquals("", key.tserverSession);
       assertNull(key.filename);
+    }
+  }
+
+  /**
+   * Scan through log file and check that there is one event.
+   */
+  private void readLogFile(final String filename) throws Exception {
+    Path path = new Path(filename);
+    LogFileKey key = new LogFileKey();
+    LogFileValue value = new LogFileValue();
+
+    FileSystem fs = context.getVolumeManager().getFileSystemByPath(path);
+
+    CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.WAL);
+    CryptoService cryptoService = context.getCryptoFactory().getService(env,
+        context.getConfiguration().getAllCryptoProperties());
+
+    int eventCount = 0;
+    try (final FSDataInputStream fsinput = fs.open(path);
+        DataInputStream input = DfsLogger.getDecryptingStream(fsinput, cryptoService)) {
+      while (true) {
+        try {
+          key.readFields(input);
+          value.readFields(input);
+        } catch (EOFException ex) {
+          break;
+        }
+        eventCount++;
+      }
+    } catch (DfsLogger.LogHeaderIncompleteException e) {
+      fail("Could not read header for {}" + path);
+    } finally {
+      // empty wal has 1 event (OPEN)
+      assertEquals(1, eventCount);
     }
   }
 
