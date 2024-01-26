@@ -143,6 +143,7 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
         // Go through all enum values to verify each TxInfo type will be properly
         // written and read from the store
         for (TxInfo txInfo : TxInfo.values()) {
+          assertNull(txStore.getTransactionInfo(txInfo));
           txStore.setTransactionInfo(txInfo, "value: " + txInfo.name());
           assertEquals("value: " + txInfo.name(), txStore.getTransactionInfo(txInfo));
         }
