@@ -106,9 +106,10 @@ public class MiniAccumuloClusterImplTest {
   @Timeout(60)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
+    int expectedNumTables = 3;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
-      if (stats.tableMap.size() <= 2) {
+      if (stats.tableMap.size() < expectedNumTables) {
         continue;
       }
 
