@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -127,7 +128,15 @@ public class CreateEmptyTest {
     createEmpty.createEmptyRFile(opts, context);
     VolumeManager vm = context.getVolumeManager();
     assertTrue(vm.exists(new Path(file1)));
+    try (var scanner = RFile.newScanner().from(file1).build()) {
+      assertEquals(0, scanner.stream().count());
+    }
+
     assertTrue(vm.exists(new Path(file2)));
+    try (var scanner = RFile.newScanner().from(file2).build()) {
+      assertEquals(0, scanner.stream().count());
+    }
+
   }
 
   /**
@@ -146,6 +155,9 @@ public class CreateEmptyTest {
     createEmpty.createEmptyRFile(opts, context);
     VolumeManager vm = context.getVolumeManager();
     assertTrue(vm.exists(new Path(file1)));
+    try (var scanner = RFile.newScanner().from(file1).build()) {
+      assertEquals(0, scanner.stream().count());
+    }
   }
 
   @Test
