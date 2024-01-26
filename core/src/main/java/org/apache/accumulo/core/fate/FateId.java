@@ -31,6 +31,7 @@ import org.apache.accumulo.core.util.FastFormat;
 public class FateId extends AbstractId<FateId> {
 
   private static final String PREFIX = "FATE:";
+  private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]+$");
 
   private FateId(String canonical) {
     super(canonical);
@@ -76,8 +77,7 @@ public class FateId extends AbstractId<FateId> {
    * @return a new FateId object
    */
   public static FateId from(FateInstanceType type, String hexTid) {
-    Pattern hexPattern = Pattern.compile("^[0-9a-fA-F]+$");
-    if (hexPattern.matcher(hexTid).matches()) {
+    if (HEX_PATTERN.matcher(hexTid).matches()) {
       return new FateId(PREFIX + type + ":" + hexTid);
     } else {
       throw new IllegalArgumentException("Invalid Hex Transaction ID: " + hexTid);
