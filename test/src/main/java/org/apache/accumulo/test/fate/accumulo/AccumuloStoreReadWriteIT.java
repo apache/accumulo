@@ -128,6 +128,27 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testReadWriteTxInfo() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+
+      AccumuloStore<TestEnv> store = new AccumuloStore<>(client, table);
+
+      long tid = store.create();
+      FateTxStore<TestEnv> txStore = store.reserve(tid);
+
+      // Go through all enum values to verify each TxInfo type will be properly
+      // written and read from the store
+      for (TxInfo txInfo : TxInfo.values()) {
+        txStore.setTransactionInfo(txInfo, "value: " + txInfo.name());
+        assertEquals("value: " + txInfo.name(), txStore.getTransactionInfo(txInfo));
+      }
+    }
+  }
+
+  @Test
   public void testDeferredOverflow() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (ClientContext client =
