@@ -474,10 +474,12 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // wait a bit for some tablets to have files selected, it possible the compaction have
       // completed before this so do not wait long
-      Wait.waitFor(
-          () -> countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
-              > 0,
-          3000, 10);
+      long startTime = System.nanoTime();
+      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+          && countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
+              == 0) {
+        Thread.sleep(10);
+      }
 
       // add 10 more splits to the table
       c.tableOperations().addSplits(tableName, splits);
@@ -489,10 +491,12 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // wait a bit for some tablets to be compacted, it possible the compaction have completed
       // before this so do not wait long
-      Wait.waitFor(
-          () -> countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
-              > 0,
-          3000, 10);
+      startTime = System.nanoTime();
+      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+          && countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
+              == 0) {
+        Thread.sleep(10);
+      }
 
       // add 80 more splits to the table
       c.tableOperations().addSplits(tableName, splits);
