@@ -188,6 +188,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
           case RETURN_VALUE:
             cq = TxInfoColumnFamily.RETURN_VALUE_COLUMN;
             break;
+          case TX_AGEOFF:
+            cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
+            break;
           default:
             throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
         }
@@ -248,23 +251,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
       FateMutator<T> fateMutator = newMutator(tid);
       final byte[] serialized = serializeTxInfo(so);
-
-      switch (txInfo) {
-        case TX_NAME:
-          fateMutator.putName(serialized);
-          break;
-        case AUTO_CLEAN:
-          fateMutator.putAutoClean(serialized);
-          break;
-        case EXCEPTION:
-          fateMutator.putException(serialized);
-          break;
-        case RETURN_VALUE:
-          fateMutator.putReturnValue(serialized);
-          break;
-        default:
-          throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
-      }
+      fateMutator.putTxInfo(txInfo, serialized);
 
       fateMutator.mutate();
     }

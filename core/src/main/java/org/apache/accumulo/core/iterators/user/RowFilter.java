@@ -164,7 +164,6 @@ public abstract class RowFilter extends WrappingIterator {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-
     newInstance.decisionIterator = new RowIterator(getSource().deepCopy(env));
     return newInstance;
   }

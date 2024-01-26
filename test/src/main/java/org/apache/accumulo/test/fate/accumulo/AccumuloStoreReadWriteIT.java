@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -124,6 +125,32 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       assertEquals(1, store.list().count());
       txStore2.delete();
       assertEquals(0, store.list().count());
+    }
+  }
+
+  @Test
+  public void testReadWriteTxInfo() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+
+      AccumuloStore<TestEnv> store = new AccumuloStore<>(client, table);
+
+      long tid = store.create();
+      FateTxStore<TestEnv> txStore = store.reserve(tid);
+
+      try {
+        // Go through all enum values to verify each TxInfo type will be properly
+        // written and read from the store
+        for (TxInfo txInfo : TxInfo.values()) {
+          assertNull(txStore.getTransactionInfo(txInfo));
+          txStore.setTransactionInfo(txInfo, "value: " + txInfo.name());
+          assertEquals("value: " + txInfo.name(), txStore.getTransactionInfo(txInfo));
+        }
+      } finally {
+        txStore.delete();
+      }
     }
   }
 
