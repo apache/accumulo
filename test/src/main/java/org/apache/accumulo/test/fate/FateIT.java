@@ -43,22 +43,19 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner {
+public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
-
-  public static class TestEnv {
-
-  }
 
   public static class TestRepo implements Repo<TestEnv> {
     private static final long serialVersionUID = 1L;

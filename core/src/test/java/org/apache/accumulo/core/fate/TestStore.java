@@ -32,20 +32,35 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.util.Pair;
+
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+
 /**
  * Transient in memory store for transactions.
  */
 public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
-  private Map<Long,TStatus> statuses = new HashMap<>();
-  private Map<Long,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
-  private Set<Long> reserved = new HashSet<>();
+  private final Map<Long,Pair<TStatus,Optional<byte[]>>> statuses = new HashMap<>();
+  private final Map<Long,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
+  private final Set<Long> reserved = new HashSet<>();
 
   @Override
   public long create() {
-    statuses.put(nextId, TStatus.NEW);
+    statuses.put(nextId, new Pair<>(TStatus.NEW, Optional.empty()));
     return nextId++;
+  }
+
+  @Override
+  public long create(byte[] key) {
+    HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
+    long tid = hashCode.asLong() & 0x7fffffffffffffffL;
+    if (statuses.putIfAbsent(tid, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
+      throw new IllegalStateException("Transaction with tid " + tid + " already exists");
+    }
+    return tid;
   }
 
   @Override
@@ -89,14 +104,25 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public TStatus getStatus() {
+      return getStatusAndKey().getFirst();
+    }
+
+    @Override
+    public Optional<byte[]> getKey() {
+      return getStatusAndKey().getSecond();
+    }
+
+    @Override
+    public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
       if (!reserved.contains(tid)) {
         throw new IllegalStateException();
       }
 
-      TStatus status = statuses.get(tid);
+      Pair<TStatus,Optional<byte[]>> status = statuses.get(tid);
       if (status == null) {
-        return TStatus.UNKNOWN;
+        return new Pair<>(TStatus.UNKNOWN, Optional.empty());
       }
+
       return status;
     }
 
@@ -140,10 +166,11 @@ public class TestStore implements FateStore<String> {
       if (!reserved.contains(tid)) {
         throw new IllegalStateException();
       }
-      if (!statuses.containsKey(tid)) {
+      Pair<TStatus,Optional<byte[]>> currentStatus = statuses.get(tid);
+      if (currentStatus == null) {
         throw new IllegalStateException();
       }
-      statuses.put(tid, status);
+      statuses.put(tid, new Pair<>(status, currentStatus.getSecond()));
     }
 
     @Override
@@ -186,7 +213,7 @@ public class TestStore implements FateStore<String> {
 
       @Override
       public TStatus getStatus() {
-        return e.getValue();
+        return e.getValue().getFirst();
       }
     });
   }

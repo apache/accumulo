@@ -142,6 +142,15 @@ public class FateLogger {
         }
         return tid;
       }
+
+      @Override
+      public long create(byte[] key) {
+        long tid = store.create(key);
+        if (storeLog.isTraceEnabled()) {
+          storeLog.trace("{} created fate transaction", formatTid(tid));
+        }
+        return tid;
+      }
     };
   }
 }

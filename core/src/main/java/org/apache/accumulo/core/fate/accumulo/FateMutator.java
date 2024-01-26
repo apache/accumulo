@@ -38,6 +38,8 @@ public interface FateMutator<T> {
 
   FateMutator<T> putAgeOff(byte[] data);
 
+  FateMutator<T> putKey(byte[] data);
+
   FateMutator<T> putTxInfo(Fate.TxInfo txInfo, byte[] data);
 
   FateMutator<T> putRepo(int position, Repo<T> repo);

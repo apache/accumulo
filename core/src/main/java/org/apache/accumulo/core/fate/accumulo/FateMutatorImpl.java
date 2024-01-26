@@ -97,6 +97,12 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
+  public FateMutator<T> putKey(byte[] data) {
+    TxInfoColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(data));
+    return this;
+  }
+
+  @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
       case TX_NAME:
@@ -113,6 +119,9 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
         break;
       case TX_AGEOFF:
         putAgeOff(data);
+        break;
+      case TX_KEY:
+        putKey(data);
         break;
       default:
         throw new IllegalArgumentException("Unexpected TxInfo type: " + txInfo);

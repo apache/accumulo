@@ -27,13 +27,16 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -89,6 +92,27 @@ public class ZooStore<T> extends AbstractFateStore<T> {
         throw new IllegalStateException(e);
       }
     }
+  }
+
+  @Override
+  protected void create(long tid, byte[] key) {
+    // TODO: Should we somehow make this Atomic or clean up on failure to make sure
+    // that either both of these writes happen or none happen?
+    try {
+      zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+          NodeExistsPolicy.FAIL);
+      // The key was already used to generate the tid but we still need to store it
+      // separate to check later for collision detection
+      zk.putPersistentData(getTXPath(tid) + "/" + TxInfo.TX_KEY, serializeTxInfo(key),
+          NodeExistsPolicy.OVERWRITE);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Override
+  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid) {
+    return new Pair<>(_getStatus(tid), getKey(tid));
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
@@ -227,13 +251,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
       verifyReserved(false);
 
-      try {
-        return deserializeTxInfo(txInfo, zk.getData(getTXPath(tid) + "/" + txInfo));
-      } catch (NoNodeException nne) {
-        return null;
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
+      return ZooStore.this.getTransactionInfo(txInfo, tid);
     }
 
     @Override
@@ -290,6 +308,16 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  private Serializable getTransactionInfo(TxInfo txInfo, long tid) {
+    try {
+      return deserializeTxInfo(txInfo, zk.getData(getTXPath(tid) + "/" + txInfo));
+    } catch (NoNodeException nne) {
+      return null;
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   @Override
   protected TStatus _getStatus(long tid) {
     try {
@@ -299,6 +327,11 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  protected Optional<byte[]> getKey(long tid) {
+    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, tid));
   }
 
   @Override

@@ -61,7 +61,7 @@ public class ZooStoreFateIT extends FateStoreIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();

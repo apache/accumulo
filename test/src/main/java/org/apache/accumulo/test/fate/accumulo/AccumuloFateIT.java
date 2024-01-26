@@ -51,7 +51,7 @@ public class AccumuloFateIT extends FateIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred) throws Exception {
     table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {

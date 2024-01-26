@@ -39,6 +39,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    */
   long create();
 
+  long create(byte[] key);
+
   /**
    * An interface that allows read/write access to the data related to a single fate operation.
    */

@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,9 +32,12 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -44,6 +48,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -81,6 +86,13 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  protected void create(long tid, byte[] key) {
+    // TODO: conditional mutation should be used to verify tid is new
+    newMutator(tid).putStatus(TStatus.NEW).putKey(key).putCreateTime(System.currentTimeMillis())
+        .mutate();
+  }
+
+  @Override
   protected Stream<FateIdStatus> getTransactions() {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
@@ -106,6 +118,44 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
           .orElse(TStatus.UNKNOWN);
+    });
+  }
+
+  @Override
+  protected Optional<byte[]> getKey(long tid) {
+    return scanTx(scanner -> {
+      scanner.setRange(getRow(tid));
+      TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      return scanner.stream().map(e -> e.getValue().get()).findFirst();
+    });
+  }
+
+  @Override
+  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid) {
+    return scanTx(scanner -> {
+      scanner.setRange(getRow(tid));
+      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+
+      TStatus status = null;
+      byte[] key = null;
+
+      for (Entry<Key,Value> entry : scanner) {
+        final String qual = entry.getKey().getColumnQualifierData().toString();
+        switch (qual) {
+          case TxColumnFamily.STATUS:
+            status = TStatus.valueOf(entry.getValue().toString());
+            break;
+          case TxInfoColumnFamily.TX_KEY:
+            key = entry.getValue().get();
+            break;
+          default:
+            throw new IllegalStateException("Unexpected column qualifier: " + qual);
+        }
+      }
+
+      return new Pair<>(Optional.ofNullable(status).orElse(TStatus.UNKNOWN),
+          Optional.ofNullable(key));
     });
   }
 
@@ -190,6 +240,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
             break;
           case TX_AGEOFF:
             cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
+            break;
+          case TX_KEY:
+            cq = TxInfoColumnFamily.TX_KEY_COLUMN;
             break;
           default:
             throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);

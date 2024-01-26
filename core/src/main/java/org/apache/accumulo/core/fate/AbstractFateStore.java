@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,10 +41,13 @@ import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -243,9 +247,42 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
+  @Override
+  public long create(byte[] key) {
+    HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
+    long tid = hashCode.asLong() & 0x7fffffffffffffffL;
+
+    Pair<TStatus,Optional<byte[]>> statusAndKey = getStatusAndKey(tid);
+    TStatus status = statusAndKey.getFirst();
+    Optional<byte[]> tKey = statusAndKey.getSecond();
+
+    // Case 1: Status of UNKNOWN means doesn't exist, so we can create
+    if (status == TStatus.UNKNOWN) {
+      create(tid, key);
+      // Case 2: Status is NEW so this is unseeded, we can return and allow the calling code
+      // to reserve/seed as long as the existing key is the same and not different as that would
+      // mean a collision
+    } else if (status == TStatus.NEW) {
+      Preconditions.checkState(tKey.isPresent(), "Tx key column is missing");
+      Preconditions.checkState(Arrays.equals(key, tKey.orElseThrow()),
+          "Collision detected for tid %s", tid);
+      // Case 3: Status is some other state which means already in progress
+    } else {
+      throw new IllegalStateException("Existing transaction already exists for: " + tid);
+    }
+
+    return tid;
+  }
+
+  protected abstract void create(long tid, byte[] key);
+
+  protected abstract Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid);
+
   protected abstract Stream<FateIdStatus> getTransactions();
 
   protected abstract TStatus _getStatus(long tid);
+
+  protected abstract Optional<byte[]> getKey(long tid);
 
   protected abstract FateTxStore<T> newFateTxStore(long tid, boolean isReserved);
 
@@ -344,33 +381,45 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
+    public Optional<byte[]> getKey() {
+      verifyReserved(false);
+      return AbstractFateStore.this.getKey(tid);
+    }
+
+    @Override
+    public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
+      verifyReserved(false);
+      return AbstractFateStore.this.getStatusAndKey(tid);
+    }
+
+    @Override
     public long getID() {
       return tid;
     }
+  }
 
-    protected byte[] serializeTxInfo(Serializable so) {
-      if (so instanceof String) {
-        return ("S " + so).getBytes(UTF_8);
-      } else {
-        byte[] sera = serialize(so);
-        byte[] data = new byte[sera.length + 2];
-        System.arraycopy(sera, 0, data, 2, sera.length);
-        data[0] = 'O';
-        data[1] = ' ';
-        return data;
-      }
+  protected byte[] serializeTxInfo(Serializable so) {
+    if (so instanceof String) {
+      return ("S " + so).getBytes(UTF_8);
+    } else {
+      byte[] sera = serialize(so);
+      byte[] data = new byte[sera.length + 2];
+      System.arraycopy(sera, 0, data, 2, sera.length);
+      data[0] = 'O';
+      data[1] = ' ';
+      return data;
     }
+  }
 
-    protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
-      if (data[0] == 'O') {
-        byte[] sera = new byte[data.length - 2];
-        System.arraycopy(data, 2, sera, 0, sera.length);
-        return (Serializable) deserialize(sera);
-      } else if (data[0] == 'S') {
-        return new String(data, 2, data.length - 2, UTF_8);
-      } else {
-        throw new IllegalStateException("Bad node data " + txInfo);
-      }
+  protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
+    if (data[0] == 'O') {
+      byte[] sera = new byte[data.length - 2];
+      System.arraycopy(data, 2, sera, 0, sera.length);
+      return (Serializable) deserialize(sera);
+    } else if (data[0] == 'S') {
+      return new String(data, 2, data.length - 2, UTF_8);
+    } else {
+      throw new IllegalStateException("Bad node data " + txInfo);
     }
   }
 }

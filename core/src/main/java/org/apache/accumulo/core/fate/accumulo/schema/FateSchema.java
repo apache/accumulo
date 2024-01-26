@@ -41,6 +41,9 @@ public class FateSchema {
     public static final String TX_NAME = "txname";
     public static final ColumnFQ TX_NAME_COLUMN = new ColumnFQ(NAME, new Text(TX_NAME));
 
+    public static final String TX_KEY = "txkey";
+    public static final ColumnFQ TX_KEY_COLUMN = new ColumnFQ(NAME, new Text(TX_KEY));
+
     public static final String AUTO_CLEAN = "autoclean";
     public static final ColumnFQ AUTO_CLEAN_COLUMN = new ColumnFQ(NAME, new Text(AUTO_CLEAN));
 

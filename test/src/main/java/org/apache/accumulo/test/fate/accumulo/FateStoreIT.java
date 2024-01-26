@@ -18,13 +18,20 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +41,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -42,13 +51,14 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT.TestEnv;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
 import org.apache.accumulo.test.fate.FateTestRunner;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner {
+public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
   @Override
   protected Duration defaultTimeout() {
@@ -69,6 +79,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     long tid = store.create();
     FateTxStore<TestEnv> txStore = store.reserve(tid);
     assertTrue(txStore.timeCreated() > 0);
+    assertFalse(txStore.getKey().isPresent());
     assertEquals(1, store.list().count());
 
     // Push a test FATE op and verify we can read it back
@@ -216,7 +227,104 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       executor.shutdownNow();
       // Cleanup so we don't interfere with other tests
-      store.list().forEach(fateIdStatus -> store.reserve(fateIdStatus.getTxid()).delete());
+      // All stores should already be unreserved
+      store.list()
+          .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getTxid()).orElseThrow().delete());
+    }
+  }
+
+  @Test
+  public void testCreateWithKey() throws Exception {
+    executeTest(this::testCreateWithKey);
+  }
+
+  protected void testCreateWithKey(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke1 = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke2 = new KeyExtent(TableId.of("tableId2"), new Text("zzz"), new Text("aaa"));
+
+    byte[] key1 = serialize(ke1);
+    long tid1 = store.create(key1);
+
+    byte[] key2 = serialize(ke2);
+    long tid2 = store.create(key2);
+    assertNotEquals(tid1, tid2);
+
+    FateTxStore<TestEnv> txStore1 = store.reserve(tid1);
+    FateTxStore<TestEnv> txStore2 = store.reserve(tid2);
+    try {
+      assertTrue(txStore1.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore1.getStatus());
+      assertArrayEquals(key1, txStore1.getKey().orElseThrow());
+
+      assertTrue(txStore2.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore2.getStatus());
+      assertArrayEquals(key2, txStore2.getKey().orElseThrow());
+
+      assertEquals(2, store.list().count());
+    } finally {
+      txStore1.delete();
+      txStore2.delete();
+    }
+  }
+
+  @Test
+  public void testCreateWithKeyDuplicate() throws Exception {
+    executeTest(this::testCreateWithKeyDuplicate);
+  }
+
+  protected void testCreateWithKeyDuplicate(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+
+    // Creating with the same key should be fine if the status is NEW
+    // It should just return the same id and allow us to continue reserving
+    byte[] key = serialize(ke);
+    long tid1 = store.create(key);
+    long tid2 = store.create(key);
+    assertEquals(tid1, tid2);
+
+    FateTxStore<TestEnv> txStore = store.reserve(tid1);
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertArrayEquals(key, txStore.getKey().orElseThrow());
+      assertEquals(1, store.list().count());
+    } finally {
+      txStore.delete();
+    }
+  }
+
+  @Test
+  public void testCreateWithKeyInProgress() throws Exception {
+    executeTest(this::testCreateWithKeyInProgress);
+  }
+
+  protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+
+    byte[] key = serialize(ke);
+    long tid1 = store.create(key);
+
+    FateTxStore<TestEnv> txStore = store.reserve(tid1);
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      txStore.setStatus(TStatus.IN_PROGRESS);
+
+      // We have an existing transaction with the same key in progress
+      // so should not be allowed
+      assertThrows(IllegalStateException.class, () -> store.create(key));
+    } finally {
+      txStore.delete();
+    }
+  }
+
+  private byte[] serialize(KeyExtent ke) {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      ke.writeTo(dos);
+      dos.close();
+      return baos.toByteArray();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 

@@ -38,7 +38,7 @@ public class AccumuloStoreFateIT extends FateStoreIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred) throws Exception {
     String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
@@ -47,4 +47,5 @@ public class AccumuloStoreFateIT extends FateStoreIT {
           getCluster().getServerContext());
     }
   }
+
 }

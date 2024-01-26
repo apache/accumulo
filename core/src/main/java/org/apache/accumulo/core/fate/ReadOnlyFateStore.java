@@ -21,9 +21,12 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
 import java.util.stream.Stream;
+
+import org.apache.accumulo.core.util.Pair;
 
 /**
  * Read only access to a Transaction Store.
@@ -86,6 +89,10 @@ public interface ReadOnlyFateStore<T> {
      * @return execution status
      */
     TStatus getStatus();
+
+    Optional<byte[]> getKey();
+
+    Pair<TStatus,Optional<byte[]>> getStatusAndKey();
 
     /**
      * Wait for the status of a transaction to change
