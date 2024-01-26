@@ -194,7 +194,7 @@ public class CreateEmpty implements KeywordExecutable {
   private void checkFileExists(final Path path, final VolumeManager vm) throws IOException {
     if (vm.exists(path)) {
       throw new IllegalArgumentException(
-          "file: '" + path.getParent() + "/" + path.getName() + "' exists");
+          path + " exists");
     }
   }
 }
