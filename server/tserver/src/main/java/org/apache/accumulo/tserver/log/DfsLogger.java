@@ -300,7 +300,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   private long writes = 0;
 
   public static DfsLogger fromCounters(ServerContext context, AtomicLong syncCounter,
-      AtomicLong flushCounter, String address) {
+      AtomicLong flushCounter, String address) throws IOException {
 
     String filename = UUID.randomUUID().toString();
     String logger = Joiner.on("+").join(address.split(":"));
@@ -311,15 +311,18 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
         + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
-    return new DfsLogger(context, syncCounter, flushCounter, LogEntry.fromPath(logPath));
+    LogEntry log = LogEntry.fromPath(logPath);
+    DfsLogger dfsLogger = new DfsLogger(context, log, syncCounter, flushCounter);
+    dfsLogger.open(fs, logPath, filename, address);
+
+    return dfsLogger;
   }
 
   public static DfsLogger fromExistingLogEntry(ServerContext context, LogEntry logEntry) {
     return new DfsLogger(context, logEntry);
   }
 
-  private DfsLogger(ServerContext context, AtomicLong syncCounter, AtomicLong flushCounter,
-      LogEntry logEntry) {
+  private DfsLogger(ServerContext context, LogEntry logEntry, AtomicLong syncCounter, AtomicLong flushCounter) {
     this(context, logEntry);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
@@ -392,18 +395,10 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param address The address of the host using this WAL
    */
-  public synchronized void open(String address) throws IOException {
-    String filename = UUID.randomUUID().toString();
+  private synchronized void open(VolumeManager fs, String logPath, String filename, String address) throws IOException {
     log.debug("Address is {}", address);
-    String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
-    VolumeManager fs = context.getVolumeManager();
-
-    var chooserEnv =
-        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
-    String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
-        + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     LoggerOperation op;
     var serverConf = context.getConfiguration();
