@@ -60,6 +60,7 @@ public abstract class RowFilter extends WrappingIterator {
   private boolean inclusive;
   private Range range;
   private boolean hasTop;
+  private Map<String,String> options;
 
   private static class RowIterator extends WrappingIterator {
     private Range rowRange;
@@ -148,6 +149,7 @@ public abstract class RowFilter extends WrappingIterator {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.decisionIterator = new RowIterator(source.deepCopy(env));
+    this.options = Map.copyOf(options);
   }
 
   @Override
@@ -155,10 +157,10 @@ public abstract class RowFilter extends WrappingIterator {
     RowFilter newInstance;
     try {
       newInstance = getClass().getDeclaredConstructor().newInstance();
+      newInstance.init(getSource().deepCopy(env), options, env);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    newInstance.setSource(getSource().deepCopy(env));
     newInstance.decisionIterator = new RowIterator(getSource().deepCopy(env));
     return newInstance;
   }
