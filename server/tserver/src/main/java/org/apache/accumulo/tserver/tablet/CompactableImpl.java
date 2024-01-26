@@ -106,12 +106,12 @@ public class CompactableImpl implements Compactable {
 
   private final FileManager fileMgr;
 
-  private Set<CompactionJob> runningJobs = new HashSet<>();
+  private final Set<CompactionJob> runningJobs = new HashSet<>();
   private volatile boolean compactionRunning = false;
 
-  private Supplier<Set<CompactionServiceId>> servicesInUse;
+  private final Supplier<Set<CompactionServiceId>> servicesInUse;
 
-  private Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
+  private final Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
 
   enum ChopSelectionStatus {
     SELECTING, SELECTED, NOT_ACTIVE, MARKING
@@ -126,21 +126,21 @@ public class CompactableImpl implements Compactable {
   private Long compactionId;
   private CompactionConfig compactionConfig;
 
-  private CompactionManager manager;
+  private final CompactionManager manager;
 
   AtomicLong lastSeenCompactionCancelId = new AtomicLong(Long.MIN_VALUE);
 
   private volatile boolean closed = false;
 
-  private Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
+  private final Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
       new ConcurrentHashMap<>();
 
-  private Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
+  private final Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
 
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
   // outside of this class.
-  public static interface CompactionHelper {
+  public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
 
     Set<StoredTabletFile> getFilesToDrop();
@@ -195,17 +195,17 @@ public class CompactableImpl implements Compactable {
     // important to track this in order to know if the last compaction is a full compaction and
     // should not propagate deletes.
     private boolean initiallySelectedAll = false;
-    private Set<StoredTabletFile> selectedFiles = new HashSet<>();
+    private final Set<StoredTabletFile> selectedFiles = new HashSet<>();
 
     protected Set<StoredTabletFile> allCompactingFiles = new HashSet<>();
 
     // track files produced by compactions of this tablet, those are considered chopped
-    private Set<StoredTabletFile> choppedFiles = new HashSet<>();
+    private final Set<StoredTabletFile> choppedFiles = new HashSet<>();
     private ChopSelectionStatus chopStatus = ChopSelectionStatus.NOT_ACTIVE;
-    private Set<StoredTabletFile> allFilesWhenChopStarted = new HashSet<>();
+    private final Set<StoredTabletFile> allFilesWhenChopStarted = new HashSet<>();
 
     private final KeyExtent extent;
-    private Deriver<Duration> selectionExpirationDeriver;
+    private final Deriver<Duration> selectionExpirationDeriver;
 
     public FileManager(KeyExtent extent, Collection<StoredTabletFile> extCompactingFiles,
         Optional<SelectedInfo> extSelInfo, Deriver<Duration> selectionExpirationDeriver) {
@@ -314,8 +314,8 @@ public class CompactableImpl implements Compactable {
     }
 
     class ChopSelector {
-      private Set<StoredTabletFile> allFiles;
-      private Set<StoredTabletFile> filesToExamine;
+      private final Set<StoredTabletFile> allFiles;
+      private final Set<StoredTabletFile> filesToExamine;
 
       private ChopSelector(Set<StoredTabletFile> allFiles, Set<StoredTabletFile> filesToExamine) {
         this.allFiles = allFiles;
@@ -1557,26 +1557,28 @@ public class CompactableImpl implements Compactable {
    * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
-  public synchronized void close() {
-    if (closed) {
-      return;
-    }
+  public void close() {
+    synchronized (this) {
+      if (closed) {
+        return;
+      }
 
-    closed = true;
+      closed = true;
 
-    // Wait while internal jobs are running or external compactions are committing. When
-    // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
-    // wait on those. Do not wait on external compactions that are running.
-    while (runningJobs.stream()
-        .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
-        || !externalCompactionsCommitting.isEmpty()
-        || fileMgr.chopStatus == ChopSelectionStatus.MARKING
-        || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
-      try {
-        wait(50);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+      // Wait while internal jobs are running or external compactions are committing. When
+      // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
+      // wait on those. Do not wait on external compactions that are running.
+      while (runningJobs.stream()
+          .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
+          || !externalCompactionsCommitting.isEmpty()
+          || fileMgr.chopStatus == ChopSelectionStatus.MARKING
+          || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
+        try {
+          wait(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException(e);
+        }
       }
     }
     manager.compactableClosed(getExtent(), servicesUsed, externalCompactions.keySet());
