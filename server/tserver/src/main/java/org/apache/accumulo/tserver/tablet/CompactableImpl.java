@@ -1485,7 +1485,7 @@ public class CompactableImpl implements Compactable {
 
       if (dispatcher == null) {
         log.error(
-            "Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
+            "Failed to dispatch compaction, no dispatcher. extent:{} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
             getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE);
         return CompactionServicesConfig.DEFAULT_SERVICE;
       }
@@ -1532,7 +1532,8 @@ public class CompactableImpl implements Compactable {
 
       return dispatch.getService();
     } catch (RuntimeException e) {
-      log.error("Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service.",
+      log.error(
+          "Failed to dispatch compaction due to exception. extent:{} kind:{} hints:{}, falling back to {} service.",
           getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE, e);
       return CompactionServicesConfig.DEFAULT_SERVICE;
     }
@@ -1557,30 +1558,27 @@ public class CompactableImpl implements Compactable {
    * should be running and none should be able to start.
    */
   public synchronized void close() {
-    synchronized (this) {
-      if (closed) {
-        return;
-      }
-
-      closed = true;
-
-      // Wait while internal jobs are running or external compactions are committing. When
-      // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
-      // wait on those. Do not wait on external compactions that are running.
-      while (runningJobs.stream()
-          .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
-          || !externalCompactionsCommitting.isEmpty()
-          || fileMgr.chopStatus == ChopSelectionStatus.MARKING
-          || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
-        try {
-          wait(50);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new RuntimeException(e);
-        }
-      }
+    if (closed) {
+      return;
     }
 
+    closed = true;
+
+    // Wait while internal jobs are running or external compactions are committing. When
+    // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
+    // wait on those. Do not wait on external compactions that are running.
+    while (runningJobs.stream()
+        .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
+        || !externalCompactionsCommitting.isEmpty()
+        || fileMgr.chopStatus == ChopSelectionStatus.MARKING
+        || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
+      try {
+        wait(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
+    }
     manager.compactableClosed(getExtent(), servicesUsed, externalCompactions.keySet());
   }
 }
