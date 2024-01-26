@@ -115,7 +115,7 @@ public class CreateEmpty implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Creates empty rfiles and empty wal files for emergency recovery";
+    return "Creates empty RFiles (RF) or empty write-ahead log (WAL) files for emergency recovery";
   }
 
   @Override
