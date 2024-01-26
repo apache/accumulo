@@ -95,12 +95,12 @@ public class CreateEmpty implements KeywordExecutable {
     List<String> files = new ArrayList<>();
 
     public enum OutFileType {
-      rfile, wal
+      RF, WAL
     }
 
     // rfile as default keeps previous behaviour
     @Parameter(names = "--type")
-    public OutFileType fileType = OutFileType.rfile;
+    public OutFileType fileType = OutFileType.RF;
 
   }
 
@@ -127,15 +127,14 @@ public class CreateEmpty implements KeywordExecutable {
     var siteConfig = opts.getSiteConfiguration();
     try (ServerContext context = new ServerContext(siteConfig)) {
       switch (opts.fileType) {
-        case rfile:
+        case RF:
           createEmptyRFile(opts, context);
           break;
-        case wal:
+        case WAL:
           createEmptyWal(opts, context);
           break;
         default:
-          throw new ParameterException(
-              "file type must be rfile or wal, received: " + opts.fileType);
+          throw new ParameterException("file type must be RF or WAL, received: " + opts.fileType);
       }
     }
   }
@@ -193,8 +192,7 @@ public class CreateEmpty implements KeywordExecutable {
 
   private void checkFileExists(final Path path, final VolumeManager vm) throws IOException {
     if (vm.exists(path)) {
-      throw new IllegalArgumentException(
-          path + " exists");
+      throw new IllegalArgumentException(path + " exists");
     }
   }
 }

@@ -95,7 +95,7 @@ public class CreateEmptyTest {
     File f = new File(wal1);
     assertTrue(f.createNewFile());
 
-    String[] walArgs = {"--type", "wal", wal1};
+    String[] walArgs = {"--type", "WAL", wal1};
     CreateEmpty.Opts walOpts = new CreateEmpty.Opts();
     walOpts.parseArgs("accumulo create-empty", walArgs);
 
@@ -106,7 +106,7 @@ public class CreateEmptyTest {
     File f2 = new File(rf1);
     assertTrue(f2.createNewFile());
 
-    String[] rfArgs = {"--type", "rfile", rf1};
+    String[] rfArgs = {"--type", "RF", rf1};
     CreateEmpty.Opts rfOpts = new CreateEmpty.Opts();
     rfOpts.parseArgs("accumulo create-empty", rfArgs);
     assertThrows(IllegalArgumentException.class,
@@ -120,7 +120,7 @@ public class CreateEmptyTest {
     String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
     String file2 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
 
-    String[] args = {"--type", "rfile", file1, file2};
+    String[] args = {"--type", "RF", file1, file2};
     CreateEmpty.Opts opts = new CreateEmpty.Opts();
     opts.parseArgs("accumulo create-empty", args);
 
@@ -130,6 +130,24 @@ public class CreateEmptyTest {
     assertTrue(vm.exists(new Path(file2)));
   }
 
+  /**
+   * Validate that the default type is RF (RecoveryWithEmptyRFileIT also needs this(
+   */
+  @Test
+  public void createRfileDefaultTest() throws Exception {
+    CreateEmpty createEmpty = new CreateEmpty();
+
+    String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
+
+    String[] args = {file1};
+    CreateEmpty.Opts opts = new CreateEmpty.Opts();
+    opts.parseArgs("accumulo create-empty", args);
+
+    createEmpty.createEmptyRFile(opts, context);
+    VolumeManager vm = context.getVolumeManager();
+    assertTrue(vm.exists(new Path(file1)));
+  }
+
   @Test
   public void createWalTest() throws Exception {
     CreateEmpty createEmpty = new CreateEmpty();
@@ -137,7 +155,7 @@ public class CreateEmptyTest {
     String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".wal");
     String file2 = genFilename(tempDir.getAbsolutePath() + "/empty", ".wal");
 
-    String[] args = {"--type", "wal", file1, file2};
+    String[] args = {"--type", "WAL", file1, file2};
     CreateEmpty.Opts opts = new CreateEmpty.Opts();
     opts.parseArgs("accumulo create-empty", args);
 

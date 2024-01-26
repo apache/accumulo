@@ -95,8 +95,8 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
           Path rfile = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath();
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
-          Process processInfo =
-              cluster.exec(CreateEmpty.class, "--type", "rfile", rfile.toString()).getProcess();
+          // following depends on create-empty defaults to rfile.
+          Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
           assertEquals(0, processInfo.waitFor());
         }
         assertTrue(foundFile);
