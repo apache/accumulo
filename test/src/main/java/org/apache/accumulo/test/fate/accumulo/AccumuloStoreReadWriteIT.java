@@ -139,11 +139,15 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       long tid = store.create();
       FateTxStore<TestEnv> txStore = store.reserve(tid);
 
-      // Go through all enum values to verify each TxInfo type will be properly
-      // written and read from the store
-      for (TxInfo txInfo : TxInfo.values()) {
-        txStore.setTransactionInfo(txInfo, "value: " + txInfo.name());
-        assertEquals("value: " + txInfo.name(), txStore.getTransactionInfo(txInfo));
+      try {
+        // Go through all enum values to verify each TxInfo type will be properly
+        // written and read from the store
+        for (TxInfo txInfo : TxInfo.values()) {
+          txStore.setTransactionInfo(txInfo, "value: " + txInfo.name());
+          assertEquals("value: " + txInfo.name(), txStore.getTransactionInfo(txInfo));
+        }
+      } finally {
+        txStore.delete();
       }
     }
   }
