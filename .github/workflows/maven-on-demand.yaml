@@ -71,7 +71,7 @@ jobs:
         distribution: adopt
         java-version: 17
     - name: Cache local maven repository
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.m2/repository/
