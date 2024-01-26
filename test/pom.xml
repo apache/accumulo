@@ -240,10 +240,19 @@
               <licenseSet>
                 <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
-                  <exclude>./src/main/resources/v2_import_test/data/distcp.txt</exclude>
+                  <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>
