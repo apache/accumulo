@@ -210,7 +210,7 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     // Sleep 1 ms to make sure we generate another token for the test
     // System.currentTimeMillis() is used as part of the token generation and if
     // the test runs fast enough it can return the same value that was used
-    // when generation the first token and the test will fail
+    // when generating the first token and the test will fail
     Thread.sleep(1);
 
     // Make a second token for the same user
