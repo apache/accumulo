@@ -322,7 +322,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     return new DfsLogger(context, logEntry);
   }
 
-  private DfsLogger(ServerContext context, LogEntry logEntry, AtomicLong syncCounter, AtomicLong flushCounter) {
+  private DfsLogger(ServerContext context, LogEntry logEntry, AtomicLong syncCounter,
+      AtomicLong flushCounter) {
     this(context, logEntry);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
@@ -395,7 +396,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param address The address of the host using this WAL
    */
-  private synchronized void open(VolumeManager fs, String logPath, String filename, String address) throws IOException {
+  private synchronized void open(VolumeManager fs, String logPath, String filename, String address)
+      throws IOException {
     log.debug("Address is {}", address);
 
     log.debug("DfsLogger.open() begin");
