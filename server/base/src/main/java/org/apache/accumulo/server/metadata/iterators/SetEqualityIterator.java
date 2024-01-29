@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -57,6 +56,8 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   private Key startKey = null;
   private Value topValue = null;
 
+  private boolean includeValue = false;
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
@@ -83,6 +84,8 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
         byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
         dos.writeInt(ba.length);
         dos.write(ba, 0, ba.length);
+        // TODO if includeValue is set then need to also encode the value, need to encode same way
+        // as client side
         source.next();
         count++;
       }
@@ -140,6 +143,7 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.source = source;
+    // TODO set includeValue based on options
   }
 
   @Override
@@ -187,49 +191,20 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
   }
 
-  private static <K,T> Set<T> extractValuesFromMap(Map<K,T> map) {
-    return new HashSet<>(map.values());
-  }
-
-  private static <K,T> Set<K> extractKeysFromMap(Map<K,T> map) {
-    return new HashSet<>(map.keySet());
-  }
-
-  public static <K,T> byte[] encodeMapValues(Map<K,T> map, Function<T,byte[]> encoder) {
-    Set<T> valuesSet = extractValuesFromMap(map);
-    return encode(valuesSet, encoder);
-  }
-
-  public static <K,T> byte[] encodeMapKeys(Map<K,T> map, Function<K,byte[]> encoder) {
-    Set<K> keysSet = extractKeysFromMap(map);
-    return encode(keysSet, encoder);
-  }
-
-  public static <K,T> Condition createMapValuesCondition(Map<K,T> map, Function<T,byte[]> encoder,
-      Text family) {
-    Preconditions.checkArgument(map instanceof Map);
+  public static <K,T> Condition createCondition(Map<K,T> map,
+      Function<Map.Entry<K,T>,Map.Entry<byte[],byte[]>> entryEncoder, Text family) {
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         SetEqualityIterator.class);
-    return new Condition(family, EMPTY).setValue(encodeMapValues(map, encoder)).setIterators(is);
+    // TODO use constant
+    is.addOption("ENCODE_VALUE", "true");
+    // Create a function that maps the Map.Entry<byte[], byte[]> from the caller to byte[]
+    Function<Map.Entry<K,T>,byte[]> encoder = entry -> encodeEntry(entryEncoder.apply(entry));
+    return new Condition(family, EMPTY).setValue(encode(map.entrySet(), encoder)).setIterators(is);
   }
 
-  public static <K,T> Condition createMapKeysCondition(Map<K,T> map, Function<K,byte[]> encoder,
-      Text family) {
-    Preconditions.checkArgument(map instanceof Map);
-    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
-        SetEqualityIterator.class);
-    return new Condition(family, EMPTY).setValue(encodeMapKeys(map, encoder)).setIterators(is);
-  }
-
-  public static <T> byte[] encodeSet(Set<T> set, Function<T,byte[]> encoder) {
-    return encode(set, encoder);
-  }
-
-  public static <T> Condition createSetCondition(Set<T> set, Function<T,byte[]> encoder,
-      Text family) {
-    Preconditions.checkArgument(set instanceof Set);
-    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
-        SetEqualityIterator.class);
-    return new Condition(family, EMPTY).setValue(encodeSet(set, encoder)).setIterators(is);
+  private static byte[] encodeEntry(Map.Entry<byte[],byte[]> bytesEntry) {
+    // TODO encode a key value the same way as on server side.. for sorting purposes would probably
+    // be best to use PairLexicoder
+    return null;
   }
 }
