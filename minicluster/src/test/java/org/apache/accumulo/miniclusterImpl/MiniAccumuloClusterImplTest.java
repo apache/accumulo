@@ -106,9 +106,10 @@ public class MiniAccumuloClusterImplTest {
   @Timeout(60)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
+    int expectedNumTables = 4;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
-      if (stats.tableMap.size() <= 2) {
+      if (stats.tableMap.size() < expectedNumTables) {
         continue;
       }
 
@@ -126,6 +127,8 @@ public class MiniAccumuloClusterImplTest {
         "root table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(AccumuloTable.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(AccumuloTable.FATE.tableId().canonical()),
+        "fate table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),
         "our test table should exist in " + stats.tableMap.keySet());
     assertNotNull(stats.tServerInfo, "there should be tservers.");

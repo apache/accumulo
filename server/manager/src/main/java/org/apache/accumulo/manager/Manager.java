@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
-import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -31,6 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,8 +71,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateCleaner;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -334,7 +334,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (!getFateRefs().isEmpty()) {
+      if (fateRefs.get() != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -940,8 +940,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator =
-        new CompactionCoordinator(context, tserverSet, security, nextEvent, fateRefs);
+    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -1187,14 +1186,13 @@ public class Manager extends AbstractServer
 
   private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
       FateStore<Manager> store) {
-    final AgeOffStore<Manager> ageOffStore =
-        new AgeOffStore<>(store, HOURS.toMillis(8), System::currentTimeMillis);
 
     final Fate<Manager> fateInstance =
-        new Fate<>(this, ageOffStore, TraceRepo::toLogString, getConfiguration());
+        new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
 
+    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), System::nanoTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-        .scheduleWithFixedDelay(ageOffStore::ageOff, 63000, 63000, MILLISECONDS));
+        .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
 
     return fateInstance;
   }

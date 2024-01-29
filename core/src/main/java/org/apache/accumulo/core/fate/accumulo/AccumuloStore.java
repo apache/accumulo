@@ -58,6 +58,11 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
+    this(context, tableName, DEFAULT_MAX_DEFERRED);
+  }
+
+  public AccumuloStore(ClientContext context, String tableName, int maxDeferred) {
+    super(maxDeferred);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
@@ -83,7 +88,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
-        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+        return new FateIdStatusBase(parseTid(e.getKey().getRow().toString())) {
           @Override
           public TStatus getStatus() {
             return TStatus.valueOf(e.getValue().toString());
@@ -183,6 +188,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
             break;
           case RETURN_VALUE:
             cq = TxInfoColumnFamily.RETURN_VALUE_COLUMN;
+            break;
+          case TX_AGEOFF:
+            cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
             break;
           default:
             throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);

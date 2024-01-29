@@ -115,13 +115,23 @@ public class FateLogger {
       }
 
       @Override
-      public Stream<Long> list() {
+      public Stream<FateIdStatus> list() {
         return store.list();
       }
 
       @Override
       public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
         store.runnable(keepWaiting, idConsumer);
+      }
+
+      @Override
+      public int getDeferredCount() {
+        return store.getDeferredCount();
+      }
+
+      @Override
+      public boolean isDeferredOverflow() {
+        return store.isDeferredOverflow();
       }
 
       @Override

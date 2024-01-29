@@ -59,8 +59,10 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
   private Set<Path> generateTmpFilePaths(ServerContext context, TableId tid, Path tabletDir,
       int numFiles) {
     final Set<Path> paths = new HashSet<>(numFiles);
-    final TabletsMetadata tms = context.getAmple().readTablets().forTable(tid).build();
-    final TabletMetadata tm = tms.iterator().next();
+    final TabletMetadata tm;
+    try (TabletsMetadata tms = context.getAmple().readTablets().forTable(tid).build()) {
+      tm = tms.iterator().next();
+    }
 
     for (int i = 0; i < numFiles; i++) {
       ReferencedTabletFile rtf = TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm,

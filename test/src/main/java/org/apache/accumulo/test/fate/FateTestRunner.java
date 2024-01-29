@@ -16,34 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.accumulo;
+package org.apache.accumulo.test.fate;
 
-import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FateIT.TestEnv;
 
-public interface FateMutator<T> {
+public interface FateTestRunner {
 
-  FateMutator<T> putStatus(TStatus status);
+  void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception;
 
-  FateMutator<T> putCreateTime(long ctime);
+  default void executeTest(FateTestExecutor testMethod) throws Exception {
+    executeTest(testMethod, 100_000);
+  }
 
-  FateMutator<T> putName(byte[] data);
-
-  FateMutator<T> putAutoClean(byte[] data);
-
-  FateMutator<T> putException(byte[] data);
-
-  FateMutator<T> putReturnValue(byte[] data);
-
-  FateMutator<T> putAgeOff(byte[] data);
-
-  FateMutator<T> putTxInfo(Fate.TxInfo txInfo, byte[] data);
-
-  FateMutator<T> putRepo(int position, Repo<T> repo);
-
-  FateMutator<T> deleteRepo(int position);
-
-  void mutate();
+  interface FateTestExecutor {
+    void execute(FateStore<TestEnv> store, ServerContext sctx) throws Exception;
+  }
 
 }

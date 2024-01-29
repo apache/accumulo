@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.COMPACT_COL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,11 +47,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -58,12 +57,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+//TODO when removing this class, also remove MetadataSchema.Upgrader12to13
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
-
-  private static final ColumnFQ COMPACT_COL =
-      new ColumnFQ(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, new Text("compact"));
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
