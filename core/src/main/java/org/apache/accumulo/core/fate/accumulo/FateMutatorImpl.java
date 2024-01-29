@@ -165,6 +165,14 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public void mutate() {
+    var status = tryMutate();
+    if (status != Status.ACCEPTED) {
+      throw new IllegalStateException("Failed to write mutation " + status + " " + mutation);
+    }
+  }
+
+  @Override
+  public Status tryMutate() {
     try {
       // if there are no conditions attached, then we can use a batch writer
       if (mutation.getConditions().isEmpty()) {
@@ -173,12 +181,25 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
         } catch (MutationsRejectedException e) {
           throw new RuntimeException(e);
         }
+
+        return Status.ACCEPTED;
       } else {
         try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
           ConditionalWriter.Result result = writer.write(mutation);
-          if (result.getStatus() != ConditionalWriter.Status.ACCEPTED) {
-            throw new IllegalStateException("Failed to write mutation " + mutation);
+
+          switch (result.getStatus()) {
+            case ACCEPTED:
+              return Status.ACCEPTED;
+            case REJECTED:
+              return Status.REJECTED;
+            case UNKNOWN:
+              return Status.UNKNOWN;
+            default:
+              // do not expect other statuses
+              throw new IllegalStateException(
+                  "Unhandled status for mutation " + result.getStatus());
           }
+
         } catch (AccumuloException | AccumuloSecurityException e) {
           throw new RuntimeException(e);
         }

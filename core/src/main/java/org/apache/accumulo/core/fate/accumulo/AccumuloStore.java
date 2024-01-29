@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.accumulo;
 
+import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.Serializable;
@@ -44,11 +45,16 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
+
+  private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
 
   private final ClientContext context;
   private final String tableName;
@@ -73,12 +79,37 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   @Override
   public long create() {
-    long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+    final int maxAttempts = 5;
 
-    newMutator(tid).requireStatus().putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis())
-        .mutate();
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      long tid = getTid();
 
-    return tid;
+      var status = newMutator(tid).requireStatus().putStatus(TStatus.NEW)
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+      switch (status) {
+        case ACCEPTED:
+          return tid;
+        case UNKNOWN:
+        case REJECTED:
+          if (attempt < maxAttempts - 1) {
+            log.debug("Failed to create new id: {}, trying again", formatTid(tid));
+            UtilWaitThread.sleep(100);
+            continue; // Skip the rest of the loop and start the next attempt
+          } else { // If this is the last attempt
+            throw new IllegalStateException(
+                "Failed to create new id after " + maxAttempts + " attempts");
+          }
+        default:
+          throw new IllegalStateException("Unknown status " + status);
+      }
+    }
+
+    throw new IllegalStateException("Failed to create new id after " + maxAttempts + " attempts");
+  }
+
+  public long getTid() {
+    return RANDOM.get().nextLong() & 0x7fffffffffffffffL;
   }
 
   @Override
