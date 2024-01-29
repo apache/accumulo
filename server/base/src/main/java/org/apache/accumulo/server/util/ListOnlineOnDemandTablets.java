@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -75,7 +76,7 @@ public class ListOnlineOnDemandTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    System.out.println("Scanning " + MetadataTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.METADATA.tableName());
 
     try (TabletsMetadata metaScanner =
         context.getAmple().readTablets().forLevel(Ample.DataLevel.USER).build()) {

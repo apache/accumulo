@@ -37,17 +37,15 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   @Override
@@ -132,7 +130,8 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
           getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
           getCluster().start();
           // read the metadata table to know everything is back up
-          try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+          try (Scanner scanner =
+              client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
             scanner.forEach((k, v) -> {});
           }
           i++;

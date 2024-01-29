@@ -72,8 +72,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedExcepti
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -84,6 +83,7 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
@@ -736,7 +736,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new NoSuchScanIDException();
     }
 
-    if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
+    if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
+        && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
       try {
         server.resourceManager.waitUntilCommitsAreEnabled();
       } catch (HoldTimeoutException hte) {
@@ -1172,13 +1173,34 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
-    String log = server.logger.getLogFile();
-    // Might be null if there is no active logger
-    if (log == null) {
-      return Collections.emptyList();
+  public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+      List<TKeyExtent> extents, int numStamps) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    return Collections.singletonList(log);
+
+    var tabletsSnapshot = server.getOnlineTablets();
+
+    Map<TKeyExtent,Long> timestamps = new HashMap<>();
+
+    for (var textent : extents) {
+      var extent = KeyExtent.fromThrift(textent);
+      Tablet tablet = tabletsSnapshot.get(extent);
+      if (tablet != null) {
+        tablet.allocateTimestamp(numStamps)
+            .ifPresent(timestamp -> timestamps.put(textent, timestamp));
+      }
+    }
+
+    return timestamps;
+  }
+
+  @Override
+  public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
+    // Might be null if there is no active logger
+    LogEntry le = server.logger.getLogEntry();
+    return le == null ? Collections.emptyList() : Collections.singletonList(le.getPath());
   }
 
   @Override

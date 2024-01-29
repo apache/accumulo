@@ -252,6 +252,12 @@ public class NullTserver {
         List<TKeyExtent> refreshes) throws TException {
       return List.of();
     }
+
+    @Override
+    public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+        List<TKeyExtent> tablets, int numStamps) throws TException {
+      return Map.of();
+    }
   }
 
   static class Opts extends Help {

@@ -37,11 +37,12 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -139,20 +140,18 @@ public class TablesResource {
     }
 
     TreeSet<String> locs = new TreeSet<>();
-    if (RootTable.ID.equals(tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
       var level = Ample.DataLevel.of(tableId);
-      try (TabletsMetadata tablets =
-          monitor.getContext().getAmple().readTablets().forLevel(level).build()) {
+      try (TabletsMetadata tablets = monitor.getContext().getAmple().readTablets().forLevel(level)
+          .filter(new HasCurrentFilter()).build()) {
 
         for (TabletMetadata tm : tablets) {
-          if (tm.hasCurrent()) {
-            try {
-              locs.add(tm.getLocation().getHostPort());
-            } catch (Exception ex) {
-              return tabletServers;
-            }
+          try {
+            locs.add(tm.getLocation().getHostPort());
+          } catch (Exception ex) {
+            return tabletServers;
           }
         }
       }

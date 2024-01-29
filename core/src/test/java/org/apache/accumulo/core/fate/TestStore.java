@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 /**
  * Transient in memory store for transactions.
@@ -35,6 +39,7 @@ public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
   private Map<Long,TStatus> statuses = new HashMap<>();
+  private Map<Long,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
   private Set<Long> reserved = new HashSet<>();
 
   @Override
@@ -51,11 +56,6 @@ public class TestStore implements FateStore<String> {
     // twice... if test change, then change this
     reserved.add(tid);
     return new TestFateTxStore(tid);
-  }
-
-  @Override
-  public FateTxStore<String> reserve() {
-    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -107,7 +107,12 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      throw new UnsupportedOperationException();
+      var submap = txInfos.get(tid);
+      if (submap == null) {
+        return null;
+      }
+
+      return submap.get(txInfo);
     }
 
     @Override
@@ -143,7 +148,11 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
-      throw new UnsupportedOperationException();
+      if (!reserved.contains(tid)) {
+        throw new IllegalStateException();
+      }
+
+      txInfos.computeIfAbsent(tid, t -> new HashMap<>()).put(txInfo, val);
     }
 
     @Override
@@ -155,7 +164,7 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public void unreserve(long deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
       if (!reserved.remove(tid)) {
         throw new IllegalStateException();
       }
@@ -168,8 +177,32 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public List<Long> list() {
-    return new ArrayList<>(statuses.keySet());
+  public Stream<FateIdStatus> list() {
+    return new ArrayList<>(statuses.entrySet()).stream().map(e -> new FateIdStatus() {
+      @Override
+      public long getTxid() {
+        return e.getKey();
+      }
+
+      @Override
+      public TStatus getStatus() {
+        return e.getValue();
+      }
+    });
   }
 
+  @Override
+  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int getDeferredCount() {
+    return 0;
+  }
+
+  @Override
+  public boolean isDeferredOverflow() {
+    return false;
+  }
 }

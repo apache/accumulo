@@ -24,8 +24,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -81,21 +82,24 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      List<TabletInformation> tabletsList = shellState.getContext().tableOperations()
-          .getTabletInformation(name, new Range()).collect(Collectors.toList());
-      for (int i = 0; i < tabletsList.size(); i++) {
-        TabletInformation tabletInfo = tabletsList.get(i);
-        lines.add(String.format("%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s",
-            i + 1, tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
-            getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
-            getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
-            tabletInfo.getTabletState(), tabletInfo.getLocation().orElse("None"),
-            tabletInfo.getTabletId().getTable(),
-            tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
-                : tabletInfo.getTabletId().getPrevEndRow().toString(),
-            tabletInfo.getTabletId().getEndRow() == null ? "+INF"
-                : tabletInfo.getTabletId().getEndRow().toString(),
-            tabletInfo.getTabletAvailability()));
+      try (Stream<TabletInformation> tabletInfoStream =
+          shellState.getContext().tableOperations().getTabletInformation(name, new Range())) {
+        final AtomicInteger counter = new AtomicInteger(1);
+        tabletInfoStream.forEach(tabletInfo -> {
+          int i = counter.getAndIncrement();
+          lines.add(String.format(
+              "%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", i,
+              tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
+              getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
+              getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
+              tabletInfo.getTabletState(), tabletInfo.getLocation().orElse("None"),
+              tabletInfo.getTabletId().getTable(),
+              tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
+                  : tabletInfo.getTabletId().getPrevEndRow().toString(),
+              tabletInfo.getTabletId().getEndRow() == null ? "+INF"
+                  : tabletInfo.getTabletId().getEndRow().toString(),
+              tabletInfo.getHostingGoal()));
+        });
       }
     }
 

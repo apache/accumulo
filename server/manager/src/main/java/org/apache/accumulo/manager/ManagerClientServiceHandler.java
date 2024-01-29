@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -64,8 +65,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -177,7 +177,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
       }
 
-      if (tableId.equals(RootTable.ID)) {
+      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
         break; // this code does not properly handle the root tablet. See #798
       }
 
@@ -220,8 +220,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
 
       } catch (TabletDeletedException e) {
-        Manager.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
-            tableId, e);
+        Manager.log.debug("Failed to scan {} table to wait for flush {}",
+            AccumuloTable.METADATA.tableName(), tableId, e);
       }
     }
 
@@ -329,7 +329,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<Manager> fate = manager.fate();
+    Fate<Manager> fate = manager.fate(FateInstanceType.META);
     long tid = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;

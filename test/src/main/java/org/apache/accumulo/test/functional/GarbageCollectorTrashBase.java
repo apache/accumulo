@@ -26,6 +26,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
@@ -51,14 +52,14 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
   protected ArrayList<StoredTabletFile> getFilesForTable(ServerContext ctx, AccumuloClient client,
       String tableName) {
     String tid = client.tableOperations().tableIdMap().get(tableName);
-    TabletsMetadata tms =
-        ctx.getAmple().readTablets().forTable(TableId.of(tid)).fetch(ColumnType.FILES).build();
-    ArrayList<StoredTabletFile> files = new ArrayList<>();
-    tms.forEach(tm -> {
-      files.addAll(tm.getFiles());
-    });
-    LOG.debug("Tablet files: {}", files);
-    return files;
+    try (TabletsMetadata tms =
+        ctx.getAmple().readTablets().forTable(TableId.of(tid)).fetch(ColumnType.FILES).build()) {
+      ArrayList<StoredTabletFile> files =
+          tms.stream().flatMap(tabletMetadata -> tabletMetadata.getFiles().stream())
+              .collect(Collectors.toCollection(ArrayList::new));
+      LOG.debug("Tablet files: {}", files);
+      return files;
+    }
   }
 
   protected ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,

@@ -16,12 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.fate.accumulo;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.Repo;
 
-public class MetadataTable {
-  public static final TableId ID = TableId.of("!0");
-  public static final String NAME = Namespace.ACCUMULO.name() + ".metadata";
+public interface FateMutator<T> {
+
+  FateMutator<T> putStatus(TStatus status);
+
+  FateMutator<T> putCreateTime(long ctime);
+
+  FateMutator<T> putName(byte[] data);
+
+  FateMutator<T> putAutoClean(byte[] data);
+
+  FateMutator<T> putException(byte[] data);
+
+  FateMutator<T> putReturnValue(byte[] data);
+
+  FateMutator<T> putAgeOff(byte[] data);
+
+  FateMutator<T> putTxInfo(Fate.TxInfo txInfo, byte[] data);
+
+  FateMutator<T> putRepo(int position, Repo<T> repo);
+
+  FateMutator<T> deleteRepo(int position);
+
+  void mutate();
+
 }

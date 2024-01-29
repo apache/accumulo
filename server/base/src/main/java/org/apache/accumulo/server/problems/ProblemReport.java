@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.server.ServerContext;
@@ -142,7 +142,7 @@ public class ProblemReport {
   void removeFromMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(ProblemSection.getRowPrefix() + tableId);
     m.putDelete(problemType.name(), resource);
-    try (var writer = context.createBatchWriter(MetadataTable.NAME)) {
+    try (var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       writer.addMutation(m);
     }
   }
@@ -150,7 +150,7 @@ public class ProblemReport {
   void saveToMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(ProblemSection.getRowPrefix() + tableId);
     m.put(problemType.name(), resource, new Value(encode()));
-    try (var writer = context.createBatchWriter(MetadataTable.NAME)) {
+    try (var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       writer.addMutation(m);
     }
   }

@@ -102,7 +102,7 @@ public class ManagerResource {
       List<String> managers = monitor.getContext().getManagerLocations();
 
       String manager =
-          managers.isEmpty() ? "Down" : AddressUtil.parseAddress(managers.get(0), false).getHost();
+          managers.isEmpty() ? "Down" : AddressUtil.parseAddress(managers.get(0)).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();

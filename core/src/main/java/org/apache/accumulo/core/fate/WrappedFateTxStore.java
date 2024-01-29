@@ -21,6 +21,7 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   protected final FateStore.FateTxStore<T> wrapped;
@@ -30,8 +31,8 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   }
 
   @Override
-  public void unreserve(long deferTime) {
-    wrapped.unreserve(deferTime);
+  public void unreserve(long deferTime, TimeUnit timeUnit) {
+    wrapped.unreserve(deferTime, timeUnit);
   }
 
   @Override

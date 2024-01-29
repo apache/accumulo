@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -80,7 +80,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.opentest4j.AssertionFailedError;
 
 import com.google.common.collect.Iterables;
 
@@ -320,14 +319,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
         assertEquals(4, futures.size());
         futures.forEach(f -> {
-          try {
-            f.get();
-            fail("Scanner should have timed out");
-          } catch (ExecutionException e) {
-            assertEquals(AssertionFailedError.class, e.getCause().getClass());
-          } catch (InterruptedException e) {
-            fail("Scan was interrupted");
-          }
+          var e = assertThrows(ExecutionException.class, () -> f.get());
+          assertTrue(e.getCause() instanceof AssertionError);
         });
       } // when the scanner is closed, all open sessions should be closed
       executor.shutdown();
@@ -448,7 +441,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   protected static int getNumHostedTablets(AccumuloClient client, String tableId) throws Exception {
-    try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+    try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
       scanner.setRange(new Range(tableId, tableId + "<"));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return Iterables.size(scanner);

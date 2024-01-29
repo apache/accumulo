@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -134,12 +136,12 @@ public class TabletLogger {
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
     if (fileLog.isDebugEnabled()) {
       if (config == null) {
-        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getExecutor(),
+        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getGroup(),
             job.getKind(), asMinimalString(job.getFiles()), getSize(job.getFiles()));
       } else {
         fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
-            job.getExecutor(), job.getKind(), asMinimalString(job.getFiles()),
-            getSize(job.getFiles()), config);
+            job.getGroup(), job.getKind(), asMinimalString(job.getFiles()), getSize(job.getFiles()),
+            config);
       }
     }
   }
@@ -147,6 +149,18 @@ public class TabletLogger {
   public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asMinimalString(job.getFiles()));
+  }
+
+  public static void compactionFailed(KeyExtent extent, CompactionJob job,
+      CompactionConfig config) {
+    fileLog.debug("Failed to compact: extent: {}, input files: {}, iterators: {}", extent,
+        asMinimalString(job.getFiles()), config.getIterators());
+  }
+
+  public static void externalCompactionFailed(KeyExtent extent, ExternalCompactionId id,
+      CompactionJob job, CompactionConfig config) {
+    fileLog.debug("Failed to compact: id: {}, extent: {}, input files: {}, iterators: {}", id,
+        extent, asMinimalString(job.getFiles()), config.getIterators());
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
@@ -163,7 +177,7 @@ public class TabletLogger {
 
   public static void recovering(KeyExtent extent, Collection<LogEntry> logEntries) {
     if (recoveryLog.isDebugEnabled()) {
-      List<String> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
+      List<UUID> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
       recoveryLog.debug("For {} recovering data from walogs: {}", extent, logIds);
     }
   }

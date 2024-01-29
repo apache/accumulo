@@ -153,11 +153,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder deleteWal(String wal) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public TabletMetadataBuilder deleteWal(LogEntry logEntry) {
     throw new UnsupportedOperationException();
   }
@@ -195,7 +190,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder putExternalCompaction(ExternalCompactionId ecid,
-      ExternalCompactionMetadata ecMeta) {
+      CompactionMetadata ecMeta) {
     fetched.add(ECOMP);
     internalBuilder.putExternalCompaction(ecid, ecMeta);
     return this;

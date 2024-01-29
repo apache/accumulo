@@ -164,12 +164,23 @@ struct ManagerMonitorInfo {
   9:list<BulkImportStatus> bulkImports
 }
 
+enum TFateInstanceType {
+  META
+  USER
+}
+
+struct TFateId {
+  1:TFateInstanceType type
+  2:i64 tid
+}
+
 service FateService {
 
   // register a fate operation by reserving an opid
-  i64 beginFateOperation(
+  TFateId beginFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
+    3:TFateInstanceType type
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -179,7 +190,7 @@ service FateService {
   void executeFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
     4:FateOperation op
     5:list<binary> arguments
     6:map<string, string> options
@@ -194,7 +205,7 @@ service FateService {
   string waitForFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
@@ -205,7 +216,7 @@ service FateService {
   void finishFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -215,7 +226,7 @@ service FateService {
   bool cancelFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase

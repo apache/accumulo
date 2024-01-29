@@ -180,19 +180,6 @@ public class MetadataSchema {
       }
 
       /**
-       * A temporary field in case a split fails and we need to roll back
-       */
-      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
-      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
-          new ColumnFQ(NAME, new Text(OLD_PREV_ROW_QUAL));
-      /**
-       * A temporary field for splits to optimize certain operations
-       */
-      public static final String SPLIT_RATIO_QUAL = "splitRatio";
-      public static final ColumnFQ SPLIT_RATIO_COLUMN =
-          new ColumnFQ(NAME, new Text(SPLIT_RATIO_QUAL));
-
-      /**
        * Creates a mutation that encodes a KeyExtent as a prevRow entry.
        */
       public static Mutation createPrevRowMutation(KeyExtent ke) {
@@ -430,6 +417,27 @@ public class MetadataSchema {
       public static final String STR_NAME = "compacted";
       public static final Text NAME = new Text(STR_NAME);
     }
+
+
+    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
+    public static class Upgrade12to13 {
+
+      /**
+       * A temporary field in case a split fails and we need to roll back
+       */
+      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
+      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
+          new ColumnFQ(TabletColumnFamily.NAME, new Text(OLD_PREV_ROW_QUAL));
+      /**
+       * A temporary field for splits to optimize certain operations
+       */
+      public static final String SPLIT_RATIO_QUAL = "splitRatio";
+      public static final ColumnFQ SPLIT_RATIO_COLUMN =
+          new ColumnFQ(TabletColumnFamily.NAME, new Text(SPLIT_RATIO_QUAL));
+
+      public static final ColumnFQ COMPACT_COL =
+          new ColumnFQ(ServerColumnFamily.NAME, new Text("compact"));
+    }
   }
 
   /**
@@ -517,19 +525,6 @@ public class MetadataSchema {
   public static class ScanServerFileReferenceSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-  }
-
-  public static class RefreshSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "refresh", true, RESERVED_PREFIX + "refresi", false);
 
     public static Range getRange() {
       return section.getRange();

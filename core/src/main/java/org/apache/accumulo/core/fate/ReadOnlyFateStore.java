@@ -21,6 +21,9 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
 
 /**
  * Read only access to a Transaction Store.
@@ -115,10 +118,37 @@ public interface ReadOnlyFateStore<T> {
     long getID();
   }
 
+  interface FateIdStatus {
+    long getTxid();
+
+    TStatus getStatus();
+  }
+
   /**
    * list all transaction ids in store.
    *
    * @return all outstanding transactions, including those reserved by others.
    */
-  List<Long> list();
+  Stream<FateIdStatus> list();
+
+  /**
+   * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids
+   * that are found are passed to the consumer. This method will block until at least one runnable
+   * is found or until the keepWaiting parameter is false. It will return once all runnable ids
+   * found were passed to the consumer.
+   */
+  void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer);
+
+  /**
+   * Returns true if the deferred map was cleared and if deferred executions are currently disabled
+   * because of too many deferred transactions
+   *
+   * @return true if the map is in a deferred overflow state, else false
+   */
+  boolean isDeferredOverflow();
+
+  /**
+   * @return the current number of transactions that have been deferred
+   */
+  int getDeferredCount();
 }

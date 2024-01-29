@@ -55,8 +55,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -96,8 +95,6 @@ public class TabletMetadata {
   private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
-  private Text oldPrevEndRow;
-  private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
   private Map<StoredTabletFile,DataFileValue> files;
@@ -114,8 +111,7 @@ public class TabletMetadata {
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
   private List<LogEntry> logs;
-  private Double splitRatio = null;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
   private TabletAvailability availability = TabletAvailability.ONDEMAND;
   private boolean onDemandHostingRequested = false;
@@ -134,7 +130,6 @@ public class TabletMetadata {
   public enum ColumnType {
     LOCATION,
     PREV_ROW,
-    OLD_PREV_ROW,
     FILES,
     LAST,
     LOADED,
@@ -144,7 +139,6 @@ public class TabletMetadata {
     CLONED,
     FLUSH_ID,
     LOGS,
-    SPLIT_RATIO,
     SUSPEND,
     ECOMP,
     MERGED,
@@ -279,21 +273,6 @@ public class TabletMetadata {
     return sawPrevEndRow;
   }
 
-  public Text getOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    if (!sawOldPrevEndRow) {
-      throw new IllegalStateException(
-          "No old prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
-    }
-    return oldPrevEndRow;
-  }
-
-  // ELASTICITY_TODO remove and handle in upgrade
-  public boolean sawOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    return sawOldPrevEndRow;
-  }
-
   public Text getEndRow() {
     return endRow;
   }
@@ -368,11 +347,6 @@ public class TabletMetadata {
     return flush;
   }
 
-  public Double getSplitRatio() {
-    ensureFetched(ColumnType.SPLIT_RATIO);
-    return splitRatio;
-  }
-
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
     return merged;
@@ -382,6 +356,7 @@ public class TabletMetadata {
     if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
+
     }
     ensureFetched(ColumnType.AVAILABILITY);
     return availability;
@@ -396,14 +371,13 @@ public class TabletMetadata {
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
         .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
-        .append("oldPrevEndRow", oldPrevEndRow).append("sawOldPrevEndRow", sawOldPrevEndRow)
         .append("endRow", endRow).append("location", location).append("files", files)
         .append("scans", scans).append("loadedFiles", loadedFiles)
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
         .append("availability", availability)
+        .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
@@ -414,7 +388,7 @@ public class TabletMetadata {
     return keyValues;
   }
 
-  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+  public Map<ExternalCompactionId,CompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
   }
@@ -449,8 +423,7 @@ public class TabletMetadata {
     final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
     final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     final var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var extCompBuilder =
-        ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
+    final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
     final var compactedBuilder = ImmutableSet.<Long>builder();
     ByteSequence row = null;
@@ -548,8 +521,7 @@ public class TabletMetadata {
           logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
           break;
         case ExternalCompactionColumnFamily.STR_NAME:
-          extCompBuilder.put(ExternalCompactionId.of(qual),
-              ExternalCompactionMetadata.fromJson(val));
+          extCompBuilder.put(ExternalCompactionId.of(qual), CompactionMetadata.fromJson(val));
           break;
         case MergedColumnFamily.STR_NAME:
           te.merged = true;

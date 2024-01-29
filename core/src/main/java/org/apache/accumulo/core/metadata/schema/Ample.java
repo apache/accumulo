@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -37,9 +36,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -82,8 +80,8 @@ public interface Ample {
    */
   public enum DataLevel {
     ROOT(null, null),
-    METADATA(RootTable.NAME, RootTable.ID),
-    USER(MetadataTable.NAME, MetadataTable.ID);
+    METADATA(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId()),
+    USER(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
 
     private final String table;
     private final TableId id;
@@ -114,9 +112,9 @@ public interface Ample {
     }
 
     public static DataLevel of(TableId tableId) {
-      if (tableId.equals(RootTable.ID)) {
+      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
         return DataLevel.ROOT;
-      } else if (tableId.equals(MetadataTable.ID)) {
+      } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
         return DataLevel.METADATA;
       } else {
         return DataLevel.USER;
@@ -369,8 +367,6 @@ public interface Ample {
 
     T putWal(LogEntry logEntry);
 
-    T deleteWal(String wal);
-
     T deleteWal(LogEntry logEntry);
 
     T putTime(MetadataTime time);
@@ -383,7 +379,7 @@ public interface Ample {
 
     T deleteSuspension();
 
-    T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
+    T putExternalCompaction(ExternalCompactionId ecid, CompactionMetadata ecMeta);
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
@@ -560,7 +556,7 @@ public interface Ample {
      * second cause is ample resubmitting on unknown as mentioned above. Below are a few examples
      * that go over how Ample will handle these different situations.
      *
-     * <h3>Example 1</h3>
+     * <h4>Example 1</h4>
      *
      * <ul>
      * <li>Conditional mutation CM1 with a condition requiring an absent location that sets a future
@@ -577,7 +573,7 @@ public interface Ample {
      * everything is ok, therefore ample reports the status as ACCEPTED.</li>
      * </ul>
      *
-     * <h3>Example 2</h3>
+     * <h4>Example 2</h4>
      *
      * <ul>
      * <li>Conditional mutation CM2 with a condition requiring an absent location that sets a future
@@ -593,7 +589,7 @@ public interface Ample {
      * as accepted.</li>
      * </ul>
      *
-     * <h3>Example 3</h3>
+     * <h4>Example 3</h4>
      *
      * <ul>
      * <li>Conditional mutation CM3 with a condition requiring an absent operation that sets the
@@ -676,48 +672,6 @@ public interface Ample {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
-    throw new UnsupportedOperationException();
-  }
-
-  interface Refreshes {
-    static class RefreshEntry {
-      private final ExternalCompactionId ecid;
-
-      private final KeyExtent extent;
-      private final TServerInstance tserver;
-
-      public RefreshEntry(ExternalCompactionId ecid, KeyExtent extent, TServerInstance tserver) {
-        this.ecid = Objects.requireNonNull(ecid);
-        this.extent = Objects.requireNonNull(extent);
-        this.tserver = Objects.requireNonNull(tserver);
-      }
-
-      public ExternalCompactionId getEcid() {
-        return ecid;
-      }
-
-      public KeyExtent getExtent() {
-        return extent;
-      }
-
-      public TServerInstance getTserver() {
-        return tserver;
-      }
-    }
-
-    void add(Collection<RefreshEntry> entries);
-
-    void delete(Collection<RefreshEntry> entries);
-
-    Stream<RefreshEntry> stream();
-  }
-
-  /**
-   * Refresh entries in the metadata table are used to track hosted tablets that need to have their
-   * metadata refreshed after a compaction. These entries ensure the refresh happens even in the
-   * case of process death.
-   */
-  default Refreshes refreshes(DataLevel dataLevel) {
     throw new UnsupportedOperationException();
   }
 }

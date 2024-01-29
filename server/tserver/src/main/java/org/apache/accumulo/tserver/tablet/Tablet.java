@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +60,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -294,8 +295,7 @@ public class Tablet extends TabletBase {
       // make some closed references that represent the recovered logs
       currentLogs = new HashSet<>();
       for (LogEntry logEntry : logEntries) {
-        currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
-            logEntry.getFilePath(), logEntry.getColumnQualifier().toString()));
+        currentLogs.add(new DfsLogger(tabletServer.getContext(), logEntry));
       }
 
       rebuildReferencedLogs();
@@ -950,8 +950,8 @@ public class Tablet extends TabletBase {
       }
 
       if (!tabletMeta.getLogs().isEmpty()) {
-        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
-            + tabletMeta.getLogs();
+        String msg = "Closed tablet " + extent + " has walog entries in "
+            + AccumuloTable.METADATA.tableName() + " " + tabletMeta.getLogs();
         log.error(msg);
         throw new RuntimeException(msg);
       }
@@ -1127,7 +1127,7 @@ public class Tablet extends TabletBase {
         List<DfsLogger> oldClosed = closedLogs.subList(0, closedLogs.size() - maxLogs);
         for (DfsLogger closedLog : oldClosed) {
           if (currentLogs.contains(closedLog)) {
-            reason = "referenced at least one old write ahead log " + closedLog.getFileName();
+            reason = "referenced at least one old write ahead log " + closedLog.getLogEntry();
             break;
           }
         }
@@ -1145,12 +1145,12 @@ public class Tablet extends TabletBase {
     return logLock;
   }
 
-  Set<String> beginClearingUnusedLogs() {
+  Set<LogEntry> beginClearingUnusedLogs() {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
-    Set<String> unusedLogs = new HashSet<>();
+    Set<LogEntry> unusedLogs = new HashSet<>();
 
-    ArrayList<String> otherLogsCopy = new ArrayList<>();
-    ArrayList<String> currentLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>();
 
     synchronized (this) {
       if (removingLogs) {
@@ -1159,13 +1159,13 @@ public class Tablet extends TabletBase {
       }
 
       for (DfsLogger logger : otherLogs) {
-        otherLogsCopy.add(logger.toString());
-        unusedLogs.add(logger.getMeta());
+        otherLogsCopy.add(logger.getLogEntry());
+        unusedLogs.add(logger.getLogEntry());
       }
 
       for (DfsLogger logger : currentLogs) {
-        currentLogsCopy.add(logger.toString());
-        unusedLogs.remove(logger.getMeta());
+        currentLogsCopy.add(logger.getLogEntry());
+        unusedLogs.remove(logger.getLogEntry());
       }
 
       if (!unusedLogs.isEmpty()) {
@@ -1174,16 +1174,16 @@ public class Tablet extends TabletBase {
     }
 
     // do debug logging outside tablet lock
-    for (String logger : otherLogsCopy) {
-      log.trace("Logs for memory compacted: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : otherLogsCopy) {
+      log.trace("Logs for memory compacted: {} {}", getExtent(), logEntry);
     }
 
-    for (String logger : currentLogsCopy) {
-      log.trace("Logs for current memory: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : currentLogsCopy) {
+      log.trace("Logs for current memory: {} {}", getExtent(), logEntry);
     }
 
-    for (String logger : unusedLogs) {
-      log.trace("Logs to be destroyed: {} {}", getExtent(), logger);
+    for (LogEntry logEntry : unusedLogs) {
+      log.trace("Logs to be destroyed: {} {}", getExtent(), logEntry);
     }
 
     return unusedLogs;
@@ -1293,8 +1293,8 @@ public class Tablet extends TabletBase {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
-      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId,
-      MinorCompactionReason mincReason) {
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<LogEntry> unusedWalLogs,
+      long flushId, MinorCompactionReason mincReason) {
 
     Preconditions.checkState(refreshLock.isHeldByCurrentThread());
 
@@ -1474,7 +1474,7 @@ public class Tablet extends TabletBase {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
         // moving where the following method is called, examine it and finishClearingUnusedLogs()
         // before moving.
-        Set<String> unusedWalLogs = beginClearingUnusedLogs();
+        Set<LogEntry> unusedWalLogs = beginClearingUnusedLogs();
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
         // reverse order data could be lost... the minor compaction start event should be written
@@ -1598,4 +1598,20 @@ public class Tablet extends TabletBase {
     return !activeScans.isEmpty() || writesInProgress > 0;
   }
 
+  public synchronized OptionalLong allocateTimestamp(int numStamps) {
+    if (isClosing() || isClosed()) {
+      return OptionalLong.empty();
+    }
+
+    Preconditions.checkArgument(numStamps > 0);
+    long timestamp = Long.MIN_VALUE;
+    for (int i = 0; i < numStamps; i++) {
+      timestamp = tabletTime.getAndUpdateTime();
+    }
+
+    getTabletMemory().getCommitSession().updateMaxCommittedTime(timestamp);
+
+    // ELASTICITY_TODO this needs to be persisted in the metadata table or walog
+    return OptionalLong.of(timestamp);
+  }
 }

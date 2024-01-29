@@ -26,9 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,22 +44,28 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.util.SlowOps;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +81,6 @@ import org.slf4j.LoggerFactory;
  * (original) and additional method without.</li>
  * </ul>
  */
-@Disabled // ELASTICITY_TODO
 public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);
@@ -127,7 +134,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @Test
   public void changeTableStateTest() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    SlowOps.setExpectedCompactions(client, 1);
     slowOps = new SlowOps(client, tableName, maxWaitMillis);
 
     assertEquals(TableState.ONLINE, getTableState(tableName), "verify table online after created");
@@ -191,11 +197,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   private boolean findFate(String aTableName) {
+    boolean isMeta = aTableName.startsWith(Namespace.ACCUMULO.name());
     log.debug("Look for fate {}", aTableName);
     for (int retry = 0; retry < 5; retry++) {
       try {
-        boolean found = lookupFateInZookeeper(aTableName);
-        log.trace("Try {}: Fate in zk for table {} : {}", retry, aTableName, found);
+        boolean found =
+            isMeta ? lookupFateInZookeeper(aTableName) : lookupFateInAccumulo(aTableName);
+        log.trace("Try {}: Fate in {} for table {} : {}", retry, isMeta ? "zk" : "accumulo",
+            aTableName, found);
         if (found) {
           log.debug("Found fate {}", aTableName);
           return true;
@@ -219,7 +228,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   @Test
   public void getFateStatus() {
-    SlowOps.setExpectedCompactions(client, 1);
     String tableName = getUniqueNames(1)[0];
     slowOps = new SlowOps(client, tableName, maxWaitMillis);
 
@@ -257,11 +265,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
+        AccumuloStore<String> as = new AccumuloStore<>(context);
+        Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
+            Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
 
-        withLocks = admin.getStatus(zs, zk, lockPath, null, null);
+        withLocks = admin.getStatus(fateStores, zk, lockPath, null, null);
 
         // call method that does not use locks.
-        noLocks = admin.getTransactionStatus(zs, null, null);
+        noLocks = admin.getTransactionStatus(fateStores, null, null);
 
         // no zk exception, no need to retry
         break;
@@ -353,6 +364,33 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
+        if (isCompaction(tx)) {
+          return true;
+        }
+      }
+
+    } catch (TableNotFoundException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
+    }
+
+    // did not find appropriate fate transaction for compaction.
+    return Boolean.FALSE;
+  }
+
+  private boolean lookupFateInAccumulo(final String tableName) throws KeeperException {
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    try {
+      TableId tableId = context.getTableId(tableName);
+
+      log.trace("tid: {}", tableId);
+
+      AccumuloStore<String> as = new AccumuloStore<>(context);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(as, null, null);
+
+      log.trace("current fates: {}", fateStatus.getTransactions().size());
+
+      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
         if (isCompaction(tx)) {
           return true;
         }
@@ -474,10 +512,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * valid.
    */
   @Test
-  public void multipleCompactions() {
+  public void multipleCompactions() throws InterruptedException, IOException {
 
     int tableCount = 4;
-    SlowOps.setExpectedCompactions(client, tableCount);
+
+    // Start 4 Compactors for the user_small group
+    MiniAccumuloClusterImpl mini = (MiniAccumuloClusterImpl) getCluster();
+    mini.getConfig().getClusterServerConfiguration().addCompactorResourceGroup("user_small", 4);
+    mini.start();
 
     List<SlowOps> tables = Arrays.stream(getUniqueNames(tableCount))
         .map(tableName -> new SlowOps(client, tableName, maxWaitMillis))
@@ -486,6 +528,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     assertEquals(tableCount,
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());
+
+    Wait.waitFor(() -> tableCount
+        == ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).size());
 
     tables.forEach(t -> {
       try {

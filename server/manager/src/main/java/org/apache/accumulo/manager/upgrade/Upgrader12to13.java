@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.COMPACT_COL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -46,11 +46,10 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
-import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -58,12 +57,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+//TODO when removing this class, also remove MetadataSchema.Upgrader12to13
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
-
-  private static final ColumnFQ COMPACT_COL =
-      new ColumnFQ(MetadataSchema.TabletsSection.ServerColumnFamily.NAME, new Text("compact"));
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -77,16 +74,20 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
+    LOG.info("Looking for partial splits");
+    handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
     addHostingGoalToMetadataTable(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
-    removeMetaDataBulkLoadFilter(context, RootTable.ID);
+    removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
-    removeCompactColumnsFromTable(context, RootTable.NAME);
+    removeCompactColumnsFromTable(context, AccumuloTable.ROOT.tableName());
   }
 
   @Override
   public void upgradeMetadata(ServerContext context) {
+    LOG.info("Looking for partial splits");
+    handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
     addHostingGoalToUserTables(context);
     LOG.info("Deleting external compaction final states from user tables");
@@ -94,9 +95,9 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, MetadataTable.ID);
+    removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
-    removeCompactColumnsFromTable(context, MetadataTable.NAME);
+    removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
   }
 
   private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
@@ -120,6 +121,7 @@ public class Upgrader12to13 implements Upgrader {
           Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
               "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
           Mutation m = new Mutation(row);
+          // TODO will metadata contraint fail when this is written?
           COMPACT_COL.putDelete(m);
           mutations.add(m);
         }
@@ -196,8 +198,8 @@ public class Upgrader12to13 implements Upgrader {
     // Compactions are committed in a completely different way now, so delete these entries. Its
     // possible some completed compactions may need to be redone, but processing these entries would
     // not be easy to test so its better for correctness to delete them and redo the work.
-    try (var scanner = context.createScanner(MetadataTable.NAME);
-        var writer = context.createBatchWriter(MetadataTable.NAME)) {
+    try (var scanner = context.createScanner(AccumuloTable.METADATA.tableName());
+        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       var section = new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
       scanner.setRange(section.getRange());
 
@@ -227,11 +229,11 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void addHostingGoalToRootTable(ServerContext context) {
-    addHostingGoalToSystemTable(context, RootTable.ID);
+    addHostingGoalToSystemTable(context, AccumuloTable.ROOT.tableId());
   }
 
   private void addHostingGoalToMetadataTable(ServerContext context) {
-    addHostingGoalToSystemTable(context, MetadataTable.ID);
+    addHostingGoalToSystemTable(context, AccumuloTable.METADATA.tableId());
   }
 
   private void addHostingGoalToUserTables(ServerContext context) {
@@ -249,8 +251,8 @@ public class Upgrader12to13 implements Upgrader {
     // process the metadata table. The metadata related to an external compaction has changed so
     // delete any that exists. Not using Ample in case there are problems deserializing the old
     // external compaction metadata.
-    try (var scanner = context.createScanner(MetadataTable.NAME);
-        var writer = context.createBatchWriter(MetadataTable.NAME)) {
+    try (var scanner = context.createScanner(AccumuloTable.METADATA.tableName());
+        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       scanner.setRange(TabletsSection.getRange());
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
 
@@ -264,6 +266,19 @@ public class Upgrader12to13 implements Upgrader {
             "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
         writer.addMutation(m);
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void handlePartialSplits(ServerContext context, String table) {
+    try (var scanner = context.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(TabletsSection.getRange());
+      TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN.fetch(scanner);
+
+      for (var entry : scanner) {
+        SplitRecovery12to13.fixSplit(context, entry.getKey().getRow());
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
