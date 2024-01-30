@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.fate.accumulo;
 
-import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.Serializable;
@@ -80,9 +79,14 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   @Override
   public long create() {
     final int maxAttempts = 5;
+    long tid = 0L;
 
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      long tid = getTid();
+      if (attempt >= 1) {
+        log.debug("Failed to create new id: {}, trying again", tid);
+        UtilWaitThread.sleep(100);
+      }
+      tid = getTid();
 
       var status = newMutator(tid).requireStatus().putStatus(TStatus.NEW)
           .putCreateTime(System.currentTimeMillis()).tryMutate();
@@ -92,14 +96,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
           return tid;
         case UNKNOWN:
         case REJECTED:
-          if (attempt < maxAttempts - 1) {
-            log.debug("Failed to create new id: {}, trying again", formatTid(tid));
-            UtilWaitThread.sleep(100);
-            continue; // Skip the rest of the loop and start the next attempt
-          } else { // If this is the last attempt
-            throw new IllegalStateException(
-                "Failed to create new id after " + maxAttempts + " attempts");
-          }
+          continue;
         default:
           throw new IllegalStateException("Unknown status " + status);
       }
