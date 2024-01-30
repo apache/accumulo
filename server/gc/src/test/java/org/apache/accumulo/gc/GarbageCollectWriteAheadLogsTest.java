@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -74,10 +75,8 @@ public class GarbageCollectWriteAheadLogsTest {
     }
   }
 
-  private final Iterable<TabletMetadata> tabletOnServer1List =
-      Collections.singletonList(tabletAssignedToServer1);
-  private final Iterable<TabletMetadata> tabletOnServer2List =
-      Collections.singletonList(tabletAssignedToServer2);
+  private final Stream<TabletMetadata> tabletOnServer1List = Stream.of(tabletAssignedToServer1);
+  private final Stream<TabletMetadata> tabletOnServer2List = Stream.of(tabletAssignedToServer2);
 
   @Test
   public void testRemoveUnusedLog() throws Exception {
