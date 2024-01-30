@@ -116,8 +116,7 @@ public class FateCleaner<T> {
               var newAgeOffInfo =
                   new AgeOffInfo(instanceId, timeSource.currentTimeNanos(), currStatus);
               txStore.setTransactionInfo(Fate.TxInfo.TX_AGEOFF, newAgeOffInfo.toString());
-              log.trace("Set age off data {} {}", idStatus.getFateId(),
-                  newAgeOffInfo);
+              log.trace("Set age off data {} {}", idStatus.getFateId(), newAgeOffInfo);
             } else if (shouldAgeOff(currStatus, ageOffInfo)) {
               txStore.delete();
               log.debug("Aged off FATE tx {}", idStatus.getFateId());

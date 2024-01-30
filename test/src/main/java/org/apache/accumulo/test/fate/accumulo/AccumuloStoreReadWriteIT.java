@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
@@ -77,8 +78,8 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       assertEquals(0, store.list().count());
 
       // Create a new transaction and get the store for it
-      long tid = store.create();
-      FateTxStore<TestEnv> txStore = store.reserve(tid);
+      FateId fateId = store.create();
+      FateTxStore<TestEnv> txStore = store.reserve(fateId);
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(1, store.list().count());
 
@@ -140,11 +141,11 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
       assertFalse(store.isDeferredOverflow());
 
       // Store 10 transactions that are all deferred
-      final Set<Long> transactions = new HashSet<>();
+      final Set<FateId> transactions = new HashSet<>();
       for (int i = 0; i < 10; i++) {
-        long tid = store.create();
-        transactions.add(tid);
-        FateTxStore<TestEnv> txStore = store.reserve(tid);
+        FateId fateId = store.create();
+        transactions.add(fateId);
+        FateTxStore<TestEnv> txStore = store.reserve(fateId);
         txStore.setStatus(TStatus.SUBMITTED);
         assertTrue(txStore.timeCreated() > 0);
         txStore.unreserve(10, TimeUnit.SECONDS);
@@ -173,9 +174,9 @@ public class AccumuloStoreReadWriteIT extends SharedMiniClusterBase {
 
         // Store one more that should go over the max deferred of 10
         // and should clear the map and set the overflow flag
-        long tid = store.create();
-        transactions.add(tid);
-        FateTxStore<TestEnv> txStore = store.reserve(tid);
+        FateId fateId = store.create();
+        transactions.add(fateId);
+        FateTxStore<TestEnv> txStore = store.reserve(fateId);
         txStore.setStatus(TStatus.SUBMITTED);
         txStore.unreserve(30, TimeUnit.SECONDS);
 

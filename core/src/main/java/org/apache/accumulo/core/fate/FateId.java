@@ -21,6 +21,7 @@ package org.apache.accumulo.core.fate;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.util.FastFormat;
 
 /**
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.util.FastFormat;
  */
 public class FateId extends AbstractId<FateId> {
 
+  private static final long serialVersionUID = 1L;
   private static final String PREFIX = "FATE:";
   private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]+$");
 
@@ -82,6 +84,24 @@ public class FateId extends AbstractId<FateId> {
     } else {
       throw new IllegalArgumentException("Invalid Hex Transaction ID: " + hexTid);
     }
+  }
+
+  public static FateId fromThrift(TFateId tFateId) {
+    FateInstanceType type;
+    long tid = tFateId.getTid();
+
+    switch (tFateId.getType()) {
+      case USER:
+        type = FateInstanceType.USER;
+        break;
+      case META:
+        type = FateInstanceType.META;
+        break;
+      default:
+        throw new IllegalArgumentException("Invalid TFateInstanceType: " + tFateId.getType());
+    }
+
+    return new FateId(PREFIX + type + ":" + formatTid(tid));
   }
 
   /**

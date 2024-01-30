@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -330,14 +331,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     Fate<Manager> fate = manager.fate(FateInstanceType.META);
-    long tid = fate.startTransaction();
+    FateId fateId = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;
 
-    fate.seedTransaction("ShutdownTServer", tid,
+    fate.seedTransaction("ShutdownTServer", fateId,
         new TraceRepo<>(new ShutdownTServer(doomed, force)), false, msg);
-    fate.waitForCompletion(tid);
-    fate.delete(tid);
+    fate.waitForCompletion(fateId);
+    fate.delete(fateId);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
   }

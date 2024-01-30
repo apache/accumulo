@@ -132,6 +132,7 @@ public class FateLogger {
         return fateId;
       }
 
+      @Override
       public int getDeferredCount() {
         return store.getDeferredCount();
       }
