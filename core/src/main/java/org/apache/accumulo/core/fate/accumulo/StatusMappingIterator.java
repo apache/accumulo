@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -94,6 +95,8 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
       String currentValue = source.getTopValue().toString();
       mappedValue =
           acceptableStatuses.contains(currentValue) ? new Value(PRESENT) : new Value(ABSENT);
+    } else {
+      mappedValue = null;
     }
   }
 
@@ -104,7 +107,7 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
 
   @Override
   public Value getTopValue() {
-    return mappedValue;
+    return Objects.requireNonNull(mappedValue);
   }
 
   @Override

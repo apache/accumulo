@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.ACCEPTED;
+import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.REJECTED;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
@@ -100,49 +103,63 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
 
       // use require status passing all statuses. without the status column present this should fail
-      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, tid);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator.requireStatus(ReadOnlyFateStore.TStatus.values())
+          () -> new FateMutatorImpl<>(context, table, tid)
+              .requireStatus(ReadOnlyFateStore.TStatus.values())
               .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate());
-
-      logAllEntriesInTable(table, client); // this prints nothing on the table as we expect
+      assertEquals(0, client.createScanner(table).stream().count());
+      var status = new FateMutatorImpl<>(context, table, tid)
+          .requireStatus(ReadOnlyFateStore.TStatus.values())
+          .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
+      assertEquals(REJECTED, status);
+      assertEquals(0, client.createScanner(table).stream().count());
 
       // use require status without passing any statuses to require that the status column is absent
-      FateMutatorImpl<FateIT.TestEnv> fateMutator0 = new FateMutatorImpl<>(context, table, tid);
-      fateMutator0.requireStatus().putStatus(ReadOnlyFateStore.TStatus.NEW).mutate();
+      status = new FateMutatorImpl<>(context, table, tid).requireStatus()
+          .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
+      assertEquals(ACCEPTED, status);
 
       // try again with requiring an absent status column. this time it should fail because we just
       // put status NEW
-      log.info("Asserting that requireStatus() throws when we pass in no statuses");
-      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, tid);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator1.requireStatus().putStatus(ReadOnlyFateStore.TStatus.NEW).mutate(),
+          () -> new FateMutatorImpl<>(context, table, tid).requireStatus()
+              .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate(),
+          "Expected to not be able to use requireStatus() without passing any statuses");
+      status = new FateMutatorImpl<>(context, table, tid).requireStatus()
+          .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
+      assertEquals(REJECTED, status,
           "Expected to not be able to use requireStatus() without passing any statuses");
 
       // now use require same with the current status, NEW passed in
-      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, tid);
-      fateMutator2.requireStatus(ReadOnlyFateStore.TStatus.NEW)
-          .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).mutate();
+      status =
+          new FateMutatorImpl<>(context, table, tid).requireStatus(ReadOnlyFateStore.TStatus.NEW)
+              .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).tryMutate();
+      assertEquals(ACCEPTED, status);
 
       // use require same with an array of statuses, none of which are the current status
       // (SUBMITTED)
-      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, tid);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator3
+          () -> new FateMutatorImpl<>(context, table, tid)
               .requireStatus(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN)
               .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).mutate(),
           "Expected to not be able to use requireStatus() with statuses that do not match the current status");
+      status = new FateMutatorImpl<>(context, table, tid)
+          .requireStatus(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN)
+          .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).tryMutate();
+      assertEquals(REJECTED, status,
+          "Expected to not be able to use requireStatus() with statuses that do not match the current status");
 
       // use require same with an array of statuses, one of which is the current status (SUBMITTED)
-      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, tid);
-      fateMutator4
+      status = new FateMutatorImpl<>(context, table, tid)
           .requireStatus(ReadOnlyFateStore.TStatus.UNKNOWN, ReadOnlyFateStore.TStatus.SUBMITTED)
-          .putStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS).mutate();
+          .putStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS).tryMutate();
+      assertEquals(ACCEPTED, status);
 
       // one more time check that we can use require same with the current status (IN_PROGRESS)
-      FateMutatorImpl<FateIT.TestEnv> fateMutator5 = new FateMutatorImpl<>(context, table, tid);
-      fateMutator5.requireStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS)
-          .putStatus(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS).mutate();
+      status = new FateMutatorImpl<>(context, table, tid)
+          .requireStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS)
+          .putStatus(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS).tryMutate();
+      assertEquals(ACCEPTED, status);
 
     }
 
