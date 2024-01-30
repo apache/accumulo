@@ -20,7 +20,10 @@ package org.apache.accumulo.tserver;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.List;
 
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -60,8 +63,24 @@ public class TservConstraintEnv implements SystemEnvironment, Constraint.Environ
 
   @Override
   public AuthorizationContainer getAuthorizationsContainer() {
-    return auth -> security.authenticatedUserHasAuthorizations(credentials, Collections
-        .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
+    return new AuthorizationContainer() {
+
+      @Override
+      public boolean contains(ByteSequence auth) {
+        return security.authenticatedUserHasAuthorizations(credentials, Collections
+            .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
+      }
+
+      @Override
+      public List<byte[]> getAuthorizations() {
+        try {
+          return security.getUserAuthorizations(credentials).getAuthorizations();
+        } catch (ThriftSecurityException e) {
+          throw new RuntimeException("Error getting authorizations", e);
+        }
+      }
+
+    };
   }
 
   @Override

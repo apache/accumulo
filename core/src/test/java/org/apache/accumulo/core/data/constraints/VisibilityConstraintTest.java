@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -59,6 +60,7 @@ public class VisibilityConstraintTest {
 
     AuthorizationContainer ac = createNiceMock(AuthorizationContainer.class);
     expect(ac.contains(bs)).andReturn(true);
+    expect(ac.getAuthorizations()).andReturn(Collections.singletonList("good".getBytes(UTF_8)));
     replay(ac);
 
     env = createMock(Environment.class);

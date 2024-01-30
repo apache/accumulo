@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.util.List;
+
 import org.apache.accumulo.core.data.ByteSequence;
 
 /**
@@ -31,4 +33,11 @@ public interface AuthorizationContainer {
    * @return true if authorization is in this collection
    */
   boolean contains(ByteSequence auth);
+
+  /**
+   * Gets the authorizations. The returned list is not modifiable.
+   *
+   * @return authorizations, each as a string encoded in UTF-8
+   */
+  public List<byte[]> getAuthorizations();
 }

@@ -95,6 +95,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
     private Set<ByteSequence> findAuths(ByteSequence vis) {
       HashSet<ByteSequence> auths = new HashSet<>();
       byte[] expression = vis.toArray();
+      @SuppressWarnings("deprecation")
       Node root = new ColumnVisibility(expression).getParseTree();
 
       findAuths(root, expression, auths);
@@ -102,6 +103,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       return auths;
     }
 
+    @SuppressWarnings("deprecation")
     private void findAuths(Node node, byte[] expression, HashSet<ByteSequence> auths) {
       switch (node.getType()) {
         case AND:

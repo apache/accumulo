@@ -22,12 +22,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -77,7 +77,7 @@ import org.apache.hadoop.io.WritableComparator;
 public class ColumnVisibility {
 
   Node node = null;
-  private byte[] expression;
+  private final AccessExpression expression;
 
   /**
    * Accessor for the underlying byte string.
@@ -85,12 +85,13 @@ public class ColumnVisibility {
    * @return byte array representation of a visibility expression
    */
   public byte[] getExpression() {
-    return expression;
+    return expression.getExpression().getBytes(UTF_8);
   }
 
   /**
    * The node types in a parse tree for a visibility expression.
    */
+  @Deprecated
   public enum NodeType {
     EMPTY, TERM, OR, AND,
   }
@@ -103,6 +104,7 @@ public class ColumnVisibility {
   /**
    * A node in the parse tree for a visibility expression.
    */
+  @Deprecated
   public static class Node {
     /**
      * An empty list of nodes.
@@ -169,6 +171,7 @@ public class ColumnVisibility {
    * A node comparator. Nodes sort according to node type, terms sort lexicographically. AND and OR
    * nodes sort by number of children, or if the same by corresponding children.
    */
+  @Deprecated
   public static class NodeComparator implements Comparator<Node>, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -216,6 +219,7 @@ public class ColumnVisibility {
    * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
+  @Deprecated
   public static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
   }
@@ -228,6 +232,7 @@ public class ColumnVisibility {
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
   // @formatter:on
+  @Deprecated
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);
@@ -256,6 +261,7 @@ public class ColumnVisibility {
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This
    * method adds parens where necessary.
    */
+  @Deprecated
   public static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start, UTF_8));
@@ -283,12 +289,11 @@ public class ColumnVisibility {
    * @return normalized expression in byte[] form
    */
   public byte[] flatten() {
-    Node normRoot = normalize(node, expression);
-    StringBuilder builder = new StringBuilder(expression.length);
-    stringify(normRoot, expression, builder);
-    return builder.toString().getBytes(UTF_8);
+    // expression was not normalized when we created it
+    return AccessExpression.of(expression.getExpression(), true).getExpression().getBytes(UTF_8);
   }
 
+  @Deprecated
   private static class ColumnVisibilityParser {
     private int index = 0;
     private int parens = 0;
@@ -455,14 +460,14 @@ public class ColumnVisibility {
     }
   }
 
-  private void validate(byte[] expression) {
+  @Deprecated
+  private void createNodeTree(byte[] expression) {
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
       node = p.parse(expression);
     } else {
       node = EMPTY_NODE;
     }
-    this.expression = expression;
   }
 
   /**
@@ -496,18 +501,29 @@ public class ColumnVisibility {
   }
 
   /**
-   * Creates a column visibility for a Mutation from a string already encoded in UTF-8 bytes.
+   * Creates a column visibility for a Mutation from bytes already encoded in UTF-8.
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
-    validate(expression);
+    createNodeTree(expression);
+    this.expression = AccessExpression.of(expression);
+  }
+
+  /**
+   * Creates a column visibility for a Mutation from an AccessExpression.
+   *
+   * @param expression visibility expression, encoded as UTF-8 bytes
+   * @see #ColumnVisibility(String)
+   */
+  public ColumnVisibility(AccessExpression expression) {
+    this.expression = expression;
   }
 
   @Override
   public String toString() {
-    return "[" + new String(expression, UTF_8) + "]";
+    return "[" + expression.getExpression() + "]";
   }
 
   /**
@@ -529,12 +545,12 @@ public class ColumnVisibility {
    * @return true if this visibility equals the other via string comparison
    */
   public boolean equals(ColumnVisibility otherLe) {
-    return Arrays.equals(expression, otherLe.expression);
+    return expression.equals(otherLe.expression);
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(expression);
+    return expression.hashCode();
   }
 
   /**
@@ -542,6 +558,7 @@ public class ColumnVisibility {
    *
    * @return parse tree node
    */
+  @Deprecated
   public Node getParseTree() {
     return node;
   }
@@ -566,7 +583,7 @@ public class ColumnVisibility {
    * @return quoted term (unquoted if unnecessary)
    */
   public static String quote(String term) {
-    return new String(quote(term.getBytes(UTF_8)), UTF_8);
+    return AccessExpression.quote(term);
   }
 
   /**
@@ -577,6 +594,7 @@ public class ColumnVisibility {
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
    */
+  @Deprecated
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
 
