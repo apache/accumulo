@@ -132,7 +132,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     private CachedTablet checkLock(CachedTablet tl) {
       // the goal of this class is to minimize calls out to lockChecker under that
       // assumption that
-      // it's a resource synchronized among many threads... want to
+      // it is a resource synchronized among many threads... want to
       // avoid fine-grained synchronization when binning lots of mutations or ranges... remember
       // decisions from the lockChecker in thread local unsynchronized
       // memory
