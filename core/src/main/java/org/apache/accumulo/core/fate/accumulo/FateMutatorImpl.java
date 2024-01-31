@@ -24,11 +24,16 @@ import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Condition;
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
@@ -45,13 +50,13 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   private final ClientContext context;
   private final String tableName;
   private final FateId fateId;
-  private final Mutation mutation;
+  private final ConditionalMutation mutation;
 
-  FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
+  public FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
     this.fateId = fateId;
-    this.mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
+    this.mutation = new ConditionalMutation(new Text("tx_" + fateId.getHexTid()));
   }
 
   @Override
@@ -91,6 +96,12 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
+  public FateMutator<T> putAgeOff(byte[] data) {
+    TxInfoColumnFamily.TX_AGEOFF_COLUMN.put(mutation, new Value(data));
+    return this;
+  }
+
+  @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
       case TX_NAME:
@@ -105,13 +116,21 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
       case RETURN_VALUE:
         putReturnValue(data);
         break;
+      case TX_AGEOFF:
+        putAgeOff(data);
+        break;
+      default:
+        throw new IllegalArgumentException("Unexpected TxInfo type: " + txInfo);
     }
     return this;
   }
 
   @Override
   public FateMutator<T> putRepo(int position, Repo<T> repo) {
-    mutation.put(RepoColumnFamily.NAME, invertRepo(position), new Value(serialize(repo)));
+    final Text cq = invertRepo(position);
+    // ensure this repo is not already set
+    mutation.addCondition(new Condition(RepoColumnFamily.NAME, cq));
+    mutation.put(RepoColumnFamily.NAME, cq, new Value(serialize(repo)));
     return this;
   }
 
@@ -132,12 +151,61 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
+  /**
+   * Require that the transaction status is one of the given statuses. If no statuses are provided,
+   * require that the status column is absent.
+   *
+   * @param statuses The statuses to check against.
+   */
+  public FateMutator<T> requireStatus(TStatus... statuses) {
+    Condition condition = StatusMappingIterator.createCondition(statuses);
+    mutation.addCondition(condition);
+    return this;
+  }
+
   @Override
   public void mutate() {
-    try (BatchWriter writer = context.createBatchWriter(tableName)) {
-      writer.addMutation(mutation);
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
+    var status = tryMutate();
+    if (status != Status.ACCEPTED) {
+      throw new IllegalStateException("Failed to write mutation " + status + " " + mutation);
+    }
+  }
+
+  @Override
+  public Status tryMutate() {
+    try {
+      // if there are no conditions attached, then we can use a batch writer
+      if (mutation.getConditions().isEmpty()) {
+        try (BatchWriter writer = context.createBatchWriter(tableName)) {
+          writer.addMutation(mutation);
+        } catch (MutationsRejectedException e) {
+          throw new RuntimeException(e);
+        }
+
+        return Status.ACCEPTED;
+      } else {
+        try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
+          ConditionalWriter.Result result = writer.write(mutation);
+
+          switch (result.getStatus()) {
+            case ACCEPTED:
+              return Status.ACCEPTED;
+            case REJECTED:
+              return Status.REJECTED;
+            case UNKNOWN:
+              return Status.UNKNOWN;
+            default:
+              // do not expect other statuses
+              throw new IllegalStateException(
+                  "Unhandled status for mutation " + result.getStatus());
+          }
+
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
     }
   }
 }

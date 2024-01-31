@@ -18,27 +18,14 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
-import java.util.stream.StreamSupport;
-
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class AccumuloFateIT extends FateIT {
-
-  private String table;
+public class AccumuloStoreFateIT extends FateStoreIT {
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -52,28 +39,12 @@ public class AccumuloFateIT extends FateIT {
 
   @Override
   public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
-    table = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
       testMethod.execute(new AccumuloStore<>(client, table, maxDeferred),
           getCluster().getServerContext());
     }
-  }
-
-  @Override
-  protected TStatus getTxStatus(ServerContext context, FateId fateId) {
-    try (Scanner scanner = context.createScanner(table, Authorizations.EMPTY)) {
-      scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
-    } catch (TableNotFoundException e) {
-      throw new IllegalStateException(table + " not found!", e);
-    }
-  }
-
-  private static Range getRow(FateId fateId) {
-    return new Range("tx_" + fateId.getHexTid());
   }
 }

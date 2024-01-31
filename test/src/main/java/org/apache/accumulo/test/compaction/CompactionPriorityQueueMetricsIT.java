@@ -393,6 +393,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
             emptyQueue = true;
           }
         }
+
+        // Check if the total number of queues is zero, if so then will not see metrics for the
+        // above queue.
+        if (metric.getName().equals(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+          if (Integer.parseInt(metric.getValue()) == 0) {
+            emptyQueue = true;
+          }
+        }
       }
       UtilWaitThread.sleep(3500);
     }

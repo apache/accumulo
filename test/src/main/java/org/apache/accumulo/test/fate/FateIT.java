@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class FateIT extends SharedMiniClusterBase {
+public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner {
 
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
@@ -373,15 +373,6 @@ public abstract class FateIT extends SharedMiniClusterBase {
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);
-
-  protected abstract void executeTest(FateTestExecutor testMethod) throws Exception;
-
-  protected abstract void executeTest(FateTestExecutor testMethod, int maxDeferred)
-      throws Exception;
-
-  protected interface FateTestExecutor {
-    void execute(FateStore<TestEnv> store, ServerContext sctx) throws Exception;
-  }
 
   private static void inCall() throws InterruptedException {
     // signal that call started

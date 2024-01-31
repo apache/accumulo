@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.fate.zookeeper;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -28,21 +27,18 @@ import java.io.File;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.accumulo.FateStoreIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class ZookeeperFateIT extends FateIT {
+public class ZooStoreFateIT extends FateStoreIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
@@ -73,29 +69,4 @@ public class ZookeeperFateIT extends FateIT {
 
     testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred), sctx);
   }
-
-  @Override
-  protected TStatus getTxStatus(ServerContext sctx, FateId fateId) {
-    try {
-      return getTxStatus(sctx.getZooReaderWriter(), fateId);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  /*
-   * Get the status of the TX from ZK directly. Unable to call ZooStore.getStatus because this test
-   * thread does not have the reservation (the FaTE thread does)
-   */
-  private static TStatus getTxStatus(ZooReaderWriter zrw, FateId fateId)
-      throws KeeperException, InterruptedException {
-    zrw.sync(ZK_ROOT);
-    String txdir = String.format("%s%s/tx_%s", ZK_ROOT, Constants.ZFATE, fateId.getHexTid());
-    try {
-      return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
-    } catch (KeeperException.NoNodeException e) {
-      return TStatus.UNKNOWN;
-    }
-  }
-
 }
