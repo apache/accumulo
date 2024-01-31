@@ -44,11 +44,16 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
+
+  private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
 
   private final ClientContext context;
   private final String tableName;
@@ -73,11 +78,35 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   @Override
   public long create() {
-    long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+    final int maxAttempts = 5;
+    long tid = 0L;
 
-    newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt >= 1) {
+        log.debug("Failed to create new id: {}, trying again", tid);
+        UtilWaitThread.sleep(100);
+      }
+      tid = getTid();
 
-    return tid;
+      var status = newMutator(tid).requireStatus().putStatus(TStatus.NEW)
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+      switch (status) {
+        case ACCEPTED:
+          return tid;
+        case UNKNOWN:
+        case REJECTED:
+          continue;
+        default:
+          throw new IllegalStateException("Unknown status " + status);
+      }
+    }
+
+    throw new IllegalStateException("Failed to create new id after " + maxAttempts + " attempts");
+  }
+
+  public long getTid() {
+    return RANDOM.get().nextLong() & 0x7fffffffffffffffL;
   }
 
   @Override
@@ -249,11 +278,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReserved(true);
 
-      FateMutator<T> fateMutator = newMutator(tid);
       final byte[] serialized = serializeTxInfo(so);
-      fateMutator.putTxInfo(txInfo, serialized);
 
-      fateMutator.mutate();
+      newMutator(tid).putTxInfo(txInfo, serialized).mutate();
     }
 
     @Override

@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.stream.Stream;
-
-import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;

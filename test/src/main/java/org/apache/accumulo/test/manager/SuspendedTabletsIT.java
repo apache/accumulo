@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -200,7 +200,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       properties.put("table.custom.assignment.group", TEST_GROUP_NAME);
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints)
-          .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+          .withInitialTabletAvailability(TabletAvailability.HOSTED);
       ntc.setProperties(properties);
       ctx.tableOperations().create(tableName, ntc);
 

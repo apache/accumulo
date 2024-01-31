@@ -101,8 +101,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 
@@ -113,8 +111,6 @@ import com.google.common.collect.MoreCollectors;
  */
 @Tag(SUNNY_DAY)
 public class ComprehensiveIT extends SharedMiniClusterBase {
-
-  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
@@ -924,9 +920,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         client.tableOperations().getTabletInformation(table, new Range())) {
       tabletInfo.forEach(tabletInformation -> {
         if (tabletInformation.getTabletId().getEndRow() == null) {
-          assertEquals(TabletHostingGoal.HOSTED, tabletInformation.getTabletAvailability());
+          assertEquals(TabletAvailability.HOSTED, tabletInformation.getTabletAvailability());
         } else {
-          assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getTabletAvailability());
+          assertEquals(TabletAvailability.ONDEMAND, tabletInformation.getTabletAvailability());
         }
       });
     }

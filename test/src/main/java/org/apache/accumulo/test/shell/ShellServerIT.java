@@ -1246,8 +1246,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("Sets the tablet availability"));
     ts.exec("setavailability -t " + table + " -b a -e a -a unhosted");
     ts.exec("setavailability -t " + table + " -b c -e e -ee -a Hosted");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
-        Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build(); Scanner s =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
       s.fetchColumn(new Column(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),

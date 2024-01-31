@@ -121,7 +121,7 @@ public class MiniAccumuloClusterImplTest {
     List<ManagerGoalState> validGoals = Arrays.asList(ManagerGoalState.values());
     assertTrue(validStates.contains(stats.state), "manager state should be valid.");
     assertTrue(validGoals.contains(stats.goalState),
-        "manager availability state should be in " + validGoals + ". is " + stats.goalState);
+        "manager goal state should be in " + validGoals + ". is " + stats.goalState);
     assertNotNull(stats.tableMap, "should have a table map.");
     assertTrue(stats.tableMap.containsKey(AccumuloTable.ROOT.tableId().canonical()),
         "root table should exist in " + stats.tableMap.keySet());

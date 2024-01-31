@@ -708,7 +708,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Set availability for table: " + tableName + "(" + tableId + ") range: "
             + tRange + " to: " + tabletAvailability.name();
-        manager.fate().seedTransaction(op.toString(), opid,
+        manager.fate(type).seedTransaction(op.toString(), tid,
             new TraceRepo<>(
                 new SetTabletAvailability(tableId, namespaceId, tRange, tabletAvailability)),
             autoCleanup, goalMessage);

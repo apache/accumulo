@@ -24,10 +24,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -353,10 +351,10 @@ public class TabletMetadata {
   }
 
   public TabletAvailability getTabletAvailability() {
-    if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
+    if (AccumuloTable.ROOT.tableId().equals(getTableId())
+        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
-
     }
     ensureFetched(ColumnType.AVAILABILITY);
     return availability;
@@ -376,7 +374,6 @@ public class TabletMetadata {
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("availability", availability)
         .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
@@ -399,7 +396,7 @@ public class TabletMetadata {
   }
 
   /**
-   * @return the operation id if it exist, null otherwise
+   * @return the operation id if it exists, null otherwise
    * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
   public TabletOperationId getOperationId() {
@@ -455,13 +452,6 @@ public class TabletMetadata {
             case PREV_ROW_QUAL:
               te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawPrevEndRow = true;
-              break;
-            case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawOldPrevEndRow = true;
-              break;
-            case SPLIT_RATIO_QUAL:
-              te.splitRatio = Double.parseDouble(val);
               break;
             case AVAILABILITY_QUAL:
               te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
@@ -535,7 +525,8 @@ public class TabletMetadata {
       }
     }
 
-    if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(te.tableId)
+        || AccumuloTable.METADATA.tableId().equals(te.tableId)) {
       // Override the availability for the system tables
       te.availability = TabletAvailability.HOSTED;
     }

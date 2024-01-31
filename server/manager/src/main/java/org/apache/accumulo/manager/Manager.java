@@ -502,7 +502,7 @@ public class Manager extends AbstractServer
           getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
-      log.error("Unable to set manager availability state in zookeeper");
+      log.error("Unable to set manager goal state in zookeeper");
     }
   }
 
@@ -513,7 +513,7 @@ public class Manager extends AbstractServer
             .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
-        log.error("Problem getting real availability state from zookeeper: ", e);
+        log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, SECONDS);
       }
     }
@@ -701,7 +701,7 @@ public class Manager extends AbstractServer
               }
           }
         } catch (Exception t) {
-          log.error("Error occurred reading / switching manager availability state. Will"
+          log.error("Error occurred reading / switching manager goal state. Will"
               + " continue with attempt to update status", t);
         }
 

@@ -144,9 +144,9 @@ public class ManagerResource {
   }
 
   /**
-   * Returns the availability state of the manager
+   * Returns the goal state of the manager
    *
-   * @return manager availability state
+   * @return manager goal state
    */
   public static String getGoalState(Monitor monitor) {
     ManagerMonitorInfo mmi = monitor.getMmi();

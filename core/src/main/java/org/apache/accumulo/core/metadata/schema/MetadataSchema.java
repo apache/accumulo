@@ -418,7 +418,6 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
-
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
     public static class Upgrade12to13 {
 

@@ -1304,16 +1304,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MapCounter<String> serverCounts = new MapCounter<>();
 
       try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
+          .overRange(range).fetch(AVAILABILITY, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
 
         for (TabletMetadata tablet : tablets) {
           total++;
           Location loc = tablet.getLocation();
-          TabletAvailability availability = tablet.getAvailability();
+          TabletAvailability availability = tablet.getTabletAvailability();
 
           if ((expectedState == TableState.ONLINE
-              && (availability == TabletAvailablity.HOSTED
-                  || (availability == TabletAvailablility.ONDEMAND) && tablet.getHostingRequested())
+              && (availability == TabletAvailability.HOSTED
+                  || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
               || (expectedState == TableState.OFFLINE && loc != null)) {
             if (continueRow == null) {

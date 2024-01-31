@@ -92,7 +92,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.OPID_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
-          ServerColumnFamily.SELECTED_COLUMN);
+          ServerColumnFamily.SELECTED_COLUMN,
           Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
@@ -225,10 +225,10 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-              || columnFamily.equals(LogColumnFamily.NAME)
-          && !TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          && !columnFamily.equals(CompactedColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+          || columnFamily.equals(LogColumnFamily.NAME)
+          || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          || columnFamily.equals(CompactedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
