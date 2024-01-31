@@ -47,7 +47,7 @@ public interface ImportConfiguration {
   /**
    * @return the initial hosting goal for the table
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   TabletHostingGoal getInitialHostingGoal();
 
@@ -80,6 +80,12 @@ public interface ImportConfiguration {
      */
     Builder setKeepMappings(boolean keepMappings);
 
+    /**
+     * set the initial hosting goal for the table
+     *
+     * @param initialTabletGoal the initial hosting goal for the table
+     * @since 4.0.0
+     */
     Builder setInitialHostingGoal(TabletHostingGoal initialTabletGoal);
 
     /**
