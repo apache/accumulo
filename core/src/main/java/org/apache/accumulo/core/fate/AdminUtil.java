@@ -376,14 +376,14 @@ public class AdminUtil<T> {
 
           String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-          // TODO DEFERRED - ISSUE 4044
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
           List<String> hlocks = heldLocks.remove(fateId.getTid());
 
           if (hlocks == null) {
             hlocks = Collections.emptyList();
           }
 
-          // TODO DEFERRED - ISSUE 4044
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
           List<String> wlocks = waitingLocks.remove(fateId.getTid());
 
           if (wlocks == null) {
@@ -400,7 +400,7 @@ public class AdminUtil<T> {
 
           long timeCreated = txStore.timeCreated();
 
-          // TODO DEFERRED - ISSUE 4044
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
           if (includeByStatus(status, filterStatus) && includeByTxid(fateId.getTid(), filterTxid)) {
             statuses.add(new TransactionStatus(fateId.getTid(), type, status, txName, hlocks,
                 wlocks, top, timeCreated));
@@ -464,7 +464,7 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
-    // TODO DEFERRED - ISSUE 4044
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     FateId fateId = FateId.from(FateInstanceType.META, txid);
     FateTxStore<T> txStore = zs.reserve(fateId);
     try {
@@ -505,7 +505,7 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
-    // TODO DEFERRED - ISSUE 4044
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     FateId fateId = FateId.from(FateInstanceType.META, txid);
     FateTxStore<T> txStore = zs.reserve(fateId);
     try {

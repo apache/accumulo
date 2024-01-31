@@ -236,8 +236,7 @@ public class Fate<T> {
     }
 
     private void transitionToFailed(FateTxStore<T> txStore, Exception e) {
-      FateId fateId = txStore.getID();
-      final String msg = "Failed to execute Repo " + fateId;
+      final String msg = "Failed to execute Repo " + txStore.getID();
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
@@ -249,7 +248,7 @@ public class Fate<T> {
       }
       txStore.setTransactionInfo(TxInfo.EXCEPTION, e);
       txStore.setStatus(FAILED_IN_PROGRESS);
-      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", fateId);
+      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", txStore.getID());
     }
 
     private void processFailed(FateTxStore<T> txStore, Repo<T> op) {
