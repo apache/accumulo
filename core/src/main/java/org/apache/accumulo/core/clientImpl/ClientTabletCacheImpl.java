@@ -130,7 +130,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
     private CachedTablet checkLock(CachedTablet tl) {
-      // the availability of this class is to minimize calls out to lockChecker under that
+      // the goal of this class is to minimize calls out to lockChecker under that
       // assumption that
       // it's a resource synchronized among many threads... want to
       // avoid fine-grained synchronization when binning lots of mutations or ranges... remember
