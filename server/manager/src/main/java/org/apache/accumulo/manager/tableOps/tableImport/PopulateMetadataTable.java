@@ -189,7 +189,7 @@ class PopulateMetadataTable extends ManagerRepo {
               }
 
               mbw.addMutation(m);
-              break; // it's the last column in the last row
+              break; // it is the last column in the last row
             }
           }
           break;
