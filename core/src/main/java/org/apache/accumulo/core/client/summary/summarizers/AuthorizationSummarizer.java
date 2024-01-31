@@ -81,7 +81,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = AccessExpression.getAuthorizations(vis.toArray()).asSet().stream()
+          auths = AccessExpression.of(vis.toArray()).getAuthorizations().asSet().stream()
               .map(ArrayByteSequence::new).collect(Collectors.toSet());
           cache.put(new ArrayByteSequence(vis), auths);
         }

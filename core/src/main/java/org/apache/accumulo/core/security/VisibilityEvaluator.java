@@ -74,8 +74,8 @@ public class VisibilityEvaluator {
    */
   public VisibilityEvaluator(AuthorizationContainer authsContainer) {
     // TODO need to look into efficiency and correctness of this
-    this.accessEvaluator = AccessEvaluator.builder()
-        .authorizations(auth -> authsContainer.contains(new ArrayByteSequence(auth))).build();
+    this.accessEvaluator =
+        AccessEvaluator.of(auth -> authsContainer.contains(new ArrayByteSequence(auth)));
   }
 
   /**
@@ -87,7 +87,7 @@ public class VisibilityEvaluator {
   public VisibilityEvaluator(Authorizations authorizations) {
     var authsArray = authorizations.getAuthorizations().stream()
         .map(auth -> new String(auth, UTF_8)).toArray(String[]::new);
-    this.accessEvaluator = AccessEvaluator.builder().authorizations(authsArray).build();
+    this.accessEvaluator = AccessEvaluator.of(authsArray);
   }
 
   /**
