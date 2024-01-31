@@ -83,7 +83,7 @@ public class Merge {
   static class Opts extends ClientOpts {
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
     String tableName;
-    @Parameter(names = {"-s", "--size"}, description = "merge availability size",
+    @Parameter(names = {"-s", "--size"}, description = "merge goal size",
         converter = MemoryConverter.class)
     Long goalSize = null;
     @Parameter(names = {"-f", "--force"},
