@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -67,6 +68,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -414,7 +416,6 @@ public class ImportExportIT extends AccumuloClusterHarness {
         }
       }
       assertEquals(7, rowCount);
-
       int metaFileCount = 0;
       try (Scanner s =
           client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
@@ -426,6 +427,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
           metaFileCount++;
         }
       }
+      final List<Text> expectedSplits = List.of(new Text("2"), new Text("4"), new Text("6"));
+      assertEquals(expectedSplits, client.tableOperations().listSplits(table));
       assertEquals(4, metaFileCount);
     }
   }

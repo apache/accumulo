@@ -58,7 +58,7 @@ to see the current tablet files:
 
 ```
 
-The export command with create two files:
+The export command will create two files:
  - /accumulo/export_test/distcp.txt
  - /accumulo/export_test/exportMetadata.zip
 
@@ -74,4 +74,5 @@ hdfs://localhost:8020/accumulo/tables/1/t-0000003/A0000008.rf
 hdfs://localhost:8020/accumulo/export_test/exportMetadata.zip
 ```
 
-The files distcp.txt, exportMetadata.zip and the files listed in distcp where copied from hdfs to make this data set.
+The files distcp.txt, exportMetadata.zip and the files listed in distcp where copied from
+hdfs to make this data set.
