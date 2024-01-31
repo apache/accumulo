@@ -1922,7 +1922,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException(
               "TableOperations.locate() only works with tablets that have a tablet availability of "
                   + TabletAvailability.HOSTED
-                  + ". Tablets with other availability's were seen.  table:" + tableName
+                  + ". Tablets with other availabilities were seen.  table:" + tableName
                   + " table id:" + tableId);
         }
 
