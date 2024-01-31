@@ -450,7 +450,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     /**
-     * This method was written with the availability of avoiding thread contention and minimizing
+     * This method was written with the goal of avoiding thread contention and minimizing
      * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
      * working on unrelated tasks would not impede each other because of accessing config.
      *
