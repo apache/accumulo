@@ -44,13 +44,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
@@ -73,12 +71,11 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
+
       // wait for the table to be online
-      TabletLocationState newTablet;
-      do {
-        UtilWaitThread.sleep(250);
-        newTablet = getTabletLocationState(c, tableId);
-      } while (newTablet.current == null);
+      Wait.waitFor(() -> getTabletLocationState(c, tableId) != null, SECONDS.toMillis(60), 250);
+
+      TabletLocationState newTablet = getTabletLocationState(c, tableId);
       assertNull(newTablet.last);
       assertNull(newTablet.future);
 
@@ -223,7 +220,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       // could potentially send a kill -9 to the process. Shut the tablet
       // servers down in a more graceful way.
 
-      Locations locs = client.tableOperations().locate(RootTable.NAME,
+      Locations locs = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
           Collections.singletonList(TabletsSection.getRange()));
       locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
         HostAndPort address = HostAndPort.fromString(location);
@@ -255,7 +252,8 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
   private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
+        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)),
+        AccumuloTable.METADATA.tableName())) {
       return s.next();
     }
   }

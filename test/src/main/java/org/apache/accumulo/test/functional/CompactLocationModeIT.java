@@ -32,16 +32,20 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
 public class CompactLocationModeIT extends ConfigurableMacBase {
+
+  @SuppressWarnings("deprecation")
+  private static final Property DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY =
+      Property.TSERV_LAST_LOCATION_MODE;
 
   @Override
   protected Duration defaultTimeout() {
@@ -50,7 +54,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "compaction");
+    cfg.setProperty(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY, "compaction");
   }
 
   @Test
@@ -61,11 +65,9 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online
-      TabletLocationState newTablet;
-      do {
-        UtilWaitThread.sleep(250);
-        newTablet = getTabletLocationState(c, tableId);
-      } while (newTablet.current == null);
+      Wait.waitFor(() -> getTabletLocationState(c, tableId) != null);
+
+      TabletLocationState newTablet = getTabletLocationState(c, tableId);
       assertNull(newTablet.last);
       assertNull(newTablet.future);
 
@@ -77,7 +79,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       }
       // assert that the default mode is "compact"
       assertEquals("compaction", c.instanceOperations().getSystemConfiguration()
-          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
+          .get(DEPRECATED_TSERV_LAST_LOCATION_MODE_PROPERTY.getKey()));
 
       // no last location should be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
@@ -111,7 +113,8 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
 
   private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
+        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)),
+        AccumuloTable.METADATA.tableName())) {
       return s.next();
     }
   }

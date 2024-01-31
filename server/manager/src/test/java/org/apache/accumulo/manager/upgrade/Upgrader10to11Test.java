@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -81,7 +81,7 @@ class Upgrader10to11Test {
     zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
 
-    expect(propStore.get(TablePropKey.of(instanceId, MetadataTable.ID)))
+    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zrw, propStore);
@@ -113,7 +113,7 @@ class Upgrader10to11Test {
         .andReturn(TableState.OFFLINE.name().getBytes(UTF_8)).once();
     zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
-    expect(propStore.get(TablePropKey.of(instanceId, MetadataTable.ID)))
+    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zrw, propStore);

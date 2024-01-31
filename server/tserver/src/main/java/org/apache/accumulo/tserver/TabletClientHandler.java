@@ -76,9 +76,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -91,6 +90,7 @@ import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -793,7 +793,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new NoSuchScanIDException();
     }
 
-    if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
+    if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
+        && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
       try {
         server.resourceManager.waitUntilCommitsAreEnabled();
       } catch (HoldTimeoutException hte) {
@@ -1281,12 +1282,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
-    String log = server.logger.getLogFile();
     // Might be null if there is no active logger
-    if (log == null) {
-      return Collections.emptyList();
-    }
-    return Collections.singletonList(log);
+    LogEntry le = server.logger.getLogEntry();
+    return le == null ? Collections.emptyList() : Collections.singletonList(le.getPath());
   }
 
   @Override

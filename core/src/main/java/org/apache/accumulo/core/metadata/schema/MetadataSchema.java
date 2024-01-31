@@ -321,9 +321,31 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    /**
+     * Column family for indicating that the files in a tablet have been trimmed to only include
+     * data for the current tablet, so that they are safe to merge
+     */
+    public static class ChoppedColumnFamily {
+      // kept to support upgrades to 3.1; name is used for both col fam and col qual
+      @Deprecated(since = "3.1.0")
+      public static final Text NAME = new Text("chopped");
+    }
+
     public static class ExternalCompactionColumnFamily {
       public static final String STR_NAME = "ecomp";
       public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * Column family for indicating that the files in a tablet contain fenced files that have been
+     * merged from other tablets during a merge operation. This is used to support resuming a failed
+     * merge operation.
+     */
+    public static class MergedColumnFamily {
+      public static final String STR_NAME = "merged";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ MERGED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+      public static final Value MERGED_VALUE = new Value("merged");
     }
   }
 

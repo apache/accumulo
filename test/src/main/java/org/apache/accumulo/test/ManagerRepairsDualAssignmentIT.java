@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -33,14 +33,12 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -74,9 +72,10 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       ClientContext context = (ClientContext) c;
       ServerContext serverContext = cluster.getServerContext();
       String table = this.getUniqueNames(1)[0];
-      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      c.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
-      c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
+      c.securityOperations().grantTablePermission("root", AccumuloTable.ROOT.tableName(),
+          TablePermission.WRITE);
       SortedSet<Text> partitions = new TreeSet<>();
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
@@ -84,11 +83,12 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
-      Set<TabletMetadata.Location> states = new HashSet<>();
-      Set<TabletLocationState> oldLocations = new HashSet<>();
-      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      final Set<TabletMetadata.Location> states = new HashSet<>();
+      final Set<TabletLocationState> oldLocations = new HashSet<>();
+      final TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+
       while (states.size() < 2) {
-        UtilWaitThread.sleep(250);
+        Thread.sleep(250);
         oldLocations.clear();
         for (TabletLocationState tls : store) {
           if (tls.current != null) {
@@ -103,7 +103,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       // Find out which tablet server remains
       while (true) {
-        UtilWaitThread.sleep(1000);
+        Thread.sleep(1000);
         states.clear();
         boolean allAssigned = true;
         for (TabletLocationState tls : store) {
@@ -126,7 +126,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           moved = old;
         }
       }
-      assertNotEquals(null, moved);
+      assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
       tabletMutator.putLocation(moved.current);
@@ -134,21 +134,21 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // wait for the manager to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
-      tabletMutator =
-          serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
+      tabletMutator = serverContext.getAmple()
+          .mutateTablet(new KeyExtent(AccumuloTable.METADATA.tableId(), null, null));
       tabletMutator.putLocation(moved.current);
       tabletMutator.mutate();
       waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
     }
   }
 
-  private void waitForCleanStore(TabletStateStore store) {
+  private void waitForCleanStore(TabletStateStore store) throws InterruptedException {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
-        System.out.println(ex);
-        UtilWaitThread.sleep(250);
+        System.out.println(ex.getMessage());
+        Thread.sleep(250);
         continue;
       }
       break;

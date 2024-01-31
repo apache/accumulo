@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,12 +37,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
@@ -105,7 +105,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static void update(AccumuloClient c, Mutation m)
       throws TableNotFoundException, MutationsRejectedException {
-    try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter bw = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);
     }
   }
@@ -115,8 +115,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     ServerContext context = getServerContext();
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
-      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME);
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+      BatchWriter bw = accumuloClient.createBatchWriter(AccumuloTable.METADATA.tableName());
 
       // Create a fake METADATA table with these splits
       String[] splits = {"a", "e", "j", "o", "t", "z"};
@@ -171,8 +171,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
 
       // unassign the tablets
-      try (BatchDeleter deleter =
-          accumuloClient.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1000)) {
+      try (BatchDeleter deleter = accumuloClient
+          .createBatchDeleter(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1000)) {
         deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
         deleter.setRanges(Collections.singletonList(new Range()));
         deleter.delete();
@@ -195,16 +195,15 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
-      Collection<Collection<String>> walogs = Collections.emptyList();
+      Collection<LogEntry> walogs = Collections.emptyList();
       metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null,
           Location.current(state.someTServer), null, null, walogs)), null);
 
       // Add a walog which should keep the state from transitioning to MERGING
       KeyExtent ke = new KeyExtent(tableId, new Text("t"), new Text("p"));
       m = new Mutation(ke.toMetaRow());
-      LogEntry logEntry = new LogEntry("f1");
-      m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-          .put(logEntry.getValue());
+      LogEntry logEntry = LogEntry.fromPath("localhost+1234/" + UUID.randomUUID());
+      logEntry.addToMutation(m);
       update(accumuloClient, m);
 
       // Verify state is still WAITING_FOR_OFFLINE
@@ -214,7 +213,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // Delete the walog which will now allow a transition to MERGING
       m = new Mutation(ke.toMetaRow());
-      m.putDelete(LogColumnFamily.NAME, logEntry.getColumnQualifier());
+      logEntry.deleteFromMutation(m);
       update(accumuloClient, m);
 
       // now we can split

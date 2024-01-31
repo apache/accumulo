@@ -63,7 +63,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
@@ -76,6 +76,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -336,6 +337,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case ECOMP:
             families.add(ExternalCompactionColumnFamily.NAME);
             break;
+          case MERGED:
+            families.add(MergedColumnFamily.NAME);
+            break;
           default:
             throw new IllegalArgumentException("Unknown col type " + colToFetch);
 
@@ -345,6 +349,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       return this;
     }
 
+    /**
+     * For a given data level, read all of its tablets metadata. For {@link DataLevel#USER} this
+     * will read tablet metadata from the accumulo.metadata table for all user tables. For
+     * {@link DataLevel#METADATA} this will read tablet metadata from the accumulo.root table. For
+     * {@link DataLevel#ROOT} this will read tablet metadata from Zookeeper.
+     */
     @Override
     public Options forLevel(DataLevel level) {
       this.level = level;
@@ -352,6 +362,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       return this;
     }
 
+    /**
+     * For a given table read all of its tablet metadata. If the table id is for a user table, then
+     * its metadata will be read from its section in the accumulo.metadata table. If the table id is
+     * for the accumulo.metadata table, then its metadata will be read from the accumulo.root table.
+     * If the table id is for the accumulo.root table, then its metadata will be read from
+     * zookeeper.
+     */
     @Override
     public TableRangeOptions forTable(TableId tableId) {
       this.level = DataLevel.of(tableId);
@@ -489,7 +506,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * {@link TabletsSection#getRange()}
      */
     default RangeOptions scanMetadataTable() {
-      return scanTable(MetadataTable.NAME);
+      return scanTable(AccumuloTable.METADATA.tableName());
     }
 
     /**

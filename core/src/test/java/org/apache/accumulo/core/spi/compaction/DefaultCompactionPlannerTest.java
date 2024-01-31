@@ -20,35 +20,54 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.base.Preconditions;
+import com.google.gson.JsonParseException;
 
 public class DefaultCompactionPlannerTest {
 
   private static <T> T getOnlyElement(Collection<T> c) {
     return c.stream().collect(onlyElement());
   }
+
+  private static final Configuration defaultConf =
+      new ConfigurationImpl(DefaultConfiguration.getInstance());
+  private static final CompactionServiceId csid = CompactionServiceId.of("cs1");
+  private static final String prefix = Property.COMPACTION_SERVICE_PREFIX.getKey();
 
   @Test
   public void testFindFilesToCompact() throws Exception {
@@ -130,7 +149,13 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testRunningCompaction() throws Exception {
-    var planner = createPlanner(true);
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3},"
+        + "{'name':'huge','type': 'internal','numThreads':4}]";
+
+    var planner = createPlanner(defaultConf, executors);
+
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
     var compacting =
@@ -152,12 +177,21 @@ public class DefaultCompactionPlannerTest {
     // planner should compact.
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "medium"), job.getExecutor());
   }
 
   @Test
   public void testUserCompaction() throws Exception {
-    var planner = createPlanner(true);
+    ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    aconf.set(prefix + "cs1.planner.opts.maxOpen", "15");
+    ConfigurationImpl config = new ConfigurationImpl(aconf);
+
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3},"
+        + "{'name':'huge','type': 'internal','numThreads':4}]";
+
+    var planner = createPlanner(config, executors);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
     var compacting =
@@ -168,7 +202,7 @@ public class DefaultCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "medium"), job.getExecutor());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
@@ -186,7 +220,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "small"), job.getExecutor());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -196,7 +230,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("huge"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "huge"), job.getExecutor());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files the meets the compaction ratio
@@ -206,7 +240,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "small"), job.getExecutor());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -215,13 +249,17 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "medium"), job.getExecutor());
 
   }
 
   @Test
   public void testMaxSize() throws Exception {
-    var planner = createPlanner(false);
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}]";
+
+    var planner = createPlanner(defaultConf, executors);
     var all = createCFs("F1", "128M", "F2", "129M", "F3", "130M", "F4", "131M", "F5", "132M");
     var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
@@ -229,14 +267,69 @@ public class DefaultCompactionPlannerTest {
     // should only compact files less than max size
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "large"), job.getExecutor());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.internalId(csid, "large"), job.getExecutor());
+  }
+
+  @Test
+  public void testQueueCreation() throws Exception {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+
+    String queues = "[{\"name\": \"small\", \"maxSize\":\"32M\"},{\"name\":\"midsize\"}]";
+    planner.init(getInitParamQueues(defaultConf, queues));
+
+    var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
+    var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
+
+    all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
+    params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(all, job.getFiles());
+    assertEquals(CompactionExecutorIdImpl.externalId("midsize"), job.getExecutor());
+  }
+
+  /**
+   * Tests that additional fields in the JSON objects cause errors to be thrown.
+   */
+  @Test
+  public void testErrorAdditionalConfigFields() {
+    DefaultCompactionPlanner QueuePlanner = new DefaultCompactionPlanner();
+
+    String queues =
+        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"name\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
+
+    final InitParameters queueParams = getInitParamQueues(defaultConf, queues);
+    assertNotNull(queueParams);
+    var e = assertThrows(JsonParseException.class, () -> QueuePlanner.init(queueParams),
+        "Failed to throw error");
+    assertTrue(e.getMessage().contains("[type, foo, queue]"),
+        "Error message didn't contain '[type, foo, queue]'");
+
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2, 'foo':'bar'},"
+        + "{'name':'large','type': 'internal','numThreads':1, 'unexpectedField':'foo'}]";
+
+    final InitParameters execParams = getInitParams(defaultConf, executors);
+    assertNotNull(execParams);
+
+    DefaultCompactionPlanner ExecPlanner = new DefaultCompactionPlanner();
+    var err = assertThrows(JsonParseException.class, () -> ExecPlanner.init(execParams),
+        "Failed to throw error");
+    assertTrue(err.getMessage().contains("Invalid fields: [foo]"),
+        "Error message didn't contain '[foo]'");
   }
 
   /**
@@ -245,18 +338,12 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorInternalTypeNoNumThreads() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+    String executors = "[{'name':'small','type':'internal','maxSize':'32M'},"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type':'internal','maxSize':'512M','numThreads':3}]";
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(conf, senv);
-
-    String executors = getExecutors("'type': 'internal','maxSize':'32M'",
-        "'type': 'internal','maxSize':'128M','numThreads':2",
-        "'type': 'internal','maxSize':'512M','numThreads':3");
     var e = assertThrows(NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
@@ -266,18 +353,12 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorExternalTypeNumThreads() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+    String executors = "[{'name':'small','type':'internal','maxSize':'32M', 'numThreads':1},"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type':'external','maxSize':'512M','numThreads':3}]";
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(conf, senv);
-
-    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-        "'type': 'internal','maxSize':'128M','numThreads':2",
-        "'type': 'external','maxSize':'512M','numThreads':3");
     var e = assertThrows(IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
@@ -287,19 +368,52 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorExternalNoQueue() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+    String executors = "[{'name':'small','type':'internal','maxSize':'32M', 'numThreads':1},"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type':'external','maxSize':'512M'}]";
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(conf, senv);
-
-    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-        "'type': 'internal','maxSize':'128M','numThreads':2",
-        "'type': 'external','maxSize':'512M'");
     var e = assertThrows(NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("queue"), "Error message didn't contain queue");
+  }
+
+  /**
+   * Tests queue with missing name throws error
+   */
+  @Test
+  public void testErrorQueueNoName() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    String queues = "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
+
+    final InitParameters params = getInitParamQueues(defaultConf, queues);
+    assertNotNull(params);
+
+    var e = assertThrows(NullPointerException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals(e.getMessage(), "'name' must be specified", "Error message didn't contain 'name'");
+  }
+
+  /**
+   * Tests not having executors or queues throws errors
+   */
+  @Test
+  public void testErrorNoExecutors() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    var execParams = getInitParams(defaultConf, "");
+    assertNotNull(execParams);
+
+    var e = assertThrows(IllegalStateException.class, () -> planner.init(execParams),
+        "Failed to throw error");
+    assertEquals("No defined executors or queues for this planner", e.getMessage(),
+        "Error message was not equal");
+
+    var params = getInitParamQueues(defaultConf, "");
+    assertNotNull(params);
+
+    var e2 = assertThrows(IllegalStateException.class, () -> planner.init(params),
+        "Failed to throw error");
+    assertEquals("No defined executors or queues for this planner", e2.getMessage(),
+        "Error message was not equal");
   }
 
   /**
@@ -308,17 +422,12 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorOnlyOneMaxSize() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+    String executors = "[{'name':'small','type':'internal','maxSize':'32M', 'numThreads':1},"
+        + "{'name':'medium','type':'internal','numThreads':2},"
+        + "{'name':'large','type':'external','queue':'q1'}]";
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(conf, senv);
-
-    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-        "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
     var e = assertThrows(IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
@@ -328,69 +437,196 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorDuplicateMaxSize() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+    String executors = "[{'name':'small','type':'internal','maxSize':'32M', 'numThreads':1},"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type':'external','maxSize':'128M','queue':'q1'}]";
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(conf, senv);
-
-    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-        "'type': 'internal','maxSize':'128M','numThreads':2",
-        "'type': 'external','maxSize':'128M','queue':'q1'");
     var e = assertThrows(IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
-  private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
-      String executors) {
-    return new CompactionPlanner.InitParameters() {
+  // Test cases where a tablet has more than table.file.max files, but no files were found using the
+  // compaction ratio. The planner should try to find the highest ratio that will result in a
+  // compaction.
+  @Test
+  public void testMaxTabletFiles() throws Exception {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','numThreads':3}]";
 
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return senv;
-      }
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
 
-      @Override
-      public Map<String,String> getOptions() {
-        return Map.of("executors", executors, "maxOpen", "15");
-      }
+    // For this case need to compact three files and the highest ratio that achieves that is 1.8
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1000, 1.1, 1.9, 1.8, 1.6, 1.3, 1.4, 1.3, 1.2, 1.1);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 1.9, 1.8), job.getFiles());
 
-      @Override
-      public String getFullyQualifiedOption(String key) {
-        assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
-      }
+    // For this case need to compact two files and the highest ratio that achieves that is 2.9
+    all = createCFs(1000, 2, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 2, 2.9), job.getFiles());
 
-      @Override
-      public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String name, int threads) {
-            return CompactionExecutorIdImpl.externalId(name);
-          }
+    all =
+        createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9, 2.8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9), job.getFiles());
 
-          @Override
-          public CompactionExecutorId getExternalExecutor(String name) {
-            return CompactionExecutorIdImpl.externalId(name);
-          }
-        };
-      }
-    };
+    all = createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), job.getFiles());
+
+    // In this case the tablet can not be brought below the max files limit in a single compaction,
+    // so it should find the highest ratio to compact
+    for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
+      all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1,
+          1.1, 1.1);
+      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      plan = planner.makePlan(params);
+      job = getOnlyElement(plan.getJobs());
+      assertEquals(createCFs(1000, 1.9), job.getFiles());
+    }
+
+    // In this case the tablet can be brought below the max limit in single compaction, so it should
+    // find this
+    all =
+        createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1), job.getFiles());
+
+    // each file is 10x the size of the file smaller than it
+    all = createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1), job.getFiles());
+
+    // test with some files growing 20x, ensure those are not included
+    for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
+      all = createCFs(10, 1.05, 1.05, 1.25, 1.75, 1.25, 1.05, 1.05, 1.05);
+      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      plan = planner.makePlan(params);
+      job = getOnlyElement(plan.getJobs());
+      assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
+    }
+
   }
 
-  private String getExecutors(String small, String medium, String large) {
-    String execBldr = "[{'name':'small'," + small + "},{'name':'medium'," + medium + "},"
-        + "{'name':'large'," + large + "}]";
-    return execBldr.replaceAll("'", "\"");
+  @Test
+  public void testMaxTabletFilesNoCompaction() throws Exception {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}]";
+
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+
+    // ensure that when a compaction would be over the max size limit that it is not planned
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1_000_000_000, 2, 2, 2, 2, 2, 2, 2);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+
+    assertTrue(plan.getJobs().isEmpty());
+
+    // ensure when a compaction is running and we are over files max but below the compaction ratio
+    // that a compaction is not planned
+    all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
+    var job = new CompactionJobImpl((short) 1, CompactionExecutorIdImpl.externalId("ee1"),
+        createCFs("F1", "1000"), CompactionKind.SYSTEM, Optional.of(false));
+    params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+
+    assertTrue(plan.getJobs().isEmpty());
+
+    // a really bad situation, each file is 20 times the size of its smaller file. The algorithm
+    // does not search that for ratios that low.
+    all = createCFs(10, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    assertTrue(plan.getJobs().isEmpty());
+  }
+
+  // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
+  @Test
+  public void testMaxTableFilesFallback() throws Exception {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','numThreads':3}]";
+
+    Map<String,String> overrides = new HashMap<>();
+    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
+    overrides.put(Property.TABLE_FILE_MAX.getKey(), "0");
+    overrides.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
+    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+
+    var planner = createPlanner(conf, executors);
+    var all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1);
+    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var plan = planner.makePlan(params);
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4), job.getFiles());
   }
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
-        .addJob((short) all.size(), CompactionExecutorIdImpl.externalId("small"), files).build()
-        .getJobs().iterator().next();
+        .addJob((short) all.size(), CompactionExecutorIdImpl.internalId(csid, "small"), files)
+        .build().getJobs().iterator().next();
+  }
+
+  // Create a set of files whose sizes would require certain compaction ratios to compact
+  private Set<CompactableFile> createCFs(int initialSize, double... desiredRatios)
+      throws URISyntaxException {
+    List<String> pairs = new ArrayList<>();
+    pairs.add("F1");
+    pairs.add(initialSize + "");
+
+    double previousFileSizes = initialSize;
+
+    int i = 2;
+    for (double desiredRatio : desiredRatios) {
+      Preconditions.checkArgument(desiredRatio > 1.0);
+      Preconditions.checkArgument(desiredRatio <= i);
+
+      /*
+       * The compaction ratio formula is fileSize * ratio < fileSize + previousFileSizes. Solved the
+       * following equation to compute a file size given a desired ratio.
+       *
+       * fileSize * ratio = fileSize + previousFileSizes
+       *
+       * fileSize * ratio - fileSize = previousFileSizes
+       *
+       * fileSize * (ratio - 1) = previousFileSizes
+       *
+       * fileSize = previousFileSizes / (ratio - 1)
+       */
+
+      double fileSize = previousFileSizes / (desiredRatio - 1);
+      pairs.add("F" + i + "_" + desiredRatio);
+      pairs.add(Math.round(fileSize) + "");
+
+      previousFileSizes += fileSize;
+      i++;
+    }
+
+    return createCFs(pairs.toArray(new String[0]));
   }
 
   private static Set<CompactableFile> createCFs(String... namesSizePairs)
@@ -434,6 +670,12 @@ public class DefaultCompactionPlannerTest {
   private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
       Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
       CompactionKind kind) {
+    return createPlanningParams(all, candidates, compacting, ratio, kind, defaultConf);
+  }
+
+  private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
+      Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
+      CompactionKind kind, Configuration conf) {
     return new CompactionPlanner.PlanningParameters() {
 
       @Override
@@ -443,7 +685,11 @@ public class DefaultCompactionPlannerTest {
 
       @Override
       public ServiceEnvironment getServiceEnvironment() {
-        throw new UnsupportedOperationException();
+        ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+        EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+        EasyMock.expect(senv.getConfiguration(TableId.of("42"))).andReturn(conf).anyTimes();
+        EasyMock.replay(senv);
+        return senv;
       }
 
       @Override
@@ -483,80 +729,47 @@ public class DefaultCompactionPlannerTest {
     };
   }
 
-  private static DefaultCompactionPlanner createPlanner(boolean withHugeExecutor) {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    Configuration conf = EasyMock.createMock(Configuration.class);
-    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+  private static CompactionPlanner.InitParameters getInitParamQueues(Configuration conf,
+      String queues) {
+
+    String maxOpen = conf.get(prefix + "cs1.planner.opts.maxOpen");
+    Map<String,String> options = new HashMap<>();
+    options.put("queues", queues.replaceAll("'", "\""));
+
+    if (maxOpen != null) {
+      options.put("maxOpen", maxOpen);
+    }
 
     ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(senv);
 
-    EasyMock.replay(conf, senv);
+    return new CompactionPlannerInitParams(csid, prefix, options, senv);
+  }
 
-    StringBuilder execBldr =
-        new StringBuilder("[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
-            + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
-            + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}");
+  private static CompactionPlanner.InitParameters getInitParams(Configuration conf,
+      String executors) {
 
-    if (withHugeExecutor) {
-      execBldr.append(",{'name':'huge','type': 'internal','numThreads':4}]");
-    } else {
-      execBldr.append("]");
+    String maxOpen = conf.get(prefix + "cs1.planner.opts.maxOpen");
+    Map<String,String> options = new HashMap<>();
+    options.put("executors", executors.replaceAll("'", "\""));
+
+    if (maxOpen != null) {
+      options.put("maxOpen", maxOpen);
     }
 
-    String executors = execBldr.toString().replaceAll("'", "\"");
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(senv);
 
-    planner.init(new CompactionPlanner.InitParameters() {
+    return new CompactionPlannerInitParams(csid, prefix, options, senv);
+  }
 
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return senv;
-      }
+  private static DefaultCompactionPlanner createPlanner(Configuration conf, String executors) {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    var initParams = getInitParams(conf, executors);
 
-      @Override
-      public Map<String,String> getOptions() {
-        return Map.of("executors", executors, "maxOpen", "15");
-      }
-
-      @Override
-      public String getFullyQualifiedOption(String key) {
-        assertEquals("maxOpen", key);
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
-      }
-
-      @Override
-      public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String name, int threads) {
-            switch (name) {
-              case "small":
-                assertEquals(1, threads);
-                break;
-              case "medium":
-                assertEquals(2, threads);
-                break;
-              case "large":
-                assertEquals(3, threads);
-                break;
-              case "huge":
-                assertEquals(4, threads);
-                break;
-              default:
-                fail("Unexpected name " + name);
-                break;
-            }
-            return CompactionExecutorIdImpl.externalId(name);
-          }
-
-          @Override
-          public CompactionExecutorId getExternalExecutor(String name) {
-            throw new UnsupportedOperationException();
-          }
-        };
-      }
-    });
-
+    planner.init(initParams);
     return planner;
   }
 }

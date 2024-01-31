@@ -35,9 +35,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
@@ -141,14 +140,15 @@ public abstract class TabletLocator {
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
-      if (RootTable.ID.equals(tableId)) {
+      if (AccumuloTable.ROOT.tableId().equals(tableId)) {
         tl = new RootTabletLocator(new ZookeeperLockChecker(context));
-      } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+      } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+        tl = new TabletLocatorImpl(AccumuloTable.METADATA.tableId(),
+            getLocator(context, AccumuloTable.ROOT.tableId()), mlo,
             new ZookeeperLockChecker(context));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            new ZookeeperLockChecker(context));
+        tl = new TabletLocatorImpl(tableId, getLocator(context, AccumuloTable.METADATA.tableId()),
+            mlo, new ZookeeperLockChecker(context));
       }
       locators.put(key, tl);
     }

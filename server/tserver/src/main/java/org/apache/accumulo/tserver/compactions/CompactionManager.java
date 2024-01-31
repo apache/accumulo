@@ -205,7 +205,7 @@ public class CompactionManager {
       try {
         tmpServices.put(CompactionServiceId.of(serviceName),
             new CompactionService(serviceName, plannerClassName,
-                currentCfg.getRateLimit(serviceName),
+                currentCfg.getPlannerPrefix(serviceName), currentCfg.getRateLimit(serviceName),
                 currentCfg.getOptions().getOrDefault(serviceName, Map.of()), context, ceMetrics,
                 this::getExternalExecutor));
       } catch (RuntimeException e) {
@@ -249,11 +249,12 @@ public class CompactionManager {
             if (service == null) {
               tmpServices.put(csid,
                   new CompactionService(serviceName, plannerClassName,
-                      tmpCfg.getRateLimit(serviceName),
+                      tmpCfg.getPlannerPrefix(serviceName), tmpCfg.getRateLimit(serviceName),
                       tmpCfg.getOptions().getOrDefault(serviceName, Map.of()), context, ceMetrics,
                       this::getExternalExecutor));
             } else {
-              service.configurationChanged(plannerClassName, tmpCfg.getRateLimit(serviceName),
+              service.configurationChanged(plannerClassName, tmpCfg.getPlannerPrefix(serviceName),
+                  tmpCfg.getRateLimit(serviceName),
                   tmpCfg.getOptions().getOrDefault(serviceName, Map.of()));
               tmpServices.put(csid, service);
             }

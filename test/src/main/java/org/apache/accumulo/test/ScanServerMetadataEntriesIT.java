@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
@@ -234,7 +234,8 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertNotNull(iter.next());
 
         List<Entry<Key,Value>> metadataEntries = null;
-        try (Scanner scanner2 = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        try (Scanner scanner2 =
+            client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
           scanner2.setRange(ScanServerFileReferenceSection.getRange());
           metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
         }
@@ -251,8 +252,10 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertEquals(fileCount, metadataScanFileRefs.size());
 
         assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
-
-        List<Reference> refs = gc.getReferences().collect(Collectors.toList());
+        List<Reference> refs;
+        try (Stream<Reference> references = gc.getReferences()) {
+          refs = references.collect(Collectors.toList());
+        }
         assertTrue(refs.size() > fileCount * 2);
         List<Reference> tableRefs =
             refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())

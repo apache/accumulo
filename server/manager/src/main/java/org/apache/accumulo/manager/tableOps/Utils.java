@@ -39,6 +39,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
@@ -166,8 +168,17 @@ public class Utils {
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
-    if (lock == null) {
+    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+    if (lock != null) {
+
+      // Validate the recovered lock type
+      boolean isWriteLock = lock.getType() == LockType.WRITE;
+      if (writeLock != isWriteLock) {
+        throw new IllegalStateException("Unexpected lock type " + lock.getType()
+            + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
+            + ". Expected " + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
+      }
+    } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
       if (writeLock) {
         lock = locker.writeLock();

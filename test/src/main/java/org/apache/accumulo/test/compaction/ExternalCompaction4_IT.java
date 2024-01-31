@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.conf.Property.TABLE_FILE_MAX;
+import static org.apache.accumulo.core.conf.Property.TABLE_MAJC_RATIO;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
@@ -64,16 +65,20 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       createTable(client, table1, "cs1");
-      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "51");
+      // prevent intermediate compactions from running as 50 files are generated in test
+      client.tableOperations().setProperty(table1, TABLE_FILE_MAX.getKey(), "51");
+      client.tableOperations().setProperty(table1, TABLE_MAJC_RATIO.getKey(), "51");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
       ReadWriteIT.ingest(client, 50, 1, 1, 0, "colf", table1, 1);
       ReadWriteIT.verify(client, 50, 1, 1, 0, table1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(50, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(50, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "ageoff", AgeOffFilter.class);
       setting.addOption("ttl", "0");
@@ -87,8 +92,9 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting2, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      assertThrows(NoSuchElementException.class, () -> ample.readTablets().forTable(tid)
-          .fetch(ColumnType.FILES).build().iterator().next());
+      try (TabletsMetadata tm = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        assertThrows(NoSuchElementException.class, () -> tm.iterator().next());
+      }
       assertEquals(0, client.createScanner(table1).stream().count());
     } finally {
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
@@ -103,25 +109,29 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       createTable(client, table1, "cs1");
-      client.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "1001");
-      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
+      client.tableOperations().setProperty(table1, TABLE_FILE_MAX.getKey(), "1001");
+      client.tableOperations().setProperty(table1, TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
       ReadWriteIT.ingest(client, 1000, 1, 1, 0, "colf", table1, 1);
 
       Ample ample = ((ClientContext) client).getAmple();
-      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      TabletMetadata tm = tms.iterator().next();
-      assertEquals(1000, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1000, tm.getFiles().size());
+      }
 
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
       setting.addOption(ErrorThrowingIterator.TIMES, "3");
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
-      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
-      tm = tms.iterator().next();
-      assertEquals(1, tm.getFiles().size());
+      try (
+          TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
+        TabletMetadata tm = tms.iterator().next();
+        assertEquals(1, tm.getFiles().size());
+      }
 
       ReadWriteIT.verify(client, 1000, 1, 1, 0, table1);
 

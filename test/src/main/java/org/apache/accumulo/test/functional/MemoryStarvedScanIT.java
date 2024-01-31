@@ -70,8 +70,6 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       cfg.setNumTservers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
-      // check on 1s intervals and set low mem condition if more than 80% of
-      // the heap is used.
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(FREE_MEMORY_THRESHOLD));
@@ -87,7 +85,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     }
   }
 
-  public static final double FREE_MEMORY_THRESHOLD = 0.20D;
+  public static final double FREE_MEMORY_THRESHOLD = 0.40D;
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryStarvedScanIT.class);
   private static final DoubleAdder SCAN_START_DELAYED = new DoubleAdder();

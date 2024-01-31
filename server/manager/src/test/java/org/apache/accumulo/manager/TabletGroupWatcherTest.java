@@ -19,9 +19,16 @@
 package org.apache.accumulo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.manager.TabletGroupWatcher.HighTablet;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class TabletGroupWatcherTest {
@@ -63,5 +70,18 @@ public class TabletGroupWatcherTest {
     assertEquals(1, newValues.getSecond().getSize());
     assertEquals(1, newValues.getSecond().getNumEntries());
     assertEquals(original.getTime(), newValues.getSecond().getTime());
+  }
+
+  @Test
+  public void testHighTablet() {
+    HighTablet mergedTruePrevRowFalse = new HighTablet(
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("end"), null), true);
+    assertNotNull(mergedTruePrevRowFalse.getExtent());
+    assertTrue(mergedTruePrevRowFalse.isMerged());
+
+    HighTablet mergedFalsePrevRowFalse = new HighTablet(
+        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("end"), null), false);
+    assertNotNull(mergedFalsePrevRowFalse.getExtent());
+    assertFalse(mergedFalsePrevRowFalse.isMerged());
   }
 }

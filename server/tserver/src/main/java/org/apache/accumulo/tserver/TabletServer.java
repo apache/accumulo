@@ -90,8 +90,7 @@ import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -712,8 +711,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
-          clientAddress);
+      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName, clientAddress,
+          getContext().getInstanceName());
 
       metrics = new TabletServerMetrics(this);
       updateMetrics = new TabletServerUpdateMetrics();
@@ -1078,9 +1077,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private Durability getMincEventDurability(KeyExtent extent) {
     TableConfiguration conf;
     if (extent.isMeta()) {
-      conf = getContext().getTableConfiguration(RootTable.ID);
+      conf = getContext().getTableConfiguration(AccumuloTable.ROOT.tableId());
     } else {
-      conf = getContext().getTableConfiguration(MetadataTable.ID);
+      conf = getContext().getTableConfiguration(AccumuloTable.METADATA.tableId());
     }
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }
@@ -1103,7 +1102,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     List<Path> recoveryDirs = new ArrayList<>();
     for (LogEntry entry : logEntries) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getFilePath()));
+      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -1129,21 +1128,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
-  }
-
-  public DfsLogger.ServerResources getServerConfig() {
-    return new DfsLogger.ServerResources() {
-
-      @Override
-      public VolumeManager getVolumeManager() {
-        return TabletServer.this.getVolumeManager();
-      }
-
-      @Override
-      public AccumuloConfiguration getConfiguration() {
-        return TabletServer.this.getConfiguration();
-      }
-    };
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -56,16 +57,16 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateChangeIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -105,16 +106,16 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       createTable(client, t3, true);
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, MetadataTable.NAME, metaCopy1);
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
-      State state = new State(client);
-      int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
-      while (tabletsInFlux > 0) {
-        log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
-        UtilWaitThread.sleep(500);
-        copyTable(client, MetadataTable.NAME, metaCopy1);
-        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
-      }
+      log.debug("Waiting for tablets");
+      final State state = new State(client);
+      Wait.waitFor(() -> findTabletsNeedingAttention(client, metaCopy1, state) <= 0,
+          SECONDS.toMillis(30), 500);
+
+      // update the clone for additional manipulations
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
+
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
           "No tables should need attention");
 
@@ -134,7 +135,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
           "Should have one tablet that needs to be unassigned");
 
       // test the cases where there is ongoing merges
-      state = new State(client) {
+      State state2 = new State(client) {
         @Override
         public Collection<MergeInfo> merges() {
           TableId tableIdToModify = TableId.of(client.tableOperations().tableIdMap().get(t3));
@@ -142,13 +143,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
               new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
         }
       };
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state2),
           "Should have 2 tablets that need to be chopped or unassigned");
 
       // test the bad tablet location state case (inconsistent metadata)
-      state = new State(client);
+      state2 = new State(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state2),
           "Should have 1 tablet that needs a metadata repair");
 
       // clean up

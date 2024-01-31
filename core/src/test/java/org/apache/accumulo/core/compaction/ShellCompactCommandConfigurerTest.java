@@ -89,6 +89,11 @@ public class ShellCompactCommandConfigurerTest {
       }
 
       @Override
+      public Set<CompactableFile> getSelectedFiles() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
       public PluginEnvironment getEnvironment() {
         return null;
       }

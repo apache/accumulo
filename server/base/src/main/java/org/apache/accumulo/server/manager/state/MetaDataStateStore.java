@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -53,7 +53,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    this(level, context, state, MetadataTable.NAME);
+    this(level, context, state, AccumuloTable.METADATA.tableName());
   }
 
   @Override
@@ -123,7 +123,7 @@ class MetaDataStateStore implements TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tls.current.getServerInstance());
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(log.toString());
+                LogEntry entry = LogEntry.fromPath(log.toString());
                 tabletMutator.putWal(entry);
               }
             }

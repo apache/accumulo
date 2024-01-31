@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
@@ -44,6 +44,23 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public enum Property {
+  COMPACTION_PREFIX("compaction.", null, PropertyType.PREFIX,
+      "Both major and minor compaction properties can be included under this prefix.", "3.1.0"),
+  COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
+      "This prefix should be used to define all properties for the compaction services."
+          + "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.\n"
+          + "A new external compaction service would be defined like the following:\n"
+          + "`compaction.service.newService.planner="
+          + "\"org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner\".`\n"
+          + "`compaction.service.newService.opts.queues=\""
+          + "[{\"name\": \"small\", \"maxSize\":\"32M\"},"
+          + "{ \"name\":\"medium\", \"maxSize\":\"512M\"},{\"name\":\"large\"}]`\n"
+          + "`compaction.service.newService.opts.maxOpen=50`.\n"
+          + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
+      "3.1.0"),
+  COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
+      "When a compaction has not made progress for this time period, a warning will be logged.",
+      "3.1.0"),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
@@ -205,12 +222,12 @@ public enum Property {
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
       "2.1.0"),
-
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud.",
       "1.3.5"),
+
   GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
       PropertyType.CLASSNAME,
       "Name of classloader factory to be used to create classloaders for named contexts,"
@@ -359,7 +376,7 @@ public enum Property {
           + "indicates an unlimited number of threads will be used.",
       "1.8.0"),
   MANAGER_METADATA_SUSPENDABLE("manager.metadata.suspendable", "false", PropertyType.BOOLEAN,
-      "Allow tablets for the " + MetadataTable.NAME
+      "Allow tablets for the " + AccumuloTable.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
@@ -568,20 +585,27 @@ public enum Property {
       "The maximum number of concurrent tablet migrations for a tablet server.", "1.3.5"),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction.", "1.3.5"),
+  @Deprecated(since = "3.1")
+  @ReplacedBy(property = COMPACTION_SERVICE_PREFIX)
   TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services.", "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for root tablet service.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited.  This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
       "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]"
@@ -589,37 +613,47 @@ public enum Property {
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Compaction planner for metadata table.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
       PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
       "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
           .replaceAll("'", "\""),
-      PropertyType.STRING,
+      PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "2.1.0"),
-  @Deprecated(since = "3.1", forRemoval = true)
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
       "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.",
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
       "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
       "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
       "The maximum number of files a compaction will open.", "2.1.0"),
+  @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
@@ -629,6 +663,8 @@ public enum Property {
       "2.1.0"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server.", "1.3.5"),
+  @Deprecated(since = "3.1")
+  @ReplacedBy(property = COMPACTION_WARN_TIME)
   TSERV_COMPACTION_WARN_TIME("tserver.compaction.warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
       "1.6.0"),
@@ -726,6 +762,7 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
+  @Deprecated(since = "3.1")
   TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
       PropertyType.LAST_LOCATION_MODE,
       "Describes how the system will record the 'last' location for tablets, which can be used for"
@@ -734,9 +771,10 @@ public enum Property {
           + " 'assignment' is the mode, then the most recently assigned location will be recorded."
           + " The manager.startup.tserver properties might also need to be set to ensure the"
           + " tserver is available before tablets are initially assigned if the 'last' location is"
-          + " to be used.",
+          + " to be used. This property has been deprecated in anticipation of it being removed in"
+          + " a future release that removes major compactions from the TabletServer, rendering this"
+          + " feature moot.",
       "2.1.1"),
-
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",
@@ -804,7 +842,7 @@ public enum Property {
       "A comma-separate list of allowed SSL protocols.", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Monitor ZooKeeper lock.", "1.5.1"),
-  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
+  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.JSON,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
           + " with CDATA tags. If this value is set, all of the external resources"
@@ -927,8 +965,12 @@ public enum Property {
           + " adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make"
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
-          + " from having more RFiles than can be opened. Setting this property low may"
-          + " throttle ingest and increase query performance.",
+          + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
+          + " was used to trigger merging minor compactions, but merging minor compactions"
+          + " were removed in 2.1.0. Now this property is only used by the"
+          + " DefaultCompactionStrategy and the DefaultCompactionPlanner."
+          + " The DefaultCompactionPlanner started using this property in 2.1.3, before"
+          + " that it did not use the property.",
       "1.4.0"),
   TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256k", PropertyType.BYTES,
       "The maximum size summary that will be stored. The number of RFiles that"
@@ -1315,6 +1357,8 @@ public enum Property {
     ReplacedBy rb = getAnnotation(ReplacedBy.class);
     if (rb != null) {
       replacedBy = rb.property();
+    } else {
+      isReplaced = false;
     }
     annotationsComputed = true;
   }
@@ -1455,9 +1499,11 @@ public enum Property {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
+        || key.startsWith(Property.COMPACTION_SERVICE_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.equals(Property.COMPACTION_WARN_TIME.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey());
   }

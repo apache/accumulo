@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -79,14 +78,16 @@ public class SlowOps {
     createData();
   }
 
+  @SuppressWarnings("deprecation")
   public static void setExpectedCompactions(AccumuloClient client, final int numParallelExpected) {
     final int target = numParallelExpected + 1;
     try {
       client.instanceOperations().setProperty(
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
           "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
-      UtilWaitThread.sleep(3_000); // give it time to propagate
-    } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
+      Thread.sleep(3_000); // give it time to propagate
+    } catch (AccumuloException | AccumuloSecurityException | InterruptedException
+        | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
     }
   }

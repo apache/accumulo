@@ -52,7 +52,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -258,7 +258,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
-    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        new ScannerImpl(context, AccumuloTable.METADATA.tableId(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
@@ -283,8 +284,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         Key key = entry.getKey();
 
         if (!key.getRow().equals(extent.toMetaRow())) {
-          throw new Exception(
-              "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+          throw new Exception("Tablet " + extent + " contained unexpected "
+              + AccumuloTable.METADATA.tableName() + " entry " + key);
         }
 
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -302,8 +303,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           continue;
         }
 
-        throw new Exception(
-            "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        throw new Exception("Tablet " + extent + " contained unexpected "
+            + AccumuloTable.METADATA.tableName() + " entry " + key);
       }
 
       if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {

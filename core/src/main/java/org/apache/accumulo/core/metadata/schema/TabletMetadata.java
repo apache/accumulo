@@ -62,6 +62,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -104,6 +105,7 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private boolean merged;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -125,7 +127,8 @@ public class TabletMetadata {
     COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
-    ECOMP
+    ECOMP,
+    MERGED
   }
 
   public static class Location {
@@ -345,6 +348,11 @@ public class TabletMetadata {
     return splitRatio;
   }
 
+  public boolean hasMerged() {
+    ensureFetched(ColumnType.MERGED);
+    return merged;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -478,6 +486,9 @@ public class TabletMetadata {
         case ExternalCompactionColumnFamily.STR_NAME:
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
+          break;
+        case MergedColumnFamily.STR_NAME:
+          te.merged = true;
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

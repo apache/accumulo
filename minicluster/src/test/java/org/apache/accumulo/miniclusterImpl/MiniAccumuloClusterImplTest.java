@@ -35,8 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
@@ -107,9 +106,10 @@ public class MiniAccumuloClusterImplTest {
   @Timeout(60)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
+    int expectedNumTables = 3;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
-      if (stats.tableMap.size() <= 2) {
+      if (stats.tableMap.size() < expectedNumTables) {
         continue;
       }
 
@@ -123,9 +123,9 @@ public class MiniAccumuloClusterImplTest {
     assertTrue(validGoals.contains(stats.goalState),
         "manager goal state should be in " + validGoals + ". is " + stats.goalState);
     assertNotNull(stats.tableMap, "should have a table map.");
-    assertTrue(stats.tableMap.containsKey(RootTable.ID.canonical()),
+    assertTrue(stats.tableMap.containsKey(AccumuloTable.ROOT.tableId().canonical()),
         "root table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(MetadataTable.ID.canonical()),
+    assertTrue(stats.tableMap.containsKey(AccumuloTable.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),
         "our test table should exist in " + stats.tableMap.keySet());

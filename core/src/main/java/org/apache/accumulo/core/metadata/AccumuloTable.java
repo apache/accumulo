@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata.schema;
+package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.TableId;
 
 /**
- * MetadataSchema constants that are deprecated and should only be used to support removals during
- * the upgrade process.
+ * Defines the name and id of all tables in the accumulo table namespace.
  */
-public class UpgraderDeprecatedConstants {
+public enum AccumuloTable {
 
-  /**
-   * ChoppedColumnFamily kept around for cleaning up old entries on upgrade. Currently not used,
-   * will be used by #3768
-   */
-  public static class ChoppedColumnFamily {
-    public static final String STR_NAME = "chopped";
-    public static final Text NAME = new Text(STR_NAME);
-    public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+  ROOT("root", "+r"), METADATA("metadata", "!0");
+
+  private final String name;
+  private final TableId tableId;
+
+  public String tableName() {
+    return name;
   }
 
+  public TableId tableId() {
+    return tableId;
+  }
+
+  AccumuloTable(String name, String id) {
+    this.name = Namespace.ACCUMULO.name() + "." + name;
+    this.tableId = TableId.of(id);
+  }
 }

@@ -49,8 +49,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -122,7 +121,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       assertEquals(3, countInUse(walsAfterRoll.values()), "all WALs should be in use");
 
       // flush the tables
-      for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
+      for (String table : new String[] {tableName, AccumuloTable.METADATA.tableName(),
+          AccumuloTable.ROOT.tableName()}) {
         c.tableOperations().flush(table, null, null, true);
       }
       Thread.sleep(SECONDS.toMillis(1));
@@ -199,8 +199,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(AccumuloClient c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
-    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
-        Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
+    try (Scanner root = c.createScanner(AccumuloTable.ROOT.tableName(), EMPTY);
+        Scanner meta = c.createScanner(AccumuloTable.METADATA.tableName(), EMPTY)) {
       root.setRange(TabletsSection.getRange());
       root.fetchColumnFamily(LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);

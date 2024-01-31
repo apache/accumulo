@@ -35,6 +35,10 @@
       <artifactId>jcommander</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
@@ -76,10 +80,6 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-context</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-semconv</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -358,7 +358,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/server-properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/server-properties3.md</argument>
               </arguments>
             </configuration>
           </execution>
@@ -373,7 +373,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/client-properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/client-properties3.md</argument>
               </arguments>
             </configuration>
           </execution>

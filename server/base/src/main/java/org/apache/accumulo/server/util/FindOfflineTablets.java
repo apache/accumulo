@@ -27,8 +27,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -91,22 +90,22 @@ public class FindOfflineTablets {
       return offline;
     }
 
-    if (RootTable.NAME.equals(tableName)) {
+    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletLocationState> rootScanner =
-        new MetaDataTableScanner(context, TabletsSection.getRange(), RootTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
+    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
+        TabletsSection.getRange(), AccumuloTable.ROOT.tableName());
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
       return offline;
     }
 
-    if (MetadataTable.NAME.equals(tableName)) {
+    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + MetadataTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.METADATA.tableName());
 
     Range range = TabletsSection.getRange();
     if (tableName != null) {
@@ -115,7 +114,7 @@ public class FindOfflineTablets {
     }
 
     try (MetaDataTableScanner metaScanner =
-        new MetaDataTableScanner(context, range, MetadataTable.NAME)) {
+        new MetaDataTableScanner(context, range, AccumuloTable.METADATA.tableName())) {
       return checkTablets(context, metaScanner, tservers);
     }
   }

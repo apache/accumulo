@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Transient in memory store for transactions.
@@ -61,7 +62,7 @@ public class TestStore extends ZooStore<String> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime) {
+  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
     if (!reserved.remove(tid)) {
       throw new IllegalStateException();
     }
