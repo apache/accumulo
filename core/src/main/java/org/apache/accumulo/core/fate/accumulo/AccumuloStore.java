@@ -81,14 +81,14 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   @Override
   public FateId create() {
     final int maxAttempts = 5;
-    FateId fateId = FateId.from(fateInstanceType, 0L);
 
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      FateId fateId = getFateId();
+
       if (attempt >= 1) {
         log.debug("Failed to create new id: {}, trying again", fateId);
         UtilWaitThread.sleep(100);
       }
-      fateId = getFateId();
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
           .putCreateTime(System.currentTimeMillis()).tryMutate();
