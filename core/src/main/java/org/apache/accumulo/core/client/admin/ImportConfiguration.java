@@ -45,6 +45,13 @@ public interface ImportConfiguration {
   boolean isKeepMappings();
 
   /**
+   * @return the initial hosting goal for the table
+   *
+   * @since 3.1.0
+   */
+  TabletHostingGoal getInitialHostingGoal();
+
+  /**
    * A ImportConfiguration builder
    *
    * @since 2.1
@@ -72,6 +79,8 @@ public interface ImportConfiguration {
      *        importing.
      */
     Builder setKeepMappings(boolean keepMappings);
+
+    Builder setInitialHostingGoal(TabletHostingGoal initialTabletGoal);
 
     /**
      * Build the import table configuration

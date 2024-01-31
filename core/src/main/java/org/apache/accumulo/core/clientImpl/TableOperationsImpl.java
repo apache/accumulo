@@ -183,6 +183,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
   public static final String TABLE_DELETED_MSG = "Table is being deleted";
 
+  public static final ByteBuffer EMPTY = ByteBuffer.allocate(0);
+
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
 
@@ -562,8 +564,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Callable<List<Text>> splitTask = () -> {
       var extent = splitsForTablet.getKey();
 
-      ByteBuffer EMPTY = ByteBuffer.allocate(0);
-
       List<ByteBuffer> args = new ArrayList<>();
       args.add(ByteBuffer.wrap(extent.tableId().canonical().getBytes(UTF_8)));
       args.add(extent.endRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.endRow()));
@@ -591,7 +591,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
@@ -610,7 +609,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
@@ -1635,10 +1633,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ioe.getMessage());
     }
 
-    List<ByteBuffer> args = new ArrayList<>(3 + checkedImportDirs.size());
+    List<ByteBuffer> args = new ArrayList<>(4 + checkedImportDirs.size());
     args.add(0, ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(1, ByteBuffer.wrap(Boolean.toString(keepOffline).getBytes(UTF_8)));
     args.add(2, ByteBuffer.wrap(Boolean.toString(keepMapping).getBytes(UTF_8)));
+    args.add(3, ic.getInitialHostingGoal() == null ? EMPTY
+        : ByteBuffer.wrap(ic.getInitialHostingGoal().name().getBytes(UTF_8)));
     checkedImportDirs.stream().map(s -> s.getBytes(UTF_8)).map(ByteBuffer::wrap).forEach(args::add);
 
     try {

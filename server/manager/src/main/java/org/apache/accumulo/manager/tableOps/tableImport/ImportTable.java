@@ -33,6 +33,7 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -62,7 +63,7 @@ public class ImportTable extends ManagerRepo {
   private final ImportedTableInfo tableInfo;
 
   public ImportTable(String user, String tableName, Set<String> exportDirs, NamespaceId namespaceId,
-      boolean keepMappings, boolean keepOffline) {
+      boolean keepMappings, boolean keepOffline, TabletHostingGoal initialHostingGoal) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
@@ -70,6 +71,7 @@ public class ImportTable extends ManagerRepo {
     tableInfo.directories = parseExportDir(exportDirs);
     tableInfo.keepMappings = keepMappings;
     tableInfo.keepOffline = keepOffline;
+    tableInfo.initialHostingGoal = initialHostingGoal;
   }
 
   @Override

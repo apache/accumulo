@@ -55,6 +55,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -102,7 +103,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (
         BatchWriter mbw =
             manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
-        ZipInputStream zis = new ZipInputStream(fs.open(path))) {
+        FSDataInputStream fsDataInputStream = fs.open(path);
+        ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -114,8 +116,11 @@ class PopulateMetadataTable extends ManagerRepo {
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
-        if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
-          DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
+        if (!zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
+          continue;
+        }
+        try (BufferedInputStream bufferedInputStream = new BufferedInputStream(zis);
+            DataInputStream in = new DataInputStream(bufferedInputStream)) {
 
           Key key = new Key();
           Value val = new Value();
@@ -123,6 +128,8 @@ class PopulateMetadataTable extends ManagerRepo {
           Mutation m = null;
           Text currentRow = null;
           int dirCount = 0;
+
+          TabletHostingGoal initialHostingGoal = tableInfo.initialHostingGoal;
 
           boolean sawHostingGoal = false;
 
@@ -156,11 +163,11 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                if (!sawHostingGoal) {
-                  // add a default hosting goal
-                  HostingColumnFamily.GOAL_COLUMN.put(m,
-                      TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
-                }
+                // if initial hosting goal was provided, use it, otherwise use ondemand
+                TabletHostingGoal hostingGoal =
+                    (initialHostingGoal != null) ? initialHostingGoal : TabletHostingGoal.ONDEMAND;
+
+                HostingColumnFamily.GOAL_COLUMN.put(m, TabletHostingGoalUtil.toValue(hostingGoal));
                 mbw.addMutation(m);
               }
 
@@ -176,6 +183,12 @@ class PopulateMetadataTable extends ManagerRepo {
               sawHostingGoal = false;
             }
 
+            if (initialHostingGoal != null) {
+              // add the initial hosting goal
+              HostingColumnFamily.GOAL_COLUMN.put(m,
+                  TabletHostingGoalUtil.toValue(initialHostingGoal));
+              sawHostingGoal = true;
+            }
             if (HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
               sawHostingGoal = true;
             }

@@ -40,10 +40,14 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -59,11 +63,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.util.FileMetadataUtil;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -87,6 +93,130 @@ public class ImportExportIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(1);
   }
 
+  /**
+   * Test that we can override a hosting goal when importing a table.
+   */
+  @Test
+  public void importChangeHostingGoal() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String[] tableNames = getUniqueNames(2);
+      String srcTable = tableNames[0], destTable = tableNames[1];
+      client.tableOperations().create(srcTable);
+
+      Range hostingRange = new Range();
+      TabletHostingGoal srcGoal = TabletHostingGoal.ALWAYS;
+      client.tableOperations().setTabletHostingGoal(srcTable, hostingRange, srcGoal);
+
+      waitForHostingGoal(client, srcTable, hostingRange, srcGoal);
+
+      populateTable(client, srcTable);
+
+      FileSystem fs = cluster.getFileSystem();
+
+      Path baseDir = setupBaseDir(fs);
+
+      Path exportDir = new Path(baseDir, "export");
+      fs.deleteOnExit(exportDir);
+      Path importDirA = new Path(baseDir, "import-a");
+      Path importDirB = new Path(baseDir, "import-b");
+      fs.deleteOnExit(importDirA);
+      fs.deleteOnExit(importDirB);
+      for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
+        assertTrue(fs.mkdirs(p), "Failed to create " + p);
+      }
+
+      Set<String> importDirs = Set.of(importDirA.toString(), importDirB.toString());
+
+      Path[] importDirAry = new Path[] {importDirA, importDirB};
+
+      log.info("Exporting table to {}", exportDir);
+      log.info("Importing table from {}", importDirs);
+
+      // Offline the table
+      client.tableOperations().offline(srcTable, true);
+      // Then export it
+      client.tableOperations().exportTable(srcTable, exportDir.toString());
+
+      // Make sure the distcp.txt file that exporttable creates is available
+      Path distcp = new Path(exportDir, "distcp.txt");
+      fs.deleteOnExit(distcp);
+      assertTrue(fs.exists(distcp), "Distcp file doesn't exist");
+
+      try (FSDataInputStream is = fs.open(distcp); InputStreamReader in = new InputStreamReader(is);
+          BufferedReader reader = new BufferedReader(in)) {
+        // Copy each file that was exported to one of the imports directory
+        String line;
+        while ((line = reader.readLine()) != null) {
+          Path p = new Path(line.substring(5));
+          assertTrue(fs.exists(p), "File doesn't exist: " + p);
+          Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
+          Path dest = new Path(importDir, p.getName());
+          assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
+          FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
+        }
+
+      }
+
+      log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
+      log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
+
+      // Import the exported data into a new table
+      ImportConfiguration importConfig =
+          ImportConfiguration.builder().setInitialHostingGoal(TabletHostingGoal.NEVER).build();
+      client.tableOperations().importTable(destTable, importDirs, importConfig);
+
+      waitForHostingGoal(client, destTable, hostingRange, TabletHostingGoal.NEVER);
+    }
+  }
+
+  /**
+   * Make a directory we can use to throw the export and import directories
+   *
+   * @return Path to the base directory
+   */
+  private Path setupBaseDir(FileSystem fs) throws IOException {
+    // Must exist on the filesystem the cluster is running.
+    log.info("Using FileSystem: " + fs);
+    Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
+    fs.deleteOnExit(baseDir);
+    if (fs.exists(baseDir)) {
+      log.info("{} exists on filesystem, deleting", baseDir);
+      assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
+    }
+    log.info("Creating {}", baseDir);
+    assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+    return baseDir;
+  }
+
+  private static void populateTable(AccumuloClient client, String srcTable)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    try (BatchWriter bw = client.createBatchWriter(srcTable)) {
+      for (int row = 0; row < 1000; row++) {
+        Mutation m = new Mutation("row_" + String.format("%010d", row));
+        for (int col = 0; col < 100; col++) {
+          m.put(Integer.toString(col), "", Integer.toString(col * 2));
+        }
+        bw.addMutation(m);
+      }
+    }
+    client.tableOperations().compact(srcTable, null, null, true, true);
+  }
+
+  private static void waitForHostingGoal(AccumuloClient client, String tableName,
+      Range hostingRange, TabletHostingGoal goal) {
+    Wait.waitFor(() -> client.tableOperations().getTabletInformation(tableName, hostingRange)
+        .allMatch(tabletInformation -> {
+          TabletHostingGoal currentGoal = tabletInformation.getHostingGoal();
+          boolean goalReached = currentGoal == goal;
+          if (!goalReached) {
+            log.info("Current hosting goal: " + currentGoal + ". Waiting for " + goal);
+          }
+          return goalReached;
+        }), 30_000L, 1_000L,
+        "Timed out waiting for hosting goal " + goal + " on " + tableName + " " + hostingRange);
+  }
+
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   public void testExportImportThenScan(boolean fenced) throws Exception {
@@ -96,17 +226,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       String srcTable = tableNames[0], destTable = tableNames[1];
       client.tableOperations().create(srcTable);
 
-      try (BatchWriter bw = client.createBatchWriter(srcTable)) {
-        for (int row = 0; row < 1000; row++) {
-          Mutation m = new Mutation("row_" + String.format("%010d", row));
-          for (int col = 0; col < 100; col++) {
-            m.put(Integer.toString(col), "", Integer.toString(col * 2));
-          }
-          bw.addMutation(m);
-        }
-      }
-
-      client.tableOperations().compact(srcTable, null, null, true, true);
+      populateTable(client, srcTable);
 
       int expected = 100000;
       // Test that files with ranges and are fenced work with export/import
@@ -116,18 +236,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
         expected = 35000;
       }
 
-      // Make a directory we can use to throw the export and import directories
-      // Must exist on the filesystem the cluster is running.
       FileSystem fs = cluster.getFileSystem();
-      log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
-      fs.deleteOnExit(baseDir);
-      if (fs.exists(baseDir)) {
-        log.info("{} exists on filesystem, deleting", baseDir);
-        assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
-      }
-      log.info("Creating {}", baseDir);
-      assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+
+      Path baseDir = setupBaseDir(fs);
+
       Path exportDir = new Path(baseDir, "export");
       fs.deleteOnExit(exportDir);
       Path importDirA = new Path(baseDir, "import-a");
