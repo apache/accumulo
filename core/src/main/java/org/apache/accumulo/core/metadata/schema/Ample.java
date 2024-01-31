@@ -433,9 +433,8 @@ public interface Ample {
   /**
    * A tablet operation is a mutually exclusive action that is running against a tablet. Its very
    * important that every conditional mutation specifies requirements about operations in order to
-   * satisfy the mutual exclusion goal. This interface forces those requirements to
-   * specified by making it the only choice available before specifying other tablet requirements or
-   * mutations.
+   * satisfy the mutual exclusion goal. This interface forces those requirements to specified by
+   * making it the only choice available before specifying other tablet requirements or mutations.
    *
    * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
