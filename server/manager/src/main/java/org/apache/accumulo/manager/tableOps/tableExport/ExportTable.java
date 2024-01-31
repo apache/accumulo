@@ -54,7 +54,15 @@ public class ExportTable extends ManagerRepo {
     Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
   }
 
-  public static final int VERSION = 1;
+  /**
+   * Defines export / version.
+   * <ul>
+   * <li>version 1 exported by Accumulo &lt; 3.1</li>
+   * <li>version 2 exported by Accumulo =&gt; 3.1 - uses file references with ranges.</li>
+   * </ul>
+   */
+  public static final int VERSION_2 = 2;
+  public static final int CURR_VERSION = VERSION_2;
 
   public static final String DATA_VERSION_PROP = "srcDataVersion";
   public static final String EXPORT_VERSION_PROP = "exportVersion";

@@ -110,7 +110,7 @@ public class ImportTable extends ManagerRepo {
 
     log.debug("Searching for export file in {}", exportDirs);
 
-    Integer exportVersion = null;
+    tableInfo.exportedVersion = null;
     Integer dataVersion = null;
 
     try {
@@ -127,7 +127,7 @@ public class ImportTable extends ManagerRepo {
           while ((line = in.readLine()) != null) {
             String[] sa = line.split(":", 2);
             if (sa[0].equals(ExportTable.EXPORT_VERSION_PROP)) {
-              exportVersion = Integer.parseInt(sa[1]);
+              tableInfo.exportedVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {
               dataVersion = Integer.parseInt(sa[1]);
             }
@@ -142,10 +142,10 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (exportVersion == null || exportVersion > ExportTable.VERSION) {
+    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.CURR_VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Incompatible export version " + exportVersion);
+          "Incompatible export version " + tableInfo.exportedVersion);
     }
 
     if (dataVersion == null || dataVersion > AccumuloDataVersion.get()) {

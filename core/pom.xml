@@ -193,7 +193,6 @@
                   <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
                   <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
                   <exclude>src/test/resources/*.jceks</exclude>
-                  <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -206,7 +205,6 @@
             <excludes>
               <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
               <exclude>src/test/resources/*.jceks</exclude>
-              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>
