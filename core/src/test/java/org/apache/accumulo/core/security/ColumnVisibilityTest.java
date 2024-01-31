@@ -62,8 +62,8 @@ public class ColumnVisibilityTest {
     assertEquals(a, d);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testEmptyFlatten() {
     // empty visibility is valid
     new ColumnVisibility().flatten();
@@ -88,7 +88,7 @@ public class ColumnVisibilityTest {
     shouldThrow("a*b");
   }
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   public void normalized(String... values) {
     for (int i = 0; i < values.length; i += 2) {
       ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
@@ -172,8 +172,8 @@ public class ColumnVisibilityTest {
     assertEquals("[\"五\"]", cv.toString());
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTree() {
     Node node = parse("(W)|(U&V)");
     assertNode(node, NodeType.OR, 0, 9);
@@ -181,15 +181,15 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreeWithNoChildren() {
     Node node = parse("ABC");
     assertNode(node, NodeType.TERM, 0, 3);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreeWithTwoChildren() {
     Node node = parse("ABC|DEF");
     assertNode(node, NodeType.OR, 0, 7);
@@ -197,8 +197,8 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.TERM, 4, 7);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreeWithParenthesesAndTwoChildren() {
     Node node = parse("(ABC|DEF)");
     assertNode(node, NodeType.OR, 1, 8);
@@ -206,8 +206,8 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.TERM, 5, 8);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreeWithParenthesizedChildren() {
     Node node = parse("ABC|(DEF&GHI)");
     assertNode(node, NodeType.OR, 0, 13);
@@ -217,8 +217,8 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 9, 12);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreeWithMoreParentheses() {
     Node node = parse("(W)|(U&V)");
     assertNode(node, NodeType.OR, 0, 9);
@@ -228,16 +228,16 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testEmptyParseTreesAreEqual() {
     Comparator<Node> comparator = new NodeComparator(new byte[] {});
     Node empty = new ColumnVisibility().getParseTree();
     assertEquals(0, comparator.compare(empty, parse("")));
   }
 
-  @SuppressWarnings("removal")
   @Test
+  @SuppressWarnings("deprecation")
   public void testParseTreesOrdering() {
     byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
     byte[] flattened = new ColumnVisibility(expression).flatten();
@@ -248,13 +248,13 @@ public class ColumnVisibilityTest {
     assertTrue(flat.indexOf('b') < flat.indexOf('a'), "shortest children sort first");
   }
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private Node parse(String s) {
     ColumnVisibility v = new ColumnVisibility(s);
     return v.getParseTree();
   }
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings("deprecation")
   private void assertNode(Node node, NodeType nodeType, int start, int end) {
     assertEquals(node.type, nodeType);
     assertEquals(start, node.start);

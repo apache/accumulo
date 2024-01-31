@@ -37,7 +37,7 @@ public class VisibilityEvaluator {
    * @param quote true to wrap escaped authorization in quotes
    * @return escaped authorization string
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
 

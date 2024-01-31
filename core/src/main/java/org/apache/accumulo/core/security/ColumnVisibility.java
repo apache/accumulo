@@ -98,7 +98,7 @@ public class ColumnVisibility {
   /**
    * The node types in a parse tree for a visibility expression.
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public enum NodeType {
     EMPTY, TERM, OR, AND,
   }
@@ -111,7 +111,7 @@ public class ColumnVisibility {
   /**
    * A node in the parse tree for a visibility expression.
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static class Node {
     /**
      * An empty list of nodes.
@@ -178,7 +178,7 @@ public class ColumnVisibility {
    * A node comparator. Nodes sort according to node type, terms sort lexicographically. AND and OR
    * nodes sort by number of children, or if the same by corresponding children.
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static class NodeComparator implements Comparator<Node>, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -226,7 +226,7 @@ public class ColumnVisibility {
    * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
   }
@@ -239,7 +239,7 @@ public class ColumnVisibility {
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
   // @formatter:on
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);
@@ -268,7 +268,7 @@ public class ColumnVisibility {
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This
    * method adds parens where necessary.
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start, UTF_8));
@@ -295,14 +295,13 @@ public class ColumnVisibility {
    *
    * @return normalized expression in byte[] form
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public byte[] flatten() {
-    Node normRoot = normalize(nodeSupplier.get(), expression);
-    StringBuilder builder = new StringBuilder(expression.length);
-    stringify(normRoot, expression, builder);
-    return builder.toString().getBytes(UTF_8);
+    // expression was not normalized when we created it
+    return AccessExpression.of(expression, true).getExpression().getBytes(UTF_8);
   }
 
+  @Deprecated
   private static class ColumnVisibilityParser {
     private int index = 0;
     private int parens = 0;
@@ -469,7 +468,7 @@ public class ColumnVisibility {
     }
   }
 
-  private Node createNode(byte[] expression) {
+  private Node createNodeTree(byte[] expression) {
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
       return p.parse(expression);
@@ -488,7 +487,7 @@ public class ColumnVisibility {
    */
   public ColumnVisibility() {
     expression = EMPTY_BYTES;
-    nodeSupplier = Suppliers.memoize(() -> createNode(expression));
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(expression));
   }
 
   /**
@@ -498,15 +497,7 @@ public class ColumnVisibility {
    *        syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
-    this.expression = expression.getBytes(UTF_8);
-    try {
-      AccessExpression.validate(this.expression);
-    } catch (IllegalAccessExpressionException e) {
-      // This is thrown for compatability with the exception this class used to throw when it parsed
-      // exceptions itself.
-      throw new BadArgumentException(e);
-    }
-    nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));
+    this(expression.getBytes(UTF_8));
   }
 
   /**
@@ -520,7 +511,7 @@ public class ColumnVisibility {
   }
 
   /**
-   * Creates a column visibility for a Mutation from a string already encoded in UTF-8 bytes.
+   * Creates a column visibility for a Mutation from bytes already encoded in UTF-8.
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
@@ -534,7 +525,18 @@ public class ColumnVisibility {
       // exceptions itself.
       throw new BadArgumentException(e);
     }
-    nodeSupplier = Suppliers.memoize(() -> createNode(this.expression));
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(this.expression));
+  }
+
+  /**
+   * Creates a column visibility for a Mutation from an AccessExpression.
+   *
+   * @param expression visibility expression, encoded as UTF-8 bytes
+   * @see #ColumnVisibility(String)
+   * @since 3.1.0
+   */
+  public ColumnVisibility(AccessExpression expression) {
+    this(expression.getExpression());
   }
 
   @Override
@@ -574,7 +576,7 @@ public class ColumnVisibility {
    *
    * @return parse tree node
    */
-  @Deprecated(forRemoval = true, since = "3.1.0")
+  @Deprecated(since = "3.1.0")
   public Node getParseTree() {
     return nodeSupplier.get();
   }
@@ -598,6 +600,7 @@ public class ColumnVisibility {
    * @param term term to quote
    * @return quoted term (unquoted if unnecessary)
    */
+  // TODO deprecate?
   public static String quote(String term) {
     return AccessExpression.quote(term);
   }
@@ -610,6 +613,7 @@ public class ColumnVisibility {
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
    */
+  // TODO deprecate?
   public static byte[] quote(byte[] term) {
     return AccessExpression.quote(term);
   }
