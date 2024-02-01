@@ -27,7 +27,7 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
   private boolean built = false;
   private boolean keepOffline = false;
   private boolean keepMappingsFile = false;
-  private TabletHostingGoal initialHostingGoal = null;
+  private TabletHostingGoal initialHostingGoal = TabletHostingGoal.ONDEMAND;
 
   private final static String BUILT_ERROR_MSG = "ImportConfiguration was already built";
   private final static String NOT_BUILT_ERROR_MSG = "ImportConfiguration was not built yet";
@@ -48,6 +48,7 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
 
   @Override
   public Builder setInitialHostingGoal(TabletHostingGoal initialTabletHostingGoal) {
+    Preconditions.checkState(initialTabletHostingGoal != null, "initialTabletHostingGoal is null");
     Preconditions.checkState(!built, BUILT_ERROR_MSG);
     this.initialHostingGoal = initialTabletHostingGoal;
     return this;

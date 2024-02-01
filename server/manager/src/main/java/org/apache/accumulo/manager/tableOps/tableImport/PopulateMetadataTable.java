@@ -130,8 +130,11 @@ class PopulateMetadataTable extends ManagerRepo {
           int dirCount = 0;
 
           TabletHostingGoal initialHostingGoal = tableInfo.initialHostingGoal;
-
-          boolean sawHostingGoal = false;
+          if (initialHostingGoal == null) {
+            log.error("Initial hosting goal is null and shouldn't be, defaulting to "
+                + TabletHostingGoal.ONDEMAND);
+            initialHostingGoal = TabletHostingGoal.ONDEMAND;
+          }
 
           while (true) {
             key.readFields(in);
@@ -163,11 +166,8 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                // if initial hosting goal was provided, use it, otherwise use ondemand
-                TabletHostingGoal hostingGoal =
-                    (initialHostingGoal != null) ? initialHostingGoal : TabletHostingGoal.ONDEMAND;
-
-                HostingColumnFamily.GOAL_COLUMN.put(m, TabletHostingGoalUtil.toValue(hostingGoal));
+                HostingColumnFamily.GOAL_COLUMN.put(m,
+                    TabletHostingGoalUtil.toValue(initialHostingGoal));
                 mbw.addMutation(m);
               }
 
@@ -180,30 +180,17 @@ class PopulateMetadataTable extends ManagerRepo {
               m = new Mutation(metadataRow);
               ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
-              sawHostingGoal = false;
             }
 
-            if (initialHostingGoal != null) {
-              // add the initial hosting goal
-              HostingColumnFamily.GOAL_COLUMN.put(m,
-                  TabletHostingGoalUtil.toValue(initialHostingGoal));
-              sawHostingGoal = true;
-            }
-            if (HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
-              sawHostingGoal = true;
-            }
+            // add the initial hosting goal
+            HostingColumnFamily.GOAL_COLUMN.put(m,
+                TabletHostingGoalUtil.toValue(initialHostingGoal));
+
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-
-              if (!sawHostingGoal) {
-                // add a default hosting goal
-                HostingColumnFamily.GOAL_COLUMN.put(m,
-                    TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
-              }
-
               mbw.addMutation(m);
-              break; // its the last column in the last row
+              break; // it's the last column in the last row
             }
           }
           break;
