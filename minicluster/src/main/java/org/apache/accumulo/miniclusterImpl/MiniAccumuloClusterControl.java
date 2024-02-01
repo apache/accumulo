@@ -150,6 +150,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   @Override
   public synchronized void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
       throws IOException {
+    log.debug("startCoordinator - start if not already running");
     if (coordinatorProcess == null) {
       coordinatorProcess = cluster
           ._exec(coordinator, ServerType.COMPACTION_COORDINATOR, new HashMap<>()).getProcess();
@@ -158,27 +159,41 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       if (!waitForMetrics()) {
         log.warn("metrics failed to register after {} sec",
             NANOSECONDS.toSeconds(System.nanoTime() - startNano));
+      } else {
+        log.info("metrics found after {} sec",
+            NANOSECONDS.toSeconds(System.nanoTime() - startNano));
       }
+    } else {
+      log.debug("startCoordinator - already had a coordinatorProcess, continuing");
     }
   }
 
   private boolean waitForMetrics() {
     final int maxTries = 10;
-    int retryCount = 0;
+    int retryCount = 1;
     long retryDelay = 1000;
 
-    TExternalCompactionList metrics = null;
-    while (metrics == null && retryCount++ < maxTries) {
+    do {
+
       try {
-        metrics = getRunningCompactions(cluster.getServerContext());
+        if (getRunningCompactions(cluster.getServerContext()) != null) {
+          log.debug("have running compaction metrics after {} tries", retryCount);
+          return true;
+        }
       } catch (TException e) {
-        retryDelay = (long) (Math.min(retryDelay * 1.2, SECONDS.toMillis(10))); // max delay ~ 10
         log.debug(
-            "Error getting running compaction metrics from coordinator, will retry in {} message: {}",
-            retryDelay, e.getMessage());
-        UtilWaitThread.sleep(retryDelay);
+            "Error getting running compaction metrics from coordinator, will retry. message: {}",
+            e.getMessage());
       }
-    }
+
+      retryDelay = (long) (Math.min(retryDelay * 1.2, SECONDS.toMillis(10)));
+      log.debug(
+          "Have not seen running compaction metrics from coordinator after {} tries, will retry in {} ms",
+          retryCount, retryDelay);
+      UtilWaitThread.sleep(retryDelay);
+
+    } while (++retryCount < maxTries);
+
     return false;
   }
 
