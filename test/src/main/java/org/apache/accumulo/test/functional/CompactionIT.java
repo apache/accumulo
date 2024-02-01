@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,6 +77,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
@@ -622,6 +625,92 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       var finalCount = countFiles(c);
       assertTrue(finalCount <= beforeCount);
+    }
+  }
+
+  @Test
+  public void testDeleteCompactionService() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var uniqueNames = getUniqueNames(2);
+      String table1 = uniqueNames[0];
+      String table2 = uniqueNames[1];
+
+      // create a compaction service named deleteme
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner",
+          DefaultCompactionPlanner.class.getName());
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.executors",
+          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+
+      // create a compaction service named keepme
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner",
+          DefaultCompactionPlanner.class.getName());
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner.opts.executors",
+          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+
+      // create a table that uses the compaction service deleteme
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+          SimpleCompactionDispatcher.class.getName());
+      props.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "deleteme");
+      c.tableOperations().create(table1, new NewTableConfiguration().setProperties(props));
+
+      // create a table that uses the compaction service keepme
+      props.clear();
+      props.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+          SimpleCompactionDispatcher.class.getName());
+      props.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "keepme");
+      c.tableOperations().create(table2, new NewTableConfiguration().setProperties(props));
+
+      try (var writer1 = c.createBatchWriter(table1); var writer2 = c.createBatchWriter(table2)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation("" + i);
+          m.put("f", "q", "" + i);
+          writer1.addMutation(m);
+          writer2.addMutation(m);
+        }
+      }
+
+      c.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(table2, new CompactionConfig().setWait(true));
+
+      // delete the compaction service deleteme
+      c.instanceOperations()
+          .removeProperty(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner");
+      c.instanceOperations().removeProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.executors");
+
+      // add a new compaction service named newcs
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
+          DefaultCompactionPlanner.class.getName());
+      c.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors",
+          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+
+      // set table 1 to a compaction service newcs
+      c.tableOperations().setProperty(table1,
+          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "newcs");
+
+      // ensure tables can still compact and are not impacted by the deleted compaction service
+      for (int i = 0; i < 10; i++) {
+        c.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+        c.tableOperations().compact(table2, new CompactionConfig().setWait(true));
+
+        try (var scanner = c.createScanner(table1)) {
+          assertEquals(9 * 10 / 2, scanner.stream().map(Entry::getValue)
+              .mapToInt(v -> Integer.parseInt(v.toString())).sum());
+        }
+        try (var scanner = c.createScanner(table2)) {
+          assertEquals(9 * 10 / 2, scanner.stream().map(Entry::getValue)
+              .mapToInt(v -> Integer.parseInt(v.toString())).sum());
+        }
+
+        Thread.sleep(100);
+      }
     }
   }
 
