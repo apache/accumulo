@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.Key;
@@ -57,6 +58,7 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   private Value topValue = null;
 
   private boolean includeValue = false;
+  private static final String ENCODE_VALUE_OPTION = "ENCODE_VALUE";
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
@@ -84,8 +86,13 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
         byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
         dos.writeInt(ba.length);
         dos.write(ba, 0, ba.length);
-        // TODO if includeValue is set then need to also encode the value, need to encode same way
-        // as client side
+
+        if (includeValue) {
+          byte[] valueData = source.getTopValue().get();
+          dos.writeInt(valueData.length);
+          dos.write(valueData, 0, valueData.length);
+        }
+
         source.next();
         count++;
       }
@@ -143,7 +150,9 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.source = source;
-    // TODO set includeValue based on options
+    String includeValueOption = options.get("includeValue");
+    this.includeValue = includeValueOption != null && Boolean.parseBoolean(includeValueOption);
+
   }
 
   @Override
@@ -195,16 +204,13 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
       Function<Map.Entry<K,T>,Map.Entry<byte[],byte[]>> entryEncoder, Text family) {
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         SetEqualityIterator.class);
-    // TODO use constant
-    is.addOption("ENCODE_VALUE", "true");
-    // Create a function that maps the Map.Entry<byte[], byte[]> from the caller to byte[]
+    is.addOption(ENCODE_VALUE_OPTION, "true");
     Function<Map.Entry<K,T>,byte[]> encoder = entry -> encodeEntry(entryEncoder.apply(entry));
     return new Condition(family, EMPTY).setValue(encode(map.entrySet(), encoder)).setIterators(is);
   }
 
   private static byte[] encodeEntry(Map.Entry<byte[],byte[]> bytesEntry) {
-    // TODO encode a key value the same way as on server side.. for sorting purposes would probably
-    // be best to use PairLexicoder
-    return null;
+    return ByteUtils.concat(ByteUtils.escape(bytesEntry.getKey()),
+        ByteUtils.escape(bytesEntry.getValue()));
   }
 }
