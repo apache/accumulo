@@ -25,7 +25,9 @@ package org.apache.accumulo.core.client.admin;
  */
 public enum TabletAvailability {
 
-  // Signifies that a Tablet should always be hosted
+  /** 
+   * Signifies that a Tablet should always be hosted on a tablet server.
+   */
   HOSTED,
 
   // Signifies that a Tablet should be hosted on client request
