@@ -76,7 +76,7 @@ public abstract class ClientTabletCache {
 
   /**
    * This method allows linear scans to host tablet ahead of time that they may read in the future.
-   * The availability of this method is to allow tablets to request hosting of tablet for a scan
+   * The goal of this method is to allow tablets to request hosting of tablet for a scan
    * before the scan actually needs it. Below is an example of how this method could work with a
    * scan when {@code minimumHostAhead=4} is passed and avoid the scan having to wait on tablet
    * hosting.
