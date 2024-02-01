@@ -634,7 +634,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   // Verify that createtable handles initial TabletAvailability parameters.
   // Argument should handle upper/lower/mixed case as value.
-  // If splits are supplied, each created tablet should contain the hosting:availability value in
+  // If splits are supplied, each created tablet should contain the ~tab:availability value in
   // the
   // metadata table.
   @Test
@@ -677,9 +677,9 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec(cmd);
     String tableId = getTableId(tableName);
     String result = ts.exec(
-        "scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c hosting:availability");
-    // the hosting:availability entry should be created at table creation
-    assertTrue(result.contains("hosting:availability"));
+        "scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c ~tab:availability");
+    // the ~tab:availability entry should be created at table creation
+    assertTrue(result.contains("~tab:availability"));
     // There should be a corresponding tablet availability value for each expected tablet
     assertEquals(expectedTabletCnt, StringUtils.countMatches(result, tabletAvailability));
   }

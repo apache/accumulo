@@ -251,7 +251,7 @@ class FateServiceHandler implements FateService.Iface {
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
             + " splits and initial tabletAvailability of " + initialTabletAvailability;
 
-        manager.fate(type).seedTransaction(op.toString(), tid,
+        manager.fate(type).seedTransaction(op.toString(), fateId,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState,
                 initialTabletAvailability, namespaceId)),
@@ -710,7 +710,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Set availability for table: " + tableName + "(" + tableId + ") range: "
             + tRange + " to: " + tabletAvailability.name();
-        manager.fate(type).seedTransaction(op.toString(), tid,
+        manager.fate(type).seedTransaction(op.toString(), fateId,
             new TraceRepo<>(
                 new SetTabletAvailability(tableId, namespaceId, tRange, tabletAvailability)),
             autoCleanup, goalMessage);

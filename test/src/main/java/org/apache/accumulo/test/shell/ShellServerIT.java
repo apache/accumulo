@@ -1348,11 +1348,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
     // scan metadata table to be sure the tablet availabilities were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:availability -b " + tableId, true);
-    assertTrue(result.contains(tableId + ";d hosting:availability []\tONDEMAND"));
-    assertTrue(result.contains(tableId + ";m hosting:availability []\tONDEMAND"));
-    assertTrue(result.contains(tableId + ";s hosting:availability []\tONDEMAND"));
-    assertTrue(result.contains(tableId + "< hosting:availability []\tONDEMAND"));
+    result = ts.exec("scan -t accumulo.metadata -c ~tab:availability -b " + tableId, true);
+    assertTrue(result.contains(tableId + ";d ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";m ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";s ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + "< ~tab:availability []\tONDEMAND"));
 
     ts.exec("createtable " + tableName[1] + " -a hosted", true);
 
@@ -1371,12 +1371,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.matches("(?s).*" + tableId2 + "<;s\\s+HOSTED.*"));
 
     // scan metadata table to be sure the tablet availabilities were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:availability -b " + tableId2, true);
+    result = ts.exec("scan -t accumulo.metadata -c ~tab:availability -b " + tableId2, true);
     log.info(">>>> result5\n{}", result);
-    assertTrue(result.contains(tableId2 + ";d hosting:availability []\tHOSTED"));
-    assertTrue(result.contains(tableId2 + ";m hosting:availability []\tHOSTED"));
-    assertTrue(result.contains(tableId2 + ";s hosting:availability []\tHOSTED"));
-    assertTrue(result.contains(tableId2 + "< hosting:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + ";d ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + ";m ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + ";s ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + "< ~tab:availability []\tHOSTED"));
   }
 
   @Test

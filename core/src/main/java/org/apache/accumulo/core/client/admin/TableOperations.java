@@ -729,14 +729,14 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
-   * Check if a table is online through its current availability state only. Could run into issues
-   * if the current state of the table is in between states. If you require a specific state, call
+   * Check if a table is online through its current goal state only. Could run into issues if the
+   * current state of the table is in between states. If you require a specific state, call
    * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
    * until the table reaches the desired state before proceeding.
    *
    * @param tableName the table to check if online
    * @throws AccumuloException when there is a general accumulo error
-   * @return true if table's availability state is online
+   * @return true if table's goal state is online
    *
    * @since 2.1.0
    */

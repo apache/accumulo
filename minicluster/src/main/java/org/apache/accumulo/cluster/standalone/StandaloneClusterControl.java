@@ -142,7 +142,7 @@ public class StandaloneClusterControl implements ClusterControl {
   /**
    * Wrapper around SetGoalState
    *
-   * @param goalState The availability state to set
+   * @param goalState The goal state to set
    * @throws IOException If SetGoalState returns a non-zero result
    */
   public void setGoalState(String goalState) throws IOException {
