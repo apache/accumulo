@@ -33,7 +33,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -49,11 +48,12 @@ import com.google.common.base.Suppliers;
 public class ZooStore<T> extends AbstractFateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
+  private static final FateInstanceType fateInstanceType = FateInstanceType.META;
   private String path;
   private ZooReaderWriter zk;
 
-  private String getTXPath(long tid) {
-    return FastFormat.toHexString(path + "/tx_", tid, "");
+  private String getTXPath(FateId fateId) {
+    return path + "/tx_" + fateId.getHexTid();
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
@@ -75,14 +75,15 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   ZooStore() {}
 
   @Override
-  public long create() {
+  public FateId create() {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+        FateId fateId = FateId.from(fateInstanceType, tid);
+        zk.putPersistentData(getTXPath(fateId), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
-        return tid;
+        return fateId;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
       } catch (KeeperException | InterruptedException e) {
@@ -93,8 +94,8 @@ public class ZooStore<T> extends AbstractFateStore<T> {
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
 
-    private FateTxStoreImpl(long tid, boolean isReserved) {
-      super(tid, isReserved);
+    private FateTxStoreImpl(FateId fateId, boolean isReserved) {
+      super(fateId, isReserved);
     }
 
     private static final int RETRIES = 10;
@@ -104,7 +105,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       for (int i = 0; i < RETRIES; i++) {
-        String txpath = getTXPath(tid);
+        String txpath = getTXPath(fateId);
         try {
           String top;
           try {
@@ -155,7 +156,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     public void push(Repo<T> repo) throws StackOverflowException {
       verifyReserved(true);
 
-      String txpath = getTXPath(tid);
+      String txpath = getTXPath(fateId);
       try {
         String top = findTop(txpath);
         if (top != null && Long.parseLong(top.split("_")[1]) > 100) {
@@ -175,10 +176,10 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-        String txpath = getTXPath(tid);
+        String txpath = getTXPath(fateId);
         String top = findTop(txpath);
         if (top == null) {
-          throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
+          throw new IllegalStateException("Tried to pop when empty " + fateId);
         }
         zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
@@ -191,7 +192,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-        zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(fateId), status.name().getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
@@ -205,7 +206,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-        zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
+        zk.recursiveDelete(getTXPath(fateId), NodeMissingPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }
@@ -216,7 +217,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, serializeTxInfo(so),
+        zk.putPersistentData(getTXPath(fateId) + "/" + txInfo, serializeTxInfo(so),
             NodeExistsPolicy.OVERWRITE);
       } catch (KeeperException | InterruptedException e2) {
         throw new IllegalStateException(e2);
@@ -228,7 +229,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       try {
-        return deserializeTxInfo(txInfo, zk.getData(getTXPath(tid) + "/" + txInfo));
+        return deserializeTxInfo(txInfo, zk.getData(getTXPath(fateId) + "/" + txInfo));
       } catch (NoNodeException nne) {
         return null;
       } catch (KeeperException | InterruptedException e) {
@@ -241,7 +242,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(false);
 
       try {
-        Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
+        Stat stat = zk.getZooKeeper().exists(getTXPath(fateId), false);
         return stat.getCtime();
       } catch (Exception e) {
         return 0;
@@ -251,7 +252,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
       verifyReserved(false);
-      String txpath = getTXPath(tid);
+      String txpath = getTXPath(fateId);
 
       outer: while (true) {
         List<String> ops;
@@ -291,9 +292,9 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected TStatus _getStatus(long tid) {
+  protected TStatus _getStatus(FateId fateId) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
+      return TStatus.valueOf(new String(zk.getData(getTXPath(fateId)), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
     } catch (KeeperException | InterruptedException e) {
@@ -302,18 +303,20 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected FateTxStore<T> newFateTxStore(long tid, boolean isReserved) {
-    return new FateTxStoreImpl(tid, isReserved);
+  protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
+    return new FateTxStoreImpl(fateId, isReserved);
   }
 
   @Override
   protected Stream<FateIdStatus> getTransactions() {
     try {
       return zk.getChildren(path).stream().map(strTxid -> {
+        String hexTid = strTxid.split("_")[1];
+        FateId fateId = FateId.from(fateInstanceType, hexTid);
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
-        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(parseTid(strTxid)));
-        return new FateIdStatusBase(parseTid(strTxid)) {
+        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(fateId));
+        return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
             return statusSupplier.get();

@@ -86,7 +86,7 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   }
 
   @Override
-  public long getID() {
+  public FateId getID() {
     return wrapped.getID();
   }
 

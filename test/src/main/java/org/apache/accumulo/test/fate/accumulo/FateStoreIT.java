@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -66,8 +67,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(0, store.list().count());
 
     // Create a new transaction and get the store for it
-    long tid = store.create();
-    FateTxStore<TestEnv> txStore = store.reserve(tid);
+    FateId fateId = store.create();
+    FateTxStore<TestEnv> txStore = store.reserve(fateId);
     assertTrue(txStore.timeCreated() > 0);
     assertEquals(1, store.list().count());
 
@@ -121,8 +122,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testReadWriteTxInfo(FateStore<TestEnv> store, ServerContext sctx) {
-    long tid = store.create();
-    FateTxStore<TestEnv> txStore = store.reserve(tid);
+    FateId fateId = store.create();
+    FateTxStore<TestEnv> txStore = store.reserve(fateId);
 
     try {
       // Go through all enum values to verify each TxInfo type will be properly
@@ -150,11 +151,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertFalse(store.isDeferredOverflow());
 
     // Store 10 transactions that are all deferred
-    final Set<Long> transactions = new HashSet<>();
+    final Set<FateId> transactions = new HashSet<>();
     for (int i = 0; i < 10; i++) {
-      long tid = store.create();
-      transactions.add(tid);
-      FateTxStore<TestEnv> txStore = store.reserve(tid);
+      FateId fateId = store.create();
+      transactions.add(fateId);
+      FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
       assertTrue(txStore.timeCreated() > 0);
       txStore.unreserve(10, TimeUnit.SECONDS);
@@ -183,9 +184,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
       // Store one more that should go over the max deferred of 10
       // and should clear the map and set the overflow flag
-      long tid = store.create();
-      transactions.add(tid);
-      FateTxStore<TestEnv> txStore = store.reserve(tid);
+      FateId fateId = store.create();
+      transactions.add(fateId);
+      FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
       txStore.unreserve(30, TimeUnit.SECONDS);
 
@@ -216,7 +217,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       executor.shutdownNow();
       // Cleanup so we don't interfere with other tests
-      store.list().forEach(fateIdStatus -> store.reserve(fateIdStatus.getTxid()).delete());
+      store.list().forEach(fateIdStatus -> store.reserve(fateIdStatus.getFateId()).delete());
     }
   }
 

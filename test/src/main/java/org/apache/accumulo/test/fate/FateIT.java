@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -166,18 +167,18 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
-      long txid = fate.startTransaction();
-      assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
-      fate.seedTransaction("TestOperation", txid, new TestRepo("testTransactionStatus"), true,
+      FateId fateId = fate.startTransaction();
+      assertEquals(TStatus.NEW, getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperation", fateId, new TestRepo("testTransactionStatus"), true,
           "Test Op");
-      assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, txid));
+      assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, fateId));
       // wait for call() to be called
       callStarted.await();
-      assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+      assertEquals(IN_PROGRESS, getTxStatus(sctx, fateId));
       // tell the op to exit the method
       finishCall.countDown();
 
-      Wait.waitFor(() -> getTxStatus(sctx, txid) == UNKNOWN);
+      Wait.waitFor(() -> getTxStatus(sctx, fateId) == UNKNOWN);
     } finally {
       fate.shutdown();
     }
@@ -198,20 +199,20 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileNew with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(sctx, txid));
+      FateId fateId = fate.startTransaction();
+      LOG.debug("Starting test testCancelWhileNew with {}", fateId);
+      assertEquals(NEW, getTxStatus(sctx, fateId));
       // cancel the transaction
-      assertTrue(fate.cancel(txid));
+      assertTrue(fate.cancel(fateId));
       assertTrue(
-          FAILED_IN_PROGRESS == getTxStatus(sctx, txid) || FAILED == getTxStatus(sctx, txid));
-      fate.seedTransaction("TestOperation", txid, new TestRepo("testCancelWhileNew"), true,
+          FAILED_IN_PROGRESS == getTxStatus(sctx, fateId) || FAILED == getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperation", fateId, new TestRepo("testCancelWhileNew"), true,
           "Test Op");
-      Wait.waitFor(() -> FAILED == getTxStatus(sctx, txid));
+      Wait.waitFor(() -> FAILED == getTxStatus(sctx, fateId));
       // nothing should have run
       assertEquals(1, callStarted.getCount());
-      fate.delete(txid);
-      assertEquals(UNKNOWN, getTxStatus(sctx, txid));
+      fate.delete(fateId);
+      assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
       fate.shutdown();
     }
@@ -233,20 +234,20 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(sctx, txid));
-      fate.seedTransaction("TestOperation", txid,
+      FateId fateId = fate.startTransaction();
+      LOG.debug("Starting test testCancelWhileSubmitted with {}", fateId);
+      assertEquals(NEW, getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperation", fateId,
           new TestRepo("testCancelWhileSubmittedAndRunning"), false, "Test Op");
-      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(sctx, txid));
+      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(sctx, fateId));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
-      assertFalse(fate.cancel(txid));
+      assertFalse(fate.cancel(fateId));
       callStarted.await();
       finishCall.countDown();
-      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(sctx, txid));
-      fate.delete(txid);
-      assertEquals(UNKNOWN, getTxStatus(sctx, txid));
+      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(sctx, fateId));
+      fate.delete(fateId);
+      assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
       fate.shutdown();
     }
@@ -268,16 +269,16 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(sctx, txid));
-      fate.seedTransaction("TestOperation", txid, new TestRepo("testCancelWhileInCall"), true,
+      FateId fateId = fate.startTransaction();
+      LOG.debug("Starting test testCancelWhileInCall with {}", fateId);
+      assertEquals(NEW, getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperation", fateId, new TestRepo("testCancelWhileInCall"), true,
           "Test Op");
-      assertEquals(SUBMITTED, getTxStatus(sctx, txid));
+      assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
       // wait for call() to be called
       callStarted.await();
       // cancel the transaction
-      assertFalse(fate.cancel(txid));
+      assertFalse(fate.cancel(fateId));
     } finally {
       fate.shutdown();
     }
@@ -306,7 +307,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       // so it will be deferred when submitted
       DeferredTestRepo.delay.set(30000);
 
-      Set<Long> transactions = new HashSet<>();
+      Set<FateId> transactions = new HashSet<>();
 
       // Start by creating 10 transactions that are all deferred which should
       // fill up the deferred map with all 10 as we set the max deferred limit
@@ -346,7 +347,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
       // Verify all 20 unique transactions finished
       Wait.waitFor(() -> {
-        transactions.removeIf(txid -> getTxStatus(sctx, txid) == UNKNOWN);
+        transactions.removeIf(fateId -> getTxStatus(sctx, fateId) == UNKNOWN);
         return transactions.isEmpty();
       });
 
@@ -355,13 +356,13 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     }
   }
 
-  private void submitDeferred(Fate<TestEnv> fate, ServerContext sctx, Set<Long> transactions) {
-    long txid = fate.startTransaction();
-    transactions.add(txid);
-    assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
-    fate.seedTransaction("TestOperation", txid, new DeferredTestRepo("testDeferredOverflow"), true,
-        "Test Op");
-    assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, txid));
+  private void submitDeferred(Fate<TestEnv> fate, ServerContext sctx, Set<FateId> transactions) {
+    FateId fateId = fate.startTransaction();
+    transactions.add(fateId);
+    assertEquals(TStatus.NEW, getTxStatus(sctx, fateId));
+    fate.seedTransaction("TestOperation", fateId, new DeferredTestRepo("testDeferredOverflow"),
+        true, "Test Op");
+    assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, fateId));
   }
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
@@ -371,7 +372,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     return new Fate<>(new TestEnv(), store, r -> r + "", config);
   }
 
-  protected abstract TStatus getTxStatus(ServerContext sctx, long txid);
+  protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);
 
   private static void inCall() throws InterruptedException {
     // signal that call started
