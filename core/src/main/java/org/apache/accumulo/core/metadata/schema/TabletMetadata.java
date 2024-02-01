@@ -459,6 +459,8 @@ public class TabletMetadata {
             case REQUESTED_QUAL:
               te.onDemandHostingRequested = true;
               break;
+            default:
+              throw new IllegalStateException("Unexpected TabletColumnFamily qualifier: " + qual);
           }
           break;
         case ServerColumnFamily.STR_NAME:
