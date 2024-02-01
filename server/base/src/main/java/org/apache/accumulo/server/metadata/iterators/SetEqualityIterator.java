@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -87,7 +88,7 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
           byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
           byte[] valueData = source.getTopValue().get();
 
-          byte[] encodedData = encodeEntry(Map.entry(ba, valueData));
+          byte[] encodedData = encodeEntry(ba, valueData);
 
           dos.writeInt(encodedData.length);
           dos.write(encodedData, 0, encodedData.length);
@@ -209,16 +210,24 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   public static <K,T> Condition createCondition(Map<K,T> map,
-      Function<Map.Entry<K,T>,Map.Entry<byte[],byte[]>> entryEncoder, Text family) {
+      Function<Map.Entry<K,T>,byte[]> entryEncoder, Text family) {
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         SetEqualityIterator.class);
     is.addOption(ENCODE_VALUE_OPTION, "true");
-    Function<Map.Entry<K,T>,byte[]> encoder = entry -> encodeEntry(entryEncoder.apply(entry));
+
+    Function<Map.Entry<K,T>,byte[]> encoder = entry -> {
+      T value = entry.getValue();
+      byte[] keyData = entryEncoder.apply(entry);
+      byte[] valueData = value instanceof byte[] ? (byte[]) value
+          : value.toString().getBytes(StandardCharsets.UTF_8);
+      return encodeEntry(keyData, valueData);
+    };
+
     return new Condition(family, EMPTY).setValue(encode(map.entrySet(), encoder)).setIterators(is);
   }
 
-  private static byte[] encodeEntry(Map.Entry<byte[],byte[]> bytesEntry) {
-    return ByteUtils.concat(ByteUtils.escape(bytesEntry.getKey()),
-        ByteUtils.escape(bytesEntry.getValue()));
+  private static byte[] encodeEntry(byte[] keyData, byte[] valueData) {
+    return ByteUtils.concat(ByteUtils.escape(keyData), ByteUtils.escape(valueData));
+
   }
 }
