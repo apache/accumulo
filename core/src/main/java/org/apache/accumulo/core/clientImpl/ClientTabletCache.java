@@ -93,7 +93,7 @@ public abstract class ClientTabletCache {
    * read the 9th tablet will cause a request to host the 13th,14th,15th, and 16th tablets.</li>
    * </ol>
    *
-   * In the situation above, the availability is that while we are reading 4 hosted tablets the 4
+   * In the situation above, the goal is that while we are reading 4 hosted tablets the 4
    * following tablets are in the process of being hosted.
    *
    * @param minimumHostAhead Attempts to keep between minimumHostAhead and 2*minimumHostAhead
