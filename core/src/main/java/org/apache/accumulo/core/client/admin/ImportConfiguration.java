@@ -45,11 +45,11 @@ public interface ImportConfiguration {
   boolean isKeepMappings();
 
   /**
-   * @return the initial hosting goal for the table
+   * @return the initial tablet availability for the table
    *
    * @since 4.0.0
    */
-  TabletHostingGoal getInitialHostingGoal();
+  TabletAvailability getInitialAvailability();
 
   /**
    * A ImportConfiguration builder
@@ -81,12 +81,12 @@ public interface ImportConfiguration {
     Builder setKeepMappings(boolean keepMappings);
 
     /**
-     * set the initial hosting goal for the table
+     * set the initial tablet availability for the table
      *
-     * @param initialTabletGoal the initial hosting goal for the table
+     * @param initialAvailability the initial tablet availability for the table
      * @since 4.0.0
      */
-    Builder setInitialHostingGoal(TabletHostingGoal initialTabletGoal);
+    Builder setInitialAvailability(TabletAvailability initialAvailability);
 
     /**
      * Build the import table configuration

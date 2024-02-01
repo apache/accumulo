@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 import java.io.Serializable;
 import java.util.List;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 
@@ -37,7 +37,7 @@ class ImportedTableInfo implements Serializable {
   public String exportFile;
   public boolean keepMappings;
   public boolean keepOffline;
-  public TabletHostingGoal initialHostingGoal = TabletHostingGoal.ONDEMAND;
+  public TabletAvailability initialAvailability = TabletAvailability.ONDEMAND;
 
   static class DirectoryMapping implements Serializable {
     private static final long serialVersionUID = 1L;

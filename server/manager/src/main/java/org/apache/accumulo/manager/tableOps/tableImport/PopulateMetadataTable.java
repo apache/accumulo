@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -128,11 +129,11 @@ class PopulateMetadataTable extends ManagerRepo {
           Text currentRow = null;
           int dirCount = 0;
 
-            TabletAvailability initialHostingGoal = tableInfo.initialHostingGoal;
-          if (initialHostingGoal == null) {
-            log.error("Initial hosting goal is null and shouldn't be, defaulting to "
+          TabletAvailability initialAvailability = tableInfo.initialAvailability;
+          if (initialAvailability == null) {
+            log.error("Initial tablet availability is null and shouldn't be, defaulting to "
                 + TabletAvailability.ONDEMAND);
-            initialHostingGoal = TabletAvailability.ONDEMAND;
+            initialAvailability = TabletAvailability.ONDEMAND;
           }
 
           while (true) {
@@ -165,8 +166,7 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                  TabletAvailability.GOAL_COLUMN.put(m,
-                          TabletAvailabilityUtil.toValue(initialHostingGoal));
+                AVAILABILITY_COLUMN.put(m, TabletAvailabilityUtil.toValue(initialAvailability));
                 mbw.addMutation(m);
               }
 
@@ -181,9 +181,8 @@ class PopulateMetadataTable extends ManagerRepo {
               currentRow = metadataRow;
             }
 
-            // add the initial hosting goal
-              TabletAvailability.GOAL_COLUMN.put(m,
-                      TabletAvailabilityUtil.toValue(initialHostingGoal));
+            // add the initial tablet availability
+            AVAILABILITY_COLUMN.put(m, TabletAvailabilityUtil.toValue(initialAvailability));
 
             m.put(key.getColumnFamily(), cq, val);
 

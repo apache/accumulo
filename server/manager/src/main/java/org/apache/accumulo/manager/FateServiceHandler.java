@@ -575,8 +575,8 @@ class FateServiceHandler implements FateService.Iface {
             validateName(arguments.get(0), tableOp, NEW_TABLE_NAME.and(NOT_BUILTIN_TABLE));
         boolean keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(1)));
         boolean keepMappings = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
-          TabletAvailability initialAvailability =
-                  TabletAvailability.valueOf(ByteBufferUtil.toString(arguments.get(3)));
+        TabletAvailability initialAvailability =
+            TabletAvailability.valueOf(ByteBufferUtil.toString(arguments.get(3)));
 
         List<ByteBuffer> exportDirArgs =
             arguments.stream().skip(IMPORT_DIR_OFFSET + 1).collect(Collectors.toList());

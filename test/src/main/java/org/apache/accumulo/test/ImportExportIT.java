@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -96,18 +96,19 @@ public class ImportExportIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Test that we can override a hosting goal when importing a table.
+   * Test that we can override a tablet availability when importing a table.
    */
   @Test
-  public void importChangeHostingGoal() throws Exception {
+  public void overrideAvailabilityOnImport() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
       String srcTable = tableNames[0], destTable = tableNames[1];
 
-      // create the source table with the initial hosting goal
-      TabletHostingGoal srcGoal = TabletHostingGoal.ALWAYS;
-      NewTableConfiguration ntc = new NewTableConfiguration().withInitialHostingGoal(srcGoal);
+      // create the source table with the initial tablet availability
+      TabletAvailability srcAvailability = TabletAvailability.HOSTED;
+      NewTableConfiguration ntc =
+          new NewTableConfiguration().withInitialTabletAvailability(srcAvailability);
       client.tableOperations().create(srcTable, ntc);
 
       populateTable(client, srcTable);
@@ -121,8 +122,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Exporting table to {}", exportDir);
       log.info("Importing table from {}", Arrays.toString(importDirs));
 
-      // ensure the table is the hosting goal we expect
-      waitForHostingGoal(client, srcTable, srcGoal);
+      // ensure the table has the tablet availability we expect
+      waitForAvailability(client, srcTable, srcAvailability);
 
       // Offline the table
       client.tableOperations().offline(srcTable, true);
@@ -132,16 +133,16 @@ public class ImportExportIT extends AccumuloClusterHarness {
       copyExportedFilesToImportDirs(fs, exportDir, importDirs);
 
       // Import the exported data into a new table
-      final TabletHostingGoal newHostingGoal = TabletHostingGoal.NEVER;
-      assertNotEquals(srcGoal, newHostingGoal,
-          "New hosting goal should be different from the old one in order to test override.");
+      final TabletAvailability newAvailability = TabletAvailability.UNHOSTED;
+      assertNotEquals(srcAvailability, newAvailability,
+          "New tablet availability should be different from the old one in order to test we can override.");
 
       ImportConfiguration importConfig =
-          ImportConfiguration.builder().setInitialHostingGoal(newHostingGoal).build();
+          ImportConfiguration.builder().setInitialAvailability(newAvailability).build();
       client.tableOperations().importTable(destTable,
           Arrays.stream(importDirs).map(Path::toString).collect(Collectors.toSet()), importConfig);
 
-      waitForHostingGoal(client, destTable, newHostingGoal);
+      waitForAvailability(client, destTable, newAvailability);
     }
   }
 
@@ -451,17 +452,19 @@ public class ImportExportIT extends AccumuloClusterHarness {
     }
   }
 
-  private static void waitForHostingGoal(AccumuloClient client, String tableName,
-      TabletHostingGoal goal) {
+  private static void waitForAvailability(AccumuloClient client, String tableName,
+      TabletAvailability expectedAvailability) {
     Wait.waitFor(() -> client.tableOperations().getTabletInformation(tableName, new Range())
         .allMatch(tabletInformation -> {
-          TabletHostingGoal currentGoal = tabletInformation.getHostingGoal();
-          boolean goalReached = currentGoal == goal;
+          TabletAvailability currentAvailability = tabletInformation.getTabletAvailability();
+          boolean goalReached = currentAvailability == expectedAvailability;
           if (!goalReached) {
-            log.info("Current hosting goal: " + currentGoal + ". Waiting for " + goal);
+            log.info("Current tablet availability: " + currentAvailability + ". Waiting for "
+                + expectedAvailability);
           }
           return goalReached;
-        }), 30_000L, 1_000L, "Timed out waiting for hosting goal " + goal + " on " + tableName);
+        }), 30_000L, 1_000L,
+        "Timed out waiting for tablet availability " + expectedAvailability + " on " + tableName);
   }
 
 }

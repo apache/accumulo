@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 
 import com.google.common.base.Preconditions;
 
@@ -27,7 +27,7 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
   private boolean built = false;
   private boolean keepOffline = false;
   private boolean keepMappingsFile = false;
-  private TabletHostingGoal initialHostingGoal = TabletHostingGoal.ONDEMAND;
+  private TabletAvailability initialAvailability = TabletAvailability.ONDEMAND;
 
   private final static String BUILT_ERROR_MSG = "ImportConfiguration was already built";
   private final static String NOT_BUILT_ERROR_MSG = "ImportConfiguration was not built yet";
@@ -47,10 +47,10 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
   }
 
   @Override
-  public Builder setInitialHostingGoal(TabletHostingGoal initialTabletHostingGoal) {
+  public Builder setInitialAvailability(TabletAvailability initialAvailability) {
     Preconditions.checkState(!built, BUILT_ERROR_MSG);
-    Preconditions.checkState(initialTabletHostingGoal != null, "initialTabletHostingGoal is null");
-    this.initialHostingGoal = initialTabletHostingGoal;
+    Preconditions.checkState(initialAvailability != null, "initialAvailability is null");
+    this.initialAvailability = initialAvailability;
     return this;
   }
 
@@ -73,8 +73,8 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
   }
 
   @Override
-  public TabletHostingGoal getInitialHostingGoal() {
+  public TabletAvailability getInitialAvailability() {
     Preconditions.checkState(built, NOT_BUILT_ERROR_MSG);
-    return initialHostingGoal;
+    return initialAvailability;
   }
 }

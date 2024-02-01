@@ -1637,7 +1637,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     args.add(0, ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(1, ByteBuffer.wrap(Boolean.toString(keepOffline).getBytes(UTF_8)));
     args.add(2, ByteBuffer.wrap(Boolean.toString(keepMapping).getBytes(UTF_8)));
-    args.add(3, ByteBuffer.wrap(ic.getInitialHostingGoal().name().getBytes(UTF_8)));
+    args.add(3, ByteBuffer.wrap(ic.getInitialAvailability().name().getBytes(UTF_8)));
     checkedImportDirs.stream().map(s -> s.getBytes(UTF_8)).map(ByteBuffer::wrap).forEach(args::add);
 
     try {
