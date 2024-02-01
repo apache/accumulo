@@ -167,6 +167,12 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
+
+    if (params.getOptions().containsKey("executors")
+        && params.getOptions().get("executors").isBlank()) {
+      throw new IllegalStateException("No defined executors for this planner");
+    }
+
     ExecutorConfig[] execConfigs =
         new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
