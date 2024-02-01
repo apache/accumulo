@@ -48,8 +48,8 @@ public class ImportConfigurationImpl implements ImportConfiguration, ImportConfi
 
   @Override
   public Builder setInitialHostingGoal(TabletHostingGoal initialTabletHostingGoal) {
-    Preconditions.checkState(initialTabletHostingGoal != null, "initialTabletHostingGoal is null");
     Preconditions.checkState(!built, BUILT_ERROR_MSG);
+    Preconditions.checkState(initialTabletHostingGoal != null, "initialTabletHostingGoal is null");
     this.initialHostingGoal = initialTabletHostingGoal;
     return this;
   }

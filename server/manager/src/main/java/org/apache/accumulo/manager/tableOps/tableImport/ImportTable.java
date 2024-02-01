@@ -50,6 +50,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -71,6 +73,7 @@ public class ImportTable extends ManagerRepo {
     tableInfo.directories = parseExportDir(exportDirs);
     tableInfo.keepMappings = keepMappings;
     tableInfo.keepOffline = keepOffline;
+    Preconditions.checkState(initialHostingGoal != null, "initialHostingGoal is null");
     tableInfo.initialHostingGoal = initialHostingGoal;
   }
 
