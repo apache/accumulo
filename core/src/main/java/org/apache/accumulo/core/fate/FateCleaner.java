@@ -105,7 +105,7 @@ public class FateCleaner<T> {
 
   public void ageOff() {
     store.list().filter(ids -> AGE_OFF_STATUSES.contains(ids.getStatus()))
-        .forEach(idStatus -> store.tryReserve(idStatus.getTxid()).ifPresent(txStore -> {
+        .forEach(idStatus -> store.tryReserve(idStatus.getFateId()).ifPresent(txStore -> {
           try {
             AgeOffInfo ageOffInfo = readAgeOffInfo(txStore);
             TStatus currStatus = txStore.getStatus();
@@ -116,11 +116,10 @@ public class FateCleaner<T> {
               var newAgeOffInfo =
                   new AgeOffInfo(instanceId, timeSource.currentTimeNanos(), currStatus);
               txStore.setTransactionInfo(Fate.TxInfo.TX_AGEOFF, newAgeOffInfo.toString());
-              log.trace("Set age off data {} {}", FateTxId.formatTid(idStatus.getTxid()),
-                  newAgeOffInfo);
+              log.trace("Set age off data {} {}", idStatus.getFateId(), newAgeOffInfo);
             } else if (shouldAgeOff(currStatus, ageOffInfo)) {
               txStore.delete();
-              log.debug("Aged off FATE tx {}", FateTxId.formatTid(idStatus.getTxid()));
+              log.debug("Aged off FATE tx {}", idStatus.getFateId());
             }
           } finally {
             txStore.unreserve(0, TimeUnit.MILLISECONDS);

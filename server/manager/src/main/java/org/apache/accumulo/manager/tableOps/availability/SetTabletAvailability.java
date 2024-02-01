@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps.goal;
+package org.apache.accumulo.manager.tableOps.availability;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -38,29 +38,30 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SetHostingGoal extends ManagerRepo {
+public class SetTabletAvailability extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private static final Logger LOG = LoggerFactory.getLogger(SetHostingGoal.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SetTabletAvailability.class);
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
   private final TRange tRange;
-  private final TabletHostingGoal goal;
+  private final TabletAvailability tabletAvailability;
 
-  public SetHostingGoal(TableId tableId, NamespaceId namespaceId, TRange range,
-      TabletHostingGoal goal) {
+  public SetTabletAvailability(TableId tableId, NamespaceId namespaceId, TRange range,
+      TabletAvailability tabletAvailability) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.tRange = range;
-    this.goal = goal;
+    this.tabletAvailability = tabletAvailability;
   }
 
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
     return Utils.reserveNamespace(manager, namespaceId, tid, false, true,
-        TableOperation.SET_HOSTING_GOAL)
-        + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.SET_HOSTING_GOAL);
+        TableOperation.SET_TABLET_AVAILABILITY)
+        + Utils.reserveTable(manager, tableId, tid, true, true,
+            TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override
@@ -103,13 +104,15 @@ public class SetHostingGoal extends ManagerRepo {
           break;
         }
 
-        if (tm.getHostingGoal() == goal) {
-          LOG.trace("Skipping tablet: {}, goal is already in required state");
+        if (tm.getTabletAvailability() == tabletAvailability) {
+          LOG.trace("Skipping tablet: {}, tablet availability is already in required state",
+              tabletExtent);
           continue;
         }
 
-        LOG.debug("Setting tablet hosting goal to {} requested for: {} ", goal, tabletExtent);
-        mutator.mutateTablet(tabletExtent).putHostingGoal(goal).mutate();
+        LOG.debug("Setting tablet availability to {} requested for: {} ", tabletAvailability,
+            tabletExtent);
+        mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
       }
     }
     Utils.unreserveNamespace(manager, namespaceId, tid, false);

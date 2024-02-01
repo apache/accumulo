@@ -52,7 +52,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -225,18 +225,18 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanWithTabletHostingMix() throws Exception {
+  public void testScanWithTabletAvailabilityMix() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      final int ingestedEntryCount = setupTableWithHostingMix(client, tableName);
+      final int ingestedEntryCount = setupTableWithTabletAvailabilityMix(client, tableName);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scan server scanner should have seen all ingested and flushed entries");
-        // Throws an exception because of the tablets with the NEVER hosting goal
+        // Throws an exception because of the tablets with the UNHOSTED tablet availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
 
@@ -255,12 +255,12 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      setupTableWithHostingMix(client, tableName);
+      setupTableWithTabletAvailabilityMix(client, tableName);
 
       // Unload all tablets
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      client.tableOperations().setTabletHostingGoal(tableName, new Range((Text) null, (Text) null),
-          TabletHostingGoal.ONDEMAND);
+      client.tableOperations().setTabletAvailability(tableName, new Range((Text) null, (Text) null),
+          TabletAvailability.ONDEMAND);
 
       // Wait for the tablets to be unloaded
       Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tid.canonical()) == 0, 30_000,
@@ -328,18 +328,18 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testBatchScanWithTabletHostingMix() throws Exception {
+  public void testBatchScanWithTabletAvailabilityMix() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      final int ingestedEntryCount = setupTableWithHostingMix(client, tableName);
+      final int ingestedEntryCount = setupTableWithTabletAvailabilityMix(client, tableName);
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singleton(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scan server scanner should have seen all ingested and flushed entries");
-        // Throws an exception because of the tablets with the NEVER hosting goal
+        // Throws an exception because of the tablets with the UNHOSTED tablet availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
 
@@ -354,15 +354,15 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Sets up a table with a mix of tablet hosting goals. Specific ranges of rows are set to ALWAYS,
-   * NEVER, and ONDEMAND hosting goals. The method waits for the NEVER and ONDEMAND tablets to be
-   * unloaded due to inactivity before returning.
+   * Sets up a table with a mix of tablet availabilities. Specific ranges of rows are set to HOSTED,
+   * UNHOSTED, and ONDEMAND availabilities. The method waits for the UNHOSTED and ONDEMAND tablets
+   * to be unloaded due to inactivity before returning.
    *
    * @param client The AccumuloClient to use for the operation
    * @param tableName The name of the table to be created and set up
    * @return The count of ingested entries
    */
-  protected static int setupTableWithHostingMix(AccumuloClient client, String tableName)
+  protected static int setupTableWithTabletAvailabilityMix(AccumuloClient client, String tableName)
       throws Exception {
     SortedSet<Text> splits =
         IntStream.rangeClosed(1, 9).mapToObj(i -> new Text("row_000000000" + i))
@@ -370,22 +370,22 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
     NewTableConfiguration ntc = new NewTableConfiguration();
     ntc.withSplits(splits);
-    ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS); // speed up ingest
+    ntc.withInitialTabletAvailability(TabletAvailability.HOSTED); // speed up ingest
     final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
 
     String tableId = client.tableOperations().tableIdMap().get(tableName);
 
-    // row 1 -> 3 are always
-    client.tableOperations().setTabletHostingGoal(tableName,
-        new Range(null, true, "row_0000000003", true), TabletHostingGoal.ALWAYS);
-    // row 4 -> 7 are never
-    client.tableOperations().setTabletHostingGoal(tableName,
-        new Range("row_0000000004", true, "row_0000000007", true), TabletHostingGoal.NEVER);
+    // row 1 -> 3 are HOSTED
+    client.tableOperations().setTabletAvailability(tableName,
+        new Range(null, true, "row_0000000003", true), TabletAvailability.HOSTED);
+    // row 4 -> 7 are UNHOSTED
+    client.tableOperations().setTabletAvailability(tableName,
+        new Range("row_0000000004", true, "row_0000000007", true), TabletAvailability.UNHOSTED);
     // row 8 and 9 are ondemand
-    client.tableOperations().setTabletHostingGoal(tableName,
-        new Range("row_0000000008", true, null, true), TabletHostingGoal.ONDEMAND);
+    client.tableOperations().setTabletAvailability(tableName,
+        new Range("row_0000000008", true, null, true), TabletAvailability.ONDEMAND);
 
-    // Wait for the NEVER and ONDEMAND tablets to be unloaded due to inactivity
+    // Wait for the UNHOSTED and ONDEMAND tablets to be unloaded due to inactivity
     Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tableId) == 3, 30_000, 1_000);
 
     return ingestedEntryCount;

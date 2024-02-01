@@ -34,9 +34,9 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
@@ -47,7 +47,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
@@ -129,11 +128,11 @@ class PopulateMetadataTable extends ManagerRepo {
           Text currentRow = null;
           int dirCount = 0;
 
-          TabletHostingGoal initialHostingGoal = tableInfo.initialHostingGoal;
+            TabletAvailability initialHostingGoal = tableInfo.initialHostingGoal;
           if (initialHostingGoal == null) {
             log.error("Initial hosting goal is null and shouldn't be, defaulting to "
-                + TabletHostingGoal.ONDEMAND);
-            initialHostingGoal = TabletHostingGoal.ONDEMAND;
+                + TabletAvailability.ONDEMAND);
+            initialHostingGoal = TabletAvailability.ONDEMAND;
           }
 
           while (true) {
@@ -166,8 +165,8 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                HostingColumnFamily.GOAL_COLUMN.put(m,
-                    TabletHostingGoalUtil.toValue(initialHostingGoal));
+                  TabletAvailability.GOAL_COLUMN.put(m,
+                          TabletAvailabilityUtil.toValue(initialHostingGoal));
                 mbw.addMutation(m);
               }
 
@@ -183,8 +182,8 @@ class PopulateMetadataTable extends ManagerRepo {
             }
 
             // add the initial hosting goal
-            HostingColumnFamily.GOAL_COLUMN.put(m,
-                TabletHostingGoalUtil.toValue(initialHostingGoal));
+              TabletAvailability.GOAL_COLUMN.put(m,
+                      TabletAvailabilityUtil.toValue(initialHostingGoal));
 
             m.put(key.getColumnFamily(), cq, val);
 

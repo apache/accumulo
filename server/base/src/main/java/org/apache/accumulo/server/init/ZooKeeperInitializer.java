@@ -23,10 +23,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -186,8 +186,8 @@ public class ZooKeeperInitializer {
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
 
-    MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.put(mutation,
-        TabletHostingGoalUtil.toValue(TabletHostingGoal.ALWAYS));
+    MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN.put(mutation,
+        TabletAvailabilityUtil.toValue(TabletAvailability.HOSTED));
 
     RootTabletMetadata rootTabletJson = new RootTabletMetadata();
     rootTabletJson.update(mutation);
