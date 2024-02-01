@@ -83,14 +83,22 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
       int count = 0;
 
       while (source.hasTop()) {
-        byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
-        dos.writeInt(ba.length);
-        dos.write(ba, 0, ba.length);
-
         if (includeValue) {
+          byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
           byte[] valueData = source.getTopValue().get();
-          dos.writeInt(valueData.length);
-          dos.write(valueData, 0, valueData.length);
+
+          byte[] encodedData = encodeEntry(Map.entry(ba, valueData));
+
+          dos.writeInt(encodedData.length);
+          dos.write(encodedData, 0, encodedData.length);
+        }
+
+        else {
+
+          // only encode the key/qualifier
+          byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
+          dos.writeInt(ba.length);
+          dos.write(ba, 0, ba.length);
         }
 
         source.next();
