@@ -33,7 +33,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
@@ -286,13 +286,13 @@ public class SplitRecovery12to13 {
   }
 
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock, TabletHostingGoal goal) {
+      TimeType timeType, ServiceLock zooLock, TabletAvailability tabletAvailability) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
     tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.putHostingGoal(goal);
+    tablet.putTabletAvailability(tabletAvailability);
     tablet.mutate();
 
   }

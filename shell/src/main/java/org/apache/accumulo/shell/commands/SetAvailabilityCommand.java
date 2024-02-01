@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -31,33 +31,33 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-public class SetTabletHostingGoalCommand extends TableOperation {
+public class SetAvailabilityCommand extends TableOperation {
 
   private Option optRow;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
-  private Option goalOpt;
+  private Option availabilityOpt;
 
   private Range range;
-  private TabletHostingGoal hostingGoal;
+  private TabletAvailability tabletAvailability;
 
   @Override
   public String getName() {
-    return "sethostinggoal";
+    return "setavailability";
   }
 
   @Override
   public String description() {
-    return "Sets the hosting goal (ALWAYS, ONDEMAND, NEVER) for a range of tablets";
+    return "Sets the tablet availability (HOSTED, ONDEMAND, UNHOSTED) for a range of tablets";
   }
 
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    shellState.getAccumuloClient().tableOperations().setTabletHostingGoal(tableName, range,
-        hostingGoal);
-    Shell.log.debug("Set hosting goal state: {} on table: {}, range: {}", hostingGoal, tableName,
-        range);
+    shellState.getAccumuloClient().tableOperations().setTabletAvailability(tableName, range,
+        tabletAvailability);
+    Shell.log.debug("Set tablet availability: {} on table: {}, range: {}", tabletAvailability,
+        tableName, range);
   }
 
   @Override
@@ -67,7 +67,7 @@ public class SetTabletHostingGoalCommand extends TableOperation {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
         && cl.hasOption(optRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options
-      // but does not support the or
+      // but does not support the 'or'
       throw new IllegalArgumentException("Options -" + optRow.getOpt() + " AND (-"
           + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT + ") are mutually exclusive ");
     }
@@ -82,7 +82,8 @@ public class SetTabletHostingGoalCommand extends TableOperation {
       this.range = new Range(startRow, startInclusive, endRow, endInclusive);
     }
 
-    this.hostingGoal = TabletHostingGoal.valueOf(cl.getOptionValue(goalOpt).toUpperCase());
+    this.tabletAvailability =
+        TabletAvailability.valueOf(cl.getOptionValue(availabilityOpt).toUpperCase());
     return super.execute(fullCommand, cl, shellState);
   }
 
@@ -99,10 +100,10 @@ public class SetTabletHostingGoalCommand extends TableOperation {
     optEndRowExclusive.setArgName("end-exclusive");
     optRow = new Option("r", "row", true, "tablet row to modify");
     optRow.setArgName("row");
-    goalOpt = new Option("g", "goal", true, "tablet hosting goal");
-    goalOpt.setArgName("goal");
-    goalOpt.setArgs(1);
-    goalOpt.setRequired(true);
+    availabilityOpt = new Option("a", "availability", true, "tablet availability");
+    availabilityOpt.setArgName("availability");
+    availabilityOpt.setArgs(1);
+    availabilityOpt.setRequired(true);
 
     final Options opts = super.getOptions();
     opts.addOption(optStartRowInclusive);
@@ -110,7 +111,7 @@ public class SetTabletHostingGoalCommand extends TableOperation {
     opts.addOption(OptUtil.endRowOpt());
     opts.addOption(optEndRowExclusive);
     opts.addOption(optRow);
-    opts.addOption(goalOpt);
+    opts.addOption(availabilityOpt);
 
     return opts;
   }

@@ -28,7 +28,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -387,7 +387,7 @@ public interface Ample {
 
     T deleteCompacted(long fateTxid);
 
-    T putHostingGoal(TabletHostingGoal goal);
+    T putTabletAvailability(TabletAvailability tabletAvailability);
 
     T setHostingRequested();
 
@@ -512,9 +512,9 @@ public interface Ample {
     ConditionalTabletMutator requireLocation(Location location);
 
     /**
-     * Requires the tablet to have the specified hosting goal before any changes are made.
+     * Requires the tablet to have the specified tablet availability before any changes are made.
      */
-    ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
+    ConditionalTabletMutator requireTabletAvailability(TabletAvailability tabletAvailability);
 
     /**
      * Requires the specified external compaction to exists

@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -65,10 +65,10 @@ public class GarbageCollectWriteAheadLogsTest {
     try {
       tabletAssignedToServer1 =
           TabletMetadata.builder(extent).putLocation(Location.current(server1))
-              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS);
+              .putTabletAvailability(TabletAvailability.HOSTED).build(LAST, SUSPEND, LOGS);
       tabletAssignedToServer2 =
           TabletMetadata.builder(extent).putLocation(Location.current(server2))
-              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS);
+              .putTabletAvailability(TabletAvailability.UNHOSTED).build(LAST, SUSPEND, LOGS);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

@@ -29,7 +29,7 @@ import java.time.Duration;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -47,7 +47,7 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
 
   Logger log = LoggerFactory.getLogger(FateMutatorImplIT.class);
   final NewTableConfiguration ntc =
-      new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+      new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
 
   @BeforeAll
   public static void setup() throws Exception {

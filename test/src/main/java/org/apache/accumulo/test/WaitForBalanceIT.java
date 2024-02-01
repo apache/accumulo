@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -66,7 +66,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       assertTrue(isBalanced(c));
       final String tableName = getUniqueNames(1)[0];
       NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(tableName, ntc);
       c.instanceOperations().waitForBalance();
       final SortedSet<Text> partitionKeys = new TreeSet<>();

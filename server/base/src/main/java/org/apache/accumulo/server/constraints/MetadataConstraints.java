@@ -26,7 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -91,10 +90,10 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
-          HostingColumnFamily.GOAL_COLUMN,
-          HostingColumnFamily.REQUESTED_COLUMN,
+          TabletColumnFamily.AVAILABILITY_COLUMN,
+          TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
-              Upgrade12to13.COMPACT_COL);
+          Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
@@ -228,7 +227,7 @@ public class MetadataConstraints implements Constraint {
 
       if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
           || columnFamily.equals(LogColumnFamily.NAME)
-          || HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
           || columnFamily.equals(CompactedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
@@ -249,9 +248,9 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
         violations = validateDataFileMetadata(violations,
             new String(columnUpdate.getColumnQualifier(), UTF_8));
-      } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
+      } else if (TabletColumnFamily.AVAILABILITY_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
-          TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
+          TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 10);
         }
@@ -424,7 +423,7 @@ public class MetadataConstraints implements Constraint {
       case 9:
         return "Malformed operation id";
       case 10:
-        return "Malformed hosting goal";
+        return "Malformed availability value";
       case 11:
         return "Malformed file selection value";
       case 12:

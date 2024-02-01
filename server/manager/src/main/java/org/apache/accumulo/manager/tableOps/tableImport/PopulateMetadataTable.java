@@ -34,9 +34,9 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
@@ -47,7 +47,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
@@ -124,7 +123,7 @@ class PopulateMetadataTable extends ManagerRepo {
           Text currentRow = null;
           int dirCount = 0;
 
-          boolean sawHostingGoal = false;
+          boolean sawTabletAvailability = false;
 
           while (true) {
             key.readFields(in);
@@ -156,10 +155,10 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                if (!sawHostingGoal) {
-                  // add a default hosting goal
-                  HostingColumnFamily.GOAL_COLUMN.put(m,
-                      TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
+                if (!sawTabletAvailability) {
+                  // add a default tablet availability
+                  TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                      TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
                 }
                 mbw.addMutation(m);
               }
@@ -173,24 +172,24 @@ class PopulateMetadataTable extends ManagerRepo {
               m = new Mutation(metadataRow);
               ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
-              sawHostingGoal = false;
+              sawTabletAvailability = false;
             }
 
-            if (HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
-              sawHostingGoal = true;
+            if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(key)) {
+              sawTabletAvailability = true;
             }
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
 
-              if (!sawHostingGoal) {
-                // add a default hosting goal
-                HostingColumnFamily.GOAL_COLUMN.put(m,
-                    TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
+              if (!sawTabletAvailability) {
+                // add a default tablet availability
+                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                    TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
               }
 
               mbw.addMutation(m);
-              break; // its the last column in the last row
+              break; // it is the last column in the last row
             }
           }
           break;

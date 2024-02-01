@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -41,9 +41,9 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -64,7 +64,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -112,7 +111,7 @@ public class TabletMetadata {
   private List<LogEntry> logs;
   private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
-  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  private TabletAvailability availability = TabletAvailability.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
@@ -141,7 +140,7 @@ public class TabletMetadata {
     SUSPEND,
     ECOMP,
     MERGED,
-    HOSTING_GOAL,
+    AVAILABILITY,
     HOSTING_REQUESTED,
     OPID,
     SELECTED,
@@ -351,14 +350,14 @@ public class TabletMetadata {
     return merged;
   }
 
-  public TabletHostingGoal getHostingGoal() {
+  public TabletAvailability getTabletAvailability() {
     if (AccumuloTable.ROOT.tableId().equals(getTableId())
         || AccumuloTable.METADATA.tableId().equals(getTableId())) {
-      // Override the goal for the system tables
-      return TabletHostingGoal.ALWAYS;
+      // Override the availability for the system tables
+      return TabletAvailability.HOSTED;
     }
-    ensureFetched(ColumnType.HOSTING_GOAL);
-    return goal;
+    ensureFetched(ColumnType.AVAILABILITY);
+    return availability;
   }
 
   public boolean getHostingRequested() {
@@ -375,7 +374,7 @@ public class TabletMetadata {
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("extCompactions", extCompactions).append("goal", goal)
+        .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
@@ -397,7 +396,7 @@ public class TabletMetadata {
   }
 
   /**
-   * @return the operation id if it exist, null otherwise
+   * @return the operation id if it exists, null otherwise
    * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
   public TabletOperationId getOperationId() {
@@ -447,11 +446,19 @@ public class TabletMetadata {
             "Input contains more than one row : " + row + " " + key.getRowData());
       }
 
-      switch (fam.toString()) {
+      switch (fam) {
         case TabletColumnFamily.STR_NAME:
-          if (qual.equals(PREV_ROW_QUAL)) {
-            te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-            te.sawPrevEndRow = true;
+          switch (qual) {
+            case PREV_ROW_QUAL:
+              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
+              te.sawPrevEndRow = true;
+              break;
+            case AVAILABILITY_QUAL:
+              te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
+              break;
+            case REQUESTED_QUAL:
+              te.onDemandHostingRequested = true;
+              break;
           }
           break;
         case ServerColumnFamily.STR_NAME:
@@ -512,18 +519,6 @@ public class TabletMetadata {
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));
           break;
-        case HostingColumnFamily.STR_NAME:
-          switch (qual) {
-            case GOAL_QUAL:
-              te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
-              break;
-            case REQUESTED_QUAL:
-              te.onDemandHostingRequested = true;
-              break;
-            default:
-              throw new IllegalStateException("Unexpected qualifier " + qual);
-          }
-          break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
 
@@ -532,8 +527,8 @@ public class TabletMetadata {
 
     if (AccumuloTable.ROOT.tableId().equals(te.tableId)
         || AccumuloTable.METADATA.tableId().equals(te.tableId)) {
-      // Override the goal for the system tables
-      te.goal = TabletHostingGoal.ALWAYS;
+      // Override the availability for the system tables
+      te.availability = TabletAvailability.HOSTED;
     }
 
     te.files = filesBuilder.build();

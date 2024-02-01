@@ -69,8 +69,8 @@ public interface TabletInformation {
   String getTabletDir();
 
   /**
-   * @return the tablet hosting goal.
+   * @return the TabletAvailability object.
    */
-  TabletHostingGoal getHostingGoal();
+  TabletAvailability getTabletAvailability();
 
 }
