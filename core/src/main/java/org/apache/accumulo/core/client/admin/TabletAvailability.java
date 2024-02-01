@@ -30,7 +30,9 @@ public enum TabletAvailability {
    */
   HOSTED,
 
-  // Signifies that a Tablet should be hosted on client request
+  /** 
+    * Signifies that a Tablet should be hosted on a tablet server when a client needs it.
+    */
   ONDEMAND,
 
   /**
