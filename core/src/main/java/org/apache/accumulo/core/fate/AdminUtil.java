@@ -369,20 +369,22 @@ public class AdminUtil<T> {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     fateStores.forEach((type, store) -> {
-      try (Stream<Long> tids = store.list().map(FateIdStatus::getTxid)) {
-        tids.forEach(tid -> {
+      try (Stream<FateId> fateIds = store.list().map(FateIdStatus::getFateId)) {
+        fateIds.forEach(fateId -> {
 
-          ReadOnlyFateTxStore<T> txStore = store.read(tid);
+          ReadOnlyFateTxStore<T> txStore = store.read(fateId);
 
           String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-          List<String> hlocks = heldLocks.remove(tid);
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
+          List<String> hlocks = heldLocks.remove(fateId.getTid());
 
           if (hlocks == null) {
             hlocks = Collections.emptyList();
           }
 
-          List<String> wlocks = waitingLocks.remove(tid);
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
+          List<String> wlocks = waitingLocks.remove(fateId.getTid());
 
           if (wlocks == null) {
             wlocks = Collections.emptyList();
@@ -398,9 +400,10 @@ public class AdminUtil<T> {
 
           long timeCreated = txStore.timeCreated();
 
-          if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-            statuses.add(
-                new TransactionStatus(tid, type, status, txName, hlocks, wlocks, top, timeCreated));
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
+          if (includeByStatus(status, filterStatus) && includeByTxid(fateId.getTid(), filterTxid)) {
+            statuses.add(new TransactionStatus(fateId.getTid(), type, status, txName, hlocks,
+                wlocks, top, timeCreated));
           }
         });
       }
@@ -461,7 +464,9 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
-    FateTxStore<T> txStore = zs.reserve(txid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    FateId fateId = FateId.from(FateInstanceType.META, txid);
+    FateTxStore<T> txStore = zs.reserve(fateId);
     try {
       TStatus ts = txStore.getStatus();
       switch (ts) {
@@ -500,7 +505,9 @@ public class AdminUtil<T> {
       return false;
     }
     boolean state = false;
-    FateTxStore<T> txStore = zs.reserve(txid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    FateId fateId = FateId.from(FateInstanceType.META, txid);
+    FateTxStore<T> txStore = zs.reserve(fateId);
     try {
       TStatus ts = txStore.getStatus();
       switch (ts) {

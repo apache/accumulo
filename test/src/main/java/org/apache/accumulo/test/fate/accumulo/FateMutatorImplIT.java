@@ -31,6 +31,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.accumulo.FateMutatorImpl;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -71,21 +73,22 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
 
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+      FateId fateId = FateId.from(FateInstanceType.USER, tid);
 
       // add some repos in order
-      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, tid);
+      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, fateId);
       fateMutator.putRepo(100, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, tid);
+      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, fateId);
       fateMutator1.putRepo(99, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, tid);
+      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, fateId);
       fateMutator2.putRepo(98, new FateIT.TestRepo("test")).mutate();
 
       // make sure we cant add a repo that has already been added
-      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, tid);
+      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, fateId);
       assertThrows(IllegalStateException.class,
           () -> fateMutator3.putRepo(98, new FateIT.TestRepo("test")).mutate(),
           "Repo in position 98 already exists. Expected to not be able to add it again.");
-      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, tid);
+      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, fateId);
       assertThrows(IllegalStateException.class,
           () -> fateMutator4.putRepo(99, new FateIT.TestRepo("test")).mutate(),
           "Repo in position 99 already exists. Expected to not be able to add it again.");
@@ -101,62 +104,63 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
 
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+      FateId fateId = FateId.from(FateInstanceType.USER, tid);
 
       // use require status passing all statuses. without the status column present this should fail
       assertThrows(IllegalStateException.class,
-          () -> new FateMutatorImpl<>(context, table, tid)
+          () -> new FateMutatorImpl<>(context, table, fateId)
               .requireStatus(ReadOnlyFateStore.TStatus.values())
               .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate());
       assertEquals(0, client.createScanner(table).stream().count());
-      var status = new FateMutatorImpl<>(context, table, tid)
+      var status = new FateMutatorImpl<>(context, table, fateId)
           .requireStatus(ReadOnlyFateStore.TStatus.values())
           .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
       assertEquals(REJECTED, status);
       assertEquals(0, client.createScanner(table).stream().count());
 
       // use require status without passing any statuses to require that the status column is absent
-      status = new FateMutatorImpl<>(context, table, tid).requireStatus()
+      status = new FateMutatorImpl<>(context, table, fateId).requireStatus()
           .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
       assertEquals(ACCEPTED, status);
 
       // try again with requiring an absent status column. this time it should fail because we just
       // put status NEW
       assertThrows(IllegalStateException.class,
-          () -> new FateMutatorImpl<>(context, table, tid).requireStatus()
+          () -> new FateMutatorImpl<>(context, table, fateId).requireStatus()
               .putStatus(ReadOnlyFateStore.TStatus.NEW).mutate(),
           "Expected to not be able to use requireStatus() without passing any statuses");
-      status = new FateMutatorImpl<>(context, table, tid).requireStatus()
+      status = new FateMutatorImpl<>(context, table, fateId).requireStatus()
           .putStatus(ReadOnlyFateStore.TStatus.NEW).tryMutate();
       assertEquals(REJECTED, status,
           "Expected to not be able to use requireStatus() without passing any statuses");
 
       // now use require same with the current status, NEW passed in
       status =
-          new FateMutatorImpl<>(context, table, tid).requireStatus(ReadOnlyFateStore.TStatus.NEW)
+          new FateMutatorImpl<>(context, table, fateId).requireStatus(ReadOnlyFateStore.TStatus.NEW)
               .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).tryMutate();
       assertEquals(ACCEPTED, status);
 
       // use require same with an array of statuses, none of which are the current status
       // (SUBMITTED)
       assertThrows(IllegalStateException.class,
-          () -> new FateMutatorImpl<>(context, table, tid)
+          () -> new FateMutatorImpl<>(context, table, fateId)
               .requireStatus(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN)
               .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).mutate(),
           "Expected to not be able to use requireStatus() with statuses that do not match the current status");
-      status = new FateMutatorImpl<>(context, table, tid)
+      status = new FateMutatorImpl<>(context, table, fateId)
           .requireStatus(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN)
           .putStatus(ReadOnlyFateStore.TStatus.SUBMITTED).tryMutate();
       assertEquals(REJECTED, status,
           "Expected to not be able to use requireStatus() with statuses that do not match the current status");
 
       // use require same with an array of statuses, one of which is the current status (SUBMITTED)
-      status = new FateMutatorImpl<>(context, table, tid)
+      status = new FateMutatorImpl<>(context, table, fateId)
           .requireStatus(ReadOnlyFateStore.TStatus.UNKNOWN, ReadOnlyFateStore.TStatus.SUBMITTED)
           .putStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS).tryMutate();
       assertEquals(ACCEPTED, status);
 
       // one more time check that we can use require same with the current status (IN_PROGRESS)
-      status = new FateMutatorImpl<>(context, table, tid)
+      status = new FateMutatorImpl<>(context, table, fateId)
           .requireStatus(ReadOnlyFateStore.TStatus.IN_PROGRESS)
           .putStatus(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS).tryMutate();
       assertEquals(ACCEPTED, status);

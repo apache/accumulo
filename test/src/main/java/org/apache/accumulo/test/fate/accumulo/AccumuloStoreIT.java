@@ -25,9 +25,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
@@ -39,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class AccumuloStoreIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
+  private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -51,20 +55,20 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
   }
 
   private static class TestAccumuloStore extends AccumuloStore<String> {
-    private final Iterator<Long> tidIterator;
+    private final Iterator<FateId> fateIdIterator;
 
-    // use the list of txids to simulate collisions on txids
-    public TestAccumuloStore(ClientContext context, String tableName, List<Long> txids) {
+    // use the list of fateIds to simulate collisions on fateIds
+    public TestAccumuloStore(ClientContext context, String tableName, List<FateId> fateIds) {
       super(context, tableName);
-      this.tidIterator = txids.iterator();
+      this.fateIdIterator = fateIds.iterator();
     }
 
     @Override
-    public long getTid() {
-      if (tidIterator.hasNext()) {
-        return tidIterator.next();
+    public FateId getFateId() {
+      if (fateIdIterator.hasNext()) {
+        return fateIdIterator.next();
       } else {
-        return -1L;
+        return FateId.from(fateInstanceType, -1L);
       }
     }
   }
@@ -77,14 +81,16 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       client.tableOperations().create(table);
 
       List<Long> txids = List.of(1L, 1L, 1L, 2L, 3L, 3L, 3L, 3L, 4L, 4L, 5L, 5L, 5L, 5L, 5L, 5L);
-      Set<Long> expectedTids = new TreeSet<>(txids);
-      TestAccumuloStore store = new TestAccumuloStore(client, table, txids);
+      List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
+          .collect(Collectors.toList());
+      Set<FateId> expectedFateIds = new TreeSet<>(fateIds);
+      TestAccumuloStore store = new TestAccumuloStore(client, table, fateIds);
 
       // call create and expect we get the unique txids
-      for (Long expectedTid : expectedTids) {
-        long tid = store.create();
-        log.info("Created tid: " + tid);
-        assertEquals(expectedTid, tid, "Expected " + expectedTid + " but got " + tid);
+      for (FateId expectedFateId : expectedFateIds) {
+        FateId fateId = store.create();
+        log.info("Created fate id: " + fateId);
+        assertEquals(expectedFateId, fateId, "Expected " + expectedFateId + " but got " + fateId);
       }
 
       // Calling create again on 5L should throw an exception since we've exceeded the max retries
