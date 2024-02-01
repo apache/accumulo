@@ -444,6 +444,7 @@ public class CompactionService {
 
   public void stop() {
     executors.values().forEach(CompactionExecutor::stop);
+    log.debug("Stopped compaction service {}", myId);
   }
 
   int getCompactionsRunning(CType ctype) {
