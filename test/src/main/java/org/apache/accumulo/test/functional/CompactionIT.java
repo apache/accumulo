@@ -472,8 +472,11 @@ public class CompactionIT extends AccumuloClusterHarness {
         splits.add(new Text(String.format("r:%04d", i)));
       }
 
-      // wait a bit for some tablets to have files selected, it possible the compaction have
-      // completed before this so do not wait long
+      // Wait a bit for some tablets to have files selected, it possible the compaction have
+      // completed before this so do not wait long. Once files are selected compactions can start.
+      // This speed bump is an attempt to increase the chance that splits and compactions run
+      // concurrently. Wait.waitFor() is not used here because it will throw an exception if the
+      // time limit is exceeded.
       long startTime = System.nanoTime();
       while (System.nanoTime() - startTime < SECONDS.toNanos(3)
           && countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
@@ -489,8 +492,10 @@ public class CompactionIT extends AccumuloClusterHarness {
         splits.add(new Text(String.format("r:%04d", i)));
       }
 
-      // wait a bit for some tablets to be compacted, it possible the compaction have completed
-      // before this so do not wait long
+      // Wait a bit for some tablets to be compacted, it possible the compaction have completed
+      // before this so do not wait long. Wait.waitFor() is not used here because it will throw an
+      // exception if the time limit is exceeded. This is just a speed bump, its ok if the condition
+      // is not met within the time limit.
       startTime = System.nanoTime();
       while (System.nanoTime() - startTime < SECONDS.toNanos(3)
           && countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
