@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -143,8 +144,8 @@ public class FateLogger {
       }
 
       @Override
-      public FateId create(byte[] key) {
-        FateId fateId = store.create(key);
+      public FateId create(FateKey fateKey) {
+        FateId fateId = store.create(fateKey);
         if (storeLog.isTraceEnabled()) {
           storeLog.trace("{} created fate transaction", fateId);
         }

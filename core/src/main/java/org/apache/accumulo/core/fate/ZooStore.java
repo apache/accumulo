@@ -96,7 +96,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(FateId fateId, byte[] key) {
+  protected void create(FateId fateId, FateKey key) {
     // TODO: Should we somehow make this Atomic or clean up on failure to make sure
     // that either both of these writes happen or none happen?
     try {
@@ -104,15 +104,15 @@ public class ZooStore<T> extends AbstractFateStore<T> {
           NodeExistsPolicy.FAIL);
       // The key was already used to generate the tid but we still need to store it
       // separate to check later for collision detection
-      zk.putPersistentData(getTXPath(fateId) + "/" + TxInfo.TX_KEY, serializeTxInfo(key),
-          NodeExistsPolicy.OVERWRITE);
+      zk.putPersistentData(getTXPath(fateId) + "/" + TxInfo.TX_KEY,
+          serializeTxInfo(key.getSerialized()), NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
   }
 
   @Override
-  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId) {
+  protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
     return new Pair<>(_getStatus(fateId), getKey(fateId));
   }
 
@@ -331,8 +331,9 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Optional<byte[]> getKey(FateId fateId) {
-    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, fateId));
+  protected Optional<FateKey> getKey(FateId fateId) {
+    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, fateId))
+        .map(FateKey::deserialize);
   }
 
   @Override

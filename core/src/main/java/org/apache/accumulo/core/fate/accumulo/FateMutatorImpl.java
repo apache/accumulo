@@ -101,9 +101,10 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
+  // TODO replace with FateKey
   @Override
-  public FateMutator<T> putKey(byte[] data) {
-    TxInfoColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(data));
+  public FateMutator<T> putKey(byte[] fateKey) {
+    TxInfoColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(fateKey));
     return this;
   }
 

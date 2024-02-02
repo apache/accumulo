@@ -27,7 +27,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -244,24 +243,24 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public FateId create(byte[] key) {
-    HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
+  public FateId create(FateKey fateKey) {
+    HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
     long tid = hashCode.asLong() & 0x7fffffffffffffffL;
     FateId fateId = FateId.from(getInstanceType(), tid);
 
-    Pair<TStatus,Optional<byte[]>> statusAndKey = getStatusAndKey(fateId);
+    Pair<TStatus,Optional<FateKey>> statusAndKey = getStatusAndKey(fateId);
     TStatus status = statusAndKey.getFirst();
-    Optional<byte[]> tKey = statusAndKey.getSecond();
+    Optional<FateKey> tFateKey = statusAndKey.getSecond();
 
     // Case 1: Status of UNKNOWN means doesn't exist, so we can create
     if (status == TStatus.UNKNOWN) {
-      create(fateId, key);
+      create(fateId, fateKey);
       // Case 2: Status is NEW so this is unseeded, we can return and allow the calling code
       // to reserve/seed as long as the existing key is the same and not different as that would
       // mean a collision
     } else if (status == TStatus.NEW) {
-      Preconditions.checkState(tKey.isPresent(), "Tx key column is missing");
-      Preconditions.checkState(Arrays.equals(key, tKey.orElseThrow()),
+      Preconditions.checkState(tFateKey.isPresent(), "Tx key column is missing");
+      Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
           "Collision detected for tid %s", tid);
       // Case 3: Status is some other state which means already in progress
     } else {
@@ -271,15 +270,15 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return fateId;
   }
 
-  protected abstract void create(FateId fateId, byte[] key);
+  protected abstract void create(FateId fateId, FateKey fateKey);
 
-  protected abstract Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId);
+  protected abstract Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId);
 
   protected abstract Stream<FateIdStatus> getTransactions();
 
   protected abstract TStatus _getStatus(FateId fateId);
 
-  protected abstract Optional<byte[]> getKey(FateId fateId);
+  protected abstract Optional<FateKey> getKey(FateId fateId);
 
   protected abstract FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved);
 
@@ -378,13 +377,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public Optional<byte[]> getKey() {
+    public Optional<FateKey> getKey() {
       verifyReserved(false);
       return AbstractFateStore.this.getKey(fateId);
     }
 
     @Override
-    public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
+    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
       verifyReserved(false);
       return AbstractFateStore.this.getStatusAndKey(fateId);
     }

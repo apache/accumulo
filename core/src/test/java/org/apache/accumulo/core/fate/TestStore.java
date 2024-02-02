@@ -43,7 +43,7 @@ import com.google.common.hash.Hashing;
 public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
-  private final Map<FateId,Pair<TStatus,Optional<byte[]>>> statuses = new HashMap<>();
+  private final Map<FateId,Pair<TStatus,Optional<FateKey>>> statuses = new HashMap<>();
   private final Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
   private final Set<FateId> reserved = new HashSet<>();
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
@@ -56,8 +56,8 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public FateId create(byte[] key) {
-    HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
+  public FateId create(FateKey key) {
+    HashCode hashCode = Hashing.murmur3_128().hashBytes(key.getSerialized());
     long tid = hashCode.asLong() & 0x7fffffffffffffffL;
     FateId fateId = FateId.from(fateInstanceType, tid);
     if (statuses.putIfAbsent(fateId, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
@@ -111,17 +111,17 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public Optional<byte[]> getKey() {
+    public Optional<FateKey> getKey() {
       return getStatusAndKey().getSecond();
     }
 
     @Override
-    public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
+    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
 
-      Pair<TStatus,Optional<byte[]>> status = statuses.get(fateId);
+      Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
       if (status == null) {
         return new Pair<>(TStatus.UNKNOWN, Optional.empty());
       }
@@ -169,7 +169,7 @@ public class TestStore implements FateStore<String> {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
-      Pair<TStatus,Optional<byte[]>> currentStatus = statuses.get(fateId);
+      Pair<TStatus,Optional<FateKey>> currentStatus = statuses.get(fateId);
       if (currentStatus == null) {
         throw new IllegalStateException();
       }

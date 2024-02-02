@@ -90,9 +90,9 @@ public interface ReadOnlyFateStore<T> {
      */
     TStatus getStatus();
 
-    Optional<byte[]> getKey();
+    Optional<FateKey> getKey();
 
-    Pair<TStatus,Optional<byte[]>> getStatusAndKey();
+    Pair<TStatus,Optional<FateKey>> getStatusAndKey();
 
     /**
      * Wait for the status of a transaction to change

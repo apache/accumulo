@@ -60,12 +60,12 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   }
 
   @Override
-  public Optional<byte[]> getKey() {
+  public Optional<FateKey> getKey() {
     return wrapped.getKey();
   }
 
   @Override
-  public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
+  public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
     return wrapped.getStatusAndKey();
   }
 

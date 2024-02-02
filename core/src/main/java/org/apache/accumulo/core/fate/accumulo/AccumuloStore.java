@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -117,10 +118,10 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(FateId fateId, byte[] key) {
+  protected void create(FateId fateId, FateKey fateKey) {
     // TODO: conditional mutation should be used to verify tid is new
-    newMutator(fateId).putStatus(TStatus.NEW).putKey(key).putCreateTime(System.currentTimeMillis())
-        .mutate();
+    newMutator(fateId).putStatus(TStatus.NEW).putKey(fateKey.getSerialized())
+        .putCreateTime(System.currentTimeMillis()).mutate();
   }
 
   @Override
@@ -155,23 +156,23 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Optional<byte[]> getKey(FateId fateId) {
+  protected Optional<FateKey> getKey(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
       TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
-      return scanner.stream().map(e -> e.getValue().get()).findFirst();
+      return scanner.stream().map(e -> FateKey.deserialize(e.getValue().get())).findFirst();
     });
   }
 
   @Override
-  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId) {
+  protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
 
       TStatus status = null;
-      byte[] key = null;
+      FateKey key = null;
 
       for (Entry<Key,Value> entry : scanner) {
         final String qual = entry.getKey().getColumnQualifierData().toString();
@@ -180,7 +181,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
             status = TStatus.valueOf(entry.getValue().toString());
             break;
           case TxInfoColumnFamily.TX_KEY:
-            key = entry.getValue().get();
+            key = FateKey.deserialize(entry.getValue().get());
             break;
           default:
             throw new IllegalStateException("Unexpected column qualifier: " + qual);
