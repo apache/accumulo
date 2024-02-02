@@ -86,31 +86,22 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
         if (includeValue) {
           byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
           byte[] valueData = source.getTopValue().get();
-
           byte[] encodedData = encodeKeyValue(ba, valueData);
-
           dos.writeInt(encodedData.length);
           dos.write(encodedData, 0, encodedData.length);
-        }
-
-        else {
-
+        } else {
           // only encode the key/qualifier
           byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
           dos.writeInt(ba.length);
           dos.write(ba, 0, ba.length);
         }
-
         source.next();
         count++;
       }
-
       // The lenght is written last so that buffering can be avoided in this iterator.
       dos.writeInt(count);
-
       topValue = new Value(baos.toByteArray());
     }
-
   }
 
   @Override
@@ -225,8 +216,4 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     return ByteUtils.concat(ByteUtils.escape(key), ByteUtils.escape(value));
   }
 
-  // private static byte[] encodeEntry(Map.Entry<byte[],byte[]> bytesEntry) {
-  // return ByteUtils.concat(ByteUtils.escape(bytesEntry.getKey()),
-  // ByteUtils.escape(bytesEntry.getValue()));
-  // }
 }

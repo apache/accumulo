@@ -171,7 +171,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       }
         break;
       case FILES: {
-        // ELASTICITY_TODO compare values?
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFilesMap(), entry -> {
           var stf = entry.getKey();
           var dfv = entry.getValue();
