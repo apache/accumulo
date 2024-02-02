@@ -133,7 +133,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
           TabletManagement tm = TabletManagementIterator.decode(e);
           log.trace(
               "Returning metadata tablet, extent: {}, hostingGoal: {}, actions: {}, error: {}",
-              tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getHostingGoal(),
+              tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getTabletAvailability(),
               tm.getActions(), tm.getErrorMessage());
           return tm;
         } catch (IOException e1) {

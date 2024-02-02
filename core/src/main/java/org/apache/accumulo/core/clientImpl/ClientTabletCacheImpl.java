@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -130,9 +130,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
     private CachedTablet checkLock(CachedTablet tl) {
-      // the goal of this class is to minimize calls out to lockChecker under that assumption that
-      // its a resource synchronized among many threads... want to
-      // avoid fine grained synchronization when binning lots of mutations or ranges... remember
+      // the goal of this class is to minimize calls out to lockChecker under that
+      // assumption that
+      // it is a resource synchronized among many threads... want to
+      // avoid fine-grained synchronization when binning lots of mutations or ranges... remember
       // decisions from the lockChecker in thread local unsynchronized
       // memory
 
@@ -668,7 +669,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
     for (var cachedTablet : tabletsWithNoLocation) {
       if (cachedTablet.getAge().compareTo(STALE_DURATION) < 0) {
-        if (cachedTablet.getGoal() == TabletHostingGoal.ONDEMAND) {
+        if (cachedTablet.getAvailability() == TabletAvailability.ONDEMAND) {
           if (!cachedTablet.wasHostingRequested()) {
             extentsToBringOnline.add(cachedTablet.getExtent().toThrift());
             log.trace("requesting ondemand tablet to be hosted {}", cachedTablet.getExtent());
@@ -676,9 +677,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
             log.trace("ignoring ondemand tablet that already has a hosting request in place {} {}",
                 cachedTablet.getExtent(), cachedTablet.getAge());
           }
-        } else if (cachedTablet.getGoal() == TabletHostingGoal.NEVER) {
+        } else if (cachedTablet.getAvailability() == TabletAvailability.UNHOSTED) {
           throw new InvalidTabletHostingRequestException("Extent " + cachedTablet.getExtent()
-              + " has a tablet hosting goal state " + TabletHostingGoal.NEVER);
+              + " has a tablet availability " + TabletAvailability.UNHOSTED);
         }
       } else {
         // When a tablet does not have a location it is reread from the metadata table before this
@@ -748,7 +749,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
             && ke.prevEndRow().equals(lastEndRow)) {
           locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
               cachedTablet.getTserverLocation(), cachedTablet.getTserverSession(),
-              cachedTablet.getGoal(), cachedTablet.wasHostingRequested());
+              cachedTablet.getAvailability(), cachedTablet.wasHostingRequested());
         } else {
           locToCache = cachedTablet;
         }

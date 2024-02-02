@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
@@ -59,8 +59,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   // all existing transactions are processed immediately again
   protected static final int DEFAULT_MAX_DEFERRED = 100_000;
 
-  protected final Set<Long> reserved;
-  protected final Map<Long,Long> deferred;
+  protected final Set<FateId> reserved;
+  protected final Map<FateId,Long> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
 
@@ -105,26 +105,26 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   /**
-   * Attempt to reserve transaction
+   * Attempt to reserve the fate transaction.
    *
-   * @param tid transaction id
+   * @param fateId The FateId
    * @return An Optional containing the FateTxStore if the transaction was successfully reserved, or
    *         an empty Optional if the transaction was already reserved.
    */
   @Override
-  public Optional<FateTxStore<T>> tryReserve(long tid) {
-    synchronized (AbstractFateStore.this) {
-      if (!reserved.contains(tid)) {
-        return Optional.of(reserve(tid));
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    synchronized (this) {
+      if (!reserved.contains(fateId)) {
+        return Optional.of(reserve(fateId));
       }
       return Optional.empty();
     }
   }
 
   @Override
-  public FateTxStore<T> reserve(long tid) {
+  public FateTxStore<T> reserve(FateId fateId) {
     synchronized (AbstractFateStore.this) {
-      while (reserved.contains(tid)) {
+      while (reserved.contains(fateId)) {
         try {
           AbstractFateStore.this.wait(100);
         } catch (InterruptedException e) {
@@ -133,13 +133,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         }
       }
 
-      reserved.add(tid);
-      return newFateTxStore(tid, true);
+      reserved.add(fateId);
+      return newFateTxStore(fateId, true);
     }
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -149,21 +149,21 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       try (Stream<FateIdStatus> transactions = getTransactions()) {
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
-            .mapToLong(FateIdStatus::getTxid).filter(txid -> {
+            .map(FateIdStatus::getFateId).filter(fateId -> {
               synchronized (AbstractFateStore.this) {
-                var deferredTime = deferred.get(txid);
+                var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
                   if ((deferredTime - System.nanoTime()) >= 0) {
                     return false;
                   } else {
-                    deferred.remove(txid);
+                    deferred.remove(fateId);
                   }
                 }
-                return !reserved.contains(txid);
+                return !reserved.contains(fateId);
               }
-            }).forEach(txid -> {
+            }).forEach(fateId -> {
               seen.incrementAndGet();
-              idConsumer.accept(txid);
+              idConsumer.accept(fateId);
             });
       }
 
@@ -206,8 +206,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public ReadOnlyFateTxStore<T> read(long tid) {
-    return newFateTxStore(tid, false);
+  public ReadOnlyFateTxStore<T> read(FateId fateId) {
+    return newFateTxStore(fateId, false);
   }
 
   protected boolean isRunnable(TStatus status) {
@@ -215,20 +215,16 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         || status == TStatus.SUBMITTED;
   }
 
-  protected long parseTid(String txdir) {
-    return Long.parseLong(txdir.split("_")[1], 16);
-  }
-
   public static abstract class FateIdStatusBase implements FateIdStatus {
-    private final long txid;
+    private final FateId fateId;
 
-    public FateIdStatusBase(long txid) {
-      this.txid = txid;
+    public FateIdStatusBase(FateId fateId) {
+      this.fateId = fateId;
     }
 
     @Override
-    public long getTxid() {
-      return txid;
+    public FateId getFateId() {
+      return fateId;
     }
   }
 
@@ -280,32 +276,33 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract Stream<FateIdStatus> getTransactions();
 
-  protected abstract TStatus _getStatus(long tid);
+  protected abstract TStatus _getStatus(FateId fateId);
 
   protected abstract Optional<byte[]> getKey(long tid);
+  
+  protected abstract FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved);
 
-  protected abstract FateTxStore<T> newFateTxStore(long tid, boolean isReserved);
 
   protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
-    protected final long tid;
+    protected final FateId fateId;
     protected final boolean isReserved;
 
     protected TStatus observedStatus = null;
 
-    protected AbstractFateTxStoreImpl(long tid, boolean isReserved) {
-      this.tid = tid;
+    protected AbstractFateTxStoreImpl(FateId fateId, boolean isReserved) {
+      this.fateId = fateId;
       this.isReserved = isReserved;
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       Preconditions.checkState(!isReserved,
-          "Attempted to wait for status change while reserved " + FateTxId.formatTid(getID()));
+          "Attempted to wait for status change while reserved " + fateId);
       while (true) {
 
         long countBefore = unreservedNonNewCount.getCount();
 
-        TStatus status = _getStatus(tid);
+        TStatus status = _getStatus(fateId);
         if (expected.contains(status)) {
           return status;
         }
@@ -323,9 +320,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       }
 
       synchronized (AbstractFateStore.this) {
-        if (!reserved.remove(tid)) {
-          throw new IllegalStateException(
-              "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+        if (!reserved.remove(fateId)) {
+          throw new IllegalStateException("Tried to unreserve id that was not reserved " + fateId);
         }
 
         // notify any threads waiting to reserve
@@ -343,7 +339,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(tid, System.nanoTime() + deferTime);
+            deferred.put(fateId, System.nanoTime() + deferTime);
           }
         }
       }
@@ -364,9 +360,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       if (isReserved) {
         synchronized (AbstractFateStore.this) {
-          if (!reserved.contains(tid)) {
-            throw new IllegalStateException(
-                "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
+          if (!reserved.contains(fateId)) {
+            throw new IllegalStateException("Tried to operate on unreserved transaction " + fateId);
           }
         }
       }
@@ -375,7 +370,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     @Override
     public TStatus getStatus() {
       verifyReserved(false);
-      var status = _getStatus(tid);
+      var status = _getStatus(fateId);
       observedStatus = status;
       return status;
     }
@@ -393,8 +388,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public long getID() {
-      return tid;
+    public FateId getID() {
+      return fateId;
     }
   }
 

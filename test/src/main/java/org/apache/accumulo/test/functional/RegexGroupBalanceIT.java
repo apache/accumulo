@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -90,7 +90,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       props.put(Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
 
       client.tableOperations().create(tablename, new NewTableConfiguration().setProperties(props)
-          .withSplits(splits).withInitialHostingGoal(TabletHostingGoal.ALWAYS));
+          .withSplits(splits).withInitialTabletAvailability(TabletAvailability.HOSTED));
 
       while (true) {
         Thread.sleep(250);

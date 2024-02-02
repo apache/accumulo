@@ -25,11 +25,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
@@ -62,9 +62,9 @@ public class AccumuloFateIT extends FateIT {
   }
 
   @Override
-  protected TStatus getTxStatus(ServerContext context, long txid) {
+  protected TStatus getTxStatus(ServerContext context, FateId fateId) {
     try (Scanner scanner = context.createScanner(table, Authorizations.EMPTY)) {
-      scanner.setRange(getRow(txid));
+      scanner.setRange(getRow(fateId));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
@@ -73,7 +73,7 @@ public class AccumuloFateIT extends FateIT {
     }
   }
 
-  private static Range getRow(long tid) {
-    return new Range("tx_" + FastFormat.toHexString(tid));
+  private static Range getRow(FateId fateId) {
+    return new Range("tx_" + fateId.getHexTid());
   }
 }
