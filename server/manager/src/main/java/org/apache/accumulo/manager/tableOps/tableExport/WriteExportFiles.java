@@ -168,7 +168,7 @@ class WriteExportFiles extends ManagerRepo {
     try (OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8)) {
 
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
-      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
+      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.CURR_VERSION + "\n");
       osw.append("srcInstanceName:" + context.getInstanceName() + "\n");
       osw.append("srcInstanceID:" + context.getInstanceID() + "\n");
       osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");

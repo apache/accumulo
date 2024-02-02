@@ -655,6 +655,7 @@
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
                   <exclude>**/target/**</exclude>
+                  <exclude>**/*.rf</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -860,6 +861,7 @@
               <exclude>.vscode/**</exclude>
               <exclude>.factorypath</exclude>
               <exclude>.github/**</exclude>
+              <exclude>**/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>

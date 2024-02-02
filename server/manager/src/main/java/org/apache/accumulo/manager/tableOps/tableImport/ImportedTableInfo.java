@@ -37,6 +37,7 @@ class ImportedTableInfo implements Serializable {
   public String exportFile;
   public boolean keepMappings;
   public boolean keepOffline;
+  public Integer exportedVersion = null;
   public TabletAvailability initialAvailability = TabletAvailability.ONDEMAND;
 
   static class DirectoryMapping implements Serializable {
