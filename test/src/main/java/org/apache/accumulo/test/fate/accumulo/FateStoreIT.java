@@ -229,8 +229,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       executor.shutdownNow();
       // Cleanup so we don't interfere with other tests
       // All stores should already be unreserved
-      store.list()
-          .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
+      store.list().forEach(
+          fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
     }
   }
 
@@ -244,14 +244,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke2 = new KeyExtent(TableId.of("tableId2"), new Text("zzz"), new Text("aaa"));
 
     byte[] key1 = serialize(ke1);
-    long tid1 = store.create(key1);
+    FateId fateId1 = store.create(key1);
 
     byte[] key2 = serialize(ke2);
-    long tid2 = store.create(key2);
-    assertNotEquals(tid1, tid2);
+    FateId fateId2 = store.create(key2);
+    assertNotEquals(fateId1, fateId2);
 
-    FateTxStore<TestEnv> txStore1 = store.reserve(tid1);
-    FateTxStore<TestEnv> txStore2 = store.reserve(tid2);
+    FateTxStore<TestEnv> txStore1 = store.reserve(fateId1);
+    FateTxStore<TestEnv> txStore2 = store.reserve(fateId2);
     try {
       assertTrue(txStore1.timeCreated() > 0);
       assertEquals(TStatus.NEW, txStore1.getStatus());
@@ -279,11 +279,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // Creating with the same key should be fine if the status is NEW
     // It should just return the same id and allow us to continue reserving
     byte[] key = serialize(ke);
-    long tid1 = store.create(key);
-    long tid2 = store.create(key);
-    assertEquals(tid1, tid2);
+    FateId fateId1 = store.create(key);
+    FateId fateId2 = store.create(key);
+    assertEquals(fateId1, fateId2);
 
-    FateTxStore<TestEnv> txStore = store.reserve(tid1);
+    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
     try {
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(TStatus.NEW, txStore.getStatus());
@@ -303,9 +303,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
 
     byte[] key = serialize(ke);
-    long tid1 = store.create(key);
+    FateId fateId1 = store.create(key);
 
-    FateTxStore<TestEnv> txStore = store.reserve(tid1);
+    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);

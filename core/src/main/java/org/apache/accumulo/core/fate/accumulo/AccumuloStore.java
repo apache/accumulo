@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
@@ -48,8 +48,8 @@ import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFami
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,9 +117,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(long tid, byte[] key) {
+  protected void create(FateId fateId, byte[] key) {
     // TODO: conditional mutation should be used to verify tid is new
-    newMutator(tid).putStatus(TStatus.NEW).putKey(key).putCreateTime(System.currentTimeMillis())
+    newMutator(fateId).putStatus(TStatus.NEW).putKey(key).putCreateTime(System.currentTimeMillis())
         .mutate();
   }
 
@@ -155,18 +155,18 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Optional<byte[]> getKey(long tid) {
+  protected Optional<byte[]> getKey(FateId fateId) {
     return scanTx(scanner -> {
-      scanner.setRange(getRow(tid));
+      scanner.setRange(getRow(fateId));
       TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> e.getValue().get()).findFirst();
     });
   }
 
   @Override
-  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid) {
+  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId) {
     return scanTx(scanner -> {
-      scanner.setRange(getRow(tid));
+      scanner.setRange(getRow(fateId));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
 
@@ -195,6 +195,11 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   @Override
   protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
     return new FateTxStoreImpl(fateId, isReserved);
+  }
+
+  @Override
+  protected FateInstanceType getInstanceType() {
+    return fateInstanceType;
   }
 
   static Range getRow(FateId fateId) {

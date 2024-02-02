@@ -244,17 +244,18 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public long create(byte[] key) {
+  public FateId create(byte[] key) {
     HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
     long tid = hashCode.asLong() & 0x7fffffffffffffffL;
+    FateId fateId = FateId.from(getInstanceType(), tid);
 
-    Pair<TStatus,Optional<byte[]>> statusAndKey = getStatusAndKey(tid);
+    Pair<TStatus,Optional<byte[]>> statusAndKey = getStatusAndKey(fateId);
     TStatus status = statusAndKey.getFirst();
     Optional<byte[]> tKey = statusAndKey.getSecond();
 
     // Case 1: Status of UNKNOWN means doesn't exist, so we can create
     if (status == TStatus.UNKNOWN) {
-      create(tid, key);
+      create(fateId, key);
       // Case 2: Status is NEW so this is unseeded, we can return and allow the calling code
       // to reserve/seed as long as the existing key is the same and not different as that would
       // mean a collision
@@ -267,21 +268,22 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       throw new IllegalStateException("Existing transaction already exists for: " + tid);
     }
 
-    return tid;
+    return fateId;
   }
 
-  protected abstract void create(long tid, byte[] key);
+  protected abstract void create(FateId fateId, byte[] key);
 
-  protected abstract Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid);
+  protected abstract Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId);
 
   protected abstract Stream<FateIdStatus> getTransactions();
 
   protected abstract TStatus _getStatus(FateId fateId);
 
-  protected abstract Optional<byte[]> getKey(long tid);
-  
+  protected abstract Optional<byte[]> getKey(FateId fateId);
+
   protected abstract FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved);
 
+  protected abstract FateInstanceType getInstanceType();
 
   protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
     protected final FateId fateId;
@@ -378,13 +380,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     @Override
     public Optional<byte[]> getKey() {
       verifyReserved(false);
-      return AbstractFateStore.this.getKey(tid);
+      return AbstractFateStore.this.getKey(fateId);
     }
 
     @Override
     public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
       verifyReserved(false);
-      return AbstractFateStore.this.getStatusAndKey(tid);
+      return AbstractFateStore.this.getStatusAndKey(fateId);
     }
 
     @Override

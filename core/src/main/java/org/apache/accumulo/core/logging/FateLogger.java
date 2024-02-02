@@ -143,12 +143,12 @@ public class FateLogger {
       }
 
       @Override
-      public long create(byte[] key) {
-        long tid = store.create(key);
+      public FateId create(byte[] key) {
+        FateId fateId = store.create(key);
         if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction", formatTid(tid));
+          storeLog.trace("{} created fate transaction", fateId);
         }
-        return tid;
+        return fateId;
       }
     };
   }

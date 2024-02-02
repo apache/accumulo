@@ -47,28 +47,28 @@ public class TestStore implements FateStore<String> {
   private final Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
   private final Set<FateId> reserved = new HashSet<>();
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
-  private Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
 
   @Override
   public FateId create() {
     FateId fateId = FateId.from(fateInstanceType, nextId++);
-    statuses.put(nextId, new Pair<>(TStatus.NEW, Optional.empty()));
+    statuses.put(fateId, new Pair<>(TStatus.NEW, Optional.empty()));
     return fateId;
   }
 
   @Override
-  public long create(byte[] key) {
+  public FateId create(byte[] key) {
     HashCode hashCode = Hashing.murmur3_128().hashBytes(key);
     long tid = hashCode.asLong() & 0x7fffffffffffffffL;
-    if (statuses.putIfAbsent(tid, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
-      throw new IllegalStateException("Transaction with tid " + tid + " already exists");
+    FateId fateId = FateId.from(fateInstanceType, tid);
+    if (statuses.putIfAbsent(fateId, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
+      throw new IllegalStateException("Transaction with fateId " + fateId + " already exists");
     }
-    return tid;
+    return fateId;
   }
 
-  @Override  @Override
+  @Override
   public FateTxStore<String> reserve(FateId fateId) {
-    if (reserved.contains(fateId)) {  @Override
+    if (reserved.contains(fateId)) {
       throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
     }
     // twice... if test change, then change this
@@ -114,7 +114,7 @@ public class TestStore implements FateStore<String> {
     public Optional<byte[]> getKey() {
       return getStatusAndKey().getSecond();
     }
-    
+
     @Override
     public Pair<TStatus,Optional<byte[]>> getStatusAndKey() {
       if (!reserved.contains(fateId)) {

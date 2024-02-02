@@ -96,15 +96,15 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(long tid, byte[] key) {
+  protected void create(FateId fateId, byte[] key) {
     // TODO: Should we somehow make this Atomic or clean up on failure to make sure
     // that either both of these writes happen or none happen?
     try {
-      zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+      zk.putPersistentData(getTXPath(fateId), TStatus.NEW.name().getBytes(UTF_8),
           NodeExistsPolicy.FAIL);
       // The key was already used to generate the tid but we still need to store it
       // separate to check later for collision detection
-      zk.putPersistentData(getTXPath(tid) + "/" + TxInfo.TX_KEY, serializeTxInfo(key),
+      zk.putPersistentData(getTXPath(fateId) + "/" + TxInfo.TX_KEY, serializeTxInfo(key),
           NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
@@ -112,8 +112,8 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(long tid) {
-    return new Pair<>(_getStatus(tid), getKey(tid));
+  protected Pair<TStatus,Optional<byte[]>> getStatusAndKey(FateId fateId) {
+    return new Pair<>(_getStatus(fateId), getKey(fateId));
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
@@ -252,7 +252,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
       verifyReserved(false);
 
-      return deserializeTxInfo(txInfo, zk.getData(getTXPath(fateId) + "/" + txInfo));
+      return ZooStore.this.getTransactionInfo(txInfo, fateId);
     }
 
     @Override
@@ -309,9 +309,9 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     }
   }
 
-  private Serializable getTransactionInfo(TxInfo txInfo, long tid) {
+  private Serializable getTransactionInfo(TxInfo txInfo, FateId fateId) {
     try {
-      return deserializeTxInfo(txInfo, zk.getData(getTXPath(tid) + "/" + txInfo));
+      return deserializeTxInfo(txInfo, zk.getData(getTXPath(fateId) + "/" + txInfo));
     } catch (NoNodeException nne) {
       return null;
     } catch (KeeperException | InterruptedException e) {
@@ -331,13 +331,18 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Optional<byte[]> getKey(long tid) {
-    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, tid));
+  protected Optional<byte[]> getKey(FateId fateId) {
+    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, fateId));
   }
 
   @Override
   protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
     return new FateTxStoreImpl(fateId, isReserved);
+  }
+
+  @Override
+  protected FateInstanceType getInstanceType() {
+    return fateInstanceType;
   }
 
   @Override
