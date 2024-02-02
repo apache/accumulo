@@ -169,66 +169,66 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   public void init(InitParameters params) {
 
     if (params.getOptions().containsKey("executors")
-        && params.getOptions().get("executors").isBlank()) {
+        && !params.getOptions().get("executors").isBlank()) {
+
+      ExecutorConfig[] execConfigs =
+          new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+
+      List<Executor> tmpExec = new ArrayList<>();
+
+      for (ExecutorConfig executorConfig : execConfigs) {
+        Long maxSize = executorConfig.maxSize == null ? null
+            : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
+
+        CompactionExecutorId ceid;
+
+        // If not supplied, GSON will leave type null. Default to internal
+        if (executorConfig.type == null) {
+          executorConfig.type = "internal";
+        }
+
+        switch (executorConfig.type) {
+          case "internal":
+            Preconditions.checkArgument(null == executorConfig.queue,
+                "'queue' should not be specified for internal compactions");
+            int numThreads = Objects.requireNonNull(executorConfig.numThreads,
+                "'numThreads' must be specified for internal type");
+            ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
+            break;
+          case "external":
+            Preconditions.checkArgument(null == executorConfig.numThreads,
+                "'numThreads' should not be specified for external compactions");
+            String queue = Objects.requireNonNull(executorConfig.queue,
+                "'queue' must be specified for external type");
+            ceid = params.getExecutorManager().getExternalExecutor(queue);
+            break;
+          default:
+            throw new IllegalArgumentException("type must be 'internal' or 'external'");
+        }
+        tmpExec.add(new Executor(ceid, maxSize));
+      }
+
+      Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,
+          Comparator.nullsLast(Comparator.naturalOrder())));
+
+      executors = List.copyOf(tmpExec);
+
+      if (executors.stream().filter(e -> e.getMaxSize() == null).count() > 1) {
+        throw new IllegalArgumentException(
+            "Can only have one executor w/o a maxSize. " + params.getOptions().get("executors"));
+      }
+
+      // use the add method on the Set interface to check for duplicate maxSizes
+      Set<Long> maxSizes = new HashSet<>();
+      executors.forEach(e -> {
+        if (!maxSizes.add(e.getMaxSize())) {
+          throw new IllegalArgumentException(
+              "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
+        }
+      });
+    } else {
       throw new IllegalStateException("No defined executors for this planner");
     }
-
-    ExecutorConfig[] execConfigs =
-        new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
-
-    List<Executor> tmpExec = new ArrayList<>();
-
-    for (ExecutorConfig executorConfig : execConfigs) {
-      Long maxSize = executorConfig.maxSize == null ? null
-          : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
-
-      CompactionExecutorId ceid;
-
-      // If not supplied, GSON will leave type null. Default to internal
-      if (executorConfig.type == null) {
-        executorConfig.type = "internal";
-      }
-
-      switch (executorConfig.type) {
-        case "internal":
-          Preconditions.checkArgument(null == executorConfig.queue,
-              "'queue' should not be specified for internal compactions");
-          int numThreads = Objects.requireNonNull(executorConfig.numThreads,
-              "'numThreads' must be specified for internal type");
-          ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
-          break;
-        case "external":
-          Preconditions.checkArgument(null == executorConfig.numThreads,
-              "'numThreads' should not be specified for external compactions");
-          String queue = Objects.requireNonNull(executorConfig.queue,
-              "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(queue);
-          break;
-        default:
-          throw new IllegalArgumentException("type must be 'internal' or 'external'");
-      }
-      tmpExec.add(new Executor(ceid, maxSize));
-    }
-
-    Collections.sort(tmpExec, Comparator.comparing(Executor::getMaxSize,
-        Comparator.nullsLast(Comparator.naturalOrder())));
-
-    executors = List.copyOf(tmpExec);
-
-    if (executors.stream().filter(e -> e.getMaxSize() == null).count() > 1) {
-      throw new IllegalArgumentException(
-          "Can only have one executor w/o a maxSize. " + params.getOptions().get("executors"));
-    }
-
-    // use the add method on the Set interface to check for duplicate maxSizes
-    Set<Long> maxSizes = new HashSet<>();
-    executors.forEach(e -> {
-      if (!maxSizes.add(e.getMaxSize())) {
-        throw new IllegalArgumentException(
-            "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
-      }
-    });
-
     determineMaxFilesToCompact(params);
   }
 

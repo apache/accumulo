@@ -471,15 +471,35 @@ public class DefaultCompactionPlannerTest {
   }
 
   /**
-   * Tests when executors aren't defined.
+   * Tests when "executors" is defined but empty.
    */
   @Test
-  public void testErrorNoExecutors() {
+  public void testErrorEmptyExecutors() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
     String executors = "";
 
     var e = assertThrows(IllegalStateException.class,
         () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("No defined executors"),
+        "Error message didn't contain 'No defined executors'");
+  }
+
+  /**
+   * Tests when "executors" doesn't exist
+   */
+  @Test
+  public void testErrorNoExecutors() {
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(defaultConf).anyTimes();
+    EasyMock.replay(senv);
+
+    var initParams = new CompactionPlannerInitParams(csid, new HashMap<>(), senv);
+
+    DefaultCompactionPlanner dcPlanner = new DefaultCompactionPlanner();
+
+    var e = assertThrows(IllegalStateException.class, () -> dcPlanner.init(initParams),
+        "Failed to throw error");
     assertTrue(e.getMessage().contains("No defined executors"),
         "Error message didn't contain 'No defined executors'");
   }
