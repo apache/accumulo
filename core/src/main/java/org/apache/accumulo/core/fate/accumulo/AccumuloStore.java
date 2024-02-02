@@ -125,7 +125,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
     // TODO: Any reason to retry here?
     Preconditions.checkState(status == Status.ACCEPTED,
-        "" + "Failed to create transaction with fateId %s and fateKey %s", fateId, fateKey);
+        "Failed to create transaction with fateId %s and fateKey %s", fateId, fateKey);
   }
 
   @Override
