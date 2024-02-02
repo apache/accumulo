@@ -132,7 +132,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
         "Did not see all expected metric names, missing: " + expectedMetricNames.values());
   }
 
-  private void doWorkToGenerateMetrics() throws Exception {
+  protected void doWorkToGenerateMetrics() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = this.getClass().getSimpleName();
       client.tableOperations().create(tableName);
