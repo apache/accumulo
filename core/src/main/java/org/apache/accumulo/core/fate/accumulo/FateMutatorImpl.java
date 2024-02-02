@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
@@ -62,6 +63,12 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   @Override
   public FateMutator<T> putStatus(TStatus status) {
     TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putKey(FateKey fateKey) {
+    TxColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(fateKey.getSerialized()));
     return this;
   }
 
@@ -101,13 +108,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
-  // TODO replace with FateKey
-  @Override
-  public FateMutator<T> putKey(byte[] fateKey) {
-    TxInfoColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(fateKey));
-    return this;
-  }
-
   @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
@@ -125,9 +125,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
         break;
       case TX_AGEOFF:
         putAgeOff(data);
-        break;
-      case TX_KEY:
-        putKey(data);
         break;
       default:
         throw new IllegalArgumentException("Unexpected TxInfo type: " + txInfo);

@@ -19,14 +19,18 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -36,6 +40,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -84,7 +89,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
         FateId fateId = FateId.from(fateInstanceType, tid);
-        zk.putPersistentData(getTXPath(fateId), TStatus.NEW.name().getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;
       } catch (NodeExistsException nee) {
@@ -97,15 +102,9 @@ public class ZooStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected void create(FateId fateId, FateKey key) {
-    // TODO: Should we somehow make this Atomic or clean up on failure to make sure
-    // that either both of these writes happen or none happen?
     try {
-      zk.putPersistentData(getTXPath(fateId), TStatus.NEW.name().getBytes(UTF_8),
+      zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW, key).serialize(),
           NodeExistsPolicy.FAIL);
-      // The key was already used to generate the tid but we still need to store it
-      // separate to check later for collision detection
-      zk.putPersistentData(getTXPath(fateId) + "/" + TxInfo.TX_KEY,
-          serializeTxInfo(key.getSerialized()), NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -113,7 +112,8 @@ public class ZooStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
-    return new Pair<>(_getStatus(fateId), getKey(fateId));
+    final NodeValue node = getNode(fateId);
+    return new Pair<>(node.status, node.fateKey);
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
@@ -216,7 +216,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       try {
-        zk.putPersistentData(getTXPath(fateId), status.name().getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(fateId), new NodeValue(status).serialize(),
             NodeExistsPolicy.OVERWRITE);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
@@ -321,19 +321,22 @@ public class ZooStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected TStatus _getStatus(FateId fateId) {
-    try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(fateId)), UTF_8));
-    } catch (NoNodeException nne) {
-      return TStatus.UNKNOWN;
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(e);
-    }
+    return getNode(fateId).status;
   }
 
   @Override
   protected Optional<FateKey> getKey(FateId fateId) {
-    return Optional.ofNullable((byte[]) getTransactionInfo(TxInfo.TX_KEY, fateId))
-        .map(FateKey::deserialize);
+    return getNode(fateId).fateKey;
+  }
+
+  private NodeValue getNode(FateId fateId) {
+    try {
+      return new NodeValue(zk.getData(getTXPath(fateId)));
+    } catch (NoNodeException nne) {
+      return new NodeValue(TStatus.UNKNOWN);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Override
@@ -367,4 +370,54 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  protected static class NodeValue {
+    final TStatus status;
+    final Optional<FateKey> fateKey;
+
+    private NodeValue(byte[] serialized) {
+      try (DataInputBuffer buffer = new DataInputBuffer()) {
+        buffer.reset(serialized, serialized.length);
+        this.status = TStatus.valueOf(buffer.readUTF());
+        this.fateKey = deserializeFateKey(buffer);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    private NodeValue(TStatus status) {
+      this(status, null);
+    }
+
+    private NodeValue(TStatus status, FateKey fateKey) {
+      this.status = Objects.requireNonNull(status);
+      this.fateKey = Optional.ofNullable(fateKey);
+    }
+
+    private Optional<FateKey> deserializeFateKey(DataInputBuffer buffer) throws IOException {
+      int length = buffer.readInt();
+      if (length > 0) {
+        return Optional.of(FateKey.deserialize(buffer.readNBytes(length)));
+      }
+      return Optional.empty();
+    }
+
+    byte[] serialize() {
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream dos = new DataOutputStream(baos)) {
+        dos.writeUTF(status.name());
+        if (fateKey.isPresent()) {
+          byte[] serialized = fateKey.orElseThrow().getSerialized();
+          dos.writeInt(serialized.length);
+          dos.write(serialized);
+        } else {
+          dos.writeInt(0);
+        }
+        dos.close();
+        return baos.toByteArray();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+  }
 }

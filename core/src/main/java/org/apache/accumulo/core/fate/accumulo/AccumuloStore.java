@@ -43,6 +43,7 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
+import org.apache.accumulo.core.fate.accumulo.FateMutator.Status;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
@@ -119,9 +120,12 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected void create(FateId fateId, FateKey fateKey) {
-    // TODO: conditional mutation should be used to verify tid is new
-    newMutator(fateId).putStatus(TStatus.NEW).putKey(fateKey.getSerialized())
-        .putCreateTime(System.currentTimeMillis()).mutate();
+    var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
+        .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+    // TODO: Any reason to retry here?
+    Preconditions.checkState(status == Status.ACCEPTED,
+        "" + "Failed to create transaction with fateId %s and fateKey %s", fateId, fateKey);
   }
 
   @Override
@@ -159,7 +163,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   protected Optional<FateKey> getKey(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
-      TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> FateKey.deserialize(e.getValue().get())).findFirst();
     });
   }
@@ -169,7 +173,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      TxInfoColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
 
       TStatus status = null;
       FateKey key = null;
@@ -180,7 +184,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
           case TxColumnFamily.STATUS:
             status = TStatus.valueOf(entry.getValue().toString());
             break;
-          case TxInfoColumnFamily.TX_KEY:
+          case TxColumnFamily.TX_KEY:
             key = FateKey.deserialize(entry.getValue().get());
             break;
           default:
@@ -279,9 +283,6 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
             break;
           case TX_AGEOFF:
             cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
-            break;
-          case TX_KEY:
-            cq = TxInfoColumnFamily.TX_KEY_COLUMN;
             break;
           default:
             throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
