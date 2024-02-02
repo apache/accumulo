@@ -39,7 +39,10 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -193,6 +196,24 @@ public class CompactionCoordinatorTest {
       metadataCompactionIds = null;
     }
 
+  }
+
+  @Test
+  public void testCoordinatorWarningTime() {
+    PowerMock.resetAll();
+    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+
+    SiteConfiguration aconf = SiteConfiguration.empty()
+        .withOverrides(Map.of(Property.COMPACTOR_CHECK_MAX_WAIT.getKey(), "15s")).build();
+    ConfigurationCopy config = new ConfigurationCopy(aconf);
+    expect(context.getConfiguration()).andReturn(config).anyTimes();
+
+    PowerMock.replay(context);
+
+    var coordinator = new TestCoordinator(null, null, null, null, context, null);
+    // Should be equal to 3 * 15_000 milliseconds
+    assertEquals(45_000, coordinator.getMissingCompactorWarningTime());
   }
 
   @Test

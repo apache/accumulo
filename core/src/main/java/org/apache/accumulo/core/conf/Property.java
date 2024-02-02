@@ -1432,6 +1432,10 @@ public enum Property {
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
   @Experimental
+  COMPACTOR_CHECK_MAX_WAIT("compactor.check.max.wait", "5m", PropertyType.TIMEDURATION,
+      "The maximum amount of time a compactor will wait to check the coordinator for a new compaction job.",
+      "2.1.3"),
+  @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "false", PropertyType.BOOLEAN,
       "If the compactor.port.client is in use, search higher ports until one is available.",
       "2.1.0"),
