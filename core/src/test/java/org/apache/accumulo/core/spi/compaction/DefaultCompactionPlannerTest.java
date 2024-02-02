@@ -470,6 +470,40 @@ public class DefaultCompactionPlannerTest {
     assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
+  /**
+   * Tests when "executors" is defined but empty.
+   */
+  @Test
+  public void testErrorEmptyExecutors() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    String executors = "";
+
+    var e = assertThrows(IllegalStateException.class,
+        () -> planner.init(getInitParams(defaultConf, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("No defined executors"),
+        "Error message didn't contain 'No defined executors'");
+  }
+
+  /**
+   * Tests when "executors" doesn't exist
+   */
+  @Test
+  public void testErrorNoExecutors() {
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(defaultConf).anyTimes();
+    EasyMock.replay(senv);
+
+    var initParams = new CompactionPlannerInitParams(csid, new HashMap<>(), senv);
+
+    DefaultCompactionPlanner dcPlanner = new DefaultCompactionPlanner();
+
+    var e = assertThrows(IllegalStateException.class, () -> dcPlanner.init(initParams),
+        "Failed to throw error");
+    assertTrue(e.getMessage().contains("No defined executors"),
+        "Error message didn't contain 'No defined executors'");
+  }
+
   // Test cases where a tablet has more than table.file.max files, but no files were found using the
   // compaction ratio. The planner should try to find the highest ratio that will result in a
   // compaction.
