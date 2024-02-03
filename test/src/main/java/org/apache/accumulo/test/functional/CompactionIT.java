@@ -106,6 +106,9 @@ import com.google.common.collect.Iterators;
 
 public class CompactionIT extends AccumuloClusterHarness {
 
+  public static final String COMPACTOR_GROUP_1 = "cg1";
+  public static final String COMPACTOR_GROUP_2 = "cg2";
+
   public static class TestFilter extends Filter {
 
     int modulus = 1;
@@ -228,6 +231,9 @@ public class CompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup(COMPACTOR_GROUP_1, 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup(COMPACTOR_GROUP_2, 1);
   }
 
   private long countTablets(String tableName, Predicate<TabletMetadata> tabletTest) {
@@ -828,16 +834,16 @@ public class CompactionIT extends AccumuloClusterHarness {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner",
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.executors",
-          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.groups",
+          ("[{'name':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
 
       // create a compaction service named keepme
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner",
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner.opts.executors",
-          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner.opts.groups",
+          ("[{'name':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
 
       // create a table that uses the compaction service deleteme
       Map<String,String> props = new HashMap<>();
@@ -869,15 +875,15 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.instanceOperations()
           .removeProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner");
       c.instanceOperations().removeProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.executors");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.groups");
 
       // add a new compaction service named newcs
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.executors",
-          "[{'name':'all','type':'internal','numThreads':1}]".replaceAll("'", "\""));
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
+          ("[{'name':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
 
       // set table 1 to a compaction service newcs
       c.tableOperations().setProperty(table1,
