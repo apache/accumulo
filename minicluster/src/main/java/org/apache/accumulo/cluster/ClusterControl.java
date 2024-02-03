@@ -19,10 +19,13 @@
 package org.apache.accumulo.cluster;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
+import org.apache.accumulo.minicluster.ResourceGroups;
 import org.apache.accumulo.minicluster.ServerType;
 
 /**
@@ -47,6 +50,45 @@ public interface ClusterControl {
    * successfully (return value of 0).
    */
   void adminStopAll() throws IOException;
+
+  /**
+   * @return current resource groups that determines what is running on this cluster
+   */
+  default ResourceGroups getResourceGroups() {
+    // TODO implement
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Makes the cluster match the numbers of servers specified in the given resource groups object.
+   * This will start and stop server processes depending on what was set and the current state of
+   * the cluster. For example if the current resource groups for the cluster are :
+   *
+   * <ul>
+   * <li>MANAGER, "default" ,1</li>
+   * <li>TSERVER, "default", 2</li>
+   * <li>COMPACTOR, "default",3</li>
+   * <li>COMPACTOR, "RGA",1</li>
+   * <li>COMPACTOR, "RGB",2</li>
+   * </ul>
+   *
+   * and the following is passed in :
+   *
+   * <ul>
+   * <li>MANAGER, "default" ,1</li>
+   * <li>TSERVER, "default", 3</li>
+   * <li>COMPACTOR, "RGA",3</li>
+   * <li>COMPACTOR, "RGB",3</li>
+   * </ul>
+   *
+   * Then this would start a new tserver, stop all compactors in the default resource group, start
+   * two compactors in RGA, and start one compactor in RGB. This would all be done before the method
+   * returns.
+   */
+  default void setResourceGroups(ResourceGroups resourceGroups) {
+    // TODO implement
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Start instances of Compactors
@@ -79,6 +121,21 @@ public interface ClusterControl {
    * Stops all occurrences of the given server
    */
   void stopAllServers(ServerType server) throws IOException;
+
+  /**
+   *  Restarts all servers in any resource groups that matches the predicate
+   */
+
+  default void restartGroups(Predicate<ResourceGroups.ResourceGroup> rgPredicate) {
+    // save the current resource groups
+    var originalRGs = getResourceGroups();
+    var filteredRGs = new HashMap<>(originalRGs.getGroupSizes());
+    filteredRGs.keySet().removeIf(rgPredicate);
+    // stop any resource groups that matched the predicate
+    setResourceGroups(ResourceGroups.builder().put(filteredRGs).build());
+    // restart those resource groups using the orginal config
+    setResourceGroups(originalRGs);
+  }
 
   /**
    * Stop the given process on the host

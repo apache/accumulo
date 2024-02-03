@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.minicluster.ServerType.COMPACTION_COORDINATOR;
+import static org.apache.accumulo.minicluster.ServerType.COMPACTOR;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -93,6 +95,8 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ResourceGroups;
+import org.apache.accumulo.minicluster.ResourceGroups.ResourceGroup;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -186,9 +190,16 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      // This is an example of using the new ResourceGroups object to start new processes
+      Map<ResourceGroup, Integer> currentRGs = getCluster().getClusterControl().getResourceGroups().getGroupSizes();
+      ResourceGroups newRGs = ResourceGroups.builder()
+              .put(currentRGs) // maintain the current resource group config
+              .put(COMPACTION_COORDINATOR, 1)
+              .put(COMPACTOR, QUEUE1, 1)
+              .put(COMPACTOR, QUEUE2, 1)
+              .build();
+      // start the compaction coordinator and two new compactors and maintain existing servers
+      getCluster().getClusterControl().setResourceGroups(newRGs);
 
       compact(client, table1, 2, QUEUE1, true);
       verify(client, table1, 2);
@@ -199,7 +210,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       compact(client, table2, 3, QUEUE2, true);
       verify(client, table2, 3);
-
     }
   }
 
