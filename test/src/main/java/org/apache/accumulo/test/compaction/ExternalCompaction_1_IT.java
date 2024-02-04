@@ -191,7 +191,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table2);
 
       // This is an example of using the new ResourceGroups object to start new processes
-      Map<ResourceGroup, Integer> currentRGs = getCluster().getClusterControl().getResourceGroups().getGroupSizes();
+      ResourceGroups currentRGs = getCluster().getClusterControl().getResourceGroups();
       ResourceGroups newRGs = ResourceGroups.builder()
               .put(currentRGs) // maintain the current resource group config
               .put(COMPACTION_COORDINATOR, 1)

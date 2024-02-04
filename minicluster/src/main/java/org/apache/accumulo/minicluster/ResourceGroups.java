@@ -3,11 +3,13 @@ package org.apache.accumulo.minicluster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import com.google.common.base.Preconditions;
 
 /**
- * Specified the desired numbers of servers by server type and resource group type.
+ * An immutable, validated object that specifies the desired numbers of servers by server type and
+ * resource group type.
  *
  * @since @3.1.0
  */
@@ -83,7 +85,13 @@ public class ResourceGroups {
 
     Builder put(ServerType type, String resourceGroup, int numServers);
 
-    Builder put(Map<ResourceGroup,Integer> existingGoals);
+    Builder put(ResourceGroups existingGroups);
+
+    /**
+     * Removes any groups previously added that match the predicate. Useful in conjunction with
+     * {@link #put(ResourceGroups)}
+     */
+    Builder removeIf(Predicate<ResourceGroup> groupPredicate);
 
     ResourceGroups build();
   }
@@ -118,9 +126,16 @@ public class ResourceGroups {
       }
 
       @Override
-      public Builder put(Map<ResourceGroup,Integer> existingGoals) {
+      public Builder put(ResourceGroups existingGroups) {
         // not calling rgMap.putAll so that input can be verified
-        existingGoals.forEach((rg, ns) -> put(rg.getServerType(), rg.getResourceGroup(), ns));
+        existingGroups.getGroupSizes()
+            .forEach((rg, ns) -> put(rg.getServerType(), rg.getResourceGroup(), ns));
+        return this;
+      }
+
+      @Override
+      public Builder removeIf(Predicate<ResourceGroup> groupPredicate) {
+        rgMap.keySet().removeIf(groupPredicate);
         return this;
       }
 

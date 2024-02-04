@@ -19,7 +19,6 @@
 package org.apache.accumulo.cluster;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
@@ -123,16 +122,14 @@ public interface ClusterControl {
   void stopAllServers(ServerType server) throws IOException;
 
   /**
-   *  Restarts all servers in any resource groups that matches the predicate
+   * Restarts all servers in any resource groups that matches the predicate
    */
 
   default void restartGroups(Predicate<ResourceGroups.ResourceGroup> rgPredicate) {
     // save the current resource groups
     var originalRGs = getResourceGroups();
-    var filteredRGs = new HashMap<>(originalRGs.getGroupSizes());
-    filteredRGs.keySet().removeIf(rgPredicate);
     // stop any resource groups that matched the predicate
-    setResourceGroups(ResourceGroups.builder().put(filteredRGs).build());
+    setResourceGroups(ResourceGroups.builder().put(originalRGs).removeIf(rgPredicate).build());
     // restart those resource groups using the orginal config
     setResourceGroups(originalRGs);
   }
