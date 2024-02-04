@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -67,13 +68,15 @@ public class ZookeeperFateIT extends FateIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred), sctx);
+    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator),
+        sctx);
   }
 
   @Override

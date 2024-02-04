@@ -20,6 +20,7 @@ package org.apache.accumulo.test.fate.accumulo;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
@@ -38,12 +39,13 @@ public class AccumuloStoreFateIT extends FateStoreIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws Exception {
     String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
-      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred),
+      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
     }
   }

@@ -31,6 +31,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -56,12 +57,22 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   // Default maximum size of 100,000 transactions before deferral is stopped and
   // all existing transactions are processed immediately again
-  protected static final int DEFAULT_MAX_DEFERRED = 100_000;
+  public static final int DEFAULT_MAX_DEFERRED = 100_000;
+
+  public static final FateIdGenerator DEFAULT_FATE_ID_GENERATOR = new FateIdGenerator() {
+    @Override
+    public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
+      HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
+      long tid = hashCode.asLong() & 0x7fffffffffffffffL;
+      return FateId.from(instanceType, tid);
+    }
+  };
 
   protected final Set<FateId> reserved;
   protected final Map<FateId,Long> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
+  private final FateIdGenerator fateIdGenerator;
 
   // This is incremented each time a transaction was unreserved that was non new
   protected final SignalCount unreservedNonNewCount = new SignalCount();
@@ -70,11 +81,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   protected final SignalCount unreservedRunnableCount = new SignalCount();
 
   public AbstractFateStore() {
-    this(DEFAULT_MAX_DEFERRED);
+    this(DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AbstractFateStore(int maxDeferred) {
+  public AbstractFateStore(int maxDeferred, FateIdGenerator fateIdGenerator) {
     this.maxDeferred = maxDeferred;
+    this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
   }
@@ -244,10 +256,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public FateId create(FateKey fateKey) {
-    HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
-    long tid = hashCode.asLong() & 0x7fffffffffffffffL;
-    FateId fateId = FateId.from(getInstanceType(), tid);
-
+    FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
     Pair<TStatus,Optional<FateKey>> statusAndKey = getStatusAndKey(fateId);
     TStatus status = statusAndKey.getFirst();
     Optional<FateKey> tFateKey = statusAndKey.getSecond();
@@ -261,10 +270,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     } else if (status == TStatus.NEW) {
       Preconditions.checkState(tFateKey.isPresent(), "Tx key column is missing");
       Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
-          "Collision detected for tid %s", tid);
+          "Collision detected for tid %s", fateId.getTid());
       // Case 3: Status is some other state which means already in progress
     } else {
-      throw new IllegalStateException("Existing transaction already exists for: " + tid);
+      throw new IllegalStateException(
+          "Existing transaction already exists for: " + fateId.getTid());
     }
 
     return fateId;
@@ -392,6 +402,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     public FateId getID() {
       return fateId;
     }
+  }
+
+  public interface FateIdGenerator {
+    FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey);
   }
 
   protected byte[] serializeTxInfo(Serializable so) {

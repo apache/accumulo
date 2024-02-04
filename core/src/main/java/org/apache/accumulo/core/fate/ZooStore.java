@@ -48,6 +48,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 
 //TODO use zoocache? - ACCUMULO-1297
@@ -65,12 +66,13 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
-    this(path, zk, DEFAULT_MAX_DEFERRED);
+    this(path, zk, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred)
+  @VisibleForTesting
+  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred, FateIdGenerator fateIdGenerator)
       throws KeeperException, InterruptedException {
-    super(maxDeferred);
+    super(maxDeferred, fateIdGenerator);
     this.path = path;
     this.zk = zk;
 

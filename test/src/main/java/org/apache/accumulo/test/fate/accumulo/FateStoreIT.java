@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
@@ -150,7 +152,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   @Test
   public void testDeferredOverflow() throws Exception {
-    executeTest(this::testDeferredOverflow, 10);
+    executeTest(this::testDeferredOverflow, 10, AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
   }
 
   protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)
@@ -263,6 +265,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore1.delete();
       txStore2.delete();
+      txStore1.unreserve(0, TimeUnit.SECONDS);
+      txStore2.unreserve(0, TimeUnit.SECONDS);
     }
   }
 
@@ -289,6 +293,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(1, store.list().count());
     } finally {
       txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
     }
   }
 
@@ -301,9 +306,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId1 = store.create(fateKey);
+    FateId fateId = store.create(fateKey);
 
-    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
+    FateTxStore<TestEnv> txStore = store.reserve(fateId);
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);
@@ -313,7 +318,52 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertThrows(IllegalStateException.class, () -> store.create(fateKey));
     } finally {
       txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
     }
+
+    try {
+      // After deletion, make sure we can create again with the same key
+      fateId = store.create(fateKey);
+      txStore = store.reserve(fateId);
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+  }
+
+  @Test
+  public void testCreateWithKeyCollision() throws Exception {
+    // Replace the default hasing algorithm with one that always returns the same tid so
+    // we can check duplicate detection with different keys
+    executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
+        (instanceType, fateKey) -> FateId.from(instanceType, 1000));
+  }
+
+  protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke1 = new KeyExtent(TableId.of("tableId1"), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke2 = new KeyExtent(TableId.of("tableId2"), new Text("ddd"), new Text("bbb"));
+
+    FateKey fateKey1 = FateKey.forSplit(ke1);
+    FateKey fateKey2 = FateKey.forSplit(ke2);
+    FateId fateId1 = store.create(fateKey1);
+
+    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
+    try {
+      try {
+        store.create(fateKey2);
+        fail("Expected IllegalStateException due to hashing collision");
+      } catch (Exception e) {
+        assertInstanceOf(IllegalStateException.class, e);
+        assertEquals("Collision detected for tid 1000", e.getMessage());
+      }
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
   }
 
   private static class TestOperation2 extends TestRepo {

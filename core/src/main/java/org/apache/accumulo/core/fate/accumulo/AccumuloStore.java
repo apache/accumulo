@@ -56,6 +56,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
@@ -71,11 +72,13 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
-    this(context, tableName, DEFAULT_MAX_DEFERRED);
+    this(context, tableName, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AccumuloStore(ClientContext context, String tableName, int maxDeferred) {
-    super(maxDeferred);
+  @VisibleForTesting
+  public AccumuloStore(ClientContext context, String tableName, int maxDeferred,
+      FateIdGenerator fateIdGenerator) {
+    super(maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
