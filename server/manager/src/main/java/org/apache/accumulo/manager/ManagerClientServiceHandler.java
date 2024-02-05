@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
@@ -630,7 +630,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         KeyExtent ke = KeyExtent.fromThrift(e);
         if (recentHostingRequest.getIfPresent(ke) == null) {
           mutator.mutateTablet(ke).requireAbsentOperation()
-              .requireHostingGoal(TabletHostingGoal.ONDEMAND).requireAbsentLocation()
+              .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
               .setHostingRequested().submit(TabletMetadata::getHostingRequested);
         } else {
           log.trace("Ignoring hosting request because it was recently requested {}", ke);

@@ -33,7 +33,9 @@ import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 
 /**
@@ -261,6 +263,19 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  /**
+   * Quick validation to see if value has been converted by checking if the candidate looks like
+   * json by checking the candidate starts with "{" and ends with "}".
+   *
+   * @param candidate a possible file: reference.
+   * @return false if a likely a json object, true if not a likely json object
+   */
+  @VisibleForTesting
+  public static boolean fileNeedsConversion(@NonNull final String candidate) {
+    String trimmed = candidate.trim();
+    return !trimmed.startsWith("{") || !trimmed.endsWith("}");
   }
 
   private static class TabletFileCq {

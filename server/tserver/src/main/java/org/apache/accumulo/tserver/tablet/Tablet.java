@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
@@ -1416,8 +1416,8 @@ public class Tablet extends TabletBase {
   }
 
   public boolean isOnDemand() {
-    // TODO a change in the hosting goal could refresh online tablets
-    return getMetadata().getHostingGoal() == TabletHostingGoal.ONDEMAND;
+    // TODO a change in the tablet availability could refresh online tablets
+    return getMetadata().getTabletAvailability() == TabletAvailability.ONDEMAND;
   }
 
   // The purpose of this lock is to prevent race conditions between concurrent refresh RPC calls and

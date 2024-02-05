@@ -88,8 +88,8 @@ public enum TabletGoalState {
         return UNASSIGNED;
       }
 
-      switch (tm.getHostingGoal()) {
-        case NEVER:
+      switch (tm.getTabletAvailability()) {
+        case UNHOSTED:
           return UNASSIGNED;
         case ONDEMAND:
           if (!tm.getHostingRequested()) {
