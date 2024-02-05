@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
@@ -69,7 +70,7 @@ public class CommitCompaction extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     var ecid = ExternalCompactionId.of(commitData.ecid);
     var newFile = Optional.ofNullable(newDatafile).map(f -> ReferencedTabletFile.of(new Path(f)));
 

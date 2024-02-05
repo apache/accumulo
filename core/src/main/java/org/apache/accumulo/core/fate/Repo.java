@@ -25,9 +25,9 @@ import java.io.Serializable;
  */
 public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
 
-  Repo<T> call(long tid, T environment) throws Exception;
+  Repo<T> call(FateId fateId, T environment) throws Exception;
 
-  void undo(long tid, T environment) throws Exception;
+  void undo(FateId fateId, T environment) throws Exception;
 
   // this allows the last fate op to return something to the user
   String getReturn();

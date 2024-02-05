@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
@@ -72,24 +73,26 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, TableOperation.COMPACT)
+        + Utils.reserveTable(env, tableId, fateId, false, true, TableOperation.COMPACT);
   }
 
   @Override
-  public Repo<Manager> call(final long tid, Manager env) throws Exception {
-    CompactionConfigStorage.setConfig(env.getContext(), tid, config);
+  public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    CompactionConfigStorage.setConfig(env.getContext(), fateId.getTid(), config);
     return new CompactionDriver(namespaceId, tableId, startRow, endRow);
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     try {
-      CompactionConfigStorage.deleteConfig(env.getContext(), tid);
+      // ELASTICITY_TODO DEFERRED - ISSUE 4044
+      CompactionConfigStorage.deleteConfig(env.getContext(), fateId.getTid());
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, tid, false);
-      Utils.unreserveTable(env, tableId, tid, false);
+      Utils.unreserveNamespace(env, namespaceId, fateId, false);
+      Utils.unreserveTable(env, tableId, fateId, false);
     }
   }
 

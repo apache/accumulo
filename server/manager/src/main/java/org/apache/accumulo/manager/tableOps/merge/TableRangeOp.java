@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.TextUtil;
@@ -39,9 +40,9 @@ public class TableRangeOp extends ManagerRepo {
   private final MergeInfo data;
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, data.namespaceId, tid, false, true, TableOperation.MERGE)
-        + Utils.reserveTable(env, data.tableId, tid, true, true, TableOperation.MERGE);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, data.namespaceId, fateId, false, true, TableOperation.MERGE)
+        + Utils.reserveTable(env, data.tableId, fateId, true, true, TableOperation.MERGE);
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,
@@ -52,7 +53,7 @@ public class TableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
     if (AccumuloTable.ROOT.tableId().equals(data.tableId)
         && MergeInfo.Operation.MERGE.equals(data.op)) {
@@ -68,8 +69,8 @@ public class TableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
-    Utils.unreserveNamespace(env, data.namespaceId, tid, false);
-    Utils.unreserveTable(env, data.tableId, tid, true);
+  public void undo(FateId fateId, Manager env) throws Exception {
+    Utils.unreserveNamespace(env, data.namespaceId, fateId, false);
+    Utils.unreserveTable(env, data.tableId, fateId, true);
   }
 }

@@ -26,7 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -52,10 +52,11 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
+  public long isReady(FateId fateId, Manager env) throws Exception {
     var range = data.getReserveExtent();
-    log.debug("{} reserving tablets in range {}", FateTxId.formatTid(tid), range);
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
+    log.debug("{} reserving tablets in range {}", fateId, range);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
 
     AtomicLong opsAccepted = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
@@ -98,7 +99,7 @@ public class ReserveTablets extends ManagerRepo {
 
     log.debug(
         "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",
-        FateTxId.formatTid(tid), data.op, count, otherOps, opsSet, locations, opsAccepted, wals);
+        fateId, data.op, count, otherOps, opsSet, locations, opsAccepted, wals);
 
     // while there are table lock a tablet can be concurrently deleted, so should always see
     // tablets
@@ -108,7 +109,7 @@ public class ReserveTablets extends ManagerRepo {
       // operation ids were set and tablets have locations, so lets send a signal to get them
       // unassigned
       env.getEventCoordinator().event(range, "Tablets %d were reserved for merge %s",
-          opsAccepted.get(), FateTxId.formatTid(tid));
+          opsAccepted.get(), fateId);
     }
 
     if (locations > 0 || otherOps > 0 || wals > 0) {
@@ -126,7 +127,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     return new CountFiles(data);
   }
 }
