@@ -88,6 +88,7 @@ public class VisibilityEvaluatorTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testQuote() {
     assertEquals("\"A#C\"", quote("A#C"));
     assertEquals("\"A\\\"C\"", quote("A\"C"));
@@ -98,6 +99,7 @@ public class VisibilityEvaluatorTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testNonAscii() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("五", "六", "八", "九", "五十"));
 

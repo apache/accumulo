@@ -163,6 +163,7 @@ public class ColumnVisibilityTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testToString() {
     ColumnVisibility cv = new ColumnVisibility(quote("a"));
     assertEquals("[a]", cv.toString());

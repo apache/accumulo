@@ -536,7 +536,9 @@ public class ColumnVisibility {
    * @since 3.1.0
    */
   public ColumnVisibility(AccessExpression expression) {
-    this(expression.getExpression());
+    // AccessExpression is a validated immutable object, so no need to re validate
+    this.expression = expression.getExpression().getBytes(UTF_8);
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(this.expression));
   }
 
   @Override
@@ -599,8 +601,9 @@ public class ColumnVisibility {
    *
    * @param term term to quote
    * @return quoted term (unquoted if unnecessary)
+   * @deprecated use {@link AccessExpression#quote(String)}
    */
-  // TODO deprecate?
+  @Deprecated(since = "3.1.0")
   public static String quote(String term) {
     return AccessExpression.quote(term);
   }
@@ -612,8 +615,9 @@ public class ColumnVisibility {
    * @param term term to quote, encoded as UTF-8 bytes
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
+   * @deprecated use {@link AccessExpression#quote(byte[])}
    */
-  // TODO deprecate?
+  @Deprecated(since = "3.1.0")
   public static byte[] quote(byte[] term) {
     return AccessExpression.quote(term);
   }
