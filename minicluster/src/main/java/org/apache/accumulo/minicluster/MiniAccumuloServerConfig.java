@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -14,6 +16,8 @@ import com.google.common.base.Preconditions;
  * @since @3.1.0
  */
 public class MiniAccumuloServerConfig {
+
+  private static final String DEFAULT_RG = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
 
   public static class ResourceGroup {
     private final ServerType serverType;
@@ -31,8 +35,7 @@ public class MiniAccumuloServerConfig {
       if (serverType == ServerType.ZOOKEEPER || serverType == ServerType.COMPACTION_COORDINATOR
           || serverType == ServerType.MANAGER || serverType == ServerType.GARBAGE_COLLECTOR
           || serverType == ServerType.MONITOR) {
-        // TODO use constant
-        Preconditions.checkArgument(resourceGroup.equals("default"),
+        Preconditions.checkArgument(resourceGroup.equals(DEFAULT_RG),
             "For server type %s can only use default resource group not : %s", serverType,
             resourceGroup);
       }
@@ -104,17 +107,17 @@ public class MiniAccumuloServerConfig {
 
       @Override
       public Builder putDefaults() {
-        put(ServerType.MANAGER, "default", 1);
-        put(ServerType.GARBAGE_COLLECTOR, "default", 1);
-        put(ServerType.ZOOKEEPER, "default", 1);
-        put(ServerType.TABLET_SERVER, "default", 1);
+        put(ServerType.MANAGER, DEFAULT_RG, 1);
+        put(ServerType.GARBAGE_COLLECTOR, DEFAULT_RG, 1);
+        put(ServerType.ZOOKEEPER, DEFAULT_RG, 1);
+        put(ServerType.TABLET_SERVER, DEFAULT_RG, 1);
         // TODO in elasticity will need to add compactors
         return this;
       }
 
       @Override
       public Builder putDefaultResourceGroup(ServerType serverType, int numServers) {
-        return put(serverType, "default", numServers);
+        return put(serverType, DEFAULT_RG, numServers);
       }
 
       @Override

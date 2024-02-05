@@ -85,8 +85,7 @@ public interface ClusterControl {
    * two compactors in RGA, and start one compactor in RGB. This would all be done before the method
    * returns.
    */
-  default void
-      setServerConfiguration(MiniAccumuloServerConfig miniAccumuloServerConfig) {
+  default void setServerConfiguration(MiniAccumuloServerConfig miniAccumuloServerConfig) {
     // TODO implement
     throw new UnsupportedOperationException();
   }
@@ -173,7 +172,8 @@ public interface ClusterControl {
   /**
    * Send SIGKILL to the given process on the host
    */
-  // TODO remove in favor of setServerConfiguration.. could have a variant of setServerConfiguration that
+  // TODO remove in favor of setServerConfiguration.. could have a variant of setServerConfiguration
+  // that
   // specifies how processes will be killed
   void kill(ServerType server, String hostname) throws IOException;
 }
