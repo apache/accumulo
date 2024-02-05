@@ -163,6 +163,7 @@ public class Utils {
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       boolean writeLock) {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044 ... should lock data use full FateId?
     byte[] lockData = fateId.getHexTid().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
