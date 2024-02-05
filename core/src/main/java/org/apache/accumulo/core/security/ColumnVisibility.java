@@ -297,7 +297,6 @@ public class ColumnVisibility {
    */
   @Deprecated(since = "3.1.0")
   public byte[] flatten() {
-    // expression was not normalized when we created it
     return AccessExpression.of(expression, true).getExpression().getBytes(UTF_8);
   }
 
