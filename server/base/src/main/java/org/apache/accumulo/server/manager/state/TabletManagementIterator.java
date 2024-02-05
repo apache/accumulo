@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -257,6 +258,11 @@ public class TabletManagementIterator extends SkippingIterator {
 
     if (shouldReturnDueToLocation(tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+    }
+
+    if (!tm.getLogs().isEmpty() && (tm.getOperationId() == null
+        || tm.getOperationId().getType() != TabletOperationType.DELETING)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_RECOVERY);
     }
 
     if (tm.getOperationId() == null) {
