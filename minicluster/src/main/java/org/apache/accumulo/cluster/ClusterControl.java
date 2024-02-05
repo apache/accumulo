@@ -24,7 +24,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.minicluster.ResourceGroups;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfiguration;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfiguration.ResourceGroup;
 import org.apache.accumulo.minicluster.ServerType;
 
 /**
@@ -53,7 +54,7 @@ public interface ClusterControl {
   /**
    * @return current resource groups that determines what is running on this cluster
    */
-  default ResourceGroups getResourceGroups() {
+  default MiniAccumuloServerConfiguration getServerConfiguration() {
     // TODO implement
     throw new UnsupportedOperationException();
   }
@@ -84,7 +85,8 @@ public interface ClusterControl {
    * two compactors in RGA, and start one compactor in RGB. This would all be done before the method
    * returns.
    */
-  default void setResourceGroups(ResourceGroups resourceGroups) {
+  default void
+      setServerConfiguration(MiniAccumuloServerConfiguration miniAccumuloServerConfiguration) {
     // TODO implement
     throw new UnsupportedOperationException();
   }
@@ -96,6 +98,7 @@ public interface ClusterControl {
    * @param limit number of compactors to start
    * @param queueName name of queue
    */
+  // TODO remove in favor of setServerConfiguration
   void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
       throws IOException;
 
@@ -104,58 +107,73 @@ public interface ClusterControl {
    *
    * @param coordinator compaction coordinator class
    */
+  // TODO remove in favor of setServerConfiguration
   void startCoordinator(Class<? extends CompactionCoordinator> coordinator) throws IOException;
 
   /**
    * Starts all occurrences of the given server
    */
+  // TODO remove in favor of setServerConfiguration
   void startAllServers(ServerType server) throws IOException;
 
   /**
    * Start the given process on the host
    */
+  // TODO remove in favor of setServerConfiguration
   void start(ServerType server, String hostname) throws IOException;
 
   /**
    * Stops all occurrences of the given server
    */
-  void stopAllServers(ServerType server) throws IOException;
+  // TODO remove in favor of setServerConfiguration
+  default void stopAllServers(ServerType server) throws IOException {
+    var originalSC = getServerConfiguration();
+    setServerConfiguration(MiniAccumuloServerConfiguration.builder().put(originalSC)
+        .removeIf(rg -> rg.getServerType() == server).build());
+  }
 
   /**
    * Restarts all servers in any resource groups that matches the predicate
    */
 
-  default void restartGroups(Predicate<ResourceGroups.ResourceGroup> rgPredicate) {
+  default void restartGroups(Predicate<ResourceGroup> rgPredicate) {
     // save the current resource groups
-    var originalRGs = getResourceGroups();
+    var originalSC = getServerConfiguration();
     // stop any resource groups that matched the predicate
-    setResourceGroups(ResourceGroups.builder().put(originalRGs).removeIf(rgPredicate).build());
+    setServerConfiguration(
+        MiniAccumuloServerConfiguration.builder().put(originalSC).removeIf(rgPredicate).build());
     // restart those resource groups using the orginal config
-    setResourceGroups(originalRGs);
+    setServerConfiguration(originalSC);
   }
 
   /**
    * Stop the given process on the host
    */
+  // TODO remove in favor of setServerConfiguration... also no test ever uses a hostname
   void stop(ServerType server, String hostname) throws IOException;
 
   /**
    * Send the provided signal to the process on the host
    */
+  // TODO remove no test seems to use this
   void signal(ServerType server, String hostname, String signal) throws IOException;
 
   /**
    * Send SIGSTOP to the given process on the host
    */
+  // TODO remove no test seems to use this
   void suspend(ServerType server, String hostname) throws IOException;
 
   /**
    * Send SIGCONT to the given process on the host
    */
+  // TODO remove no test seems to use this
   void resume(ServerType server, String hostname) throws IOException;
 
   /**
    * Send SIGKILL to the given process on the host
    */
+  // TODO remove in favor of setServerConfiguration.. could have a variant of setServerConfiguration that
+  // specifies how processes will be killed
   void kill(ServerType server, String hostname) throws IOException;
 }

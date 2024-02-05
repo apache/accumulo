@@ -4,17 +4,18 @@ import java.io.File;
 
 import org.junit.jupiter.api.Test;
 
-public class MiniAccumuloResourceGroupsTest {
+public class MiniAccumuloMiniAccumuloServerConfigurationTest {
 
   // example of starting a mini cluster with multiple resource groups
 
   @Test
   public void testResourceGroups() throws Exception {
-    var builder = ResourceGroups.builder().putDefaults();
-    builder.put(ServerType.COMPACTOR, "CG1", 2);
-    builder.put(ServerType.COMPACTOR, "CG2", 2);
-    builder.put(ServerType.TABLET_SERVER, "TS1", 2);
-    builder.put(ServerType.SCAN_SERVER, "SG1", 2);
+    var builder = MiniAccumuloServerConfiguration.builder().putDefaults();
+    builder.putTabletServerResourceGroup("TS1", 2);
+    builder.putScanServerResourceGroup("SG1", 2);
+    builder.putCompactorResourceGroup("CG1", 2);
+    builder.putCompactorResourceGroup("CG2", 2);
+
     var resourceGroups = builder.build();
 
     File dir = null; // TODO

@@ -13,7 +13,7 @@ import com.google.common.base.Preconditions;
  *
  * @since @3.1.0
  */
-public class ResourceGroups {
+public class MiniAccumuloServerConfiguration {
 
   public static class ResourceGroup {
     private final ServerType serverType;
@@ -64,7 +64,7 @@ public class ResourceGroups {
 
   private final Map<ResourceGroup,Integer> resourceGroupSizes;
 
-  private ResourceGroups(Map<ResourceGroup,Integer> resourceGroupSizes) {
+  private MiniAccumuloServerConfiguration(Map<ResourceGroup,Integer> resourceGroupSizes) {
     this.resourceGroupSizes = resourceGroupSizes;
   }
 
@@ -78,22 +78,23 @@ public class ResourceGroups {
      */
     Builder putDefaults();
 
-    /**
-     * Sets the number of servers in the default resource group for a server type.
-     */
-    Builder put(ServerType type, int numServers);
+    Builder putDefaultResourceGroup(ServerType serverType, int numServers);
 
-    Builder put(ServerType type, String resourceGroup, int numServers);
+    Builder putCompactorResourceGroup(String resourceGroupName, int numCompactors);
 
-    Builder put(ResourceGroups existingGroups);
+    Builder putScanServerResourceGroup(String resourceGroupName, int numScanServers);
+
+    Builder putTabletServerResourceGroup(String resourceGroupName, int numTabletServers);
+
+    Builder put(MiniAccumuloServerConfiguration existingGroups);
 
     /**
      * Removes any groups previously added that match the predicate. Useful in conjunction with
-     * {@link #put(ResourceGroups)}
+     * {@link #put(MiniAccumuloServerConfiguration)}
      */
     Builder removeIf(Predicate<ResourceGroup> groupPredicate);
 
-    ResourceGroups build();
+    MiniAccumuloServerConfiguration build();
   }
 
   public static Builder builder() {
@@ -112,13 +113,26 @@ public class ResourceGroups {
       }
 
       @Override
-      public Builder put(ServerType type, int numServers) {
-        // TODO use a constatnt
-        return put(type, "default", numServers);
+      public Builder putDefaultResourceGroup(ServerType serverType, int numServers) {
+        return put(serverType, "default", numServers);
       }
 
       @Override
-      public Builder put(ServerType type, String resourceGroup, int numServers) {
+      public Builder putCompactorResourceGroup(String resourceGroupName, int numCompactors) {
+        return put(ServerType.COMPACTOR, resourceGroupName, numCompactors);
+      }
+
+      @Override
+      public Builder putScanServerResourceGroup(String resourceGroupName, int numScanServers) {
+        return put(ServerType.SCAN_SERVER, resourceGroupName, numScanServers);
+      }
+
+      @Override
+      public Builder putTabletServerResourceGroup(String resourceGroupName, int numTabletServers) {
+        return put(ServerType.TABLET_SERVER, resourceGroupName, numTabletServers);
+      }
+
+      private Builder put(ServerType type, String resourceGroup, int numServers) {
         Preconditions.checkArgument(numServers > 0, "Number of servers must be positive not : %s",
             numServers);
         rgMap.put(new ResourceGroup(type, resourceGroup), numServers);
@@ -126,7 +140,7 @@ public class ResourceGroups {
       }
 
       @Override
-      public Builder put(ResourceGroups existingGroups) {
+      public Builder put(MiniAccumuloServerConfiguration existingGroups) {
         // not calling rgMap.putAll so that input can be verified
         existingGroups.getGroupSizes()
             .forEach((rg, ns) -> put(rg.getServerType(), rg.getResourceGroup(), ns));
@@ -140,9 +154,9 @@ public class ResourceGroups {
       }
 
       @Override
-      public ResourceGroups build() {
+      public MiniAccumuloServerConfiguration build() {
         // TODO need to prevent further calls to put
-        return new ResourceGroups(Map.copyOf(rgMap));
+        return new MiniAccumuloServerConfiguration(Map.copyOf(rgMap));
       }
     };
   }
