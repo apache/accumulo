@@ -87,18 +87,18 @@ public class ListTabletsCommand extends Command {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();
-          lines.add(String.format(
-              "%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", i,
-              tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
-              getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
-              getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
-              tabletInfo.getTabletState(), tabletInfo.getLocation().orElse("None"),
-              tabletInfo.getTabletId().getTable(),
-              tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
-                  : tabletInfo.getTabletId().getPrevEndRow().toString(),
-              tabletInfo.getTabletId().getEndRow() == null ? "+INF"
-                  : tabletInfo.getTabletId().getEndRow().toString(),
-              tabletInfo.getHostingGoal()));
+          lines.add(
+              String.format("%-4d %-15s %-5d %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", i,
+                  tabletInfo.getTabletDir(), tabletInfo.getNumFiles(), tabletInfo.getNumWalLogs(),
+                  getEstimatedEntries(tabletInfo.getEstimatedEntries(), humanReadable),
+                  getEstimatedSize(tabletInfo.getEstimatedSize(), humanReadable),
+                  tabletInfo.getTabletState(), tabletInfo.getLocation().orElse("None"),
+                  tabletInfo.getTabletId().getTable(),
+                  tabletInfo.getTabletId().getPrevEndRow() == null ? "-INF"
+                      : tabletInfo.getTabletId().getPrevEndRow().toString(),
+                  tabletInfo.getTabletId().getEndRow() == null ? "+INF"
+                      : tabletInfo.getTabletId().getEndRow().toString(),
+                  tabletInfo.getTabletAvailability()));
         });
       }
     }

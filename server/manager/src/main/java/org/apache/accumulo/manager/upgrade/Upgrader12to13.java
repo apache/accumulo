@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -64,7 +64,7 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    LOG.info("Setting root table stored hosting goal");
+    LOG.info("setting root table stored hosting availability");
     addHostingGoalToRootTable(context);
     LOG.info("Removing compact-id paths from ZooKeeper");
     removeZKCompactIdPaths(context);
@@ -76,7 +76,7 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeRoot(ServerContext context) {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
-    LOG.info("Setting metadata table hosting goal");
+    LOG.info("setting metadata table hosting availability");
     addHostingGoalToMetadataTable(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
     removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
@@ -88,7 +88,7 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeMetadata(ServerContext context) {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
-    LOG.info("Setting hosting goal on user tables");
+    LOG.info("setting hosting availability on user tables");
     addHostingGoalToUserTables(context);
     LOG.info("Deleting external compaction final states from user tables");
     deleteExternalCompactionFinalStates(context);
@@ -223,8 +223,8 @@ public class Upgrader12to13 implements Upgrader {
         TabletsMetadata tm =
             context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(
-          t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ALWAYS).mutate());
+      tm.forEach(t -> mut.mutateTablet(t.getExtent())
+          .putTabletAvailability(TabletAvailability.HOSTED).mutate());
     }
   }
 
@@ -241,8 +241,8 @@ public class Upgrader12to13 implements Upgrader {
         TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
             .fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(
-          t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ONDEMAND).mutate());
+      tm.forEach(t -> mut.mutateTablet(t.getExtent())
+          .putTabletAvailability(TabletAvailability.ONDEMAND).mutate());
     }
   }
 

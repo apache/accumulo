@@ -40,7 +40,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -138,14 +138,14 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
 
     Map<String,String> properties = new HashMap<>();
     properties.put("table.custom.assignment.group", "GROUP1");
 
     NewTableConfiguration ntc2 = new NewTableConfiguration();
-    ntc2.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc2.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc2.withSplits(splits);
     ntc2.setProperties(properties);
 
@@ -195,7 +195,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     properties.put("table.custom.assignment.group", "GROUP2");
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
     ntc1.setProperties(properties);
 
@@ -248,7 +248,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
 
     String tableName = this.getUniqueNames(1)[0];

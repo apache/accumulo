@@ -62,7 +62,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.rfile.RFile;
@@ -744,10 +744,10 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // create a table with a lot of initial config
       client.tableOperations().create(everythingTable, getEverythingTableConfig());
 
-      // set last tablet in table to be always hosted, setting a hosting goal here will tests export
-      // and cloning tables with hosting goals
-      client.tableOperations().setTabletHostingGoal(everythingTable,
-          new Range(everythingSplits.last(), false, null, true), TabletHostingGoal.ALWAYS);
+      // set last tablet in table to always be HOSTED, setting a tablet availability here will test
+      // export and cloning tables with tablet availabilities
+      client.tableOperations().setTabletAvailability(everythingTable,
+          new Range(everythingSplits.last(), false, null, true), TabletAvailability.HOSTED);
 
       write(client, everythingTable, generateMutations(0, 100, tr -> true));
 
@@ -920,9 +920,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         client.tableOperations().getTabletInformation(table, new Range())) {
       tabletInfo.forEach(tabletInformation -> {
         if (tabletInformation.getTabletId().getEndRow() == null) {
-          assertEquals(TabletHostingGoal.ALWAYS, tabletInformation.getHostingGoal());
+          assertEquals(TabletAvailability.HOSTED, tabletInformation.getTabletAvailability());
         } else {
-          assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getHostingGoal());
+          assertEquals(TabletAvailability.ONDEMAND, tabletInformation.getTabletAvailability());
         }
       });
     }

@@ -91,7 +91,7 @@ class PopulateMetadata extends ManagerRepo {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, tableInfo.getTimeType()));
         tabletMutator.putZooLock(context.getZooKeeperRoot(), lock);
-        tabletMutator.putHostingGoal(tableInfo.getInitialHostingGoal());
+        tabletMutator.putTabletAvailability(tableInfo.getInitialTabletAvailability());
         tabletMutator.mutate();
 
         prevSplit = split;
