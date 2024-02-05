@@ -146,7 +146,7 @@ public class Utils {
 
     ZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
-   // ELASTICITY_TODO DEFERRED - ISSUE 4044 .. should the full FateId be passed below?
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044 .. should the full FateId be passed below?
     if (ZooReservation.attempt(zk, resvPath, fateId.getHexTid(), "")) {
       return 0;
     } else {
