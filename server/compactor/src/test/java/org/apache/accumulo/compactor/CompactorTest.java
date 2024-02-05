@@ -458,7 +458,7 @@ public class CompactorTest {
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    conf.set(Property.COMPACTOR_CHECK_MAX_WAIT, "800ms");
+    conf.set(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "800ms");
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();

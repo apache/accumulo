@@ -1432,8 +1432,14 @@ public enum Property {
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
   @Experimental
-  COMPACTOR_CHECK_MAX_WAIT("compactor.check.max.wait", "5m", PropertyType.TIMEDURATION,
-      "The maximum amount of time a compactor will wait to check the coordinator for a new compaction job.",
+  COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
+      "The minimum amount of time to wait between checks for the next compaction job, backing off"
+          + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
+      "2.1.3"),
+  @Experimental
+  COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
+      "Compactors do exponential backoff when their request for work repeatedly come back empty. "
+          + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "false", PropertyType.BOOLEAN,

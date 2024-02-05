@@ -447,8 +447,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
   protected TExternalCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
+    final long startingWaitTime =
+        getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
+
     RetryableThriftCall<TExternalCompactionJob> nextJobThriftCall =
-        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 0, () -> {
+        new RetryableThriftCall<>(startingWaitTime, RetryableThriftCall.MAX_WAIT_TIME, 0, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
@@ -592,8 +595,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // Ensure a compactor sleeps at least around a second
     sleepTime = Math.max(1000, sleepTime);
     // Ensure a sleeping compactor has a configurable max sleep time
-    sleepTime =
-        Math.min(getConfiguration().getTimeInMillis(Property.COMPACTOR_CHECK_MAX_WAIT), sleepTime);
+    sleepTime = Math.min(getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME),
+        sleepTime);
     // Add some random jitter to the sleep time, that averages out to sleep time. This will spread
     // compactors out evenly over time.
     sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * random.nextDouble());

@@ -381,7 +381,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected long getMissingCompactorWarningTime() {
-    return getConfiguration().getTimeInMillis(Property.COMPACTOR_CHECK_MAX_WAIT) * 3;
+    return getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
   protected long getTServerCheckInterval() {

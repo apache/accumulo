@@ -205,7 +205,7 @@ public class CompactionCoordinatorTest {
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
 
     SiteConfiguration aconf = SiteConfiguration.empty()
-        .withOverrides(Map.of(Property.COMPACTOR_CHECK_MAX_WAIT.getKey(), "15s")).build();
+        .withOverrides(Map.of(Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(), "15s")).build();
     ConfigurationCopy config = new ConfigurationCopy(aconf);
     expect(context.getConfiguration()).andReturn(config).anyTimes();
 
