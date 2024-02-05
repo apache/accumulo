@@ -42,7 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -86,10 +86,10 @@ class LoadFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
     if (manager.onlineTabletServers().isEmpty()) {
-      log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
-          + FateTxId.formatTid(tid) + ")");
+      log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
+          + ")");
       return 100;
     }
     VolumeManager fs = manager.getVolumeManager();
@@ -97,30 +97,28 @@ class LoadFiles extends ManagerRepo {
     manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-      return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, tid);
+      return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, fateId);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) {
+  public Repo<Manager> call(final FateId fateId, final Manager manager) {
     return new RefreshTablets(bulkInfo);
   }
 
   private static class Loader {
     protected Path bulkDir;
     protected Manager manager;
-    protected long tid;
-    private String logId;
+    protected FateId fateId;
     protected boolean setTime;
     Ample.ConditionalTabletsMutator conditionalMutator;
 
     private long skipped = 0;
 
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager manager, FateId fateId, boolean setTime) throws Exception {
       this.bulkDir = bulkDir;
       this.manager = manager;
-      this.tid = tid;
-      this.logId = FateTxId.formatTid(tid);
+      this.fateId = fateId;
       this.setTime = setTime;
       conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
@@ -145,7 +143,7 @@ class LoadFiles extends ManagerRepo {
       if (setTime) {
         hostedTimestamps = allocateTimestamps(tablets, toLoad.size());
         hostedTimestamps.forEach((e, t) -> {
-          log.trace("{} allocated timestamp {} {}", logId, e, t);
+          log.trace("{} allocated timestamp {} {}", fateId, e, t);
         });
       } else {
         hostedTimestamps = Map.of();
@@ -155,7 +153,7 @@ class LoadFiles extends ManagerRepo {
         if (setTime && tablet.getLocation() != null
             && !hostedTimestamps.containsKey(tablet.getExtent())) {
           skipped++;
-          log.debug("{} tablet {} did not have a timestamp allocated, will retry later", logId,
+          log.debug("{} tablet {} did not have a timestamp allocated, will retry later", fateId,
               tablet.getExtent());
           continue;
         }
@@ -199,7 +197,8 @@ class LoadFiles extends ManagerRepo {
               .requireAbsentOperation().requireSame(tablet, LOADED, TIME, LOCATION);
 
           filesToLoad.forEach((f, v) -> {
-            tabletMutator.putBulkFile(f, tid);
+            // ELASTICITY_TODO DEFERRED - ISSUE 4044
+            tabletMutator.putBulkFile(f, fateId.getTid());
             tabletMutator.putFile(f, v);
           });
 
@@ -244,7 +243,7 @@ class LoadFiles extends ManagerRepo {
       var context = manager.getContext();
       try {
 
-        log.trace("{} sending allocate timestamps request to {} for {} extents", logId, server,
+        log.trace("{} sending allocate timestamps request to {} for {} extents", fateId, server,
             extents.size());
         var timeInMillis =
             context.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
@@ -254,14 +253,14 @@ class LoadFiles extends ManagerRepo {
         var timestamps = client.allocateTimestamps(TraceUtil.traceInfo(), context.rpcCreds(),
             extents, numStamps);
 
-        log.trace("{} allocate timestamps request to {} returned {} timestamps", logId, server,
+        log.trace("{} allocate timestamps request to {} returned {} timestamps", fateId, server,
             timestamps.size());
 
         var converted = new HashMap<KeyExtent,Long>();
         timestamps.forEach((k, v) -> converted.put(KeyExtent.fromThrift(k), v));
         return converted;
       } catch (TException ex) {
-        log.debug("rpc failed server: " + server + ", " + logId + " " + ex.getMessage(), ex);
+        log.debug("rpc failed server: " + server + ", " + fateId + " " + ex.getMessage(), ex);
         // return an empty map, should retry later
         return Map.of();
       } finally {
@@ -285,10 +284,10 @@ class LoadFiles extends ManagerRepo {
           if (condResult.getStatus() != Status.ACCEPTED) {
             var metadata = condResult.readMetadata();
             if (metadata == null) {
-              log.debug("Tablet update failed, tablet is gone {} {} {}", logId, extent,
+              log.debug("Tablet update failed, tablet is gone {} {} {}", fateId, extent,
                   condResult.getStatus());
             } else {
-              log.debug("Tablet update failed {} {} {} {} {} {}", logId, extent,
+              log.debug("Tablet update failed {} {} {} {} {} {}", fateId, extent,
                   condResult.getStatus(), metadata.getOperationId(), metadata.getLocation(),
                   metadata.getLoaded());
             }
@@ -307,7 +306,7 @@ class LoadFiles extends ManagerRepo {
    * all files have been loaded.
    */
   private long loadFiles(TableId tableId, Path bulkDir, LoadMappingIterator loadMapIter,
-      Manager manager, long tid) throws Exception {
+      Manager manager, FateId fateId) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
@@ -315,7 +314,7 @@ class LoadFiles extends ManagerRepo {
 
     Loader loader = new Loader();
     long t1;
-    loader.start(bulkDir, manager, tid, bulkInfo.setTime);
+    loader.start(bulkDir, manager, fateId, bulkInfo.setTime);
     try (TabletsMetadata tabletsMetadata =
         TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
             .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED, TIME).build()) {

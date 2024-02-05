@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.compact;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -43,9 +44,10 @@ public class RefreshTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, tid, tableId,
-        startRow, endRow, tabletMetadata -> true);
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId.getTid(),
+        tableId, startRow, endRow, tabletMetadata -> true);
 
     return new CleanUp(tableId, namespaceId, startRow, endRow);
   }

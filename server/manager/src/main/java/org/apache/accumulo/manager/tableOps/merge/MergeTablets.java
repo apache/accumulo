@@ -42,7 +42,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -74,12 +74,12 @@ public class MergeTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    var fateStr = FateTxId.formatTid(tid);
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     KeyExtent range = data.getMergeExtent();
-    log.debug("{} Merging metadata for {}", fateStr, range);
+    log.debug("{} Merging metadata for {}", fateId, range);
 
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
     Set<TabletAvailability> tabletAvailabilities = new HashSet<>();
     MetadataTime maxLogicalTime = null;
     List<ReferenceFile> dirs = new ArrayList<>();
@@ -96,9 +96,9 @@ public class MergeTablets extends ManagerRepo {
 
       for (var tabletMeta : tabletsMetadata) {
         Preconditions.checkState(lastTabletMeta == null,
-            "%s unexpectedly saw multiple last tablets %s %s", fateStr, tabletMeta.getExtent(),
+            "%s unexpectedly saw multiple last tablets %s %s", fateId, tabletMeta.getExtent(),
             range);
-        validateTablet(tabletMeta, fateStr, opid, data.tableId);
+        validateTablet(tabletMeta, fateId, opid, data.tableId);
 
         if (firstTabletMeta == null) {
           firstTabletMeta = Objects.requireNonNull(tabletMeta);
@@ -143,8 +143,8 @@ public class MergeTablets extends ManagerRepo {
           lastTabletMeta);
     }
 
-    log.info("{} merge low tablet {}", fateStr, firstTabletMeta.getExtent());
-    log.info("{} merge high tablet {}", fateStr, lastTabletMeta.getExtent());
+    log.info("{} merge low tablet {}", fateId, firstTabletMeta.getExtent());
+    log.info("{} merge high tablet {}", fateId, lastTabletMeta.getExtent());
 
     // Check if the last tablet was already updated, this could happen if a process died and this
     // code is running a 2nd time. If running a 2nd time it possible the last tablet was updated and
@@ -184,7 +184,7 @@ public class MergeTablets extends ManagerRepo {
         // successful.
         tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
 
-        verifyAccepted(tabletsMutator.process(), fateStr);
+        verifyAccepted(tabletsMutator.process(), fateId);
       }
     }
 
@@ -195,21 +195,21 @@ public class MergeTablets extends ManagerRepo {
     return new DeleteTablets(data, lastTabletMeta.getEndRow());
   }
 
-  static void validateTablet(TabletMetadata tabletMeta, String fateStr, TabletOperationId opid,
+  static void validateTablet(TabletMetadata tabletMeta, FateId fateId, TabletOperationId opid,
       TableId expectedTableId) {
     // its expected at this point that tablets have our operation id and no location, so lets
     // check that
     Preconditions.checkState(tabletMeta.getLocation() == null,
-        "%s merging tablet %s had location %s", fateStr, tabletMeta.getExtent(),
+        "%s merging tablet %s had location %s", fateId, tabletMeta.getExtent(),
         tabletMeta.getLocation());
     Preconditions.checkState(opid.equals(tabletMeta.getOperationId()),
-        "%s merging tablet %s had unexpected opid %s", fateStr, tabletMeta.getExtent(),
+        "%s merging tablet %s had unexpected opid %s", fateId, tabletMeta.getExtent(),
         tabletMeta.getOperationId());
     Preconditions.checkState(expectedTableId.equals(tabletMeta.getTableId()),
-        "%s tablet %s has unexpected table id %s expected %s", fateStr, tabletMeta.getExtent(),
+        "%s tablet %s has unexpected table id %s expected %s", fateId, tabletMeta.getExtent(),
         tabletMeta.getTableId(), expectedTableId);
     Preconditions.checkState(tabletMeta.getLogs().isEmpty(),
-        "%s merging tablet %s has unexpected walogs %s", fateStr, tabletMeta.getExtent(),
+        "%s merging tablet %s has unexpected walogs %s", fateId, tabletMeta.getExtent(),
         tabletMeta.getLogs().size());
   }
 

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -73,20 +73,20 @@ public class DeleteRows extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // delete or fence files within the deletion range
-    var mergeRange = deleteTabletFiles(manager, tid);
+    var mergeRange = deleteTabletFiles(manager, fateId);
 
     // merge away empty tablets in the deletion range
     return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
   }
 
-  private Optional<KeyExtent> deleteTabletFiles(Manager manager, long tid) {
+  private Optional<KeyExtent> deleteTabletFiles(Manager manager, FateId fateId) {
     // Only delete data within the original extent specified by the user
     KeyExtent range = data.getOriginalExtent();
-    var fateStr = FateTxId.formatTid(tid);
-    log.debug("{} deleting tablet files in range {}", fateStr, range);
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
+    log.debug("{} deleting tablet files in range {}", fateId, range);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
 
     try (
         var tabletsMetadata = manager.getContext().getAmple().readTablets()
@@ -98,7 +98,7 @@ public class DeleteRows extends ManagerRepo {
       KeyExtent lastCompletelyContained = null;
 
       for (var tabletMetadata : tabletsMetadata) {
-        validateTablet(tabletMetadata, fateStr, opid, data.tableId);
+        validateTablet(tabletMetadata, fateId, opid, data.tableId);
         var tabletMutator = tabletsMutator.mutateTablet(tabletMetadata.getExtent())
             .requireOperation(opid).requireAbsentLocation();
 
@@ -114,7 +114,7 @@ public class DeleteRows extends ManagerRepo {
           filesToDelete.addAll(tabletMetadata.getFiles());
         } else {
           Preconditions.checkState(range.overlaps(tabletMetadata.getExtent()),
-              "%s tablet %s does not overlap delete range %s", fateStr, tabletMetadata.getExtent(),
+              "%s tablet %s does not overlap delete range %s", fateId, tabletMetadata.getExtent(),
               range);
 
           // Create the ranges for fencing the files, this takes the place of
@@ -144,7 +144,7 @@ public class DeleteRows extends ManagerRepo {
               // of the newFiles set which means it is disjoint with all ranges
               if (fenced != null) {
                 final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
-                log.trace("{} Adding new file {} with range {}", fateStr, newFile.getMetadataPath(),
+                log.trace("{} Adding new file {} with range {}", fateId, newFile.getMetadataPath(),
                     newFile.getRange());
 
                 // Add the new file to the newFiles set, it will be added later if it doesn't match
@@ -155,7 +155,7 @@ public class DeleteRows extends ManagerRepo {
                 // with all ranges.
                 newFiles.add(newFile);
               } else {
-                log.trace("{} Found a disjoint file {} with  range {} on delete", fateStr,
+                log.trace("{} Found a disjoint file {} with  range {} on delete", fateId,
                     existing.getMetadataPath(), existing.getRange());
               }
             }
@@ -184,9 +184,9 @@ public class DeleteRows extends ManagerRepo {
           }
         }
 
-        filesToDelete.forEach(file -> log.debug("{} deleting file {} for {}", fateStr, file,
+        filesToDelete.forEach(file -> log.debug("{} deleting file {} for {}", fateId, file,
             tabletMetadata.getExtent()));
-        filesToAddMap.forEach((file, dfv) -> log.debug("{} adding file {} {} for {}", fateStr, file,
+        filesToAddMap.forEach((file, dfv) -> log.debug("{} adding file {} {} for {}", fateId, file,
             dfv, tabletMetadata.getExtent()));
 
         filesToDelete.forEach(tabletMutator::deleteFile);
@@ -197,7 +197,7 @@ public class DeleteRows extends ManagerRepo {
       }
 
       var results = tabletsMutator.process();
-      verifyAccepted(results, fateStr);
+      verifyAccepted(results, fateId);
 
       return computeMergeRange(range, firstCompleteContained, lastCompletelyContained);
     }
@@ -228,16 +228,16 @@ public class DeleteRows extends ManagerRepo {
         .of(new KeyExtent(deleteRange.tableId(), end, firstCompleteContained.prevEndRow()));
   }
 
-  static void verifyAccepted(Map<KeyExtent,Ample.ConditionalResult> results, String fateStr) {
+  static void verifyAccepted(Map<KeyExtent,Ample.ConditionalResult> results, FateId fateId) {
     if (results.values().stream()
         .anyMatch(conditionalResult -> conditionalResult.getStatus() != Status.ACCEPTED)) {
       results.forEach(((extent, conditionalResult) -> {
         if (conditionalResult.getStatus() != Status.ACCEPTED) {
-          log.error("{} failed to update {}", fateStr, extent);
+          log.error("{} failed to update {}", fateId, extent);
         }
       }));
 
-      throw new IllegalStateException(fateStr + " failed to update tablet files");
+      throw new IllegalStateException(fateId + " failed to update tablet files");
     }
   }
 

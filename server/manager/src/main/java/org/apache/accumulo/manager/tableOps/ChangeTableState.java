@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
@@ -49,31 +50,31 @@ public class ChangeTableState extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
+  public long isReady(FateId fateId, Manager env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, top)
-        + Utils.reserveTable(env, tableId, tid, true, true, top);
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, top)
+        + Utils.reserveTable(env, tableId, fateId, true, true, top);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo<Manager> call(FateId fateId, Manager env) {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE) {
       ts = TableState.OFFLINE;
     }
 
     env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
-    Utils.unreserveTable(env, tableId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
+    Utils.unreserveTable(env, tableId, fateId, true);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
     env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
-    Utils.unreserveTable(env, tableId, tid, true);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
+    Utils.unreserveTable(env, tableId, fateId, true);
   }
 }

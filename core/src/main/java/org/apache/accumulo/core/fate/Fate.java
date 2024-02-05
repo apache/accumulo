@@ -157,7 +157,7 @@ public class Fate<T> {
           } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
-              deferTime = op.isReady(txStore.getID().getTid(), environment);
+              deferTime = op.isReady(txStore.getID(), environment);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
               // proceeding on success and returning to the while loop on failure.
@@ -167,7 +167,7 @@ public class Fate<T> {
                 if (status == SUBMITTED) {
                   txStore.setStatus(IN_PROGRESS);
                 }
-                op = op.call(txStore.getID().getTid(), environment);
+                op = op.call(txStore.getID(), environment);
               } else {
                 continue;
               }
@@ -278,7 +278,7 @@ public class Fate<T> {
 
     private void undo(FateId fateId, Repo<T> op) {
       try {
-        op.undo(fateId.getTid(), environment);
+        op.undo(fateId, environment);
       } catch (Exception e) {
         log.warn("Failed to undo Repo, " + fateId, e);
       }
