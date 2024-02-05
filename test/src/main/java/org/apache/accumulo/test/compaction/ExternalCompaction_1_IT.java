@@ -94,7 +94,7 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.MiniAccumuloServerConfiguration;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfig;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -189,15 +189,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table2);
 
       // This is an example of using the new ResourceGroups object to start new processes
-      MiniAccumuloServerConfiguration currentRGs = getCluster().getClusterControl().getServerConfiguration();
-      MiniAccumuloServerConfiguration newRGs = MiniAccumuloServerConfiguration.builder()
-              .put(currentRGs) // maintain the current resource group config
+      MiniAccumuloServerConfig currentSC = getCluster().getClusterControl().getServerConfiguration();
+      MiniAccumuloServerConfig newSC = MiniAccumuloServerConfig.builder()
+              .put(currentSC) // maintain the current resource group config
               .putDefaultResourceGroup(COMPACTION_COORDINATOR,1)
               .putCompactorResourceGroup(QUEUE1, 1)
               .putCompactorResourceGroup(QUEUE2, 1)
               .build();
       // start the compaction coordinator and two new compactors and maintain existing servers
-      getCluster().getClusterControl().setServerConfiguration(newRGs);
+      getCluster().getClusterControl().setServerConfiguration(newSC);
 
       compact(client, table1, 2, QUEUE1, true);
       verify(client, table1, 2);

@@ -13,7 +13,7 @@ import com.google.common.base.Preconditions;
  *
  * @since @3.1.0
  */
-public class MiniAccumuloServerConfiguration {
+public class MiniAccumuloServerConfig {
 
   public static class ResourceGroup {
     private final ServerType serverType;
@@ -64,7 +64,7 @@ public class MiniAccumuloServerConfiguration {
 
   private final Map<ResourceGroup,Integer> resourceGroupSizes;
 
-  private MiniAccumuloServerConfiguration(Map<ResourceGroup,Integer> resourceGroupSizes) {
+  private MiniAccumuloServerConfig(Map<ResourceGroup,Integer> resourceGroupSizes) {
     this.resourceGroupSizes = resourceGroupSizes;
   }
 
@@ -86,15 +86,15 @@ public class MiniAccumuloServerConfiguration {
 
     Builder putTabletServerResourceGroup(String resourceGroupName, int numTabletServers);
 
-    Builder put(MiniAccumuloServerConfiguration existingGroups);
+    Builder put(MiniAccumuloServerConfig existingGroups);
 
     /**
      * Removes any groups previously added that match the predicate. Useful in conjunction with
-     * {@link #put(MiniAccumuloServerConfiguration)}
+     * {@link #put(MiniAccumuloServerConfig)}
      */
     Builder removeIf(Predicate<ResourceGroup> groupPredicate);
 
-    MiniAccumuloServerConfiguration build();
+    MiniAccumuloServerConfig build();
   }
 
   public static Builder builder() {
@@ -140,7 +140,7 @@ public class MiniAccumuloServerConfiguration {
       }
 
       @Override
-      public Builder put(MiniAccumuloServerConfiguration existingGroups) {
+      public Builder put(MiniAccumuloServerConfig existingGroups) {
         // not calling rgMap.putAll so that input can be verified
         existingGroups.getGroupSizes()
             .forEach((rg, ns) -> put(rg.getServerType(), rg.getResourceGroup(), ns));
@@ -154,9 +154,9 @@ public class MiniAccumuloServerConfiguration {
       }
 
       @Override
-      public MiniAccumuloServerConfiguration build() {
+      public MiniAccumuloServerConfig build() {
         // TODO need to prevent further calls to put
-        return new MiniAccumuloServerConfiguration(Map.copyOf(rgMap));
+        return new MiniAccumuloServerConfig(Map.copyOf(rgMap));
       }
     };
   }

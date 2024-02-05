@@ -24,8 +24,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.minicluster.MiniAccumuloServerConfiguration;
-import org.apache.accumulo.minicluster.MiniAccumuloServerConfiguration.ResourceGroup;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfig;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfig.ResourceGroup;
 import org.apache.accumulo.minicluster.ServerType;
 
 /**
@@ -54,7 +54,7 @@ public interface ClusterControl {
   /**
    * @return current resource groups that determines what is running on this cluster
    */
-  default MiniAccumuloServerConfiguration getServerConfiguration() {
+  default MiniAccumuloServerConfig getServerConfiguration() {
     // TODO implement
     throw new UnsupportedOperationException();
   }
@@ -86,7 +86,7 @@ public interface ClusterControl {
    * returns.
    */
   default void
-      setServerConfiguration(MiniAccumuloServerConfiguration miniAccumuloServerConfiguration) {
+      setServerConfiguration(MiniAccumuloServerConfig miniAccumuloServerConfig) {
     // TODO implement
     throw new UnsupportedOperationException();
   }
@@ -128,7 +128,7 @@ public interface ClusterControl {
   // TODO remove in favor of setServerConfiguration
   default void stopAllServers(ServerType server) throws IOException {
     var originalSC = getServerConfiguration();
-    setServerConfiguration(MiniAccumuloServerConfiguration.builder().put(originalSC)
+    setServerConfiguration(MiniAccumuloServerConfig.builder().put(originalSC)
         .removeIf(rg -> rg.getServerType() == server).build());
   }
 
@@ -141,7 +141,7 @@ public interface ClusterControl {
     var originalSC = getServerConfiguration();
     // stop any resource groups that matched the predicate
     setServerConfiguration(
-        MiniAccumuloServerConfiguration.builder().put(originalSC).removeIf(rgPredicate).build());
+        MiniAccumuloServerConfig.builder().put(originalSC).removeIf(rgPredicate).build());
     // restart those resource groups using the orginal config
     setServerConfiguration(originalSC);
   }
