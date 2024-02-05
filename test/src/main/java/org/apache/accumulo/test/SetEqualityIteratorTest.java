@@ -14,15 +14,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class SetEqualityIteratorTest {
 
   private SetEqualityIterator setEqualityIterator;
   private SortedMapIterator sortedMapIterator;
 
-  @Before
+  @BeforeAll
   public void setUp() throws IOException {
     // Create a SortedMap with sample data
     SortedMap<Key,Value> sortedMap = new TreeMap<>();
