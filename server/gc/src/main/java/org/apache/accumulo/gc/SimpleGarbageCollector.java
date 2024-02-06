@@ -232,10 +232,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           // Clean up any unused write-ahead logs
           Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {
-            GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet);
-            log.info("Beginning garbage collection of write-ahead logs");
-            walogCollector.collect(status);
+            try (GarbageCollectWriteAheadLogs walogCollector =
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet)) {
+              log.info("Beginning garbage collection of write-ahead logs");
+              walogCollector.collect(status);
+            }
             gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
             TraceUtil.setException(walSpan, e, false);

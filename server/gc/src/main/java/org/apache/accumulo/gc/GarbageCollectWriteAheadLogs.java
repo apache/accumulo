@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -59,19 +60,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Streams;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class GarbageCollectWriteAheadLogs {
+public class GarbageCollectWriteAheadLogs implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
 
   private final ServerContext context;
   private final VolumeManager fs;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final Stream<TabletMetadata> store;
+  private final Iterable<TabletMetadata> store;
+  private final List<AutoCloseable> closeables = new ArrayList<>();
+  private final AtomicBoolean hasCollected;
 
   /**
    * Creates a new GC WAL object.
@@ -85,17 +89,20 @@ public class GarbageCollectWriteAheadLogs {
     this.fs = fs;
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
+
     TabletsMetadata root = context.getAmple().readTablets().forLevel(DataLevel.ROOT)
         .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     TabletsMetadata metadata = context.getAmple().readTablets().forLevel(DataLevel.METADATA)
         .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     TabletsMetadata user = context.getAmple().readTablets().forLevel(DataLevel.USER)
         .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
-    this.store = Streams.concat(root.stream(), metadata.stream(), user.stream()).onClose(() -> {
-      root.close();
-      metadata.close();
-      user.close();
-    });
+
+    closeables.add(root);
+    closeables.add(metadata);
+    closeables.add(user);
+
+    this.store = () -> Iterators.concat(root.iterator(), metadata.iterator(), user.iterator());
+    this.hasCollected = new AtomicBoolean(false);
   }
 
   /**
@@ -107,15 +114,17 @@ public class GarbageCollectWriteAheadLogs {
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Stream<TabletMetadata> store) {
+      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletMetadata> store) {
     this.context = context;
     this.fs = fs;
     this.liveServers = liveTServerSet;
     this.walMarker = walMarker;
     this.store = store;
+    this.hasCollected = new AtomicBoolean(false);
   }
 
   public void collect(GCStatus status) {
+    Preconditions.checkState(!hasCollected.get(), "Can only call collect once per object");
     try {
       long count;
       long fileScanStop;
@@ -203,7 +212,7 @@ public class GarbageCollectWriteAheadLogs {
       } finally {
         span5.end();
       }
-
+      hasCollected.set(true);
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
     } finally {
@@ -285,7 +294,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    store.forEach(tabletMetadata -> {
+    for (TabletMetadata tabletMetadata : store) {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (TabletState.compute(tabletMetadata, liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
@@ -307,8 +316,7 @@ public class GarbageCollectWriteAheadLogs {
           recoveryLogs.keySet().removeAll(idsToIgnore);
         }
       }
-    });
-    store.close();
+    }
 
     // Remove OPEN and CLOSED logs for live servers: they are still in use
     for (TServerInstance liveServer : liveServers) {
@@ -375,5 +383,16 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     return result;
+  }
+
+  @Override
+  public void close() throws Exception {
+    for (AutoCloseable closable : closeables) {
+      try {
+        closable.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 }
