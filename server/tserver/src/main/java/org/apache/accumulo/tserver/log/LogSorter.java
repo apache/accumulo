@@ -306,10 +306,6 @@ public class LogSorter {
    * {@link Property#TSERV_WAL_SORT_MAX_CONCURRENT} threads. This method will start a background
    * thread to look for log sorting work in the future that will be processed by the
    * ThreadPoolExecutor
-   *
-   * @param distWorkQThreadPool
-   * @throws KeeperException
-   * @throws InterruptedException
    */
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
