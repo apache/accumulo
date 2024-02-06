@@ -249,20 +249,27 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.isFutureAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
+      // return early, operations can't occur in bad state
       return;
-    }
-
-    if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
-      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
-    }
-
-    if (shouldReturnDueToLocation(tm)) {
-      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
     if (!tm.getLogs().isEmpty() && (tm.getOperationId() == null
         || tm.getOperationId().getType() != TabletOperationType.DELETING)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_RECOVERY);
+      // return early, we need recovery to occur before normal tablet operations (migration, split,
+      // compact, etc.)
+      return;
+    }
+
+    if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
+      // return early, we need volume replacement to occur before normal tablet operations
+      // (migration, split, compact, etc.)
+      return;
+    }
+
+    if (shouldReturnDueToLocation(tm)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
     if (tm.getOperationId() == null) {
