@@ -905,7 +905,7 @@ public class ScanServer extends AbstractServer
   public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout)
       throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException,
       TSampleNotPresentException, TException {
-    LOG.debug("continue scan: {}", scanID);
+    LOG.trace("continue scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
