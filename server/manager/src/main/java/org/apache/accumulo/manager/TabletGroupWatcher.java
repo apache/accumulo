@@ -401,13 +401,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         continue;
       }
 
-      final Set<ManagementAction> actions = mti.getActions();
-      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
-      }
-
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
       if (manager.getTableManager().getTableState(tableId) == null) {
@@ -460,6 +453,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
 
+      final Set<ManagementAction> actions = mti.getActions();
+
       if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
         LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
             goal);
@@ -491,6 +486,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           LOG.debug("Volume replacement needed for {} but its tablet state is {}.", tm.getExtent(),
               state);
         }
+      }
+
+      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
+        throw new BadLocationStateException(
+            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
+            tm.getExtent().toMetaRow());
       }
 
       final Location location = tm.getLocation();
