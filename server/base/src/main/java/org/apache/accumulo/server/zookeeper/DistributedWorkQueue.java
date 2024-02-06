@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,7 +58,6 @@ public class DistributedWorkQueue {
 
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
-  private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
   private ServerContext context;
@@ -65,12 +65,20 @@ public class DistributedWorkQueue {
 
   private AtomicInteger numTask = new AtomicInteger(0);
 
-  private void lookForWork(final Processor processor, List<String> children) {
+  /**
+   * Finds a child in {@code children} that is not currently being processed and adds a Runnable to
+   * the {@code executor} that invokes the {@code processor}. The Runnable will recursively call
+   * {@code lookForWork} after it invokes the {@code processor} such that it will continue to look
+   * for children that need work until that condition is exhausted. This method will return early if
+   * the number of currently running tasks is larger than {@code maxThreads}.
+   */
+  private void lookForWork(final Processor processor, final List<String> children,
+      final ExecutorService executor, final int maxThreads) {
     if (children.isEmpty()) {
       return;
     }
 
-    if (numTask.get() >= threadPool.getCorePoolSize()) {
+    if (numTask.get() >= maxThreads) {
       return;
     }
 
@@ -102,7 +110,7 @@ public class DistributedWorkQueue {
         }
 
         // Great... we got the lock, but maybe we're too busy
-        if (numTask.get() >= threadPool.getCorePoolSize()) {
+        if (numTask.get() >= maxThreads) {
           zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
           break;
         }
@@ -143,7 +151,7 @@ public class DistributedWorkQueue {
 
             try {
               // its important that this is called after numTask is decremented
-              lookForWork(processor, zoo.getChildren(path));
+              lookForWork(processor, zoo.getChildren(path), executor, maxThreads);
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
@@ -153,7 +161,7 @@ public class DistributedWorkQueue {
         };
 
         numTask.incrementAndGet();
-        threadPool.execute(task);
+        executor.execute(task);
 
       }
     } catch (Exception t) {
@@ -186,10 +194,12 @@ public class DistributedWorkQueue {
     return context;
   }
 
-  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
+  /**
+   * Finds the children at the path passed in the constructor and calls {@code lookForWork} which
+   * will attempt to process all of the currently available work
+   */
+  public void runOne(final Processor processor, ExecutorService executor, final int maxThreads)
       throws KeeperException, InterruptedException {
-
-    threadPool = executorService;
 
     zoo.mkdirs(path);
     zoo.mkdirs(path + "/" + LOCKS_NODE);
@@ -201,7 +211,7 @@ public class DistributedWorkQueue {
           case NodeChildrenChanged:
             if (event.getPath().equals(path)) {
               try {
-                lookForWork(processor, zoo.getChildren(path, this));
+                lookForWork(processor, zoo.getChildren(path, this), executor, maxThreads);
               } catch (KeeperException e) {
                 log.error("Failed to look for work at path {}; {}", path, event, e);
               } catch (InterruptedException e) {
@@ -219,7 +229,18 @@ public class DistributedWorkQueue {
       }
     });
 
-    lookForWork(processor, children);
+    lookForWork(processor, children, executor, maxThreads);
+
+  }
+
+  /**
+   * Calls {@code runOne} to attempt to process all currently available work, then adds a background
+   * thread that looks for work in the future.
+   */
+  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
+      throws KeeperException, InterruptedException {
+
+    runOne(processor, executorService, executorService.getCorePoolSize());
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
     ThreadPools.watchCriticalScheduledTask(
@@ -228,7 +249,8 @@ public class DistributedWorkQueue {
           public void run() {
             log.debug("Looking for work in {}", path);
             try {
-              lookForWork(processor, zoo.getChildren(path));
+              lookForWork(processor, zoo.getChildren(path), executorService,
+                  executorService.getCorePoolSize());
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {

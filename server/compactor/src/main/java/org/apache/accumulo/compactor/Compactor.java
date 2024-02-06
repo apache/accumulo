@@ -109,6 +109,7 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -635,6 +636,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
       final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
+      final LogSorter logSorter = new LogSorter(getContext(), getConfiguration());
 
       while (!shutdown) {
 
@@ -648,6 +650,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         currentCompactionId.set(null);
         err.set(null);
         JOB_HOLDER.reset();
+
+        // Attempt to process all existing log sorting work serially in this thread.
+        // When no work remains, this call will return so that we can look for compaction
+        // work.
+        logSorter.sortLogsIfNeeded();
 
         TExternalCompactionJob job;
         try {

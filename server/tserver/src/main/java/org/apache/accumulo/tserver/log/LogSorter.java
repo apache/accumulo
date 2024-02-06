@@ -62,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class LogSorter {
 
@@ -221,7 +222,7 @@ public class LogSorter {
     }
   }
 
-  ThreadPoolExecutor threadPool;
+  private final ThreadPoolExecutor threadPool;
   private final ServerContext context;
   private final double walBlockSize;
   private final CryptoService cryptoService;
@@ -292,9 +293,26 @@ public class LogSorter {
     }
   }
 
+  /**
+   * Sort any logs that need sorting in the current thread.
+   */
+  public void sortLogsIfNeeded() throws KeeperException, InterruptedException {
+    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
+        context).runOne(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1);
+  }
+
+  /**
+   * Sort any logs that need sorting in a ThreadPool using
+   * {@link Property#TSERV_WAL_SORT_MAX_CONCURRENT} threads. This method will start a background
+   * thread to look for log sorting work in the future that will be processed by the
+   * ThreadPoolExecutor
+   *
+   * @param distWorkQThreadPool
+   * @throws KeeperException
+   * @throws InterruptedException
+   */
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
-    this.threadPool = distWorkQThreadPool;
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
         context).startProcessing(new LogProcessor(), this.threadPool);
   }

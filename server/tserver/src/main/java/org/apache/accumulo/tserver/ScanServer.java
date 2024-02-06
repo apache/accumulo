@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -103,6 +104,7 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
+import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.session.ScanSession;
@@ -389,6 +391,19 @@ public class ScanServer extends AbstractServer
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
+
+    final LogSorter logSorter = new LogSorter(context, getConfiguration());
+    try {
+      int threadPoolSize = getConfiguration().getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
+      ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
+          .createFixedThreadPool(threadPoolSize, logSorter.getClass().getName(), true);
+      // Attempt to process all existing log sorting work and start a background
+      // thread to look for log sorting work in the future
+      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
+    } catch (Exception ex) {
+      log.error("Error starting LogSorter");
+      throw new RuntimeException(ex);
+    }
 
     try {
       while (!serverStopRequested) {

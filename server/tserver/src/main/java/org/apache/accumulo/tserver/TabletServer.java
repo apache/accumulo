@@ -621,9 +621,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
+      // Attempt to process all existing log sorting work and start a background
+      // thread to look for log sorting work in the future
       logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
     } catch (Exception ex) {
-      log.error("Error setting watches for recoveries");
+      log.error("Error starting LogSorter");
       throw new RuntimeException(ex);
     }
     final AccumuloConfiguration aconf = getConfiguration();
