@@ -274,6 +274,7 @@ public class ThreadPools {
           return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
         }
       case TSERV_WORKQ_THREADS:
+      case TSERV_FAILED_BULK_COPY_THREADS:
         return createFixedThreadPool(conf.getCount(p), "distributed work queue",
             emitThreadPoolMetrics);
       case TSERV_MINC_MAXCONCURRENT:

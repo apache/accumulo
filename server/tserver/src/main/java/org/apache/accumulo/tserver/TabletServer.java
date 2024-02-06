@@ -792,8 +792,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
+    @SuppressWarnings("deprecation")
+    final Property failedBulkCopyThreadProp = getConfiguration()
+        .resolve(Property.TSERV_FAILED_BULK_COPY_THREADS, Property.TSERV_WORKQ_THREADS);
+    final ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), failedBulkCopyThreadProp, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -806,7 +809,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
+      logSorter.startWatchingForRecoveryLogs();
     } catch (Exception ex) {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
