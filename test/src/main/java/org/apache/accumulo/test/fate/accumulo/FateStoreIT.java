@@ -100,6 +100,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(TestRepo.class, ops.get(1).getClass());
 
     // test pop, TestOperation should be left
+    txStore.setStatus(TStatus.FAILED); // needed to satisfy the condition on pop
     txStore.pop();
     ops = txStore.getStack();
     assertEquals(1, ops.size());
