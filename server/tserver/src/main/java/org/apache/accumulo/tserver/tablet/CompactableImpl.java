@@ -101,12 +101,12 @@ public class CompactableImpl implements Compactable {
 
   private final FileManager fileMgr;
 
-  private Set<CompactionJob> runningJobs = new HashSet<>();
+  private final Set<CompactionJob> runningJobs = new HashSet<>();
   private volatile boolean compactionRunning = false;
 
-  private Supplier<Set<CompactionServiceId>> servicesInUse;
+  private final Supplier<Set<CompactionServiceId>> servicesInUse;
 
-  private Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
+  private final Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
 
   // status of special compactions
   enum FileSelectionStatus {
@@ -117,16 +117,16 @@ public class CompactableImpl implements Compactable {
   private Long compactionId;
   private CompactionConfig compactionConfig;
 
-  private CompactionManager manager;
+  private final CompactionManager manager;
 
   AtomicLong lastSeenCompactionCancelId = new AtomicLong(Long.MIN_VALUE);
 
   private volatile boolean closed = false;
 
-  private Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
+  private final Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
       new ConcurrentHashMap<>();
 
-  private Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
+  private final Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
 
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
@@ -1108,10 +1108,11 @@ public class CompactableImpl implements Compactable {
       log.debug("Compaction canceled {} ", getExtent());
     } catch (Exception e) {
       newFile = Optional.empty();
+      TabletLogger.compactionFailed(getExtent(), job, cInfo.localCompactionCfg);
       throw new RuntimeException(e);
     } finally {
       completeCompaction(job, cInfo.jobFiles, newFile, successful);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile.isEmpty());
     }
   }
 
@@ -1161,6 +1162,8 @@ public class CompactableImpl implements Compactable {
 
     } catch (Exception e) {
       externalCompactions.remove(externalCompactionId);
+      TabletLogger.externalCompactionFailed(getExtent(), externalCompactionId, job,
+          cInfo.localCompactionCfg);
       completeCompaction(job, cInfo.jobFiles, Optional.empty(), false);
       throw new RuntimeException(e);
     }
@@ -1199,7 +1202,8 @@ public class CompactableImpl implements Compactable {
           successful = true;
         } catch (Exception e) {
           metaFile = Optional.empty();
-          log.error("Error committing external compaction {}", extCompactionId, e);
+          log.error("Error committing external compaction: id: {}, extent: {}", extCompactionId,
+              getExtent(), e);
           throw new RuntimeException(e);
         } finally {
           completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile, successful);
@@ -1241,7 +1245,7 @@ public class CompactableImpl implements Compactable {
             .mutate();
         completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), Optional.empty(), false);
         externalCompactions.remove(ecid);
-        log.debug("Processed external compaction failure {}", ecid);
+        log.debug("Processed external compaction failure: id: {}, extent: {}", ecid, getExtent());
       } else {
         log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
       }
@@ -1275,7 +1279,7 @@ public class CompactableImpl implements Compactable {
 
       if (dispatcher == null) {
         log.error(
-            "Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
+            "Failed to dispatch compaction, no dispatcher. extent:{} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
             getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE);
         return CompactionServicesConfig.DEFAULT_SERVICE;
       }
@@ -1322,7 +1326,8 @@ public class CompactableImpl implements Compactable {
 
       return dispatch.getService();
     } catch (RuntimeException e) {
-      log.error("Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service.",
+      log.error(
+          "Failed to dispatch compaction due to exception. extent:{} kind:{} hints:{}, falling back to {} service.",
           getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE, e);
       return CompactionServicesConfig.DEFAULT_SERVICE;
     }
@@ -1346,7 +1351,7 @@ public class CompactableImpl implements Compactable {
    * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
-  public synchronized void close() {
+  public void close() {
     synchronized (this) {
       if (closed) {
         return;
@@ -1369,7 +1374,6 @@ public class CompactableImpl implements Compactable {
         }
       }
     }
-
     manager.compactableClosed(getExtent(), servicesUsed, externalCompactions.keySet());
   }
 }

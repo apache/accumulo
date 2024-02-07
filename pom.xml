@@ -148,10 +148,11 @@
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.77</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
-    <version.errorprone>2.23.0</version.errorprone>
+    <version.errorprone>2.24.1</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
-    <version.opentelemetry>1.33.0</version.opentelemetry>
-    <version.slf4j>2.0.9</version.slf4j>
+    <version.opentelemetry>1.34.1</version.opentelemetry>
+    <version.powermock>2.0.9</version.powermock>
+    <version.slf4j>2.0.11</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
     <version.zookeeper>3.9.1</version.zookeeper>
   </properties>
@@ -160,14 +161,14 @@
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.16.0</version>
+        <version>2.16.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.12.1</version>
+        <version>1.12.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -196,7 +197,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.22.0</version>
+        <version>2.22.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -297,7 +298,7 @@
       <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
-        <version>1.5.0</version>
+        <version>1.6.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
@@ -307,7 +308,7 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.13.0</version>
+        <version>2.15.1</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
@@ -660,6 +661,7 @@
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
                   <exclude>**/target/**</exclude>
+                  <exclude>**/*.rf</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -865,6 +867,7 @@
               <exclude>.vscode/**</exclude>
               <exclude>.factorypath</exclude>
               <exclude>.github/**</exclude>
+              <exclude>**/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>

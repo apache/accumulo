@@ -57,7 +57,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -106,7 +106,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       createTable(client, t3, true);
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, MetadataTable.NAME, metaCopy1);
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
       log.debug("Waiting for tablets");
       final State state = new State(client);
@@ -114,7 +114,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
           SECONDS.toMillis(30), 500);
 
       // update the clone for additional manipulations
-      copyTable(client, MetadataTable.NAME, metaCopy1);
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
           "No tables should need attention");

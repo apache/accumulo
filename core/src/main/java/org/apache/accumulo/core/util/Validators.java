@@ -24,8 +24,7 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,7 +154,8 @@ public class Validators {
   public static final Validator<String> NEW_TABLE_NAME =
       new Validator<>(tableName -> _tableName(tableName, false));
 
-  private static final List<String> metadataTables = List.of(RootTable.NAME, MetadataTable.NAME);
+  private static final List<String> metadataTables =
+      List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName());
   public static final Validator<String> NOT_METADATA_TABLE = new Validator<>(t -> {
     if (t == null) {
       return NameSegment.Table.isNull();
@@ -192,7 +192,7 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (RootTable.ID.equals(id) || MetadataTable.ID.equals(id)
+    if (AccumuloTable.ROOT.tableId().equals(id) || AccumuloTable.METADATA.tableId().equals(id)
         || VALID_ID_PATTERN.matcher(id.canonical()).matches()) {
       return Validator.OK;
     }
@@ -204,12 +204,13 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (id.equals(MetadataTable.ID)) {
-      return Optional.of("Cloning " + MetadataTable.NAME + " is dangerous and no longer supported,"
-          + " see https://github.com/apache/accumulo/issues/1309.");
+    if (id.equals(AccumuloTable.METADATA.tableId())) {
+      return Optional.of(
+          "Cloning " + AccumuloTable.METADATA.tableName() + " is dangerous and no longer supported,"
+              + " see https://github.com/apache/accumulo/issues/1309.");
     }
-    if (id.equals(RootTable.ID)) {
-      return Optional.of("Unable to clone " + RootTable.NAME);
+    if (id.equals(AccumuloTable.ROOT.tableId())) {
+      return Optional.of("Unable to clone " + AccumuloTable.ROOT.tableName());
     }
     return Validator.OK;
   });
@@ -218,9 +219,9 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (RootTable.ID.equals(id)) {
-      return Optional
-          .of("Table must not be the " + RootTable.NAME + "(Id: " + RootTable.ID + ") table");
+    if (AccumuloTable.ROOT.tableId().equals(id)) {
+      return Optional.of("Table must not be the " + AccumuloTable.ROOT.tableName() + "(Id: "
+          + AccumuloTable.ROOT.tableId() + ") table");
     }
     return Validator.OK;
   });

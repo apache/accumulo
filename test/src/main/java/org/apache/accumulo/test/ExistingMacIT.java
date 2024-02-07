@@ -43,8 +43,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -103,8 +102,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     client.tableOperations().flush(table, null, null, true);
-    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    client.tableOperations().flush(RootTable.NAME, null, null, true);
+    client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+    client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
     Set<Entry<ServerType,Collection<ProcessReference>>> procs =
         getCluster().getProcesses().entrySet();

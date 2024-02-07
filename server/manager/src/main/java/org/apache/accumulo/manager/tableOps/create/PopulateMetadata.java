@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -72,7 +72,8 @@ class PopulateMetadata extends ManagerRepo {
       SortedSet<Text> splits = Utils.getSortedSetFromFile(env, tableInfo.getSplitPath(), true);
       SortedSet<Text> dirs = Utils.getSortedSetFromFile(env, tableInfo.getSplitDirsPath(), false);
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      try (BatchWriter bw = env.getContext().createBatchWriter(MetadataTable.NAME)) {
+      try (
+          BatchWriter bw = env.getContext().createBatchWriter(AccumuloTable.METADATA.tableName())) {
         writeSplitsToMetadataTable(env.getContext(), tableInfo.getTableId(), splits, splitDirMap,
             tableInfo.getTimeType(), env.getManagerLock(), bw);
       }

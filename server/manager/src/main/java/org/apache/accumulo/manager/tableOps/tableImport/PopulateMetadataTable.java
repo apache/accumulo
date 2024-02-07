@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION_2;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -42,7 +43,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -96,7 +97,9 @@ class PopulateMetadataTable extends ManagerRepo {
 
     VolumeManager fs = manager.getVolumeManager();
 
-    try (BatchWriter mbw = manager.getContext().createBatchWriter(MetadataTable.NAME);
+    try (
+        BatchWriter mbw =
+            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
         ZipInputStream zis = new ZipInputStream(fs.open(path))) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
@@ -129,8 +132,17 @@ class PopulateMetadataTable extends ManagerRepo {
             Text cq;
 
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-              final StoredTabletFile oldTabletFile = StoredTabletFile.of(key.getColumnQualifier());
-              String oldName = oldTabletFile.getFileName();
+              StoredTabletFile exportedRef;
+              var dataFileCQ = key.getColumnQualifier().toString();
+              if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
+                // written without fenced range information (accumulo < 3.1), use default
+                // (null,null)
+                exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
+              } else {
+                exportedRef = StoredTabletFile.of(key.getColumnQualifier());
+              }
+
+              String oldName = exportedRef.getFileName();
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
@@ -140,7 +152,7 @@ class PopulateMetadataTable extends ManagerRepo {
               }
 
               // Copy over the range for the new file
-              cq = StoredTabletFile.of(URI.create(newName), oldTabletFile.getRange())
+              cq = StoredTabletFile.of(URI.create(newName), exportedRef.getRange())
                   .getMetadataText();
             } else {
               cq = key.getColumnQualifier();

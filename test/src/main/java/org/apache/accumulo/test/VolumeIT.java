@@ -62,7 +62,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -148,7 +148,8 @@ public class VolumeIT extends ConfigurableMacBase {
         }
       }
       // verify the new files are written to the different volumes
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(new Range("1", "1<"));
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
         int fileCount = 0;
@@ -303,7 +304,8 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-    try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner metaScanner =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       metaScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
@@ -383,7 +385,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
-      client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
+      client.tableOperations().compact(AccumuloTable.ROOT.tableName(),
+          new CompactionConfig().setWait(true));
 
       // check that root tablet is not on volume 1
       int count = 0;
@@ -398,8 +401,8 @@ public class VolumeIT extends ConfigurableMacBase {
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
           new HashSet<>());
 
-      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      client.tableOperations().flush(RootTable.NAME, null, null, true);
+      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
       verifyVolumesUsed(client, tableNames[1], true, v2);
@@ -461,7 +464,8 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], true, false, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, false, v8, v9);
 
-    client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
+    client.tableOperations().compact(AccumuloTable.ROOT.tableName(),
+        new CompactionConfig().setWait(true));
 
     // check that root tablet is not on volume 1 or 2
     int count = 0;
@@ -477,8 +481,8 @@ public class VolumeIT extends ConfigurableMacBase {
     client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
         new HashSet<>());
 
-    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    client.tableOperations().flush(RootTable.NAME, null, null, true);
+    client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+    client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
     verifyVolumesUsed(client, tableNames[0], true, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, v8, v9);
@@ -531,7 +535,7 @@ public class VolumeIT extends ConfigurableMacBase {
   // files with ranges work properly with volume replacement
   private void splitFilesWithRange(AccumuloClient client, String tableName) throws Exception {
     client.securityOperations().grantTablePermission(cluster.getConfig().getRootUserName(),
-        MetadataTable.NAME, TablePermission.WRITE);
+        AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
     final ServerContext ctx = getServerContext();
     ctx.setCredentials(new SystemCredentials(client.instanceOperations().getInstanceId(), "root",
         new PasswordToken(ROOT_PASSWORD)));

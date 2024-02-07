@@ -135,7 +135,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
         if (instance != null && instance.endsWith("]")) {
           instance = instance.substring(0, instance.length() - 1);
         }
-        result.add(new TServerInstance(AddressUtil.parseAddress(hostport, false), instance));
+        result.add(new TServerInstance(AddressUtil.parseAddress(hostport), instance));
       }
     }
     return result;

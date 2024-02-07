@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -74,7 +74,7 @@ class CompactionDriver extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
 
-    if (tableId.equals(RootTable.ID)) {
+    if (tableId.equals(AccumuloTable.ROOT.tableId())) {
       // this codes not properly handle the root table. See #798
       return 0;
     }
@@ -104,18 +104,19 @@ class CompactionDriver extends ManagerRepo {
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
 
-    TabletsMetadata tablets = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
-        .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build();
+    try (TabletsMetadata tablets = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build()) {
 
-    for (TabletMetadata tablet : tablets) {
-      if (tablet.getCompactId().orElse(-1) < compactId) {
-        tabletsToWaitFor++;
-        if (tablet.hasCurrent()) {
-          serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
+      for (TabletMetadata tablet : tablets) {
+        if (tablet.getCompactId().orElse(-1) < compactId) {
+          tabletsToWaitFor++;
+          if (tablet.hasCurrent()) {
+            serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
+          }
         }
-      }
 
-      tabletCount++;
+        tabletCount++;
+      }
     }
 
     long scanTime = System.currentTimeMillis() - t1;

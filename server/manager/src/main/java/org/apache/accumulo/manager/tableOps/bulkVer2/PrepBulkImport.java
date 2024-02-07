@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -102,7 +103,7 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @VisibleForTesting
-  interface TabletIterFactory {
+  interface TabletIterFactory extends AutoCloseable {
     Iterator<KeyExtent> newTabletIter(Text startRow);
   }
 
@@ -194,6 +195,33 @@ public class PrepBulkImport extends ManagerRepo {
     return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
   }
 
+  private static class TabletIterFactoryImpl implements TabletIterFactory {
+    private final List<AutoCloseable> resourcesToClose = new ArrayList<>();
+    private final Manager manager;
+    private final BulkInfo bulkInfo;
+
+    public TabletIterFactoryImpl(Manager manager, BulkInfo bulkInfo) {
+      this.manager = manager;
+      this.bulkInfo = bulkInfo;
+    }
+
+    @Override
+    public Iterator<KeyExtent> newTabletIter(Text startRow) {
+      TabletsMetadata tabletsMetadata =
+          TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
+              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build();
+      resourcesToClose.add(tabletsMetadata);
+      return tabletsMetadata.stream().map(TabletMetadata::getExtent).iterator();
+    }
+
+    @Override
+    public void close() throws Exception {
+      for (AutoCloseable resource : resourcesToClose) {
+        resource.close();
+      }
+    }
+  }
+
   private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
@@ -202,14 +230,10 @@ public class PrepBulkImport extends ManagerRepo {
     int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
         .getCount(Property.TABLE_BULK_MAX_TABLETS);
 
-    try (LoadMappingIterator lmi =
-        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-
-      TabletIterFactory tabletIterFactory =
-          startRow -> TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
-              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build().stream()
-              .map(TabletMetadata::getExtent).iterator();
-
+    try (
+        LoadMappingIterator lmi =
+            BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
+        TabletIterFactory tabletIterFactory = new TabletIterFactoryImpl(manager, bulkInfo)) {
       return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
           tid);
     }

@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -156,7 +156,8 @@ public class DurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-      Map<String,String> props = c.tableOperations().getConfiguration(MetadataTable.NAME);
+      Map<String,String> props =
+          c.tableOperations().getConfiguration(AccumuloTable.METADATA.tableName());
       assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
       c.tableOperations().create(tableName);
       props = c.tableOperations().getConfiguration(tableName);

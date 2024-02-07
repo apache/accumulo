@@ -28,11 +28,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -50,7 +53,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -59,11 +62,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.util.FileMetadataUtil;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -188,7 +194,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", tableId);
 
-      try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -325,7 +332,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       client.tableOperations().online(destTable, true);
 
       // Get all `file` colfams from the metadata table for the new table
-      try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -376,6 +384,53 @@ public class ImportExportIT extends AccumuloClusterHarness {
       }
     }
     return false;
+  }
+
+  /**
+   * Validate that files exported with Accumulo 2.x without fence ranges can be imported into
+   * version that require the fenced ranges (3.1 and later)
+   */
+  @Test
+  public void importV2data() throws Exception {
+    final String dataRoot = "./target/classes/v2_import_test";
+    final String dataSrc = dataRoot + "/data";
+    final String importDir = dataRoot + "/import";
+
+    // copy files each run will "move the files" on import, allows multiple runs in IDE without
+    // rebuild
+    java.nio.file.Path importDirPath = Paths.get(importDir);
+    java.nio.file.Files.createDirectories(importDirPath);
+    FileUtils.copyDirectory(new File(dataSrc), new File(importDir));
+
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      log.debug("importing from: {} into table: {}", importDir, table);
+      client.tableOperations().importTable(table, importDir);
+
+      int rowCount = 0;
+      try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : s) {
+          log.trace("data:{}", entry);
+          rowCount++;
+        }
+      }
+      assertEquals(7, rowCount);
+      int metaFileCount = 0;
+      try (Scanner s =
+          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table));
+        s.setRange(TabletsSection.getRange(tid));
+        s.fetchColumnFamily(DataFileColumnFamily.NAME);
+        for (Entry<Key,Value> entry : s) {
+          log.trace("metadata file:{}", entry);
+          metaFileCount++;
+        }
+      }
+      final List<Text> expectedSplits = List.of(new Text("2"), new Text("4"), new Text("6"));
+      assertEquals(expectedSplits, client.tableOperations().listSplits(table));
+      assertEquals(4, metaFileCount);
+    }
   }
 
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable,

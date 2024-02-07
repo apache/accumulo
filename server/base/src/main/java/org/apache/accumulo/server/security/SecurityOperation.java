@@ -43,8 +43,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -134,7 +133,7 @@ public class SecurityOperation {
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
-      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID.canonical(),
+      permHandle.grantTablePermission(rootPrincipal, AccumuloTable.METADATA.tableId().canonical(),
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
@@ -364,8 +363,8 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID))
-        && permission.equals(TablePermission.READ)) {
+    if ((table.equals(AccumuloTable.METADATA.tableId())
+        || table.equals(AccumuloTable.ROOT.tableId())) && permission.equals(TablePermission.READ)) {
       return true;
     }
 

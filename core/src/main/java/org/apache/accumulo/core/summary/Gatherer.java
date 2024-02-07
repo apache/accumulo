@@ -166,17 +166,17 @@ public class Gatherer {
   private Map<String,Map<StoredTabletFile,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<StoredTabletFile> fileSelector) {
 
-    Iterable<TabletMetadata> tmi = TabletsMetadata.builder(ctx).forTable(tableId)
-        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
-
     // get a subset of files
     Map<StoredTabletFile,List<TabletMetadata>> files = new HashMap<>();
 
-    for (TabletMetadata tm : tmi) {
-      for (StoredTabletFile file : tm.getFiles()) {
-        if (fileSelector.test(file)) {
-          // TODO push this filtering to server side and possibly use batch scanner
-          files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
+    try (TabletsMetadata tmi = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build()) {
+      for (TabletMetadata tm : tmi) {
+        for (StoredTabletFile file : tm.getFiles()) {
+          if (fileSelector.test(file)) {
+            // TODO push this filtering to server side and possibly use batch scanner
+            files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
+          }
         }
       }
     }
@@ -447,8 +447,10 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(startRow, endRow)
-        .fetch(FILES, PREV_ROW).build().stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    try (TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, PREV_ROW).build()) {
+      return tabletsMetadata.stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    }
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -103,7 +103,8 @@ class WriteExportFiles extends ManagerRepo {
 
     checkOffline(manager.getContext());
 
-    Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetaRange());
 
     // scan for locations
@@ -167,7 +168,7 @@ class WriteExportFiles extends ManagerRepo {
     try (OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8)) {
 
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
-      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
+      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.CURR_VERSION + "\n");
       osw.append("srcInstanceName:" + context.getInstanceName() + "\n");
       osw.append("srcInstanceID:" + context.getInstanceID() + "\n");
       osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");
@@ -227,7 +228,8 @@ class WriteExportFiles extends ManagerRepo {
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner =
+        context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);

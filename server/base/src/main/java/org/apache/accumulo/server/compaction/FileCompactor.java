@@ -54,9 +54,8 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -76,6 +75,8 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Collections2;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -213,11 +214,13 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     boolean remove = runningCompactions.add(this);
 
+    String threadStartDate = dateFormatter.format(new Date());
+
     clearStats();
 
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName = "MajC compacting " + extent + " started "
-        + dateFormatter.format(new Date()) + " file: " + outputFile;
+    String newThreadName =
+        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();
     try {
@@ -226,10 +229,11 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
-      final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
-          && !MetadataTable.ID.equals(this.extent.tableId())
-          && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
-              || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
+      final boolean dropCacheBehindOutput =
+          !AccumuloTable.ROOT.tableId().equals(this.extent.tableId())
+              && !AccumuloTable.METADATA.tableId().equals(this.extent.tableId())
+              && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
+                  || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
       WriterBuilder outBuilder =
           fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
@@ -286,7 +290,13 @@ public class FileCompactor implements Callable<CompactionStats> {
       log.debug("Compaction canceled {}", extent);
       throw e;
     } catch (IOException | RuntimeException e) {
-      log.error("{}", e.getMessage(), e);
+      Collection<String> inputFileNames =
+          Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
+      String outputFileName = outputFile.getFileName();
+      log.error(
+          "Compaction error. Compaction info: "
+              + "extent: {}, input files: {}, output file: {}, iterators: {}, start date: {}",
+          getExtent(), inputFileNames, outputFileName, getIterators(), threadStartDate, e);
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);

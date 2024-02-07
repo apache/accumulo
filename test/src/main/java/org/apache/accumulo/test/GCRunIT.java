@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,8 +39,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -115,8 +114,8 @@ public class GCRunIT extends SharedMiniClusterBase {
     fillMetadataEntries(table1, clone1);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
-          TablePermission.WRITE);
+      client.securityOperations().grantTablePermission(getAdminPrincipal(),
+          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
       String cloneId = client.tableOperations().tableIdMap().get(clone1);
 
@@ -126,7 +125,7 @@ public class GCRunIT extends SharedMiniClusterBase {
       final Text colq = new Text(DIRECTORY_QUAL);
       m.putDelete(colf, colq, new ColumnVisibility());
 
-      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME,
+      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName(),
           new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
               .setMaxWriteThreads(1).setTimeout(5_000, TimeUnit.MILLISECONDS))) {
         log.info("forcing delete of srv:dir with mutation {}", m.prettyPrint());
@@ -155,16 +154,11 @@ public class GCRunIT extends SharedMiniClusterBase {
   public void forceMissingPrevRowTest() {}
 
   private void scanReferences(GCRun userGC) {
-    final AtomicInteger counter = new AtomicInteger(0);
     // loop through the user table references - the row deleted above should violate dir present.
-    var userTableIter = userGC.getReferences().iterator();
-    while (userTableIter.hasNext()) {
-      Reference ref = userTableIter.next();
-      counter.incrementAndGet();
-      log.trace("user ref: {}", ref);
+    try (Stream<Reference> references = userGC.getReferences()) {
+      long count = references.peek(ref -> log.trace("user ref: {}", ref)).count();
+      assertTrue(count > 0);
     }
-
-    assertTrue(counter.get() > 0);
   }
 
   private void fillMetadataEntries(final String table1, final String clone1) throws Exception {
@@ -193,8 +187,8 @@ public class GCRunIT extends SharedMiniClusterBase {
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
       client.tableOperations().delete(table1);
 
-      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      client.tableOperations().flush(RootTable.NAME, null, null, true);
+      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
 
     }
   }

@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -106,8 +106,9 @@ class InitialConfiguration {
   private void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
-            + MetadataTable.NAME + " replication of 5. What do you want to set your "
-            + MetadataTable.NAME + " replication to? (" + replication + ") ");
+            + AccumuloTable.METADATA.tableName()
+            + " replication of 5. What do you want to set your "
+            + AccumuloTable.METADATA.tableName() + " replication to? (" + replication + ") ");
     if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {

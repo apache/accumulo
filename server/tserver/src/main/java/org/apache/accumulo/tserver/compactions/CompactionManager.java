@@ -265,13 +265,13 @@ public class CompactionManager {
           }
         });
 
-        var deletedServices =
-            Sets.difference(currentCfg.getPlanners().keySet(), tmpCfg.getPlanners().keySet());
+        var deletedServices = Sets.difference(services.keySet(), tmpServices.keySet());
 
-        for (String serviceName : deletedServices) {
-          services.get(CompactionServiceId.of(serviceName)).stop();
+        for (var dcsid : deletedServices) {
+          services.get(dcsid).stop();
         }
 
+        this.currentCfg = tmpCfg;
         this.services = Map.copyOf(tmpServices);
 
         HashSet<CompactionExecutorId> activeExternalExecs = new HashSet<>();
