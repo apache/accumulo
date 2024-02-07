@@ -71,7 +71,7 @@ public class SetEqualityIteratorTest {
 
     // Create tablet metadata with one file
     StoredTabletFile singleFile =
-        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf4.rf")).insert();
+        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
     TabletMetadata tmOneFile = TabletMetadata.builder(extent)
         .putFile(singleFile, new DataFileValue(100, 50)).putFlushId(8).build();
 
@@ -81,7 +81,7 @@ public class SetEqualityIteratorTest {
         .putFile(file3, new DataFileValue(234, 13)).putFlushId(6).build();
 
     var extent2 = new KeyExtent(extent.tableId(), null, extent.endRow());
-    // TODO create another tablet metadata using extent2 w/ diff files and add it to sortedMap. This
+    // create another tablet metadata using extent2 w/ diff files and add it to sortedMap. This
     // will add another row to the test data which ensures that iterator does not go to another row.
     StoredTabletFile file4 =
         new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf4.rf")).insert();
@@ -128,7 +128,12 @@ public class SetEqualityIteratorTest {
 
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorNoFiles.getTopKey());
-    assertEquals(0, setEqualityIteratorNoFiles.getTopValue().getSize());
+    // The iterator should produce a value that is equal to the expected value on the condition
+    var condition = SetEqualityIterator.createCondition(Collections.emptySet(),
+        storedTabletFile -> ((StoredTabletFile) storedTabletFile).getMetadata().getBytes(UTF_8),
+        family);
+    assertArrayEquals(condition.getValue().toArray(),
+        setEqualityIteratorNoFiles.getTopValue().get());
   }
 
   @Test
@@ -170,9 +175,5 @@ public class SetEqualityIteratorTest {
     assertArrayEquals(condition.getValue().toArray(), setEqualityIterator.getTopValue().get());
 
   }
-
-  // TODO test tablets with no files and tablet with one file.. will probably need to refactor code
-  // in setUp so that it can be used to create tablet metadata with different sets of files and then
-  // create an iterator over that tablet
 
 }
