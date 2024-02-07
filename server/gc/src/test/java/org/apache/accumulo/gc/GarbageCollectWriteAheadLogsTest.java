@@ -106,12 +106,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      WalStateManager getWalStateManager() {
+      WalStateManager createWalStateManager(ServerContext serverContext) {
         return marker;
       }
 
       @Override
-      Stream<TabletMetadata> getStore() {
+      Stream<TabletMetadata> createStore() {
         return tabletOnServer1List;
       }
     };
@@ -145,12 +145,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      WalStateManager getWalStateManager() {
+      WalStateManager createWalStateManager(ServerContext serverContext) {
         return marker;
       }
 
       @Override
-      Stream<TabletMetadata> getStore() {
+      Stream<TabletMetadata> createStore() {
         return tabletOnServer1List;
       }
     };
@@ -189,12 +189,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      WalStateManager getWalStateManager() {
+      WalStateManager createWalStateManager(ServerContext serverContext) {
         return marker;
       }
 
       @Override
-      Stream<TabletMetadata> getStore() {
+      Stream<TabletMetadata> createStore() {
         return tabletOnServer1List;
       }
     };
@@ -227,12 +227,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      WalStateManager getWalStateManager() {
+      WalStateManager createWalStateManager(ServerContext serverContext) {
         return marker;
       }
 
       @Override
-      Stream<TabletMetadata> getStore() {
+      Stream<TabletMetadata> createStore() {
         return tabletOnServer2List;
       }
     };

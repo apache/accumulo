@@ -86,7 +86,7 @@ public class GarbageCollectWriteAheadLogs {
     this.context = context;
     this.fs = fs;
     this.liveServers = liveServers;
-    this.walMarker = getWalStateManager();
+    this.walMarker = createWalStateManager(context);
     this.hasCollected = new AtomicBoolean(false);
   }
 
@@ -281,7 +281,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    try (Stream<TabletMetadata> store = getStore()) {
+    try (Stream<TabletMetadata> store = createStore()) {
       store.forEach(tabletMetadata -> {
         // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
         // Easiest to just ignore all the WALs for the dead server.
