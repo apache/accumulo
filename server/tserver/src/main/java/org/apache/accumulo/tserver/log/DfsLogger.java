@@ -75,7 +75,6 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 /**
@@ -129,6 +128,16 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   private class LogSyncingTask implements Runnable {
     private int expectedReplication = 0;
+
+    private final AtomicLong syncCounter;
+    private final AtomicLong flushCounter;
+    private final long slowFlushMillis;
+
+    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis) {
+      this.syncCounter = syncCounter;
+      this.flushCounter = flushCounter;
+      this.slowFlushMillis = slowFlushMillis;
+    }
 
     @Override
     public void run() {
@@ -288,45 +297,34 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     return logEntry.hashCode();
   }
 
-  private final ServerContext context;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private final LogEntry logEntry;
   private Thread syncThread;
 
-  private AtomicLong syncCounter;
-  private AtomicLong flushCounter;
-  private final long slowFlushMillis;
   private long writes = 0;
 
-  public static DfsLogger fromCounters(ServerContext context, AtomicLong syncCounter,
+  /**
+   * Create a new DfsLogger with the provided characteristics.
+   */
+  public static DfsLogger createNew(ServerContext context, AtomicLong syncCounter,
       AtomicLong flushCounter, String address) throws IOException {
 
     String filename = UUID.randomUUID().toString();
-    String logger = Joiner.on("+").join(address.split(":"));
-    VolumeManager fs = context.getVolumeManager();
+    String addressForFilename = address.replace(':', '+');
 
     var chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
-    String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
-        + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    String logPath =
+        context.getVolumeManager().choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
+            + Constants.WAL_DIR + Path.SEPARATOR + addressForFilename + Path.SEPARATOR + filename;
 
     LogEntry log = LogEntry.fromPath(logPath);
-    DfsLogger dfsLogger = new DfsLogger(context, log, syncCounter, flushCounter);
-    dfsLogger.open(fs, logPath, filename, address);
-
+    DfsLogger dfsLogger = new DfsLogger(log);
+    long slowFlushMillis =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    dfsLogger.open(context, logPath, filename, address, syncCounter, flushCounter, slowFlushMillis);
     return dfsLogger;
-  }
-
-  public static DfsLogger fromExistingLogEntry(ServerContext context, LogEntry logEntry) {
-    return new DfsLogger(context, logEntry);
-  }
-
-  private DfsLogger(ServerContext context, LogEntry logEntry, AtomicLong syncCounter,
-      AtomicLong flushCounter) {
-    this(context, logEntry);
-    this.syncCounter = syncCounter;
-    this.flushCounter = flushCounter;
   }
 
   /**
@@ -334,10 +332,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param logEntry the "log" entry in +r/!0
    */
-  private DfsLogger(ServerContext context, LogEntry logEntry) {
-    this.context = context;
-    this.slowFlushMillis =
-        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+  public static DfsLogger fromLogEntry(LogEntry logEntry) {
+    return new DfsLogger(logEntry);
+  }
+
+  private DfsLogger(LogEntry logEntry) {
     this.logEntry = logEntry;
   }
 
@@ -396,11 +395,14 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param address The address of the host using this WAL
    */
-  private synchronized void open(VolumeManager fs, String logPath, String filename, String address)
+  private synchronized void open(ServerContext context, String logPath, String filename,
+      String address, AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis)
       throws IOException {
     log.debug("Address is {}", address);
 
     log.debug("DfsLogger.open() begin");
+
+    VolumeManager fs = context.getVolumeManager();
 
     LoggerOperation op;
     var serverConf = context.getConfiguration();
@@ -469,7 +471,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
+    syncThread = Threads.createThread("Accumulo WALog thread " + this,
+        new LogSyncingTask(syncCounter, flushCounter, slowFlushMillis));
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);

@@ -266,7 +266,7 @@ public class TabletServerLogger {
         DfsLogger alog = null;
 
         try {
-          alog = DfsLogger.fromCounters(tserver.getContext(), syncCounter, flushCounter,
+          alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
               tserver.getClientAddressString());
         } catch (Exception t) {
           log.error("Failed to open WAL", t);
