@@ -91,12 +91,12 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   @VisibleForTesting
-  WalStateManager getWalStateManager() {
+  WalStateManager createWalStateManager(ServerContext context) {
     return new WalStateManager(context);
   }
 
   @VisibleForTesting
-  Stream<TabletMetadata> getStore() {
+  Stream<TabletMetadata> createStore() {
     TabletsMetadata root = context.getAmple().readTablets().forLevel(DataLevel.ROOT)
         .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     TabletsMetadata metadata = context.getAmple().readTablets().forLevel(DataLevel.METADATA)
