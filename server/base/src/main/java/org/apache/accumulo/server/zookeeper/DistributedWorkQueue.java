@@ -198,36 +198,41 @@ public class DistributedWorkQueue {
    * Finds the children at the path passed in the constructor and calls {@code lookForWork} which
    * will attempt to process all of the currently available work
    */
-  public void runOne(final Processor processor, ExecutorService executor, final int maxThreads)
-      throws KeeperException, InterruptedException {
+  public void processExistingWork(final Processor processor, ExecutorService executor,
+      final int maxThreads, boolean setWatch) throws KeeperException, InterruptedException {
 
     zoo.mkdirs(path);
     zoo.mkdirs(path + "/" + LOCKS_NODE);
 
-    List<String> children = zoo.getChildren(path, new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        switch (event.getType()) {
-          case NodeChildrenChanged:
-            if (event.getPath().equals(path)) {
-              try {
-                lookForWork(processor, zoo.getChildren(path, this), executor, maxThreads);
-              } catch (KeeperException e) {
-                log.error("Failed to look for work at path {}; {}", path, event, e);
-              } catch (InterruptedException e) {
-                log.info("Interrupted looking for work at path {}; {}", path, event, e);
+    List<String> children = null;
+    if (setWatch) {
+      children = zoo.getChildren(path, new Watcher() {
+        @Override
+        public void process(WatchedEvent event) {
+          switch (event.getType()) {
+            case NodeChildrenChanged:
+              if (event.getPath().equals(path)) {
+                try {
+                  lookForWork(processor, zoo.getChildren(path, this), executor, maxThreads);
+                } catch (KeeperException e) {
+                  log.error("Failed to look for work at path {}; {}", path, event, e);
+                } catch (InterruptedException e) {
+                  log.info("Interrupted looking for work at path {}; {}", path, event, e);
+                }
+              } else {
+                log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
+                    event);
               }
-            } else {
-              log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
-                  event);
-            }
-            break;
-          default:
-            log.info("Unexpected event watching path {}; {}", path, event);
-            break;
+              break;
+            default:
+              log.info("Unexpected event watching path {}; {}", path, event);
+              break;
+          }
         }
-      }
-    });
+      });
+    } else {
+      children = zoo.getChildren(path);
+    }
 
     lookForWork(processor, children, executor, maxThreads);
 
@@ -237,10 +242,10 @@ public class DistributedWorkQueue {
    * Calls {@code runOne} to attempt to process all currently available work, then adds a background
    * thread that looks for work in the future.
    */
-  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
-      throws KeeperException, InterruptedException {
+  public void processExistingAndFuture(final Processor processor,
+      ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
 
-    runOne(processor, executorService, executorService.getCorePoolSize());
+    processExistingWork(processor, executorService, executorService.getCorePoolSize(), true);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
     ThreadPools.watchCriticalScheduledTask(

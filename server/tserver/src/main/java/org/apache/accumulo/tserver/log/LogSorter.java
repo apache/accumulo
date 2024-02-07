@@ -298,7 +298,8 @@ public class LogSorter {
    */
   public void sortLogsIfNeeded() throws KeeperException, InterruptedException {
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).runOne(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1);
+        context).processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(),
+            1, false);
   }
 
   /**
@@ -310,7 +311,7 @@ public class LogSorter {
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).startProcessing(new LogProcessor(), this.threadPool);
+        context).processExistingAndFuture(new LogProcessor(), this.threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

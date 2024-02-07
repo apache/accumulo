@@ -614,7 +614,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
             getConfiguration(), getContext());
     try {
-      bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(getContext()),
+      bulkFailedCopyQ.processExistingAndFuture(new BulkFailedCopyProcessor(getContext()),
           distWorkQThreadPool);
     } catch (Exception e1) {
       throw new RuntimeException("Failed to start distributed work queue for copying ", e1);
