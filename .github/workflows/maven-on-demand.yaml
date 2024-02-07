@@ -71,7 +71,7 @@ jobs:
         distribution: adopt
         java-version: 17
     - name: Cache local maven repository
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.m2/repository/
@@ -102,21 +102,21 @@ jobs:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: surefire-reports
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: failsafe-reports
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mini-tests-logs
         path: ./**/target/**/mini-tests/**/logs/

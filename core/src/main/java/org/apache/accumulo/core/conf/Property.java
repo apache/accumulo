@@ -792,7 +792,6 @@ public enum Property {
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
-  @Experimental
   GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "true", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
           + "This is expected to increase the speed of subsequent GC runs.",
