@@ -292,7 +292,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void delete() {
       verifyReserved(true);
 
-      newMutator(fateId).delete().mutate();
+      var mutator = newMutator(fateId);
+      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+      mutator.delete().mutate();
     }
 
     private Optional<Integer> findTop() {
