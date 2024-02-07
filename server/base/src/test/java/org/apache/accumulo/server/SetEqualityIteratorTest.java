@@ -23,7 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -45,7 +48,11 @@ import org.junit.jupiter.api.Test;
 public class SetEqualityIteratorTest {
 
   private SetEqualityIterator setEqualityIterator;
+  private SetEqualityIterator setEqualityIteratorNoFiles;
+  private SetEqualityIterator setEqualityIteratorOneFile;
   private SortedMapIterator sortedMapIterator;
+  private SortedMapIterator sortedMapIteratorNoFiles;
+  private SortedMapIterator sortedMapIteratorOneFile;
 
   private KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
@@ -59,23 +66,89 @@ public class SetEqualityIteratorTest {
   @BeforeEach
   public void setUp() throws IOException {
 
-    TabletMetadata tm = TabletMetadata.builder(extent).putFile(file1, new DataFileValue(0, 0))
-        .putFile(file2, new DataFileValue(555, 23)).putFile(file3, new DataFileValue(234, 13))
-        .putFlushId(6).build();
+    // Create tablet metadata with no files
+    TabletMetadata tmNoFiles = TabletMetadata.builder(extent).putFlushId(7).build();
 
-    // Convert TabletMetadata to a SortedMap
-    SortedMap<Key,Value> sortedMap = new TreeMap<>(tm.getKeyValues());
+    // Create tablet metadata with one file
+    StoredTabletFile singleFile =
+        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf4.rf")).insert();
+    TabletMetadata tmOneFile = TabletMetadata.builder(extent)
+        .putFile(singleFile, new DataFileValue(100, 50)).putFlushId(8).build();
+
+    // Create tablet metadata with multiple files
+    TabletMetadata tmMultipleFiles = TabletMetadata.builder(extent)
+        .putFile(file1, new DataFileValue(0, 0)).putFile(file2, new DataFileValue(555, 23))
+        .putFile(file3, new DataFileValue(234, 13)).putFlushId(6).build();
 
     var extent2 = new KeyExtent(extent.tableId(), null, extent.endRow());
     // TODO create another tablet metadata using extent2 w/ diff files and add it to sortedMap. This
     // will add another row to the test data which ensures that iterator does not go to another row.
+    StoredTabletFile file4 =
+        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf4.rf")).insert();
+    StoredTabletFile file5 =
+        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf5.rf")).insert();
+    StoredTabletFile file6 =
+        new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0002/sf6.rf")).insert();
+    TabletMetadata tmMultipleFiles2 = TabletMetadata.builder(extent2)
+        .putFile(file4, new DataFileValue(100, 50)).putFile(file5, new DataFileValue(200, 75))
+        .putFile(file6, new DataFileValue(300, 100)).putFlushId(7).build();
+
+    // Convert TabletMetadata to a SortedMap
+    SortedMap<Key,Value> sortedMapNoFiles = new TreeMap<>(tmNoFiles.getKeyValues());
+    SortedMap<Key,Value> sortedMapOneFile = new TreeMap<>(tmOneFile.getKeyValues());
+    SortedMap<Key,Value> sortedMap = new TreeMap<>(tmMultipleFiles.getKeyValues());
+    SortedMap<Key,Value> sortedMap2 = new TreeMap<>(tmMultipleFiles2.getKeyValues());
+    // Add the second tablet metadata to the sortedMap
+    sortedMap.putAll(sortedMap2);
 
     // Create a SortedMapIterator using the SortedMap
     sortedMapIterator = new SortedMapIterator(sortedMap);
+    sortedMapIteratorNoFiles = new SortedMapIterator(sortedMapNoFiles);
+    sortedMapIteratorOneFile = new SortedMapIterator(sortedMapOneFile);
 
     // Set the SortedMapIterator as the source for SetEqualityIterator
     setEqualityIterator = new SetEqualityIterator();
     setEqualityIterator.init(sortedMapIterator, Collections.emptyMap(), null);
+    setEqualityIteratorNoFiles = new SetEqualityIterator();
+    setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles, Collections.emptyMap(), null);
+    setEqualityIteratorOneFile = new SetEqualityIterator();
+    setEqualityIteratorOneFile.init(sortedMapIteratorOneFile, Collections.emptyMap(), null);
+  }
+
+  @Test
+  public void testTabletWithNoFiles() throws IOException {
+    // Creating a test range
+    Text tabletRow = new Text(extent.toMetaRow());
+    Text family = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME;
+
+    Range range = Range.exact(tabletRow, family);
+
+    // Invoking the seek method
+    setEqualityIteratorNoFiles.seek(range, Collections.emptyList(), false);
+
+    // Asserting the result
+    assertEquals(new Key(tabletRow, family), setEqualityIteratorNoFiles.getTopKey());
+    assertEquals(0, setEqualityIteratorNoFiles.getTopValue().getSize());
+  }
+
+  @Test
+  public void testTabletWithOneFile() throws IOException {
+    // Creating a test range
+    Text tabletRow = new Text(extent.toMetaRow());
+    Text family = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME;
+
+    Range range = Range.exact(tabletRow, family);
+
+    // Invoking the seek method
+    setEqualityIteratorOneFile.seek(range, Collections.emptyList(), false);
+
+    // Asserting the result
+    assertEquals(new Key(tabletRow, family), setEqualityIteratorOneFile.getTopKey());
+    // The iterator should produce a value that is equal to the expected value on the condition
+    var condition = SetEqualityIterator.createCondition(Collections.singleton(file1),
+        storedTabletFile -> storedTabletFile.getMetadata().getBytes(UTF_8), family);
+    assertArrayEquals(condition.getValue().toArray(),
+        setEqualityIteratorOneFile.getTopValue().get());
   }
 
   @Test
