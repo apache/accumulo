@@ -259,6 +259,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
+      // FateMutator<T> fateMutator = newMutator(fateId).requireStatus(TStatus.IN_PROGRESS);
       FateMutator<T> fateMutator = newMutator(fateId);
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
