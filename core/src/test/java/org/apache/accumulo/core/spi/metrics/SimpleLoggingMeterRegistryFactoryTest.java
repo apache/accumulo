@@ -20,7 +20,6 @@ package org.apache.accumulo.core.spi.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import org.apache.accumulo.core.conf.Property;
 import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -31,11 +30,5 @@ class SimpleLoggingMeterRegistryFactoryTest {
   public void createTest() {
     SimpleLoggingMeterRegistryFactory factory = new SimpleLoggingMeterRegistryFactory();
     assertInstanceOf(MeterRegistry.class, factory.create());
-  }
-
-  @Test
-  public void x() {
-    System.out.println(Property.GENERAL_MICROMETER_FACTORY.getType());
-
   }
 }
