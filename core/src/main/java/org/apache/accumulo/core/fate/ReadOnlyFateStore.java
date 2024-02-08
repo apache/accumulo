@@ -151,4 +151,6 @@ public interface ReadOnlyFateStore<T> {
    * @return the current number of transactions that have been deferred
    */
   int getDeferredCount();
+
+  FateInstanceType type();
 }

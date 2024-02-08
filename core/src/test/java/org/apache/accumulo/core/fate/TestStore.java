@@ -205,6 +205,11 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public FateInstanceType type() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public boolean isDeferredOverflow() {
     return false;
   }

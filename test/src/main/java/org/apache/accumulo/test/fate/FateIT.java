@@ -178,7 +178,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
       Wait.waitFor(() -> getTxStatus(sctx, fateId) == UNKNOWN);
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -212,7 +212,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -247,7 +247,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -277,8 +277,9 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted.await();
       // cancel the transaction
       assertFalse(fate.cancel(fateId));
+      finishCall.countDown();
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
 
   }
@@ -350,7 +351,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       });
 
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 

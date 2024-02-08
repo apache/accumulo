@@ -92,6 +92,11 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  @Override
+  public FateInstanceType type() {
+    return fateInstanceType;
+  }
+
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
 
     private FateTxStoreImpl(FateId fateId, boolean isReserved) {

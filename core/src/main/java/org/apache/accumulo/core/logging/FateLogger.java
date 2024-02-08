@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -135,6 +136,11 @@ public class FateLogger {
       @Override
       public int getDeferredCount() {
         return store.getDeferredCount();
+      }
+
+      @Override
+      public FateInstanceType type() {
+        return store.type();
       }
 
       @Override

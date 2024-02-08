@@ -459,20 +459,36 @@ public class Fate<T> {
   }
 
   /**
-   * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
+   * Initiates shutdown of background threads and optionally waits on them.
    */
-  public void shutdown() {
-    keepRunning.set(false);
-    fatePoolWatcher.shutdown();
-    if (executor != null) {
-      executor.shutdown();
+  public void shutdown(boolean waitForBackgroundThreads) {
+    if (keepRunning.compareAndSet(true, false)) {
+      fatePoolWatcher.shutdown();
+      if (executor != null) {
+        executor.shutdown();
+      }
+      workFinder.interrupt();
     }
-    workFinder.interrupt();
-    try {
-      workFinder.join();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+
+    if (waitForBackgroundThreads) {
+      try {
+        if (executor != null) {
+          while (!executor.awaitTermination(10, SECONDS)) {
+            log.debug("Fate {} is waiting for worker threads to terminate", store.type());
+          }
+        }
+
+        workFinder.join(10_000);
+        while (workFinder.isAlive()) {
+          log.debug("Fate {} is waiting for work finder thread to terminate", store.type());
+          workFinder.interrupt();
+          workFinder.join(10_000);
+        }
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
+
   }
 
 }
