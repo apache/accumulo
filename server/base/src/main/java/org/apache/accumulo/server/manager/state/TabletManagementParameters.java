@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -69,7 +70,7 @@ public class TabletManagementParameters {
 
   private final Supplier<Map<TServerInstance,String>> resourceGroups;
   private final Map<String,Set<TServerInstance>> tserverGroups;
-  private final Map<Long,Map<String,String>> compactionHints;
+  private final Map<FateId,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
   private final Map<Path,Path> volumeReplacements;
@@ -78,7 +79,7 @@ public class TabletManagementParameters {
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
-      Ample.DataLevel level, Map<Long,Map<String,String>> compactionHints,
+      Ample.DataLevel level, Map<FateId,Map<String,String>> compactionHints,
       boolean canSuspendTablets, Map<Path,Path> volumeReplacements) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
@@ -173,7 +174,7 @@ public class TabletManagementParameters {
     return onlineTables;
   }
 
-  public Map<Long,Map<String,String>> getCompactionHints() {
+  public Map<FateId,Map<String,String>> getCompactionHints() {
     return compactionHints;
   }
 
@@ -185,9 +186,9 @@ public class TabletManagementParameters {
     return volumeReplacements;
   }
 
-  private static Map<Long,Map<String,String>>
-      makeImmutable(Map<Long,Map<String,String>> compactionHints) {
-    var copy = new HashMap<Long,Map<String,String>>();
+  private static Map<FateId,Map<String,String>>
+      makeImmutable(Map<FateId,Map<String,String>> compactionHints) {
+    var copy = new HashMap<FateId,Map<String,String>>();
     compactionHints.forEach((ftxid, hints) -> copy.put(ftxid, Map.copyOf(hints)));
     return Collections.unmodifiableMap(copy);
   }
@@ -205,7 +206,7 @@ public class TabletManagementParameters {
 
     final Map<String,Set<String>> tserverGroups;
 
-    final Map<Long,Map<String,String>> compactionHints;
+    final Map<FateId,Map<String,String>> compactionHints;
 
     final boolean canSuspendTablets;
     final Map<Path,Path> volumeReplacements;

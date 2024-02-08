@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -334,18 +334,13 @@ public class MetadataSchema {
       public static final String STR_NAME = "loaded";
       public static final Text NAME = new Text(STR_NAME);
 
-      public static long getBulkLoadTid(Value v) {
+      public static FateId getBulkLoadTid(Value v) {
         return getBulkLoadTid(v.toString());
       }
 
-      public static long getBulkLoadTid(String vs) {
-        if (FateTxId.isFormatedTid(vs)) {
-          return FateTxId.fromString(vs);
-        } else {
-          // a new serialization format was introduce in 2.0. This code support deserializing the
-          // old format.
-          return Long.parseLong(vs);
-        }
+      public static FateId getBulkLoadTid(String vs) {
+        // ELASTICITY_TODO issue 4044 will this be an issue removing the old code?
+        return FateId.from(vs);
       }
     }
 

@@ -69,6 +69,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
@@ -161,7 +162,7 @@ public class CompactionCoordinator
   private final ScheduledThreadPoolExecutor schedExecutor;
 
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
-  private final LoadingCache<Long,CompactionConfig> compactionConfigCache;
+  private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
 
@@ -183,8 +184,8 @@ public class CompactionCoordinator
     completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
         .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
-    CacheLoader<Long,CompactionConfig> loader =
-        txid -> CompactionConfigStorage.getConfig(ctx, txid);
+    CacheLoader<FateId,CompactionConfig> loader =
+        fateId -> CompactionConfigStorage.getConfig(ctx, fateId);
 
     // Keep a small short lived cache of compaction config. Compaction config never changes, however
     // when a compaction is canceled it is deleted which is why there is a time limit. It does not
@@ -455,7 +456,7 @@ public class CompactionCoordinator
       ExternalCompactionId externalCompactionId) {
     boolean propDels;
 
-    Long fateTxId = null;
+    FateId fateId = null;
 
     switch (job.getKind()) {
       case SYSTEM: {
@@ -468,7 +469,7 @@ public class CompactionCoordinator
         boolean compactingAll = tablet.getSelectedFiles().initiallySelectedAll()
             && tablet.getSelectedFiles().getFiles().equals(jobFiles);
         propDels = !compactingAll;
-        fateTxId = tablet.getSelectedFiles().getFateTxId();
+        fateId = tablet.getSelectedFiles().getFateId();
       }
         break;
       default:
@@ -480,7 +481,7 @@ public class CompactionCoordinator
         tablet, directoryCreator, externalCompactionId);
 
     return new CompactionMetadata(jobFiles, newFile, compactorAddress, job.getKind(),
-        job.getPriority(), job.getGroup(), propDels, fateTxId);
+        job.getPriority(), job.getGroup(), propDels, fateId);
 
   }
 
@@ -565,15 +566,17 @@ public class CompactionCoordinator
           dfv.getTime());
     }).collect(Collectors.toList());
 
-    long fateTxid = 0;
+    FateInstanceType type = FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId());
+    FateId fateId = FateId.from(type, 0);
     if (metaJob.getJob().getKind() == CompactionKind.USER) {
-      fateTxid = metaJob.getTabletMetadata().getSelectedFiles().getFateTxId();
+      fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
 
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateTxid, overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), fateId.getTid(), overrides);
   }
 
   @Override
@@ -598,7 +601,7 @@ public class CompactionCoordinator
     if (metaJob.getJob().getKind() == CompactionKind.USER
         && metaJob.getTabletMetadata().getSelectedFiles() != null) {
       var cconf =
-          compactionConfigCache.get(metaJob.getTabletMetadata().getSelectedFiles().getFateTxId());
+          compactionConfigCache.get(metaJob.getTabletMetadata().getSelectedFiles().getFateId());
       return Optional.ofNullable(cconf);
     }
     return Optional.empty();

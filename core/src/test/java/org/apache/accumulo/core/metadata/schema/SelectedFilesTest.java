@@ -32,7 +32,8 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
@@ -52,8 +53,9 @@ public class SelectedFilesTest {
   @Test
   public void testSerializationDeserialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(2);
+    FateId fateId = FateId.from(FateInstanceType.META, 12345L);
 
-    SelectedFiles original = new SelectedFiles(files, true, 12345L);
+    SelectedFiles original = new SelectedFiles(files, true, fateId);
 
     String json = original.getMetadataValue();
     SelectedFiles deserialized = SelectedFiles.from(json);
@@ -68,9 +70,10 @@ public class SelectedFilesTest {
   @Test
   public void testEqualSerialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
+    FateId fateId = FateId.from(FateInstanceType.META, 12345L);
 
-    SelectedFiles sf1 = new SelectedFiles(files, true, 12345L);
-    SelectedFiles sf2 = new SelectedFiles(files, true, 12345L);
+    SelectedFiles sf1 = new SelectedFiles(files, true, fateId);
+    SelectedFiles sf2 = new SelectedFiles(files, true, fateId);
 
     assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
     assertEquals(sf1, sf2);
@@ -84,13 +87,14 @@ public class SelectedFilesTest {
   public void testDifferentFilesOrdering() {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
     SortedSet<StoredTabletFile> sortedFiles = new TreeSet<>(files);
+    FateId fateId = FateId.from(FateInstanceType.META, 654123L);
 
     assertEquals(files, sortedFiles, "Entries in test file sets should be the same");
     assertNotEquals(files.toString(), sortedFiles.toString(),
         "Order of files set should differ for this test case");
 
-    SelectedFiles sf1 = new SelectedFiles(files, false, 654123L);
-    SelectedFiles sf2 = new SelectedFiles(sortedFiles, false, 654123L);
+    SelectedFiles sf1 = new SelectedFiles(files, false, fateId);
+    SelectedFiles sf2 = new SelectedFiles(sortedFiles, false, fateId);
 
     assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
     assertEquals(sf1, sf2);
@@ -104,11 +108,12 @@ public class SelectedFilesTest {
   public void testJsonSuperSetSubset() {
     Set<StoredTabletFile> filesSuperSet = getStoredTabletFiles(3);
     Set<StoredTabletFile> filesSubSet = new HashSet<>(filesSuperSet);
+    FateId fateId = FateId.from(FateInstanceType.META, 123456L);
     // Remove an element to create a subset
     filesSubSet.remove(filesSubSet.iterator().next());
 
-    SelectedFiles superSetSelectedFiles = new SelectedFiles(filesSuperSet, true, 123456L);
-    SelectedFiles subSetSelectedFiles = new SelectedFiles(filesSubSet, true, 123456L);
+    SelectedFiles superSetSelectedFiles = new SelectedFiles(filesSuperSet, true, fateId);
+    SelectedFiles subSetSelectedFiles = new SelectedFiles(filesSubSet, true, fateId);
 
     String superSetJson = superSetSelectedFiles.getMetadataValue();
     String subSetJson = subSetSelectedFiles.getMetadataValue();
@@ -128,9 +133,9 @@ public class SelectedFilesTest {
   }
 
   private static Stream<Arguments> provideTestJsons() {
-    return Stream.of(Arguments.of("123456", true, 12), Arguments.of("123456", false, 12),
-        Arguments.of("123456", false, 23), Arguments.of("654321", false, 23),
-        Arguments.of("AE56E", false, 23));
+    return Stream.of(Arguments.of("FATE:META:123456", true, 12),
+        Arguments.of("FATE:META:123456", false, 12), Arguments.of("FATE:META:123456", false, 23),
+        Arguments.of("FATE:META:654321", false, 23), Arguments.of("FATE:META:AE56E", false, 23));
   }
 
   /**
@@ -139,14 +144,14 @@ public class SelectedFilesTest {
    */
   @ParameterizedTest
   @MethodSource("provideTestJsons")
-  public void testJsonStrings(String txid, boolean selAll, int numPaths) {
+  public void testJsonStrings(FateId fateId, boolean selAll, int numPaths) {
     List<String> paths = getFilePaths(numPaths);
 
     // should be resilient to unordered file arrays
     Collections.shuffle(paths, RANDOM.get());
 
     // construct a json from the given parameters
-    String json = getJson(txid, selAll, paths);
+    String json = getJson(fateId, selAll, paths);
 
     System.out.println(json);
 
@@ -154,13 +159,13 @@ public class SelectedFilesTest {
     SelectedFiles selectedFiles = SelectedFiles.from(json);
 
     // ensure all parts of the SelectedFiles object are correct
-    assertEquals(Long.parseLong(txid, 16), selectedFiles.getFateTxId());
+    assertEquals(fateId, selectedFiles.getFateId());
     assertEquals(selAll, selectedFiles.initiallySelectedAll());
     Set<StoredTabletFile> expectedStoredTabletFiles = filePathsToStoredTabletFiles(paths);
     assertEquals(expectedStoredTabletFiles, selectedFiles.getFiles());
 
     Collections.sort(paths);
-    String jsonWithSortedFiles = getJson(txid, selAll, paths);
+    String jsonWithSortedFiles = getJson(fateId, selAll, paths);
     assertEquals(jsonWithSortedFiles, selectedFiles.getMetadataValue());
   }
 
@@ -170,19 +175,19 @@ public class SelectedFilesTest {
    *
    * <pre>
    * {
-   *   "txid": "FATE[123456]",
+   *   "txid": "FATE:META:123456",
    *   "selAll": true,
    *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
    * }
    * </pre>
    */
-  private static String getJson(String txid, boolean selAll, List<String> paths) {
+  private static String getJson(FateId fateId, boolean selAll, List<String> paths) {
     String filesJsonArray =
         paths.stream().map(path -> new ReferencedTabletFile(new Path(path)).insert().getMetadata())
             .map(path -> path.replace("\"", "\\\"")).map(path -> "'" + path + "'")
             .collect(Collectors.joining(","));
-    return ("{'txid':'" + FateTxId.formatTid(Long.parseLong(txid, 16)) + "','selAll':" + selAll
-        + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
+    return ("{'txid':'" + fateId + "','selAll':" + selAll + ",'files':[" + filesJsonArray + "]}")
+        .replace('\'', '\"');
   }
 
   /**

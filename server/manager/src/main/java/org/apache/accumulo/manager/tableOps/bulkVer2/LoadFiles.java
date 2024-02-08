@@ -197,8 +197,7 @@ class LoadFiles extends ManagerRepo {
               .requireAbsentOperation().requireSame(tablet, LOADED, TIME, LOCATION);
 
           filesToLoad.forEach((f, v) -> {
-            // ELASTICITY_TODO DEFERRED - ISSUE 4044
-            tabletMutator.putBulkFile(f, fateId.getTid());
+            tabletMutator.putBulkFile(f, fateId);
             tabletMutator.putFile(f, v);
           });
 

@@ -26,7 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 
 import com.google.common.base.Preconditions;
@@ -43,18 +43,18 @@ public class SelectedFiles {
 
   private final Set<StoredTabletFile> files;
   private final boolean initiallySelectedAll;
-  private final long fateTxId;
+  private final FateId fateId;
 
   private String metadataValue;
 
   private static final Gson GSON = new GsonBuilder()
       .registerTypeAdapter(SelectedFiles.class, new SelectedFilesTypeAdapter()).create();
 
-  public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, long fateTxId) {
+  public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId) {
     Preconditions.checkArgument(files != null && !files.isEmpty());
     this.files = Set.copyOf(files);
     this.initiallySelectedAll = initiallySelectedAll;
-    this.fateTxId = fateTxId;
+    this.fateId = fateId;
   }
 
   private static class SelectedFilesTypeAdapter extends TypeAdapter<SelectedFiles> {
@@ -62,7 +62,7 @@ public class SelectedFiles {
     @Override
     public void write(JsonWriter out, SelectedFiles selectedFiles) throws IOException {
       out.beginObject();
-      out.name("txid").value(FateTxId.formatTid(selectedFiles.getFateTxId()));
+      out.name("txid").value(selectedFiles.getFateId().canonical());
       out.name("selAll").value(selectedFiles.initiallySelectedAll());
       out.name("files").beginArray();
       // sort the data to make serialized json comparable
@@ -81,7 +81,7 @@ public class SelectedFiles {
 
     @Override
     public SelectedFiles read(JsonReader in) throws IOException {
-      long fateTxId = 0L;
+      FateId fateId = null;
       boolean selAll = false;
       List<String> files = new ArrayList<>();
 
@@ -90,7 +90,7 @@ public class SelectedFiles {
         String name = in.nextName();
         switch (name) {
           case "txid":
-            fateTxId = FateTxId.fromString(in.nextString());
+            fateId = FateId.from(in.nextString());
             break;
           case "selAll":
             selAll = in.nextBoolean();
@@ -111,7 +111,7 @@ public class SelectedFiles {
       Set<StoredTabletFile> tabletFiles =
           files.stream().map(StoredTabletFile::new).collect(Collectors.toSet());
 
-      return new SelectedFiles(tabletFiles, selAll, fateTxId);
+      return new SelectedFiles(tabletFiles, selAll, fateId);
     }
 
   }
@@ -128,8 +128,8 @@ public class SelectedFiles {
     return initiallySelectedAll;
   }
 
-  public long getFateTxId() {
-    return fateTxId;
+  public FateId getFateId() {
+    return fateId;
   }
 
   public String getMetadataValue() {
@@ -149,13 +149,13 @@ public class SelectedFiles {
       return false;
     }
     SelectedFiles other = (SelectedFiles) obj;
-    return fateTxId == other.fateTxId && files.equals(other.files)
+    return fateId.equals(other.fateId) && files.equals(other.files)
         && initiallySelectedAll == other.initiallySelectedAll;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(fateTxId, files, initiallySelectedAll);
+    return Objects.hash(fateId, files, initiallySelectedAll);
   }
 
 }

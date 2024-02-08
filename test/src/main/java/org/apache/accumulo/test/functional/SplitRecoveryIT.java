@@ -46,6 +46,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -169,9 +171,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
-      int tid = 0;
+      FateId fateId = FateId.from(FateInstanceType.fromTableId(extent.tableId()), 0);
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, dataFiles,
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(fateId, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
         splitDataFiles = storedFiles;
@@ -187,12 +189,12 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private static Map<Long,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
+  private static Map<FateId,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
       KeyExtent extent) {
-    Map<Long,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
+    Map<FateId,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
 
-    context.getAmple().readTablet(extent).getLoaded().forEach((path, txid) -> bulkFiles
-        .computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile()));
+    context.getAmple().readTablet(extent).getLoaded().forEach((path, fateId) -> bulkFiles
+        .computeIfAbsent(fateId, k -> new ArrayList<>()).add(path.getTabletFile()));
 
     return bulkFiles;
   }
@@ -217,7 +219,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
+      Map<FateId,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       SplitRecovery12to13.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
           bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L);
@@ -248,9 +250,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
+      Map<FateId,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
           getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<ReferencedTabletFile>> highBulkFiles =
+      Map<FateId,? extends Collection<ReferencedTabletFile>> highBulkFiles =
           getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {

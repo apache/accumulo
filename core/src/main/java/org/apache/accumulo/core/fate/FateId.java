@@ -34,6 +34,8 @@ public class FateId extends AbstractId<FateId> {
   private static final long serialVersionUID = 1L;
   private static final String PREFIX = "FATE:";
   private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]+$");
+  private static final Pattern FATEID_PATTERN =
+      Pattern.compile("^" + PREFIX + "[a-zA-Z]+:[0-9a-fA-F]+$");
 
   private FateId(String canonical) {
     super(canonical);
@@ -86,6 +88,46 @@ public class FateId extends AbstractId<FateId> {
     }
   }
 
+  /**
+   * @param fateIdStr the string representation of the FateId
+   * @return a new FateId object from the given string
+   */
+  public static FateId from(String fateIdStr) {
+    if (FATEID_PATTERN.matcher(fateIdStr).matches()) {
+      String[] fields = fateIdStr.split(":");
+      try {
+        FateInstanceType.valueOf(fields[1]);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid FateInstanceType: " + fields[1], e);
+      }
+      return new FateId(fateIdStr);
+    } else {
+      throw new IllegalArgumentException("Invalid Fate ID: " + fateIdStr);
+    }
+  }
+
+  /**
+   * @param fateIdStr the string representation of the FateId
+   * @return true if the string is a valid FateId, false otherwise
+   */
+  public static boolean isFormattedTid(String fateIdStr) {
+    if (FATEID_PATTERN.matcher(fateIdStr).matches()) {
+      String[] fields = fateIdStr.split(":");
+      try {
+        FateInstanceType.valueOf(fields[1]);
+      } catch (IllegalArgumentException e) {
+        return false;
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * @param tFateId the TFateId
+   * @return the FateId equivalent of the given TFateId
+   */
   public static FateId fromThrift(TFateId tFateId) {
     FateInstanceType type;
     long tid = tFateId.getTid();
