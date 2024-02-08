@@ -620,14 +620,22 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start distributed work queue for copying ", e1);
     }
 
-    try {
-      // Attempt to process all existing log sorting work and start a background
-      // thread to look for log sorting work in the future
-      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
-    } catch (Exception ex) {
-      log.error("Error starting LogSorter");
-      throw new RuntimeException(ex);
+    int threadPoolSize =
+        getContext().getConfiguration().getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
+    if (threadPoolSize > 0) {
+      try {
+        // Attempt to process all existing log sorting work and start a background
+        // thread to look for log sorting work in the future
+        logSorter.startWatchingForRecoveryLogs(threadPoolSize);
+      } catch (Exception ex) {
+        log.error("Error starting LogSorter");
+        throw new RuntimeException(ex);
+      }
+    } else {
+      log.warn(
+          "Log sorting for tablet recovery is disabled, TSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
+
     final AccumuloConfiguration aconf = getConfiguration();
 
     final long onDemandUnloaderInterval =

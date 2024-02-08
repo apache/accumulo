@@ -222,7 +222,6 @@ public class LogSorter {
     }
   }
 
-  private final ThreadPoolExecutor threadPool;
   private final ServerContext context;
   private final double walBlockSize;
   private final CryptoService cryptoService;
@@ -231,9 +230,6 @@ public class LogSorter {
     this.context = context;
     this.sortedLogConf = extractSortedLogConfig(conf);
 
-    int threadPoolSize = conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
-    this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
-        this.getClass().getName(), true);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
     this.cryptoService = context.getCryptoFactory().getService(env, conf.getAllCryptoProperties());
@@ -308,10 +304,12 @@ public class LogSorter {
    * thread to look for log sorting work in the future that will be processed by the
    * ThreadPoolExecutor
    */
-  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
+  public void startWatchingForRecoveryLogs(int threadPoolSize)
       throws KeeperException, InterruptedException {
+    ThreadPoolExecutor threadPool = ThreadPools.getServerThreadPools()
+        .createFixedThreadPool(threadPoolSize, this.getClass().getName(), true);
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).processExistingAndFuture(new LogProcessor(), this.threadPool);
+        context).processExistingAndFuture(new LogProcessor(), threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

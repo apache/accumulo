@@ -45,15 +45,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
-
-  private String walSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -73,13 +72,15 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void alterConfig() throws Exception {
+    // Make sure all server types are running before each test
+    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getClusterControl().startAllServers(ServerType.SCAN_SERVER);
+    getClusterControl().startAllServers(ServerType.COMPACTOR);
     if (getClusterType() == ClusterType.MINI) {
       return;
     }
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
-      Map<String,String> conf = iops.getSystemConfiguration();
-      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
       iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -92,8 +93,32 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
    * not single tablet references a lot of write ahead logs. Want to ensure the tablet server forces
    * minor compactions for this situation.
    */
-  @Test
-  public void testMany() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"TSERVER", "SSERVER", "COMPACTOR", "ALL"})
+  public void testMany(String testType) throws Exception {
+
+    switch (testType) {
+      case "TSERVER":
+        // Stop everything but the tablet server
+        getClusterControl().stopAllServers(ServerType.COMPACTOR);
+        getClusterControl().stopAllServers(ServerType.SCAN_SERVER);
+        break;
+      case "SSERVER":
+        // Stop everything but the scan server
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().stopAllServers(ServerType.COMPACTOR);
+        break;
+      case "COMPACTOR":
+        // Stop everything but the compactor
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().stopAllServers(ServerType.SCAN_SERVER);
+        break;
+      case "ALL":
+      default:
+        // In the ALL case, leave all servers running
+        break;
+    }
+
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%05x", i * 100)));

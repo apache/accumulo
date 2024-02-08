@@ -520,6 +520,9 @@ public enum Property {
   @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
+  @Experimental
+  SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
+      "The maximum number of threads to use to sort logs during recovery.", "4.0.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers.", "1.3.5"),

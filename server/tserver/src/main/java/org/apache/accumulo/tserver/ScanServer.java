@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -392,17 +391,20 @@ public class ScanServer extends AbstractServer
 
     ServiceLock lock = announceExistence();
 
-    final LogSorter logSorter = new LogSorter(context, getConfiguration());
-    try {
-      int threadPoolSize = getConfiguration().getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
-      ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
-          .createFixedThreadPool(threadPoolSize, logSorter.getClass().getName(), true);
-      // Attempt to process all existing log sorting work and start a background
-      // thread to look for log sorting work in the future
-      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
-    } catch (Exception ex) {
-      log.error("Error starting LogSorter");
-      throw new RuntimeException(ex);
+    int threadPoolSize = getConfiguration().getCount(Property.SSERV_WAL_SORT_MAX_CONCURRENT);
+    if (threadPoolSize > 0) {
+      final LogSorter logSorter = new LogSorter(context, getConfiguration());
+      try {
+        // Attempt to process all existing log sorting work and start a background
+        // thread to look for log sorting work in the future
+        logSorter.startWatchingForRecoveryLogs(threadPoolSize);
+      } catch (Exception ex) {
+        log.error("Error starting LogSorter");
+        throw new RuntimeException(ex);
+      }
+    } else {
+      log.warn(
+          "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
     try {
