@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
@@ -37,12 +38,12 @@ class FinishCloneTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) {
+  public Repo<Manager> call(FateId fateId, Manager environment) {
     // directories are intentionally not created.... this is done because directories should be
     // unique
     // because they occupy a different namespace than normal tablet directories... also some clones
@@ -59,12 +60,12 @@ class FinishCloneTable extends ManagerRepo {
       environment.getTableManager().transitionTableState(cloneInfo.tableId, ts, expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, fateId, false);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, fateId, false);
     }
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
-    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
+    Utils.unreserveTable(environment, cloneInfo.srcTableId, fateId, false);
+    Utils.unreserveTable(environment, cloneInfo.tableId, fateId, true);
 
     environment.getEventCoordinator().event(cloneInfo.tableId, "Cloned table %s from %s",
         cloneInfo.tableName, cloneInfo.srcTableId);
@@ -76,6 +77,6 @@ class FinishCloneTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) {}
+  public void undo(FateId fateId, Manager environment) {}
 
 }

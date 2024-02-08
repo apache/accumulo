@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.Manager;
@@ -38,7 +39,7 @@ class SetupPermissions extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     // give all table permissions to the creator
     SecurityOperation security = env.getContext().getSecurityOperation();
     if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {
@@ -60,7 +61,7 @@ class SetupPermissions extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     env.getContext().getSecurityOperation().deleteTable(env.getContext().rpcCreds(),
         tableInfo.getTableId(), tableInfo.getNamespaceId());
   }

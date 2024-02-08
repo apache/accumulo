@@ -37,14 +37,13 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,9 +89,9 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, long tid, boolean writeLock,
+  public static long reserveTable(Manager env, TableId tableId, FateId fateId, boolean writeLock,
       boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
+    if (getLock(env.getContext(), tableId, fateId, writeLock).tryLock()) {
       if (tableMustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId)) {
@@ -100,7 +99,7 @@ public class Utils {
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }
       }
-      log.info("table {} {} locked for {} operation: {}", tableId, FateTxId.formatTid(tid),
+      log.info("table {} {} locked for {} operation: {}", tableId, fateId,
           (writeLock ? "write" : "read"), op);
       return 0;
     } else {
@@ -108,22 +107,22 @@ public class Utils {
     }
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
-    getLock(env.getContext(), tableId, tid, writeLock).unlock();
-    log.info("table {} {} unlocked for {}", tableId, FateTxId.formatTid(tid),
-        (writeLock ? "write" : "read"));
-  }
-
-  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static void unreserveTable(Manager env, TableId tableId, FateId fateId,
       boolean writeLock) {
-    getLock(env.getContext(), namespaceId, id, writeLock).unlock();
-    log.info("namespace {} {} unlocked for {}", namespaceId, FateTxId.formatTid(id),
+    getLock(env.getContext(), tableId, fateId, writeLock).unlock();
+    log.info("table {} {} unlocked for {}", tableId, fateId, (writeLock ? "write" : "read"));
+  }
+
+  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+      boolean writeLock) {
+    getLock(env.getContext(), namespaceId, fateId, writeLock).unlock();
+    log.info("namespace {} {} unlocked for {}", namespaceId, fateId,
         (writeLock ? "write" : "read"));
   }
 
-  public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static long reserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
+    if (getLock(env.getContext(), namespaceId, fateId, writeLock).tryLock()) {
       if (mustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
@@ -132,7 +131,7 @@ public class Utils {
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
         }
       }
-      log.info("namespace {} {} locked for {} operation: {}", namespaceId, FateTxId.formatTid(id),
+      log.info("namespace {} {} locked for {} operation: {}", namespaceId, fateId,
           (writeLock ? "write" : "read"), op);
       return 0;
     } else {
@@ -140,31 +139,32 @@ public class Utils {
     }
   }
 
-  public static long reserveHdfsDirectory(Manager env, String directory, long tid)
+  public static long reserveHdfsDirectory(Manager env, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
     ZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
-    if (ZooReservation.attempt(zk, resvPath, FastFormat.toHexString(tid), "")) {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044 .. should the full FateId be passed below?
+    if (ZooReservation.attempt(zk, resvPath, fateId.getHexTid(), "")) {
       return 0;
     } else {
       return 50;
     }
   }
 
-  public static void unreserveHdfsDirectory(Manager env, String directory, long tid)
+  public static void unreserveHdfsDirectory(Manager env, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
-        FastFormat.toHexString(tid));
+    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath, fateId.getHexTid());
   }
 
-  private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
+  private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       boolean writeLock) {
-    byte[] lockData = FastFormat.toZeroPaddedHex(tid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044 ... should lock data use full FateId?
+    byte[] lockData = fateId.getHexTid().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
@@ -175,8 +175,8 @@ public class Utils {
       boolean isWriteLock = lock.getType() == LockType.WRITE;
       if (writeLock != isWriteLock) {
         throw new IllegalStateException("Unexpected lock type " + lock.getType()
-            + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
-            + ". Expected " + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
+            + " recovered for transaction " + fateId + " on object " + id + ". Expected "
+            + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
@@ -197,8 +197,8 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Manager env, AbstractId<?> id, long tid) {
-    return Utils.getLock(env.getContext(), id, tid, false);
+  public static Lock getReadLock(Manager env, AbstractId<?> id, FateId fateId) {
+    return Utils.getLock(env.getContext(), id, fateId, false);
   }
 
   public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,

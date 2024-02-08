@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -90,11 +91,12 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, false, true,
+    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, fateId, false, true,
         TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+        + Utils.reserveTable(manager, tableInfo.tableID, fateId, false, true,
+            TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
     }
@@ -132,7 +134,7 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     try {
       exportTable(manager.getVolumeManager(), manager.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
@@ -141,16 +143,16 @@ class WriteExportFiles extends ManagerRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(manager, tableInfo.tableID, tid, false);
-    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(manager, tableInfo.namespaceID, fateId, false);
+    Utils.unreserveTable(manager, tableInfo.tableID, fateId, false);
+    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), fateId);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(env, tableInfo.tableID, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, fateId, false);
+    Utils.unreserveTable(env, tableInfo.tableID, fateId, false);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,

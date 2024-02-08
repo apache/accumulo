@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -60,14 +61,14 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
+  public long isReady(FateId fateId, Manager environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), tid, false, true,
+    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, false, true,
         TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -85,7 +86,7 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws IOException {
+  public void undo(FateId fateId, Manager env) throws IOException {
     // Clean up split files if create table operation fails
     Path p = null;
     try {
@@ -97,7 +98,7 @@ public class CreateTable extends ManagerRepo {
     } catch (IOException e) {
       log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
-      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, false);
     }
   }
 

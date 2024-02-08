@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -58,16 +58,14 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
     var ample = manager.getContext().getAmple();
-
-    var fateStr = FateTxId.formatTid(tid);
 
     AtomicLong rejectedCount = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.REJECTED) {
-        log.debug("{} update for {} was rejected ", fateStr, result.getExtent());
+        log.debug("{} update for {} was rejected ", fateId, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };
@@ -82,10 +80,11 @@ public class CleanUp extends ManagerRepo {
       t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
         total++;
-        if (tablet.getCompacted().contains(tid)) {
+        // ELASTICITY_TODO DEFERRED - ISSUE 4044
+        if (tablet.getCompacted().contains(fateId.getTid())) {
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(tid)
-              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(tid));
+              .requireSame(tablet, COMPACTED).deleteCompacted(fateId.getTid())
+              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId.getTid()));
           submitted++;
         }
       }
@@ -95,7 +94,7 @@ public class CleanUp extends ManagerRepo {
 
     long scanTime = Duration.ofNanos(t2 - t1).toMillis();
 
-    log.debug("{} removed {} of {} compacted markers for {} tablets in {}ms", fateStr,
+    log.debug("{} removed {} of {} compacted markers for {} tablets in {}ms", fateId,
         submitted - rejectedCount.get(), submitted, total, scanTime);
 
     if (rejectedCount.get() > 0) {
@@ -108,10 +107,11 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    CompactionConfigStorage.deleteConfig(manager.getContext(), tid);
-    Utils.getReadLock(manager, tableId, tid).unlock();
-    Utils.getReadLock(manager, namespaceId, tid).unlock();
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId.getTid());
+    Utils.getReadLock(manager, tableId, fateId).unlock();
+    Utils.getReadLock(manager, namespaceId, fateId).unlock();
     return null;
   }
 }
