@@ -88,6 +88,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // Try setting a second test op to test getStack()
     // when listing or popping TestOperation2 should be first
     assertEquals(1, txStore.getStack().size());
+    txStore.setStatus(TStatus.IN_PROGRESS);
     txStore.push(new TestOperation2());
     // test top returns TestOperation2
     ReadOnlyRepo<TestEnv> top = txStore.top();
