@@ -701,7 +701,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                 }
               }
             } else {
-              LOG.error("Waiting on compaction thread to finish, but no RUNNING compaction");
+              LOG.debug("Waiting on compaction thread to finish, but no RUNNING compaction");
             }
           }
           compactionThread.join();
