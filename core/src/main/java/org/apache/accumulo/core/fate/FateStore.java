@@ -25,19 +25,19 @@ import java.util.concurrent.TimeUnit;
 /**
  * Transaction Store: a place to save transactions
  *
- * A transaction consists of a number of operations. To use, first create a transaction id, and then
- * seed the transaction with an initial operation. An executor service can then execute the
+ * A transaction consists of a number of operations. To use, first create a fate transaction id, and
+ * then seed the transaction with an initial operation. An executor service can then execute the
  * transaction's operation, possibly pushing more operations onto the transaction as each step
  * successfully completes. If a step fails, the stack can be unwound, undoing each operation.
  */
 public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
   /**
-   * Create a new transaction id
+   * Create a new fate transaction id
    *
-   * @return a transaction id
+   * @return a new FateId
    */
-  long create();
+  FateId create();
 
   /**
    * An interface that allows read/write access to the data related to a single fate operation.
@@ -86,27 +86,27 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * longer interact with it.
      *
      * @param deferTime time in millis to keep this transaction from being returned by
-     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.LongConsumer)}.
+     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.Consumer)}.
      *        Must be non-negative.
      */
     void unreserve(long deferTime, TimeUnit timeUnit);
   }
 
   /**
-   * Attempt to reserve transaction
+   * Attempt to reserve the fate transaction.
    *
-   * @param tid transaction id
+   * @param fateId The FateId
    * @return true if reserved by this call, false if already reserved
    */
-  Optional<FateTxStore<T>> tryReserve(long tid);
+  Optional<FateTxStore<T>> tryReserve(FateId fateId);
 
   /**
-   * Reserve the specific tid.
+   * Reserve the fate transaction.
    *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same
-   * instance will be operating on that transaction id.
+   * Reserving a fate transaction ensures that nothing else in-process interacting via the same
+   * instance will be operating on that fate transaction.
    *
    */
-  FateTxStore<T> reserve(long tid);
+  FateTxStore<T> reserve(FateId fateId);
 
 }

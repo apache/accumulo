@@ -39,7 +39,7 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
-  SET_HOSTING_GOAL
+  SET_TABLET_AVAILABILITY
   SPLIT
 }
 
@@ -122,9 +122,9 @@ struct TInfo {
   1:map<string,string> headers
 }
 
-enum THostingGoal {
-  ALWAYS
-  NEVER
+enum TTabletAvailability {
+  HOSTED
+  UNHOSTED
   ONDEMAND
 }
 

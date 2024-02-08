@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -51,19 +51,19 @@ class FinishTableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    removeOperationIds(log, data, tid, manager);
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+    removeOperationIds(log, data, fateId, manager);
 
-    Utils.unreserveTable(manager, data.tableId, tid, true);
-    Utils.unreserveNamespace(manager, data.namespaceId, tid, false);
+    Utils.unreserveTable(manager, data.tableId, fateId, true);
+    Utils.unreserveNamespace(manager, data.namespaceId, fateId, false);
     return null;
   }
 
-  static void removeOperationIds(Logger log, MergeInfo data, long tid, Manager manager) {
+  static void removeOperationIds(Logger log, MergeInfo data, FateId fateId, Manager manager) {
     KeyExtent range = data.getReserveExtent();
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, tid);
-    log.debug("{} unreserving tablet in range {}", FateTxId.formatTid(tid), range);
-    var fateStr = FateTxId.formatTid(tid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    log.debug("{} unreserving tablet in range {}", fateId, range);
 
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();
@@ -72,7 +72,7 @@ class FinishTableRangeOp extends ManagerRepo {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         acceptedCount.incrementAndGet();
       } else {
-        log.error("{} failed to update {}", fateStr, result.getExtent());
+        log.error("{} failed to update {}", fateId, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };
@@ -97,11 +97,10 @@ class FinishTableRangeOp extends ManagerRepo {
       Preconditions.checkState(count > 0);
     }
 
-    log.debug("{} deleted {}/{} opids out of {} tablets", FateTxId.formatTid(tid),
-        acceptedCount.get(), submitted, count);
+    log.debug("{} deleted {}/{} opids out of {} tablets", fateId, acceptedCount.get(), submitted,
+        count);
 
-    manager.getEventCoordinator().event(range, "Merge or deleterows completed %s",
-        FateTxId.formatTid(tid));
+    manager.getEventCoordinator().event(range, "Merge or deleterows completed %s", fateId);
 
     Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
         "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,

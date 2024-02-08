@@ -25,6 +25,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
@@ -40,8 +41,9 @@ public class RenameNamespace extends ManagerRepo {
   private String newName;
 
   @Override
-  public long isReady(long id, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.RENAME);
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveNamespace(environment, namespaceId, fateId, true, true,
+        TableOperation.RENAME);
   }
 
   public RenameNamespace(NamespaceId namespaceId, String oldName, String newName) {
@@ -51,7 +53,7 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
@@ -77,7 +79,7 @@ public class RenameNamespace extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveNamespace(manager, namespaceId, id, true);
+      Utils.unreserveNamespace(manager, namespaceId, fateId, true);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -87,8 +89,8 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, tid, true);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, namespaceId, fateId, true);
   }
 
 }

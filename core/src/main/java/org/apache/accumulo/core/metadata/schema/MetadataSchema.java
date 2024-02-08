@@ -152,6 +152,12 @@ public class MetadataSchema {
       public static final String PREV_ROW_QUAL = "~pr";
       public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text(PREV_ROW_QUAL));
 
+      public static final String AVAILABILITY_QUAL = "availability";
+      public static final ColumnFQ AVAILABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(AVAILABILITY_QUAL));
+      public static final String REQUESTED_QUAL = "requestToHost";
+      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
+
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
           return new Value(new byte[] {0});
@@ -410,15 +416,6 @@ public class MetadataSchema {
     public static class CompactedColumnFamily {
       public static final String STR_NAME = "compacted";
       public static final Text NAME = new Text(STR_NAME);
-    }
-
-    public static class HostingColumnFamily {
-      public static final String STR_NAME = "hosting";
-      public static final Text NAME = new Text(STR_NAME);
-      public static final String GOAL_QUAL = "goal";
-      public static final ColumnFQ GOAL_COLUMN = new ColumnFQ(NAME, new Text(GOAL_QUAL));
-      public static final String REQUESTED_QUAL = "requested";
-      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
 
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.

@@ -26,9 +26,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -99,7 +99,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
@@ -256,8 +256,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
     // Send info relating to initial table creation i.e, create online or offline
     args.add(ByteBuffer.wrap(ntc.getInitialTableState().name().getBytes(UTF_8)));
-    // send initialHostingGoal information
-    args.add(ByteBuffer.wrap(ntc.getInitialHostingGoal().name().getBytes(UTF_8)));
+    // send initial tablet availability information
+    args.add(ByteBuffer.wrap(ntc.getInitialTabletAvailability().name().getBytes(UTF_8)));
     // Check for possible initial splits to be added at table creation
     // Always send number of initial splits to be created, even if zero. If greater than zero,
     // add the splits to the argument List which will be used by the FATE operations.
@@ -1304,16 +1304,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MapCounter<String> serverCounts = new MapCounter<>();
 
       try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
+          .overRange(range).fetch(AVAILABILITY, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
 
         for (TabletMetadata tablet : tablets) {
           total++;
           Location loc = tablet.getLocation();
-          TabletHostingGoal goal = tablet.getHostingGoal();
+          TabletAvailability availability = tablet.getTabletAvailability();
 
           if ((expectedState == TableState.ONLINE
-              && (goal == TabletHostingGoal.ALWAYS
-                  || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
+              && (availability == TabletAvailability.HOSTED
+                  || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
               || (expectedState == TableState.OFFLINE && loc != null)) {
             if (continueRow == null) {
@@ -1889,11 +1889,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
       // We want tablets that are currently hosted (location present) and
-      // are where their tablet hosting goal is ALWAYS (not OnDemand)
-      if (cachedTablet.getGoal() != TabletHostingGoal.ALWAYS) {
+      // their tablet availability is HOSTED (not OnDemand)
+      if (cachedTablet.getAvailability() != TabletAvailability.HOSTED) {
         foundOnDemandTabletInRange.set(true);
       } else if (cachedTablet.getTserverLocation().isPresent()
-          && cachedTablet.getGoal() == TabletHostingGoal.ALWAYS) {
+          && cachedTablet.getAvailability() == TabletAvailability.HOSTED) {
         ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
       } else {
         locationLess.add(cachedTablet.getExtent());
@@ -1907,9 +1907,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       if (foundOnDemandTabletInRange.get()) {
         throw new AccumuloException(
-            "TableOperations.locate() only works with tablets that have a hosting goal of "
-                + TabletHostingGoal.ALWAYS + ". Tablets with other hosting goals were seen.  table:"
-                + tableName + " table id:" + tableId);
+            "TableOperations.locate() only works with tablets that have an availability of "
+                + TabletAvailability.HOSTED
+                + ". Tablets with other availabilities were seen.  table:" + tableName
+                + " table id:" + tableId);
       }
 
       while (!failed.isEmpty() || !locationLess.isEmpty()) {
@@ -1919,9 +1920,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         if (foundOnDemandTabletInRange.get()) {
           throw new AccumuloException(
-              "TableOperations.locate() only works with tablets that have a hosting goal of "
-                  + TabletHostingGoal.ALWAYS
-                  + ". Tablets with other hosting goals were seen.  table:" + tableName
+              "TableOperations.locate() only works with tablets that have a tablet availability of "
+                  + TabletAvailability.HOSTED
+                  + ". Tablets with other availabilities were seen.  table:" + tableName
                   + " table id:" + tableId);
         }
 
@@ -2136,12 +2137,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+  public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
       throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
     NOT_BUILTIN_TABLE.validate(tableName);
     checkArgument(range != null, "range is null");
-    checkArgument(goal != null, "goal is null");
+    checkArgument(availability != null, "tabletAvailability is null");
 
     byte[] bRange;
     try {
@@ -2153,13 +2154,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(ByteBuffer.wrap(bRange));
-    args.add(ByteBuffer.wrap(goal.name().getBytes(UTF_8)));
+    args.add(ByteBuffer.wrap(availability.name().getBytes(UTF_8)));
 
     Map<String,String> opts = Collections.emptyMap();
 
     try {
-      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_HOSTING_GOAL,
-          args, opts);
+      doTableFateOperation(tableName, AccumuloException.class,
+          FateOperation.TABLE_TABLET_AVAILABILITY, args, opts);
     } catch (TableNotFoundException | TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -2176,7 +2177,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TabletsMetadata tabletsMetadata =
         context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(HOSTING_GOAL, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
+            .fetch(AVAILABILITY, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
             .checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);

@@ -25,14 +25,14 @@
 package org.apache.accumulo.core.clientImpl.thrift;
 
 
-public enum THostingGoal implements org.apache.thrift.TEnum {
-  ALWAYS(0),
-  NEVER(1),
+public enum TTabletAvailability implements org.apache.thrift.TEnum {
+  HOSTED(0),
+  UNHOSTED(1),
   ONDEMAND(2);
 
   private final int value;
 
-  private THostingGoal(int value) {
+  private TTabletAvailability(int value) {
     this.value = value;
   }
 
@@ -49,12 +49,12 @@ public enum THostingGoal implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static THostingGoal findByValue(int value) { 
+  public static TTabletAvailability findByValue(int value) { 
     switch (value) {
       case 0:
-        return ALWAYS;
+        return HOSTED;
       case 1:
-        return NEVER;
+        return UNHOSTED;
       case 2:
         return ONDEMAND;
       default:

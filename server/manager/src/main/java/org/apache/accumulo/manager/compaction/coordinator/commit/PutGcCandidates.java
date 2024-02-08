@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.manager.Manager;
@@ -34,7 +35,7 @@ public class PutGcCandidates extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     // add the GC candidates
     manager.getContext().getAmple().putGcCandidates(commitData.getTableId(),

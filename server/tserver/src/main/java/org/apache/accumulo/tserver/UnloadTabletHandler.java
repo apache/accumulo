@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -114,7 +114,8 @@ class UnloadTabletHandler implements Runnable {
       // can avoid building a tablet metadata that may not have needed information, for example may
       // need the last location
       TabletMetadata tm = TabletMetadata.builder(extent).putLocation(Location.current(instance))
-          .putHostingGoal(TabletHostingGoal.ONDEMAND).build(ColumnType.LAST, ColumnType.SUSPEND);
+          .putTabletAvailability(TabletAvailability.ONDEMAND)
+          .build(ColumnType.LAST, ColumnType.SUSPEND);
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
               && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {

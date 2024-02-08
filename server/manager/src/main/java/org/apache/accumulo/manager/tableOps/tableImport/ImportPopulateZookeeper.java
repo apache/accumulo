@@ -27,6 +27,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
@@ -49,8 +50,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, tid, true, false,
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveTable(environment, tableInfo.tableId, fateId, true, false,
         TableOperation.IMPORT);
   }
 
@@ -69,7 +70,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     // reserve the table name in zookeeper or fail
 
     Utils.getTableNameLock().lock();
@@ -102,9 +103,9 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     env.getTableManager().removeTable(tableInfo.tableId);
-    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
+    Utils.unreserveTable(env, tableInfo.tableId, fateId, true);
     env.getContext().clearTableListCache();
   }
 }

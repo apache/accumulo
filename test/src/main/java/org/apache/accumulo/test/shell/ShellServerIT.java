@@ -59,7 +59,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -79,7 +79,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -1237,37 +1237,38 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testSetHostingGoalCommand() throws Exception {
+  public void testSetTabletAvailabilityCommand() throws Exception {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g");
-    String result = ts.exec("sethostinggoal -?");
-    assertTrue(result.contains("Sets the hosting goal"));
-    ts.exec("sethostinggoal -t " + table + " -b a -e a -g never");
-    ts.exec("sethostinggoal -t " + table + " -b c -e e -ee -g always");
+
+    String result = ts.exec("setavailability -?");
+    assertTrue(result.contains("Sets the tablet availability"));
+    ts.exec("setavailability -t " + table + " -b a -e a -a unhosted");
+    ts.exec("setavailability -t " + table + " -b c -e e -ee -a Hosted");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build(); Scanner s =
         client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
-      s.fetchColumn(new Column(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
-          HostingColumnFamily.GOAL_COLUMN.getColumnQualifier()));
+      s.fetchColumn(new Column(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+          TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier()));
       for (Entry<Key,Value> e : s) {
         var row = e.getKey().getRow().toString();
         if (row.equals(tableId + ";c") || row.equals(tableId + ";e")) {
-          assertEquals(TabletHostingGoal.ALWAYS.name(), e.getValue().toString());
+          assertEquals(TabletAvailability.HOSTED.name(), e.getValue().toString());
         } else if (row.equals(tableId + ";a")) {
-          assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
+          assertEquals(TabletAvailability.UNHOSTED.name(), e.getValue().toString());
         } else if (row.equals(tableId + ";g") || row.equals(tableId + "<")) {
-          assertEquals(TabletHostingGoal.ONDEMAND.name(), e.getValue().toString());
+          assertEquals(TabletAvailability.ONDEMAND.name(), e.getValue().toString());
         } else {
-          fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());
+          fail("Unknown row with tablet availability: " + e.getKey().getRow().toString());
         }
       }
     }
   }
 
   @Test
-  public void testGetHostingGoalCommand() throws Exception {
+  public void testGetAvailabilityCommand() throws Exception {
 
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
@@ -1279,36 +1280,36 @@ public class ShellServerIT extends SharedMiniClusterBase {
       splitsFilePath = createSplitsFile("splitsFile", splits);
 
       ts.exec("createtable " + tableName + " -sf " + splitsFilePath.toAbsolutePath(), true);
-      String result = ts.exec("gethostinggoal -?");
-      assertTrue(result.contains("usage: gethostinggoal"));
+      String result = ts.exec("getavailability -?");
+      assertTrue(result.contains("usage: getavailability"));
 
       String tableId = getTableId(tableName);
 
-      result = ts.exec("gethostinggoal");
+      result = ts.exec("getavailability");
       assertTrue(result.contains("TABLE: " + tableName));
-      assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
+      assertTrue(result.contains("TABLET ID    AVAILABILITY"));
       assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
       assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
       assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ONDEMAND.*"));
       assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
-      ts.exec("sethostinggoal -g ALWAYS -r p");
-      result = ts.exec("gethostinggoal -r p");
+      ts.exec("setavailability -a HOSTED -r p");
+      result = ts.exec("getavailability -r p");
       assertFalse(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
       assertFalse(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
-      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
       assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
-      result = ts.exec("gethostinggoal");
+      result = ts.exec("getavailability");
       assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
       assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
-      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
       assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
-      result = ts.exec("gethostinggoal -b f -e p");
+      result = ts.exec("getavailability -b f -e p");
       assertFalse(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
       assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
-      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ALWAYS.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
       assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
     } finally {
@@ -1318,9 +1319,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // Verify that when splits are added after table creation, hosting goals are set properly
+  // Verify that when splits are added after table creation, tablet availabilities are set properly
   @Test
-  public void testGetHostingGoalCommand_DelayedSplits() throws Exception {
+  public void testGetAvailabilityCommand_DelayedSplits() throws Exception {
 
     for (int i = 0; i < 40; i++) {
       ts.exec("createtable tab" + i, true);
@@ -1332,49 +1333,50 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     String tableId = getTableId(tableName[0]);
 
-    String result = ts.exec("gethostinggoal");
+    String result = ts.exec("getavailability");
 
     assertTrue(result.contains("TABLE: " + tableName[0]));
-    assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
+    assertTrue(result.contains("TABLET ID    AVAILABILITY"));
     assertTrue(result.matches("(?s).*" + tableId + "<<\\s+ONDEMAND.*"));
 
-    // add the splits and check goals again
+    // add the splits and check availabilities again
     ts.exec("addsplits d m s", true);
-    result = ts.exec("gethostinggoal");
+    result = ts.exec("getavailability");
     assertTrue(result.matches("(?s).*" + tableId + "[;]d<\\s+ONDEMAND.*"));
     assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
     assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+ONDEMAND.*"));
     assertTrue(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
-    // scan metadata table to be sure the hosting goals were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b " + tableId, true);
-    assertTrue(result.contains(tableId + ";d hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains(tableId + ";m hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains(tableId + ";s hosting:goal []\tONDEMAND"));
-    assertTrue(result.contains(tableId + "< hosting:goal []\tONDEMAND"));
+    // scan metadata table to be sure the tablet availabilities were properly set
+    result = ts.exec("scan -t accumulo.metadata -c ~tab:availability -b " + tableId, true);
+    assertTrue(result.contains(tableId + ";d ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";m ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + ";s ~tab:availability []\tONDEMAND"));
+    assertTrue(result.contains(tableId + "< ~tab:availability []\tONDEMAND"));
 
-    ts.exec("createtable " + tableName[1] + " -g always", true);
+    ts.exec("createtable " + tableName[1] + " -a hosted", true);
 
     String tableId2 = getTableId(tableName[1]);
 
-    result = ts.exec("gethostinggoal");
+    result = ts.exec("getavailability");
     assertTrue(result.contains("TABLE: " + tableName[1]));
-    assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
-    assertTrue(result.matches("(?s).*" + tableId2 + "<<\\s+ALWAYS.*"));
+    assertTrue(result.contains("TABLET ID    AVAILABILITY"));
+    assertTrue(result.matches("(?s).*" + tableId2 + "<<\\s+HOSTED.*"));
 
     ts.exec("addsplits d m s", true);
-    result = ts.exec("gethostinggoal");
-    assertTrue(result.matches("(?s).*" + tableId2 + ";d<\\s+ALWAYS.*"));
-    assertTrue(result.matches("(?s).*" + tableId2 + ";m;d\\s+ALWAYS.*"));
-    assertTrue(result.matches("(?s).*" + tableId2 + ";s;m\\s+ALWAYS.*"));
-    assertTrue(result.matches("(?s).*" + tableId2 + "<;s\\s+ALWAYS.*"));
+    result = ts.exec("getavailability");
+    assertTrue(result.matches("(?s).*" + tableId2 + ";d<\\s+HOSTED.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + ";m;d\\s+HOSTED.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + ";s;m\\s+HOSTED.*"));
+    assertTrue(result.matches("(?s).*" + tableId2 + "<;s\\s+HOSTED.*"));
 
-    // scan metadata table to be sure the hosting goals were properly set
-    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b " + tableId2, true);
-    assertTrue(result.contains(tableId2 + ";d hosting:goal []\tALWAYS"));
-    assertTrue(result.contains(tableId2 + ";m hosting:goal []\tALWAYS"));
-    assertTrue(result.contains(tableId2 + ";s hosting:goal []\tALWAYS"));
-    assertTrue(result.contains(tableId2 + "< hosting:goal []\tALWAYS"));
+    // scan metadata table to be sure the tablet availabilities were properly set
+    result = ts.exec("scan -t accumulo.metadata -c ~tab:availability -b " + tableId2, true);
+    log.info(">>>> result5\n{}", result);
+    assertTrue(result.contains(tableId2 + ";d ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + ";m ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + ";s ~tab:availability []\tHOSTED"));
+    assertTrue(result.contains(tableId2 + "< ~tab:availability []\tHOSTED"));
   }
 
   @Test
@@ -1852,12 +1854,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void scansWithNeverHostedTablets() throws Exception {
+  public void scansWithUnhostedTablets() throws Exception {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g m t");
-    ts.exec("sethostinggoal -t " + table + " -b a -e a -g never");
-    ts.exec("sethostinggoal -t " + table + " -b c -e e -ee -g always");
+    ts.exec("setavailability -t " + table + " -b a -e a -a Unhosted");
+    ts.exec("setavailability -t " + table + " -b c -e e -ee -a hosted");
 
     ts.exec("scan -t " + table + " -np -b a -e c", false);
     ts.exec("scan -t " + table + " -np -b a -e e", false);
@@ -1866,7 +1868,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = client.createScanner(table, Authorizations.EMPTY);
-        BatchScanner bs = client.createBatchScanner(table);) {
+        BatchScanner bs = client.createBatchScanner(table)) {
       assertThrows(RuntimeException.class, () -> Iterables.size(s));
       bs.setRanges(Collections.singleton(new Range()));
       assertThrows(RuntimeException.class, () -> Iterables.size(bs));
@@ -2286,25 +2288,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("createtable " + table1, true);
     ts.exec("addsplits g n u", true);
-    ts.exec("sethostinggoal -g always -r g", true);
-    ts.exec("sethostinggoal -g always -r u", true);
+    ts.exec("setavailability -a hosted -r g", true);
+    ts.exec("setavailability -a hosted -r u", true);
     insertData(table1, 1000, 3);
     ts.exec("compact -w -t " + table1);
     ts.exec("scan -t " + table1);
 
     ts.exec("createtable " + table2, true);
     ts.exec("addsplits f m t", true);
-    ts.exec("sethostinggoal -g always -r n", true);
+    ts.exec("setavailability -a hosted -r n", true);
     insertData(table2, 500, 5);
     ts.exec("compact -t " + table2);
     ts.exec("scan -t " + table1);
-    ts.exec("sethostinggoal -r g -t " + table2 + " -g NEVER");
+    ts.exec("setavailability -r g -t " + table2 + " -a UNHOSTED");
 
     // give tablet time to become unassigned
     for (var i = 0; i < 15; i++) {
       Thread.sleep(1000);
-      String goal = ts.exec("listtablets -t " + table2, true, "m                    NEVER");
-      if (goal.contains("UNASSIGNED None")) {
+      String availability =
+          ts.exec("listtablets -t " + table2, true, "m                    UNHOSTED");
+      if (availability.contains("UNASSIGNED None")) {
         break;
       }
     }
@@ -2316,18 +2319,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(results.contains("TABLE: ShellServerIT_testListTablets0"));
     assertTrue(results.contains("TABLE: ShellServerIT_testListTablets1"));
     assertTrue(
-        results.contains(tableId1 + "     -INF                 g                    ALWAYS"));
+        results.contains(tableId1 + "     -INF                 g                    HOSTED"));
     assertTrue(
         results.contains(tableId1 + "     g                    n                    ONDEMAND"));
     assertTrue(
-        results.contains(tableId1 + "     n                    u                    ALWAYS"));
+        results.contains(tableId1 + "     n                    u                    HOSTED"));
     assertTrue(
         results.contains(tableId1 + "     u                    +INF                 ONDEMAND"));
     assertTrue(
         results.contains(tableId2 + "     -INF                 f                    ONDEMAND"));
-    assertTrue(results.contains(tableId2 + "     f                    m                    NEVER"));
     assertTrue(
-        results.contains(tableId2 + "     m                    t                    ALWAYS"));
+        results.contains(tableId2 + "     f                    m                    UNHOSTED"));
+    assertTrue(
+        results.contains(tableId2 + "     m                    t                    HOSTED"));
     assertTrue(
         results.contains(tableId2 + "     t                    +INF                 ONDEMAND"));
 
