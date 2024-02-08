@@ -811,11 +811,7 @@ public enum Property {
           + " that begin with 'table.file' can be used here. For example, to set the compression"
           + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'.",
       "2.1.0"),
-  TSERV_FAILED_BULK_COPY_THREADS("tserver.failed.bulk.threads", "2", PropertyType.COUNT,
-      "The number of threads used in the distributed work queue for copying failed bulk import RFiles.",
-      "2.1.3"),
   @Deprecated(since = "2.1.3")
-  @ReplacedBy(property = TSERV_FAILED_BULK_COPY_THREADS)
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
           + " used for copying failed bulk import RFiles.",

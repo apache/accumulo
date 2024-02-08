@@ -79,8 +79,10 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
+    @SuppressWarnings("deprecation")
+    String workQThreadsProp = Property.TSERV_WORKQ_THREADS.getKey();
     HashMap<String,String> site = new HashMap<>();
-    site.put(Property.TSERV_FAILED_BULK_COPY_THREADS.getKey(), "2");
+    site.put(workQThreadsProp, "2");
     site.put(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);

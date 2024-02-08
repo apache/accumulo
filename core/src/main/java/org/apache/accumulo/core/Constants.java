@@ -88,6 +88,7 @@ public class Constants {
 
   public static final String ZNEXT_FILE = "/next_file";
 
+  // TODO: Remove when Property.TSERV_WORKQ_THREADS is removed
   public static final String ZBULK_FAILED_COPYQ = "/bulk_failed_copyq";
 
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
