@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.Range;
@@ -103,7 +103,7 @@ public class ListTabletsCommandTest {
       assertEquals("123", items.get(8));
       assertEquals("e", items.get(9));
       assertEquals("k", items.get(10));
-      assertEquals("ALWAYS", items.get(11));
+      assertEquals("HOSTED", items.get(11));
       // third tablet info
       items.clear();
       items = new ArrayList<>(Arrays.asList(lines.get(4).split("\\s+")));
@@ -119,7 +119,7 @@ public class ListTabletsCommandTest {
       assertEquals("123", items.get(8));
       assertEquals("l", items.get(9));
       assertEquals("+INF", items.get(10));
-      assertEquals("NEVER", items.get(11));
+      assertEquals("UNHOSTED", items.get(11));
     }
 
   }
@@ -154,18 +154,21 @@ public class ListTabletsCommandTest {
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
-    TabletMetadata tm1 = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.ONDEMAND)
-        .putLocation(TabletMetadata.Location.current(ser1)).putFile(sf11, dfv11)
-        .putFile(sf12, dfv12).putWal(le1).putDirName("t-dir1").build();
+    TabletMetadata tm1 =
+        TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.ONDEMAND)
+            .putLocation(TabletMetadata.Location.current(ser1)).putFile(sf11, dfv11)
+            .putFile(sf12, dfv12).putWal(le1).putDirName("t-dir1").build();
 
     extent = new KeyExtent(tableId, new Text("k"), new Text("e"));
-    TabletMetadata tm2 = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.ALWAYS)
-        .putLocation(TabletMetadata.Location.current(ser2)).putFile(sf21, dfv21)
-        .putDirName("t-dir2").build(LOGS);
+    TabletMetadata tm2 =
+        TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.HOSTED)
+            .putLocation(TabletMetadata.Location.current(ser2)).putFile(sf21, dfv21)
+            .putDirName("t-dir2").build(LOGS);
 
     extent = new KeyExtent(tableId, null, new Text("l"));
-    TabletMetadata tm3 = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.NEVER)
-        .putFile(sf31, dfv31).putWal(le1).putWal(le2).putDirName("t-dir3").build(LOCATION);
+    TabletMetadata tm3 =
+        TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.UNHOSTED)
+            .putFile(sf31, dfv31).putWal(le1).putWal(le2).putDirName("t-dir3").build(LOCATION);
 
     TabletInformationImpl[] tabletInformation = new TabletInformationImpl[3];
     tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED");

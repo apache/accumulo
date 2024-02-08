@@ -401,13 +401,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         continue;
       }
 
-      final Set<ManagementAction> actions = mti.getActions();
-      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
-      }
-
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
       if (manager.getTableManager().getTableState(tableId) == null) {
@@ -460,6 +453,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
 
+      final Set<ManagementAction> actions = mti.getActions();
+
+      if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
+        LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
+            goal);
+      }
+
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         tableMgmtStats.totalVolumeReplacements++;
         if (state == TabletState.UNASSIGNED || state == TabletState.SUSPENDED) {
@@ -488,6 +488,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
 
+      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
+        throw new BadLocationStateException(
+            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
+            tm.getExtent().toMetaRow());
+      }
+
       final Location location = tm.getLocation();
       Location current = null;
       Location future = null;
@@ -512,15 +518,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             state, goal, actions);
       }
 
-      if (actions.contains(ManagementAction.NEEDS_SPLITTING)
-          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+      if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
         LOG.debug("{} may need splitting.", tm.getExtent());
         // TODO could this block TGW is splits are backed up
         manager.getSplitter().executeSplit(new SplitTask(manager, tm.getExtent()));
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING)
-          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+      if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
         var jobs = compactionGenerator.generateJobs(tm,
             TabletManagementIterator.determineCompactionKinds(actions));
         LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
@@ -533,14 +537,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // entries from the queue because we see nothing here for that case. After a full
       // metadata scan could remove any tablets that were not updated during the scan.
 
-      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
+      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)
+          || actions.contains(ManagementAction.NEEDS_RECOVERY)) {
 
         if (tm.getLocation() != null) {
           filteredServersToShutdown.remove(tm.getLocation().getServerInstance());
         }
 
         if (goal == TabletGoalState.HOSTED) {
-          if ((state != TabletState.HOSTED && !tm.getLogs().isEmpty())
+
+          // RecoveryManager.recoverLogs will return false when all of the logs
+          // have been sorted so that recovery can occur. Delay the hosting of
+          // the Tablet until the sorting is finished.
+          if ((state != TabletState.HOSTED && actions.contains(ManagementAction.NEEDS_RECOVERY))
               && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());

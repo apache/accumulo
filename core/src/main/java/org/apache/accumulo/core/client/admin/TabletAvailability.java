@@ -19,19 +19,25 @@
 package org.apache.accumulo.core.client.admin;
 
 /**
- * @see TableOperations#setTabletHostingGoal(String, org.apache.accumulo.core.data.Range,
- *      TabletHostingGoal)
+ * @see TableOperations#setTabletAvailability(String, org.apache.accumulo.core.data.Range,
+ *      TabletAvailability)
  * @since 4.0.0
  */
-public enum TabletHostingGoal {
+public enum TabletAvailability {
 
-  // Signifies that a Tablet should always be hosted
-  ALWAYS,
+  /**
+   * Signifies that a Tablet should always be hosted on a tablet server.
+   */
+  HOSTED,
 
-  // Signifies that a Tablet should be hosted on client request
+  /**
+   * Signifies that a Tablet should be hosted on a tablet server when a client needs it.
+   */
   ONDEMAND,
 
-  // Signifies that a Tablet should never be hosted
-  NEVER;
+  /**
+   * Signifies that a Tablet should never be hosted on a tablet server.
+   */
+  UNHOSTED;
 
 }

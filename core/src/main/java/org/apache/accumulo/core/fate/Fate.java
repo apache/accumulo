@@ -75,11 +75,11 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
-  private final TransferQueue<Long> workQueue;
+  private final TransferQueue<FateId> workQueue;
   private final Thread workFinder;
 
   public enum TxInfo {
-    TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+    TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
   }
 
   /**
@@ -92,7 +92,7 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         try {
-          store.runnable(keepRunning, txid -> {
+          store.runnable(keepRunning, fateId -> {
             while (keepRunning.get()) {
               try {
                 // The reason for calling transfer instead of queueing is avoid rescanning the
@@ -100,7 +100,7 @@ public class Fate<T> {
                 // were busy, the queue size was 100, and there are three runnable things in the
                 // store. Do not want to keep scanning the store adding those same 3 runnable things
                 // until the queue is full.
-                if (workQueue.tryTransfer(txid, 100, MILLISECONDS)) {
+                if (workQueue.tryTransfer(fateId, 100, MILLISECONDS)) {
                   break;
                 }
               } catch (InterruptedException e) {
@@ -126,12 +126,12 @@ public class Fate<T> {
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
       while (keepRunning.get()) {
-        var unreservedTid = workQueue.poll(100, MILLISECONDS);
+        FateId unreservedFateId = workQueue.poll(100, MILLISECONDS);
 
-        if (unreservedTid == null) {
+        if (unreservedFateId == null) {
           continue;
         }
-        var optionalopStore = store.tryReserve(unreservedTid);
+        var optionalopStore = store.tryReserve(unreservedFateId);
         if (optionalopStore.isPresent()) {
           return optionalopStore;
         }
@@ -216,18 +216,17 @@ public class Fate<T> {
      * transaction just wait for process to die. When the manager start elsewhere the FATE
      * transaction can resume.
      */
-    private void blockIfHadoopShutdown(long tid, Exception e) {
+    private void blockIfHadoopShutdown(FateId fateId, Exception e) {
       if (ShutdownUtil.isShutdownInProgress()) {
-        String tidStr = FateTxId.formatTid(tid);
 
         if (e instanceof AcceptableException) {
-          log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+          log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", fateId, e);
         } else if (isIOException(e)) {
-          log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", tidStr, e);
+          log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", fateId, e);
         } else {
           // sometimes code will catch an IOException caused by the hadoop shutdown hook and throw
           // another exception without setting the cause.
-          log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
+          log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", fateId, e);
         }
 
         while (true) {
@@ -239,8 +238,7 @@ public class Fate<T> {
     }
 
     private void transitionToFailed(FateTxStore<T> txStore, Exception e) {
-      String tidStr = FateTxId.formatTid(txStore.getID());
-      final String msg = "Failed to execute Repo " + tidStr;
+      final String msg = "Failed to execute Repo " + txStore.getID();
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
@@ -252,7 +250,7 @@ public class Fate<T> {
       }
       txStore.setTransactionInfo(TxInfo.EXCEPTION, e);
       txStore.setStatus(FAILED_IN_PROGRESS);
-      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
+      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", txStore.getID());
     }
 
     private void processFailed(FateTxStore<T> txStore, Repo<T> op) {
@@ -280,11 +278,11 @@ public class Fate<T> {
       }
     }
 
-    private void undo(long tid, Repo<T> op) {
+    private void undo(FateId fateId, Repo<T> op) {
       try {
-        op.undo(tid, environment);
+        op.undo(fateId, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
+        log.warn("Failed to undo Repo, " + fateId, e);
       }
     }
 
@@ -334,25 +332,25 @@ public class Fate<T> {
   }
 
   // get a transaction id back to the requester before doing any work
-  public long startTransaction() {
+  public FateId startTransaction() {
     return store.create();
   }
 
   // TODO combine with seed
   public OptionalLong startTransaction(String keyType, ByteSequence key) {
-    return store.create(keyType, key);
+    return OptionalLong.empty();
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(String txName, long tid, Repo<T> repo, boolean autoCleanUp,
+  public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
       String goalMessage) {
-    FateTxStore<T> txStore = store.reserve(tid);
+    FateTxStore<T> txStore = store.reserve(fateId);
     try {
       if (txStore.getStatus() == NEW) {
         if (txStore.top() == null) {
           try {
-            log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
+            log.info("Seeding {} {}", fateId, goalMessage);
             txStore.push(repo);
           } catch (StackOverflowException e) {
             // this should not happen
@@ -375,21 +373,20 @@ public class Fate<T> {
   }
 
   // check on the transaction
-  public TStatus waitForCompletion(long tid) {
-    return store.read(tid).waitForStatusChange(FINISHED_STATES);
+  public TStatus waitForCompletion(FateId fateId) {
+    return store.read(fateId).waitForStatusChange(FINISHED_STATES);
   }
 
   /**
    * Attempts to cancel a running Fate transaction
    *
-   * @param tid transaction id
+   * @param fateId fate transaction id
    * @return true if transaction transitioned to a failed state or already in a completed state,
    *         false otherwise
    */
-  public boolean cancel(long tid) {
-    String tidStr = FateTxId.formatTid(tid);
+  public boolean cancel(FateId fateId) {
     for (int retries = 0; retries < 5; retries++) {
-      Optional<FateTxStore<T>> optionalTxStore = store.tryReserve(tid);
+      Optional<FateTxStore<T>> optionalTxStore = store.tryReserve(fateId);
       if (optionalTxStore.isPresent()) {
         var txStore = optionalTxStore.orElseThrow();
         try {
@@ -400,10 +397,10 @@ public class Fate<T> {
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             txStore.setStatus(FAILED_IN_PROGRESS);
             log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
-                tidStr);
+                fateId);
             return true;
           } else {
-            log.info("{} cancelled by user but already in progress or finished state", tidStr);
+            log.info("{} cancelled by user but already in progress or finished state", fateId);
             return false;
           }
         } finally {
@@ -414,13 +411,13 @@ public class Fate<T> {
         UtilWaitThread.sleep(500);
       }
     }
-    log.info("Unable to reserve transaction {} to cancel it", tid);
+    log.info("Unable to reserve transaction {} to cancel it", fateId);
     return false;
   }
 
   // resource cleanup
-  public void delete(long tid) {
-    FateTxStore<T> txStore = store.reserve(tid);
+  public void delete(FateId fateId) {
+    FateTxStore<T> txStore = store.reserve(fateId);
     try {
       switch (txStore.getStatus()) {
         case NEW:
@@ -431,8 +428,7 @@ public class Fate<T> {
           break;
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
-          throw new IllegalStateException(
-              "Can not delete in progress transaction " + FateTxId.formatTid(tid));
+          throw new IllegalStateException("Can not delete in progress transaction " + fateId);
         case UNKNOWN:
           // nothing to do, it does not exist
           break;
@@ -442,12 +438,12 @@ public class Fate<T> {
     }
   }
 
-  public String getReturn(long tid) {
-    FateTxStore<T> txStore = store.reserve(tid);
+  public String getReturn(FateId fateId) {
+    FateTxStore<T> txStore = store.reserve(fateId);
     try {
       if (txStore.getStatus() != SUCCESSFUL) {
-        throw new IllegalStateException("Tried to get exception when transaction "
-            + FateTxId.formatTid(tid) + " not in successful state");
+        throw new IllegalStateException(
+            "Tried to get exception when transaction " + fateId + " not in successful state");
       }
       return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
@@ -456,12 +452,12 @@ public class Fate<T> {
   }
 
   // get reportable failures
-  public Exception getException(long tid) {
-    FateTxStore<T> txStore = store.reserve(tid);
+  public Exception getException(FateId fateId) {
+    FateTxStore<T> txStore = store.reserve(fateId);
     try {
       if (txStore.getStatus() != FAILED) {
-        throw new IllegalStateException("Tried to get exception when transaction "
-            + FateTxId.formatTid(tid) + " not in failed state");
+        throw new IllegalStateException(
+            "Tried to get exception when transaction " + fateId + " not in failed state");
       }
       return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {

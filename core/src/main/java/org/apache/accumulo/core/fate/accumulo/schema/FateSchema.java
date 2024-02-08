@@ -49,6 +49,9 @@ public class FateSchema {
 
     public static final String RETURN_VALUE = "retval";
     public static final ColumnFQ RETURN_VALUE_COLUMN = new ColumnFQ(NAME, new Text(RETURN_VALUE));
+
+    public static final String TX_AGEOFF = "txageoff";
+    public static final ColumnFQ TX_AGEOFF_COLUMN = new ColumnFQ(NAME, new Text(TX_AGEOFF));
   }
 
   public static class RepoColumnFamily {

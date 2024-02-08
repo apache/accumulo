@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.manager.Manager;
@@ -41,10 +42,10 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public long isReady(long tid, T environment) throws Exception {
+  public long isReady(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
-      return repo.isReady(tid, environment);
+      return repo.isReady(fateId, environment);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -54,10 +55,10 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public Repo<T> call(long tid, T environment) throws Exception {
+  public Repo<T> call(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
-      Repo<T> result = repo.call(tid, environment);
+      Repo<T> result = repo.call(fateId, environment);
       if (result == null) {
         return null;
       }
@@ -71,10 +72,10 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public void undo(long tid, T environment) throws Exception {
+  public void undo(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
-      repo.undo(tid, environment);
+      repo.undo(fateId, environment);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;

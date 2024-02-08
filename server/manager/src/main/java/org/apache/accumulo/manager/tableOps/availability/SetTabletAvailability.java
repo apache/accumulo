@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps.goal;
+package org.apache.accumulo.manager.tableOps.availability;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -38,33 +39,34 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SetHostingGoal extends ManagerRepo {
+public class SetTabletAvailability extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private static final Logger LOG = LoggerFactory.getLogger(SetHostingGoal.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SetTabletAvailability.class);
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
   private final TRange tRange;
-  private final TabletHostingGoal goal;
+  private final TabletAvailability tabletAvailability;
 
-  public SetHostingGoal(TableId tableId, NamespaceId namespaceId, TRange range,
-      TabletHostingGoal goal) {
+  public SetTabletAvailability(TableId tableId, NamespaceId namespaceId, TRange range,
+      TabletAvailability tabletAvailability) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.tRange = range;
-    this.goal = goal;
+    this.tabletAvailability = tabletAvailability;
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager, namespaceId, tid, false, true,
-        TableOperation.SET_HOSTING_GOAL)
-        + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.SET_HOSTING_GOAL);
+  public long isReady(FateId fateId, Manager manager) throws Exception {
+    return Utils.reserveNamespace(manager, namespaceId, fateId, false, true,
+        TableOperation.SET_TABLET_AVAILABILITY)
+        + Utils.reserveTable(manager, tableId, fateId, true, true,
+            TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     final Range range = new Range(tRange);
     LOG.debug("Finding tablets in Range: {} for table:{}", range, tableId);
@@ -78,10 +80,10 @@ public class SetHostingGoal extends ManagerRepo {
     // row is always inclusive.
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
 
-    TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build();
-
-    try (TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
+    try (
+        TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
+            .overlapping(scanRangeStart, true, null).build();
+        TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
       for (TabletMetadata tm : m) {
         final KeyExtent tabletExtent = tm.getExtent();
         LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
@@ -103,24 +105,26 @@ public class SetHostingGoal extends ManagerRepo {
           break;
         }
 
-        if (tm.getHostingGoal() == goal) {
-          LOG.trace("Skipping tablet: {}, goal is already in required state");
+        if (tm.getTabletAvailability() == tabletAvailability) {
+          LOG.trace("Skipping tablet: {}, tablet availability is already in required state",
+              tabletExtent);
           continue;
         }
 
-        LOG.debug("Setting tablet hosting goal to {} requested for: {} ", goal, tabletExtent);
-        mutator.mutateTablet(tabletExtent).putHostingGoal(goal).mutate();
+        LOG.debug("Setting tablet availability to {} requested for: {} ", tabletAvailability,
+            tabletExtent);
+        mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
       }
     }
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
-    Utils.unreserveTable(manager, tableId, tid, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+    Utils.unreserveTable(manager, tableId, fateId, true);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
-    Utils.unreserveTable(manager, tableId, tid, true);
+  public void undo(FateId fateId, Manager manager) throws Exception {
+    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+    Utils.unreserveTable(manager, tableId, fateId, true);
   }
 
 }

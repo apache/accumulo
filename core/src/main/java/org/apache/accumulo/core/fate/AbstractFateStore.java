@@ -27,21 +27,18 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +51,14 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractFateStore.class);
 
-  protected final Set<Long> reserved;
-  protected final Map<Long,Long> deferred;
+  // Default maximum size of 100,000 transactions before deferral is stopped and
+  // all existing transactions are processed immediately again
+  protected static final int DEFAULT_MAX_DEFERRED = 100_000;
+
+  protected final Set<FateId> reserved;
+  protected final Map<FateId,Long> deferred;
+  private final int maxDeferred;
+  private final AtomicBoolean deferredOverflow = new AtomicBoolean();
 
   // This is incremented each time a transaction was unreserved that was non new
   protected final SignalCount unreservedNonNewCount = new SignalCount();
@@ -64,21 +67,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   protected final SignalCount unreservedRunnableCount = new SignalCount();
 
   public AbstractFateStore() {
-    this.reserved = new HashSet<>();
-    this.deferred = new HashMap<>();
+    this(DEFAULT_MAX_DEFERRED);
   }
 
-  // ELASTICITY_TODO this it temporary. This functionality needs to be pushed into the storage
-  // layer.
-  private final Set<String> createKeys = Collections.synchronizedSet(new HashSet<>());
-
-  @Override
-  public OptionalLong create(String keyType, ByteSequence key) {
-    if (createKeys.add(keyType + ":" + key)) {
-      return OptionalLong.of(create());
-    } else {
-      return OptionalLong.empty();
-    }
+  public AbstractFateStore(int maxDeferred) {
+    this.maxDeferred = maxDeferred;
+    this.reserved = new HashSet<>();
+    this.deferred = new HashMap<>();
   }
 
   public static byte[] serialize(Object o) {
@@ -106,26 +101,26 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   /**
-   * Attempt to reserve transaction
+   * Attempt to reserve the fate transaction.
    *
-   * @param tid transaction id
+   * @param fateId The FateId
    * @return An Optional containing the FateTxStore if the transaction was successfully reserved, or
    *         an empty Optional if the transaction was already reserved.
    */
   @Override
-  public Optional<FateTxStore<T>> tryReserve(long tid) {
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
     synchronized (this) {
-      if (!reserved.contains(tid)) {
-        return Optional.of(reserve(tid));
+      if (!reserved.contains(fateId)) {
+        return Optional.of(reserve(fateId));
       }
       return Optional.empty();
     }
   }
 
   @Override
-  public FateTxStore<T> reserve(long tid) {
+  public FateTxStore<T> reserve(FateId fateId) {
     synchronized (AbstractFateStore.this) {
-      while (reserved.contains(tid)) {
+      while (reserved.contains(fateId)) {
         try {
           AbstractFateStore.this.wait(100);
         } catch (InterruptedException e) {
@@ -134,47 +129,53 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         }
       }
 
-      reserved.add(tid);
-      return newFateTxStore(tid, true);
+      reserved.add(fateId);
+      return newFateTxStore(fateId, true);
     }
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
     while (keepWaiting.get() && seen.get() == 0) {
       final long beforeCount = unreservedRunnableCount.getCount();
+      final boolean beforeDeferredOverflow = deferredOverflow.get();
 
       try (Stream<FateIdStatus> transactions = getTransactions()) {
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
-            .mapToLong(FateIdStatus::getTxid).filter(txid -> {
+            .map(FateIdStatus::getFateId).filter(fateId -> {
               synchronized (AbstractFateStore.this) {
-                var deferredTime = deferred.get(txid);
+                var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
                   if ((deferredTime - System.nanoTime()) >= 0) {
                     return false;
                   } else {
-                    deferred.remove(txid);
+                    deferred.remove(fateId);
                   }
                 }
-                return !reserved.contains(txid);
+                return !reserved.contains(fateId);
               }
-            }).forEach(txid -> {
+            }).forEach(fateId -> {
               seen.incrementAndGet();
-              idConsumer.accept(txid);
+              idConsumer.accept(fateId);
             });
       }
 
+      // If deferredOverflow was previously marked true then the deferred map
+      // would have been cleared and seen.get() should be greater than 0 as there would
+      // be a lot of transactions to process in the previous run, so we won't be sleeping here
       if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
-          if (!deferred.isEmpty()) {
-            long currTime = System.nanoTime();
-            long minWait =
-                deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-            waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+          synchronized (AbstractFateStore.this) {
+            if (!deferred.isEmpty()) {
+              long currTime = System.nanoTime();
+              long minWait =
+                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
+              waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+            }
           }
 
           if (waitTime > 0) {
@@ -183,17 +184,26 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           }
         }
       }
+
+      // Reset if the current state only if it matches the state before the execution.
+      // This is to avoid a race condition where the flag was set during the run.
+      // We should ensure at least one of the FATE executors will run through the
+      // entire transaction list first before clearing the flag and allowing more
+      // deferred entries into the map again. In other words, if the before state
+      // was false and during the execution at some point it was marked true this would
+      // not reset until after the next run
+      deferredOverflow.compareAndSet(beforeDeferredOverflow, false);
     }
   }
 
   @Override
-  public Stream<Long> list() {
-    return getTransactions().map(fateIdStatus -> fateIdStatus.txid);
+  public Stream<FateIdStatus> list() {
+    return getTransactions();
   }
 
   @Override
-  public ReadOnlyFateTxStore<T> read(long tid) {
-    return newFateTxStore(tid, false);
+  public ReadOnlyFateTxStore<T> read(FateId fateId) {
+    return newFateTxStore(fateId, false);
   }
 
   protected boolean isRunnable(TStatus status) {
@@ -201,50 +211,60 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         || status == TStatus.SUBMITTED;
   }
 
-  protected long parseTid(String txdir) {
-    return Long.parseLong(txdir.split("_")[1], 16);
+  public static abstract class FateIdStatusBase implements FateIdStatus {
+    private final FateId fateId;
+
+    public FateIdStatusBase(FateId fateId) {
+      this.fateId = fateId;
+    }
+
+    @Override
+    public FateId getFateId() {
+      return fateId;
+    }
   }
 
-  public static abstract class FateIdStatus {
-    private final long txid;
+  @Override
+  public boolean isDeferredOverflow() {
+    return deferredOverflow.get();
+  }
 
-    public FateIdStatus(long txid) {
-      this.txid = txid;
+  @Override
+  public int getDeferredCount() {
+    // This method is primarily used right now for unit testing but
+    // if this synchronization becomes an issue we could add an atomic
+    // counter instead to track it separately so we don't need to lock
+    synchronized (AbstractFateStore.this) {
+      return deferred.size();
     }
-
-    public long getTxid() {
-      return txid;
-    }
-
-    public abstract TStatus getStatus();
   }
 
   protected abstract Stream<FateIdStatus> getTransactions();
 
-  protected abstract TStatus _getStatus(long tid);
+  protected abstract TStatus _getStatus(FateId fateId);
 
-  protected abstract FateTxStore<T> newFateTxStore(long tid, boolean isReserved);
+  protected abstract FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved);
 
   protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
-    protected final long tid;
+    protected final FateId fateId;
     protected final boolean isReserved;
 
     protected TStatus observedStatus = null;
 
-    protected AbstractFateTxStoreImpl(long tid, boolean isReserved) {
-      this.tid = tid;
+    protected AbstractFateTxStoreImpl(FateId fateId, boolean isReserved) {
+      this.fateId = fateId;
       this.isReserved = isReserved;
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       Preconditions.checkState(!isReserved,
-          "Attempted to wait for status change while reserved " + FateTxId.formatTid(getID()));
+          "Attempted to wait for status change while reserved " + fateId);
       while (true) {
 
         long countBefore = unreservedNonNewCount.getCount();
 
-        TStatus status = _getStatus(tid);
+        TStatus status = _getStatus(fateId);
         if (expected.contains(status)) {
           return status;
         }
@@ -262,16 +282,27 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       }
 
       synchronized (AbstractFateStore.this) {
-        if (!reserved.remove(tid)) {
-          throw new IllegalStateException(
-              "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+        if (!reserved.remove(fateId)) {
+          throw new IllegalStateException("Tried to unreserve id that was not reserved " + fateId);
         }
 
         // notify any threads waiting to reserve
         AbstractFateStore.this.notifyAll();
 
-        if (deferTime > 0) {
-          deferred.put(tid, System.nanoTime() + deferTime);
+        // If deferred map has overflowed then skip adding to the deferred map
+        // and clear the map and set the flag. This will cause the next execution
+        // of runnable to process all the transactions and to not defer as we
+        // have a large backlog and want to make progress
+        if (deferTime > 0 && !deferredOverflow.get()) {
+          if (deferred.size() >= maxDeferred) {
+            log.info(
+                "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
+                deferred.size());
+            deferredOverflow.set(true);
+            deferred.clear();
+          } else {
+            deferred.put(fateId, System.nanoTime() + deferTime);
+          }
         }
       }
 
@@ -291,9 +322,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       if (isReserved) {
         synchronized (AbstractFateStore.this) {
-          if (!reserved.contains(tid)) {
-            throw new IllegalStateException(
-                "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
+          if (!reserved.contains(fateId)) {
+            throw new IllegalStateException("Tried to operate on unreserved transaction " + fateId);
           }
         }
       }
@@ -302,14 +332,14 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     @Override
     public TStatus getStatus() {
       verifyReserved(false);
-      var status = _getStatus(tid);
+      var status = _getStatus(fateId);
       observedStatus = status;
       return status;
     }
 
     @Override
-    public long getID() {
-      return tid;
+    public FateId getID() {
+      return fateId;
     }
 
     protected byte[] serializeTxInfo(Serializable so) {
@@ -336,6 +366,5 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         throw new IllegalStateException("Bad node data " + txInfo);
       }
     }
-
   }
 }

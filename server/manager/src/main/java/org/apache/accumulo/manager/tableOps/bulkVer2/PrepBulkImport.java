@@ -43,7 +43,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -89,8 +89,8 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    if (!Utils.getReadLock(manager, bulkInfo.tableId, tid).tryLock()) {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
+    if (!Utils.getReadLock(manager, bulkInfo.tableId, fateId).tryLock()) {
       return 100;
     }
 
@@ -98,7 +98,7 @@ public class PrepBulkImport extends ManagerRepo {
       return 500;
     }
 
-    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, tid);
+    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, fateId);
   }
 
   @VisibleForTesting
@@ -116,7 +116,7 @@ public class PrepBulkImport extends ManagerRepo {
    */
   @VisibleForTesting
   static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
-      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
+      TabletIterFactory tabletIterFactory, int maxNumTablets) throws Exception {
     var currRange = lmi.next();
 
     Text startRow = currRange.getKey().prevEndRow();
@@ -221,7 +221,7 @@ public class PrepBulkImport extends ManagerRepo {
     }
   }
 
-  private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
+  private KeyExtent checkForMerge(final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
@@ -233,22 +233,21 @@ public class PrepBulkImport extends ManagerRepo {
         LoadMappingIterator lmi =
             BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
         TabletIterFactory tabletIterFactory = new TabletIterFactoryImpl(manager, bulkInfo)) {
-      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
-          tid);
+      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
+  public Repo<Manager> call(final FateId fateId, final Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    KeyExtent tabletsRange = checkForMerge(tid, manager);
+    KeyExtent tabletsRange = checkForMerge(manager);
 
     bulkInfo.firstSplit =
         Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
     bulkInfo.lastSplit =
         Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
 
-    log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
+    log.trace("{} first split:{} last split:{}", fateId, tabletsRange.prevEndRow(),
         tabletsRange.endRow());
 
     VolumeManager fs = manager.getVolumeManager();
@@ -302,9 +301,9 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, Manager environment) throws Exception {
     // unreserve sourceDir/error directories
-    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
-    Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, fateId);
+    Utils.getReadLock(environment, bulkInfo.tableId, fateId).unlock();
   }
 }

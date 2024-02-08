@@ -1061,7 +1061,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // if we only fetch some columns needed by the filter, we should get an exception
       TabletsMetadata.Options options =
           context.getAmple().readTablets().forTable(tid).fetch(FLUSH_ID).filter(filter);
-      var ise = assertThrows(IllegalStateException.class, options::build);
+      var ise = assertThrows(IllegalStateException.class, () -> options.build().close());
       String expectedMsg = String.format("%s needs cols %s however only %s were fetched",
           TestTabletMetadataFilter.class.getSimpleName(), filter.getColumns(), Set.of(FLUSH_ID));
       assertTrue(ise.getMessage().contains(expectedMsg));

@@ -18,18 +18,15 @@
  */
 package org.apache.accumulo.core.logging;
 
-import static org.apache.accumulo.core.fate.FateTxId.formatTid;
-
 import java.io.Serializable;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -59,7 +56,7 @@ public class FateLogger {
     public void push(Repo<T> repo) throws StackOverflowException {
       super.push(repo);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} pushed {}", formatTid(getID()), toLogString.apply(repo));
+        storeLog.trace("{} pushed {}", getID(), toLogString.apply(repo));
       }
     }
 
@@ -67,7 +64,7 @@ public class FateLogger {
     public void pop() {
       super.pop();
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} popped", formatTid(getID()));
+        storeLog.trace("{} popped", getID());
       }
     }
 
@@ -75,7 +72,7 @@ public class FateLogger {
     public void setStatus(ReadOnlyFateStore.TStatus status) {
       super.setStatus(status);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} setStatus to {}", formatTid(getID()), status);
+        storeLog.trace("{} setStatus to {}", getID(), status);
       }
     }
 
@@ -83,7 +80,7 @@ public class FateLogger {
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable val) {
       super.setTransactionInfo(txInfo, val);
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} setting {} to {}", formatTid(getID()), txInfo, val);
+        storeLog.trace("{} setting {} to {}", getID(), txInfo, val);
       }
     }
 
@@ -91,7 +88,7 @@ public class FateLogger {
     public void delete() {
       super.delete();
       if (storeLog.isTraceEnabled()) {
-        storeLog.trace("{} deleted fate transaction", formatTid(getID()));
+        storeLog.trace("{} deleted fate transaction", getID());
       }
     }
   }
@@ -102,51 +99,47 @@ public class FateLogger {
     return new FateStore<>() {
 
       @Override
-      public FateTxStore<T> reserve(long tid) {
-        return new LoggingFateTxStore<>(store.reserve(tid), toLogString);
+      public FateTxStore<T> reserve(FateId fateId) {
+        return new LoggingFateTxStore<>(store.reserve(fateId), toLogString);
       }
 
       @Override
-      public Optional<FateTxStore<T>> tryReserve(long tid) {
-        return store.tryReserve(tid).map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString));
+      public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+        return store.tryReserve(fateId).map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString));
       }
 
       @Override
-      public ReadOnlyFateTxStore<T> read(long tid) {
-        return store.read(tid);
+      public ReadOnlyFateTxStore<T> read(FateId fateId) {
+        return store.read(fateId);
       }
 
       @Override
-      public Stream<Long> list() {
+      public Stream<FateIdStatus> list() {
         return store.list();
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+      public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }
 
       @Override
-      public long create() {
-        long tid = store.create();
+      public FateId create() {
+        FateId fateId = store.create();
         if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction", formatTid(tid));
+          storeLog.trace("{} created fate transaction", fateId);
         }
-        return tid;
+        return fateId;
       }
 
       @Override
-      public OptionalLong create(String keyType, ByteSequence key) {
-        var txid = store.create(keyType, key);
-        if (storeLog.isTraceEnabled()) {
-          if (txid.isPresent()) {
-            storeLog.trace("{} created fate transaction for key : {} {}",
-                formatTid(txid.getAsLong()), keyType, key);
-          } else {
-            storeLog.trace("unable to create fate transaction for key : {} {}", keyType, key);
-          }
-        }
-        return txid;
+      public int getDeferredCount() {
+        return store.getDeferredCount();
+      }
+
+      @Override
+      public boolean isDeferredOverflow() {
+        return store.isDeferredOverflow();
       }
     };
   }

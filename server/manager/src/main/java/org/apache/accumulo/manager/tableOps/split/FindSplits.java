@@ -22,6 +22,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.SplitUtils;
@@ -42,7 +43,7 @@ public class FindSplits extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     var extent = splitInfo.getOriginal();
     var tabletMetadata = manager.getContext().getAmple().readTablet(extent);
 

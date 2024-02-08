@@ -72,7 +72,7 @@ public class NewTableConfiguration {
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
-  private TabletHostingGoal initialHostingGoal = TabletHostingGoal.ONDEMAND;
+  private TabletAvailability initialTabletAvailability = TabletAvailability.ONDEMAND;
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -317,21 +317,22 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Sets the initial tablet hosting goal for all tablets. If not set, the default is
-   * {@link TabletHostingGoal#ONDEMAND}
+   * Sets the initial tablet availability for all tablets. If not set, the default is
+   * {@link TabletAvailability#ONDEMAND}
    *
    * @since 4.0.0
    */
-  public NewTableConfiguration withInitialHostingGoal(final TabletHostingGoal goal) {
-    this.initialHostingGoal = goal;
+  public NewTableConfiguration
+      withInitialTabletAvailability(final TabletAvailability tabletAvailability) {
+    this.initialTabletAvailability = tabletAvailability;
     return this;
   }
 
   /**
    * @since 4.0.0
    */
-  public TabletHostingGoal getInitialHostingGoal() {
-    return this.initialHostingGoal;
+  public TabletAvailability getInitialTabletAvailability() {
+    return this.initialTabletAvailability;
   }
 
   /**

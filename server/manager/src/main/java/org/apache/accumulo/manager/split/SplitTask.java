@@ -18,15 +18,10 @@
  */
 package org.apache.accumulo.manager.split;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.OptionalLong;
+import java.util.Optional;
 
-import org.apache.accumulo.core.data.ArrayByteSequence;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
@@ -49,8 +44,8 @@ public class SplitTask implements Runnable {
     try {
       var fateInstanceType = FateInstanceType.fromTableId((extent.tableId()));
 
-      OptionalLong fateTxId =
-          manager.fate(fateInstanceType).startTransaction("SYSTEM_SPLIT", createSplitKey(extent));
+      Optional<FateId> fateTxId = Optional.empty();
+      // manager.fate(fateInstanceType).startTransaction("SYSTEM_SPLIT", createSplitKey(extent));
 
       fateTxId.ifPresent(txid -> manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT",
           txid, new FindSplits(extent), true, "System initiated split of tablet " + extent));
@@ -58,16 +53,5 @@ public class SplitTask implements Runnable {
     } catch (Exception e) {
       log.error("Failed to split {}", extent, e);
     }
-  }
-
-  private ByteSequence createSplitKey(KeyExtent extent) {
-    try (var baos = new ByteArrayOutputStream(); var dos = new DataOutputStream(baos)) {
-      extent.writeTo(dos);
-      dos.close();
-      return new ArrayByteSequence(baos.toByteArray());
-    } catch (IOException ioe) {
-      throw new UncheckedIOException(ioe);
-    }
-
   }
 }

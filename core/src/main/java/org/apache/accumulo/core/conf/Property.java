@@ -441,6 +441,8 @@ public enum Property {
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      // ELASTICITY_TODO: It might be good to note that there is a priority queue per compactor
+      // resource group
       "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
   // properties that are specific to scan server behavior
   @Experimental
@@ -753,7 +755,6 @@ public enum Property {
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
-  @Experimental
   GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "true", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
           + "This is expected to increase the speed of subsequent GC runs.",

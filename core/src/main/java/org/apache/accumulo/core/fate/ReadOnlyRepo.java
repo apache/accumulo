@@ -25,8 +25,7 @@ package org.apache.accumulo.core.fate;
  * also be safe to call without impacting the state of system components.
  */
 public interface ReadOnlyRepo<T> {
-
-  long isReady(long tid, T environment) throws Exception;
+  long isReady(FateId fateId, T environment) throws Exception;
 
   String getName();
 
