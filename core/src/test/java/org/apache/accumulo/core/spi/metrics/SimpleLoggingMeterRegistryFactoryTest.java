@@ -16,15 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.core.spi.metrics;
+
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+import org.apache.accumulo.core.conf.Property;
+import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-/**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
- */
-@Deprecated()
-public interface MeterRegistryFactory {
-  MeterRegistry create();
+class SimpleLoggingMeterRegistryFactoryTest {
+
+  @Test
+  public void createTest() {
+    SimpleLoggingMeterRegistryFactory factory = new SimpleLoggingMeterRegistryFactory();
+    assertInstanceOf(MeterRegistry.class, factory.create());
+  }
+
+  @Test
+  public void x() {
+    System.out.println(Property.GENERAL_MICROMETER_FACTORY.getType());
+
+  }
 }

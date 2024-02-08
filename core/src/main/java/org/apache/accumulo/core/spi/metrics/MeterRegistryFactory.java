@@ -16,15 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.core.spi.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
+ * The Micrometer metrics allows for different monitoring systems. and can be enabled within
+ * Accumulo with properties and are initialized by implementing this interface and providing the
+ * factory implementation clas name as a property. Metrics are specified with the following
+ * properties:
+ * <p>
+ * Property.GENERAL_MICROMETER_ENABLED = true
+ * <p>
+ * Property.GENERAL_MICROMETER_FACTORY = [implementation].class.getName()
  */
-@Deprecated()
 public interface MeterRegistryFactory {
+  /**
+   * Called on metrics initialization.
+   *
+   * @return a Micrometer registry that will be added to the metrics configuration.
+   */
   MeterRegistry create();
 }
