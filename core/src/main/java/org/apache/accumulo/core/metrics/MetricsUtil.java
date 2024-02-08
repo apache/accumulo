@@ -35,6 +35,8 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
@@ -109,11 +111,7 @@ public class MetricsUtil {
       };
 
       for (String factoryName : getTrimmedStrings(factoryClasses)) {
-        Class<? extends MeterRegistryFactory> clazz =
-            ClassLoaderUtil.loadClass(factoryName, MeterRegistryFactory.class);
-        MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
-
-        MeterRegistry registry = factory.create();
+        MeterRegistry registry = getRegistryFromFactory(factoryName);
         registry.config().commonTags(commonTags);
         registry.config().meterFilter(replicationFilter);
         Metrics.addRegistry(registry);
@@ -128,6 +126,33 @@ public class MetricsUtil {
         new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
       }
     }
+  }
+
+  @VisibleForTesting
+  @SuppressWarnings({"deprecation",
+      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
+  static MeterRegistry getRegistryFromFactory(String factoryName)
+      throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
+      InstantiationException, IllegalAccessException {
+    try {
+      Class<? extends MeterRegistryFactory> clazz =
+          ClassLoaderUtil.loadClass(factoryName, MeterRegistryFactory.class);
+      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
+      return factory.create();
+    } catch (ClassCastException ex) {
+      // empty. On exception try deprecated version
+    }
+    try {
+      Class<? extends org.apache.accumulo.core.metrics.MeterRegistryFactory> clazz = ClassLoaderUtil
+          .loadClass(factoryName, org.apache.accumulo.core.metrics.MeterRegistryFactory.class);
+      org.apache.accumulo.core.metrics.MeterRegistryFactory factory =
+          clazz.getDeclaredConstructor().newInstance();
+      return factory.create();
+    } catch (ClassCastException ex) {
+      // empty. No valid metrics factory, fall through and then throw exception.
+    }
+    throw new ClassNotFoundException(
+        "Could not find appropriate class implementing a MetricsFactory for: " + factoryName);
   }
 
   public static void initializeProducers(MetricsProducer... producer) {

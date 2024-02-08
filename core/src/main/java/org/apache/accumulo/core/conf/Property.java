@@ -303,7 +303,9 @@ public enum Property {
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.SimpleLoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
-      "A comma separated list of one or more class names that implement MeterRegistryFactory.",
+      "A comma separated list of one or more class names that implement MeterRegistryFactory. Prior to"
+          + " 2.1.3 this was a single value and the default was an empty string.  In 2.1.3 the default "
+          + " was changed and it now can accept multiple class names.",
       "2.1.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
