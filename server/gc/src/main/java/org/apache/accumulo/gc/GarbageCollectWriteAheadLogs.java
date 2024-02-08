@@ -39,7 +39,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.iterators.user.HasWalsFilter;
+import org.apache.accumulo.core.iterators.user.GcWalsFilter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -96,13 +96,15 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   @VisibleForTesting
-  Stream<TabletMetadata> createStore() {
+  Stream<TabletMetadata> createStore(Set<TServerInstance> liveTServers) {
+    GcWalsFilter walsFilter = new GcWalsFilter(liveTServers);
+
     TabletsMetadata root = context.getAmple().readTablets().forLevel(DataLevel.ROOT)
-        .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
+        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     TabletsMetadata metadata = context.getAmple().readTablets().forLevel(DataLevel.METADATA)
-        .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
+        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     TabletsMetadata user = context.getAmple().readTablets().forLevel(DataLevel.USER)
-        .filter(new HasWalsFilter()).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
+        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
     return Streams.concat(root.stream(), metadata.stream(), user.stream()).onClose(() -> {
       root.close();
       metadata.close();
@@ -281,7 +283,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    try (Stream<TabletMetadata> store = createStore()) {
+    try (Stream<TabletMetadata> store = createStore(liveServers)) {
       store.forEach(tabletMetadata -> {
         // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
         // Easiest to just ignore all the WALs for the dead server.
