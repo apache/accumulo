@@ -305,7 +305,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     if (reservedTxStore.isPresent()) {
       try {
         var fateIdFromCreate = create(fateKey);
-        if (create(fateKey).isPresent()) {
+        if (fateIdFromCreate.isPresent()) {
           Preconditions.checkState(fateId.equals(fateIdFromCreate.orElseThrow()),
               "Transaction creation returned unexpected %s, expected %s", fateIdFromCreate, fateId);
           txStore = reservedTxStore;
