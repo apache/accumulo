@@ -242,6 +242,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke1 =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
+    long existing = store.list().count();
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateId fateId1 = store.create(fateKey1);
 
@@ -261,7 +262,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore2.getStatus());
       assertEquals(fateKey2, txStore2.getKey().orElseThrow());
 
-      assertEquals(2, store.list().count());
+      assertEquals(existing + 2, store.list().count());
     } finally {
       txStore1.delete();
       txStore2.delete();
@@ -384,7 +385,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // and use the existing transaction, which we should.
     deleteKey(fateId, sctx);
     var e = assertThrows(IllegalStateException.class, () -> store.create(fateKey));
-    assertEquals("Tx key column is missing", e.getMessage());
+    assertEquals("Tx Key is missing from tid " + fateId.getTid(), e.getMessage());
 
     // We should still be able to reserve and continue when not using a key
     FateTxStore<TestEnv> txStore = store.reserve(fateId);

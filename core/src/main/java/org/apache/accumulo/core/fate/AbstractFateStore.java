@@ -269,7 +269,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       // to reserve/seed as long as the existing key is the same and not different as that would
       // mean a collision
       if (status == TStatus.NEW) {
-        Preconditions.checkState(tFateKey.isPresent(), "Tx key column is missing");
+        Preconditions.checkState(tFateKey.isPresent(), "Tx Key is missing from tid %s",
+            fateId.getTid());
         Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
             "Collision detected for tid %s", fateId.getTid());
         // Case 2: Status is some other state which means already in progress
