@@ -44,12 +44,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -650,14 +645,14 @@ public class Manager extends AbstractServer
                 case NORMAL:
                   // USER fate stores its data in a user table and its operations may interact with
                   // all tables, need to completely shut it down before unloading user tablets
-                  fate(FateInstanceType.USER).shutdown(true);
+                  fate(FateInstanceType.USER).shutdown(1, MINUTES);
                   setManagerState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
                   // META fate stores its data in Zookeeper and its operations interact with
                   // metadata and root tablets, need to completely shut it down before unloading
                   // metadata and root tablets
-                  fate(FateInstanceType.META).shutdown(true);
+                  fate(FateInstanceType.META).shutdown(1, MINUTES);
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(
                       String.format("There are %d non-metadata tablets assigned or hosted", count));
@@ -1152,7 +1147,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    getFateRefs().keySet().forEach(type -> fate(type).shutdown(false));
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 
     splitter.stop();
 

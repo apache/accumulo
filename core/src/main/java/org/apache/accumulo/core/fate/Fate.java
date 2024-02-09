@@ -458,10 +458,14 @@ public class Fate<T> {
     }
   }
 
+  private boolean isExecutorAlive(){
+    return executor != null && !executor.isTerminated();
+  }
+
   /**
    * Initiates shutdown of background threads and optionally waits on them.
    */
-  public void shutdown(boolean waitForBackgroundThreads) {
+  public void shutdown(long timeout, TimeUnit timeUnit) {
     if (keepRunning.compareAndSet(true, false)) {
       fatePoolWatcher.shutdown();
       if (executor != null) {
@@ -470,25 +474,34 @@ public class Fate<T> {
       workFinder.interrupt();
     }
 
-    if (waitForBackgroundThreads) {
-      try {
-        if (executor != null) {
-          while (!executor.awaitTermination(10, SECONDS)) {
-            log.debug("Fate {} is waiting for worker threads to terminate", store.type());
-          }
-        }
+    if (timeout > 0) {
+      long start = System.nanoTime();
 
-        workFinder.join(10_000);
-        while (workFinder.isAlive()) {
-          log.debug("Fate {} is waiting for work finder thread to terminate", store.type());
-          workFinder.interrupt();
-          workFinder.join(10_000);
+      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout) && (workFinder.isAlive() || isExecutorAlive())) {
+        try {
+          if (executor != null) {
+            if (!executor.awaitTermination(1, SECONDS)) {
+              log.debug("Fate {} is waiting for worker threads to terminate", store.type());
+              continue;
+            }
+          }
+
+          workFinder.join(1_000);
+          if (workFinder.isAlive()) {
+            log.debug("Fate {} is waiting for work finder thread to terminate", store.type());
+            workFinder.interrupt();
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+      }
+
+      if (workFinder.isAlive() || isExecutorAlive()) {
+        log.warn(
+            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} executor:{}",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
+            workFinder.isAlive(), isExecutorAlive());
       }
     }
-
   }
-
 }
