@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -316,6 +315,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // We have an existing transaction with the same key in progress
       // so should not be allowed
       assertThrows(IllegalStateException.class, () -> store.create(fateKey));
+      assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
@@ -352,13 +352,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     FateTxStore<TestEnv> txStore = store.reserve(fateId1);
     try {
-      try {
-        store.create(fateKey2);
-        fail("Expected IllegalStateException due to hashing collision");
-      } catch (Exception e) {
-        assertInstanceOf(IllegalStateException.class, e);
-        assertEquals("Collision detected for tid 1000", e.getMessage());
-      }
+      var e = assertThrows(IllegalStateException.class, () -> store.create(fateKey2));
+      assertEquals("Collision detected for tid 1000", e.getMessage());
+      assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
