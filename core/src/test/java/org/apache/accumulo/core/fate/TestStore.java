@@ -32,10 +32,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.util.Pair;
-
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 
 /**
  * Transient in memory store for transactions.
@@ -57,27 +58,7 @@ public class TestStore implements FateStore<String> {
 
   @Override
   public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
-    HashCode hashCode = Hashing.murmur3_128().hashBytes(key.getSerialized());
-    long tid = hashCode.asLong() & 0x7fffffffffffffffL;
-    FateId fateId = FateId.from(fateInstanceType, tid);
-
-    Optional<FateTxStore<String>> txStore = tryReserve(fateId);
-    if (txStore.isPresent()) {
-      try {
-        if (statuses.putIfAbsent(fateId, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
-          throw new IllegalStateException("Transaction with fateId " + fateId + " already exists");
-        }
-      } catch (Exception e) {
-        reserved.remove(fateId);
-        if (e instanceof IllegalStateException) {
-          throw e;
-        } else {
-          throw new IllegalStateException(e);
-        }
-      }
-    }
-
-    return txStore;
+    throw new UnsupportedOperationException();
   }
 
   @Override

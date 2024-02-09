@@ -304,7 +304,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     // If present we were able to reserve so try and create
     if (reservedTxStore.isPresent()) {
       try {
+        var fateIdFromCreate = create(fateKey);
         if (create(fateKey).isPresent()) {
+          Preconditions.checkState(fateId.equals(fateIdFromCreate.orElseThrow()),
+              "Transaction creation returned unexpected %s, expected %s", fateIdFromCreate, fateId);
           txStore = reservedTxStore;
         } else {
           // We already exist in a non-new state then un-reserve and an empty
@@ -329,6 +332,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       }
     } else {
       // Could not reserve so return empty
+      log.trace("Another thread currently has transaction {} key {} reserved", fateId, fateKey);
       txStore = Optional.empty();
     }
 
