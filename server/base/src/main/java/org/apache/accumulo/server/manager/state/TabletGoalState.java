@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -82,6 +83,15 @@ public enum TabletGoalState {
       if (tm.getOperationId() != null && (tm.getLogs().isEmpty()
           || tm.getOperationId().getType() == TabletOperationType.DELETING)) {
         return TabletGoalState.UNASSIGNED;
+      }
+
+      // When the tablet has wals and it will not be hosted normally, then cause it to
+      // be hosted so that recovery can occur. When tablet availability is ONDEMAND or
+      // UNHOSTED, then this tablet will eventually become unhosted after recovery occurs.
+      // This could cause a little bit of churn on the cluster w/r/t balancing, but it's
+      // necessary.
+      if (!tm.getLogs().isEmpty() && tm.getTabletAvailability() != TabletAvailability.HOSTED) {
+        return TabletGoalState.HOSTED;
       }
 
       if (!params.isTableOnline(tm.getTableId())) {

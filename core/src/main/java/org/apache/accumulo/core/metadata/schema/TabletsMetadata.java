@@ -189,6 +189,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
             for (TabletMetadataFilter tmf : tabletMetadataFilters) {
               IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+              iterSetting.addOptions(tmf.getServerSideOptions());
               scanner.addScanIterator(iterSetting);
               iteratorPriority++;
             }
@@ -270,6 +271,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           for (TabletMetadataFilter tmf : tabletMetadataFilters) {
             iteratorPriority++;
             IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+            iterSetting.addOptions(tmf.getServerSideOptions());
             scanner.addScanIterator(iterSetting);
           }
         }
