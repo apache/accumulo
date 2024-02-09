@@ -105,10 +105,9 @@ public class FateId extends AbstractId<FateId> {
   }
 
   /**
-   * Formats transaction ids in a consistent way that is useful for logging and persisting.
+   * Returns the hex string equivalent of the tid
    */
   public static String formatTid(long tid) {
-    // do not change how this formats without considering implications for persistence
     return FastFormat.toHexString(tid);
   }
 }

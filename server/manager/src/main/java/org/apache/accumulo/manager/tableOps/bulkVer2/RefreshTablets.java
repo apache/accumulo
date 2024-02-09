@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -44,16 +45,17 @@ public class RefreshTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, tid,
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId.getTid(),
         bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
-        tabletMetadata -> tabletMetadata.getLoaded().containsValue(tid));
+        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId.getTid()));
 
     return new CleanUpBulkImport(bulkInfo);
   }

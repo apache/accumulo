@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -41,8 +42,8 @@ public class UnreserveAndError extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    FinishTableRangeOp.removeOperationIds(log, mergeInfo, tid, environment);
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+    FinishTableRangeOp.removeOperationIds(log, mergeInfo, fateId, environment);
     throw new AcceptableThriftTableOperationException(mergeInfo.tableId.toString(), null,
         mergeInfo.op == MergeInfo.Operation.MERGE ? TableOperation.MERGE
             : TableOperation.DELETE_RANGE,

@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -248,11 +249,20 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.isFutureAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
-      return;
+    }
+
+    if (!tm.getLogs().isEmpty() && (tm.getOperationId() == null
+        || tm.getOperationId().getType() != TabletOperationType.DELETING)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_RECOVERY);
     }
 
     if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
+    }
+
+    if (!reasonsToReturnThisTablet.isEmpty()) {
+      // If volume replacement or recovery is needed, then return early.
+      return;
     }
 
     if (shouldReturnDueToLocation(tm)) {

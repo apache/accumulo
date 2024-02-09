@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.Pair;
@@ -46,9 +47,9 @@ public class RenameTable extends ManagerRepo {
   private String newTableName;
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, fateId, true, true, TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -60,7 +61,7 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = TableNameUtil.qualify(newTableName);
 
@@ -100,8 +101,8 @@ public class RenameTable extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(manager, tableId, tid, true);
-      Utils.unreserveNamespace(manager, namespaceId, tid, false);
+      Utils.unreserveTable(manager, tableId, fateId, true);
+      Utils.unreserveNamespace(manager, namespaceId, fateId, false);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -111,9 +112,9 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, true);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, true);
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
   }
 
 }

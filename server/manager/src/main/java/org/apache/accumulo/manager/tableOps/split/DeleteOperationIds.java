@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.split;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -39,9 +40,10 @@ public class DeleteOperationIds extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
 
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 

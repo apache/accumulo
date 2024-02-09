@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.compact.cancel;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
@@ -44,29 +45,29 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, true,
+        TableOperation.COMPACT_CANCEL)
+        + Utils.reserveTable(env, tableId, fateId, false, true, TableOperation.COMPACT_CANCEL);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     var idsToCancel =
         CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
 
     for (var idToCancel : idsToCancel) {
-      log.debug("{} deleting compaction config {}", FateTxId.formatTid(tid),
-          FateTxId.formatTid(idToCancel));
+      log.debug("{} deleting compaction config {}", fateId, FateTxId.formatTid(idToCancel));
       CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
     }
     return new FinishCancelCompaction(namespaceId, tableId);
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, false);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, false);
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
   }
 
 }

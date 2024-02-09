@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -57,15 +58,15 @@ public class SetTabletAvailability extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager, namespaceId, tid, false, true,
+  public long isReady(FateId fateId, Manager manager) throws Exception {
+    return Utils.reserveNamespace(manager, namespaceId, fateId, false, true,
         TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager, tableId, tid, true, true,
+        + Utils.reserveTable(manager, tableId, fateId, true, true,
             TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     final Range range = new Range(tRange);
     LOG.debug("Finding tablets in Range: {} for table:{}", range, tableId);
@@ -115,15 +116,15 @@ public class SetTabletAvailability extends ManagerRepo {
         mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
       }
     }
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
-    Utils.unreserveTable(manager, tableId, tid, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+    Utils.unreserveTable(manager, tableId, fateId, true);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
-    Utils.unreserveTable(manager, tableId, tid, true);
+  public void undo(FateId fateId, Manager manager) throws Exception {
+    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+    Utils.unreserveTable(manager, tableId, fateId, true);
   }
 
 }

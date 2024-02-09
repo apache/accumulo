@@ -40,7 +40,6 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -69,7 +68,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     }
 
     @Override
-    public long isReady(long tid, TestEnv environment) throws Exception {
+    public long isReady(FateId fateId, TestEnv environment) throws Exception {
       return 0;
     }
 
@@ -79,18 +78,18 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     }
 
     @Override
-    public Repo<TestEnv> call(long tid, TestEnv environment) throws Exception {
-      LOG.debug("Entering call {}", FateTxId.formatTid(tid));
+    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
+      LOG.debug("Entering call {}", fateId);
       try {
         FateIT.inCall();
         return null;
       } finally {
-        LOG.debug("Leaving call {}", FateTxId.formatTid(tid));
+        LOG.debug("Leaving call {}", fateId);
       }
     }
 
     @Override
-    public void undo(long tid, TestEnv environment) throws Exception {
+    public void undo(FateId fateId, TestEnv environment) throws Exception {
 
     }
 
@@ -119,8 +118,8 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     }
 
     @Override
-    public long isReady(long tid, TestEnv environment) {
-      LOG.debug("Fate {} delayed {}", tid, delay.get());
+    public long isReady(FateId fateId, TestEnv environment) {
+      LOG.debug("{} delayed {}", fateId, delay.get());
       return delay.get();
     }
 
@@ -130,15 +129,14 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     }
 
     @Override
-    public Repo<TestEnv> call(long tid, TestEnv environment) throws Exception {
+    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
       callLatch.await();
-      LOG.debug("Executing call {}, total executed {}", FateTxId.formatTid(tid),
-          executedCalls.incrementAndGet());
+      LOG.debug("Executing call {}, total executed {}", fateId, executedCalls.incrementAndGet());
       return null;
     }
 
     @Override
-    public void undo(long tid, TestEnv environment) {
+    public void undo(FateId fateId, TestEnv environment) {
 
     }
 

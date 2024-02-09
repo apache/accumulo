@@ -28,6 +28,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -57,11 +58,12 @@ public class UpdateTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     TabletMetadata tabletMetadata =
         manager.getContext().getAmple().readTablet(splitInfo.getOriginal());
 
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
 
     if (tabletMetadata == null) {
       // check to see if this operation has already succeeded.
@@ -73,7 +75,7 @@ public class UpdateTablets extends ManagerRepo {
         // lets go ahead and return the next step.
         log.trace(
             "{} creating new tablet was rejected because it existed, operation probably failed before.",
-            FateTxId.formatTid(tid));
+            fateId);
         return new DeleteOperationIds(splitInfo);
       } else {
         throw new IllegalStateException("Tablet is in an unexpected condition "
@@ -95,12 +97,12 @@ public class UpdateTablets extends ManagerRepo {
     var newTabletsFiles = getNewTabletFiles(newTablets, tabletMetadata,
         file -> manager.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
-    addNewTablets(tid, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
+    addNewTablets(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
 
     // Only update the original tablet after successfully creating the new tablets, this is
     // important for failure cases where this operation partially runs a then runs again.
 
-    updateExistingTablet(tid, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
+    updateExistingTablet(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
 
     return new DeleteOperationIds(splitInfo);
   }
@@ -165,7 +167,7 @@ public class UpdateTablets extends ManagerRepo {
     return tabletsFiles;
   }
 
-  private void addNewTablets(long tid, Manager manager, TabletMetadata tabletMetadata,
+  private void addNewTablets(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
       TabletOperationId opid, SortedSet<KeyExtent> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     Iterator<String> dirNameIter = dirNames.iterator();
@@ -186,9 +188,10 @@ public class UpdateTablets extends ManagerRepo {
         mutator.putPrevEndRow(newExtent.prevEndRow());
         tabletMetadata.getCompacted().forEach(mutator::putCompacted);
 
+        // ELASTICITY_TODO DEFERRED - ISSUE 4044
         tabletMetadata.getCompacted()
-            .forEach(ctid -> log.debug("{} copying compacted marker to new child tablet {}",
-                FateTxId.formatTid(tid), FateTxId.formatTid(ctid)));
+            .forEach(ctid -> log.debug("{} copying compacted marker to new child tablet {}", fateId,
+                FateTxId.formatTid(ctid)));
 
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
 
@@ -210,7 +213,7 @@ public class UpdateTablets extends ManagerRepo {
     }
   }
 
-  private void updateExistingTablet(long tid, Manager manager, TabletMetadata tabletMetadata,
+  private void updateExistingTablet(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
       TabletOperationId opid, SortedSet<KeyExtent> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
@@ -233,15 +236,14 @@ public class UpdateTablets extends ManagerRepo {
       // remove any external compaction entries that are present
       tabletMetadata.getExternalCompactions().keySet().forEach(mutator::deleteExternalCompaction);
 
-      tabletMetadata.getExternalCompactions().keySet()
-          .forEach(ecid -> log.debug("{} deleting external compaction entry for split {}",
-              FateTxId.formatTid(tid), ecid));
+      tabletMetadata.getExternalCompactions().keySet().forEach(
+          ecid -> log.debug("{} deleting external compaction entry for split {}", fateId, ecid));
 
       // remove any selected file entries that are present, the compaction operation will need to
       // reselect files
       if (tabletMetadata.getSelectedFiles() != null) {
         mutator.deleteSelectedFiles();
-        log.debug("{} deleting selected files {} because of split", FateTxId.formatTid(tid),
+        log.debug("{} deleting selected files {} because of split", fateId,
             FateTxId.formatTid(tabletMetadata.getSelectedFiles().getFateTxId()));
       }
 
