@@ -32,23 +32,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.util.Pair;
+
 /**
  * Transient in memory store for transactions.
  */
 public class TestStore implements FateStore<String> {
 
   private long nextId = 1;
-  private Map<FateId,TStatus> statuses = new HashMap<>();
-  private Set<FateId> reserved = new HashSet<>();
-
+  private final Map<FateId,Pair<TStatus,Optional<FateKey>>> statuses = new HashMap<>();
+  private final Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
+  private final Set<FateId> reserved = new HashSet<>();
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
-  private Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
 
   @Override
   public FateId create() {
     FateId fateId = FateId.from(fateInstanceType, nextId++);
-    statuses.put(fateId, TStatus.NEW);
+    statuses.put(fateId, new Pair<>(TStatus.NEW, Optional.empty()));
     return fateId;
+  }
+
+  @Override
+  public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -92,14 +102,25 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public TStatus getStatus() {
+      return getStatusAndKey().getFirst();
+    }
+
+    @Override
+    public Optional<FateKey> getKey() {
+      return getStatusAndKey().getSecond();
+    }
+
+    @Override
+    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
 
-      TStatus status = statuses.get(fateId);
+      Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
       if (status == null) {
-        return TStatus.UNKNOWN;
+        return new Pair<>(TStatus.UNKNOWN, Optional.empty());
       }
+
       return status;
     }
 
@@ -143,10 +164,11 @@ public class TestStore implements FateStore<String> {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
-      if (!statuses.containsKey(fateId)) {
+      Pair<TStatus,Optional<FateKey>> currentStatus = statuses.get(fateId);
+      if (currentStatus == null) {
         throw new IllegalStateException();
       }
-      statuses.put(fateId, status);
+      statuses.put(fateId, new Pair<>(status, currentStatus.getSecond()));
     }
 
     @Override
@@ -189,7 +211,7 @@ public class TestStore implements FateStore<String> {
 
       @Override
       public TStatus getStatus() {
-        return e.getValue();
+        return e.getValue().getFirst();
       }
     });
   }

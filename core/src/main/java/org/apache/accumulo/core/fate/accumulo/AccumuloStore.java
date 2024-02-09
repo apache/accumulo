@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,11 +32,14 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -45,11 +49,13 @@ import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFami
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
@@ -65,11 +71,13 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
-    this(context, tableName, DEFAULT_MAX_DEFERRED);
+    this(context, tableName, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AccumuloStore(ClientContext context, String tableName, int maxDeferred) {
-    super(maxDeferred);
+  @VisibleForTesting
+  public AccumuloStore(ClientContext context, String tableName, int maxDeferred,
+      FateIdGenerator fateIdGenerator) {
+    super(maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
@@ -113,6 +121,38 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  protected void create(FateId fateId, FateKey fateKey) {
+    final int maxAttempts = 5;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+
+      if (attempt >= 1) {
+        log.debug("Failed to create transaction with fateId {} and fateKey {}, trying again",
+            fateId, fateKey);
+        UtilWaitThread.sleep(100);
+      }
+
+      var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+      switch (status) {
+        case ACCEPTED:
+          return;
+        case UNKNOWN:
+          continue;
+        case REJECTED:
+          throw new IllegalStateException("Attempt to create transaction with fateId " + fateId
+              + " and fateKey " + fateKey + " was rejected");
+        default:
+          throw new IllegalStateException("Unknown status " + status);
+      }
+    }
+
+    throw new IllegalStateException("Failed to create transaction with fateId " + fateId
+        + " and fateKey " + fateKey + " after " + maxAttempts + " attempts");
+  }
+
+  @Override
   protected Stream<FateIdStatus> getTransactions() {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
@@ -144,12 +184,59 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  protected Optional<FateKey> getKey(FateId fateId) {
+    return scanTx(scanner -> {
+      scanner.setRange(getRow(fateId));
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      return scanner.stream().map(e -> FateKey.deserialize(e.getValue().get())).findFirst();
+    });
+  }
+
+  @Override
+  protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
+    return scanTx(scanner -> {
+      scanner.setRange(getRow(fateId));
+      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+
+      TStatus status = null;
+      FateKey key = null;
+
+      for (Entry<Key,Value> entry : scanner) {
+        final String qual = entry.getKey().getColumnQualifierData().toString();
+        switch (qual) {
+          case TxColumnFamily.STATUS:
+            status = TStatus.valueOf(entry.getValue().toString());
+            break;
+          case TxColumnFamily.TX_KEY:
+            key = FateKey.deserialize(entry.getValue().get());
+            break;
+          default:
+            throw new IllegalStateException("Unexpected column qualifier: " + qual);
+        }
+      }
+
+      return new Pair<>(Optional.ofNullable(status).orElse(TStatus.UNKNOWN),
+          Optional.ofNullable(key));
+    });
+  }
+
+  @Override
   protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
     return new FateTxStoreImpl(fateId, isReserved);
   }
 
+  @Override
+  protected FateInstanceType getInstanceType() {
+    return fateInstanceType;
+  }
+
   static Range getRow(FateId fateId) {
-    return new Range("tx_" + fateId.getHexTid());
+    return new Range(getRowId(fateId));
+  }
+
+  public static String getRowId(FateId fateId) {
+    return "tx_" + fateId.getHexTid();
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {

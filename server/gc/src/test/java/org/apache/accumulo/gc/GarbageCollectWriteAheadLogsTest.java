@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -111,7 +112,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      Stream<TabletMetadata> createStore() {
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
         return tabletOnServer1List;
       }
     };
@@ -150,7 +151,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      Stream<TabletMetadata> createStore() {
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
         return tabletOnServer1List;
       }
     };
@@ -194,7 +195,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      Stream<TabletMetadata> createStore() {
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
         return tabletOnServer1List;
       }
     };
@@ -232,7 +233,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
 
       @Override
-      Stream<TabletMetadata> createStore() {
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
         return tabletOnServer2List;
       }
     };

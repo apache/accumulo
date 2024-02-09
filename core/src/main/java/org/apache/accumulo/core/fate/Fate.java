@@ -458,7 +458,7 @@ public class Fate<T> {
     }
   }
 
-  private boolean isExecutorAlive(){
+  private boolean isExecutorAlive() {
     return executor != null && !executor.isTerminated();
   }
 
@@ -477,7 +477,8 @@ public class Fate<T> {
     if (timeout > 0) {
       long start = System.nanoTime();
 
-      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout) && (workFinder.isAlive() || isExecutorAlive())) {
+      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout)
+          && (workFinder.isAlive() || isExecutorAlive())) {
         try {
           if (executor != null) {
             if (!executor.awaitTermination(1, SECONDS)) {
