@@ -21,7 +21,11 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.util.Pair;
 
 public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   protected final FateStore.FateTxStore<T> wrapped;
@@ -53,6 +57,16 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   @Override
   public FateStore.TStatus getStatus() {
     return wrapped.getStatus();
+  }
+
+  @Override
+  public Optional<FateKey> getKey() {
+    return wrapped.getKey();
+  }
+
+  @Override
+  public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
+    return wrapped.getStatusAndKey();
   }
 
   @Override

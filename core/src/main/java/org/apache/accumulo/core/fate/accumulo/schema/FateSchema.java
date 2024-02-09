@@ -30,6 +30,9 @@ public class FateSchema {
     public static final String STATUS = "status";
     public static final ColumnFQ STATUS_COLUMN = new ColumnFQ(NAME, new Text(STATUS));
 
+    public static final String TX_KEY = "txkey";
+    public static final ColumnFQ TX_KEY_COLUMN = new ColumnFQ(NAME, new Text(TX_KEY));
+
     public static final String CREATE_TIME = "ctime";
     public static final ColumnFQ CREATE_TIME_COLUMN = new ColumnFQ(NAME, new Text(CREATE_TIME));
   }

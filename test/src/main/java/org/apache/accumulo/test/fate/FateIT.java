@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
@@ -43,22 +44,19 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner {
+public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
-
-  public static class TestEnv {
-
-  }
 
   public static class TestRepo implements Repo<TestEnv> {
     private static final long serialVersionUID = 1L;
@@ -289,7 +287,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     // Set a maximum deferred map size of 10 transactions so that when the 11th
     // is seen the Fate store should clear the deferred map and mark
     // the flag as overflow so that all the deferred transactions will be run
-    executeTest(this::testDeferredOverflow, 10);
+    executeTest(this::testDeferredOverflow, 10, AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
   }
 
   protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)

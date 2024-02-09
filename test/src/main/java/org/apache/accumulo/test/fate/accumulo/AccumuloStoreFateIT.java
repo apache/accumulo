@@ -18,10 +18,20 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
+
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -38,13 +48,26 @@ public class AccumuloStoreFateIT extends FateStoreIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
-    String table = getUniqueNames(1)[0];
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws Exception {
+    String table = getUniqueNames(1)[0] + "fatestore";
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
-      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred),
+      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
+    }
+  }
+
+  @Override
+  protected void deleteKey(FateId fateId, ServerContext context) {
+    String table = getUniqueNames(1)[0] + "fatestore";
+    try (BatchWriter bw = context.createBatchWriter(table)) {
+      Mutation mut = new Mutation(getRowId(fateId));
+      TxColumnFamily.TX_KEY_COLUMN.putDelete(mut);
+      bw.addMutation(mut);
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new IllegalStateException(e);
     }
   }
 }

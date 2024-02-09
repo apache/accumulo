@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.accumulo;
 
 import static org.apache.accumulo.core.fate.AbstractFateStore.serialize;
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRow;
+import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
 
 import java.util.Objects;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
@@ -56,12 +58,18 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
     this.fateId = fateId;
-    this.mutation = new ConditionalMutation(new Text("tx_" + fateId.getHexTid()));
+    this.mutation = new ConditionalMutation(new Text(getRowId(fateId)));
   }
 
   @Override
   public FateMutator<T> putStatus(TStatus status) {
     TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putKey(FateKey fateKey) {
+    TxColumnFamily.TX_KEY_COLUMN.put(mutation, new Value(fateKey.getSerialized()));
     return this;
   }
 

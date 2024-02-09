@@ -19,12 +19,15 @@
 package org.apache.accumulo.core.fate.accumulo;
 
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 
 public interface FateMutator<T> {
 
   FateMutator<T> putStatus(TStatus status);
+
+  FateMutator<T> putKey(FateKey fateKey);
 
   FateMutator<T> putCreateTime(long ctime);
 

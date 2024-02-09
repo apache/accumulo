@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -140,6 +141,22 @@ public class FateLogger {
       @Override
       public boolean isDeferredOverflow() {
         return store.isDeferredOverflow();
+      }
+
+      @Override
+      public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+        Optional<FateTxStore<T>> txStore = store.createAndReserve(fateKey);
+        if (storeLog.isTraceEnabled()) {
+          if (txStore.isPresent()) {
+            storeLog.trace("{} created and reserved fate transaction using key : {}",
+                txStore.orElseThrow().getID(), fateKey);
+          } else {
+            storeLog.trace(
+                "fate transaction was not created using key : {}, existing transaction exists",
+                fateKey);
+          }
+        }
+        return txStore;
       }
     };
   }
