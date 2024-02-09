@@ -814,7 +814,7 @@ public enum Property {
   @Deprecated(since = "2.1.3")
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
-          + " used for copying failed bulk import RFiles.",
+          + " used for copying failed bulk import RFiles. This property will be removed when bulk import V1 is removed.",
       "1.4.2"),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents"
