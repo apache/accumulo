@@ -27,11 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -320,7 +320,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     executeTest(this::testCreateWithKeyInProgress);
   }
 
-  protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx) {
+  protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
@@ -332,8 +333,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.setStatus(TStatus.IN_PROGRESS);
 
       // We have an existing transaction with the same key in progress
-      // so should not be allowed
-      assertThrows(IllegalStateException.class, () -> create(store, fateKey));
+      // so should return an empty Optional
+      assertTrue(create(store, fateKey).isEmpty());
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
       txStore.delete();
@@ -391,7 +392,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId = create(store, fateKey);
+    FateId fateId = create(store, fateKey).orElseThrow();
 
     // After create a fate transaction using a key we can simulate a collision with
     // a random FateId by deleting the key out of Fate and calling create again to verify
@@ -415,10 +416,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   // create(fateKey) method is private so expose for testing to check error states
-  protected FateId create(FateStore<TestEnv> store, FateKey fateKey) throws Exception {
+  @SuppressWarnings("unchecked")
+  protected Optional<FateId> create(FateStore<TestEnv> store, FateKey fateKey) throws Exception {
     try {
-      return (FateId) fsCreateByKeyMethod.invoke(store, fateKey);
-    } catch (InvocationTargetException e) {
+      return (Optional<FateId>) fsCreateByKeyMethod.invoke(store, fateKey);
+    } catch (Exception e) {
       Exception rootCause = (Exception) Throwables.getRootCause(e);
       throw rootCause;
     }

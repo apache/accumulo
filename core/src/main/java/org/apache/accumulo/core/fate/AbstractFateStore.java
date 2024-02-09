@@ -254,7 +254,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
-  private FateId create(FateKey fateKey) {
+  private Optional<FateId> create(FateKey fateKey) {
     FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
 
     try {
@@ -273,19 +273,20 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
             "Collision detected for tid %s", fateId.getTid());
         // Case 2: Status is some other state which means already in progress
+        // so we can just log and return empty optional
       } else {
-        throw new IllegalStateException(
-            "Existing transaction already exists for: " + fateId.getTid());
+        log.trace("Existing transaction {} already exists for key {} with status {}", fateId,
+            fateKey, status);
+        return Optional.empty();
       }
     }
 
-    return fateId;
+    return Optional.of(fateId);
   }
 
   @Override
   public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
     FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
-
     final Optional<FateTxStore<T>> txStore;
 
     // First make sure we can reserve in memory the fateId, if not
@@ -295,16 +296,28 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     // This will create the FateTxStore before creation but this object
     // is not exposed until after creation is finished so there should not
     // be any errors.
+    final Optional<FateTxStore<T>> reservedTxStore;
     synchronized (this) {
-      txStore = tryReserve(fateId);
+      reservedTxStore = tryReserve(fateId);
     }
 
-    if (txStore.isPresent()) {
+    // If present we were able to reserve so try and create
+    if (reservedTxStore.isPresent()) {
       try {
-        Preconditions.checkState(create(fateKey) != null,
-            "Unexpected null FateId when creating and reserving fateKey %s", fateKey);
+        if (create(fateKey).isPresent()) {
+          txStore = reservedTxStore;
+        } else {
+          // We already exist in a non-new state then un-reserve and an empty
+          // Optional will be returned. This is expected to happen when the
+          // system is busy and operations are not running, and we keep seeding them
+          synchronized (this) {
+            reserved.remove(fateId);
+          }
+          txStore = Optional.empty();
+        }
       } catch (Exception e) {
         // Clean up the reservation if the creation failed
+        // And then throw error
         synchronized (this) {
           reserved.remove(fateId);
         }
@@ -314,6 +327,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           throw new IllegalStateException(e);
         }
       }
+    } else {
+      // Could not reserve so return empty
+      txStore = Optional.empty();
     }
 
     return txStore;
