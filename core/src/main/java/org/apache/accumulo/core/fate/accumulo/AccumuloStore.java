@@ -43,7 +43,6 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
-import org.apache.accumulo.core.fate.accumulo.FateMutator.Status;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
@@ -123,12 +122,34 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected void create(FateId fateId, FateKey fateKey) {
-    var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-        .putCreateTime(System.currentTimeMillis()).tryMutate();
+    final int maxAttempts = 5;
 
-    // TODO: Any reason to retry here?
-    Preconditions.checkState(status == Status.ACCEPTED,
-        "Failed to create transaction with fateId %s and fateKey %s", fateId, fateKey);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+
+      if (attempt >= 1) {
+        log.debug("Failed to create transaction with fateId {} and fateKey {}, trying again",
+            fateId, fateKey);
+        UtilWaitThread.sleep(100);
+      }
+
+      var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+      switch (status) {
+        case ACCEPTED:
+          return;
+        case UNKNOWN:
+          continue;
+        case REJECTED:
+          throw new IllegalStateException("Attempt to create transaction with fateId " + fateId
+              + " and fateKey " + fateKey + " was rejected");
+        default:
+          throw new IllegalStateException("Unknown status " + status);
+      }
+    }
+
+    throw new IllegalStateException("Failed to create transaction with fateId " + fateId
+        + " and fateKey " + fateKey + " after " + maxAttempts + " attempts");
   }
 
   @Override
