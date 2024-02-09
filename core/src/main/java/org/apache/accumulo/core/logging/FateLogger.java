@@ -144,12 +144,19 @@ public class FateLogger {
       }
 
       @Override
-      public FateId create(FateKey fateKey) {
-        FateId fateId = store.create(fateKey);
+      public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+        Optional<FateTxStore<T>> txStore = store.createAndReserve(fateKey);
         if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction using key : {}", fateId, fateKey);
+          if (txStore.isPresent()) {
+            storeLog.trace("{} created and reserved fate transaction using key : {}",
+                txStore.orElseThrow().getID(), fateKey);
+          } else {
+            storeLog.trace(
+                "fate transaction was not created using key : {}, existing transaction exists",
+                fateKey);
+          }
         }
-        return fateId;
+        return txStore;
       }
     };
   }

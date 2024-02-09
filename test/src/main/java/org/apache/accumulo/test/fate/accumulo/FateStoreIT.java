@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +60,21 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.base.Throwables;
+
 public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
+
+  private static final Method fsCreateByKeyMethod;
+
+  static {
+    try {
+      // Private method, need to capture for testing
+      fsCreateByKeyMethod = AbstractFateStore.class.getDeclaredMethod("create", FateKey.class);
+      fsCreateByKeyMethod.setAccessible(true);
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -244,15 +260,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     long existing = store.list().count();
     FateKey fateKey1 = FateKey.forSplit(ke1);
-    FateId fateId1 = store.create(fateKey1);
-
     FateKey fateKey2 =
         FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
-    FateId fateId2 = store.create(fateKey2);
-    assertNotEquals(fateId1, fateId2);
 
-    FateTxStore<TestEnv> txStore1 = store.reserve(fateId1);
-    FateTxStore<TestEnv> txStore2 = store.reserve(fateId2);
+    FateTxStore<TestEnv> txStore1 = store.createAndReserve(fateKey1).orElseThrow();
+    FateTxStore<TestEnv> txStore2 = store.createAndReserve(fateKey2).orElseThrow();
+
+    assertNotEquals(txStore1.getID(), txStore2.getID());
+
     try {
       assertTrue(txStore1.timeCreated() > 0);
       assertEquals(TStatus.NEW, txStore1.getStatus());
@@ -281,13 +296,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     // Creating with the same key should be fine if the status is NEW
-    // It should just return the same id and allow us to continue reserving
+    // A second call to createAndReserve() should just return an empty optional
+    // since it's already in reserved and in progress
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId1 = store.create(fateKey);
-    FateId fateId2 = store.create(fateKey);
-    assertEquals(fateId1, fateId2);
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
 
-    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
+    // second call is empty
+    assertTrue(store.createAndReserve(fateKey).isEmpty());
+
     try {
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(TStatus.NEW, txStore.getStatus());
@@ -307,18 +323,17 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx) {
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
-
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId = store.create(fateKey);
 
-    FateTxStore<TestEnv> txStore = store.reserve(fateId);
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
+    ;
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);
 
       // We have an existing transaction with the same key in progress
       // so should not be allowed
-      assertThrows(IllegalStateException.class, () -> store.create(fateKey));
+      assertThrows(IllegalStateException.class, () -> create(store, fateKey));
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
       txStore.delete();
@@ -327,8 +342,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     try {
       // After deletion, make sure we can create again with the same key
-      fateId = store.create(fateKey);
-      txStore = store.reserve(fateId);
+      txStore = store.createAndReserve(fateKey).orElseThrow();
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(TStatus.NEW, txStore.getStatus());
     } finally {
@@ -353,11 +367,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 = FateKey.forSplit(ke2);
-    FateId fateId1 = store.create(fateKey1);
 
-    FateTxStore<TestEnv> txStore = store.reserve(fateId1);
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
     try {
-      var e = assertThrows(IllegalStateException.class, () -> store.create(fateKey2));
+      var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
       assertEquals("Collision detected for tid 1000", e.getMessage());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
@@ -372,22 +385,24 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     executeTest(this::testCollisionWithRandomFateId);
   }
 
-  protected void testCollisionWithRandomFateId(FateStore<TestEnv> store, ServerContext sctx) {
+  protected void testCollisionWithRandomFateId(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId = store.create(fateKey);
+    FateId fateId = create(store, fateKey);
 
     // After create a fate transaction using a key we can simulate a collision with
     // a random FateId by deleting the key out of Fate and calling create again to verify
     // it detects the key is missing. Then we can continue and see if we can still reserve
     // and use the existing transaction, which we should.
     deleteKey(fateId, sctx);
-    var e = assertThrows(IllegalStateException.class, () -> store.create(fateKey));
+    var e = assertThrows(IllegalStateException.class, () -> store.createAndReserve(fateKey));
     assertEquals("Tx Key is missing from tid " + fateId.getTid(), e.getMessage());
 
     // We should still be able to reserve and continue when not using a key
+    // just like a normal transaction
     FateTxStore<TestEnv> txStore = store.reserve(fateId);
     try {
       assertTrue(txStore.timeCreated() > 0);
@@ -397,6 +412,16 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.unreserve(0, TimeUnit.SECONDS);
     }
 
+  }
+
+  // create(fateKey) method is private so expose for testing to check error states
+  protected FateId create(FateStore<TestEnv> store, FateKey fateKey) throws Exception {
+    try {
+      return (FateId) fsCreateByKeyMethod.invoke(store, fateKey);
+    } catch (InvocationTargetException e) {
+      Exception rootCause = (Exception) Throwables.getRootCause(e);
+      throw rootCause;
+    }
   }
 
   protected abstract void deleteKey(FateId fateId, ServerContext sctx);

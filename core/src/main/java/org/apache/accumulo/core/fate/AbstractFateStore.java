@@ -254,8 +254,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
-  @Override
-  public FateId create(FateKey fateKey) {
+  private FateId create(FateKey fateKey) {
     FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
 
     try {
@@ -281,6 +280,43 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     return fateId;
+  }
+
+  @Override
+  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+    FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
+
+    final Optional<FateTxStore<T>> txStore;
+
+    // First make sure we can reserve in memory the fateId, if not
+    // we can return an empty Optional as it is reserved and in progress
+    // This reverses the usual order of creation and then reservation but
+    // this prevents a race condition by ensuring we can reserve first.
+    // This will create the FateTxStore before creation but this object
+    // is not exposed until after creation is finished so there should not
+    // be any errors.
+    synchronized (this) {
+      txStore = tryReserve(fateId);
+    }
+
+    if (txStore.isPresent()) {
+      try {
+        Preconditions.checkState(create(fateKey) != null,
+            "Unexpected null FateId when creating and reserving fateKey %s", fateKey);
+      } catch (Exception e) {
+        // Clean up the reservation if the creation failed
+        synchronized (this) {
+          reserved.remove(fateId);
+        }
+        if (e instanceof IllegalStateException) {
+          throw e;
+        } else {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+
+    return txStore;
   }
 
   protected abstract void create(FateId fateId, FateKey fateKey);

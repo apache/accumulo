@@ -56,14 +56,28 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public FateId create(FateKey key) {
+  public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
     HashCode hashCode = Hashing.murmur3_128().hashBytes(key.getSerialized());
     long tid = hashCode.asLong() & 0x7fffffffffffffffL;
     FateId fateId = FateId.from(fateInstanceType, tid);
-    if (statuses.putIfAbsent(fateId, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
-      throw new IllegalStateException("Transaction with fateId " + fateId + " already exists");
+
+    Optional<FateTxStore<String>> txStore = tryReserve(fateId);
+    if (txStore.isPresent()) {
+      try {
+        if (statuses.putIfAbsent(fateId, new Pair<>(TStatus.NEW, Optional.of(key))) != null) {
+          throw new IllegalStateException("Transaction with fateId " + fateId + " already exists");
+        }
+      } catch (Exception e) {
+        reserved.remove(fateId);
+        if (e instanceof IllegalStateException) {
+          throw e;
+        } else {
+          throw new IllegalStateException(e);
+        }
+      }
     }
-    return fateId;
+
+    return txStore;
   }
 
   @Override
