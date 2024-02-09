@@ -67,7 +67,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 public class LogSorter {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
-  AccumuloConfiguration sortedLogConf;
 
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<>());
 
@@ -223,16 +222,19 @@ public class LogSorter {
   }
 
   private final ServerContext context;
+  private final AccumuloConfiguration conf;
   private final double walBlockSize;
   private final CryptoService cryptoService;
+  private final AccumuloConfiguration sortedLogConf;
 
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
-    this.sortedLogConf = extractSortedLogConfig(conf);
-
-    this.walBlockSize = DfsLogger.getWalBlockSize(conf);
+    this.conf = conf;
+    this.sortedLogConf = extractSortedLogConfig(this.conf);
+    this.walBlockSize = DfsLogger.getWalBlockSize(this.conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
-    this.cryptoService = context.getCryptoFactory().getService(env, conf.getAllCryptoProperties());
+    this.cryptoService =
+        context.getCryptoFactory().getService(env, this.conf.getAllCryptoProperties());
   }
 
   /**

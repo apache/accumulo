@@ -95,11 +95,18 @@ public class RetryableThriftCall<T> {
    */
   public T run() throws RetriesExceededException {
     T result = null;
+    var errorsSeen = 0;
     do {
       try {
         result = function.execute();
       } catch (TException e) {
-        LOG.error("Error in Thrift function, retrying ...", e);
+        errorsSeen++;
+        // Log higher levels of errors on every 5th error
+        if (errorsSeen >= 5 && errorsSeen % 5 == 0) {
+          LOG.warn("Error in Thrift function, retrying ...", e);
+        } else {
+          LOG.debug("Error in Thrift function, retrying ...", e);
+        }
       }
       if (result == null) {
         if (this.retry.canRetry()) {
