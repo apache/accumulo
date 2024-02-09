@@ -293,11 +293,14 @@ public class LogSorter {
 
   /**
    * Sort any logs that need sorting in the current thread.
+   *
+   * @return The time in nanos when the next check can be done.
    */
-  public void sortLogsIfNeeded() throws KeeperException, InterruptedException {
-    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(),
-            1, false);
+  public long sortLogsIfNeeded() throws KeeperException, InterruptedException {
+    DistributedWorkQueue dwq = new DistributedWorkQueue(
+        context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf, context);
+    dwq.processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1, false);
+    return System.nanoTime() + dwq.getCheckInterval();
   }
 
   /**

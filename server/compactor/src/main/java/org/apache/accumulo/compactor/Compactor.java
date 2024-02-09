@@ -637,6 +637,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       final AtomicReference<Throwable> err = new AtomicReference<>();
       final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
       final LogSorter logSorter = new LogSorter(getContext(), getConfiguration());
+      long nextSortLogsCheckTime = System.nanoTime();
 
       while (!shutdown) {
 
@@ -651,10 +652,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         err.set(null);
         JOB_HOLDER.reset();
 
-        // Attempt to process all existing log sorting work serially in this thread.
-        // When no work remains, this call will return so that we can look for compaction
-        // work.
-        logSorter.sortLogsIfNeeded();
+        if (System.nanoTime() > nextSortLogsCheckTime) {
+          // Attempt to process all existing log sorting work serially in this thread.
+          // When no work remains, this call will return so that we can look for compaction
+          // work.
+          LOG.debug("Checking to see if any recovery logs need sorting");
+          nextSortLogsCheckTime = logSorter.sortLogsIfNeeded();
+        }
 
         TExternalCompactionJob job;
         try {

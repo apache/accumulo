@@ -194,6 +194,10 @@ public class DistributedWorkQueue {
     return context;
   }
 
+  public long getCheckInterval() {
+    return this.timerPeriod;
+  }
+
   /**
    * Finds the children at the path passed in the constructor and calls {@code lookForWork} which
    * will attempt to process all of the currently available work

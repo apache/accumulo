@@ -26,18 +26,18 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
@@ -50,10 +50,12 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
+import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -67,14 +69,14 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(2);
+    return Duration.ofMinutes(3);
   }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
-    cfg.getClusterServerConfiguration().addTabletServerResourceGroup(RESOURCE_GROUP, 1);
+    cfg.getClusterServerConfiguration().addTabletServerResourceGroup(RESOURCE_GROUP, 3);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     if (disableTabletServerLogSorting) {
       cfg.setProperty(Property.TSERV_WAL_SORT_MAX_CONCURRENT, "0");
@@ -112,29 +114,25 @@ public class RecoveryIT extends AccumuloClusterHarness {
     // create a table
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      SortedSet<Text> splits = new TreeSet<>();
+      IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
+
       NewTableConfiguration ntc = new NewTableConfiguration();
       Map<String,String> tableProps = new HashMap<>();
       tableProps.put(Property.TABLE_MAJC_RATIO.getKey(), "100");
       tableProps.put(Property.TABLE_FILE_MAX.getKey(), "3");
       tableProps.put(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, RESOURCE_GROUP);
       ntc.setProperties(tableProps);
+      ntc.withSplits(splits);
       ntc.withInitialTabletAvailability(TabletAvailability.ONDEMAND);
       c.tableOperations().create(tableName, ntc);
 
+      c.instanceOperations().waitForBalance();
+
       TableId tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
-      // create 3 flush files
-      try (BatchWriter bw = c.createBatchWriter(tableName)) {
-        Mutation m = new Mutation("a");
-        m.put("b", "c", new Value("v"));
-        for (int i = 0; i < 3; i++) {
-          bw.addMutation(m);
-          bw.flush();
-          c.tableOperations().flush(tableName, null, null, true);
-        }
-        // create an unsaved mutation
-        bw.addMutation(m);
-      }
+      ReadWriteIT.ingest(c, 1000, 1, 1, 0, "", tableName, 100);
 
       // Confirm that there are no walog entries for this table
       assertEquals(0, countWaLogEntries(c, tid));
@@ -148,14 +146,18 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);
-      assertEquals(1, procs.size());
-      procs.get(0).destroyForcibly().waitFor();
+      assertEquals(3, procs.size());
+      for (int i = 0; i < 3; i++) {
+        procs.get(i).destroyForcibly().waitFor();
+      }
       control.getTabletServers(RESOURCE_GROUP).clear();
 
       // The TabletGroupWatcher in the Manager will notice that the TabletServer is dead
       // and will assign the TabletServer's walog to all of the tablets that were assigned
       // to that server. Confirm that walog entries exist for this tablet
-      Wait.waitFor(() -> countWaLogEntries(c, tid) > 0, 60_000);
+      if (!serverForSorting.equals("TSERVER")) {
+        Wait.waitFor(() -> countWaLogEntries(c, tid) > 0, 60_000);
+      }
 
       // Start the process that will do the log sorting
       switch (serverForSorting) {
@@ -190,6 +192,9 @@ public class RecoveryIT extends AccumuloClusterHarness {
       // When the tablet is hosted, the sorted walogs will be applied
       // Confirm the 3 walog entries are gone for this tablet
       assertEquals(0, countWaLogEntries(c, tid));
+
+      // Scan the data and make sure its there.
+      ReadWriteIT.verify(c, 1000, 1, 1, 0, "", tableName);
 
     }
   }
