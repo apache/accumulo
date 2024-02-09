@@ -257,24 +257,26 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   @Override
   public FateId create(FateKey fateKey) {
     FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
-    Pair<TStatus,Optional<FateKey>> statusAndKey = getStatusAndKey(fateId);
-    TStatus status = statusAndKey.getFirst();
-    Optional<FateKey> tFateKey = statusAndKey.getSecond();
 
-    // Case 1: Status of UNKNOWN means doesn't exist, so we can create
-    if (status == TStatus.UNKNOWN) {
+    try {
       create(fateId, fateKey);
-      // Case 2: Status is NEW so this is unseeded, we can return and allow the calling code
+    } catch (IllegalStateException e) {
+      Pair<TStatus,Optional<FateKey>> statusAndKey = getStatusAndKey(fateId);
+      TStatus status = statusAndKey.getFirst();
+      Optional<FateKey> tFateKey = statusAndKey.getSecond();
+
+      // Case 1: Status is NEW so this is unseeded, we can return and allow the calling code
       // to reserve/seed as long as the existing key is the same and not different as that would
       // mean a collision
-    } else if (status == TStatus.NEW) {
-      Preconditions.checkState(tFateKey.isPresent(), "Tx key column is missing");
-      Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
-          "Collision detected for tid %s", fateId.getTid());
-      // Case 3: Status is some other state which means already in progress
-    } else {
-      throw new IllegalStateException(
-          "Existing transaction already exists for: " + fateId.getTid());
+      if (status == TStatus.NEW) {
+        Preconditions.checkState(tFateKey.isPresent(), "Tx key column is missing");
+        Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
+            "Collision detected for tid %s", fateId.getTid());
+        // Case 2: Status is some other state which means already in progress
+      } else {
+        throw new IllegalStateException(
+            "Existing transaction already exists for: " + fateId.getTid());
+      }
     }
 
     return fateId;
