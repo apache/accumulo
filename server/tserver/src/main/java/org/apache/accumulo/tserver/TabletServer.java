@@ -50,7 +50,6 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -103,7 +102,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
@@ -126,7 +124,6 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.time.RelativeTime;
-import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
@@ -208,8 +205,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private ServiceLock tabletServerLock;
 
   private TServer server;
-
-  private DistributedWorkQueue bulkFailedCopyQ;
 
   private String lockID;
   private volatile long lockSessionId = -1;
@@ -607,21 +602,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
-
-    bulkFailedCopyQ =
-        new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
-            getConfiguration(), getContext());
     try {
-      bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(getContext()),
-          distWorkQThreadPool);
-    } catch (Exception e1) {
-      throw new RuntimeException("Failed to start distributed work queue for copying ", e1);
-    }
-
-    try {
-      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
+      logSorter.startWatchingForRecoveryLogs();
     } catch (Exception ex) {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
