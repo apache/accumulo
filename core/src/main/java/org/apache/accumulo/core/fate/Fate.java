@@ -504,5 +504,10 @@ public class Fate<T> {
             workFinder.isAlive(), isExecutorAlive());
       }
     }
+
+    if (isExecutorAlive()) {
+      // interrupt the background threads
+      executor.shutdownNow();
+    }
   }
 }
