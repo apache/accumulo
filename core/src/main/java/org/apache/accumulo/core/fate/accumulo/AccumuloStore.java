@@ -211,7 +211,11 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   static Range getRow(FateId fateId) {
-    return new Range("tx_" + fateId.getHexTid());
+    return new Range(getRowId(fateId));
+  }
+
+  public static String getRowId(FateId fateId) {
+    return "tx_" + fateId.getHexTid();
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {

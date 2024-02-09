@@ -239,7 +239,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKey(FateStore<TestEnv> store, ServerContext sctx) {
-    KeyExtent ke1 = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke1 =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateId fateId1 = store.create(fateKey1);
@@ -275,7 +276,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKeyDuplicate(FateStore<TestEnv> store, ServerContext sctx) {
-    KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     // Creating with the same key should be fine if the status is NEW
     // It should just return the same id and allow us to continue reserving
@@ -302,7 +304,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx) {
-    KeyExtent ke = new KeyExtent(TableId.of("tableId"), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
     FateId fateId = store.create(fateKey);
@@ -343,8 +346,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
-    KeyExtent ke1 = new KeyExtent(TableId.of("tableId1"), new Text("zzz"), new Text("aaa"));
-    KeyExtent ke2 = new KeyExtent(TableId.of("tableId2"), new Text("ddd"), new Text("bbb"));
+    String[] tables = getUniqueNames(2);
+    KeyExtent ke1 = new KeyExtent(TableId.of(tables[0]), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke2 = new KeyExtent(TableId.of(tables[1]), new Text("ddd"), new Text("bbb"));
 
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 = FateKey.forSplit(ke2);
@@ -361,6 +365,40 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     }
 
   }
+
+  @Test
+  public void testCollisionWithRandomFateId() throws Exception {
+    executeTest(this::testCollisionWithRandomFateId);
+  }
+
+  protected void testCollisionWithRandomFateId(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+
+    FateKey fateKey = FateKey.forSplit(ke);
+    FateId fateId = store.create(fateKey);
+
+    // After create a fate transaction using a key we can simulate a collision with
+    // a random FateId by deleting the key out of Fate and calling create again to verify
+    // it detects the key is missing. Then we can continue and see if we can still reserve
+    // and use the existing transaction, which we should.
+    deleteKey(fateId, sctx);
+    var e = assertThrows(IllegalStateException.class, () -> store.create(fateKey));
+    assertEquals("Tx key column is missing", e.getMessage());
+
+    // We should still be able to reserve and continue when not using a key
+    FateTxStore<TestEnv> txStore = store.reserve(fateId);
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+  }
+
+  protected abstract void deleteKey(FateId fateId, ServerContext sctx);
 
   private static class TestOperation2 extends TestRepo {
 

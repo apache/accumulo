@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.accumulo;
 
 import static org.apache.accumulo.core.fate.AbstractFateStore.serialize;
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRow;
+import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
 
 import java.util.Objects;
@@ -57,7 +58,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
     this.fateId = fateId;
-    this.mutation = new ConditionalMutation(new Text("tx_" + fateId.getHexTid()));
+    this.mutation = new ConditionalMutation(new Text(getRowId(fateId)));
   }
 
   @Override
