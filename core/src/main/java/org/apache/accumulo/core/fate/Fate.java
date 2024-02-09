@@ -459,20 +459,45 @@ public class Fate<T> {
   }
 
   /**
-   * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
+   * Initiates shutdown of background threads and optionally waits on them.
    */
-  public void shutdown() {
-    keepRunning.set(false);
-    fatePoolWatcher.shutdown();
-    if (executor != null) {
+  public void shutdown(long timeout, TimeUnit timeUnit) {
+    if (keepRunning.compareAndSet(true, false)) {
+      fatePoolWatcher.shutdown();
       executor.shutdown();
+      workFinder.interrupt();
     }
-    workFinder.interrupt();
-    try {
-      workFinder.join();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
+    if (timeout > 0) {
+      long start = System.nanoTime();
+
+      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout)
+          && (workFinder.isAlive() || !executor.isTerminated())) {
+        try {
+          if (!executor.awaitTermination(1, SECONDS)) {
+            log.debug("Fate {} is waiting for worker threads to terminate", store.type());
+            continue;
+          }
+
+          workFinder.join(1_000);
+          if (workFinder.isAlive()) {
+            log.debug("Fate {} is waiting for work finder thread to terminate", store.type());
+            workFinder.interrupt();
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      if (workFinder.isAlive() || !executor.isTerminated()) {
+        log.warn(
+            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} executor:{}",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
+            workFinder.isAlive(), !executor.isTerminated());
+      }
+    }
+
+    // interrupt the background threads
+    executor.shutdownNow();
+  }
 }

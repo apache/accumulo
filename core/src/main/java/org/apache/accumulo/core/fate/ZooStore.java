@@ -118,6 +118,11 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     return new Pair<>(node.status, node.fateKey);
   }
 
+  @Override
+  public FateInstanceType type() {
+    return fateInstanceType;
+  }
+
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
 
     private FateTxStoreImpl(FateId fateId, boolean isReserved) {

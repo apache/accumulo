@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -176,7 +177,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
       Wait.waitFor(() -> getTxStatus(sctx, fateId) == UNKNOWN);
     } finally {
-      fate.shutdown();
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
   }
 
@@ -210,7 +211,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown();
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
   }
 
@@ -245,7 +246,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown();
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
   }
 
@@ -275,8 +276,9 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       callStarted.await();
       // cancel the transaction
       assertFalse(fate.cancel(fateId));
+      finishCall.countDown();
     } finally {
-      fate.shutdown();
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
 
   }
@@ -348,7 +350,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       });
 
     } finally {
-      fate.shutdown();
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
   }
 
