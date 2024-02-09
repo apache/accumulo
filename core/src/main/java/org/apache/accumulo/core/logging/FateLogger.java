@@ -147,7 +147,7 @@ public class FateLogger {
       public FateId create(FateKey fateKey) {
         FateId fateId = store.create(fateKey);
         if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} created fate transaction", fateId);
+          storeLog.trace("{} created fate transaction using key : {}", fateId, fateKey);
         }
         return fateId;
       }
