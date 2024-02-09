@@ -227,8 +227,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private TServer server;
   private volatile TServer replServer;
 
-  private DistributedWorkQueue bulkFailedCopyQ;
-
   private String lockID;
   private volatile long lockSessionId = -1;
 
@@ -792,10 +790,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException(e);
     }
 
+    @SuppressWarnings("deprecation")
     ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
-    bulkFailedCopyQ =
+    // TODO: Remove when Property.TSERV_WORKQ_THREADS is removed
+    DistributedWorkQueue bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
             getConfiguration(), getContext());
     try {
@@ -806,7 +806,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
+      logSorter.startWatchingForRecoveryLogs();
     } catch (Exception ex) {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
