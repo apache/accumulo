@@ -172,7 +172,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         try {
           if (shouldHSync.isPresent()) {
             if (shouldHSync.orElseThrow()) {
@@ -186,7 +186,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
-        long duration = System.currentTimeMillis() - start;
+        long duration = System.nanoTime() - start;
         if (duration > slowFlushMillis) {
           log.info("Slow sync cost: {} ms, current pipeline: {}", duration,
               Arrays.toString(getPipeLine()));
