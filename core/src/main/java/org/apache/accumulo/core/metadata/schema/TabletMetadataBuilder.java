@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -270,6 +271,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteMerged() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder setCompactionRequested() {
+    fetched.add(COMPACTION_REQUESTED);
+    internalBuilder.setCompactionRequested();
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteCompactionRequested() {
     throw new UnsupportedOperationException();
   }
 

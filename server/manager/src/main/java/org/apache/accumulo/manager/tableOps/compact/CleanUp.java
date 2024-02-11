@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.compact;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.time.Duration;
@@ -74,7 +75,7 @@ public class CleanUp extends ManagerRepo {
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(PREV_ROW, COMPACTED).checkConsistency().build();
+            .fetch(PREV_ROW, COMPACTED, COMPACTION_REQUESTED).checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       t1 = System.nanoTime();
@@ -82,9 +83,14 @@ public class CleanUp extends ManagerRepo {
         total++;
         // ELASTICITY_TODO DEFERRED - ISSUE 4044
         if (tablet.getCompacted().contains(fateId.getTid())) {
-          tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(fateId.getTid())
-              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId.getTid()));
+          var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
+              .requireSame(tablet, COMPACTED).deleteCompacted(fateId.getTid());
+          if (tablet.getCompactionRequested()) {
+            mutator.deleteCompactionRequested();
+          }
+
+          mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId.getTid())
+              && !tabletMetadata.getCompactionRequested());
           submitted++;
         }
       }

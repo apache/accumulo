@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -324,6 +325,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteMerged() {
     MergedColumnFamily.MERGED_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T setCompactionRequested() {
+    CompactRequestColumnFamily.COMPACT_REQUEST_COLUMN.put(mutation,
+        CompactRequestColumnFamily.COMPACT_REQUEST_VALUE);
+    return getThis();
+  }
+
+  @Override
+  public T deleteCompactionRequested() {
+    CompactRequestColumnFamily.COMPACT_REQUEST_COLUMN.putDelete(mutation);
     return getThis();
   }
 

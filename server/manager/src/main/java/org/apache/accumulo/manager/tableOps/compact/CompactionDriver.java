@@ -267,8 +267,13 @@ class CompactionDriver extends ManagerRepo {
             otherSelected++;
           }
         } else {
-          // ELASTICITY_TODO if there are compactions preventing selection of files, then add
+          // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
+          var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
+              .requireSame(tablet, ECOMP).setCompactionRequested();
+          mutator.submit(TabletMetadata::getCompactionRequested);
+
+          // Add marker here
           otherCompaction++;
         }
       }

@@ -418,6 +418,16 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    /**
+     * Column family for indicating that a user has requested to compaction a tablet.
+     */
+    public static class CompactRequestColumnFamily {
+      public static final String STR_NAME = "requestToCompact";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ COMPACT_REQUEST_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+      public static final Value COMPACT_REQUEST_VALUE = new Value("requestToCompact");
+    }
+
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
     public static class Upgrade12to13 {
 

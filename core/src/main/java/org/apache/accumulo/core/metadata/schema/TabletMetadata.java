@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -116,6 +117,7 @@ public class TabletMetadata {
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
   private Set<Long> compacted;
+  private boolean userCompactionRequested = false;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -144,7 +146,8 @@ public class TabletMetadata {
     HOSTING_REQUESTED,
     OPID,
     SELECTED,
-    COMPACTED
+    COMPACTED,
+    COMPACTION_REQUESTED
   }
 
   public static class Location {
@@ -350,6 +353,11 @@ public class TabletMetadata {
     return merged;
   }
 
+  public boolean getCompactionRequested() {
+    ensureFetched(ColumnType.COMPACTION_REQUESTED);
+    return userCompactionRequested;
+  }
+
   public TabletAvailability getTabletAvailability() {
     if (AccumuloTable.ROOT.tableId().equals(getTableId())
         || AccumuloTable.METADATA.tableId().equals(getTableId())) {
@@ -520,6 +528,9 @@ public class TabletMetadata {
           break;
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateTxId.fromString(qual));
+          break;
+        case CompactRequestColumnFamily.STR_NAME:
+          te.userCompactionRequested = true;
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

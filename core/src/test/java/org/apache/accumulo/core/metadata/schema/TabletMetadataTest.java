@@ -21,12 +21,15 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily.COMPACT_REQUEST_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily.COMPACT_REQUEST_VALUE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
@@ -122,6 +125,7 @@ public class TabletMetadataTest {
     mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetadata()).put("");
 
     MERGED_COLUMN.put(mutation, new Value());
+    COMPACT_REQUEST_COLUMN.put(mutation, COMPACT_REQUEST_VALUE);
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -152,6 +156,7 @@ public class TabletMetadataTest {
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
     assertTrue(tm.hasMerged());
+    assertTrue(tm.getCompactionRequested());
   }
 
   @Test
@@ -298,6 +303,30 @@ public class TabletMetadataTest {
   }
 
   @Test
+  public void testCompactionRequestedColumn() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    // Test column set
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    COMPACT_REQUEST_COLUMN.put(mutation, COMPACT_REQUEST_VALUE);
+    TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(COMPACTION_REQUESTED), true, false);
+    assertTrue(tm.getCompactionRequested());
+
+    // Column not set
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(COMPACTION_REQUESTED), true, false);
+    assertFalse(tm.getCompactionRequested());
+
+    // Column not fetched
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.PREV_ROW), true, false);
+    assertThrows(IllegalStateException.class, tm::getCompactionRequested);
+  }
+
+  @Test
   public void testUnkownColFamily() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -346,7 +375,7 @@ public class TabletMetadataTest {
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, 25).putBulkFile(rf2, 35)
         .putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4).putCompacted(17)
-        .putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED);
+        .putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED, COMPACTION_REQUESTED);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());
@@ -359,6 +388,7 @@ public class TabletMetadataTest {
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
     assertEquals(Set.of(17L, 23L), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
+    assertFalse(tm.getCompactionRequested());
     assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
@@ -394,7 +424,8 @@ public class TabletMetadataTest {
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
-        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged().build();
+        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged()
+        .setCompactionRequested().build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -409,6 +440,7 @@ public class TabletMetadataTest {
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
     assertTrue(tm3.hasMerged());
+    assertTrue(tm3.getCompactionRequested());
   }
 
 }
