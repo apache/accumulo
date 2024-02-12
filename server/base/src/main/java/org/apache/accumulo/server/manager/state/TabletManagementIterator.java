@@ -202,12 +202,17 @@ public class TabletManagementIterator extends SkippingIterator {
       Exception error = null;
       try {
         LOG.trace("Evaluating extent: {}", tm);
-        computeTabletManagementActions(tm, actions);
-        if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
-            || tabletMgmtParams.getOnlineTsevers().isEmpty()
-            || tabletMgmtParams.getOnlineTables().isEmpty()) {
-          // when manager is in the process of starting up or shutting down return everything.
-          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+        if (tm.getExtent().isMeta()) {
+          computeTabletManagementActions(tm, actions);
+        } else {
+          if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
+              || tabletMgmtParams.getOnlineTsevers().isEmpty()
+              || tabletMgmtParams.getOnlineTables().isEmpty()) {
+            // when manager is in the process of starting up or shutting down return everything.
+            actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+          } else {
+            computeTabletManagementActions(tm, actions);
+          }
         }
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
