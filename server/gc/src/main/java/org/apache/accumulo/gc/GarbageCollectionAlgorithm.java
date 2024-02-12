@@ -198,9 +198,7 @@ public class GarbageCollectionAlgorithm {
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
         Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
-    if (gce.canRemoveInUseCandidates()) {
-      gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
-    }
+    gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
