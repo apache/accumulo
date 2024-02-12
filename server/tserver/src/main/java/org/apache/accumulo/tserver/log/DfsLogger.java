@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
@@ -187,9 +188,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
-        long duration = NANOSECONDS.toMillis(System.nanoTime() - start);
-        if (duration > slowFlushMillis) {
-          log.info("Slow sync cost: {} ms, current pipeline: {}", duration,
+        long duration = System.nanoTime() - start;
+        if (duration > MILLISECONDS.toNanos(slowFlushMillis)) {
+          log.info("Slow sync cost: {} ms, current pipeline: {}", NANOSECONDS.toMillis(duration),
               Arrays.toString(getPipeLine()));
           if (expectedReplication > 0) {
             int current = expectedReplication;
