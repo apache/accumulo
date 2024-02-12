@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -177,7 +178,10 @@ public class CompactionCoordinatorTest {
           metaJob.getTabletMetadata().getExtent().toThrift(), List.of(),
           SystemIteratorUtil.toIteratorConfig(List.of()),
           ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-          TCompactionKind.valueOf(ecm.getKind().name()), 1L, Map.of());
+          TCompactionKind.valueOf(ecm.getKind().name()),
+          FateId.from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId()), 1L)
+              .toThrift(),
+          Map.of());
     }
 
     @Override
@@ -270,6 +274,7 @@ public class CompactionCoordinatorTest {
     TabletMetadata tm = EasyMock.createNiceMock(TabletMetadata.class);
     expect(tm.getExtent()).andReturn(ke).anyTimes();
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
+    expect(tm.getTableId()).andReturn(ke.tableId());
 
     EasyMock.replay(tconf, context, creds, tm, security);
 

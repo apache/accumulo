@@ -55,6 +55,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -324,6 +326,8 @@ public class TabletMetadataTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
+    FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
+
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
     DataFileValue dfv1 = new DataFileValue(89, 67);
@@ -364,7 +368,8 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
 
-    TabletOperationId opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, 55);
+    TabletOperationId opid1 =
+        TabletOperationId.from(TabletOperationType.SPLITTING, FateId.from(type, 55));
     TabletMetadata tm2 = TabletMetadata.builder(extent).putOperation(opid1).build(LOCATION);
 
     assertEquals(extent, tm2.getExtent());

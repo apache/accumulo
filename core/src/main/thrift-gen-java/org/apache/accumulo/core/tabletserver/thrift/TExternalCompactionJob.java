@@ -35,7 +35,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
   private static final org.apache.thrift.protocol.TField OUTPUT_FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("outputFile", org.apache.thrift.protocol.TType.STRING, (short)5);
   private static final org.apache.thrift.protocol.TField PROPAGATE_DELETES_FIELD_DESC = new org.apache.thrift.protocol.TField("propagateDeletes", org.apache.thrift.protocol.TType.BOOL, (short)6);
   private static final org.apache.thrift.protocol.TField KIND_FIELD_DESC = new org.apache.thrift.protocol.TField("kind", org.apache.thrift.protocol.TType.I32, (short)7);
-  private static final org.apache.thrift.protocol.TField FATE_TX_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("fateTxId", org.apache.thrift.protocol.TType.I64, (short)8);
+  private static final org.apache.thrift.protocol.TField FATE_TX_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("fateTxId", org.apache.thrift.protocol.TType.STRUCT, (short)8);
   private static final org.apache.thrift.protocol.TField OVERRIDES_FIELD_DESC = new org.apache.thrift.protocol.TField("overrides", org.apache.thrift.protocol.TType.MAP, (short)9);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionJobStandardSchemeFactory();
@@ -48,7 +48,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
   public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
   public boolean propagateDeletes; // required
   public @org.apache.thrift.annotation.Nullable TCompactionKind kind; // required
-  public long fateTxId; // required
+  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.manager.thrift.TFateId fateTxId; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> overrides; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -139,7 +139,6 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
 
   // isset id assignments
   private static final int __PROPAGATEDELETES_ISSET_ID = 0;
-  private static final int __FATETXID_ISSET_ID = 1;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -159,8 +158,8 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     tmpMap.put(_Fields.KIND, new org.apache.thrift.meta_data.FieldMetaData("kind", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.ENUM        , "TCompactionKind")));
-    tmpMap.put(_Fields.FATE_TX_ID, new org.apache.thrift.meta_data.FieldMetaData("fateTxId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.FATE_TX_ID, new org.apache.thrift.meta_data.FieldMetaData("fateTxId", org.apache.thrift.TFieldRequirementType.DEFAULT,
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.manager.thrift.TFateId.class)));
     tmpMap.put(_Fields.OVERRIDES, new org.apache.thrift.meta_data.FieldMetaData("overrides", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
@@ -180,7 +179,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     java.lang.String outputFile,
     boolean propagateDeletes,
     TCompactionKind kind,
-    long fateTxId,
+    org.apache.accumulo.core.manager.thrift.TFateId fateTxId,
     java.util.Map<java.lang.String,java.lang.String> overrides)
   {
     this();
@@ -225,7 +224,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     if (other.isSetKind()) {
       this.kind = other.kind;
     }
-    this.fateTxId = other.fateTxId;
+    if (other.isSetFateTxId()) {
+      this.fateTxId = new org.apache.accumulo.core.manager.thrift.TFateId(other.fateTxId);
+    }
     if (other.isSetOverrides()) {
       java.util.Map<java.lang.String,java.lang.String> __this__overrides = new java.util.HashMap<java.lang.String,java.lang.String>(other.overrides);
       this.overrides = __this__overrides;
@@ -248,7 +249,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     this.propagateDeletes = false;
     this.kind = null;
     setFateTxIdIsSet(false);
-    this.fateTxId = 0;
+    this.fateTxId = null;
     this.overrides = null;
   }
 
@@ -441,27 +442,29 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     }
   }
 
-  public long getFateTxId() {
+  public org.apache.accumulo.core.manager.thrift.TFateId getFateTxId() {
     return this.fateTxId;
   }
 
-  public TExternalCompactionJob setFateTxId(long fateTxId) {
+  public TExternalCompactionJob setFateTxId(org.apache.accumulo.core.manager.thrift.TFateId fateTxId) {
     this.fateTxId = fateTxId;
     setFateTxIdIsSet(true);
     return this;
   }
 
   public void unsetFateTxId() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __FATETXID_ISSET_ID);
+    this.fateTxId = null;
   }
 
   /** Returns true if field fateTxId is set (has been assigned a value) and false otherwise */
   public boolean isSetFateTxId() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __FATETXID_ISSET_ID);
+    return this.fateTxId != null;
   }
 
   public void setFateTxIdIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __FATETXID_ISSET_ID, value);
+    if (!value) {
+      this.fateTxId = null;
+    }
   }
 
   public int getOverridesSize() {
@@ -563,7 +566,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
       if (value == null) {
         unsetFateTxId();
       } else {
-        setFateTxId((java.lang.Long)value);
+        setFateTxId((org.apache.accumulo.core.manager.thrift.TFateId)value);
       }
       break;
 
@@ -719,12 +722,12 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         return false;
     }
 
-    boolean this_present_fateTxId = true;
-    boolean that_present_fateTxId = true;
+    boolean this_present_fateTxId = true && this.isSetFateTxId();
+    boolean that_present_fateTxId = true && that.isSetFateTxId();
     if (this_present_fateTxId || that_present_fateTxId) {
       if (!(this_present_fateTxId && that_present_fateTxId))
         return false;
-      if (this.fateTxId != that.fateTxId)
+      if (!this.fateTxId.equals(that.fateTxId))
         return false;
     }
 
@@ -770,7 +773,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     if (isSetKind())
       hashCode = hashCode * 8191 + kind.getValue();
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(fateTxId);
+    hashCode = hashCode * 8191 + ((isSetFateTxId() ? 131071 : 524287));
+    if (isSetFateTxId())
+      hashCode = hashCode * 8191 + fateTxId.hashCode();
 
     hashCode = hashCode * 8191 + ((isSetOverrides()) ? 131071 : 524287);
     if (isSetOverrides())
@@ -954,7 +959,11 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     first = false;
     if (!first) sb.append(", ");
     sb.append("fateTxId:");
-    sb.append(this.fateTxId);
+    if (this.fateTxId == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.fateTxId);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("overrides:");
@@ -973,6 +982,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
     // check for sub-struct validity
     if (extent != null) {
       extent.validate();
+    }
+    if (fateTxId != null) {
+      fateTxId.validate();
     }
     if (iteratorSettings != null) {
       iteratorSettings.validate();
@@ -1087,8 +1099,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
             }
             break;
           case 8: // FATE_TX_ID
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.fateTxId = iprot.readI64();
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.fateTxId = new org.apache.accumulo.core.manager.thrift.TFateId();
+              struct.fateTxId.read(iprot);
               struct.setFateTxIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1170,9 +1183,11 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         oprot.writeI32(struct.kind.getValue());
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(FATE_TX_ID_FIELD_DESC);
-      oprot.writeI64(struct.fateTxId);
-      oprot.writeFieldEnd();
+      if (struct.fateTxId != null) {
+        oprot.writeFieldBegin(FATE_TX_ID_FIELD_DESC);
+        struct.fateTxId.write(oprot);
+        oprot.writeFieldEnd();
+      }
       if (struct.overrides != null) {
         oprot.writeFieldBegin(OVERRIDES_FIELD_DESC);
         {
@@ -1261,7 +1276,7 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         oprot.writeI32(struct.kind.getValue());
       }
       if (struct.isSetFateTxId()) {
-        oprot.writeI64(struct.fateTxId);
+        struct.fateTxId.write(oprot);
       }
       if (struct.isSetOverrides()) {
         {
@@ -1320,7 +1335,8 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         struct.setKindIsSet(true);
       }
       if (incoming.get(7)) {
-        struct.fateTxId = iprot.readI64();
+        struct.fateTxId = new org.apache.accumulo.core.manager.thrift.TFateId();
+        struct.extent.read(iprot);
         struct.setFateTxIdIsSet(true);
       }
       if (incoming.get(8)) {

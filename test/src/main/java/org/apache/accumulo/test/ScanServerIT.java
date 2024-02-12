@@ -57,6 +57,8 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -267,7 +269,9 @@ public class ScanServerIT extends SharedMiniClusterBase {
           1_000);
 
       // Set operationIds on all the table's tablets so that they won't be loaded.
-      TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, 1234L);
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId = FateId.from(type, 1234L);
+      TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
       Ample ample = getCluster().getServerContext().getAmple();
       ServerAmpleImpl sai = (ServerAmpleImpl) ample;
       try (TabletsMutator tm = sai.mutateTablets()) {

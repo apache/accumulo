@@ -42,8 +42,7 @@ public class DeleteOperationIds extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 

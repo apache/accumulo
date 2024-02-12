@@ -62,7 +62,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
@@ -210,11 +209,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         if (job.getKind() == TCompactionKind.USER) {
 
-          var cconf = CompactionConfigStorage.getConfig(getContext(), job.getFateTxId());
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044
+          // deferred for after pull/4247 is merged. Will be able to pass
+          // FateId.fromThrift(job.getFateTxId())
+          var cconf = CompactionConfigStorage.getConfig(getContext(), job.getFateTxId().getTid());
 
           if (cconf == null) {
             LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
-                ecid, FateTxId.formatTid(job.getFateTxId()), extent);
+                ecid, job.getFateTxId(), extent);
             JOB_HOLDER.cancel(job.getExternalCompactionId());
           }
         }

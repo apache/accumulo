@@ -69,6 +69,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
@@ -570,10 +571,13 @@ public class CompactionCoordinator
       fateTxid = metaJob.getTabletMetadata().getSelectedFiles().getFateTxId();
     }
 
+    // ELASTICITY_TODO DEFERRED - ISSUE 4044 : fixable after pull/4247 is merged
+    FateId tempFateId = FateId
+        .from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId()), fateTxid);
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateTxid, overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), tempFateId.toThrift(), overrides);
   }
 
   @Override
