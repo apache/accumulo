@@ -260,11 +260,6 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 
-    if (!reasonsToReturnThisTablet.isEmpty()) {
-      // If volume replacement or recovery is needed, then return early.
-      return;
-    }
-
     if (shouldReturnDueToLocation(tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
