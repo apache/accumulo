@@ -239,6 +239,10 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
+  private static final Set<ManagementAction> REASONS_NOT_TO_SPLIT_OR_COMPACT =
+      Collections.unmodifiableSet(EnumSet.of(ManagementAction.BAD_STATE,
+          ManagementAction.NEEDS_VOLUME_REPLACEMENT, ManagementAction.NEEDS_RECOVERY));
+
   /**
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
@@ -264,7 +268,8 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    if (tm.getOperationId() == null) {
+    if (tm.getOperationId() == null
+        && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
         final long splitThreshold =
             ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
