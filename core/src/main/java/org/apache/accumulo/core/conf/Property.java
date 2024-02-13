@@ -721,9 +721,11 @@ public enum Property {
           + " that begin with 'table.file' can be used here. For example, to set the compression"
           + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'.",
       "2.1.0"),
+  @Deprecated(since = "2.1.3")
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
-          + " used for copying failed bulk import RFiles.",
+          + " used for copying failed bulk import RFiles. Note that as of version 3.1.0 this property"
+          + " is not used and will be removed in a future release.",
       "1.4.2"),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents"
@@ -792,11 +794,6 @@ public enum Property {
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
-  @Experimental
-  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "true", PropertyType.BOOLEAN,
-      "GC will remove deletion candidates that are in-use from the metadata location. "
-          + "This is expected to increase the speed of subsequent GC runs.",
-      "2.1.3"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files.", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
