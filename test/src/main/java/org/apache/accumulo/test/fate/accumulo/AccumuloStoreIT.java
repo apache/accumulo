@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -28,14 +29,25 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.fate.FateIT;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +66,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private static class TestAccumuloStore extends AccumuloStore<String> {
+  private static class TestAccumuloStore extends AccumuloStore<FateIT.TestEnv> {
     private final Iterator<FateId> fateIdIterator;
 
     // use the list of fateIds to simulate collisions on fateIds
@@ -70,6 +82,10 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       } else {
         return FateId.from(fateInstanceType, -1L);
       }
+    }
+
+    public TStatus getStatus(FateId fateId) {
+      return _getStatus(fateId);
     }
   }
 
@@ -95,6 +111,49 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
 
       // Calling create again on 5L should throw an exception since we've exceeded the max retries
       assertThrows(IllegalStateException.class, store::create);
+    }
+  }
+
+  /**
+   * Test that push only works with the correct statuses present for the transaction.
+   */
+  @Test
+  public void testPushConditions() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+
+      FateId fateId = FateId.from(fateInstanceType, 1L);
+      TestAccumuloStore store = new TestAccumuloStore(client, table, List.of(fateId));
+
+      store.create();
+      FateStore.FateTxStore<FateIT.TestEnv> txStore = store.reserve(fateId);
+
+      Set<ReadOnlyFateStore.TStatus> acceptableStatuses =
+          Set.of(ReadOnlyFateStore.TStatus.IN_PROGRESS, ReadOnlyFateStore.TStatus.NEW);
+
+      for (ReadOnlyFateStore.TStatus status : ReadOnlyFateStore.TStatus.values()) {
+        injectStatus(client, table, fateId, status);
+        assertEquals(status, store.getStatus(fateId));
+        Executable testOp = () -> txStore.push(new FateIT.TestRepo("testOp" + status.name()));
+        if (!acceptableStatuses.contains(status)) {
+          assertThrows(IllegalStateException.class, testOp);
+        } else {
+          assertDoesNotThrow(testOp);
+        }
+      }
+    }
+  }
+
+  private void injectStatus(ClientContext client, String table, FateId fateId,
+      ReadOnlyFateStore.TStatus status) throws TableNotFoundException {
+    try (BatchWriter writer = client.createBatchWriter(table)) {
+      Mutation mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
+      FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+      writer.addMutation(mutation);
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
     }
   }
 }
