@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -69,7 +70,7 @@ public class SplitRecovery12to13 {
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
+      Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -88,7 +89,7 @@ public class SplitRecovery12to13 {
 
     datafileSizes.forEach((key, value) -> tablet.putFile(key, value));
 
-    for (Entry<Long,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
+    for (Entry<FateId,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
         .entrySet()) {
       for (ReferencedTabletFile ref : entry.getValue()) {
         tablet.putBulkFile(ref, entry.getKey());

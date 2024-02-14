@@ -55,7 +55,7 @@ public class RefreshTablets extends ManagerRepo {
     // ELASTICITY_TODO DEFERRED - ISSUE 4044
     TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId.getTid(),
         bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
-        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId.getTid()));
+        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 
     return new CleanUpBulkImport(bulkInfo);
   }

@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -50,7 +51,7 @@ public class TabletManagementParametersTest {
     final Set<TServerInstance> serversToShutdown = Set.of();
     final Map<KeyExtent,TServerInstance> migrations = Map.of();
     final Ample.DataLevel dataLevel = Ample.DataLevel.USER;
-    final Map<Long,Map<String,String>> compactionHints = Map.of();
+    final Map<FateId,Map<String,String>> compactionHints = Map.of();
     final boolean canSuspendTablets = true;
     final Map<Path,Path> replacements =
         Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));

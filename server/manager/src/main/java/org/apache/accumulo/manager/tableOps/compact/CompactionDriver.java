@@ -43,7 +43,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
@@ -131,8 +130,7 @@ class CompactionDriver extends ManagerRepo {
 
   private boolean isCancelled(FateId fateId, ServerContext context)
       throws InterruptedException, KeeperException {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    return CompactionConfigStorage.getConfig(context, fateId.getTid()) == null;
+    return CompactionConfigStorage.getConfig(context, fateId) == null;
   }
 
   public int updateAndCheckTablets(Manager manager, FateId fateId)
@@ -168,16 +166,13 @@ class CompactionDriver extends ManagerRepo {
             .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID).checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
-      // ELASTICITY_TODO DEFERRED - ISSUE 4044
-      CompactionConfig config =
-          CompactionConfigStorage.getConfig(manager.getContext(), fateId.getTid());
+      CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
 
       for (TabletMetadata tablet : tablets) {
 
         total++;
 
-        // ELASTICITY_TODO DEFERRED - ISSUE 4044
-        if (tablet.getCompacted().contains(fateId.getTid())) {
+        if (tablet.getCompacted().contains(fateId)) {
           // this tablet is already considered done
           log.trace("{} compaction for {} is complete", fateId, tablet.getExtent());
           complete++;
@@ -189,10 +184,9 @@ class CompactionDriver extends ManagerRepo {
           log.trace("{} tablet {} has no files, attempting to mark as compacted ", fateId,
               tablet.getExtent());
           // this tablet has no files try to mark it as done
-          // ELASTICITY_TODO DEFERRED - ISSUE 4044
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId.getTid())
-              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId.getTid()));
+              .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
+              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
           noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
@@ -221,19 +215,16 @@ class CompactionDriver extends ManagerRepo {
           }
           if (filesToCompact.isEmpty()) {
             // no files were selected so mark the tablet as compacted
-            // ELASTICITY_TODO DEFERRED - ISSUE 4044
             tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED)
-                .putCompacted(fateId.getTid())
-                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId.getTid()));
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(fateId)
+                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
 
             noneSelected++;
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
-            // ELASTICITY_TODO DEFERRED - ISSUE 4044
-            var selectedFiles = new SelectedFiles(filesToCompact,
-                tablet.getFiles().equals(filesToCompact), fateId.getTid());
+            var selectedFiles =
+                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
 
             mutator.putSelectedFiles(selectedFiles);
 
@@ -253,8 +244,7 @@ class CompactionDriver extends ManagerRepo {
           }
 
         } else if (tablet.getSelectedFiles() != null) {
-          // ELASTICITY_TODO DEFERRED - ISSUE 4044
-          if (tablet.getSelectedFiles().getFateTxId() == fateId.getTid()) {
+          if (tablet.getSelectedFiles().getFateId().equals(fateId)) {
             log.trace(
                 "{} tablet {} already has {} selected files for this compaction, waiting for them be processed",
                 fateId, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size());
@@ -263,7 +253,7 @@ class CompactionDriver extends ManagerRepo {
             log.trace(
                 "{} tablet {} already has {} selected files by another compaction {}, waiting for them be processed",
                 fateId, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size(),
-                FateTxId.formatTid(tablet.getSelectedFiles().getFateTxId()));
+                tablet.getSelectedFiles().getFateId());
             otherSelected++;
           }
         } else {
@@ -338,11 +328,10 @@ class CompactionDriver extends ManagerRepo {
           var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
               .fetch(PREV_ROW, COMPACTED, SELECTED).checkConsistency().build();
           var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
-        // ELASTICITY_TODO DEFERRED - ISSUE 4044
         Predicate<TabletMetadata> needsUpdate =
             tabletMetadata -> (tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getFateTxId() == fateId.getTid())
-                || tabletMetadata.getCompacted().contains(fateId.getTid());
+                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId))
+                || tabletMetadata.getCompacted().contains(fateId);
         Predicate<TabletMetadata> needsNoUpdate = needsUpdate.negate();
 
         for (TabletMetadata tablet : tablets) {
@@ -350,15 +339,13 @@ class CompactionDriver extends ManagerRepo {
           if (needsUpdate.test(tablet)) {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, COMPACTED, SELECTED);
-            // ELASTICITY_TODO DEFERRED - ISSUE 4044
             if (tablet.getSelectedFiles() != null
-                && tablet.getSelectedFiles().getFateTxId() == fateId.getTid()) {
+                && tablet.getSelectedFiles().getFateId().equals(fateId)) {
               mutator.deleteSelectedFiles();
             }
 
-            // ELASTICITY_TODO DEFERRED - ISSUE 4044
-            if (tablet.getCompacted().contains(fateId.getTid())) {
-              mutator.deleteCompacted(fateId.getTid());
+            if (tablet.getCompacted().contains(fateId)) {
+              mutator.deleteCompacted(fateId);
             }
 
             mutator.submit(needsNoUpdate::test);
