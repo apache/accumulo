@@ -269,9 +269,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newMutator(fateId)
-          .requireStatus(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL, TStatus.FAILED)
-          .deleteRepo(t).mutate());
+      top.ifPresent(
+          t -> newMutator(fateId).requireStatus(TStatus.FAILED_IN_PROGRESS).deleteRepo(t).mutate());
     }
 
     @Override

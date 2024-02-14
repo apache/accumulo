@@ -73,6 +73,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(1, store.list().count());
 
     // Push a test FATE op and verify we can read it back
+    txStore.setStatus(TStatus.IN_PROGRESS);
     txStore.push(new TestRepo("testOp"));
     TestRepo op = (TestRepo) txStore.top();
     assertNotNull(op);
@@ -101,7 +102,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(TestRepo.class, ops.get(1).getClass());
 
     // test pop, TestOperation should be left
-    txStore.setStatus(TStatus.FAILED); // needed to satisfy the condition on pop
+    txStore.setStatus(TStatus.FAILED_IN_PROGRESS); // needed to satisfy the condition on pop
     txStore.pop();
     ops = txStore.getStack();
     assertEquals(1, ops.size());
@@ -112,8 +113,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(2, store.list().count());
 
     // test delete
+    txStore.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore.delete();
     assertEquals(1, store.list().count());
+    txStore2.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore2.delete();
     assertEquals(0, store.list().count());
   }
