@@ -57,7 +57,7 @@ public class CancelCompactions extends ManagerRepo {
 
     for (var idToCancel : idsToCancel) {
       log.debug("{} deleting compaction config {}", fateId, idToCancel);
-      CompactionConfigStorage.deleteConfig(environment.getContext(), FateId.from(idToCancel));
+      CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
     }
     return new FinishCancelCompaction(namespaceId, tableId);
   }

@@ -98,10 +98,10 @@ public class CompactionConfigStorage {
     context.getZooReaderWriter().delete(createPath(context, fateId));
   }
 
-  public static Map<String,CompactionConfig> getAllConfig(ServerContext context,
+  public static Map<FateId,CompactionConfig> getAllConfig(ServerContext context,
       Predicate<TableId> tableIdPredicate) throws InterruptedException, KeeperException {
 
-    Map<String,CompactionConfig> configs = new HashMap<>();
+    Map<FateId,CompactionConfig> configs = new HashMap<>();
 
     var children = context.getZooReaderWriter()
         .getChildren(context.getZooKeeperRoot() + Constants.ZCOMPACTIONS);
@@ -111,7 +111,7 @@ public class CompactionConfigStorage {
       FateId fateId = FateId.from(FateInstanceType.valueOf(fields[0]), fields[1]);
       var cconf = getConfig(context, fateId, tableIdPredicate);
       if (cconf != null) {
-        configs.put(fateId.canonical(), cconf);
+        configs.put(fateId, cconf);
       }
     }
 
