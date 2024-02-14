@@ -336,7 +336,7 @@ public class Fate<T> {
     return store.create();
   }
 
-  public Optional<FateId> seedTransaction(String txName, FateStore.FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
 
     Optional<FateTxStore<T>> optTxStore = store.createAndReserve(fateKey);
