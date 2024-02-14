@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -43,19 +40,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FileUtil;
@@ -67,37 +57,6 @@ import org.slf4j.LoggerFactory;
 public class SplitRecovery12to13 {
 
   private static final Logger log = LoggerFactory.getLogger(SplitRecovery12to13.class);
-
-  public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
-      TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
-      Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
-      long lastFlushID) {
-
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.prevEndRow());
-    tablet.putDirName(dirName);
-    tablet.putTime(time);
-
-    if (lastFlushID > 0) {
-      tablet.putFlushId(lastFlushID);
-    }
-
-    if (tServerInstance != null) {
-      tablet.putLocation(Location.current(tServerInstance));
-      tablet.deleteLocation(Location.future(tServerInstance));
-    }
-
-    datafileSizes.forEach((key, value) -> tablet.putFile(key, value));
-
-    for (Entry<FateId,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
-        .entrySet()) {
-      for (ReferencedTabletFile ref : entry.getValue()) {
-        tablet.putBulkFile(ref, entry.getKey());
-      }
-    }
-
-    tablet.mutate();
-  }
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry)
       throws AccumuloException {
@@ -286,15 +245,4 @@ public class SplitRecovery12to13 {
     finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context);
   }
 
-  public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock, TabletAvailability tabletAvailability) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.prevEndRow());
-    tablet.putDirName(path);
-    tablet.putTime(new MetadataTime(0, timeType));
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.putTabletAvailability(tabletAvailability);
-    tablet.mutate();
-
-  }
 }
