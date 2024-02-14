@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -40,4 +41,8 @@ public abstract class TabletMetadataFilter extends RowFilter {
   public abstract Set<TabletMetadata.ColumnType> getColumns();
 
   protected abstract Predicate<TabletMetadata> acceptTablet();
+
+  public Map<String,String> getServerSideOptions() {
+    return Map.of();
+  }
 }

@@ -39,7 +39,6 @@ import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -212,7 +211,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case COMPACTED: {
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getCompacted(),
-            ftid -> FateTxId.formatTid(ftid).getBytes(UTF_8), CompactedColumnFamily.NAME);
+            fTid -> fTid.canonical().getBytes(UTF_8), CompactedColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

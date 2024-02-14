@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static java.util.stream.Collectors.toSet;
-import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 import static org.apache.accumulo.core.metadata.StoredTabletFile.serialize;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_VALUE;
@@ -55,6 +54,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -89,14 +90,18 @@ public class TabletMetadataTest {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
+    FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
+    FateId fateId56L = FateId.from(type, 56L);
+    FateId fateId59L = FateId.from(type, 59L);
+
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(formatTid(56));
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(formatTid(59));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(fateId56L.canonical());
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(fateId59L.canonical());
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
@@ -136,7 +141,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
+    assertEquals(Map.of(new StoredTabletFile(bf1), fateId56L, new StoredTabletFile(bf2), fateId59L),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
@@ -324,6 +329,8 @@ public class TabletMetadataTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
+    FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
+
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
     DataFileValue dfv1 = new DataFileValue(89, 67);
@@ -344,20 +351,22 @@ public class TabletMetadataTest {
 
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
-        .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, 25).putBulkFile(rf2, 35)
-        .putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4).putCompacted(17)
-        .putCompacted(23).build(ECOMP, HOSTING_REQUESTED, MERGED);
+        .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, FateId.from(type, 25))
+        .putBulkFile(rf2, FateId.from(type, 35)).putFlushId(27).putDirName("dir1").putScan(sf3)
+        .putScan(sf4).putCompacted(FateId.from(type, 17)).putCompacted(FateId.from(type, 23))
+        .build(ECOMP, HOSTING_REQUESTED, MERGED);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());
     assertEquals(Location.future(ser1), tm.getLocation());
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
-    assertEquals(Map.of(rf1.insert(), 25L, rf2.insert(), 35L), tm.getLoaded());
+    assertEquals(Map.of(rf1.insert(), FateId.from(type, 25L), rf2.insert(), FateId.from(type, 35L)),
+        tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
     assertEquals(Set.of(sf3, sf4), Set.copyOf(tm.getScans()));
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
-    assertEquals(Set.of(17L, 23L), tm.getCompacted());
+    assertEquals(Set.of(FateId.from(type, 17L), FateId.from(type, 23L)), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
     assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
@@ -384,13 +393,14 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::getCompacted);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-    CompactionMetadata ecm = new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
-        CompactionKind.USER, (short) 3, CompactorGroupIdImpl.groupId("Q1"), true, 99L);
+    CompactionMetadata ecm =
+        new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1", CompactionKind.USER, (short) 3,
+            CompactorGroupIdImpl.groupId("Q1"), true, FateId.from(type, 99L));
 
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
-    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, 159L);
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, FateId.from(type, 159L));
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
@@ -405,7 +415,7 @@ public class TabletMetadataTest {
     assertEquals(Stream.of(le1, le2).map(LogEntry::toString).collect(toSet()),
         tm3.getLogs().stream().map(LogEntry::toString).collect(toSet()));
     assertEquals(Set.of(sf1, sf4), tm3.getSelectedFiles().getFiles());
-    assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
+    assertEquals(FateId.from(type, 159L), tm3.getSelectedFiles().getFateId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
     assertTrue(tm3.hasMerged());

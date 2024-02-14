@@ -22,7 +22,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -53,12 +52,11 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     var idsToCancel =
         CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
 
     for (var idToCancel : idsToCancel) {
-      log.debug("{} deleting compaction config {}", fateId, FateTxId.formatTid(idToCancel));
+      log.debug("{} deleting compaction config {}", fateId, idToCancel);
       CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
     }
     return new FinishCancelCompaction(namespaceId, tableId);

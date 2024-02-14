@@ -62,6 +62,8 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -109,6 +111,7 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -210,7 +213,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         if (job.getKind() == TCompactionKind.USER) {
 
-          var cconf = CompactionConfigStorage.getConfig(getContext(), job.getFateTxId());
+          // ELASTICITY_TODO DEFERRED - ISSUE 4044: TExternalCompactionJob.getFateTxId should be
+          // changed to
+          // TExternalCompactionJob.getFateId and return the FateId
+          FateInstanceType type =
+              FateInstanceType.fromTableId(KeyExtent.fromThrift(job.getExtent()).tableId());
+          FateId fateId = FateId.from(type, job.getFateTxId());
+          var cconf = CompactionConfigStorage.getConfig(getContext(), fateId);
 
           if (cconf == null) {
             LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
@@ -635,6 +644,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
       final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
+      final LogSorter logSorter = new LogSorter(getContext(), getConfiguration());
+      long nextSortLogsCheckTime = System.currentTimeMillis();
 
       while (!shutdown) {
 
@@ -648,6 +659,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         currentCompactionId.set(null);
         err.set(null);
         JOB_HOLDER.reset();
+
+        if (System.currentTimeMillis() > nextSortLogsCheckTime) {
+          // Attempt to process all existing log sorting work serially in this thread.
+          // When no work remains, this call will return so that we can look for compaction
+          // work.
+          LOG.debug("Checking to see if any recovery logs need sorting");
+          nextSortLogsCheckTime = logSorter.sortLogsIfNeeded();
+        }
 
         TExternalCompactionJob job;
         try {
@@ -714,7 +733,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                 }
               }
             } else {
-              LOG.error("Waiting on compaction thread to finish, but no RUNNING compaction");
+              LOG.debug("Waiting on compaction thread to finish, but no RUNNING compaction");
             }
           }
           compactionThread.join();

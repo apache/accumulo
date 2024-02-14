@@ -73,6 +73,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -246,8 +247,8 @@ public class Manager extends AbstractServer
   // retrieve information about compactions in that data level. Attempted this and a lot of
   // refactoring was needed to get that small bit of information to this method. Would be best to
   // address this after issue. May be best to attempt this after #3576.
-  public Map<Long,Map<String,String>> getCompactionHints() {
-    Map<Long,CompactionConfig> allConfig = null;
+  public Map<FateId,Map<String,String>> getCompactionHints() {
+    Map<FateId,CompactionConfig> allConfig = null;
     try {
       allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
     } catch (InterruptedException | KeeperException e) {
@@ -648,9 +649,16 @@ public class Manager extends AbstractServer
             case CLEAN_STOP:
               switch (getManagerState()) {
                 case NORMAL:
+                  // USER fate stores its data in a user table and its operations may interact with
+                  // all tables, need to completely shut it down before unloading user tablets
+                  fate(FateInstanceType.USER).shutdown(1, MINUTES);
                   setManagerState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
+                  // META fate stores its data in Zookeeper and its operations interact with
+                  // metadata and root tablets, need to completely shut it down before unloading
+                  // metadata and root tablets
+                  fate(FateInstanceType.META).shutdown(1, MINUTES);
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(
                       String.format("There are %d non-metadata tablets assigned or hosted", count));
@@ -1145,7 +1153,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    getFateRefs().keySet().forEach(type -> fate(type).shutdown());
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 
     splitter.stop();
 

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
@@ -51,12 +52,13 @@ public class AccumuloFateIT extends FateIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws Exception {
     table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
-      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred),
+      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
     }
   }

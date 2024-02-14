@@ -93,9 +93,8 @@ class BulkImportMove extends ManagerRepo {
    */
   private void moveFiles(FateId fateId, Path sourceDir, Path bulkDir, Manager manager,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     manager.getContext().getAmple().addBulkLoadInProgressFlag(
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId.getTid());
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId);
     AccumuloConfiguration aConf = manager.getConfiguration();
     int workerCount = aConf.getCount(Property.MANAGER_RENAME_THREADS);
     Map<Path,Path> oldToNewMap = new HashMap<>();

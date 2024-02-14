@@ -260,9 +260,6 @@ public class ThreadPools {
         } else {
           return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
         }
-      case TSERV_WORKQ_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "distributed work queue",
-            emitThreadPoolMetrics);
       case TSERV_MINC_MAXCONCURRENT:
         return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "minor compactor",
             emitThreadPoolMetrics);

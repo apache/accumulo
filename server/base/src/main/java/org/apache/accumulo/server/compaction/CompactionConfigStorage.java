@@ -33,16 +33,20 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
-public class CompactionConfigStorage {
+import com.google.common.base.Preconditions;
 
-  private static String createPath(ServerContext context, long fateTxId) {
-    String txidString = FastFormat.toHexString(fateTxId);
-    return context.getZooKeeperRoot() + Constants.ZCOMPACTIONS + "/" + txidString;
+public class CompactionConfigStorage {
+  static final String DELIMITER = "-";
+
+  private static String createPath(ServerContext context, FateId fateId) {
+    return context.getZooKeeperRoot() + Constants.ZCOMPACTIONS + "/" + fateId.getType() + DELIMITER
+        + fateId.getHexTid();
   }
 
   public static byte[] encodeConfig(CompactionConfig config, TableId tableId) {
@@ -57,15 +61,15 @@ public class CompactionConfigStorage {
     }
   }
 
-  public static CompactionConfig getConfig(ServerContext context, long fateTxId)
+  public static CompactionConfig getConfig(ServerContext context, FateId fateId)
       throws InterruptedException, KeeperException {
-    return getConfig(context, fateTxId, tableId -> true);
+    return getConfig(context, fateId, tableId -> true);
   }
 
-  public static CompactionConfig getConfig(ServerContext context, long fateTxId,
+  public static CompactionConfig getConfig(ServerContext context, FateId fateId,
       Predicate<TableId> tableIdPredicate) throws InterruptedException, KeeperException {
     try {
-      byte[] data = context.getZooReaderWriter().getData(createPath(context, fateTxId));
+      byte[] data = context.getZooReaderWriter().getData(createPath(context, fateId));
       try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
           DataInputStream dis = new DataInputStream(bais)) {
         var tableId = TableId.of(dis.readUTF());
@@ -83,29 +87,31 @@ public class CompactionConfigStorage {
     }
   }
 
-  public static void setConfig(ServerContext context, long fateTxId, byte[] encConfig)
+  public static void setConfig(ServerContext context, FateId fateId, byte[] encConfig)
       throws InterruptedException, KeeperException {
-    context.getZooReaderWriter().putPrivatePersistentData(createPath(context, fateTxId), encConfig,
+    context.getZooReaderWriter().putPrivatePersistentData(createPath(context, fateId), encConfig,
         ZooUtil.NodeExistsPolicy.SKIP);
   }
 
-  public static void deleteConfig(ServerContext context, long fateTxId)
+  public static void deleteConfig(ServerContext context, FateId fateId)
       throws InterruptedException, KeeperException {
-    context.getZooReaderWriter().delete(createPath(context, fateTxId));
+    context.getZooReaderWriter().delete(createPath(context, fateId));
   }
 
-  public static Map<Long,CompactionConfig> getAllConfig(ServerContext context,
+  public static Map<FateId,CompactionConfig> getAllConfig(ServerContext context,
       Predicate<TableId> tableIdPredicate) throws InterruptedException, KeeperException {
 
-    Map<Long,CompactionConfig> configs = new HashMap<>();
+    Map<FateId,CompactionConfig> configs = new HashMap<>();
 
     var children = context.getZooReaderWriter()
         .getChildren(context.getZooKeeperRoot() + Constants.ZCOMPACTIONS);
     for (var child : children) {
-      var fateTxid = Long.parseLong(child, 16);
-      var cconf = getConfig(context, fateTxid, tableIdPredicate);
+      String[] fields = child.split(DELIMITER);
+      Preconditions.checkState(fields.length == 2, "Unexpected child %s", child);
+      FateId fateId = FateId.from(FateInstanceType.valueOf(fields[0]), fields[1]);
+      var cconf = getConfig(context, fateId, tableIdPredicate);
       if (cconf != null) {
-        configs.put(fateTxid, cconf);
+        configs.put(fateId, cconf);
       }
     }
 
