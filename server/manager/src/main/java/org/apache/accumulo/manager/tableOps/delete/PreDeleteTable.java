@@ -73,7 +73,7 @@ public class PreDeleteTable extends ManagerRepo {
           CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
 
       for (var idToCancel : idsToCancel) {
-        CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
+        CompactionConfigStorage.deleteConfig(environment.getContext(), FateId.from(idToCancel));
       }
       return new DeleteTable(namespaceId, tableId);
     } finally {

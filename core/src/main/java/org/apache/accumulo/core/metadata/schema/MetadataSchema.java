@@ -339,7 +339,7 @@ public class MetadataSchema {
       }
 
       public static FateId getBulkLoadTid(String vs) {
-        // ELASTICITY_TODO issue 4044 will this be an issue removing the old code?
+        // ELASTICITY_TODO issue 4044 - May need to introduce code in upgrade to handle old format.
         return FateId.from(vs);
       }
     }

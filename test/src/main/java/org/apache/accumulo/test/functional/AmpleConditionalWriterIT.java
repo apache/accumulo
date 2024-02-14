@@ -752,8 +752,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var ctmi = new ConditionalTabletsMutatorImpl(context);
 
       FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId55L = FateId.from(type, 55L);
       FateId fateId45L = FateId.from(type, 45L);
+      FateId fateId55L = FateId.from(type, 55L);
       FateId fateId56L = FateId.from(type, 56L);
       FateId fateId65L = FateId.from(type, 65L);
       FateId fateId75L = FateId.from(type, 75L);

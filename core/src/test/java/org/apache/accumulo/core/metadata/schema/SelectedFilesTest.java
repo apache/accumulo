@@ -175,7 +175,7 @@ public class SelectedFilesTest {
    *
    * <pre>
    * {
-   *   "txid": "FATE:META:123456",
+   *   "fateId": "FATE:META:123456",
    *   "selAll": true,
    *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
    * }
@@ -186,7 +186,7 @@ public class SelectedFilesTest {
         paths.stream().map(path -> new ReferencedTabletFile(new Path(path)).insert().getMetadata())
             .map(path -> path.replace("\"", "\\\"")).map(path -> "'" + path + "'")
             .collect(Collectors.joining(","));
-    return ("{'txid':'" + fateId + "','selAll':" + selAll + ",'files':[" + filesJsonArray + "]}")
+    return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'files':[" + filesJsonArray + "]}")
         .replace('\'', '\"');
   }
 

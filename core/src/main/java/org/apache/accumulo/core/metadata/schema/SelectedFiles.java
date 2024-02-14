@@ -62,7 +62,7 @@ public class SelectedFiles {
     @Override
     public void write(JsonWriter out, SelectedFiles selectedFiles) throws IOException {
       out.beginObject();
-      out.name("txid").value(selectedFiles.getFateId().canonical());
+      out.name("fateId").value(selectedFiles.getFateId().canonical());
       out.name("selAll").value(selectedFiles.initiallySelectedAll());
       out.name("files").beginArray();
       // sort the data to make serialized json comparable
@@ -89,7 +89,7 @@ public class SelectedFiles {
       while (in.hasNext()) {
         String name = in.nextName();
         switch (name) {
-          case "txid":
+          case "fateId":
             fateId = FateId.from(in.nextString());
             break;
           case "selAll":

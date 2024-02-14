@@ -73,7 +73,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
-import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -247,8 +246,8 @@ public class Manager extends AbstractServer
   // retrieve information about compactions in that data level. Attempted this and a lot of
   // refactoring was needed to get that small bit of information to this method. Would be best to
   // address this after issue. May be best to attempt this after #3576.
-  public Map<FateId,Map<String,String>> getCompactionHints() {
-    Map<FateId,CompactionConfig> allConfig = null;
+  public Map<String,Map<String,String>> getCompactionHints() {
+    Map<String,CompactionConfig> allConfig = null;
     try {
       allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
     } catch (InterruptedException | KeeperException e) {
