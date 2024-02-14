@@ -54,7 +54,12 @@ public class CompactionMetadata {
     this.priority = priority;
     this.cgid = Objects.requireNonNull(ceid);
     this.propagateDeletes = propagateDeletes;
-    this.fateId = fateId;
+    if (kind == CompactionKind.SYSTEM) {
+      // its ok if this is null for system compactions because its not used.
+      this.fateId = fateId;
+    } else {
+      this.fateId = Objects.requireNonNull(fateId);
+    }
   }
 
   public Set<StoredTabletFile> getJobFiles() {
@@ -112,7 +117,7 @@ public class CompactionMetadata {
     jData.groupId = cgid.toString();
     jData.priority = priority;
     jData.propDels = propagateDeletes;
-    jData.fateId = fateId.canonical();
+    jData.fateId = fateId == null ? null : fateId.canonical();
     return GSON.get().toJson(jData);
   }
 
@@ -122,7 +127,8 @@ public class CompactionMetadata {
     return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactorGroupIdImpl.groupId(jData.groupId), jData.propDels, FateId.from(jData.fateId));
+        CompactorGroupIdImpl.groupId(jData.groupId), jData.propDels,
+        jData.fateId == null ? null : FateId.from(jData.fateId));
   }
 
   @Override
