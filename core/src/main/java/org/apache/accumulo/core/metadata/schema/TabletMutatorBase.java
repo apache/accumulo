@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -191,10 +191,10 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putBulkFile(ReferencedTabletFile bulkref, long tid) {
+  public T putBulkFile(ReferencedTabletFile bulkref, FateId fateId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(BulkFileColumnFamily.NAME, bulkref.insert().getMetadataText(),
-        new Value(FateTxId.formatTid(tid)));
+        new Value(fateId.canonical()));
     return getThis();
   }
 
@@ -252,14 +252,14 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putCompacted(long fateTxId) {
-    mutation.put(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId), "");
+  public T putCompacted(FateId fateId) {
+    mutation.put(CompactedColumnFamily.STR_NAME, fateId.canonical(), "");
     return getThis();
   }
 
   @Override
-  public T deleteCompacted(long fateTxId) {
-    mutation.putDelete(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId));
+  public T deleteCompacted(FateId fateId) {
+    mutation.putDelete(CompactedColumnFamily.STR_NAME, fateId.canonical());
     return getThis();
   }
 

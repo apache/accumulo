@@ -45,6 +45,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -167,9 +169,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
-      int tid = 0;
+      FateId fateId = FateId.from(FateInstanceType.fromTableId(extent.tableId()), 0);
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, dataFiles,
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(fateId, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
         splitDataFiles = storedFiles;
@@ -185,7 +187,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private static Map<Long,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
+  private static Map<FateId,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
       KeyExtent extent) {
 
     // Ample is not used here because it does not recognize some of the old columns that this
@@ -194,7 +196,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
-      Map<Long,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
+      Map<FateId,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
       for (var entry : scanner) {
         if (entry.getKey().getColumnFamily().equals(BulkFileColumnFamily.NAME)) {
           var path = new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
@@ -229,7 +231,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
+      Map<FateId,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       addNewTablet(context, low, "lowDir", instance, lowDatafileSizes, bulkFiles,
           new MetadataTime(0, TimeType.LOGICAL), -1L);
@@ -260,9 +262,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
+      Map<FateId,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
           getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<ReferencedTabletFile>> highBulkFiles =
+      Map<FateId,? extends Collection<ReferencedTabletFile>> highBulkFiles =
           getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
@@ -385,7 +387,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
+      Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -404,7 +406,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     datafileSizes.forEach((key, value) -> tablet.putFile(key, value));
 
-    for (Entry<Long,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
+    for (Entry<FateId,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
         .entrySet()) {
       for (ReferencedTabletFile ref : entry.getValue()) {
         tablet.putBulkFile(ref, entry.getKey());
