@@ -361,7 +361,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
-    TableMgmtStats tableMgmtStats = new TableMgmtStats();
+    final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
         tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
@@ -446,6 +446,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           state = newState;
         }
       }
+      tableMgmtStats.counts[state.ordinal()]++;
 
       // This is final because nothing in this method should change the goal. All computation of the
       // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
@@ -619,7 +620,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               break;
           }
         }
-        tableMgmtStats.counts[state.ordinal()]++;
       }
     }
 
