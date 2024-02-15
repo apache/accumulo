@@ -26,8 +26,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 
 import java.io.FileNotFoundException;
@@ -36,22 +34,16 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -76,34 +68,31 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.Refreshes.RefreshEntry;
 import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -113,13 +102,14 @@ import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.manager.EventCoordinator;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
+import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
+import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactionFile;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
-import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
-import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
@@ -135,10 +125,8 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -156,55 +144,41 @@ public class CompactionCoordinator
    * is the most authoritative source of what external compactions are currently running, but it
    * does not have the stats that this map has.
    */
-  protected static final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
+  protected final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
-
-  /*
-   * When the manager starts up any refreshes that were in progress when the last manager process
-   * died must be completed before new refresh entries are written. This map of countdown latches
-   * helps achieve that goal.
-   */
-  private final Map<Ample.DataLevel,CountDownLatch> refreshLatches;
 
   /* Map of group name to last time compactor called to get a compaction job */
   // ELASTICITY_TODO need to clean out groups that are no longer configured..
-  private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
+  private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
-  private final LiveTServerSet tserverSet;
   private final SecurityOperation security;
   private final CompactionJobQueues jobQueues;
-  private final EventCoordinator eventCoordinator;
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
-  private LoadingCache<Long,CompactionConfig> compactionConfigCache;
-  private final Cache<Path,Integer> checked_tablet_dir_cache;
+  private final LoadingCache<Long,CompactionConfig> compactionConfigCache;
+  private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
 
   private final QueueMetrics queueMetrics;
 
-  public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
-      SecurityOperation security, EventCoordinator eventCoordinator) {
+  public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
     this.ctx = ctx;
-    this.tserverSet = tservers;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
-    this.eventCoordinator = eventCoordinator;
 
     this.jobQueues = new CompactionJobQueues(
         ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
-    var refreshLatches = new EnumMap<Ample.DataLevel,CountDownLatch>(Ample.DataLevel.class);
-    refreshLatches.put(Ample.DataLevel.ROOT, new CountDownLatch(1));
-    refreshLatches.put(Ample.DataLevel.METADATA, new CountDownLatch(1));
-    refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
-    this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
+    this.fateInstances = fateInstances;
 
     completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
         .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -223,9 +197,8 @@ public class CompactionCoordinator
       return path.toUri().toString().length();
     };
 
-    checked_tablet_dir_cache =
-        ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
-            .maximumWeight(10485760L).weigher(weigher).build();
+    tabletDirCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
+        .maximumWeight(10485760L).weigher(weigher).build();
 
     deadCompactionDetector = new DeadCompactionDetector(this.ctx, this, schedExecutor);
     // At this point the manager does not have its lock so no actions should be taken yet
@@ -262,58 +235,8 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  private void processRefreshes(Ample.DataLevel dataLevel) {
-    try (var refreshStream = ctx.getAmple().refreshes(dataLevel).stream()) {
-      // process batches of refresh entries to avoid reading all into memory at once
-      Iterators.partition(refreshStream.iterator(), 10000).forEachRemaining(refreshEntries -> {
-        LOG.info("Processing {} tablet refreshes for {}", refreshEntries.size(), dataLevel);
-
-        var extents =
-            refreshEntries.stream().map(RefreshEntry::getExtent).collect(Collectors.toList());
-        var tabletsMeta = new HashMap<KeyExtent,TabletMetadata>();
-        try (var tablets = ctx.getAmple().readTablets().forTablets(extents, Optional.empty())
-            .fetch(PREV_ROW, LOCATION, SCANS).build()) {
-          tablets.stream().forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
-        }
-
-        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TKeyExtent>>();
-
-        refreshEntries.forEach(refreshEntry -> {
-          var tm = tabletsMeta.get(refreshEntry.getExtent());
-
-          // only need to refresh if the tablet is still on the same tserver instance
-          if (tm != null && tm.getLocation() != null
-              && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
-            KeyExtent extent = tm.getExtent();
-            Collection<StoredTabletFile> scanfiles = tm.getScans();
-            var ttr = extent.toThrift();
-            tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
-          }
-        });
-
-        String logId = "Coordinator:" + dataLevel;
-        ThreadPoolExecutor threadPool =
-            ctx.threadPools().createFixedThreadPool(10, "Tablet refresh " + logId, false);
-        try {
-          TabletRefresher.refreshTablets(threadPool, logId, ctx, tserverSet::getCurrentServers,
-              tserverRefreshes);
-        } finally {
-          threadPool.shutdownNow();
-        }
-
-        ctx.getAmple().refreshes(dataLevel).delete(refreshEntries);
-      });
-    }
-    // allow new refreshes to be written now that all preexisting ones are processed
-    refreshLatches.get(dataLevel).countDown();
-  }
-
   @Override
   public void run() {
-
-    processRefreshes(Ample.DataLevel.ROOT);
-    processRefreshes(Ample.DataLevel.METADATA);
-    processRefreshes(Ample.DataLevel.USER);
 
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
@@ -343,7 +266,7 @@ public class CompactionCoordinator
     // tservers. Its no longer doing that. May be best to remove the loop and make the remaining
     // task a scheduled one.
 
-    LOG.info("Starting loop to check tservers for compaction summaries");
+    LOG.info("Starting loop to check for compactors not checking in");
     while (!shutdown) {
       long start = System.currentTimeMillis();
 
@@ -403,13 +326,13 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final String group = groupName.intern();
-    LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
+    CompactorGroupId groupId = CompactorGroupIdImpl.groupId(groupName);
+    LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
+    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
-    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(CompactorGroupIdImpl.groupId(groupName));
+    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(groupId);
 
     while (metaJob != null) {
 
@@ -434,23 +357,24 @@ public class CompactionCoordinator
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, compactorAddress, group));
+            new RunningCompaction(result, compactorAddress, groupName));
         LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
             compactorAddress, ecm.getJobFiles().size());
         break;
       } else {
-        LOG.debug("Unable to reserve compaction job for {}, pulling another off the queue ",
-            metaJob.getTabletMetadata().getExtent());
+        LOG.debug(
+            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
+            metaJob.getTabletMetadata().getExtent(), groupName);
         metaJob = jobQueues.poll(CompactorGroupIdImpl.groupId(groupName));
       }
     }
 
     if (metaJob == null) {
-      LOG.debug("No jobs found in group {} ", group);
+      LOG.debug("No jobs found in group {} ", groupName);
     }
 
     if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", group,
+      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
           compactorAddress);
       result = new TExternalCompactionJob();
     }
@@ -506,7 +430,7 @@ public class CompactionCoordinator
 
   private void checkTabletDir(KeyExtent extent, Path path) {
     try {
-      if (checked_tablet_dir_cache.getIfPresent(path) == null) {
+      if (tabletDirCache.getIfPresent(path) == null) {
         FileStatus[] files = null;
         try {
           files = ctx.getVolumeManager().listStatus(path);
@@ -519,14 +443,14 @@ public class CompactionCoordinator
 
           ctx.getVolumeManager().mkdirs(path);
         }
-        checked_tablet_dir_cache.put(path, 1);
+        tabletDirCache.put(path, 1);
       }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  private CompactionMetadata createExternalCompactionMetadata(CompactionJob job,
+  protected CompactionMetadata createExternalCompactionMetadata(CompactionJob job,
       Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress,
       ExternalCompactionId externalCompactionId) {
     boolean propDels;
@@ -560,7 +484,7 @@ public class CompactionCoordinator
 
   }
 
-  private CompactionMetadata reserveCompaction(CompactionJobQueues.MetaJob metaJob,
+  protected CompactionMetadata reserveCompaction(CompactionJobQueues.MetaJob metaJob,
       String compactorAddress, ExternalCompactionId externalCompactionId) {
 
     Preconditions.checkArgument(metaJob.getJob().getKind() == CompactionKind.SYSTEM
@@ -615,8 +539,9 @@ public class CompactionCoordinator
     return null;
   }
 
-  TExternalCompactionJob createThriftJob(String externalCompactionId, CompactionMetadata ecm,
-      CompactionJobQueues.MetaJob metaJob, Optional<CompactionConfig> compactionConfig) {
+  protected TExternalCompactionJob createThriftJob(String externalCompactionId,
+      CompactionMetadata ecm, CompactionJobQueues.MetaJob metaJob,
+      Optional<CompactionConfig> compactionConfig) {
 
     Set<CompactableFile> selectedFiles;
     if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
@@ -669,58 +594,6 @@ public class CompactionCoordinator
     return this;
   }
 
-  class RefreshWriter {
-
-    private final ExternalCompactionId ecid;
-    private final KeyExtent extent;
-
-    private RefreshEntry writtenEntry;
-
-    RefreshWriter(ExternalCompactionId ecid, KeyExtent extent) {
-      this.ecid = ecid;
-      this.extent = extent;
-
-      var dataLevel = Ample.DataLevel.of(extent.tableId());
-      try {
-        // Wait for any refresh entries from the previous manager process to be processed before
-        // writing new ones.
-        refreshLatches.get(dataLevel).await();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    public void writeRefresh(TabletMetadata.Location location) {
-      Objects.requireNonNull(location);
-
-      if (writtenEntry != null) {
-        if (location.getServerInstance().equals(writtenEntry.getTserver())) {
-          // the location was already written so nothing to do
-          return;
-        } else {
-          deleteRefresh();
-        }
-      }
-
-      var entry = new RefreshEntry(ecid, extent, location.getServerInstance());
-
-      ctx.getAmple().refreshes(Ample.DataLevel.of(extent.tableId())).add(List.of(entry));
-
-      LOG.debug("wrote refresh entry for {}", ecid);
-
-      writtenEntry = entry;
-    }
-
-    public void deleteRefresh() {
-      if (writtenEntry != null) {
-        ctx.getAmple().refreshes(Ample.DataLevel.of(extent.tableId()))
-            .delete(List.of(writtenEntry));
-        LOG.debug("deleted refresh entry for {}", ecid);
-        writtenEntry = null;
-      }
-    }
-  }
-
   private Optional<CompactionConfig> getCompactionConfig(CompactionJobQueues.MetaJob metaJob) {
     if (metaJob.getJob().getKind() == CompactionKind.USER
         && metaJob.getTabletMetadata().getSelectedFiles() != null) {
@@ -738,11 +611,6 @@ public class CompactionCoordinator
    * <ol>
    * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
    * things changed while the compaction was running and it can no longer commit.</li>
-   * <li>If the compaction can commit then a ~refresh entry may be written to the metadata table.
-   * This is done before attempting to commit to cover the case of process failure after commit. If
-   * the manager dies after commit then when it restarts it will see the ~refresh entry and refresh
-   * that tablet. The ~refresh entry is only written when its a system compaction on a tablet with a
-   * location.</li>
    * <li>Commit the compaction using a conditional mutation. If the tablets files or location
    * changed since reading the tablets metadata, then conditional mutation will fail. When this
    * happens it will reread the metadata and go back to step 1 conceptually. When committing a
@@ -752,7 +620,6 @@ public class CompactionCoordinator
    * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
    * will cause the tablet to start using the newly compacted files for future scans. Also the
    * tablet can delete the scan entries if there are no active scans using them.</li>
-   * <li>If a ~refresh entry was written, delete it since the refresh was successful.</li>
    * </ol>
    *
    * <p>
@@ -762,21 +629,6 @@ public class CompactionCoordinator
    * refresh was actually done. Therefore, user compactions will refresh as part of the fate
    * operation so that it's known to be done before the fate operation returns. Since the fate
    * operation will do it, there is no need to do it here for user compactions.
-   * </p>
-   *
-   * <p>
-   * The ~refresh entries serve a similar purpose to FATE operations, it ensures that code executes
-   * even when a process dies. FATE was intentionally not used for compaction commit because FATE
-   * stores its data in zookeeper. The refresh entry is stored in the metadata table, which is much
-   * more scalable than zookeeper. The number of system compactions of small files could be large
-   * and this would be a large number of writes to zookeeper. Zookeeper scales somewhat with reads,
-   * but not with writes.
-   * </p>
-   *
-   * <p>
-   * Issue #3559 was opened to explore the possibility of making compaction commit a fate operation
-   * which would remove the need for the ~refresh section.
-   * </p>
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
@@ -795,7 +647,19 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
+    // maybe fate has not started yet
+    var localFates = fateInstances.get();
+    while (localFates == null) {
+      UtilWaitThread.sleep(100);
+      if (shutdown) {
+        return;
+      }
+      localFates = fateInstances.get();
+    }
+
     var extent = KeyExtent.fromThrift(textent);
+    var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
+
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
@@ -803,286 +667,35 @@ public class CompactionCoordinator
     var tabletMeta =
         ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
-    if (!canCommitCompaction(ecid, tabletMeta)) {
+    if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
       return;
     }
 
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
+    var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
 
-    // ELASTICITY_TODO this code does not handle race conditions or faults. Need to ensure refresh
-    // happens in the case of manager process death between commit and refresh.
-    ReferencedTabletFile newDatafile =
-        TabletNameGenerator.computeCompactionFileDest(ecm.getCompactTmpName());
+    // ELASTICITY_TODO add tag to fate that ECID can be added to. This solves two problem. First it
+    // defends against starting multiple fate txs for the same thing. This will help the split code
+    // also. Second the tag can be used by the dead compaction detector to ignore committing
+    // compactions. The imple coould hash the key to produce the fate tx id.
+    var txid = localFate.startTransaction();
+    localFate.seedTransaction("COMMIT_COMPACTION", txid, renameOp, true,
+        "Commit compaction " + ecid);
 
-    Optional<ReferencedTabletFile> optionalNewFile;
-    try {
-      optionalNewFile = renameOrDeleteFile(stats, ecm, newDatafile);
-    } catch (IOException e) {
-      LOG.warn("Can not commit complete compaction {} because unable to delete or rename {} ", ecid,
-          ecm.getCompactTmpName(), e);
-      compactionFailed(Map.of(ecid, extent));
-      return;
-    }
-
-    RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
-
-    try {
-      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
-    } catch (RuntimeException e) {
-      LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
-      compactionFailed(Map.of(ecid, extent));
-    }
-
-    if (ecm.getKind() != CompactionKind.USER) {
-      refreshTablet(tabletMeta);
-    }
-
-    // if a refresh entry was written, it can be removed after the tablet was refreshed
-    refreshWriter.deleteRefresh();
+    // ELASTICITY_TODO need to remove this wait. It is here because when the dead compaction
+    // detector ask a compactor what its currently running it expects that cover commit. To remove
+    // this wait would need another way for the dead compaction detector to know about committing
+    // compactions. Could add a tag to the fate tx with the ecid and have dead compaction detector
+    // scan these tags. This wait makes the code running in fate not be fault tolerant because in
+    // the
+    // case of faults the dead compaction detector may remove the compaction entry.
+    localFate.waitForCompletion(txid);
 
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
     recordCompletion(ecid);
-
-    // This will causes the tablet to be reexamined to see if it needs any more compactions.
-    eventCoordinator.event(extent, "Compaction completed %s", extent);
-  }
-
-  private Optional<ReferencedTabletFile> renameOrDeleteFile(TCompactionStats stats,
-      CompactionMetadata ecm, ReferencedTabletFile newDatafile) throws IOException {
-    if (stats.getEntriesWritten() == 0) {
-      // the compaction produced no output so do not need to rename or add a file to the metadata
-      // table, only delete the input files.
-      if (!ctx.getVolumeManager().delete(ecm.getCompactTmpName().getPath())) {
-        throw new IOException("delete returned false");
-      }
-
-      return Optional.empty();
-    } else {
-      if (!ctx.getVolumeManager().rename(ecm.getCompactTmpName().getPath(),
-          newDatafile.getPath())) {
-        throw new IOException("rename returned false");
-      }
-
-      return Optional.of(newDatafile);
-    }
-  }
-
-  private void refreshTablet(TabletMetadata metadata) {
-    var location = metadata.getLocation();
-    if (location != null) {
-      KeyExtent extent = metadata.getExtent();
-
-      // there is a single tserver and single tablet, do not need a thread pool. The direct executor
-      // will run everything in the current thread
-      ExecutorService executorService = MoreExecutors.newDirectExecutorService();
-      try {
-        TabletRefresher.refreshTablets(executorService,
-            "compaction:" + metadata.getExtent().toString(), ctx, tserverSet::getCurrentServers,
-            Map.of(metadata.getLocation(), List.of(extent.toThrift())));
-      } finally {
-        executorService.shutdownNow();
-      }
-    }
-  }
-
-  // ELASTICITY_TODO unit test this method
-  private boolean canCommitCompaction(ExternalCompactionId ecid, TabletMetadata tabletMetadata) {
-
-    if (tabletMetadata == null) {
-      LOG.debug("Received completion notification for nonexistent tablet {}", ecid);
-      return false;
-    }
-
-    var extent = tabletMetadata.getExtent();
-
-    if (tabletMetadata.getOperationId() != null) {
-      // split, merge, and delete tablet should delete the compaction entry in the tablet
-      LOG.debug("Received completion notification for tablet with active operation {} {} {}", ecid,
-          extent, tabletMetadata.getOperationId());
-      return false;
-    }
-
-    CompactionMetadata ecm = tabletMetadata.getExternalCompactions().get(ecid);
-
-    if (ecm == null) {
-      LOG.debug("Received completion notification for unknown compaction {} {}", ecid, extent);
-      return false;
-    }
-
-    if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
-      if (tabletMetadata.getSelectedFiles() == null) {
-        // when the compaction is canceled, selected files are deleted
-        LOG.debug(
-            "Received completion notification for user compaction and tablet has no selected files {} {}",
-            ecid, extent);
-        return false;
-      }
-
-      if (ecm.getFateTxId() != tabletMetadata.getSelectedFiles().getFateTxId()) {
-        // maybe the compaction was cancled and another user compaction was started on the tablet.
-        LOG.debug(
-            "Received completion notification for user compaction where its fate txid did not match the tablets {} {} {} {}",
-            ecid, extent, FateTxId.formatTid(ecm.getFateTxId()),
-            FateTxId.formatTid(tabletMetadata.getSelectedFiles().getFateTxId()));
-      }
-
-      if (!tabletMetadata.getSelectedFiles().getFiles().containsAll(ecm.getJobFiles())) {
-        // this is not expected to happen
-        LOG.error("User compaction contained files not in the selected set {} {} {} {} {}",
-            tabletMetadata.getExtent(), ecid, ecm.getKind(),
-            Optional.ofNullable(tabletMetadata.getSelectedFiles()).map(SelectedFiles::getFiles),
-            ecm.getJobFiles());
-        return false;
-      }
-    }
-
-    if (!tabletMetadata.getFiles().containsAll(ecm.getJobFiles())) {
-      // this is not expected to happen
-      LOG.error("Compaction contained files not in the tablet files set {} {} {} {}",
-          tabletMetadata.getExtent(), ecid, tabletMetadata.getFiles(), ecm.getJobFiles());
-      return false;
-    }
-
-    return true;
-  }
-
-  private TabletMetadata commitCompaction(TCompactionStats stats, ExternalCompactionId ecid,
-      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile,
-      RefreshWriter refreshWriter) {
-
-    KeyExtent extent = tablet.getExtent();
-
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
-
-    while (canCommitCompaction(ecid, tablet)) {
-      CompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
-
-      // the compacted files should not exists in the tablet already
-      var tablet2 = tablet;
-      newDatafile.ifPresent(
-          newFile -> Preconditions.checkState(!tablet2.getFiles().contains(newFile.insert()),
-              "File already exists in tablet %s %s", newFile, tablet2.getFiles()));
-
-      if (tablet.getLocation() != null
-          && tablet.getExternalCompactions().get(ecid).getKind() != CompactionKind.USER) {
-        // Write the refresh entry before attempting to update tablet metadata, this ensures that
-        // refresh will happen even if this process dies. In the case where this process does not
-        // die refresh will happen after commit. User compactions will make refresh calls in their
-        // fate operation, so it does not need to be done here.
-        refreshWriter.writeRefresh(tablet.getLocation());
-      }
-
-      try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
-
-        if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
-          tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
-        }
-
-        // make the needed updates to the tablet
-        updateTabletForCompaction(stats, ecid, tablet, newDatafile, extent, ecm, tabletMutator);
-
-        tabletMutator
-            .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
-
-        // TODO expensive logging
-        LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,
-            ecm.getJobFiles().stream().map(AbstractTabletFile::getFileName)
-                .collect(Collectors.toList()));
-
-        // ELASTICITY_TODO check return value and retry, could fail because of race conditions
-        var result = tabletsMutator.process().get(extent);
-        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
-          // compaction was committed, mark the compaction input files for deletion
-          //
-          // ELASTICITIY_TODO in the case of process death the GC candidates would never be added
-          // like #3811. If compaction commit were moved to FATE per #3559 then this would not
-          // be an issue. If compaction commit is never moved to FATE, then this addition could
-          // moved to the compaction refresh process. The compaction refresh process will go away
-          // if compaction commit is moved to FATE, so should only do this if not moving to FATE.
-          ctx.getAmple().putGcCandidates(extent.tableId(), ecm.getJobFiles());
-          break;
-        } else {
-          // compaction failed to commit, maybe something changed on the tablet so lets reread the
-          // metadata and try again
-          tablet = result.readMetadata();
-        }
-
-        retry.waitForNextAttempt(LOG, "Failed to commit " + ecid + " for tablet " + extent);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    return tablet;
-  }
-
-  private void updateTabletForCompaction(TCompactionStats stats, ExternalCompactionId ecid,
-      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile, KeyExtent extent,
-      CompactionMetadata ecm, Ample.ConditionalTabletMutator tabletMutator) {
-    // ELASTICITY_TODO improve logging adapt to use existing tablet files logging
-    if (ecm.getKind() == CompactionKind.USER) {
-      if (tablet.getSelectedFiles().getFiles().equals(ecm.getJobFiles())) {
-        // all files selected for the user compactions are finished, so the tablet is finish and
-        // its compaction id needs to be updated.
-
-        long fateTxId = tablet.getSelectedFiles().getFateTxId();
-
-        Preconditions.checkArgument(!tablet.getCompacted().contains(fateTxId),
-            "Tablet %s unexpected has selected files and compacted columns for %s",
-            tablet.getExtent(), fateTxId);
-
-        // TODO set to trace
-        LOG.debug("All selected files compcated for {} setting compacted for {}",
-            tablet.getExtent(), FateTxId.formatTid(tablet.getSelectedFiles().getFateTxId()));
-
-        tabletMutator.deleteSelectedFiles();
-        tabletMutator.putCompacted(fateTxId);
-
-      } else {
-        // not all of the selected files were finished, so need to add the new file to the
-        // selected set
-
-        Set<StoredTabletFile> newSelectedFileSet =
-            new HashSet<>(tablet.getSelectedFiles().getFiles());
-        newSelectedFileSet.removeAll(ecm.getJobFiles());
-
-        if (newDatafile.isPresent()) {
-          // TODO set to trace
-          LOG.debug(
-              "Not all selected files for {} are done, adding new selected file {} from compaction",
-              tablet.getExtent(), newDatafile.orElseThrow().getPath().getName());
-          newSelectedFileSet.add(newDatafile.orElseThrow().insert());
-        } else {
-          // TODO set to trace
-          LOG.debug(
-              "Not all selected files for {} are done, compaction produced no output so not adding to selected set.",
-              tablet.getExtent());
-        }
-
-        tabletMutator.putSelectedFiles(
-            new SelectedFiles(newSelectedFileSet, tablet.getSelectedFiles().initiallySelectedAll(),
-                tablet.getSelectedFiles().getFateTxId()));
-      }
-    }
-
-    if (tablet.getLocation() != null) {
-      // add scan entries to prevent GC in case the hosted tablet is currently using the files for
-      // scan
-      ecm.getJobFiles().forEach(tabletMutator::putScan);
-    }
-    ecm.getJobFiles().forEach(tabletMutator::deleteFile);
-    tabletMutator.deleteExternalCompaction(ecid);
-
-    if (newDatafile.isPresent()) {
-      tabletMutator.putFile(newDatafile.orElseThrow(),
-          new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()));
-    }
+    // ELASTICITY_TODO should above call move into fate code?
   }
 
   @Override
@@ -1093,7 +706,8 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.info("Compaction failed, id: {}", externalCompactionId);
+    KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
+    LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
@@ -1225,16 +839,19 @@ public class CompactionCoordinator
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
-        .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build().stream()
-        .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
+    try (TabletsMetadata tabletsMetadata =
+        this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+            .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build()) {
+      return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
+          .collect(Collectors.toSet());
+    }
   }
 
   /**
    * The RUNNING_CACHE set may contain external compactions that are not actually running. This
    * method periodically cleans those up.
    */
-  protected void cleanUpRunning() {
+  public void cleanUpRunning() {
 
     // grab a snapshot of the ids in the set before reading the metadata table. This is done to
     // avoid removing things that are added while reading the metadata.
@@ -1330,9 +947,9 @@ public class CompactionCoordinator
     cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
   }
 
-  /* Method exists to be overridden in test to hide static method */
-  protected String getTServerAddressString(HostAndPort tserverAddress) {
-    return ExternalCompactionUtil.getHostPortString(tserverAddress);
+  /* Method exists to be called from test */
+  public CompactionJobQueues getJobQueues() {
+    return jobQueues;
   }
 
   /* Method exists to be overridden in test to hide static method */
@@ -1344,11 +961,6 @@ public class CompactionCoordinator
   protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {
     HostAndPort hostPort = HostAndPort.fromString(address);
     ExternalCompactionUtil.cancelCompaction(this.ctx, hostPort, externalCompactionId);
-  }
-
-  /* Method exists to be overridden in test to hide static method */
-  protected void returnTServerClient(TabletServerClientService.Client client) {
-    ThriftUtil.returnClient(client, this.ctx);
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)

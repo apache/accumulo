@@ -93,7 +93,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
         throw new CompactionCanceledException();
 
       } catch (Exception e) {
-        LOG.error("Compaction failed", e);
+        KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+        LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
+            fromThriftExtent, e);
         err.set(e);
       } finally {
         stopped.countDown();

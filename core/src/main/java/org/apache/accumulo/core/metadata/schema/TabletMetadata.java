@@ -53,8 +53,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -353,7 +352,8 @@ public class TabletMetadata {
   }
 
   public TabletHostingGoal getHostingGoal() {
-    if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
+    if (AccumuloTable.ROOT.tableId().equals(getTableId())
+        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
       // Override the goal for the system tables
       return TabletHostingGoal.ALWAYS;
     }
@@ -530,7 +530,8 @@ public class TabletMetadata {
       }
     }
 
-    if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(te.tableId)
+        || AccumuloTable.METADATA.tableId().equals(te.tableId)) {
       // Override the goal for the system tables
       te.goal = TabletHostingGoal.ALWAYS;
     }

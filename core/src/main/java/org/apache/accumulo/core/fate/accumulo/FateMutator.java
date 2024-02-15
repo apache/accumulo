@@ -36,6 +36,8 @@ public interface FateMutator<T> {
 
   FateMutator<T> putReturnValue(byte[] data);
 
+  FateMutator<T> putAgeOff(byte[] data);
+
   FateMutator<T> putTxInfo(Fate.TxInfo txInfo, byte[] data);
 
   FateMutator<T> putRepo(int position, Repo<T> repo);
@@ -43,5 +45,13 @@ public interface FateMutator<T> {
   FateMutator<T> deleteRepo(int position);
 
   void mutate();
+
+  // This exists to represent the subset of statuses from ConditionalWriter.Status that are expected
+  // and need to be handled.
+  enum Status {
+    ACCEPTED, REJECTED, UNKNOWN
+  }
+
+  Status tryMutate();
 
 }

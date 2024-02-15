@@ -70,7 +70,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
 import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -119,7 +119,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      c.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
 
       tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
@@ -553,7 +553,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       final Text selectedColumnQualifier = SELECTED_COLUMN.getColumnQualifier();
 
       Supplier<String> selectedMetadataValue = () -> {
-        try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+        try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
           scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
           scanner.setRange(new Range(row));
 
@@ -585,7 +585,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           "Test json should have reverse file order of actual metadata");
 
       // write the json with reverse file order
-      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         Mutation mutation = new Mutation(row);
         mutation.put(selectedColumnFamily, selectedColumnQualifier,
             new Value(newJson.getBytes(UTF_8)));
@@ -1061,7 +1061,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // if we only fetch some columns needed by the filter, we should get an exception
       TabletsMetadata.Options options =
           context.getAmple().readTablets().forTable(tid).fetch(FLUSH_ID).filter(filter);
-      var ise = assertThrows(IllegalStateException.class, options::build);
+      var ise = assertThrows(IllegalStateException.class, () -> options.build().close());
       String expectedMsg = String.format("%s needs cols %s however only %s were fetched",
           TestTabletMetadataFilter.class.getSimpleName(), filter.getColumns(), Set.of(FLUSH_ID));
       assertTrue(ise.getMessage().contains(expectedMsg));

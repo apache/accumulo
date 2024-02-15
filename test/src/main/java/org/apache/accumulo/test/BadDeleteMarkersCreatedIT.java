@@ -42,7 +42,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -169,7 +169,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       Thread.sleep(SECONDS.toMillis(timeoutFactor * 15L));
       log.info("Verifying that delete markers were deleted");
       // look for delete markers
-      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(DeletesSection.getRange());
         for (Entry<Key,Value> entry : scanner) {
           String row = entry.getKey().getRow().toString();

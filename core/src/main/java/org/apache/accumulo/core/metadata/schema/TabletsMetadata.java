@@ -65,7 +65,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
@@ -571,7 +571,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * {@link TabletsSection#getRange()}
      */
     default RangeOptions scanMetadataTable() {
-      return scanTable(MetadataTable.NAME);
+      return scanTable(AccumuloTable.METADATA.tableName());
     }
 
     /**

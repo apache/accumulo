@@ -421,7 +421,7 @@ public class MetadataSchema {
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
 
-    // These can be removed when the corresponding upgrade code is removed
+    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
     public static class Upgrade12to13 {
 
       /**
@@ -436,6 +436,9 @@ public class MetadataSchema {
       public static final String SPLIT_RATIO_QUAL = "splitRatio";
       public static final ColumnFQ SPLIT_RATIO_COLUMN =
           new ColumnFQ(TabletColumnFamily.NAME, new Text(SPLIT_RATIO_QUAL));
+
+      public static final ColumnFQ COMPACT_COL =
+          new ColumnFQ(ServerColumnFamily.NAME, new Text("compact"));
     }
   }
 
@@ -524,19 +527,6 @@ public class MetadataSchema {
   public static class ScanServerFileReferenceSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-  }
-
-  public static class RefreshSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "refresh", true, RESERVED_PREFIX + "refresi", false);
 
     public static Range getRange() {
       return section.getRange();

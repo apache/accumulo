@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -88,8 +87,9 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   @VisibleForTesting
   protected Stream<KeyExtent> lookupExtents(Text row) {
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, true, null)
-        .checkConsistency().fetch(PREV_ROW).build().stream().limit(100)
+    TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(row, true, null).checkConsistency().fetch(PREV_ROW).build();
+    return tabletsMetadata.stream().onClose(tabletsMetadata::close).limit(100)
         .map(TabletMetadata::getExtent);
   }
 
@@ -129,15 +129,8 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
         for (Text lookupRow : lookupRows) {
           if (getFromCache(lookupRow) == null) {
             while (true) {
-              try {
-                Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-                while (iter.hasNext()) {
-                  KeyExtent ke2 = iter.next();
-                  if (inCache(ke2)) {
-                    break;
-                  }
-                  updateCache(ke2);
-                }
+              try (Stream<KeyExtent> keyExtentStream = lookupExtents(lookupRow)) {
+                keyExtentStream.takeWhile(ke2 -> !inCache(ke2)).forEach(this::updateCache);
                 break;
               } catch (TabletDeletedException tde) {
                 // tablets were merged away in the table, start over and try again

@@ -40,14 +40,20 @@ import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class AccumuloStore<T> extends AbstractFateStore<T> {
+
+  private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
 
   private final ClientContext context;
   private final String tableName;
@@ -57,17 +63,50 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       com.google.common.collect.Range.closed(1, maxRepos);
 
   public AccumuloStore(ClientContext context, String tableName) {
+    this(context, tableName, DEFAULT_MAX_DEFERRED);
+  }
+
+  public AccumuloStore(ClientContext context, String tableName, int maxDeferred) {
+    super(maxDeferred);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
 
+  public AccumuloStore(ClientContext context) {
+    this(context, AccumuloTable.FATE.tableName());
+  }
+
   @Override
   public long create() {
-    long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+    final int maxAttempts = 5;
+    long tid = 0L;
 
-    newMutator(tid).putStatus(TStatus.NEW).putCreateTime(System.currentTimeMillis()).mutate();
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt >= 1) {
+        log.debug("Failed to create new id: {}, trying again", tid);
+        UtilWaitThread.sleep(100);
+      }
+      tid = getTid();
 
-    return tid;
+      var status = newMutator(tid).requireStatus().putStatus(TStatus.NEW)
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
+
+      switch (status) {
+        case ACCEPTED:
+          return tid;
+        case UNKNOWN:
+        case REJECTED:
+          continue;
+        default:
+          throw new IllegalStateException("Unknown status " + status);
+      }
+    }
+
+    throw new IllegalStateException("Failed to create new id after " + maxAttempts + " attempts");
+  }
+
+  public long getTid() {
+    return RANDOM.get().nextLong() & 0x7fffffffffffffffL;
   }
 
   @Override
@@ -77,7 +116,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
-        return new FateIdStatus(parseTid(e.getKey().getRow().toString())) {
+        return new FateIdStatusBase(parseTid(e.getKey().getRow().toString())) {
           @Override
           public TStatus getStatus() {
             return TStatus.valueOf(e.getValue().toString());
@@ -178,6 +217,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
           case RETURN_VALUE:
             cq = TxInfoColumnFamily.RETURN_VALUE_COLUMN;
             break;
+          case TX_AGEOFF:
+            cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
+            break;
           default:
             throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
         }
@@ -236,27 +278,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReserved(true);
 
-      FateMutator<T> fateMutator = newMutator(tid);
       final byte[] serialized = serializeTxInfo(so);
 
-      switch (txInfo) {
-        case TX_NAME:
-          fateMutator.putName(serialized);
-          break;
-        case AUTO_CLEAN:
-          fateMutator.putAutoClean(serialized);
-          break;
-        case EXCEPTION:
-          fateMutator.putException(serialized);
-          break;
-        case RETURN_VALUE:
-          fateMutator.putReturnValue(serialized);
-          break;
-        default:
-          throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
-      }
-
-      fateMutator.mutate();
+      newMutator(tid).putTxInfo(txInfo, serialized).mutate();
     }
 
     @Override

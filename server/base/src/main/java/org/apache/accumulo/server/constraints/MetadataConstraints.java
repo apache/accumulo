@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -93,7 +93,8 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.OPID_COLUMN,
           HostingColumnFamily.GOAL_COLUMN,
           HostingColumnFamily.REQUESTED_COLUMN,
-          ServerColumnFamily.SELECTED_COLUMN);
+          ServerColumnFamily.SELECTED_COLUMN,
+              Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
@@ -208,7 +209,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than Constants.METADATA_TABLE_ID
-    if (new Text(row).compareTo(new Text(MetadataTable.ID.canonical())) < 0) {
+    if (new Text(row).compareTo(new Text(AccumuloTable.METADATA.tableId().canonical())) < 0) {
       violations = addViolation(violations, 5);
     }
 
@@ -412,9 +413,10 @@ public class MetadataConstraints implements Constraint {
       case 4:
         return "Invalid metadata row format";
       case 5:
-        return "Row can not be less than " + MetadataTable.ID;
+        return "Row can not be less than " + AccumuloTable.METADATA.tableId();
       case 6:
-        return "Empty values are not allowed for any " + MetadataTable.NAME + " column";
+        return "Empty values are not allowed for any " + AccumuloTable.METADATA.tableName()
+            + " column";
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:

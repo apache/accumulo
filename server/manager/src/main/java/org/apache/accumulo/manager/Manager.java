@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
-import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -31,6 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,8 +71,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateCleaner;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -94,8 +98,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -155,6 +158,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
@@ -210,11 +214,12 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
-  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
-  // thread's cached view shows that fateRef is still null after the latch is ready
+  // fateReadyLatch and fateRefs go together; when this latch is ready, then the fate references
+  // should already have been set; ConcurrentHashMap will guarantee that all threads will see
+  // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
-  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
+      new AtomicReference<>();
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -265,7 +270,7 @@ public class Manager extends AbstractServer
    *
    * @return the Fate object, only after the fate components are running and ready
    */
-  public Fate<Manager> fate() {
+  public Fate<Manager> fate(FateInstanceType type) {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -286,7 +291,7 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return fateRef.get();
+    return getFateRefs().get(type);
   }
 
   static final boolean X = true;
@@ -329,7 +334,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fateRef.get() != null) {
+      if (fateRefs.get() != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -366,8 +371,8 @@ public class Manager extends AbstractServer
   }
 
   private int nonMetaDataTabletsAssignedOrHosted() {
-    return totalAssignedOrHosted() - assignedOrHosted(MetadataTable.ID)
-        - assignedOrHosted(RootTable.ID);
+    return totalAssignedOrHosted() - assignedOrHosted(AccumuloTable.METADATA.tableId())
+        - assignedOrHosted(AccumuloTable.ROOT.tableId());
   }
 
   private int notHosted() {
@@ -401,14 +406,14 @@ public class Manager extends AbstractServer
       case SAFE_MODE:
         // Count offline tablets for the metadata table
         for (TabletGroupWatcher watcher : watchers) {
-          TableCounts counts = watcher.getStats(MetadataTable.ID);
+          TableCounts counts = watcher.getStats(AccumuloTable.METADATA.tableId());
           result += counts.unassigned() + counts.suspended();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          TableCounts counts = watcher.getStats(MetadataTable.ID);
+          TableCounts counts = watcher.getStats(AccumuloTable.METADATA.tableId());
           result += counts.unassigned() + counts.suspended();
         }
         break;
@@ -568,7 +573,8 @@ public class Manager extends AbstractServer
      */
     private void cleanupNonexistentMigrations(final AccumuloClient accumuloClient)
         throws TableNotFoundException {
-      Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner scanner =
+          accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -654,7 +660,7 @@ public class Manager extends AbstractServer
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
-                  int count = assignedOrHosted(MetadataTable.ID);
+                  int count = assignedOrHosted(AccumuloTable.METADATA.tableId());
                   log.debug(
                       String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats()) {
@@ -663,12 +669,12 @@ public class Manager extends AbstractServer
                 }
                   break;
                 case UNLOAD_ROOT_TABLET:
-                  int count = assignedOrHosted(MetadataTable.ID);
+                  int count = assignedOrHosted(AccumuloTable.METADATA.tableId());
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
                   }
-                  int root_count = assignedOrHosted(RootTable.ID);
+                  int root_count = assignedOrHosted(AccumuloTable.ROOT.tableId());
                   if (root_count > 0 && goodStats()) {
                     log.debug("The root tablet is still assigned or hosted");
                   }
@@ -934,7 +940,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, tserverSet, security, nextEvent);
+    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -1068,17 +1074,17 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(
-          new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()),
-          HOURS.toMillis(8), System::currentTimeMillis);
+      var metaInstance = initializeFateInstance(context, FateInstanceType.META,
+          new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
+      var userInstance = initializeFateInstance(context, FateInstanceType.USER,
+          new AccumuloStore<>(context, AccumuloTable.FATE.tableName()));
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
-      fateRef.set(f);
+      if (!fateRefs.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
+        throw new IllegalStateException(
+            "Unexpected previous fate reference map already initialized");
+      }
       fateReadyLatch.countDown();
-
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1139,7 +1145,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fate().shutdown();
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown());
 
     splitter.stop();
 
@@ -1176,6 +1182,19 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
+      FateStore<Manager> store) {
+
+    final Fate<Manager> fateInstance =
+        new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+
+    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), System::nanoTime);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
+
+    return fateInstance;
   }
 
   /**
@@ -1466,10 +1485,10 @@ public class Manager extends AbstractServer
     Set<TableId> result = new HashSet<>();
     if (getManagerState() != ManagerState.NORMAL) {
       if (getManagerState() != ManagerState.UNLOAD_METADATA_TABLETS) {
-        result.add(MetadataTable.ID);
+        result.add(AccumuloTable.METADATA.tableId());
       }
       if (getManagerState() != ManagerState.UNLOAD_ROOT_TABLET) {
-        result.add(RootTable.ID);
+        result.add(AccumuloTable.ROOT.tableId());
       }
       return result;
     }
@@ -1655,5 +1674,11 @@ public class Manager extends AbstractServer
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     compactionCoordinator.registerMetrics(registry);
+  }
+
+  private Map<FateInstanceType,Fate<Manager>> getFateRefs() {
+    var fateRefs = this.fateRefs.get();
+    Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
+    return fateRefs;
   }
 }

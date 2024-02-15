@@ -22,7 +22,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -54,9 +54,10 @@ public class TableRangeOp extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
 
-    if (RootTable.ID.equals(data.tableId) && MergeInfo.Operation.MERGE.equals(data.op)) {
+    if (AccumuloTable.ROOT.tableId().equals(data.tableId)
+        && MergeInfo.Operation.MERGE.equals(data.op)) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
-          RootTable.NAME);
+          AccumuloTable.ROOT.tableName());
     }
 
     env.mustBeOnline(data.tableId);

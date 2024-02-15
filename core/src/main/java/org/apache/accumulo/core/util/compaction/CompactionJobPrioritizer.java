@@ -21,7 +21,7 @@ package org.apache.accumulo.core.util.compaction;
 import java.util.Comparator;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 
@@ -41,8 +41,14 @@ public class CompactionJobPrioritizer {
   private static final short METADATA_USER_MIN = METADATA_USER_MAX - 1000;
   private static final short METADATA_SYSTEM_MAX = METADATA_USER_MIN - 1;
   private static final short METADATA_SYSTEM_MIN = METADATA_SYSTEM_MAX - 1000;
-  private static final short USER_USER_MAX = METADATA_SYSTEM_MIN - 1;
-  private static final short USER_USER_MIN = USER_USER_MAX - 30768;
+  // ACCUMULO_OTHER is intended for tables in the accumulo namespace that are not accumulo.root or
+  // accumulo.metadata
+  private static final short ACCUMULO_OTHER_USER_MAX = METADATA_SYSTEM_MIN - 1;
+  private static final short ACCUMULO_OTHER_USER_MIN = ACCUMULO_OTHER_USER_MAX - 1000;
+  private static final short ACCUMULO_OTHER_SYSTEM_MAX = ACCUMULO_OTHER_USER_MIN - 1;
+  private static final short ACCUMULO_OTHER_SYSTEM_MIN = ACCUMULO_OTHER_SYSTEM_MAX - 1000;
+  private static final short USER_USER_MAX = ACCUMULO_OTHER_SYSTEM_MIN - 1;
+  private static final short USER_USER_MIN = (USER_USER_MAX + Short.MIN_VALUE) / 2;
   private static final short USER_SYSTEM_MAX = USER_USER_MIN - 1;
   private static final short USER_SYSTEM_MIN = Short.MIN_VALUE;
 
@@ -56,8 +62,9 @@ public class CompactionJobPrioritizer {
     int min;
     int max;
 
-    switch (Ample.DataLevel.of(tableId)) {
-      case ROOT:
+    // Check if the table is in the accumulo namespace
+    if (AccumuloTable.allTableIds().contains(tableId)) {
+      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
         if (kind == CompactionKind.USER) {
           min = ROOT_USER_MIN;
           max = ROOT_USER_MAX;
@@ -65,8 +72,7 @@ public class CompactionJobPrioritizer {
           min = ROOT_SYSTEM_MIN;
           max = ROOT_SYSTEM_MAX;
         }
-        break;
-      case METADATA:
+      } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
         if (kind == CompactionKind.USER) {
           min = METADATA_USER_MIN;
           max = METADATA_USER_MAX;
@@ -74,18 +80,24 @@ public class CompactionJobPrioritizer {
           min = METADATA_SYSTEM_MIN;
           max = METADATA_SYSTEM_MAX;
         }
-        break;
-      case USER:
+      } else {
+        // This is a table in the accumulo namespace that is not root or metadata table.
         if (kind == CompactionKind.USER) {
-          min = USER_USER_MIN;
-          max = USER_USER_MAX;
+          min = ACCUMULO_OTHER_USER_MIN;
+          max = ACCUMULO_OTHER_USER_MAX;
         } else {
-          min = USER_SYSTEM_MIN;
-          max = USER_SYSTEM_MAX;
+          min = ACCUMULO_OTHER_SYSTEM_MIN;
+          max = ACCUMULO_OTHER_SYSTEM_MAX;
         }
-        break;
-      default:
-        throw new IllegalStateException("Unknown data level" + Ample.DataLevel.of(tableId));
+      }
+    } else {
+      if (kind == CompactionKind.USER) {
+        min = USER_USER_MIN;
+        max = USER_USER_MAX;
+      } else {
+        min = USER_SYSTEM_MIN;
+        max = USER_SYSTEM_MAX;
+      }
     }
 
     return (short) Math.min(max, min + totalFiles + compactingFiles);

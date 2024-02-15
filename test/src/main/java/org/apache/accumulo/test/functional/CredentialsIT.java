@@ -40,7 +40,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -109,8 +109,8 @@ public class CredentialsIT extends AccumuloClusterHarness {
       try (
           AccumuloClient userAccumuloClient =
               Accumulo.newClient().from(client.properties()).as(username, token).build();
-          Scanner scanner =
-              userAccumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+          Scanner scanner = userAccumuloClient.createScanner(AccumuloTable.METADATA.tableName(),
+              Authorizations.EMPTY)) {
         assertFalse(token.isDestroyed());
         token.destroy();
         assertTrue(token.isDestroyed());
