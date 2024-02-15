@@ -20,7 +20,6 @@ package org.apache.accumulo.server.zookeeper;
 
 import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
@@ -33,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -176,17 +176,11 @@ public class DistributedWorkQueue {
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
-    // Preserve the old delay and period
-    this(path, config, context, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
-        MINUTES.toMillis(1));
-  }
-
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
-      long timerInitialDelay, long timerPeriod) {
+    long interval = config.getTimeInMillis(Property.GENERAL_RECOVERY_WALOG_SORT_INTERVAL);
     this.path = path;
     this.context = context;
-    this.timerInitialDelay = timerInitialDelay;
-    this.timerPeriod = timerPeriod;
+    this.timerInitialDelay = RANDOM.get().nextInt(toIntExact(interval));
+    this.timerPeriod = interval;
     zoo = context.getZooReaderWriter();
   }
 

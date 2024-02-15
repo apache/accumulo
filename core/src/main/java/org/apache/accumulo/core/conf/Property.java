@@ -364,6 +364,11 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  GENERAL_RECOVERY_WALOG_SORT_INTERVAL("general.recovery.walog.sort.interval", "1m",
+      PropertyType.TIMEDURATION,
+      "The interval at which Compactor, ScanServer, and TabletServer processes should check for recovery logs"
+          + " that need to be sorted so that recovery can occur.",
+      "4.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),

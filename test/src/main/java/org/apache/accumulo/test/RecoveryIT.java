@@ -42,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
@@ -78,6 +79,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
     cfg.getClusterServerConfiguration().addTabletServerResourceGroup(RESOURCE_GROUP, 3);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setProperty(Property.GENERAL_RECOVERY_WALOG_SORT_INTERVAL, "15s");
     if (disableTabletServerLogSorting) {
       cfg.setProperty(Property.TSERV_WAL_SORT_MAX_CONCURRENT, "0");
     }
@@ -142,7 +144,13 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getCompactorAddrs(getCluster().getServerContext()).size()
+              == 0,
+          60_000);
+
       control.stopAllServers(ServerType.SCAN_SERVER);
+      Wait.waitFor(() -> ((ClientContext) c).getScanServers().size() == 0, 60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);
