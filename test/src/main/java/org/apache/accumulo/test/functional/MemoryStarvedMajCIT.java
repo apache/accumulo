@@ -22,6 +22,7 @@ import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
       cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD));
@@ -132,10 +134,23 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       ClientContext ctx = (ClientContext) client;
 
-      // Stop the normal compactors and start the version that will consume
-      // and free memory when we need it to
-      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      // Kill the normal compactors and wait until their addresses in ZK are cleared
+      getCluster().getConfig().getClusterServerConfiguration().getCompactorConfiguration().keySet()
+          .forEach(resourceGroup -> {
+            List<Process> procs = getCluster().getClusterControl().getCompactors(resourceGroup);
+            for (int i = 0; i < procs.size(); i++) {
+              LOG.info("Stopping compactor process: {}", procs.get(i).pid());
+              try {
+                procs.get(i).destroyForcibly().waitFor();
+              } catch (InterruptedException e) {
+                fail("Interrupted trying to stop compactor process");
+              }
+            }
+            getCluster().getClusterControl().getCompactors(resourceGroup).clear();
+          });
+      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 0, 60_000);
 
+      // Start the Compactors that will consume and free memory when we need it to
       getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
           MemoryConsumingCompactor.class);
       Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 4, 60_000);
