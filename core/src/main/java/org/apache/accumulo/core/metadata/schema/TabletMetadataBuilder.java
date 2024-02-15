@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -42,11 +42,12 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -165,9 +166,9 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putBulkFile(ReferencedTabletFile bulkref, long tid) {
+  public TabletMetadataBuilder putBulkFile(ReferencedTabletFile bulkref, FateId fateId) {
     fetched.add(LOADED);
-    internalBuilder.putBulkFile(bulkref, tid);
+    internalBuilder.putBulkFile(bulkref, fateId);
     return this;
   }
 
@@ -202,21 +203,21 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putCompacted(long fateTxId) {
+  public TabletMetadataBuilder putCompacted(FateId fateId) {
     fetched.add(COMPACTED);
-    internalBuilder.putCompacted(fateTxId);
+    internalBuilder.putCompacted(fateId);
     return this;
   }
 
   @Override
-  public TabletMetadataBuilder deleteCompacted(long fateTxId) {
+  public TabletMetadataBuilder deleteCompacted(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public TabletMetadataBuilder putHostingGoal(TabletHostingGoal goal) {
-    fetched.add(HOSTING_GOAL);
-    internalBuilder.putHostingGoal(goal);
+  public TabletMetadataBuilder putTabletAvailability(TabletAvailability tabletAvailability) {
+    fetched.add(AVAILABILITY);
+    internalBuilder.putTabletAvailability(tabletAvailability);
     return this;
   }
 

@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.stream.Stream;
-
-import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -28,7 +25,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-public class GetTabletHostingGoalCommand extends TableOperation {
+public class GetAvailabilityCommand extends TableOperation {
 
   private Option optRow;
   private Option optStartRowExclusive;
@@ -37,23 +34,21 @@ public class GetTabletHostingGoalCommand extends TableOperation {
 
   @Override
   public String getName() {
-    return "gethostinggoal";
+    return "getavailability";
   }
 
   @Override
   public String description() {
-    return "Retrieves the hosting goal (ALWAYS, ONDEMAND, NEVER) for a range of tablets";
+    return "Retrieves the availability (HOSTED, ONDEMAND, UNHOSTED) for a range of tablets";
   }
 
   @Override
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
-    shellState.getWriter().println("TABLET ID    HOSTING GOAL");
-    try (Stream<TabletInformation> tabletInformation =
-        shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)) {
-      tabletInformation.forEach(p -> shellState.getWriter()
-          .println(String.format("%-10s   %s", p.getTabletId(), p.getHostingGoal())));
-    }
+    shellState.getWriter().println("TABLET ID    AVAILABILITY");
+    shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)
+        .forEach(p -> shellState.getWriter()
+            .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
   }
 
   @Override

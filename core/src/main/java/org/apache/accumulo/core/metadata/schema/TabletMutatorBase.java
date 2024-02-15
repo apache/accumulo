@@ -20,15 +20,15 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -192,10 +191,10 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putBulkFile(ReferencedTabletFile bulkref, long tid) {
+  public T putBulkFile(ReferencedTabletFile bulkref, FateId fateId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(BulkFileColumnFamily.NAME, bulkref.insert().getMetadataText(),
-        new Value(FateTxId.formatTid(tid)));
+        new Value(fateId.canonical()));
     return getThis();
   }
 
@@ -253,14 +252,14 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putCompacted(long fateTxId) {
-    mutation.put(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId), "");
+  public T putCompacted(FateId fateId) {
+    mutation.put(CompactedColumnFamily.STR_NAME, fateId.canonical(), "");
     return getThis();
   }
 
   @Override
-  public T deleteCompacted(long fateTxId) {
-    mutation.putDelete(CompactedColumnFamily.STR_NAME, FateTxId.formatTid(fateTxId));
+  public T deleteCompacted(FateId fateId) {
+    mutation.putDelete(CompactedColumnFamily.STR_NAME, fateId.canonical());
     return getThis();
   }
 
@@ -282,20 +281,21 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putHostingGoal(TabletHostingGoal goal) {
-    HostingColumnFamily.GOAL_COLUMN.put(mutation, TabletHostingGoalUtil.toValue(goal));
+  public T putTabletAvailability(TabletAvailability tabletAvailability) {
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(mutation,
+        TabletAvailabilityUtil.toValue(tabletAvailability));
     return getThis();
   }
 
   @Override
   public T setHostingRequested() {
-    HostingColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
+    TabletColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
     return getThis();
   }
 
   @Override
   public T deleteHostingRequested() {
-    HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
+    TabletColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
     return getThis();
   }
 

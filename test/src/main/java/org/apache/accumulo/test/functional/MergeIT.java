@@ -49,9 +49,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,13 +59,14 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -178,10 +179,10 @@ public class MergeIT extends AccumuloClusterHarness {
           bw.addMutation(m);
         }
       }
-      c.tableOperations().setTabletHostingGoal(tableName, new Range("d", "e"),
-          TabletHostingGoal.ALWAYS);
-      c.tableOperations().setTabletHostingGoal(tableName, new Range("e", "f"),
-          TabletHostingGoal.NEVER);
+      c.tableOperations().setTabletAvailability(tableName, new Range("d", "e"),
+          TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, new Range("e", "f"),
+          TabletAvailability.UNHOSTED);
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
       assertEquals(8, c.tableOperations().listSplits(tableName).size());
@@ -192,14 +193,14 @@ public class MergeIT extends AccumuloClusterHarness {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-        HostingColumnFamily.GOAL_COLUMN.fetch(s);
+        TabletColumnFamily.AVAILABILITY_COLUMN.fetch(s);
         assertEquals(2, Iterables.size(s));
         for (Entry<Key,Value> rows : s) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(rows.getKey())) {
             assertEquals("c", TabletColumnFamily.decodePrevEndRow(rows.getValue()).toString());
-          } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(rows.getKey())) {
-            assertEquals(TabletHostingGoal.ALWAYS,
-                TabletHostingGoalUtil.fromValue(rows.getValue()));
+          } else if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(rows.getKey())) {
+            assertEquals(TabletAvailability.HOSTED,
+                TabletAvailabilityUtil.fromValue(rows.getValue()));
           } else {
             fail("Unknown column");
           }
@@ -691,6 +692,8 @@ public class MergeIT extends AccumuloClusterHarness {
             new KeyExtent(tableId, null, split))) {
           var tablet = tabletsMutator.mutateTablet(extent);
           ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+          FateInstanceType type = FateInstanceType.fromTableId(tableId);
+          FateId fateId44L = FateId.from(type, 44L);
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
@@ -698,7 +701,7 @@ public class MergeIT extends AccumuloClusterHarness {
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
           CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
-              CompactionKind.SYSTEM, (short) 2, ceid, false, 44L);
+              CompactionKind.SYSTEM, (short) 2, ceid, false, fateId44L);
           tablet.putExternalCompaction(ecid, ecMeta);
           tablet.mutate();
         }

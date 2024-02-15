@@ -21,9 +21,12 @@ package org.apache.accumulo.core.fate;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import org.apache.accumulo.core.util.Pair;
 
 /**
  * Read only access to a Transaction Store.
@@ -56,7 +59,7 @@ public interface ReadOnlyFateStore<T> {
   /**
    * Reads the data related to fate transaction without reserving it.
    */
-  ReadOnlyFateTxStore<T> read(long tid);
+  ReadOnlyFateTxStore<T> read(FateId fateId);
 
   /**
    * Storage for an individual fate transaction
@@ -87,6 +90,10 @@ public interface ReadOnlyFateStore<T> {
      */
     TStatus getStatus();
 
+    Optional<FateKey> getKey();
+
+    Pair<TStatus,Optional<FateKey>> getStatusAndKey();
+
     /**
      * Wait for the status of a transaction to change
      *
@@ -115,11 +122,11 @@ public interface ReadOnlyFateStore<T> {
     /**
      * @return the id of the FATE transaction
      */
-    long getID();
+    FateId getID();
   }
 
   interface FateIdStatus {
-    long getTxid();
+    FateId getFateId();
 
     TStatus getStatus();
   }
@@ -137,7 +144,7 @@ public interface ReadOnlyFateStore<T> {
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids
    * found were passed to the consumer.
    */
-  void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer);
+  void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer);
 
   /**
    * Returns true if the deferred map was cleared and if deferred executions are currently disabled
@@ -151,4 +158,6 @@ public interface ReadOnlyFateStore<T> {
    * @return the current number of transactions that have been deferred
    */
   int getDeferredCount();
+
+  FateInstanceType type();
 }

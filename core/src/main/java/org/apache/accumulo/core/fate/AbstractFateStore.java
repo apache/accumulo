@@ -31,19 +31,23 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -53,12 +57,22 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   // Default maximum size of 100,000 transactions before deferral is stopped and
   // all existing transactions are processed immediately again
-  protected static final int DEFAULT_MAX_DEFERRED = 100_000;
+  public static final int DEFAULT_MAX_DEFERRED = 100_000;
 
-  protected final Set<Long> reserved;
-  protected final Map<Long,Long> deferred;
+  public static final FateIdGenerator DEFAULT_FATE_ID_GENERATOR = new FateIdGenerator() {
+    @Override
+    public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
+      HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
+      long tid = hashCode.asLong() & 0x7fffffffffffffffL;
+      return FateId.from(instanceType, tid);
+    }
+  };
+
+  protected final Set<FateId> reserved;
+  protected final Map<FateId,Long> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
+  private final FateIdGenerator fateIdGenerator;
 
   // This is incremented each time a transaction was unreserved that was non new
   protected final SignalCount unreservedNonNewCount = new SignalCount();
@@ -67,11 +81,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   protected final SignalCount unreservedRunnableCount = new SignalCount();
 
   public AbstractFateStore() {
-    this(DEFAULT_MAX_DEFERRED);
+    this(DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AbstractFateStore(int maxDeferred) {
+  public AbstractFateStore(int maxDeferred, FateIdGenerator fateIdGenerator) {
     this.maxDeferred = maxDeferred;
+    this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
   }
@@ -101,26 +116,26 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   /**
-   * Attempt to reserve transaction
+   * Attempt to reserve the fate transaction.
    *
-   * @param tid transaction id
+   * @param fateId The FateId
    * @return An Optional containing the FateTxStore if the transaction was successfully reserved, or
    *         an empty Optional if the transaction was already reserved.
    */
   @Override
-  public Optional<FateTxStore<T>> tryReserve(long tid) {
-    synchronized (AbstractFateStore.this) {
-      if (!reserved.contains(tid)) {
-        return Optional.of(reserve(tid));
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    synchronized (this) {
+      if (!reserved.contains(fateId)) {
+        return Optional.of(reserve(fateId));
       }
       return Optional.empty();
     }
   }
 
   @Override
-  public FateTxStore<T> reserve(long tid) {
+  public FateTxStore<T> reserve(FateId fateId) {
     synchronized (AbstractFateStore.this) {
-      while (reserved.contains(tid)) {
+      while (reserved.contains(fateId)) {
         try {
           AbstractFateStore.this.wait(100);
         } catch (InterruptedException e) {
@@ -129,13 +144,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         }
       }
 
-      reserved.add(tid);
-      return newFateTxStore(tid, true);
+      reserved.add(fateId);
+      return newFateTxStore(fateId, true);
     }
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, LongConsumer idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -145,21 +160,21 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       try (Stream<FateIdStatus> transactions = getTransactions()) {
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
-            .mapToLong(FateIdStatus::getTxid).filter(txid -> {
+            .map(FateIdStatus::getFateId).filter(fateId -> {
               synchronized (AbstractFateStore.this) {
-                var deferredTime = deferred.get(txid);
+                var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
                   if ((deferredTime - System.nanoTime()) >= 0) {
                     return false;
                   } else {
-                    deferred.remove(txid);
+                    deferred.remove(fateId);
                   }
                 }
-                return !reserved.contains(txid);
+                return !reserved.contains(fateId);
               }
-            }).forEach(txid -> {
+            }).forEach(fateId -> {
               seen.incrementAndGet();
-              idConsumer.accept(txid);
+              idConsumer.accept(fateId);
             });
       }
 
@@ -202,8 +217,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public ReadOnlyFateTxStore<T> read(long tid) {
-    return newFateTxStore(tid, false);
+  public ReadOnlyFateTxStore<T> read(FateId fateId) {
+    return newFateTxStore(fateId, false);
   }
 
   protected boolean isRunnable(TStatus status) {
@@ -211,20 +226,16 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         || status == TStatus.SUBMITTED;
   }
 
-  protected long parseTid(String txdir) {
-    return Long.parseLong(txdir.split("_")[1], 16);
-  }
-
   public static abstract class FateIdStatusBase implements FateIdStatus {
-    private final long txid;
+    private final FateId fateId;
 
-    public FateIdStatusBase(long txid) {
-      this.txid = txid;
+    public FateIdStatusBase(FateId fateId) {
+      this.fateId = fateId;
     }
 
     @Override
-    public long getTxid() {
-      return txid;
+    public FateId getFateId() {
+      return fateId;
     }
   }
 
@@ -243,32 +254,125 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
+  private Optional<FateId> create(FateKey fateKey) {
+    FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
+
+    try {
+      create(fateId, fateKey);
+    } catch (IllegalStateException e) {
+      Pair<TStatus,Optional<FateKey>> statusAndKey = getStatusAndKey(fateId);
+      TStatus status = statusAndKey.getFirst();
+      Optional<FateKey> tFateKey = statusAndKey.getSecond();
+
+      // Case 1: Status is NEW so this is unseeded, we can return and allow the calling code
+      // to reserve/seed as long as the existing key is the same and not different as that would
+      // mean a collision
+      if (status == TStatus.NEW) {
+        Preconditions.checkState(tFateKey.isPresent(), "Tx Key is missing from tid %s",
+            fateId.getTid());
+        Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
+            "Collision detected for tid %s", fateId.getTid());
+        // Case 2: Status is some other state which means already in progress
+        // so we can just log and return empty optional
+      } else {
+        log.trace("Existing transaction {} already exists for key {} with status {}", fateId,
+            fateKey, status);
+        return Optional.empty();
+      }
+    }
+
+    return Optional.of(fateId);
+  }
+
+  @Override
+  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+    FateId fateId = fateIdGenerator.fromTypeAndKey(getInstanceType(), fateKey);
+    final Optional<FateTxStore<T>> txStore;
+
+    // First make sure we can reserve in memory the fateId, if not
+    // we can return an empty Optional as it is reserved and in progress
+    // This reverses the usual order of creation and then reservation but
+    // this prevents a race condition by ensuring we can reserve first.
+    // This will create the FateTxStore before creation but this object
+    // is not exposed until after creation is finished so there should not
+    // be any errors.
+    final Optional<FateTxStore<T>> reservedTxStore;
+    synchronized (this) {
+      reservedTxStore = tryReserve(fateId);
+    }
+
+    // If present we were able to reserve so try and create
+    if (reservedTxStore.isPresent()) {
+      try {
+        var fateIdFromCreate = create(fateKey);
+        if (fateIdFromCreate.isPresent()) {
+          Preconditions.checkState(fateId.equals(fateIdFromCreate.orElseThrow()),
+              "Transaction creation returned unexpected %s, expected %s", fateIdFromCreate, fateId);
+          txStore = reservedTxStore;
+        } else {
+          // We already exist in a non-new state then un-reserve and an empty
+          // Optional will be returned. This is expected to happen when the
+          // system is busy and operations are not running, and we keep seeding them
+          synchronized (this) {
+            reserved.remove(fateId);
+          }
+          txStore = Optional.empty();
+        }
+      } catch (Exception e) {
+        // Clean up the reservation if the creation failed
+        // And then throw error
+        synchronized (this) {
+          reserved.remove(fateId);
+        }
+        if (e instanceof IllegalStateException) {
+          throw e;
+        } else {
+          throw new IllegalStateException(e);
+        }
+      }
+    } else {
+      // Could not reserve so return empty
+      log.trace("Another thread currently has transaction {} key {} reserved", fateId, fateKey);
+      txStore = Optional.empty();
+    }
+
+    return txStore;
+  }
+
+  protected abstract void create(FateId fateId, FateKey fateKey);
+
+  protected abstract Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId);
+
   protected abstract Stream<FateIdStatus> getTransactions();
 
-  protected abstract TStatus _getStatus(long tid);
+  protected abstract TStatus _getStatus(FateId fateId);
 
-  protected abstract FateTxStore<T> newFateTxStore(long tid, boolean isReserved);
+  protected abstract Optional<FateKey> getKey(FateId fateId);
+
+  protected abstract FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved);
+
+  protected abstract FateInstanceType getInstanceType();
 
   protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
-    protected final long tid;
+    protected final FateId fateId;
     protected final boolean isReserved;
 
     protected TStatus observedStatus = null;
 
-    protected AbstractFateTxStoreImpl(long tid, boolean isReserved) {
-      this.tid = tid;
+    protected AbstractFateTxStoreImpl(FateId fateId, boolean isReserved) {
+      this.fateId = fateId;
       this.isReserved = isReserved;
     }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       Preconditions.checkState(!isReserved,
-          "Attempted to wait for status change while reserved " + FateTxId.formatTid(getID()));
+          "Attempted to wait for status change while reserved " + fateId);
       while (true) {
 
         long countBefore = unreservedNonNewCount.getCount();
 
-        TStatus status = _getStatus(tid);
+        TStatus status = _getStatus(fateId);
         if (expected.contains(status)) {
           return status;
         }
@@ -286,9 +390,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       }
 
       synchronized (AbstractFateStore.this) {
-        if (!reserved.remove(tid)) {
-          throw new IllegalStateException(
-              "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+        if (!reserved.remove(fateId)) {
+          throw new IllegalStateException("Tried to unreserve id that was not reserved " + fateId);
         }
 
         // notify any threads waiting to reserve
@@ -306,7 +409,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(tid, System.nanoTime() + deferTime);
+            deferred.put(fateId, System.nanoTime() + deferTime);
           }
         }
       }
@@ -327,9 +430,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
       if (isReserved) {
         synchronized (AbstractFateStore.this) {
-          if (!reserved.contains(tid)) {
-            throw new IllegalStateException(
-                "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
+          if (!reserved.contains(fateId)) {
+            throw new IllegalStateException("Tried to operate on unreserved transaction " + fateId);
           }
         }
       }
@@ -338,39 +440,55 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     @Override
     public TStatus getStatus() {
       verifyReserved(false);
-      var status = _getStatus(tid);
+      var status = _getStatus(fateId);
       observedStatus = status;
       return status;
     }
 
     @Override
-    public long getID() {
-      return tid;
+    public Optional<FateKey> getKey() {
+      verifyReserved(false);
+      return AbstractFateStore.this.getKey(fateId);
     }
 
-    protected byte[] serializeTxInfo(Serializable so) {
-      if (so instanceof String) {
-        return ("S " + so).getBytes(UTF_8);
-      } else {
-        byte[] sera = serialize(so);
-        byte[] data = new byte[sera.length + 2];
-        System.arraycopy(sera, 0, data, 2, sera.length);
-        data[0] = 'O';
-        data[1] = ' ';
-        return data;
-      }
+    @Override
+    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
+      verifyReserved(false);
+      return AbstractFateStore.this.getStatusAndKey(fateId);
     }
 
-    protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
-      if (data[0] == 'O') {
-        byte[] sera = new byte[data.length - 2];
-        System.arraycopy(data, 2, sera, 0, sera.length);
-        return (Serializable) deserialize(sera);
-      } else if (data[0] == 'S') {
-        return new String(data, 2, data.length - 2, UTF_8);
-      } else {
-        throw new IllegalStateException("Bad node data " + txInfo);
-      }
+    @Override
+    public FateId getID() {
+      return fateId;
+    }
+  }
+
+  public interface FateIdGenerator {
+    FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey);
+  }
+
+  protected byte[] serializeTxInfo(Serializable so) {
+    if (so instanceof String) {
+      return ("S " + so).getBytes(UTF_8);
+    } else {
+      byte[] sera = serialize(so);
+      byte[] data = new byte[sera.length + 2];
+      System.arraycopy(sera, 0, data, 2, sera.length);
+      data[0] = 'O';
+      data[1] = ' ';
+      return data;
+    }
+  }
+
+  protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
+    if (data[0] == 'O') {
+      byte[] sera = new byte[data.length - 2];
+      System.arraycopy(data, 2, sera, 0, sera.length);
+      return (Serializable) deserialize(sera);
+    } else if (data[0] == 'S') {
+      return new String(data, 2, data.length - 2, UTF_8);
+    } else {
+      throw new IllegalStateException("Bad node data " + txInfo);
     }
   }
 }

@@ -16,30 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.core.client.admin;
 
-import java.util.Set;
-import java.util.function.Predicate;
+/**
+ * @see TableOperations#setTabletAvailability(String, org.apache.accumulo.core.data.Range,
+ *      TabletAvailability)
+ * @since 4.0.0
+ */
+public enum TabletAvailability {
 
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+  /**
+   * Signifies that a Tablet should always be hosted on a tablet server.
+   */
+  HOSTED,
 
-import com.google.common.collect.Sets;
+  /**
+   * Signifies that a Tablet should be hosted on a tablet server when a client needs it.
+   */
+  ONDEMAND,
 
-public class HasWalsFilter extends TabletMetadataFilter {
+  /**
+   * Signifies that a Tablet should never be hosted on a tablet server.
+   */
+  UNHOSTED;
 
-  private static final Set<TabletMetadata.ColumnType> COLUMNS =
-      Sets.immutableEnumSet(TabletMetadata.ColumnType.LOGS);
-
-  private final static Predicate<TabletMetadata> HAS_WALS =
-      tabletMetadata -> !tabletMetadata.getLogs().isEmpty();
-
-  @Override
-  public Set<TabletMetadata.ColumnType> getColumns() {
-    return COLUMNS;
-  }
-
-  @Override
-  protected Predicate<TabletMetadata> acceptTablet() {
-    return HAS_WALS;
-  }
 }

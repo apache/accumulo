@@ -28,7 +28,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -72,7 +72,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
         NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits)
-            .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+            .withInitialTabletAvailability(TabletAvailability.HOSTED);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
         c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);

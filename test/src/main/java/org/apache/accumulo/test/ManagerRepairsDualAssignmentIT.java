@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -78,7 +78,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         partitions.add(new Text(part));
       }
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions)
-          .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+          .withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
       final Set<TabletMetadata.Location> states = new HashSet<>();

@@ -1009,17 +1009,18 @@ public interface TableOperations {
   }
 
   /**
-   * Sets the hosting goal for a range of Tablets in the specified table, but does not wait for the
-   * tablets to reach this goal state. For the Range parameter, note that the Row portion of the
-   * start and end Keys and the inclusivity parameters are used when determining the range of
-   * affected tablets. The other portions of the start and end Keys are not used.
+   * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
+   * for the tablets to reach this availability state. For the Range parameter, note that the Row
+   * portion of the start and end Keys and the inclusivity parameters are used when determining the
+   * range of affected tablets. The other portions of the start and end Keys are not used.
    *
    * @param tableName table name
    * @param range tablet range
-   * @param goal hosting goal
+   * @param tabletAvailability tablet availability
    * @since 4.0.0
    */
-  default void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+  default void setTabletAvailability(String tableName, Range range,
+      TabletAvailability tabletAvailability)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }

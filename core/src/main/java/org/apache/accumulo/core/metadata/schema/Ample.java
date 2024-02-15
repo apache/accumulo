@@ -28,11 +28,12 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -371,7 +372,7 @@ public interface Ample {
 
     T putTime(MetadataTime time);
 
-    T putBulkFile(ReferencedTabletFile bulkref, long tid);
+    T putBulkFile(ReferencedTabletFile bulkref, FateId fateId);
 
     T deleteBulkFile(StoredTabletFile bulkref);
 
@@ -383,11 +384,11 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T putCompacted(long fateTxid);
+    T putCompacted(FateId fateId);
 
-    T deleteCompacted(long fateTxid);
+    T deleteCompacted(FateId fateId);
 
-    T putHostingGoal(TabletHostingGoal goal);
+    T putTabletAvailability(TabletAvailability tabletAvailability);
 
     T setHostingRequested();
 
@@ -512,9 +513,9 @@ public interface Ample {
     ConditionalTabletMutator requireLocation(Location location);
 
     /**
-     * Requires the tablet to have the specified hosting goal before any changes are made.
+     * Requires the tablet to have the specified tablet availability before any changes are made.
      */
-    ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
+    ConditionalTabletMutator requireTabletAvailability(TabletAvailability tabletAvailability);
 
     /**
      * Requires the specified external compaction to exists
@@ -660,9 +661,9 @@ public interface Ample {
    * Create a Bulk Load In Progress flag in the metadata table
    *
    * @param path The bulk directory filepath
-   * @param fateTxid The id of the Bulk Import Fate operation.
+   * @param fateId The FateId of the Bulk Import Fate operation.
    */
-  default void addBulkLoadInProgressFlag(String path, long fateTxid) {
+  default void addBulkLoadInProgressFlag(String path, FateId fateId) {
     throw new UnsupportedOperationException();
   }
 

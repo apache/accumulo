@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -151,6 +151,12 @@ public class MetadataSchema {
        */
       public static final String PREV_ROW_QUAL = "~pr";
       public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text(PREV_ROW_QUAL));
+
+      public static final String AVAILABILITY_QUAL = "availability";
+      public static final ColumnFQ AVAILABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(AVAILABILITY_QUAL));
+      public static final String REQUESTED_QUAL = "requestToHost";
+      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
 
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
@@ -328,18 +334,13 @@ public class MetadataSchema {
       public static final String STR_NAME = "loaded";
       public static final Text NAME = new Text(STR_NAME);
 
-      public static long getBulkLoadTid(Value v) {
+      public static FateId getBulkLoadTid(Value v) {
         return getBulkLoadTid(v.toString());
       }
 
-      public static long getBulkLoadTid(String vs) {
-        if (FateTxId.isFormatedTid(vs)) {
-          return FateTxId.fromString(vs);
-        } else {
-          // a new serialization format was introduce in 2.0. This code support deserializing the
-          // old format.
-          return Long.parseLong(vs);
-        }
+      public static FateId getBulkLoadTid(String vs) {
+        // ELASTICITY_TODO issue 4044 - May need to introduce code in upgrade to handle old format.
+        return FateId.from(vs);
       }
     }
 
@@ -410,15 +411,6 @@ public class MetadataSchema {
     public static class CompactedColumnFamily {
       public static final String STR_NAME = "compacted";
       public static final Text NAME = new Text(STR_NAME);
-    }
-
-    public static class HostingColumnFamily {
-      public static final String STR_NAME = "hosting";
-      public static final Text NAME = new Text(STR_NAME);
-      public static final String GOAL_QUAL = "goal";
-      public static final ColumnFQ GOAL_COLUMN = new ColumnFQ(NAME, new Text(GOAL_QUAL));
-      public static final String REQUESTED_QUAL = "requested";
-      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
 
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.

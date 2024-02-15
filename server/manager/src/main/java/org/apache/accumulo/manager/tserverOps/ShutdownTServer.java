@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tserverOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -51,7 +52,7 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) {
+  public long isReady(FateId fateId, Manager manager) {
     TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
@@ -92,7 +93,7 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
@@ -109,5 +110,5 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager m) {}
+  public void undo(FateId fateId, Manager m) {}
 }

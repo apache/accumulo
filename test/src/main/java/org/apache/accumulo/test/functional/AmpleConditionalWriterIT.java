@@ -66,9 +66,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.iterators.user.GcWalsFilter;
 import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
-import org.apache.accumulo.core.iterators.user.HasWalsFilter;
 import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -316,8 +317,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
       ctmi = new ConditionalTabletsMutatorImpl(context);
       var tm6 = TabletMetadata.builder(e1).build(LOADED);
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId = FateId.from(type, 9L);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
-          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), 9L)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
           .putFile(stf5, new DataFileValue(0, 0)).submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -340,7 +343,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // simulate trying to re bulk import file after a compaction
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
-          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), 9L)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
           .submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -459,8 +462,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
 
     ctmi = new ConditionalTabletsMutatorImpl(context);
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId2L = FateId.from(type, 2L);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, FILES, SELECTED)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, 2L))
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId2L))
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -472,7 +477,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         .build(SELECTED);
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, FILES, SELECTED)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, 2L))
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId2L))
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -484,11 +489,12 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // a list of selected files objects that are not the same as the current tablet and expected to
     // fail
     var expectedToFail = new ArrayList<SelectedFiles>();
+    FateId fateId3L = FateId.from(type, 3L);
 
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2), true, 2L));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3, stf4), true, 2L));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), false, 2L));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), true, 3L));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2), true, fateId2L));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3, stf4), true, fateId2L));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), false, fateId2L));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId3L));
 
     for (var selectedFiles : expectedToFail) {
       var tm3 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
@@ -505,7 +511,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
 
     var tm5 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, 2L)).build();
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId2L)).build();
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES, SELECTED)
         .deleteSelectedFiles().submit(tm -> false);
@@ -532,9 +538,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       final Set<StoredTabletFile> storedTabletFiles = Set.of(stf1, stf2, stf3);
       final boolean initiallySelectedAll = true;
-      final long fateTxId = 2L;
+      final FateInstanceType type = FateInstanceType.fromTableId(tid);
+      final FateId fateId = FateId.from(type, 2L);
       final SelectedFiles selectedFiles =
-          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateTxId);
+          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateId);
 
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
 
@@ -574,13 +581,13 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .sorted().collect(Collectors.toList());
 
       // verify we have the format of the json correct
-      String newJson = createSelectedFilesJson(fateTxId, initiallySelectedAll, filesPathList);
+      String newJson = createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList);
       assertEquals(actualMetadataValue, newJson,
           "Test json should be identical to actual metadata at this point");
 
       // reverse the order of the files and create a new json
       Collections.reverse(filesPathList);
-      newJson = createSelectedFilesJson(fateTxId, initiallySelectedAll, filesPathList);
+      newJson = createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList);
       assertNotEquals(actualMetadataValue, newJson,
           "Test json should have reverse file order of actual metadata");
 
@@ -624,18 +631,17 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
    *
    * <pre>
    * {
-   *   "txid": "FATE[123456]",
+   *   "fateId": "FATE:META:123456",
    *   "selAll": true,
    *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
    * }
    * </pre>
    */
-  public static String createSelectedFilesJson(Long txid, boolean selAll,
+  public static String createSelectedFilesJson(FateId fateId, boolean selAll,
       Collection<String> paths) {
     String filesJsonArray = GSON.get().toJson(paths);
-    String formattedTxid = FateTxId.formatTid(Long.parseLong(Long.toString(txid), 16));
-    return ("{'txid':'" + formattedTxid + "','selAll':" + selAll + ",'files':" + filesJsonArray
-        + "}").replace('\'', '\"');
+    return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'files':" + filesJsonArray + "}")
+        .replace('\'', '\"');
   }
 
   @Test
@@ -745,58 +751,70 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
 
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId45L = FateId.from(type, 45L);
+      FateId fateId55L = FateId.from(type, 55L);
+      FateId fateId56L = FateId.from(type, 56L);
+      FateId fateId65L = FateId.from(type, 65L);
+      FateId fateId75L = FateId.from(type, 75L);
+
       var tabletMeta1 = TabletMetadata.builder(e1).build(COMPACTED);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-          .putCompacted(55L).submit(tabletMetadata -> tabletMetadata.getCompacted().contains(55L));
-      var tabletMeta2 = TabletMetadata.builder(e2).putCompacted(45L).build(COMPACTED);
+          .putCompacted(fateId55L)
+          .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId55L));
+      var tabletMeta2 = TabletMetadata.builder(e2).putCompacted(fateId45L).build(COMPACTED);
       ctmi.mutateTablet(e2).requireAbsentOperation().requireSame(tabletMeta2, COMPACTED)
-          .putCompacted(56L).submit(tabletMetadata -> tabletMetadata.getCompacted().contains(56L));
+          .putCompacted(fateId56L)
+          .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId56L));
 
       var results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(Status.REJECTED, results.get(e2).getStatus());
 
       tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(55L), tabletMeta1.getCompacted());
+      assertEquals(Set.of(fateId55L), tabletMeta1.getCompacted());
       assertEquals(Set.of(), context.getAmple().readTablet(e2).getCompacted());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-          .putCompacted(65L).putCompacted(75L).submit(tabletMetadata -> false);
+          .putCompacted(fateId65L).putCompacted(fateId75L).submit(tabletMetadata -> false);
 
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(55L, 65L, 75L), tabletMeta1.getCompacted());
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L), tabletMeta1.getCompacted());
 
       // test require same with a superset
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).putCompacted(75L)
-          .putCompacted(45L).build(COMPACTED);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId55L).putCompacted(fateId65L)
+          .putCompacted(fateId75L).putCompacted(fateId45L).build(COMPACTED);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .deleteCompacted(fateId55L).deleteCompacted(fateId65L).deleteCompacted(fateId75L)
           .submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
-      assertEquals(Set.of(55L, 65L, 75L), context.getAmple().readTablet(e1).getCompacted());
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L),
+          context.getAmple().readTablet(e1).getCompacted());
 
       // test require same with a subset
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).build(COMPACTED);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId55L).putCompacted(fateId65L)
+          .build(COMPACTED);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .deleteCompacted(fateId55L).deleteCompacted(fateId65L).deleteCompacted(fateId75L)
           .submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
-      assertEquals(Set.of(55L, 65L, 75L), context.getAmple().readTablet(e1).getCompacted());
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L),
+          context.getAmple().readTablet(e1).getCompacted());
 
       // now use the exact set the tablet has
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(55L).putCompacted(65L).putCompacted(75L)
-          .build(COMPACTED);
+      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId55L).putCompacted(fateId65L)
+          .putCompacted(fateId75L).build(COMPACTED);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-          .deleteCompacted(55L).deleteCompacted(65L).deleteCompacted(75L)
+          .deleteCompacted(fateId55L).deleteCompacted(fateId65L).deleteCompacted(fateId75L)
           .submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -931,15 +949,17 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // add wal compact and flush ID to these tablets
       final Set<KeyExtent> tabletsWithWalCompactFlush = Set.of(e1, e2, e3);
       for (KeyExtent ke : tabletsWithWalCompactFlush) {
+        FateInstanceType type = FateInstanceType.fromTableId(ke.tableId());
+        FateId fateId34L = FateId.from(type, 34L);
         ctmi = new ConditionalTabletsMutatorImpl(context);
-        ctmi.mutateTablet(ke).requireAbsentOperation().putCompacted(34L)
+        ctmi.mutateTablet(ke).requireAbsentOperation().putCompacted(fateId34L)
             .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).putWal(wal)
             .submit(tabletMetadata -> false);
         var results = ctmi.process();
         assertEquals(Status.ACCEPTED, results.get(ke).getStatus());
       }
       // check that applying a combination of filters returns only tablets that meet the criteria
-      testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new HasWalsFilter()),
+      testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new GcWalsFilter(Set.of())),
           tabletsWithWalCompactFlush, "Combination of filters did not return the expected tablets");
 
       TServerInstance serverInstance = new TServerInstance(server, 1L);
@@ -961,7 +981,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Set<KeyExtent> expected = Sets.intersection(tabletsWithWalCompactFlush, tabletsWithLocation);
       assertFalse(expected.isEmpty());
       testFilterApplied(context,
-          Set.of(new HasCurrentFilter(), new HasWalsFilter(), new TestTabletMetadataFilter()),
+          Set.of(new HasCurrentFilter(), new GcWalsFilter(Set.of()),
+              new TestTabletMetadataFilter()),
           expected, "Combination of filters did not return the expected tablets");
     }
 
@@ -970,13 +991,16 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       ServerContext context = cluster.getServerContext();
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
       Set<TabletMetadataFilter> filter = Set.of(new TestTabletMetadataFilter());
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId34L = FateId.from(type, 34L);
+      FateId fateId987L = FateId.from(type, 987L);
 
       // make sure we read all tablets on table initially with no filters
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
           "Initially, all tablets should be present");
 
       // Set compacted on e2 but with no flush ID
-      ctmi.mutateTablet(e2).requireAbsentOperation().putCompacted(34L)
+      ctmi.mutateTablet(e2).requireAbsentOperation().putCompacted(fateId34L)
           .submit(tabletMetadata -> false);
       var results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
@@ -1003,7 +1027,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // Set compacted and correct flush ID on e3
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e3).requireAbsentOperation().putCompacted(987L)
+      ctmi.mutateTablet(e3).requireAbsentOperation().putCompacted(fateId987L)
           .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).submit(tabletMetadata -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
@@ -1015,7 +1039,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     public void walFilter() {
       ServerContext context = cluster.getServerContext();
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
-      Set<TabletMetadataFilter> filter = Set.of(new HasWalsFilter());
+      Set<TabletMetadataFilter> filter = Set.of(new GcWalsFilter(Set.of()));
 
       // make sure we read all tablets on table initially with no filters
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
@@ -1052,6 +1076,41 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // test that now only the tablet with a wal is returned when using filter()
       testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
+
+      var ts1 = new TServerInstance("localhost:9997", 5000L);
+      var ts2 = new TServerInstance("localhost:9997", 6000L);
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts1)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.current(ts1)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tabletMetadata -> false);
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.current(ts2)).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+
+      testFilterApplied(context, filter, Set.of(e1, e2, e3, e4),
+          "All tablets should appear to be assigned to dead tservers and be returned");
+
+      // add ts1 to live tservers set and make ts2 look like a dead tserver
+      filter = Set.of(new GcWalsFilter(Set.of(ts1)));
+      testFilterApplied(context, filter, Set.of(e2, e3, e4),
+          "Tablets assigned to ts2 or with a wal should be returned");
+
+      // add ts2 to live tservers set and make ts1 look like a dead tserver
+      filter = Set.of(new GcWalsFilter(Set.of(ts2)));
+      testFilterApplied(context, filter, Set.of(e1, e2),
+          "Tablets assigned to ts1 or with a wal should be returned");
+
+      // add ts1 and ts2 to live tserver set, so nothing should look dead
+      filter = Set.of(new GcWalsFilter(Set.of(ts1, ts2)));
+      testFilterApplied(context, filter, Set.of(e2), "Only tablets with a wal should be returned");
     }
 
     @Test

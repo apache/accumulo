@@ -71,15 +71,13 @@ public class Upgrader11to12Test {
 
   @Test
   void upgradeDataFileCF2Test() {
-    Upgrader11to12 upgrader = new Upgrader11to12();
-
     String fileName = "hdfs://localhost:8020/accumulo/tables/12/default_tablet/A000000v.rf";
     Key k = Key.builder().row(new Text("12;")).family(DataFileColumnFamily.NAME)
         .qualifier(new Text(fileName)).build();
     Value v = new Value("1234,5678");
 
     Mutation upgrade = new Mutation(k.getRow());
-    upgrader.upgradeDataFileCF(k, v, upgrade);
+    Upgrader11to12.upgradeDataFileCF(k, v, upgrade);
 
     var pending = upgrade.getUpdates();
     assertEquals(2, pending.size());
@@ -105,7 +103,7 @@ public class Upgrader11to12Test {
   }
 
   @Test
-  public void processReferencesTest() throws Exception {
+  public void processReferencesTest() {
 
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
@@ -161,7 +159,7 @@ public class Upgrader11to12Test {
   }
 
   @Test
-  public void skipConvertedFileTest() throws Exception {
+  public void skipConvertedFileTest() {
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
     Text row1 = new Text("123");
@@ -288,7 +286,7 @@ public class Upgrader11to12Test {
    * called for those rows
    */
   @Test
-  public void verifyEmptyMutation() throws Exception {
+  public void verifyEmptyMutation() {
     // create sample data "served" by the mocked scanner
     TreeMap<Key,Value> scanData = new TreeMap<>();
 
@@ -375,21 +373,6 @@ public class Upgrader11to12Test {
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
     verify(context, zrw);
-  }
-
-  @Test
-  public void fileConversionTest() {
-    String s21 = "hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf";
-    String s31 =
-        "{\"path\":\"hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf\",\"startRow\":\"\",\"endRow\":\"\"}";
-    String s31_untrimmed =
-        "   {  \"path\":\"hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf\",\"startRow\":\"\",\"endRow\":\"\"  }   ";
-
-    Upgrader11to12 upgrader = new Upgrader11to12();
-
-    assertTrue(upgrader.fileNeedsConversion(s21));
-    assertFalse(upgrader.fileNeedsConversion(s31));
-    assertFalse(upgrader.fileNeedsConversion(s31_untrimmed));
   }
 
   @Test

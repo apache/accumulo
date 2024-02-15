@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -78,7 +79,7 @@ class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
     // ELASTICITY_TODO investigate this, what is it for and is it still needed?
     if (!manager.hasCycled(creationTime)) {
       return 50;
@@ -88,7 +89,7 @@ class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) {
+  public Repo<Manager> call(FateId fateId, Manager manager) {
 
     manager.clearMigrations(tableId);
 
@@ -177,8 +178,8 @@ class CleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(manager, tableId, tid, true);
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
+    Utils.unreserveTable(manager, tableId, fateId, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
@@ -186,7 +187,7 @@ class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) {
+  public void undo(FateId fateId, Manager environment) {
     // nothing to do
   }
 

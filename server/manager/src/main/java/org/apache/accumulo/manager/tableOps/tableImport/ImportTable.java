@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -73,18 +74,18 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
+  public long isReady(FateId fateId, Manager environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
+      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), fateId);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, fateId, false, true,
         TableOperation.IMPORT);
     return result;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     checkVersions(env);
 
     // first step is to reserve a table id.. if the machine fails during this step
@@ -110,7 +111,7 @@ public class ImportTable extends ManagerRepo {
 
     log.debug("Searching for export file in {}", exportDirs);
 
-    Integer exportVersion = null;
+    tableInfo.exportedVersion = null;
     Integer dataVersion = null;
 
     try {
@@ -127,7 +128,7 @@ public class ImportTable extends ManagerRepo {
           while ((line = in.readLine()) != null) {
             String[] sa = line.split(":", 2);
             if (sa[0].equals(ExportTable.EXPORT_VERSION_PROP)) {
-              exportVersion = Integer.parseInt(sa[1]);
+              tableInfo.exportedVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {
               dataVersion = Integer.parseInt(sa[1]);
             }
@@ -142,10 +143,10 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (exportVersion == null || exportVersion > ExportTable.VERSION) {
+    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.CURR_VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Incompatible export version " + exportVersion);
+          "Incompatible export version " + tableInfo.exportedVersion);
     }
 
     if (dataVersion == null || dataVersion > AccumuloDataVersion.get()) {
@@ -156,12 +157,12 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, false);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {

@@ -197,28 +197,16 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   @VisibleForTesting
-  void upgradeDataFileCF(final Key key, final Value value, final Mutation m) {
+  static void upgradeDataFileCF(final Key key, final Value value, final Mutation m) {
     String file = key.getColumnQualifier().toString();
     // filter out references if they are in the correct format already.
-    if (fileNeedsConversion(file)) {
+    boolean needsConversion = StoredTabletFile.fileNeedsConversion(file);
+    log.trace("file: {} needs conversion: {}", file, needsConversion);
+    if (needsConversion) {
       var fileJson = StoredTabletFile.of(new Path(file)).getMetadataText();
       m.at().family(DataFileColumnFamily.STR_NAME).qualifier(fileJson).put(value);
       m.at().family(DataFileColumnFamily.STR_NAME).qualifier(file).delete();
     }
   }
 
-  /**
-   * Quick validation to see if value has been converted by checking if the candidate looks like
-   * json by checking the candidate starts with "{" and ends with "}".
-   *
-   * @param candidate a possible file: reference.
-   * @return false if a likely a json object, true if not a likely json object
-   */
-  @VisibleForTesting
-  boolean fileNeedsConversion(@NonNull final String candidate) {
-    String trimmed = candidate.trim();
-    boolean needsConversion = !trimmed.startsWith("{") || !trimmed.endsWith("}");
-    log.trace("file: {} needs conversion: {}", candidate, needsConversion);
-    return needsConversion;
-  }
 }

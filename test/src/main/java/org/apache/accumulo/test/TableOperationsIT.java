@@ -40,7 +40,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -51,11 +50,11 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.AvailabilityForTablet;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.HostingGoalForTablet;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
@@ -378,89 +377,92 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   // This test will create a total of six tables.
   // This test will create three tables with no additional parameters, i.e., no initial splits, etc.
-  // For each of the first three tablets, set ONDEMAND, ALWAYS, and NEVER as the HostingGoals,
-  // respectively.
-  // Retrieving the HostingGoals should return the above goals back in a single tablet.
+  // For each of the first three tablets, set ONDEMAND, HOSTED, and UNHOSTED as the tablet
+  // availability, respectively.
+  // Retrieving the TabletAvailability should return the above values back in a single tablet.
   //
-  // The other three tables will be created with initial splits and then queried for HostingGoals.
-  // For each table a list of tablets will be returned with the corresponding HostingGoal verified
-  // for correctness.
+  // The other three tables will be created with initial splits and then queried for
+  // TabletAvailability's
+  // For each table a list of tablets will be returned with the corresponding TabletAvailability
+  // verified for correctness.
   // The last three tables will also be queried for ranges within the table and only expect to see
   // tablets with those ranges returned.
   @Test
-  public void testGetHostingGoals_DefaultTableCreation() throws AccumuloException,
+  public void testGetTabletAvailability_DefaultTableCreations() throws AccumuloException,
       TableExistsException, AccumuloSecurityException, TableNotFoundException {
 
     final String[] tableNames = getUniqueNames(6);
     final String tableOnDemand = tableNames[0];
-    final String tableAlways = tableNames[1];
-    final String tableNever = tableNames[2];
+    final String tableHosted = tableNames[1];
+    final String tableUnhosted = tableNames[2];
     final String tableOnDemandWithSplits = tableNames[3];
-    final String tableAlwaysWithSplits = tableNames[4];
-    final String tableNeverWithSplits = tableNames[5];
+    final String tableHostedWithSplits = tableNames[4];
+    final String tableUnhostedWithSplits = tableNames[5];
 
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     try {
-      // create all the tables with initial hosting goals and splits
-      ntc = ntc.withInitialHostingGoal(TabletHostingGoal.ONDEMAND);
+      // create all the tables with initial tablet availability values and splits
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.ONDEMAND);
       accumuloClient.tableOperations().create(tableOnDemand, ntc);
 
-      ntc = ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
-      accumuloClient.tableOperations().create(tableAlways, ntc);
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().create(tableHosted, ntc);
 
-      ntc = ntc.withInitialHostingGoal(TabletHostingGoal.NEVER);
-      accumuloClient.tableOperations().create(tableNever, ntc);
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().create(tableUnhosted, ntc);
 
-      ntc = ntc.withSplits(splits).withInitialHostingGoal(TabletHostingGoal.ONDEMAND);
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.ONDEMAND);
       accumuloClient.tableOperations().create(tableOnDemandWithSplits, ntc);
 
-      ntc = ntc.withSplits(splits).withInitialHostingGoal(TabletHostingGoal.ALWAYS);
-      accumuloClient.tableOperations().create(tableAlwaysWithSplits, ntc);
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().create(tableHostedWithSplits, ntc);
 
-      ntc = ntc.withSplits(splits).withInitialHostingGoal(TabletHostingGoal.NEVER);
-      accumuloClient.tableOperations().create(tableNeverWithSplits, ntc);
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().create(tableUnhostedWithSplits, ntc);
 
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
 
-      List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
-      setExpectedGoal(expectedGoals, idMap.get(tableOnDemand), null, null,
-          TabletHostingGoal.ONDEMAND);
-      verifyTabletGoals(tableOnDemand, new Range(), expectedGoals);
+      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableOnDemand), null,
+          null, TabletAvailability.ONDEMAND);
+      verifyTabletAvailabilites(tableOnDemand, new Range(), expectedTabletAvailability);
 
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, idMap.get(tableAlways), null, null, TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableAlways, new Range(), expectedGoals);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableHosted), null, null,
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilites(tableHosted, new Range(), expectedTabletAvailability);
 
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, idMap.get(tableNever), null, null, TabletHostingGoal.NEVER);
-      verifyTabletGoals(tableNever, new Range(), expectedGoals);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableUnhosted), null,
+          null, TabletAvailability.UNHOSTED);
+      verifyTabletAvailabilites(tableUnhosted, new Range(), expectedTabletAvailability);
 
-      verifyTablesWithSplits(tableOnDemandWithSplits, idMap, splits, TabletHostingGoal.ONDEMAND);
-      verifyTablesWithSplits(tableAlwaysWithSplits, idMap, splits, TabletHostingGoal.ALWAYS);
-      verifyTablesWithSplits(tableNeverWithSplits, idMap, splits, TabletHostingGoal.NEVER);
+      verifyTablesWithSplits(tableOnDemandWithSplits, idMap, splits, TabletAvailability.ONDEMAND);
+      verifyTablesWithSplits(tableHostedWithSplits, idMap, splits, TabletAvailability.HOSTED);
+      verifyTablesWithSplits(tableUnhostedWithSplits, idMap, splits, TabletAvailability.UNHOSTED);
 
     } finally {
       accumuloClient.tableOperations().delete(tableOnDemand);
-      accumuloClient.tableOperations().delete(tableAlways);
-      accumuloClient.tableOperations().delete(tableNever);
+      accumuloClient.tableOperations().delete(tableHosted);
+      accumuloClient.tableOperations().delete(tableUnhosted);
       accumuloClient.tableOperations().delete(tableOnDemandWithSplits);
-      accumuloClient.tableOperations().delete(tableAlwaysWithSplits);
-      accumuloClient.tableOperations().delete(tableNeverWithSplits);
+      accumuloClient.tableOperations().delete(tableHostedWithSplits);
+      accumuloClient.tableOperations().delete(tableUnhostedWithSplits);
     }
   }
 
   // This test creates a table with splits at creation time
-  // Once created, the four tablets are provided separate hosting goals.
-  // The test verifies that each tablet is assigned the correct hosting goal.
+  // Once created, the four tablets are provided separate tablet availabilities.
+  // The test verifies that each tablet is assigned the correct tablet availability.
   @Test
-  public void testGetHostingGoals_MixedGoals() throws AccumuloException, TableExistsException,
-      AccumuloSecurityException, TableNotFoundException {
+  public void testGetTabletAvailability_MixedAvailabilities() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
 
     String tableName = getUniqueNames(1)[0];
-    List<HostingGoalForTablet> expectedGoals;
+    List<AvailabilityForTablet> expectedTabletAvailability;
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
 
@@ -469,27 +471,31 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
       accumuloClient.tableOperations().create(tableName, ntc);
 
-      // set each tablet with a different goal and query to see if they are set accordingly
+      // set each tablet with a different availability and query to see if they are set accordingly
       Range range = new Range(null, false, new Text("d"), true);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
-          TabletHostingGoal.NEVER);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, range,
+          TabletAvailability.UNHOSTED);
       range = new Range(new Text("m"), false, new Text("s"), true);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
-          TabletHostingGoal.ALWAYS);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, range,
+          TabletAvailability.HOSTED);
       range = new Range(new Text("s"), false, null, true);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
-          TabletHostingGoal.NEVER);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, range,
+          TabletAvailability.UNHOSTED);
 
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
-      expectedGoals = new ArrayList<>();
+      expectedTabletAvailability = new ArrayList<>();
       String tableId = idMap.get(tableName);
-      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.NEVER);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.UNHOSTED);
       // this range was intentionally not set above, checking that the tablet has the default
-      // hosting goal
-      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.NEVER);
-      verifyTabletGoals(tableName, new Range(), expectedGoals);
+      // tablet availability
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "s",
+          TabletAvailability.UNHOSTED);
+      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
@@ -498,13 +504,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   // This tests creates a tables with initial splits and then queries getgoal using ranges that
   // are not on split point boundaries
   @Test
-  public void testGetHostingGoals_NonSplitBoundaries() throws AccumuloException,
+  public void testGetTabletAvailability_NonSplitBoundaries() throws AccumuloException,
       TableExistsException, AccumuloSecurityException, TableNotFoundException {
 
     String tableName = getUniqueNames(1)[0];
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
-    List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
+    List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
     Map<String,String> idMap;
     String tableId;
 
@@ -513,40 +519,48 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
       accumuloClient.tableOperations().create(tableName, ntc);
 
-      // set each different goal for each tablet and query to see if they are set accordingly
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, new Range(new Text("d")),
-          TabletHostingGoal.ALWAYS);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, new Range(new Text("m")),
-          TabletHostingGoal.NEVER);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, new Range(new Text("s")),
-          TabletHostingGoal.ALWAYS);
+      // set each different availability for each tablet and query to see if they are set
+      // accordingly
+      accumuloClient.tableOperations().setTabletAvailability(tableName, new Range(new Text("d")),
+          TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, new Range(new Text("m")),
+          TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, new Range(new Text("s")),
+          TabletAvailability.HOSTED);
 
       idMap = accumuloClient.tableOperations().tableIdMap();
       tableId = idMap.get(tableName);
 
-      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ALWAYS);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.HOSTED);
       // test using row as range constructor
-      verifyTabletGoals(tableName, new Range("a"), expectedGoals);
+      verifyTabletAvailabilites(tableName, new Range("a"), expectedTabletAvailability);
 
       // test using startRowInclusive set to true
       Range range = new Range(new Text("c"), true, new Text("c"), true);
-      verifyTabletGoals(tableName, range, expectedGoals);
+      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
 
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
 
       range = new Range(new Text("m"), new Text("p"));
-      verifyTabletGoals(tableName, range, expectedGoals);
+      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
 
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.ONDEMAND);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "s",
+          TabletAvailability.ONDEMAND);
 
       range = new Range("b", false, "t", true);
-      verifyTabletGoals(tableName, range, expectedGoals);
+      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
 
     } finally {
       accumuloClient.tableOperations().delete(tableName);
@@ -554,38 +568,42 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   // This test creates a table with no initial splits. The splits are added after table creation.
-  // This test verifies that the existing hosting goal is properly propagated to the metadata table
-  // for
-  // each tablet.
+  // This test verifies that the existing tablet availability is properly propagated to the metadata
+  // table for each tablet.
   @Test
-  public void testGetHostingGoals_DelayedSplits() throws AccumuloException, TableExistsException,
-      AccumuloSecurityException, TableNotFoundException {
+  public void testGetTabletAvailability_DelayedSplits() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
 
     try {
       accumuloClient.tableOperations().create(tableName);
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
 
-      // set goals to ALWAYS
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, new Range(),
-          TabletHostingGoal.ALWAYS);
+      // set goals to HOSTED
+      accumuloClient.tableOperations().setTabletAvailability(tableName, new Range(),
+          TabletAvailability.HOSTED);
 
-      List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
+      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
       String tableId = idMap.get(tableName);
-      setExpectedGoal(expectedGoals, tableId, null, null, TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableName, new Range(), expectedGoals);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, null,
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
 
       // Add splits after the fact
       SortedSet<Text> splits =
           Sets.newTreeSet(Arrays.asList(new Text("g"), new Text("n"), new Text("r")));
       accumuloClient.tableOperations().addSplits(tableName, splits);
 
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, "g", null, TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, "n", "g", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, "r", "n", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, "r", TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableName, new Range(), expectedGoals);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "g", null,
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "n", "g",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "r", "n",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "r",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
@@ -593,16 +611,16 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   // This test checks that tablets are correct when staggered splits are added to a table, i.e.,
   // a table is split and assigned differing goals. Later when the two existing tablets are
-  // split, verify that the new splits contain the appropriate hosting goal of the tablet from
-  // which they wre split. Steps are as follows:
+  // split, verify that the new splits contain the appropriate tablet availabilities of the tablet
+  // from which they were split. Steps are as follows:
   // - create table
-  // - add two splits; leave first tablet to default ONDEMAND, seconds to NEVER, third to ALWAYS
+  // - add two splits; leave first tablet to default ONDEMAND, second to UNHOSTED, third to HOSTED
   // - add a split within each of the three existing tablets
-  // - verify the newly created tablets are set with the hostingGoals of the tablet from which they
-  // are split.
+  // - verify the newly created tablets are set with the Tablet Availabilities of the tablet from
+  // which they are split.
   @Test
-  public void testGetHostingGoals_StaggeredSplits() throws AccumuloException, TableExistsException,
-      AccumuloSecurityException, TableNotFoundException {
+  public void testGetTabletAvailability_StaggeredSplits() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
 
     String tableName = getUniqueNames(1)[0];
 
@@ -610,101 +628,122 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().create(tableName);
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
 
-      // add split 'h' and 'q'. Leave first as ONDEMAND, set second to NEVER, and third to ALWAYS
+      // add split 'h' and 'q'. Leave first as ONDEMAND, set second to UNHOSTED, and third to HOSTED
       SortedSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("h"), new Text("q")));
       accumuloClient.tableOperations().addSplits(tableName, splits);
       Range range = new Range(new Text("h"), false, new Text("q"), true);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
-          TabletHostingGoal.NEVER);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, range,
+          TabletAvailability.UNHOSTED);
       range = new Range(new Text("q"), false, null, true);
-      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
-          TabletHostingGoal.ALWAYS);
+      accumuloClient.tableOperations().setTabletAvailability(tableName, range,
+          TabletAvailability.HOSTED);
 
       // verify
-      List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
-      setExpectedGoal(expectedGoals, tableId, "h", null, TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "q", "h", TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, null, "q", TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableName, new Range(), expectedGoals);
+      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "h", null,
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "q", "h",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "q",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
 
       // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
       splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
       accumuloClient.tableOperations().addSplits(tableName, splits);
 
       // verify results
-      expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "h", "d", TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "m", "h", TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, "q", "m", TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, "v", "q", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, "v", TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableName, new Range(), expectedGoals);
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "h", "d",
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "h",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "q", "m",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "v", "q",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "v",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
   }
 
   private void verifyTablesWithSplits(String tableName, Map<String,String> idMap,
-      SortedSet<Text> splits, TabletHostingGoal goal) throws TableNotFoundException {
+      SortedSet<Text> splits, TabletAvailability tabletAvailability) throws TableNotFoundException {
 
-    List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
-    List<TabletInformation> tabletInfo;
+    List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
     String tableId = idMap.get(tableName);
     String[] splitPts = splits.stream().map(Text::toString).toArray(String[]::new);
 
     // retrieve all tablets for a table
-    setExpectedGoal(expectedGoals, tableId, splitPts[0], null, goal);
-    setExpectedGoal(expectedGoals, tableId, splitPts[1], splitPts[0], goal);
-    setExpectedGoal(expectedGoals, tableId, splitPts[2], splitPts[1], goal);
-    setExpectedGoal(expectedGoals, tableId, null, splitPts[2], goal);
-    verifyTabletGoals(tableName, new Range(), expectedGoals);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[0], null,
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
 
     // verify individual tablets can be retrieved
-    expectedGoals.clear();
-    setExpectedGoal(expectedGoals, tableId, splitPts[0], null, goal);
-    verifyTabletGoals(tableName, new Range(null, new Text(splitPts[0])), expectedGoals);
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[0], null,
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName, new Range(null, new Text(splitPts[0])),
+        expectedTabletAvailability);
 
-    expectedGoals.clear();
-    setExpectedGoal(expectedGoals, tableId, splitPts[1], splitPts[0], goal);
-    verifyTabletGoals(tableName,
-        new Range(new Text(splitPts[0]), false, new Text(splitPts[1]), true), expectedGoals);
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName,
+        new Range(new Text(splitPts[0]), false, new Text(splitPts[1]), true),
+        expectedTabletAvailability);
 
-    expectedGoals.clear();
-    setExpectedGoal(expectedGoals, tableId, splitPts[2], splitPts[1], goal);
-    verifyTabletGoals(tableName,
-        new Range(new Text(splitPts[1]), false, new Text(splitPts[2]), true), expectedGoals);
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName,
+        new Range(new Text(splitPts[1]), false, new Text(splitPts[2]), true),
+        expectedTabletAvailability);
 
-    expectedGoals.clear();
-    setExpectedGoal(expectedGoals, tableId, null, splitPts[2], goal);
-    verifyTabletGoals(tableName, new Range(new Text(splitPts[2]), false, null, true),
-        expectedGoals);
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName, new Range(new Text(splitPts[2]), false, null, true),
+        expectedTabletAvailability);
 
-    expectedGoals.clear();
-    setExpectedGoal(expectedGoals, tableId, splitPts[1], splitPts[0], goal);
-    setExpectedGoal(expectedGoals, tableId, splitPts[2], splitPts[1], goal);
-    verifyTabletGoals(tableName,
-        new Range(new Text(splitPts[0]), false, new Text(splitPts[2]), true), expectedGoals);
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    verifyTabletAvailabilites(tableName,
+        new Range(new Text(splitPts[0]), false, new Text(splitPts[2]), true),
+        expectedTabletAvailability);
   }
 
-  private void verifyTabletGoals(String tableName, Range range,
-      List<HostingGoalForTablet> expectedGoals) throws TableNotFoundException {
-    try (Stream<TabletInformation> tabletInformation =
-        accumuloClient.tableOperations().getTabletInformation(tableName, range)) {
-      List<TabletInformation> tabletInfo = tabletInformation.collect(Collectors.toList());
-      assertEquals(expectedGoals.size(), tabletInfo.size());
-      for (var i = 0; i < expectedGoals.size(); i++) {
-        assertEquals(expectedGoals.get(i).getTabletId(), tabletInfo.get(i).getTabletId());
-        assertEquals(expectedGoals.get(i).getHostingGoal(), tabletInfo.get(i).getHostingGoal());
-      }
+  private void verifyTabletAvailabilites(String tableName, Range range,
+      List<AvailabilityForTablet> expectedAvailability) throws TableNotFoundException {
+    List<TabletInformation> tabletInfo = accumuloClient.tableOperations()
+        .getTabletInformation(tableName, range).collect(Collectors.toList());
+    assertEquals(expectedAvailability.size(), tabletInfo.size());
+    for (var i = 0; i < expectedAvailability.size(); i++) {
+      assertEquals(expectedAvailability.get(i).getTabletId(), tabletInfo.get(i).getTabletId());
+      assertEquals(expectedAvailability.get(i).getTabletAvailability(),
+          tabletInfo.get(i).getTabletAvailability());
     }
   }
 
-  private void setExpectedGoal(List<HostingGoalForTablet> expected, String id, String endRow,
-      String prevEndRow, TabletHostingGoal goal) {
+  private void setExpectedTabletAvailability(List<AvailabilityForTablet> expected, String id,
+      String endRow, String prevEndRow, TabletAvailability availability) {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
-    expected.add(new HostingGoalForTablet(new TabletIdImpl(ke), goal));
+    expected.add(new AvailabilityForTablet(new TabletIdImpl(ke), availability));
   }
 
 }
