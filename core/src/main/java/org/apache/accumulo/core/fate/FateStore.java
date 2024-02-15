@@ -40,6 +40,21 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
   FateId create();
 
   /**
+   * Creates and reserves a transaction using the given key. If something is already running for the
+   * given key, then Optional.empty() will be returned. When this returns a non-empty id, it will be
+   * in the new state.
+   *
+   * <p>
+   * In the case where a process dies in the middle of a call to this. If later, another call is
+   * made with the same key and its in the new state then the FateId for that key will be returned.
+   * </p>
+   *
+   * @throws IllegalStateException when there is an unexpected collision. This can occur if two key
+   *         hash to the same FateId or if a random FateId already exists.
+   */
+  Optional<FateTxStore<T>> createAndReserve(FateKey fateKey);
+
+  /**
    * An interface that allows read/write access to the data related to a single fate operation.
    */
   interface FateTxStore<T> extends ReadOnlyFateTxStore<T> {

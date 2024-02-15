@@ -73,7 +73,7 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
 
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-      FateId fateId = FateId.from(FateInstanceType.USER, tid);
+      FateId fateId = FateId.from(FateInstanceType.fromNamespaceOrTableName(table), tid);
 
       // add some repos in order
       FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, fateId);
@@ -104,7 +104,7 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
 
       final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-      FateId fateId = FateId.from(FateInstanceType.USER, tid);
+      FateId fateId = FateId.from(FateInstanceType.fromNamespaceOrTableName(table), tid);
 
       // use require status passing all statuses. without the status column present this should fail
       assertThrows(IllegalStateException.class,

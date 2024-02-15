@@ -18,20 +18,27 @@
  */
 package org.apache.accumulo.test.fate;
 
+import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT.TestEnv;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 
-public interface FateTestRunner {
+public interface FateTestRunner<T extends TestEnv> {
 
-  void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception;
+  void executeTest(FateTestExecutor<T> testMethod, int maxDeferred, FateIdGenerator fateIdGenerator)
+      throws Exception;
 
-  default void executeTest(FateTestExecutor testMethod) throws Exception {
-    executeTest(testMethod, 100_000);
+  default void executeTest(FateTestExecutor<T> testMethod) throws Exception {
+    executeTest(testMethod, AbstractFateStore.DEFAULT_MAX_DEFERRED,
+        AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
   }
 
-  interface FateTestExecutor {
-    void execute(FateStore<TestEnv> store, ServerContext sctx) throws Exception;
+  interface FateTestExecutor<T> {
+    void execute(FateStore<T> store, ServerContext sctx) throws Exception;
   }
 
+  class TestEnv {
+
+  }
 }

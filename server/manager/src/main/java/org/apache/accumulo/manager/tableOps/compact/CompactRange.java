@@ -80,16 +80,14 @@ public class CompactRange extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    CompactionConfigStorage.setConfig(env.getContext(), fateId.getTid(), config);
+    CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
     return new CompactionDriver(namespaceId, tableId, startRow, endRow);
   }
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
     try {
-      // ELASTICITY_TODO DEFERRED - ISSUE 4044
-      CompactionConfigStorage.deleteConfig(env.getContext(), fateId.getTid());
+      CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
       Utils.unreserveNamespace(env, namespaceId, fateId, false);
       Utils.unreserveTable(env, tableId, fateId, false);

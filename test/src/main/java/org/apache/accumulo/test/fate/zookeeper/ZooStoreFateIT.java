@@ -24,11 +24,18 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.accumulo.FateStoreIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -61,12 +68,48 @@ public class ZooStoreFateIT extends FateStoreIT {
   }
 
   @Override
-  public void executeTest(FateTestExecutor testMethod, int maxDeferred) throws Exception {
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred), sctx);
+    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator),
+        sctx);
+  }
+
+  @Override
+  protected void deleteKey(FateId fateId, ServerContext sctx) {
+    try {
+      // We have to use reflection since the NodeValue is internal to the store
+
+      // Grab both the constructor that uses the serialized bytes and status
+      Class<?> nodeClass = Class.forName(ZooStore.class.getName() + "$NodeValue");
+      Constructor<?> statusCons = nodeClass.getDeclaredConstructor(TStatus.class);
+      Constructor<?> serializedCons = nodeClass.getDeclaredConstructor(byte[].class);
+      statusCons.setAccessible(true);
+      serializedCons.setAccessible(true);
+
+      // Get the status field so it can be read and the serialize method
+      Field nodeStatus = nodeClass.getDeclaredField("status");
+      Method nodeSerialize = nodeClass.getDeclaredMethod("serialize");
+      nodeStatus.setAccessible(true);
+      nodeSerialize.setAccessible(true);
+
+      // Get the existing status for the node and build a new node with an empty key
+      // but uses the existing tid
+      String txPath = ZK_ROOT + Constants.ZFATE + "/tx_" + fateId.getHexTid();
+      Object currentNode = serializedCons.newInstance(new Object[] {zk.getData(txPath)});
+      TStatus currentStatus = (TStatus) nodeStatus.get(currentNode);
+      // replace the node with no key and just a tid and existing status
+      Object newNode = statusCons.newInstance(currentStatus);
+
+      // Replace the transaction with the same status and no key
+      zk.putPersistentData(txPath, (byte[]) nodeSerialize.invoke(newNode),
+          NodeExistsPolicy.OVERWRITE);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 }

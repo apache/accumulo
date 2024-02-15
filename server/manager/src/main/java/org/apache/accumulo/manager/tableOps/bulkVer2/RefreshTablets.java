@@ -54,7 +54,7 @@ public class RefreshTablets extends ManagerRepo {
 
     TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId,
         bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
-        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId.getTid()));
+        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 
     return new CleanUpBulkImport(bulkInfo);
   }

@@ -59,6 +59,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -690,6 +692,8 @@ public class MergeIT extends AccumuloClusterHarness {
             new KeyExtent(tableId, null, split))) {
           var tablet = tabletsMutator.mutateTablet(extent);
           ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+          FateInstanceType type = FateInstanceType.fromTableId(tableId);
+          FateId fateId44L = FateId.from(type, 44L);
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
@@ -697,7 +701,7 @@ public class MergeIT extends AccumuloClusterHarness {
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
           CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
-              CompactionKind.SYSTEM, (short) 2, ceid, false, 44L);
+              CompactionKind.SYSTEM, (short) 2, ceid, false, fateId44L);
           tablet.putExternalCompaction(ecid, ecMeta);
           tablet.mutate();
         }

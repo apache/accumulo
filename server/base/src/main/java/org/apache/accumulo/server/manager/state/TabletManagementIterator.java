@@ -201,14 +201,18 @@ public class TabletManagementIterator extends SkippingIterator {
       actions.clear();
       Exception error = null;
       try {
-        if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
-            || tabletMgmtParams.getOnlineTsevers().isEmpty()
-            || tabletMgmtParams.getOnlineTables().isEmpty()) {
-          // when manager is in the process of starting up or shutting down return everything.
-          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-        } else {
-          LOG.trace("Evaluating extent: {}", tm);
+        LOG.trace("Evaluating extent: {}", tm);
+        if (tm.getExtent().isMeta()) {
           computeTabletManagementActions(tm, actions);
+        } else {
+          if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
+              || tabletMgmtParams.getOnlineTsevers().isEmpty()
+              || tabletMgmtParams.getOnlineTables().isEmpty()) {
+            // when manager is in the process of starting up or shutting down return everything.
+            actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+          } else {
+            computeTabletManagementActions(tm, actions);
+          }
         }
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
@@ -239,6 +243,10 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
+  private static final Set<ManagementAction> REASONS_NOT_TO_SPLIT_OR_COMPACT =
+      Collections.unmodifiableSet(EnumSet.of(ManagementAction.BAD_STATE,
+          ManagementAction.NEEDS_VOLUME_REPLACEMENT, ManagementAction.NEEDS_RECOVERY));
+
   /**
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
@@ -260,16 +268,12 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_VOLUME_REPLACEMENT);
     }
 
-    if (!reasonsToReturnThisTablet.isEmpty()) {
-      // If volume replacement or recovery is needed, then return early.
-      return;
-    }
-
     if (shouldReturnDueToLocation(tm)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    if (tm.getOperationId() == null) {
+    if (tm.getOperationId() == null
+        && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
         final long splitThreshold =
             ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()

@@ -166,9 +166,11 @@ public class CompactionCoordinatorTest {
     protected CompactionMetadata createExternalCompactionMetadata(CompactionJob job,
         Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress,
         ExternalCompactionId externalCompactionId) {
+      FateInstanceType type = FateInstanceType.fromTableId(tablet.getExtent().tableId());
+      FateId fateId = FateId.from(type, 1L);
       return new CompactionMetadata(jobFiles,
           new ReferencedTabletFile(new Path("file:///accumulo/tables/1/default_tablet/F00001.rf")),
-          compactorAddress, job.getKind(), job.getPriority(), job.getGroup(), true, 1L);
+          compactorAddress, job.getKind(), job.getPriority(), job.getGroup(), true, fateId);
     }
 
     @Override
@@ -179,7 +181,9 @@ public class CompactionCoordinatorTest {
           SystemIteratorUtil.toIteratorConfig(List.of()),
           ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
           TCompactionKind.valueOf(ecm.getKind().name()),
-          FateId.from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId()), 1L)
+          FateId
+              .from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getExtent().tableId()),
+                  1L)
               .toThrift(),
           Map.of());
     }
@@ -274,7 +278,6 @@ public class CompactionCoordinatorTest {
     TabletMetadata tm = EasyMock.createNiceMock(TabletMetadata.class);
     expect(tm.getExtent()).andReturn(ke).anyTimes();
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
-    expect(tm.getTableId()).andReturn(ke.tableId());
 
     EasyMock.replay(tconf, context, creds, tm, security);
 

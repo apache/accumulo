@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -41,11 +42,11 @@ public class CompactionMetadata {
   private final short priority;
   private final CompactorGroupId cgid;
   private final boolean propagateDeletes;
-  private final Long fateTxId;
+  private final FateId fateId;
 
   public CompactionMetadata(Set<StoredTabletFile> jobFiles, ReferencedTabletFile compactTmpName,
       String compactorId, CompactionKind kind, short priority, CompactorGroupId ceid,
-      boolean propagateDeletes, Long fateTxId) {
+      boolean propagateDeletes, FateId fateId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
     this.compactorId = Objects.requireNonNull(compactorId);
@@ -53,7 +54,12 @@ public class CompactionMetadata {
     this.priority = priority;
     this.cgid = Objects.requireNonNull(ceid);
     this.propagateDeletes = propagateDeletes;
-    this.fateTxId = fateTxId;
+    if (kind == CompactionKind.SYSTEM) {
+      // its ok if this is null for system compactions because its not used.
+      this.fateId = fateId;
+    } else {
+      this.fateId = Objects.requireNonNull(fateId);
+    }
   }
 
   public Set<StoredTabletFile> getJobFiles() {
@@ -84,8 +90,8 @@ public class CompactionMetadata {
     return propagateDeletes;
   }
 
-  public Long getFateTxId() {
-    return fateTxId;
+  public FateId getFateId() {
+    return fateId;
   }
 
   // This class is used to serialize and deserialize this class using GSon. Any changes to this
@@ -98,7 +104,7 @@ public class CompactionMetadata {
     String groupId;
     short priority;
     boolean propDels;
-    Long fateTxId;
+    String fateId;
   }
 
   public String toJson() {
@@ -111,7 +117,7 @@ public class CompactionMetadata {
     jData.groupId = cgid.toString();
     jData.priority = priority;
     jData.propDels = propagateDeletes;
-    jData.fateTxId = fateTxId;
+    jData.fateId = fateId == null ? null : fateId.canonical();
     return GSON.get().toJson(jData);
   }
 
@@ -121,7 +127,8 @@ public class CompactionMetadata {
     return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactorGroupIdImpl.groupId(jData.groupId), jData.propDels, jData.fateTxId);
+        CompactorGroupIdImpl.groupId(jData.groupId), jData.propDels,
+        jData.fateId == null ? null : FateId.from(jData.fateId));
   }
 
   @Override

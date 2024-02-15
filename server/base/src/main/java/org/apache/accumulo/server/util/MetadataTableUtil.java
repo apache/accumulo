@@ -59,6 +59,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -135,16 +136,16 @@ public class MetadataTableUtil {
     log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
   }
 
-  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
-      Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
-      ServiceLock zooLock) {
+  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
+      KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
+      ServerContext context, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
 
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
     estSizes.forEach((tf, dfv) -> {
       tablet.putFile(tf, dfv);
-      tablet.putBulkFile(tf, tid);
+      tablet.putBulkFile(tf, fateId);
       newFiles.put(tf.insert(), dfv);
     });
     tablet.putZooLock(context.getZooKeeperRoot(), zooLock);

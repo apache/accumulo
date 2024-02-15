@@ -21,35 +21,60 @@ package org.apache.accumulo.test.fate.accumulo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT.TestEnv;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
 import org.apache.accumulo.test.fate.FateTestRunner;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner {
+import com.google.common.base.Throwables;
+
+public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
+
+  private static final Method fsCreateByKeyMethod;
+
+  static {
+    try {
+      // Private method, need to capture for testing
+      fsCreateByKeyMethod = AbstractFateStore.class.getDeclaredMethod("create", FateKey.class);
+      fsCreateByKeyMethod.setAccessible(true);
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -70,6 +95,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateId fateId = store.create();
     FateTxStore<TestEnv> txStore = store.reserve(fateId);
     assertTrue(txStore.timeCreated() > 0);
+    assertFalse(txStore.getKey().isPresent());
     assertEquals(1, store.list().count());
 
     // Push a test FATE op and verify we can read it back
@@ -141,7 +167,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   @Test
   public void testDeferredOverflow() throws Exception {
-    executeTest(this::testDeferredOverflow, 10);
+    executeTest(this::testDeferredOverflow, 10, AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
   }
 
   protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)
@@ -217,9 +243,190 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       executor.shutdownNow();
       // Cleanup so we don't interfere with other tests
-      store.list().forEach(fateIdStatus -> store.reserve(fateIdStatus.getFateId()).delete());
+      // All stores should already be unreserved
+      store.list().forEach(
+          fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
     }
   }
+
+  @Test
+  public void testCreateWithKey() throws Exception {
+    executeTest(this::testCreateWithKey);
+  }
+
+  protected void testCreateWithKey(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke1 =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+
+    long existing = store.list().count();
+    FateKey fateKey1 = FateKey.forSplit(ke1);
+    FateKey fateKey2 =
+        FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
+
+    FateTxStore<TestEnv> txStore1 = store.createAndReserve(fateKey1).orElseThrow();
+    FateTxStore<TestEnv> txStore2 = store.createAndReserve(fateKey2).orElseThrow();
+
+    assertNotEquals(txStore1.getID(), txStore2.getID());
+
+    try {
+      assertTrue(txStore1.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore1.getStatus());
+      assertEquals(fateKey1, txStore1.getKey().orElseThrow());
+
+      assertTrue(txStore2.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore2.getStatus());
+      assertEquals(fateKey2, txStore2.getKey().orElseThrow());
+
+      assertEquals(existing + 2, store.list().count());
+    } finally {
+      txStore1.delete();
+      txStore2.delete();
+      txStore1.unreserve(0, TimeUnit.SECONDS);
+      txStore2.unreserve(0, TimeUnit.SECONDS);
+    }
+  }
+
+  @Test
+  public void testCreateWithKeyDuplicate() throws Exception {
+    executeTest(this::testCreateWithKeyDuplicate);
+  }
+
+  protected void testCreateWithKeyDuplicate(FateStore<TestEnv> store, ServerContext sctx) {
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+
+    // Creating with the same key should be fine if the status is NEW
+    // A second call to createAndReserve() should just return an empty optional
+    // since it's already in reserved and in progress
+    FateKey fateKey = FateKey.forSplit(ke);
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
+
+    // second call is empty
+    assertTrue(store.createAndReserve(fateKey).isEmpty());
+
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertEquals(fateKey, txStore.getKey().orElseThrow());
+      assertEquals(1, store.list().count());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+  }
+
+  @Test
+  public void testCreateWithKeyInProgress() throws Exception {
+    executeTest(this::testCreateWithKeyInProgress);
+  }
+
+  protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+    FateKey fateKey = FateKey.forSplit(ke);
+
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
+    ;
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      txStore.setStatus(TStatus.IN_PROGRESS);
+
+      // We have an existing transaction with the same key in progress
+      // so should return an empty Optional
+      assertTrue(create(store, fateKey).isEmpty());
+      assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+    try {
+      // After deletion, make sure we can create again with the same key
+      txStore = store.createAndReserve(fateKey).orElseThrow();
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+  }
+
+  @Test
+  public void testCreateWithKeyCollision() throws Exception {
+    // Replace the default hasing algorithm with one that always returns the same tid so
+    // we can check duplicate detection with different keys
+    executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
+        (instanceType, fateKey) -> FateId.from(instanceType, 1000));
+  }
+
+  protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
+    String[] tables = getUniqueNames(2);
+    KeyExtent ke1 = new KeyExtent(TableId.of(tables[0]), new Text("zzz"), new Text("aaa"));
+    KeyExtent ke2 = new KeyExtent(TableId.of(tables[1]), new Text("ddd"), new Text("bbb"));
+
+    FateKey fateKey1 = FateKey.forSplit(ke1);
+    FateKey fateKey2 = FateKey.forSplit(ke2);
+
+    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
+    try {
+      var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
+      assertEquals("Collision detected for tid 1000", e.getMessage());
+      assertEquals(fateKey1, txStore.getKey().orElseThrow());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+  }
+
+  @Test
+  public void testCollisionWithRandomFateId() throws Exception {
+    executeTest(this::testCollisionWithRandomFateId);
+  }
+
+  protected void testCollisionWithRandomFateId(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+
+    FateKey fateKey = FateKey.forSplit(ke);
+    FateId fateId = create(store, fateKey).orElseThrow();
+
+    // After create a fate transaction using a key we can simulate a collision with
+    // a random FateId by deleting the key out of Fate and calling create again to verify
+    // it detects the key is missing. Then we can continue and see if we can still reserve
+    // and use the existing transaction, which we should.
+    deleteKey(fateId, sctx);
+    var e = assertThrows(IllegalStateException.class, () -> store.createAndReserve(fateKey));
+    assertEquals("Tx Key is missing from tid " + fateId.getTid(), e.getMessage());
+
+    // We should still be able to reserve and continue when not using a key
+    // just like a normal transaction
+    FateTxStore<TestEnv> txStore = store.reserve(fateId);
+    try {
+      assertTrue(txStore.timeCreated() > 0);
+      assertEquals(TStatus.NEW, txStore.getStatus());
+    } finally {
+      txStore.delete();
+      txStore.unreserve(0, TimeUnit.SECONDS);
+    }
+
+  }
+
+  // create(fateKey) method is private so expose for testing to check error states
+  @SuppressWarnings("unchecked")
+  protected Optional<FateId> create(FateStore<TestEnv> store, FateKey fateKey) throws Exception {
+    try {
+      return (Optional<FateId>) fsCreateByKeyMethod.invoke(store, fateKey);
+    } catch (Exception e) {
+      Exception rootCause = (Exception) Throwables.getRootCause(e);
+      throw rootCause;
+    }
+  }
+
+  protected abstract void deleteKey(FateId fateId, ServerContext sctx);
 
   private static class TestOperation2 extends TestRepo {
 

@@ -29,7 +29,6 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -187,10 +186,8 @@ public class UpdateTablets extends ManagerRepo {
         mutator.putPrevEndRow(newExtent.prevEndRow());
         tabletMetadata.getCompacted().forEach(mutator::putCompacted);
 
-        // ELASTICITY_TODO DEFERRED - ISSUE 4044
-        tabletMetadata.getCompacted()
-            .forEach(ctid -> log.debug("{} copying compacted marker to new child tablet {}", fateId,
-                FateTxId.formatTid(ctid)));
+        tabletMetadata.getCompacted().forEach(compactedFateId -> log
+            .debug("{} copying compacted marker to new child tablet {}", fateId, compactedFateId));
 
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
 
@@ -243,7 +240,7 @@ public class UpdateTablets extends ManagerRepo {
       if (tabletMetadata.getSelectedFiles() != null) {
         mutator.deleteSelectedFiles();
         log.debug("{} deleting selected files {} because of split", fateId,
-            FateTxId.formatTid(tabletMetadata.getSelectedFiles().getFateTxId()));
+            tabletMetadata.getSelectedFiles().getFateId());
       }
 
       mutator.submit(tm -> false);
