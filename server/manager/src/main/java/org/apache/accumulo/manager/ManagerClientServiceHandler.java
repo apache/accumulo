@@ -78,7 +78,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -106,9 +105,21 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final int TEN_MB = 10 * 1024 * 1024;
 
+  public static int weigh(KeyExtent keyExtent) {
+    int size = 0;
+    size += keyExtent.tableId().toString().length();
+    if (keyExtent.endRow() != null) {
+      size += keyExtent.endRow().getLength();
+    }
+    if (keyExtent.prevEndRow() != null) {
+      size += keyExtent.prevEndRow().getLength();
+    }
+    return size;
+  }
+
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
-    Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
+    Weigher<KeyExtent,Long> weigher = (extent, t) -> weigh(extent) + 8;
     this.recentHostingRequest = this.manager.getContext().getCaches()
         .createNewBuilder(CacheName.HOSTING_REQUEST_CACHE, true)
         .expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB).weigher(weigher).build();

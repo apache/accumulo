@@ -29,13 +29,13 @@ import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SplitTask implements Runnable {
+public class SeedSplitTask implements Runnable {
 
-  private static final Logger log = LoggerFactory.getLogger(SplitTask.class);
+  private static final Logger log = LoggerFactory.getLogger(SeedSplitTask.class);
   private final Manager manager;
   private KeyExtent extent;
 
-  public SplitTask(Manager manager, KeyExtent extent) {
+  public SeedSplitTask(Manager manager, KeyExtent extent) {
     this.manager = manager;
     this.extent = extent;
   }

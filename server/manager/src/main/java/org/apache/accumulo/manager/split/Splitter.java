@@ -20,12 +20,13 @@ package org.apache.accumulo.manager.split;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.server.ServerContext;
@@ -39,7 +40,7 @@ import com.github.benmanes.caffeine.cache.Weigher;
 
 public class Splitter {
 
-  private final ExecutorService splitExecutor;
+  private final ThreadPoolExecutor splitExecutor;
 
   private static class CacheKey {
 
@@ -73,22 +74,18 @@ public class Splitter {
 
   LoadingCache<CacheKey,FileInfo> splitFileCache;
 
-  // TODO move this to class that now is the only user
-  public static int weigh(KeyExtent keyExtent) {
-    int size = 0;
-    size += keyExtent.tableId().toString().length();
-    if (keyExtent.endRow() != null) {
-      size += keyExtent.endRow().getLength();
-    }
-    if (keyExtent.prevEndRow() != null) {
-      size += keyExtent.prevEndRow().getLength();
-    }
-    return size;
-  }
-
   public Splitter(ServerContext context) {
-    this.splitExecutor = context.threadPools().createExecutorService(context.getConfiguration(),
-        Property.MANAGER_SPLIT_WORKER_THREADS, true);
+    int numThreads = context.getConfiguration().getCount(Property.MANAGER_SPLIT_WORKER_THREADS);
+    // Set up thread pool that constrains the amount of task it queues and when full discards task.
+    // The purpose of this is to avoid reading lots of data into memory if lots of tablets need to
+    // split.
+    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(10000);
+    this.splitExecutor = context.threadPools().createThreadPool(numThreads, numThreads, 0,
+        TimeUnit.MILLISECONDS, "split_seeder", queue, true);
+
+    // Discard task when the queue is full, this allows the TGW to continue processing task other
+    // than splits.
+    this.splitExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
 
     Weigher<CacheKey,
         FileInfo> weigher = (key, info) -> key.tableId.canonical().length()
@@ -117,7 +114,7 @@ public class Splitter {
     return splitFileCache.get(new CacheKey(tableId, tabletFile));
   }
 
-  public void executeSplit(SplitTask splitTask) {
-    splitExecutor.execute(splitTask);
+  public void initiateSplit(SeedSplitTask seedSplitTask) {
+    splitExecutor.execute(seedSplitTask);
   }
 }
