@@ -631,7 +631,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
    *
    * <pre>
    * {
-   *   "txid": "FATE:META:123456",
+   *   "fateId": "FATE:META:123456",
    *   "selAll": true,
    *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
    * }
@@ -640,7 +640,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   public static String createSelectedFilesJson(FateId fateId, boolean selAll,
       Collection<String> paths) {
     String filesJsonArray = GSON.get().toJson(paths);
-    return ("{'txid':'" + fateId + "','selAll':" + selAll + ",'files':" + filesJsonArray + "}")
+    return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'files':" + filesJsonArray + "}")
         .replace('\'', '\"');
   }
 
