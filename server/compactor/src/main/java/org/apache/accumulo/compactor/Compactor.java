@@ -592,10 +592,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected long getWaitTimeBetweenCompactionChecks() {
     // get the total number of compactors assigned to this queue
     int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
-    // Aim for around 3 compactors checking in every second
-    long sleepTime = numCompactors * 1000L / 3;
-    // Ensure a compactor sleeps at least around a second
-    sleepTime = Math.max(1000, sleepTime);
+    long minWait = getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
+    // Aim for around 3 compactors checking in per min wait time.
+    long sleepTime = numCompactors * minWait / 3;
+    // Ensure a compactor waits at least the minimum time
+    sleepTime = Math.max(minWait, sleepTime);
     // Ensure a sleeping compactor has a configurable max sleep time
     sleepTime = Math.min(getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME),
         sleepTime);
