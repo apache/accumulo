@@ -296,7 +296,7 @@ public class CompactionCoordinator
   }
 
   protected long getMissingCompactorWarningTime() {
-    return getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
+    return this.ctx.getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
   protected long getTServerCheckInterval() {
