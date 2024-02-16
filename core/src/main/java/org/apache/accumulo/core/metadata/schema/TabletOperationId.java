@@ -32,15 +32,15 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
   private static final long serialVersionUID = 1L;
 
   public static String validate(String opid) {
-    var fields = opid.split(":");
-    Preconditions.checkArgument(fields.length == 4, "Malformed operation id %s", opid);
+    var fields = opid.split(":", 2);
+    Preconditions.checkArgument(fields.length == 2, "Malformed operation id %s", opid);
     try {
       TabletOperationType.valueOf(fields[0]);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Malformed operation id " + opid, e);
     }
 
-    if (!FateId.isFormattedTid(opid.substring(fields[0].length() + 1))) {
+    if (!FateId.isFormattedTid(fields[1])) {
       throw new IllegalArgumentException("Malformed operation id " + opid);
     }
 
@@ -52,8 +52,8 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
   }
 
   public TabletOperationType getType() {
-    var fields = canonical().split(":");
-    Preconditions.checkState(fields.length == 4);
+    var fields = canonical().split(":", 2);
+    Preconditions.checkState(fields.length == 2);
     return TabletOperationType.valueOf(fields[0]);
   }
 

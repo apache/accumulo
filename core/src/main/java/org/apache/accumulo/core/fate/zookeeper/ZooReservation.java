@@ -37,7 +37,7 @@ public class ZooReservation {
 
     while (true) {
       try {
-        zk.putPersistentData(path, (fateId + DELIMITER + debugInfo).getBytes(UTF_8),
+        zk.putPersistentData(path, (fateId.canonical() + DELIMITER + debugInfo).getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
