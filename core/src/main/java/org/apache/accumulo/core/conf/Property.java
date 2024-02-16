@@ -1112,11 +1112,11 @@ public enum Property {
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
           + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
-      "4.0.0"),
+      "2.1.3"),
   COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
-      "4.0.0"),
+      "2.1.3"),
   @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),

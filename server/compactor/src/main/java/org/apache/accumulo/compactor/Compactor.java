@@ -592,12 +592,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // get the total number of compactors assigned to this group
     int numCompactors =
         ExternalCompactionUtil.countCompactors(this.getResourceGroup(), getContext());
-    // Aim for around 3 compactors checking in every second
-    long sleepTime = numCompactors * 1000L / 3;
-    // Ensure a compactor sleeps at least around a second
-    sleepTime = Math.max(1000, sleepTime);
-    // Ensure a compactor sleep not too much more than 5 mins
-    sleepTime = Math.min(300_000L, sleepTime);
+    long minWait = getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
+    // Aim for around 3 compactors checking in per min wait time.
+    long sleepTime = numCompactors * minWait / 3;
+    // Ensure a compactor waits at least the minimum time
+    sleepTime = Math.max(minWait, sleepTime);
+    // Ensure a sleeping compactor has a configurable max sleep time
+    sleepTime = Math.min(getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME),
+        sleepTime);
     // Add some random jitter to the sleep time, that averages out to sleep time. This will spread
     // compactors out evenly over time.
     sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * RANDOM.get().nextDouble());
