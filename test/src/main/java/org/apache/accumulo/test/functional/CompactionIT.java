@@ -909,6 +909,82 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testUserCompactionRequested() throws Exception {
+
+    String tableName = getUniqueNames(1)[0];
+    try (final AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // configure tablet compaction iterator that slows compaction down so we can test
+      // that the USER_COMPACTION_REQUESTED column is set when a user compaction is requested
+      // when a system compaction is running and blocking
+
+      var ntc = new NewTableConfiguration();
+      IteratorSetting iterSetting = new IteratorSetting(50, SlowIterator.class);
+      SlowIterator.setSleepTime(iterSetting, 1);
+      ntc.attachIterator(iterSetting, EnumSet.of(IteratorScope.majc));
+      ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "20"));
+      client.tableOperations().create(tableName, ntc);
+
+      // Insert MAX_DATA rows
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < MAX_DATA; i++) {
+          Mutation m = new Mutation(String.format("r:%04d", i));
+          m.put("", "", "" + i);
+          bw.addMutation(m);
+
+          if (i % 75 == 0) {
+            // create many files as this will cause a system compaction
+            bw.flush();
+            client.tableOperations().flush(tableName, null, null, true);
+          }
+        }
+      }
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // set the compaction ratio 1 to trigger a system compaction
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
+
+      var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      var extent = new KeyExtent(tableId, null, null);
+
+      // Wait for the system compaction to start
+      Wait.waitFor(() -> {
+        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+        var externalCompactions = tabletMeta.getExternalCompactions().size();
+        log.debug("Current external compactions {}", externalCompactions);
+        return externalCompactions == 1;
+      }, Wait.MAX_WAIT_MILLIS, 500);
+
+      // Trigger a user compaction which should be blocked by the system compaction
+      // and should result in the userRequestedCompactions column being set so no more
+      // system compactions run
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
+      Wait.waitFor(() -> {
+        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
+        log.debug("Current user requested compactions {}", userRequestedCompactions);
+        return userRequestedCompactions == 1;
+      }, Wait.MAX_WAIT_MILLIS, 500);
+
+      // Wait and verify that the system compaction finishes
+      Wait.waitFor(() -> {
+        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+        var externalCompactions = tabletMeta.getExternalCompactions().size();
+        log.debug("Current external compactions {}", externalCompactions);
+        return externalCompactions == 0;
+      }, Wait.MAX_WAIT_MILLIS, 500);
+
+      // After the user compaction completes the compactions requested column should be cleared
+      Wait.waitFor(() -> {
+        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
+        log.debug("Current user requested compactions {}", userRequestedCompactions);
+        return userRequestedCompactions == 0;
+      }, Wait.MAX_WAIT_MILLIS, 500);
+    }
+  }
+
   /**
    * Counts the number of tablets and files in a table.
    */
