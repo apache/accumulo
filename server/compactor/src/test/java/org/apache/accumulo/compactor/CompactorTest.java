@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -447,6 +449,33 @@ public class CompactorTest {
     assertFalse(c.isCompletedCalled());
     assertTrue(c.isFailedCalled());
     assertEquals(TCompactionState.CANCELLED, c.getLatestState());
+  }
+
+  @Test
+  public void testCompactionWaitProperty() {
+    PowerMock.resetAll();
+    PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
+    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
+
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "800ms");
+
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn("test").anyTimes();
+    ZooCache zkc = PowerMock.createNiceMock(ZooCache.class);
+    expect(zkc.getChildren("test/compactors/testQ")).andReturn(List.of("compactor_1")).anyTimes();
+    expect(context.getZooCache()).andReturn(zkc).anyTimes();
+
+    PowerMock.replayAll();
+
+    SuccessfulCompactor c = new SuccessfulCompactor(null, null, null, context, null);
+    PowerMock.verifyAll();
+
+    Long maxWait = c.getWaitTimeBetweenCompactionChecks();
+    // compaction jitter means maxWait is between 0.9 and 1.1 of the desired value.
+    assertTrue(maxWait >= 720L);
+    assertTrue(maxWait <= 968L);
   }
 
 }
