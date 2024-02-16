@@ -51,6 +51,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(4);
   }
 
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     var groupName = "user_small";
     // Add this check in case the config changes
