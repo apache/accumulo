@@ -212,11 +212,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         if (job.getKind() == TCompactionKind.USER) {
 
           var cconf =
-              CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateTxId()));
+              CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateId()));
 
           if (cconf == null) {
             LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
-                ecid, job.getFateTxId(), extent);
+                ecid, FateId.fromThrift(job.getFateId()), extent);
             JOB_HOLDER.cancel(job.getExternalCompactionId());
           }
         }
