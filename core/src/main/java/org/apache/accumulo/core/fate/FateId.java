@@ -108,7 +108,7 @@ public class FateId extends AbstractId<FateId> {
    * @param fateIdStr the string representation of the FateId
    * @return true if the string is a valid FateId, false otherwise
    */
-  public static boolean isFormattedTid(String fateIdStr) {
+  public static boolean isFateId(String fateIdStr) {
     return FATEID_PATTERN.matcher(fateIdStr).matches();
   }
 

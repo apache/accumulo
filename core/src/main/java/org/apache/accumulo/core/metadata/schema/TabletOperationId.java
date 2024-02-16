@@ -40,7 +40,7 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
       throw new IllegalArgumentException("Malformed operation id " + opid, e);
     }
 
-    if (!FateId.isFormattedTid(fields[1])) {
+    if (!FateId.isFateId(fields[1])) {
       throw new IllegalArgumentException("Malformed operation id " + opid);
     }
 
