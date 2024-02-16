@@ -81,15 +81,14 @@ public class CleanUp extends ManagerRepo {
       t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
         total++;
-        // ELASTICITY_TODO DEFERRED - ISSUE 4044
-        if (tablet.getCompacted().contains(fateId.getTid())) {
+        if (tablet.getCompacted().contains(fateId)) {
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(fateId.getTid());
+              .requireSame(tablet, COMPACTED).deleteCompacted(fateId);
           if (tablet.getCompactionRequested()) {
             mutator.deleteCompactionRequested();
           }
 
-          mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId.getTid())
+          mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId)
               && !tabletMetadata.getCompactionRequested());
           submitted++;
         }
@@ -114,8 +113,7 @@ public class CleanUp extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId.getTid());
+    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
     Utils.getReadLock(manager, tableId, fateId).unlock();
     Utils.getReadLock(manager, namespaceId, fateId).unlock();
     return null;

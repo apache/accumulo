@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -71,6 +70,8 @@ public enum TabletGoalState {
     TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
     if (systemGoalState == TabletGoalState.HOSTED) {
+      // All the code in this block should look for reasons to return something other than HOSTED.
+
       if (!params.isParentLevelUpgraded()) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
@@ -85,26 +86,24 @@ public enum TabletGoalState {
         return TabletGoalState.UNASSIGNED;
       }
 
-      // When the tablet has wals and it will not be hosted normally, then cause it to
-      // be hosted so that recovery can occur. When tablet availability is ONDEMAND or
-      // UNHOSTED, then this tablet will eventually become unhosted after recovery occurs.
-      // This could cause a little bit of churn on the cluster w/r/t balancing, but it's
-      // necessary.
-      if (!tm.getLogs().isEmpty() && tm.getTabletAvailability() != TabletAvailability.HOSTED) {
-        return TabletGoalState.HOSTED;
-      }
-
       if (!params.isTableOnline(tm.getTableId())) {
         return UNASSIGNED;
       }
 
-      switch (tm.getTabletAvailability()) {
-        case UNHOSTED:
-          return UNASSIGNED;
-        case ONDEMAND:
-          if (!tm.getHostingRequested()) {
+      // Only want to override the HOSTED goal for tablet availability if there are no walog
+      // present. If a tablet has walogs, then it should be hosted for recovery no matter what the
+      // current tablet availability settings are. When tablet availability is ONDEMAND or UNHOSTED,
+      // then this tablet will eventually become unhosted after recovery occurs. This could cause a
+      // little bit of churn on the cluster w/r/t balancing, but it's necessary.
+      if (tm.getLogs().isEmpty()) {
+        switch (tm.getTabletAvailability()) {
+          case UNHOSTED:
             return UNASSIGNED;
-          }
+          case ONDEMAND:
+            if (!tm.getHostingRequested()) {
+              return UNASSIGNED;
+            }
+        }
       }
 
       TServerInstance dest = params.getMigrations().get(extent);

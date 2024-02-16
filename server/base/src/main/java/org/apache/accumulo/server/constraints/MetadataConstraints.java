@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -269,7 +269,7 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 11);
         }
       } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
-        if (!FateTxId.isFormatedTid(columnQualifier.toString())) {
+        if (!FateId.isFormattedTid(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {

@@ -108,13 +108,12 @@ public class CleanUpBulkImport extends ManagerRepo {
           var tabletsMutator = ample.conditionallyMutateTablets()) {
 
         for (var tablet : tablets) {
-          // ELASTICITY_TODO DEFERRED - ISSUE 4044
-          if (tablet.getLoaded().values().stream().anyMatch(l -> l == fateId.getTid())) {
+          if (tablet.getLoaded().values().stream()
+              .anyMatch(loadedFateId -> loadedFateId.equals(fateId))) {
             var tabletMutator =
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
-            tablet.getLoaded().entrySet().stream()
-                .filter(entry -> entry.getValue() == fateId.getTid()).map(Map.Entry::getKey)
-                .forEach(tabletMutator::deleteBulkFile);
+            tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
+                .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false);
           }
         }

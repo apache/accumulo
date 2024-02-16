@@ -35,7 +35,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
@@ -71,6 +72,10 @@ public class TabletManagementTest {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
+    FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
+    FateId fateId56L = FateId.from(type, 56L);
+    FateId fateId59L = FateId.from(type, 59L);
+
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
@@ -80,9 +85,9 @@ public class TabletManagementTest {
     StoredTabletFile bf2 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/bf2")).insert();
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1.getMetadata())
-        .put(FateTxId.formatTid(56));
+        .put(fateId56L.canonical());
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2.getMetadata())
-        .put(FateTxId.formatTid(59));
+        .put(fateId59L.canonical());
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 

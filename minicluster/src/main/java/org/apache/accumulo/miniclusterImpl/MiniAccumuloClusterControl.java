@@ -519,4 +519,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     stop(server, hostname);
   }
 
+  public List<Process> getCompactors(String resourceGroup) {
+    return compactorProcesses.get(resourceGroup);
+  }
+
+  public List<Process> getTabletServers(String resourceGroup) {
+    return tabletServerProcesses.get(resourceGroup);
+  }
+
 }

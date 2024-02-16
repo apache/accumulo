@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -164,18 +163,18 @@ public class CommitCompaction extends ManagerRepo {
         // all files selected for the user compactions are finished, so the tablet is finish and
         // its compaction id needs to be updated.
 
-        long fateTxId = tablet.getSelectedFiles().getFateTxId();
+        FateId fateId = tablet.getSelectedFiles().getFateId();
 
-        Preconditions.checkArgument(!tablet.getCompacted().contains(fateTxId),
+        Preconditions.checkArgument(!tablet.getCompacted().contains(fateId),
             "Tablet %s unexpected has selected files and compacted columns for %s",
-            tablet.getExtent(), fateTxId);
+            tablet.getExtent(), fateId);
 
         // TODO set to trace
-        LOG.debug("All selected files compcated for {} setting compacted for {}",
-            tablet.getExtent(), FateTxId.formatTid(tablet.getSelectedFiles().getFateTxId()));
+        LOG.debug("All selected files compacted for {} setting compacted for {}",
+            tablet.getExtent(), tablet.getSelectedFiles().getFateId());
 
         tabletMutator.deleteSelectedFiles();
-        tabletMutator.putCompacted(fateTxId);
+        tabletMutator.putCompacted(fateId);
 
       } else {
         // not all of the selected files were finished, so need to add the new file to the
@@ -200,7 +199,7 @@ public class CommitCompaction extends ManagerRepo {
 
         tabletMutator.putSelectedFiles(
             new SelectedFiles(newSelectedFileSet, tablet.getSelectedFiles().initiallySelectedAll(),
-                tablet.getSelectedFiles().getFateTxId()));
+                tablet.getSelectedFiles().getFateId()));
       }
     }
 
@@ -252,12 +251,11 @@ public class CommitCompaction extends ManagerRepo {
         return false;
       }
 
-      if (ecm.getFateTxId() != tabletMetadata.getSelectedFiles().getFateTxId()) {
+      if (!ecm.getFateId().equals(tabletMetadata.getSelectedFiles().getFateId())) {
         // maybe the compaction was cancled and another user compaction was started on the tablet.
         LOG.debug(
             "Received completion notification for user compaction where its fate txid did not match the tablets {} {} {} {}",
-            ecid, extent, FateTxId.formatTid(ecm.getFateTxId()),
-            FateTxId.formatTid(tabletMetadata.getSelectedFiles().getFateTxId()));
+            ecid, extent, ecm.getFateId(), tabletMetadata.getSelectedFiles().getFateId());
       }
 
       if (!tabletMetadata.getSelectedFiles().getFiles().containsAll(ecm.getJobFiles())) {

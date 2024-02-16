@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -160,12 +160,12 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void addBulkLoadInProgressFlag(String path, long fateTxid) {
+  public void addBulkLoadInProgressFlag(String path, FateId fateId) {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
+    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(fateId.canonical()));
 
     try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);

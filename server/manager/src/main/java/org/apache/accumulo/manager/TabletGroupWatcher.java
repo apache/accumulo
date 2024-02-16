@@ -512,10 +512,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (Manager.log.isTraceEnabled()) {
         Manager.log.trace(
-            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{}",
+            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{} #wals:{}",
             store.name(), tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
-            state, goal, actions);
+            state, goal, actions, tm.getLogs().size());
       }
 
       if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {

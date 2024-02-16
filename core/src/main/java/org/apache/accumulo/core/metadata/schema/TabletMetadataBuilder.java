@@ -48,6 +48,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -166,9 +167,9 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putBulkFile(ReferencedTabletFile bulkref, long tid) {
+  public TabletMetadataBuilder putBulkFile(ReferencedTabletFile bulkref, FateId fateId) {
     fetched.add(LOADED);
-    internalBuilder.putBulkFile(bulkref, tid);
+    internalBuilder.putBulkFile(bulkref, fateId);
     return this;
   }
 
@@ -203,14 +204,14 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putCompacted(long fateTxId) {
+  public TabletMetadataBuilder putCompacted(FateId fateId) {
     fetched.add(COMPACTED);
-    internalBuilder.putCompacted(fateTxId);
+    internalBuilder.putCompacted(fateId);
     return this;
   }
 
   @Override
-  public TabletMetadataBuilder deleteCompacted(long fateTxId) {
+  public TabletMetadataBuilder deleteCompacted(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 

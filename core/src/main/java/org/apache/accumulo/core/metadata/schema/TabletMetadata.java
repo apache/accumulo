@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -98,7 +98,7 @@ public class TabletMetadata {
   private Location location;
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
-  private Map<StoredTabletFile,Long> loadedFiles;
+  private Map<StoredTabletFile,FateId> loadedFiles;
   private SelectedFiles selectedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
@@ -116,7 +116,7 @@ public class TabletMetadata {
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
-  private Set<Long> compacted;
+  private Set<FateId> compacted;
   private boolean userCompactionRequested = false;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
@@ -288,7 +288,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<StoredTabletFile,Long> getLoaded() {
+  public Map<StoredTabletFile,FateId> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -398,7 +398,7 @@ public class TabletMetadata {
     return extCompactions;
   }
 
-  public Set<Long> getCompacted() {
+  public Set<FateId> getCompacted() {
     ensureFetched(ColumnType.COMPACTED);
     return compacted;
   }
@@ -429,8 +429,8 @@ public class TabletMetadata {
     final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     final var logsBuilder = ImmutableList.<LogEntry>builder();
     final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
-    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
-    final var compactedBuilder = ImmutableSet.<Long>builder();
+    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,FateId>builder();
+    final var compactedBuilder = ImmutableSet.<FateId>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -527,7 +527,7 @@ public class TabletMetadata {
           te.merged = true;
           break;
         case CompactedColumnFamily.STR_NAME:
-          compactedBuilder.add(FateTxId.fromString(qual));
+          compactedBuilder.add(FateId.from(qual));
           break;
         case CompactRequestColumnFamily.STR_NAME:
           te.userCompactionRequested = true;
