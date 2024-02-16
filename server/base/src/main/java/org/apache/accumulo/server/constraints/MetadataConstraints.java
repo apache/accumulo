@@ -267,7 +267,7 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 11);
         }
       } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
-        if (!FateId.isFormattedTid(columnQualifier.toString())) {
+        if (!FateId.isFateId(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {

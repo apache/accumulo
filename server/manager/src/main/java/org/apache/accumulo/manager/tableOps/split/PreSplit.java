@@ -66,8 +66,7 @@ public class PreSplit extends ManagerRepo {
     // ELASTICITY_TODO intentionally not getting the table lock because not sure if its needed,
     // revist later when more operations are moved out of tablet server
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     // ELASTICITY_TODO write IT that spins up 100 threads that all try to add a diff split to
     // the same tablet.
@@ -132,8 +131,7 @@ public class PreSplit extends ManagerRepo {
     TabletMetadata tabletMetadata = manager.getContext().getAmple()
         .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID);
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     if (tabletMetadata == null || !opid.equals(tabletMetadata.getOperationId())) {
       // the tablet no longer exists or we could not set the operation id, maybe another operation

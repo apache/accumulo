@@ -700,8 +700,11 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var context = cluster.getServerContext();
 
-      var opid1 = TabletOperationId.from("SPLITTING:FATE[1234]");
-      var opid2 = TabletOperationId.from("MERGING:FATE[5678]");
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId1 = FateId.from(type, "1234");
+      FateId fateId2 = FateId.from(type, "5678");
+      var opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, fateId1);
+      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, fateId2);
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(opid1).submit(tm -> false);
@@ -832,7 +835,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(LocationType.CURRENT, loc.getType());
     assertNull(rootMeta.getOperationId());
 
-    TabletOperationId opid = TabletOperationId.from(TabletOperationType.MERGING, 7);
+    FateInstanceType type = FateInstanceType.fromTableId(RootTable.EXTENT.tableId());
+    FateId fateId = FateId.from(type, 7);
+    TabletOperationId opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     var ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation().requireAbsentLocation()
@@ -1201,7 +1206,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       };
 
       // run a test where a subset of tablets are modified, all modifications should be accepted
-      var opid1 = TabletOperationId.from(TabletOperationType.MERGING, 50);
+      FateInstanceType type = FateInstanceType.fromTableId(tableId);
+      FateId fateId1 = FateId.from(type, 50);
+      var opid1 = TabletOperationId.from(TabletOperationType.MERGING, fateId1);
 
       int expected = 0;
       try (var tablets = ample.readTablets().forTable(tableId).fetch(OPID, PREV_ROW).build();
@@ -1222,7 +1229,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // run test where some will be accepted and some will be rejected and ensure the counts come
       // out as expected.
-      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, 51);
+      FateId fateId2 = FateId.from(type, 51);
+      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, fateId2);
 
       accepted.set(0);
       total.set(0);

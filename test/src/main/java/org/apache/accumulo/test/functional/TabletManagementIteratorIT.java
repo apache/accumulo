@@ -56,6 +56,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -322,7 +324,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   // Sets an operation type on all tablets up to the end row
   private void setOperationId(AccumuloClient client, String table, String tableNameToModify,
       Text end, TabletOperationType opType) throws TableNotFoundException {
-    var opid = TabletOperationId.from(opType, 42L);
+    FateInstanceType type = FateInstanceType.fromNamespaceOrTableName(table);
+    FateId fateId = FateId.from(type, 42L);
+    var opid = TabletOperationId.from(opType, fateId);
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     try (TabletsMetadata tabletsMetadata =

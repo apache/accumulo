@@ -52,8 +52,7 @@ public class RefreshTablets extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId.getTid(),
+    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId,
         bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
         tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 

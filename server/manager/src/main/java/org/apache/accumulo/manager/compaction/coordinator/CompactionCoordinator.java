@@ -572,11 +572,10 @@ public class CompactionCoordinator
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateId.getTid(), overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), fateId.toThrift(), overrides);
   }
 
   @Override

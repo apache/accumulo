@@ -61,8 +61,7 @@ public class UpdateTablets extends ManagerRepo {
     TabletMetadata tabletMetadata =
         manager.getContext().getAmple().readTablet(splitInfo.getOriginal());
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     if (tabletMetadata == null) {
       // check to see if this operation has already succeeded.

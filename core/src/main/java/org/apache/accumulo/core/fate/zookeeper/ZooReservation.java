@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -29,15 +30,14 @@ import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
 
-  public static boolean attempt(ZooReaderWriter zk, String path, String reservationID,
-      String debugInfo) throws KeeperException, InterruptedException {
-    if (reservationID.contains(":")) {
-      throw new IllegalArgumentException();
-    }
+  private static final String DELIMITER = "-";
+
+  public static boolean attempt(ZooReaderWriter zk, String path, FateId fateId, String debugInfo)
+      throws KeeperException, InterruptedException {
 
     while (true) {
       try {
-        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(UTF_8),
+        zk.putPersistentData(path, (fateId.canonical() + DELIMITER + debugInfo).getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
@@ -48,15 +48,15 @@ public class ZooReservation {
           continue;
         }
 
-        String idInZoo = new String(zooData, UTF_8).split(":")[0];
+        FateId idInZoo = FateId.from(new String(zooData, UTF_8).split(DELIMITER)[0]);
 
-        return idInZoo.equals(reservationID);
+        return idInZoo.equals(fateId);
       }
     }
 
   }
 
-  public static void release(ZooReaderWriter zk, String path, String reservationID)
+  public static void release(ZooReaderWriter zk, String path, FateId fateId)
       throws KeeperException, InterruptedException {
     byte[] zooData;
 
@@ -69,11 +69,11 @@ public class ZooReservation {
     }
 
     String zooDataStr = new String(zooData, UTF_8);
-    String idInZoo = zooDataStr.split(":")[0];
+    FateId idInZoo = FateId.from(zooDataStr.split(DELIMITER)[0]);
 
-    if (!idInZoo.equals(reservationID)) {
+    if (!idInZoo.equals(fateId)) {
       throw new IllegalStateException("Tried to release reservation " + path
-          + " with data mismatch " + reservationID + " " + zooDataStr);
+          + " with data mismatch " + fateId + " " + zooDataStr);
     }
 
     zk.recursiveDelete(path, NodeMissingPolicy.SKIP);
