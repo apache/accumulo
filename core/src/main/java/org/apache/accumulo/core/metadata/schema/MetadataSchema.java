@@ -414,11 +414,11 @@ public class MetadataSchema {
     }
 
     /**
-     * Column family for indicating that a user has requested to compaction a tablet. The column
+     * Column family for indicating that a user has requested to compact a tablet. The column
      * qualifier is expected to contain the fate transaction id that is executing the request.
      */
-    public static class CompactRequestColumnFamily {
-      public static final String STR_NAME = "requestToCompact";
+    public static class UserCompactionRequestedColumnFamily {
+      public static final String STR_NAME = "userRequestToCompact";
       public static final Text NAME = new Text(STR_NAME);
     }
 

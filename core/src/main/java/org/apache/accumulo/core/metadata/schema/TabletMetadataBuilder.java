@@ -20,7 +20,6 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -36,6 +35,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -276,14 +276,14 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putCompactionRequested(FateId fateId) {
-    fetched.add(COMPACTION_REQUESTED);
-    internalBuilder.putCompactionRequested(fateId);
+  public TabletMetadataBuilder putUserCompactionRequested(FateId fateId) {
+    fetched.add(USER_COMPACTION_REQUESTED);
+    internalBuilder.putUserCompactionRequested(fateId);
     return this;
   }
 
   @Override
-  public TabletMetadataBuilder deleteCompactionRequested(FateId fateId) {
+  public TabletMetadataBuilder deleteUserCompactionRequested(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 

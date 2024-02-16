@@ -59,7 +59,6 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -72,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -147,7 +147,7 @@ public class TabletMetadata {
     OPID,
     SELECTED,
     COMPACTED,
-    COMPACTION_REQUESTED
+    USER_COMPACTION_REQUESTED
   }
 
   public static class Location {
@@ -353,8 +353,8 @@ public class TabletMetadata {
     return merged;
   }
 
-  public Set<FateId> getCompactionsRequested() {
-    ensureFetched(ColumnType.COMPACTION_REQUESTED);
+  public Set<FateId> getUserCompactionsRequested() {
+    ensureFetched(ColumnType.USER_COMPACTION_REQUESTED);
     return userCompactionsRequested;
   }
 
@@ -431,7 +431,7 @@ public class TabletMetadata {
     final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,FateId>builder();
     final var compactedBuilder = ImmutableSet.<FateId>builder();
-    final var userCompactionsRequestsBuilder = ImmutableSet.<FateId>builder();
+    final var userCompactionsRequestedBuilder = ImmutableSet.<FateId>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -530,8 +530,8 @@ public class TabletMetadata {
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateId.from(qual));
           break;
-        case CompactRequestColumnFamily.STR_NAME:
-          userCompactionsRequestsBuilder.add(FateId.from(qual));
+        case UserCompactionRequestedColumnFamily.STR_NAME:
+          userCompactionsRequestedBuilder.add(FateId.from(qual));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
@@ -552,7 +552,7 @@ public class TabletMetadata {
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
     te.compacted = compactedBuilder.build();
-    te.userCompactionsRequested = userCompactionsRequestsBuilder.build();
+    te.userCompactionsRequested = userCompactionsRequestedBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }

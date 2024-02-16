@@ -35,7 +35,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -329,14 +329,14 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putCompactionRequested(FateId fateId) {
-    mutation.put(CompactRequestColumnFamily.STR_NAME, fateId.canonical(), "");
+  public T putUserCompactionRequested(FateId fateId) {
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical(), "");
     return getThis();
   }
 
   @Override
-  public T deleteCompactionRequested(FateId fateId) {
-    mutation.putDelete(CompactRequestColumnFamily.STR_NAME, fateId.canonical());
+  public T deleteUserCompactionRequested(FateId fateId) {
+    mutation.putDelete(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical());
     return getThis();
   }
 

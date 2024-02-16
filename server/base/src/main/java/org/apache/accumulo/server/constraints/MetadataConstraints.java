@@ -42,7 +42,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactRequestColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -112,7 +112,7 @@ public class MetadataConstraints implements Constraint {
           CompactedColumnFamily.NAME,
           CHOPPED,
           MergedColumnFamily.NAME,
-          CompactRequestColumnFamily.NAME
+          UserCompactionRequestedColumnFamily.NAME
       );
   // @formatter:on
 
@@ -231,7 +231,7 @@ public class MetadataConstraints implements Constraint {
           || columnFamily.equals(LogColumnFamily.NAME)
           || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
           || columnFamily.equals(CompactedColumnFamily.NAME)
-          || columnFamily.equals(CompactRequestColumnFamily.NAME))) {
+          || columnFamily.equals(UserCompactionRequestedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -270,7 +270,7 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 11);
         }
       } else if (CompactedColumnFamily.NAME.equals(columnFamily)
-          || CompactRequestColumnFamily.NAME.equals(columnFamily)) {
+          || UserCompactionRequestedColumnFamily.NAME.equals(columnFamily)) {
         if (!FateId.isFormattedTid(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
         }

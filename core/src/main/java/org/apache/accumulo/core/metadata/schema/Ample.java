@@ -414,9 +414,9 @@ public interface Ample {
 
     T deleteMerged();
 
-    T putCompactionRequested(FateId fateId);
+    T putUserCompactionRequested(FateId fateId);
 
-    T deleteCompactionRequested(FateId fateId);
+    T deleteUserCompactionRequested(FateId fateId);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

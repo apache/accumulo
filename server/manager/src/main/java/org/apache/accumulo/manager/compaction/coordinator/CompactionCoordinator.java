@@ -410,7 +410,7 @@ public class CompactionCoordinator
 
     switch (job.getKind()) {
       case SYSTEM:
-        if (!tablet.getCompactionsRequested().isEmpty()) {
+        if (!tablet.getUserCompactionsRequested().isEmpty()) {
           return false;
         } else if (tablet.getSelectedFiles() != null
             && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles())) {
