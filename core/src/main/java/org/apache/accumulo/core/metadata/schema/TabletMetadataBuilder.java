@@ -276,14 +276,14 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder setCompactionRequested() {
+  public TabletMetadataBuilder putCompactionRequested(FateId fateId) {
     fetched.add(COMPACTION_REQUESTED);
-    internalBuilder.setCompactionRequested();
+    internalBuilder.putCompactionRequested(fateId);
     return this;
   }
 
   @Override
-  public TabletMetadataBuilder deleteCompactionRequested() {
+  public TabletMetadataBuilder deleteCompactionRequested(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 

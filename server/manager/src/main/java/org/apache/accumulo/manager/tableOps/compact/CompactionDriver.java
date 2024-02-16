@@ -260,8 +260,8 @@ class CompactionDriver extends ManagerRepo {
           // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, ECOMP).setCompactionRequested();
-          mutator.submit(TabletMetadata::getCompactionRequested);
+              .requireSame(tablet, ECOMP).putCompactionRequested(fateId);
+          mutator.submit(tm -> tm.getCompactionsRequested().contains(fateId));
 
           // Add marker here
           otherCompaction++;

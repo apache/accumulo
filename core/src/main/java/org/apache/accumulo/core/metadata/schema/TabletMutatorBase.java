@@ -329,15 +329,14 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T setCompactionRequested() {
-    CompactRequestColumnFamily.COMPACT_REQUEST_COLUMN.put(mutation,
-        CompactRequestColumnFamily.COMPACT_REQUEST_VALUE);
+  public T putCompactionRequested(FateId fateId) {
+    mutation.put(CompactRequestColumnFamily.STR_NAME, fateId.canonical(), "");
     return getThis();
   }
 
   @Override
-  public T deleteCompactionRequested() {
-    CompactRequestColumnFamily.COMPACT_REQUEST_COLUMN.putDelete(mutation);
+  public T deleteCompactionRequested(FateId fateId) {
+    mutation.putDelete(CompactRequestColumnFamily.STR_NAME, fateId.canonical());
     return getThis();
   }
 

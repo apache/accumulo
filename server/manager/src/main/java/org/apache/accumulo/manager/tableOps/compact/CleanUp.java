@@ -84,12 +84,12 @@ public class CleanUp extends ManagerRepo {
         if (tablet.getCompacted().contains(fateId)) {
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
               .requireSame(tablet, COMPACTED).deleteCompacted(fateId);
-          if (tablet.getCompactionRequested()) {
-            mutator.deleteCompactionRequested();
+          if (tablet.getCompactionsRequested().contains(fateId)) {
+            mutator.deleteCompactionRequested(fateId);
           }
 
           mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId)
-              && !tabletMetadata.getCompactionRequested());
+              && !tabletMetadata.getCompactionsRequested().contains(fateId));
           submitted++;
         }
       }

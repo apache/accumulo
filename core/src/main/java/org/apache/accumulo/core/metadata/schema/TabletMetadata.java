@@ -117,7 +117,7 @@ public class TabletMetadata {
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
   private Set<FateId> compacted;
-  private boolean userCompactionRequested = false;
+  private Set<FateId> userCompactionsRequested;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -353,9 +353,9 @@ public class TabletMetadata {
     return merged;
   }
 
-  public boolean getCompactionRequested() {
+  public Set<FateId> getCompactionsRequested() {
     ensureFetched(ColumnType.COMPACTION_REQUESTED);
-    return userCompactionRequested;
+    return userCompactionsRequested;
   }
 
   public TabletAvailability getTabletAvailability() {
@@ -431,6 +431,7 @@ public class TabletMetadata {
     final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,FateId>builder();
     final var compactedBuilder = ImmutableSet.<FateId>builder();
+    final var userCompactionsRequestsBuilder = ImmutableSet.<FateId>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -530,7 +531,7 @@ public class TabletMetadata {
           compactedBuilder.add(FateId.from(qual));
           break;
         case CompactRequestColumnFamily.STR_NAME:
-          te.userCompactionRequested = true;
+          userCompactionsRequestsBuilder.add(FateId.from(qual));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
@@ -551,6 +552,7 @@ public class TabletMetadata {
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
     te.compacted = compactedBuilder.build();
+    te.userCompactionsRequested = userCompactionsRequestsBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }
