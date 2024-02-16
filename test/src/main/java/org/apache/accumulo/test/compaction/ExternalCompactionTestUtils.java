@@ -377,6 +377,7 @@ public class ExternalCompactionTestUtils {
         assertEquals(Set.of(), tabletMetadata.getCompacted());
         assertNull(tabletMetadata.getSelectedFiles());
         assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+        assertEquals(Set.of(), tabletMetadata.getUserCompactionsRequested());
         count++;
       }
 

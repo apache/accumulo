@@ -262,8 +262,6 @@ class CompactionDriver extends ManagerRepo {
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
               .requireSame(tablet, ECOMP).putUserCompactionRequested(fateId);
           mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
-
-          // Add marker here
           otherCompaction++;
         }
       }
@@ -336,7 +334,8 @@ class CompactionDriver extends ManagerRepo {
         Predicate<TabletMetadata> needsUpdate =
             tabletMetadata -> (tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getFateId().equals(fateId))
-                || tabletMetadata.getCompacted().contains(fateId);
+                || tabletMetadata.getCompacted().contains(fateId)
+                || tabletMetadata.getUserCompactionsRequested().contains(fateId);
         Predicate<TabletMetadata> needsNoUpdate = needsUpdate.negate();
 
         for (TabletMetadata tablet : tablets) {
@@ -351,6 +350,9 @@ class CompactionDriver extends ManagerRepo {
 
             if (tablet.getCompacted().contains(fateId)) {
               mutator.deleteCompacted(fateId);
+            }
+            if (tablet.getUserCompactionsRequested().contains(fateId)) {
+              mutator.deleteUserCompactionRequested(fateId);
             }
 
             mutator.submit(needsNoUpdate::test);

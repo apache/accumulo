@@ -954,7 +954,7 @@ public class CompactionIT extends AccumuloClusterHarness {
         var externalCompactions = tabletMeta.getExternalCompactions().size();
         log.debug("Current external compactions {}", externalCompactions);
         return externalCompactions == 1;
-      }, Wait.MAX_WAIT_MILLIS, 500);
+      }, Wait.MAX_WAIT_MILLIS, 100);
 
       // Trigger a user compaction which should be blocked by the system compaction
       // and should result in the userRequestedCompactions column being set so no more
@@ -965,15 +965,15 @@ public class CompactionIT extends AccumuloClusterHarness {
         var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
         log.debug("Current user requested compactions {}", userRequestedCompactions);
         return userRequestedCompactions == 1;
-      }, Wait.MAX_WAIT_MILLIS, 500);
+      }, Wait.MAX_WAIT_MILLIS, 100);
 
-      // Wait and verify that the system compaction finishes
+      // Wait and verify all compactions finish
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var externalCompactions = tabletMeta.getExternalCompactions().size();
         log.debug("Current external compactions {}", externalCompactions);
         return externalCompactions == 0;
-      }, Wait.MAX_WAIT_MILLIS, 500);
+      }, Wait.MAX_WAIT_MILLIS, 100);
 
       // After the user compaction completes the compactions requested column should be cleared
       Wait.waitFor(() -> {
@@ -981,8 +981,10 @@ public class CompactionIT extends AccumuloClusterHarness {
         var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
         log.debug("Current user requested compactions {}", userRequestedCompactions);
         return userRequestedCompactions == 0;
-      }, Wait.MAX_WAIT_MILLIS, 500);
+      }, Wait.MAX_WAIT_MILLIS, 100);
     }
+
+    ExternalCompactionTestUtils.assertNoCompactionMetadata(getServerContext(), tableName);
   }
 
   /**

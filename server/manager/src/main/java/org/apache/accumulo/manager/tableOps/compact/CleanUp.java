@@ -81,13 +81,16 @@ public class CleanUp extends ManagerRepo {
       t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
         total++;
-        if (tablet.getCompacted().contains(fateId)) {
+        if (tablet.getCompacted().contains(fateId)
+            || tablet.getUserCompactionsRequested().contains(fateId)) {
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(fateId);
+              .requireSame(tablet, COMPACTED, USER_COMPACTION_REQUESTED);
+          if (tablet.getCompacted().contains(fateId)) {
+            mutator.deleteCompacted(fateId);
+          }
           if (tablet.getUserCompactionsRequested().contains(fateId)) {
             mutator.deleteUserCompactionRequested(fateId);
           }
-
           mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId)
               && !tabletMetadata.getUserCompactionsRequested().contains(fateId));
           submitted++;
