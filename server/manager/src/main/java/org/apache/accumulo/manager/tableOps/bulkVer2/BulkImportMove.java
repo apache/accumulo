@@ -105,8 +105,7 @@ class BulkImportMove extends ManagerRepo {
       oldToNewMap.put(originalPath, newPath);
     }
     try {
-      // ELASTICITY_TODO DEFERRED - ISSUE 4044
-      fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fateId.getHexTid());
+      fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,

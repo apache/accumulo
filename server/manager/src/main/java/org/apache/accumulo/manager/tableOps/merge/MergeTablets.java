@@ -78,8 +78,7 @@ public class MergeTablets extends ManagerRepo {
     KeyExtent range = data.getMergeExtent();
     log.debug("{} Merging metadata for {}", fateId, range);
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
     Set<TabletAvailability> tabletAvailabilities = new HashSet<>();
     MetadataTime maxLogicalTime = null;
     List<ReferenceFile> dirs = new ArrayList<>();

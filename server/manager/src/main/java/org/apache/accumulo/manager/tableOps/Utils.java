@@ -146,8 +146,7 @@ public class Utils {
 
     ZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044 .. should the full FateId be passed below?
-    if (ZooReservation.attempt(zk, resvPath, fateId.getHexTid(), "")) {
+    if (ZooReservation.attempt(zk, resvPath, fateId, "")) {
       return 0;
     } else {
       return 50;
@@ -158,13 +157,12 @@ public class Utils {
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath, fateId.getHexTid());
+    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath, fateId);
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       boolean writeLock) {
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044 ... should lock data use full FateId?
-    byte[] lockData = fateId.getHexTid().getBytes(UTF_8);
+    byte[] lockData = fateId.canonical().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);

@@ -60,8 +60,7 @@ public class DeleteTablets extends ManagerRepo {
 
     KeyExtent range = data.getMergeExtent();
     log.debug("{} Deleting tablets for {}", fateId, range);
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     AtomicLong acceptedCount = new AtomicLong();
     AtomicLong rejectedCount = new AtomicLong();

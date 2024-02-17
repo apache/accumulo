@@ -55,8 +55,7 @@ public class ReserveTablets extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     var range = data.getReserveExtent();
     log.debug("{} reserving tablets in range {}", fateId, range);
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     AtomicLong opsAccepted = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {

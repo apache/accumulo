@@ -136,7 +136,6 @@ public class CompactionCoordinator
     implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
-  private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
 
   /*
    * Map of compactionId to RunningCompactions. This is an informational cache of what external
@@ -297,7 +296,7 @@ public class CompactionCoordinator
   }
 
   protected long getMissingCompactorWarningTime() {
-    return FIFTEEN_MINUTES;
+    return this.ctx.getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
   protected long getTServerCheckInterval() {
@@ -574,11 +573,10 @@ public class CompactionCoordinator
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateId.getTid(), overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), fateId.toThrift(), overrides);
   }
 
   @Override

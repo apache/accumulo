@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -321,7 +322,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
-      String transactionId) throws IOException {
+      FateId fateId) throws IOException {
     List<Future<Void>> results = new ArrayList<>();
     ExecutorService workerPool =
         ThreadPools.getServerThreadPools().createFixedThreadPool(poolSize, poolName, false);
@@ -337,14 +338,14 @@ public class VolumeManagerImpl implements VolumeManager {
         }
         log.debug(
             "Ignoring rename exception for {} because destination already exists. orig: {} new: {}",
-            transactionId, oldPath, newPath, e);
+            fateId, oldPath, newPath, e);
         success = true;
       }
       if (!success && (!exists(newPath) || exists(oldPath))) {
-        throw new IOException("Rename operation " + transactionId + " returned false. orig: "
-            + oldPath + " new: " + newPath);
+        throw new IOException("Rename operation " + fateId + " returned false. orig: " + oldPath
+            + " new: " + newPath);
       } else if (log.isTraceEnabled()) {
-        log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
+        log.trace("{} moved {} to {}", fateId, oldPath, newPath);
       }
       return null;
     })));

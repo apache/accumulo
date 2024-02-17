@@ -61,8 +61,7 @@ class FinishTableRangeOp extends ManagerRepo {
 
   static void removeOperationIds(Logger log, MergeInfo data, FateId fateId, Manager manager) {
     KeyExtent range = data.getReserveExtent();
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
     log.debug("{} unreserving tablet in range {}", fateId, range);
 
     AtomicLong acceptedCount = new AtomicLong();
