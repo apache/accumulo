@@ -83,6 +83,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -927,20 +928,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName, ntc);
 
       // Insert MAX_DATA rows
-      try (BatchWriter bw = client.createBatchWriter(tableName)) {
-        for (int i = 0; i < MAX_DATA; i++) {
-          Mutation m = new Mutation(String.format("r:%04d", i));
-          m.put("", "", "" + i);
-          bw.addMutation(m);
-
-          if (i % 75 == 0) {
-            // create many files as this will cause a system compaction
-            bw.flush();
-            client.tableOperations().flush(tableName, null, null, true);
-          }
-        }
-      }
-      client.tableOperations().flush(tableName, null, null, true);
+      writeRows((ClientContext) client, tableName, MAX_DATA, false);
 
       // set the compaction ratio 1 to trigger a system compaction
       client.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
@@ -951,9 +939,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       // Wait for the system compaction to start
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var externalCompactions = tabletMeta.getExternalCompactions().size();
-        log.debug("Current external compactions {}", externalCompactions);
-        return externalCompactions == 1;
+        var externalCompactions = tabletMeta.getExternalCompactions();
+        log.debug("Current external compactions {}", externalCompactions.size());
+        return externalCompactions.size() == 1;
       }, Wait.MAX_WAIT_MILLIS, 100);
 
       // Trigger a user compaction which should be blocked by the system compaction
@@ -967,12 +955,17 @@ public class CompactionIT extends AccumuloClusterHarness {
         return userRequestedCompactions == 1;
       }, Wait.MAX_WAIT_MILLIS, 100);
 
-      // Wait and verify all compactions finish
+      // Send more data to trigger another system compaction but the user compaction
+      // should go next
+      writeRows((ClientContext) client, tableName, 2 * MAX_DATA, false);
+
+      // Verify user compaction started
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var externalCompactions = tabletMeta.getExternalCompactions().size();
-        log.debug("Current external compactions {}", externalCompactions);
-        return externalCompactions == 0;
+        log.debug("Waiting for USER compaction to start");
+        var externalCompactions = tabletMeta.getExternalCompactions();
+        return externalCompactions.values().stream()
+            .anyMatch(cm -> cm.getKind() == CompactionKind.USER);
       }, Wait.MAX_WAIT_MILLIS, 100);
 
       // After the user compaction completes the compactions requested column should be cleared
@@ -982,9 +975,35 @@ public class CompactionIT extends AccumuloClusterHarness {
         log.debug("Current user requested compactions {}", userRequestedCompactions);
         return userRequestedCompactions == 0;
       }, Wait.MAX_WAIT_MILLIS, 100);
+
+      // Wait and verify all compactions finish
+      Wait.waitFor(() -> {
+        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+        var externalCompactions = tabletMeta.getExternalCompactions().size();
+        log.debug("Current external compactions {}", externalCompactions);
+        return externalCompactions == 0;
+      }, Wait.MAX_WAIT_MILLIS, 100);
     }
 
     ExternalCompactionTestUtils.assertNoCompactionMetadata(getServerContext(), tableName);
+  }
+
+  private void writeRows(ClientContext client, String tableName, int rows, boolean wait)
+      throws Exception {
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < rows; i++) {
+        Mutation m = new Mutation(String.format("r:%04d", i));
+        m.put("", "", "" + i);
+        bw.addMutation(m);
+
+        if (i % 75 == 0) {
+          // create many files as this will cause a system compaction
+          bw.flush();
+          client.tableOperations().flush(tableName, null, null, wait);
+        }
+      }
+    }
+    client.tableOperations().flush(tableName, null, null, wait);
   }
 
   /**
