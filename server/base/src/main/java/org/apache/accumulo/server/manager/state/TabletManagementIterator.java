@@ -54,6 +54,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
@@ -137,6 +138,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
     ServerColumnFamily.OPID_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(UserCompactionRequestedColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);

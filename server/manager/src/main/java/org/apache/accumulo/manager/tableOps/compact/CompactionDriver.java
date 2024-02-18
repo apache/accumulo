@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -163,7 +164,8 @@ class CompactionDriver extends ManagerRepo {
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID).checkConsistency().build();
+            .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID, USER_COMPACTION_REQUESTED)
+            .checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
@@ -259,8 +261,11 @@ class CompactionDriver extends ManagerRepo {
         } else {
           // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
+          log.debug("Marking {} as needing a user requested compaction for {}", tablet.getExtent(),
+              fateId);
           var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, ECOMP).putUserCompactionRequested(fateId);
+              .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
+              .putUserCompactionRequested(fateId);
           mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
           otherCompaction++;
         }

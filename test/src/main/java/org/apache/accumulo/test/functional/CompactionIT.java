@@ -46,6 +46,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
@@ -76,6 +77,7 @@ import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -936,12 +938,16 @@ public class CompactionIT extends AccumuloClusterHarness {
       var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       var extent = new KeyExtent(tableId, null, null);
 
+      AtomicReference<ExternalCompactionId> initialCompaction = new AtomicReference<>();
+
       // Wait for the system compaction to start
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var externalCompactions = tabletMeta.getExternalCompactions();
         log.debug("Current external compactions {}", externalCompactions.size());
-        return externalCompactions.size() == 1;
+        var current = externalCompactions.keySet().stream().findFirst();
+        current.ifPresent(initialCompaction::set);
+        return current.isPresent();
       }, Wait.MAX_WAIT_MILLIS, 100);
 
       // Trigger a user compaction which should be blocked by the system compaction
@@ -951,28 +957,46 @@ public class CompactionIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
-        log.debug("Current user requested compactions {}", userRequestedCompactions);
+        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
         return userRequestedCompactions == 1;
       }, Wait.MAX_WAIT_MILLIS, 100);
 
       // Send more data to trigger another system compaction but the user compaction
-      // should go next
-      writeRows((ClientContext) client, tableName, 2 * MAX_DATA, false);
+      // should go next and the column marker should block it
+      writeRows((ClientContext) client, tableName, MAX_DATA, false);
 
-      // Verify user compaction started
+      // Verify that when the next compaction starts it is a USER compaction as the
+      // SYSTEM compaction should be blocked by the marker
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        log.debug("Waiting for USER compaction to start");
+        log.debug("Waiting for USER compaction to start {}", extent);
+
+        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
+        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
         var externalCompactions = tabletMeta.getExternalCompactions();
-        return externalCompactions.values().stream()
-            .anyMatch(cm -> cm.getKind() == CompactionKind.USER);
+        log.debug("External compactions size {}", externalCompactions.size());
+        var current = externalCompactions.entrySet().stream().findFirst();
+        current.ifPresent(c -> log.debug("Current running compaction {}", c.getKey()));
+
+        if (current.isPresent()) {
+          var currentCompaction = current.orElseThrow();
+          log.debug("Current running compaction {}", currentCompaction.getKey());
+          // Next compaction started - verify it is a USER compaction and not SYSTEM
+          if (!current.orElseThrow().getKey().equals(initialCompaction.get())) {
+            log.debug("Next compaction {} started as type {}", currentCompaction.getKey(),
+                currentCompaction.getValue().getKind());
+            assertEquals(CompactionKind.USER, currentCompaction.getValue().getKind());
+            return true;
+          }
+        }
+        return false;
       }, Wait.MAX_WAIT_MILLIS, 100);
 
-      // After the user compaction completes the compactions requested column should be cleared
+      // Wait for the user compaction to complete and clear the compactions requested column
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
-        log.debug("Current user requested compactions {}", userRequestedCompactions);
+        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
         return userRequestedCompactions == 0;
       }, Wait.MAX_WAIT_MILLIS, 100);
 
