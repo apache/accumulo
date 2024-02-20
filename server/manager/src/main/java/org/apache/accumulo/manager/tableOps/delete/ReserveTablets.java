@@ -54,8 +54,7 @@ public class ReserveTablets extends ManagerRepo {
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.DELETING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.DELETING, fateId);
 
     // The consumer may be called in another thread so use an AtomicLong
     AtomicLong accepted = new AtomicLong(0);

@@ -85,8 +85,7 @@ public class DeleteRows extends ManagerRepo {
     // Only delete data within the original extent specified by the user
     KeyExtent range = data.getOriginalExtent();
     log.debug("{} deleting tablet files in range {}", fateId, range);
-    // ELASTICITY_TODO DEFERRED - ISSUE 4044
-    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId.getTid());
+    var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     try (
         var tabletsMetadata = manager.getContext().getAmple().readTablets()

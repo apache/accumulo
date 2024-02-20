@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -33,6 +34,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
@@ -103,15 +106,17 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     UNUSED_TABLE = names[0];
     TEST_TABLE = names[1];
 
-    // load into a table we won't use
-
-    accumuloClient.tableOperations().create(UNUSED_TABLE);
+    // load into a table we won't use. Balancing happens to hosted tablets. Since this test is
+    // testing balancing, create the table with a goal of HOSTED.
+    accumuloClient.tableOperations().create(UNUSED_TABLE,
+        new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
     accumuloClient.tableOperations().addSplits(UNUSED_TABLE, splits);
     // mark the table offline before it can rebalance.
     accumuloClient.tableOperations().offline(UNUSED_TABLE);
 
     // actual test table
-    accumuloClient.tableOperations().create(TEST_TABLE);
+    accumuloClient.tableOperations().create(TEST_TABLE,
+        new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
     accumuloClient.tableOperations().setProperty(TEST_TABLE,
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
   }
@@ -134,13 +139,13 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10_000;
+    long currentWait = 1_000;
     boolean balancingWorked = false;
 
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5 * 60 + 15) * 1000)) {
       Thread.sleep(currentWait);
-      currentWait *= 2;
+      currentWait = Math.min(currentWait * 2, 30_000);
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
@@ -156,6 +161,11 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         log.debug("We shouldn't have unassigned tablets. sleeping for {}ms", currentWait);
         continue;
       }
+      var numSplits = accumuloClient.tableOperations().listSplits(TEST_TABLE).size();
+      if (numSplits < 20) {
+        log.debug("Waiting for 20 splits, saw {} split. sleeping for {}ms", numSplits, currentWait);
+        continue;
+      }
 
       long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
       Arrays.fill(tabletsPerServer, 0L);
@@ -163,11 +173,14 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap()
             .entrySet()) {
           tabletsPerServer[i] += entry.getValue().getTablets();
+          log.debug("Tablets per server {} {} {} {}", stats.getTServerInfo().get(i).getName(), i,
+              entry.getKey(), entry.getValue().getTablets());
         }
       }
 
       if (tabletsPerServer[0] <= 10) {
-        log.debug("We should have > 10 tablets. sleeping for {}ms", currentWait);
+        log.debug("We should have > 10 tablets. sleeping for {}ms tabletsPerServer:{}", currentWait,
+            List.of(tabletsPerServer));
         continue;
       }
       long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);

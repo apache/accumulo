@@ -234,12 +234,23 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       wLock.lock();
       try {
+        CachedTablet lastTablet = null;
         for (T mutation : notInCache) {
 
           row.set(mutation.getRow());
 
-          CachedTablet tl =
-              _findTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
+          // ELASTICITY_TODO using lastTablet avoids doing a metadata table lookup per mutation.
+          // However this still does at least one metadata lookup per tablet. This is not as good as
+          // the pre-elasticity code that would lookup N tablets at once and use them to bin
+          // mutations. So there is further room for improvement in the way this code interacts with
+          // cache and metadata table.
+          CachedTablet tl;
+          if (lastTablet != null && lastTablet.getExtent().contains(row)) {
+            tl = lastTablet;
+          } else {
+            tl = _findTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
+            lastTablet = tl;
+          }
 
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);

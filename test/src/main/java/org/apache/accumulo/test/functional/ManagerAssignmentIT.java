@@ -62,6 +62,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -382,6 +384,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       String tableName = super.getUniqueNames(1)[0];
 
       var tableId = TableId.of(prepTableForScanTest(c, tableName));
+
+      FateInstanceType type = FateInstanceType.fromTableId(tableId);
+      FateId fateId = FateId.from(type, 42L);
+
       assertEquals(0, countTabletsWithLocation(c, tableId));
 
       assertEquals(Set.of("f", "m", "t"), c.tableOperations().listSplits(tableName).stream()
@@ -394,7 +400,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // to not be assigned
       try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
         Mutation m = new Mutation(extent.toMetaRow());
         TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
         writer.addMutation(m);
@@ -420,7 +426,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // to be unhosted
       try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
         Mutation m = new Mutation(extent.toMetaRow());
         TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
         writer.addMutation(m);

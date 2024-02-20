@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.util.FastFormat;
 
 /**
@@ -107,7 +108,7 @@ public class FateId extends AbstractId<FateId> {
    * @param fateIdStr the string representation of the FateId
    * @return true if the string is a valid FateId, false otherwise
    */
-  public static boolean isFormattedTid(String fateIdStr) {
+  public static boolean isFateId(String fateIdStr) {
     return FATEID_PATTERN.matcher(fateIdStr).matches();
   }
 
@@ -131,6 +132,26 @@ public class FateId extends AbstractId<FateId> {
     }
 
     return new FateId(PREFIX + type + ":" + formatTid(tid));
+  }
+
+  /**
+   *
+   * @return the TFateId equivalent of the FateId
+   */
+  public TFateId toThrift() {
+    TFateInstanceType thriftType;
+    FateInstanceType type = getType();
+    switch (type) {
+      case USER:
+        thriftType = TFateInstanceType.USER;
+        break;
+      case META:
+        thriftType = TFateInstanceType.META;
+        break;
+      default:
+        throw new IllegalArgumentException("Invalid FateInstanceType: " + type);
+    }
+    return new TFateId(thriftType, getTid());
   }
 
   /**

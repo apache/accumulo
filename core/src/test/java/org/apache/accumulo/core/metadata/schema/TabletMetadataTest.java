@@ -373,7 +373,8 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
 
-    TabletOperationId opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, 55);
+    TabletOperationId opid1 =
+        TabletOperationId.from(TabletOperationType.SPLITTING, FateId.from(type, 55));
     TabletMetadata tm2 = TabletMetadata.builder(extent).putOperation(opid1).build(LOCATION);
 
     assertEquals(extent, tm2.getExtent());

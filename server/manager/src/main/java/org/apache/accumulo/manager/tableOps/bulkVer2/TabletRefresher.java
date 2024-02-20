@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -60,12 +60,12 @@ public class TabletRefresher {
   private static final Logger log = LoggerFactory.getLogger(TabletRefresher.class);
 
   public static void refresh(ServerContext context,
-      Supplier<Set<TServerInstance>> onlineTserversSupplier, long fateTxid, TableId tableId,
+      Supplier<Set<TServerInstance>> onlineTserversSupplier, FateId fateId, TableId tableId,
       byte[] startRow, byte[] endRow, Predicate<TabletMetadata> needsRefresh) {
 
     // ELASTICITY_TODO should this thread pool be configurable?
-    ThreadPoolExecutor threadPool = context.threadPools().createFixedThreadPool(10,
-        "Tablet refresh " + FateTxId.formatTid(fateTxid), false);
+    ThreadPoolExecutor threadPool =
+        context.threadPools().createFixedThreadPool(10, "Tablet refresh " + fateId, false);
 
     try (var tablets = context.getAmple().readTablets().forTable(tableId)
         .overlapping(startRow, endRow).checkConsistency()
@@ -86,7 +86,7 @@ public class TabletRefresher {
         var refreshesNeeded = batch.stream().collect(groupingBy(TabletMetadata::getLocation,
             mapping(tabletMetadata -> tabletMetadata.getExtent().toThrift(), toList())));
 
-        refreshTablets(threadPool, FateTxId.formatTid(fateTxid), context, onlineTserversSupplier,
+        refreshTablets(threadPool, fateId.canonical(), context, onlineTserversSupplier,
             refreshesNeeded);
       });
 

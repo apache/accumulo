@@ -106,8 +106,7 @@ class MoveExportedFiles extends ManagerRepo {
       }
     }
     try {
-      // ELASTICITY_TODO DEFERRED - ISSUE 4044
-      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fateId.getHexTid());
+      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

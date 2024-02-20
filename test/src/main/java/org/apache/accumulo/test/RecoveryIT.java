@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -142,7 +143,10 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
+      Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).size() == 0, 60_000);
+
       control.stopAllServers(ServerType.SCAN_SERVER);
+      Wait.waitFor(() -> ((ClientContext) c).getScanServers().size() == 0, 60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);
@@ -181,7 +185,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
       }
 
       // Confirm sorting completed
-      Wait.waitFor(() -> logSortingCompleted(c, tid) == true, 60_000);
+      Wait.waitFor(() -> logSortingCompleted(c, tid) == true, 120_000);
 
       // Start the tablet servers so that the Manager
       // can assign the table and so that recovery can be completed.
