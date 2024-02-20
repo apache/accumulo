@@ -120,6 +120,15 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.size = Constants.SCAN_BATCH_SIZE;
   }
 
+  public ClientContext getClientContext() {
+    ensureOpen();
+    return context;
+  }
+
+  public TableId getTableId() {
+    return tableId;
+  }
+
   @Override
   public synchronized void setRange(Range range) {
     ensureOpen();
