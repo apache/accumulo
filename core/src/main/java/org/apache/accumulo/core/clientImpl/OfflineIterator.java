@@ -168,6 +168,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return new ClientServiceEnvironmentImpl(context);
     }
 
+    @Override
     public TableId getTableId() {
       return tableId;
     }
