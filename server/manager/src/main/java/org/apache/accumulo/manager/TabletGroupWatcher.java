@@ -353,6 +353,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     int[] counts = new int[TabletState.values().length];
     private int totalUnloaded;
     private long totalVolumeReplacements;
+    private int tabletsWithErrors;
   }
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
@@ -398,6 +399,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             "Error on TabletServer trying to get Tablet management information for extent: {}. Error message: {}",
             tm.getExtent(), mtiError);
         this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
+        tableMgmtStats.tabletsWithErrors++;
         continue;
       }
 
@@ -680,7 +682,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         iter = store.iterator(tableMgmtParams);
         var tabletMgmtStats = manageTablets(iter, tableMgmtParams, currentTServers, true);
-        lookForTabletsNeedingVolReplacement = tabletMgmtStats.totalVolumeReplacements != 0;
+        lookForTabletsNeedingVolReplacement = tabletMgmtStats.totalVolumeReplacements != 0 || tabletMgmtStats.tabletsWithErrors != 0;
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
