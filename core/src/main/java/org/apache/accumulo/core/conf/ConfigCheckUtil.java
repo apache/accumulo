@@ -129,7 +129,7 @@ public class ConfigCheckUtil {
   }
 
   /**
-   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable)} fails.
+   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable, String)} fails.
    */
   public static class ConfigCheckException extends RuntimeException {
     private static final long serialVersionUID = 1L;
