@@ -73,7 +73,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
-import org.apache.accumulo.manager.split.SplitTask;
+import org.apache.accumulo.manager.split.SeedSplitTask;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -521,17 +521,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
         LOG.debug("{} may need splitting.", tm.getExtent());
-        if (manager.getSplitter().isSplittable(tm)) {
-          if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
-            LOG.debug("submitting tablet {} for split", tm.getExtent());
-            manager.getSplitter().executeSplit(new SplitTask(manager.getContext(), tm, manager));
-          }
-        } else {
-          LOG.debug("{} is not splittable.", tm.getExtent());
-        }
-        // ELASITICITY_TODO: See #3605. Merge is non-functional. Left this commented out code to
-        // show where merge used to make a call to split a tablet.
-        // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
+        manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
       }
 
       if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
