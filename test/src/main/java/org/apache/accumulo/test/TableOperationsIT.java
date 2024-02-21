@@ -83,7 +83,7 @@ import com.google.common.collect.Sets;
 
 public class TableOperationsIT extends AccumuloClusterHarness {
 
-  private AccumuloClient accumuloClient;
+  private static AccumuloClient accumuloClient;
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
@@ -727,9 +727,14 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         expectedTabletAvailability);
   }
 
-  private void verifyTabletAvailabilites(String tableName, Range range,
+  public static void verifyTabletAvailabilites(String tableName, Range range,
       List<AvailabilityForTablet> expectedAvailability) throws TableNotFoundException {
-    List<TabletInformation> tabletInfo = accumuloClient.tableOperations()
+    verifyTabletAvailabilites(accumuloClient, tableName, range, expectedAvailability);
+  }
+
+  public static void verifyTabletAvailabilites(AccumuloClient client, String tableName, Range range,
+      List<AvailabilityForTablet> expectedAvailability) throws TableNotFoundException {
+    List<TabletInformation> tabletInfo = client.tableOperations()
         .getTabletInformation(tableName, range).collect(Collectors.toList());
     assertEquals(expectedAvailability.size(), tabletInfo.size());
     for (var i = 0; i < expectedAvailability.size(); i++) {
@@ -739,7 +744,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void setExpectedTabletAvailability(List<AvailabilityForTablet> expected, String id,
+  public static void setExpectedTabletAvailability(List<AvailabilityForTablet> expected, String id,
       String endRow, String prevEndRow, TabletAvailability availability) {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));

@@ -114,7 +114,9 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via exportTable and copied via hadoop distcp. All tablets in the new
+   * table created via this operation will have the {@link TabletAvailability#ONDEMAND}
+   * availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param importDir A directory containing the files copied by distcp from exportTable
@@ -128,7 +130,8 @@ public interface TableOperations {
 
   /**
    * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
-   * distcp.
+   * distcp. All tablets in the new table created via this operation will have the
+   * {@link TabletAvailability#ONDEMAND} availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param ic ImportConfiguration for the table being created. If no configuration is needed pass

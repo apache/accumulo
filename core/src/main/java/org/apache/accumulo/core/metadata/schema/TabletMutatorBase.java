@@ -134,6 +134,13 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
+  public T putFlushNonce(long flushNonce) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    ServerColumnFamily.FLUSH_NONCE_COLUMN.put(mutation, new Value(Long.toHexString(flushNonce)));
+    return getThis();
+  }
+
+  @Override
   public T putTime(MetadataTime time) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));

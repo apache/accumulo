@@ -56,6 +56,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -103,7 +104,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (
         BatchWriter mbw =
             manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
-        ZipInputStream zis = new ZipInputStream(fs.open(path))) {
+        FSDataInputStream fsDataInputStream = fs.open(path);
+        ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -115,8 +117,11 @@ class PopulateMetadataTable extends ManagerRepo {
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
-        if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
-          DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
+        if (!zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
+          continue;
+        }
+        try (BufferedInputStream bufferedInputStream = new BufferedInputStream(zis);
+            DataInputStream in = new DataInputStream(bufferedInputStream)) {
 
           Key key = new Key();
           Value val = new Value();
@@ -124,8 +129,6 @@ class PopulateMetadataTable extends ManagerRepo {
           Mutation m = null;
           Text currentRow = null;
           int dirCount = 0;
-
-          boolean sawTabletAvailability = false;
 
           while (true) {
             key.readFields(in);
@@ -166,11 +169,9 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                if (!sawTabletAvailability) {
-                  // add a default tablet availability
-                  TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
-                      TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
-                }
+                // add a default tablet availability
+                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                    TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
                 mbw.addMutation(m);
               }
 
@@ -183,21 +184,15 @@ class PopulateMetadataTable extends ManagerRepo {
               m = new Mutation(metadataRow);
               ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
-              sawTabletAvailability = false;
             }
 
-            if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(key)) {
-              sawTabletAvailability = true;
-            }
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
 
-              if (!sawTabletAvailability) {
-                // add a default tablet availability
-                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
-                    TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
-              }
+              // add a default tablet availability
+              TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                  TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
 
               mbw.addMutation(m);
               break; // it is the last column in the last row

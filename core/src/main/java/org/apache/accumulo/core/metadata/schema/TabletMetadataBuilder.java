@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_NONCE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -119,6 +120,13 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   public TabletMetadataBuilder putFlushId(long flushId) {
     fetched.add(FLUSH_ID);
     internalBuilder.putFlushId(flushId);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder putFlushNonce(long flushNonce) {
+    fetched.add(FLUSH_NONCE);
+    internalBuilder.putFlushId(flushNonce);
     return this;
   }
 

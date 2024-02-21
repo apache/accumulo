@@ -30,12 +30,14 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -49,6 +51,7 @@ import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -74,6 +77,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
+    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
+    createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
@@ -98,6 +103,16 @@ public class Upgrader12to13 implements Upgrader {
     removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+  }
+
+  private void createFateTable(ServerContext context) {
+    try {
+      TableManager.prepareNewTableState(context, AccumuloTable.FATE.tableId(),
+          Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
+          ZooUtil.NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating table: " + AccumuloTable.FATE.tableName(), e);
+    }
   }
 
   private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
