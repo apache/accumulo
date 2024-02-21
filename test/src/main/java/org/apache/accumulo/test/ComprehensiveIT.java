@@ -751,14 +751,14 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       write(client, everythingTable, generateMutations(0, 100, tr -> true));
 
-      verifyEverythingTable(client, everythingTable);
+      verifyEverythingTable(client, everythingTable, TabletAvailability.HOSTED);
 
       // test cloning a table as part of this test because the table has lots of customizations.
       client.tableOperations().clone(everythingTable, everythingClone,
           CloneConfiguration.builder().setFlush(true).build());
 
       // check the clone has all the same config and data as the original table
-      verifyEverythingTable(client, everythingClone);
+      verifyEverythingTable(client, everythingClone, TabletAvailability.HOSTED);
 
       // test compaction with an iterator that filters out col fam 3
       CompactionConfig compactionConfig = new CompactionConfig();
@@ -792,7 +792,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
           generateKeys(0, 100, tr -> (tr.row <= 35 || tr.row > 40) && tr.fam != 3));
 
       // the changes to the clone should not have affected the source table so verify it again
-      verifyEverythingTable(client, everythingTable);
+      verifyEverythingTable(client, everythingTable, TabletAvailability.HOSTED);
 
       // test renaming a table
       String tableIdBeforeRename = client.tableOperations().tableIdMap().get(everythingClone);
@@ -813,7 +813,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // customizations.
       exportImport(client, everythingTable, everythingImport);
 
-      verifyEverythingTable(client, everythingImport);
+      verifyEverythingTable(client, everythingImport, TabletAvailability.ONDEMAND);
     }
   }
 
@@ -900,7 +900,8 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     return ntc;
   }
 
-  private static void verifyEverythingTable(AccumuloClient client, String table) throws Exception {
+  private static void verifyEverythingTable(AccumuloClient client, String table,
+      TabletAvailability expectedAvailabilityForDefaultTable) throws Exception {
     assertEquals(TimeType.LOGICAL, client.tableOperations().getTimeType(table));
     assertEquals(everythingSampleConfig, client.tableOperations().getSamplerConfiguration(table));
     assertTrue(client.tableOperations().tableIdMap().keySet().contains(table));
@@ -920,7 +921,8 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         client.tableOperations().getTabletInformation(table, new Range())) {
       tabletInfo.forEach(tabletInformation -> {
         if (tabletInformation.getTabletId().getEndRow() == null) {
-          assertEquals(TabletAvailability.HOSTED, tabletInformation.getTabletAvailability());
+          assertEquals(expectedAvailabilityForDefaultTable,
+              tabletInformation.getTabletAvailability());
         } else {
           assertEquals(TabletAvailability.ONDEMAND, tabletInformation.getTabletAvailability());
         }
