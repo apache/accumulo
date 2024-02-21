@@ -112,20 +112,14 @@ public class CheckCompactionConfig implements KeywordExecutable {
       CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
 
       var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
-          servicesConfig.getOptions().get(serviceId), senv);
+          servicesConfig.getPlannerPrefix(serviceId), servicesConfig.getOptions().get(serviceId),
+          senv);
 
       planner.init(initParams);
 
-      initParams.getRequestedExecutors()
-          .forEach((execId, numThreads) -> log.info(
-              "Compaction service '{}' requested creation of thread pool '{}' with {} threads.",
-              serviceId, execId, numThreads));
-
-      initParams.getRequestedExternalExecutors()
-          .forEach(execId -> log.info(
-              "Compaction service '{}' requested with external execution group '{}'", serviceId,
-              execId));
-
+      initParams.getRequestedGroups().forEach(
+          (groupId -> log.info("Compaction service '{}' requested with compactor group '{}'",
+              serviceId, groupId)));
     }
 
     log.info("Properties file has passed all checks.");

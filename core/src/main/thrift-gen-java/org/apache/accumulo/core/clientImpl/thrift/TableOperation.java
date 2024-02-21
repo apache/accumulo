@@ -43,7 +43,7 @@ public enum TableOperation implements org.apache.thrift.TEnum {
   IMPORT(14),
   EXPORT(15),
   COMPACT_CANCEL(16),
-  SET_HOSTING_GOAL(17),
+  SET_TABLET_AVAILABILITY(17),
   SPLIT(18);
 
   private final int value;
@@ -102,7 +102,7 @@ public enum TableOperation implements org.apache.thrift.TEnum {
       case 16:
         return COMPACT_CANCEL;
       case 17:
-        return SET_HOSTING_GOAL;
+        return SET_TABLET_AVAILABILITY;
       case 18:
         return SPLIT;
       default:

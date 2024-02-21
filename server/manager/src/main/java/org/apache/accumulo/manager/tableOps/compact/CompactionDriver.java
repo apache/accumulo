@@ -29,6 +29,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -40,12 +42,13 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -81,16 +84,16 @@ class CompactionDriver extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    if (tableId.equals(RootTable.ID)) {
+    if (tableId.equals(AccumuloTable.ROOT.tableId())) {
       // this codes not properly handle the root table. See #798
       return 0;
     }
 
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
-    if (isCancelled(tid, manager.getContext())) {
+    if (isCancelled(fateId, manager.getContext())) {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
@@ -108,7 +111,7 @@ class CompactionDriver extends ManagerRepo {
 
     long t1 = System.currentTimeMillis();
 
-    int tabletsToWaitFor = updateAndCheckTablets(manager, tid);
+    int tabletsToWaitFor = updateAndCheckTablets(manager, fateId);
 
     long scanTime = System.currentTimeMillis() - t1;
 
@@ -125,89 +128,103 @@ class CompactionDriver extends ManagerRepo {
     return sleepTime;
   }
 
-  private boolean isCancelled(long tid, ServerContext context)
+  private boolean isCancelled(FateId fateId, ServerContext context)
       throws InterruptedException, KeeperException {
-    return CompactionConfigStorage.getConfig(context, tid) == null;
+    return CompactionConfigStorage.getConfig(context, fateId) == null;
   }
 
-  public int updateAndCheckTablets(Manager manager, long tid)
+  public int updateAndCheckTablets(Manager manager, FateId fateId)
       throws AcceptableThriftTableOperationException {
 
     var ample = manager.getContext().getAmple();
 
     // ELASTICITY_TODO use existing compaction logging
 
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
+      if (result.getStatus() == Status.REJECTED) {
+        log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+      }
+    };
+
+    long t1 = System.currentTimeMillis();
+
+    int complete = 0;
+    int total = 0;
+    int opidsSeen = 0;
+    int noFiles = 0;
+    int noneSelected = 0;
+    int alreadySelected = 0;
+    int otherSelected = 0;
+    int otherCompaction = 0;
+    int selected = 0;
+
+    KeyExtent minSelected = null;
+    KeyExtent maxSelected = null;
+
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
             .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID).checkConsistency().build();
-        var tabletsMutator = ample.conditionallyMutateTablets()) {
+        var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
-      int complete = 0;
-      int total = 0;
-
-      int selected = 0;
-
-      KeyExtent minSelected = null;
-      KeyExtent maxSelected = null;
-
-      CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), tid);
+      CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
 
       for (TabletMetadata tablet : tablets) {
 
         total++;
 
-        // TODO change all logging to trace
-
-        if (tablet.getCompacted().contains(tid)) {
+        if (tablet.getCompacted().contains(fateId)) {
           // this tablet is already considered done
-          log.debug("{} compaction for {} is complete", FateTxId.formatTid(tid),
-              tablet.getExtent());
+          log.trace("{} compaction for {} is complete", fateId, tablet.getExtent());
           complete++;
         } else if (tablet.getOperationId() != null) {
-          log.debug("{} ignoring tablet {} with active operation {} ", FateTxId.formatTid(tid),
-              tablet.getExtent(), tablet.getOperationId());
+          log.trace("{} ignoring tablet {} with active operation {} ", fateId, tablet.getExtent(),
+              tablet.getOperationId());
+          opidsSeen++;
         } else if (tablet.getFiles().isEmpty()) {
-          log.debug("{} tablet {} has no files, attempting to mark as compacted ",
-              FateTxId.formatTid(tid), tablet.getExtent());
+          log.trace("{} tablet {} has no files, attempting to mark as compacted ", fateId,
+              tablet.getExtent());
           // this tablet has no files try to mark it as done
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, FILES, COMPACTED).putCompacted(tid)
-              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(tid));
+              .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
+              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
+          noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
-          log.debug("{} selecting {} files compaction for {}", FateTxId.formatTid(tid),
-              tablet.getFiles().size(), tablet.getExtent());
+          log.trace("{} selecting {} files compaction for {}", fateId, tablet.getFiles().size(),
+              tablet.getExtent());
 
           Set<StoredTabletFile> filesToCompact;
           try {
             filesToCompact = CompactionPluginUtils.selectFiles(manager.getContext(),
                 tablet.getExtent(), config, tablet.getFilesMap());
           } catch (Exception e) {
-            log.warn("{} failed to select files for {} using {}", FateTxId.formatTid(tid),
-                tablet.getExtent(), config.getSelector(), e);
+            log.warn("{} failed to select files for {} using {}", fateId, tablet.getExtent(),
+                config.getSelector(), e);
             throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
                 TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Failed to select files");
           }
 
-          // TODO expensive logging
-          log.debug("{} selected {} of {} files for {}", FateTxId.formatTid(tid),
-              filesToCompact.stream().map(AbstractTabletFile::getFileName)
-                  .collect(Collectors.toList()),
-              tablet.getFiles().stream().map(AbstractTabletFile::getFileName)
-                  .collect(Collectors.toList()),
-              tablet.getExtent());
-
+          if (log.isTraceEnabled()) {
+            log.trace("{} selected {} of {} files for {}", fateId,
+                filesToCompact.stream().map(AbstractTabletFile::getFileName)
+                    .collect(Collectors.toList()),
+                tablet.getFiles().stream().map(AbstractTabletFile::getFileName)
+                    .collect(Collectors.toList()),
+                tablet.getExtent());
+          }
           if (filesToCompact.isEmpty()) {
             // no files were selected so mark the tablet as compacted
             tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(tid)
-                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(tid));
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(fateId)
+                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
+
+            noneSelected++;
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
             var selectedFiles =
-                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), tid);
+                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
 
             mutator.putSelectedFiles(selectedFiles);
 
@@ -227,62 +244,65 @@ class CompactionDriver extends ManagerRepo {
           }
 
         } else if (tablet.getSelectedFiles() != null) {
-          if (tablet.getSelectedFiles().getFateTxId() == tid) {
-            log.debug(
+          if (tablet.getSelectedFiles().getFateId().equals(fateId)) {
+            log.trace(
                 "{} tablet {} already has {} selected files for this compaction, waiting for them be processed",
-                FateTxId.formatTid(tid), tablet.getExtent(),
-                tablet.getSelectedFiles().getFiles().size());
+                fateId, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size());
+            alreadySelected++;
           } else {
-            log.debug(
+            log.trace(
                 "{} tablet {} already has {} selected files by another compaction {}, waiting for them be processed",
-                FateTxId.formatTid(tid), tablet.getExtent(),
-                tablet.getSelectedFiles().getFiles().size(),
-                FateTxId.formatTid(tablet.getSelectedFiles().getFateTxId()));
+                fateId, tablet.getExtent(), tablet.getSelectedFiles().getFiles().size(),
+                tablet.getSelectedFiles().getFateId());
+            otherSelected++;
           }
         } else {
           // ELASTICITY_TODO if there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
+          otherCompaction++;
         }
       }
-
-      tabletsMutator.process().values().stream()
-          .filter(result -> result.getStatus() == Status.REJECTED)
-          .forEach(result -> log.debug("{} update for {} was rejected ", FateTxId.formatTid(tid),
-              result.getExtent()));
-
-      if (selected > 0) {
-        manager.getEventCoordinator().event(
-            new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
-            "%s selected files for compaction for %d tablets", FateTxId.formatTid(tid), selected);
-      }
-
-      return total - complete;
     } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
+
+    long t2 = System.currentTimeMillis();
+
+    log.debug("{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{}"
+        + " selected_by_other:{} no_files:{} none_selected:{} other_compaction:{} opids:{} scan_update_time:{}ms",
+        fateId, total, complete, selected, alreadySelected, otherSelected, noFiles, noneSelected,
+        otherCompaction, opidsSeen, t2 - t1);
+
+    if (selected > 0) {
+      manager.getEventCoordinator().event(
+          new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
+          "%s selected files for compaction for %d tablets", fateId, selected);
+    }
+
+    return total - complete;
 
     // ELASTICITIY_TODO need to handle seeing zero tablets
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     return new RefreshTablets(tableId, namespaceId, startRow, endRow);
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
-    cleanupTabletMetadata(tid, env);
+  public void undo(FateId fateId, Manager env) throws Exception {
+    cleanupTabletMetadata(fateId, env);
 
     // For any compactions that may have happened before this operation failed, attempt to refresh
     // tablets.
-    TabletRefresher.refresh(env.getContext(), env::onlineTabletServers, tid, tableId, startRow,
+    TabletRefresher.refresh(env.getContext(), env::onlineTabletServers, fateId, tableId, startRow,
         endRow, tabletMetadata -> true);
   }
 
   /**
    * Cleans up any tablet metadata that may have been added as part of this compaction operation.
    */
-  private void cleanupTabletMetadata(long tid, Manager manager) throws Exception {
+  private void cleanupTabletMetadata(FateId fateId, Manager manager) throws Exception {
     var ample = manager.getContext().getAmple();
 
     // ELASTICITY_TODO use existing compaction logging
@@ -295,14 +315,22 @@ class CompactionDriver extends ManagerRepo {
 
     while (!allCleanedUp) {
 
+      AtomicLong rejectedCount = new AtomicLong(0);
+      Consumer<Ample.ConditionalResult> resultConsumer = result -> {
+        if (result.getStatus() == Status.REJECTED) {
+          log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+          rejectedCount.incrementAndGet();
+        }
+      };
+
       try (
           var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
               .fetch(PREV_ROW, COMPACTED, SELECTED).checkConsistency().build();
-          var tabletsMutator = ample.conditionallyMutateTablets()) {
+          var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
         Predicate<TabletMetadata> needsUpdate =
             tabletMetadata -> (tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getFateTxId() == tid)
-                || tabletMetadata.getCompacted().contains(tid);
+                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId))
+                || tabletMetadata.getCompacted().contains(fateId);
         Predicate<TabletMetadata> needsNoUpdate = needsUpdate.negate();
 
         for (TabletMetadata tablet : tablets) {
@@ -311,25 +339,23 @@ class CompactionDriver extends ManagerRepo {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, COMPACTED, SELECTED);
             if (tablet.getSelectedFiles() != null
-                && tablet.getSelectedFiles().getFateTxId() == tid) {
+                && tablet.getSelectedFiles().getFateId().equals(fateId)) {
               mutator.deleteSelectedFiles();
             }
 
-            if (tablet.getCompacted().contains(tid)) {
-              mutator.deleteCompacted(tid);
+            if (tablet.getCompacted().contains(fateId)) {
+              mutator.deleteCompacted(fateId);
             }
 
             mutator.submit(needsNoUpdate::test);
           }
         }
-
-        allCleanedUp = tabletsMutator.process().values().stream()
-            .allMatch(result -> result.getStatus() == Status.ACCEPTED);
       }
 
+      allCleanedUp = rejectedCount.get() == 0;
+
       if (!allCleanedUp) {
-        retry.waitForNextAttempt(log,
-            "Cleanup metadata for failed compaction " + FateTxId.formatTid(tid));
+        retry.waitForNextAttempt(log, "Cleanup metadata for failed compaction " + fateId);
       }
     }
   }

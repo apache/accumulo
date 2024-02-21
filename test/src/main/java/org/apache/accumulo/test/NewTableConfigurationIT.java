@@ -41,13 +41,13 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -102,18 +102,18 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testCreateTableWithInitialHostingGoal() throws AccumuloException,
+  public void testCreateTableWithInitialTabletAvailability() throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, TableExistsException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(8);
 
       // use a default NewTableConfiguration
-      verifyNtcWithGoal(client, tableNames[0], null, null);
+      verifyNtcWithTabletAvailability(client, tableNames[0], null, null);
       // set initial goals for tables upon creation, without splits
-      verifyNtcWithGoal(client, tableNames[1], TabletHostingGoal.ONDEMAND, null);
-      verifyNtcWithGoal(client, tableNames[2], TabletHostingGoal.ALWAYS, null);
-      verifyNtcWithGoal(client, tableNames[3], TabletHostingGoal.NEVER, null);
+      verifyNtcWithTabletAvailability(client, tableNames[1], TabletAvailability.ONDEMAND, null);
+      verifyNtcWithTabletAvailability(client, tableNames[2], TabletAvailability.HOSTED, null);
+      verifyNtcWithTabletAvailability(client, tableNames[3], TabletAvailability.UNHOSTED, null);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("d"));
@@ -122,28 +122,28 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       splits.add(new Text("r"));
       splits.add(new Text("w"));
 
-      // Use NTC to set initial splits. Verify each tablet has hosting goal set.
-      // Should work with no goal explicitly supplied as well as each of the accepted goals
-      verifyNtcWithGoal(client, tableNames[4], null, splits);
-      verifyNtcWithGoal(client, tableNames[5], TabletHostingGoal.ONDEMAND, splits);
-      verifyNtcWithGoal(client, tableNames[6], TabletHostingGoal.ALWAYS, splits);
-      verifyNtcWithGoal(client, tableNames[7], TabletHostingGoal.NEVER, splits);
+      // Use NTC to set initial splits. Verify each tablet has tablet availability set.
+      // Should work with no availability explicitly supplied as well as each of the accepted goals
+      verifyNtcWithTabletAvailability(client, tableNames[4], null, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[5], TabletAvailability.ONDEMAND, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[6], TabletAvailability.HOSTED, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[7], TabletAvailability.UNHOSTED, splits);
     }
   }
 
-  // Verify that NewTableConfiguration correctly sets the initial hosting goal on a table, both with
-  // and without initial splits being set.
-  private void verifyNtcWithGoal(AccumuloClient client, String tableName, TabletHostingGoal goal,
-      SortedSet<Text> splits) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException, TableExistsException {
+  // Verify that NewTableConfiguration correctly sets the initial tablet availability on a table,
+  // both with and without initial splits being set.
+  private void verifyNtcWithTabletAvailability(AccumuloClient client, String tableName,
+      TabletAvailability tabletAvailability, SortedSet<Text> splits) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException, TableExistsException {
 
     NewTableConfiguration ntc = new NewTableConfiguration();
 
-    // If goal not supplied via NewTableConfiguration, expect ONDEMAND as default
-    String expectedGoal = TabletHostingGoal.ONDEMAND.toString();
-    if (goal != null) {
-      expectedGoal = goal.toString();
-      ntc.withInitialHostingGoal(goal);
+    // If availability not supplied via NewTableConfiguration, expect ONDEMAND as default
+    String expectedTabletAvailability = TabletAvailability.ONDEMAND.toString();
+    if (tabletAvailability != null) {
+      expectedTabletAvailability = tabletAvailability.toString();
+      ntc.withInitialTabletAvailability(tabletAvailability);
     }
 
     // Set expected number of tablets if no splits are provided
@@ -164,10 +164,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     }
     Range range = new Range(beginRow, endRow);
     try (Scanner scanner = client.createScanner("accumulo.metadata")) {
-      HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
+      TabletColumnFamily.AVAILABILITY_COLUMN.fetch(scanner);
       scanner.setRange(range);
       for (Map.Entry<Key,Value> entry : scanner) {
-        assertEquals(expectedGoal, entry.getValue().toString());
+        assertEquals(expectedTabletAvailability, entry.getValue().toString());
       }
       assertEquals(expectedTabletCount, scanner.stream().count());
     }

@@ -23,11 +23,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -52,17 +52,17 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    var opid = TabletOperationId.from(TabletOperationType.DELETING, tid);
+    var opid = TabletOperationId.from(TabletOperationType.DELETING, fateId);
 
     // The consumer may be called in another thread so use an AtomicLong
     AtomicLong accepted = new AtomicLong(0);
-    BiConsumer<KeyExtent,Ample.ConditionalResult> resultsConsumer = (extent, result) -> {
+    Consumer<Ample.ConditionalResult> resultsConsumer = result -> {
       if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
         accepted.incrementAndGet();
       } else {
-        log.debug("Failed to set operation id {} {}", opid, extent);
+        log.debug("{} Failed to set operation id {} {}", fateId, opid, result.getExtent());
       }
     };
 
@@ -96,8 +96,8 @@ public class ReserveTablets extends ManagerRepo {
     }
 
     if (locations > 0 || otherOps > 0 || submitted != accepted.get()) {
-      log.debug("Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
-          locations, otherOps, submitted, accepted.get());
+      log.debug("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
+          fateId, locations, otherOps, submitted, accepted.get());
       return Math.min(Math.max(100, tabletsSeen), 30000);
     }
 
@@ -105,7 +105,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     return new CleanUp(tableId, namespaceId);
   }
 }

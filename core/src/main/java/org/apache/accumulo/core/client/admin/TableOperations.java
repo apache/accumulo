@@ -114,7 +114,9 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via exportTable and copied via hadoop distcp. All tablets in the new
+   * table created via this operation will have the {@link TabletAvailability#ONDEMAND}
+   * availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param importDir A directory containing the files copied by distcp from exportTable
@@ -128,7 +130,8 @@ public interface TableOperations {
 
   /**
    * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
-   * distcp.
+   * distcp. All tablets in the new table created via this operation will have the
+   * {@link TabletAvailability#ONDEMAND} availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param ic ImportConfiguration for the table being created. If no configuration is needed pass
@@ -494,11 +497,11 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
-   * guaranteed that all tablets in a table will return the same values. Within a few seconds
-   * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required. Method calls {@link #getConfiguration(String)} and then
-   * calls .entrySet() on the map.
+   * Gets a merged view of the properties of a table with its parent configuration. This operation
+   * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
+   * will return the same values. Within a few seconds without another change, all tablets in a
+   * table should be consistent. The clone table feature can be used if consistency is required.
+   * Method calls {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
    * @param tableName the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
@@ -512,10 +515,11 @@ public interface TableOperations {
   }
 
   /**
-   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
-   * guaranteed that all tablets in a table will return the same values. Within a few seconds
-   * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required. This new method returns a Map instead of an Iterable.
+   * Gets a merged view of the properties of a table with its parent configuration. This operation
+   * is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table
+   * will return the same values. Within a few seconds without another change, all tablets in a
+   * table should be consistent. The clone table feature can be used if consistency is required.
+   * This method returns a Map instead of an Iterable.
    *
    * @param tableName the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
@@ -527,10 +531,11 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException;
 
   /**
-   * Gets per-table properties of a table. This operation is asynchronous and eventually consistent.
-   * It is not guaranteed that all tablets in a table will return the same values. Within a few
-   * seconds without another change, all tablets in a table should be consistent. The clone table
-   * feature can be used if consistency is required.
+   * Gets per-table properties of a table. Note that this does not return a merged view of the
+   * properties with its parent configuration. This operation is asynchronous and eventually
+   * consistent. It is not guaranteed that all tablets in a table will return the same values.
+   * Within a few seconds without another change, all tablets in a table should be consistent. The
+   * clone table feature can be used if consistency is required.
    *
    * @param tableName the name of the table
    * @return per-table properties visible by this table. Note that recently changed properties may
@@ -1007,17 +1012,18 @@ public interface TableOperations {
   }
 
   /**
-   * Sets the hosting goal for a range of Tablets in the specified table, but does not wait for the
-   * tablets to reach this goal state. For the Range parameter, note that the Row portion of the
-   * start and end Keys and the inclusivity parameters are used when determining the range of
-   * affected tablets. The other portions of the start and end Keys are not used.
+   * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
+   * for the tablets to reach this availability state. For the Range parameter, note that the Row
+   * portion of the start and end Keys and the inclusivity parameters are used when determining the
+   * range of affected tablets. The other portions of the start and end Keys are not used.
    *
    * @param tableName table name
    * @param range tablet range
-   * @param goal hosting goal
+   * @param tabletAvailability tablet availability
    * @since 4.0.0
    */
-  default void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+  default void setTabletAvailability(String tableName, Range range,
+      TabletAvailability tabletAvailability)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }

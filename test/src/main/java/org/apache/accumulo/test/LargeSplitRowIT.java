@@ -35,10 +35,10 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -51,7 +51,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
@@ -72,7 +71,6 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
   // User added split
   @Test
-  @Disabled // ELASTICITY_TODO
   public void userAddedSplit() throws Exception {
 
     log.info("User added split");
@@ -98,7 +96,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       partitionKeys.add(new Text(data));
 
       // try to add the split point that is too large, if the split point is created the test fails.
-      assertThrows(AccumuloServerException.class,
+      assertThrows(AccumuloException.class,
           () -> client.tableOperations().addSplits(tableName, partitionKeys));
 
       // Make sure that the information that was written to the table before we tried to add the
@@ -205,13 +203,19 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   public void automaticSplitLater() throws Exception {
     log.info("Split later");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      final int max = 15;
+      // Generate large rows which have long common prefixes and therefore no split can be found.
+      // Setting max to 1 causes all rows to have long common prefixes. Setting a max of greater
+      // than 1 would generate a row with a short common prefix.
+      final int max = 1;
       automaticSplit(client, max, 1);
 
       Predicate<String> isNotNamespaceTable =
           table -> !table.startsWith(Namespace.ACCUMULO.name() + ".");
       String tableName = client.tableOperations().list().stream().filter(isNotNamespaceTable)
           .findAny().orElseGet(() -> fail("couldn't find a table"));
+
+      // No splits should have been able to occur.
+      assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
 
       try (BatchWriter batchWriter = client.createBatchWriter(tableName)) {
         byte[] data = new byte[10];
@@ -241,11 +245,12 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   private void automaticSplit(AccumuloClient client, int max, int spacing) throws Exception {
     // make a table and lower the configuration properties
     // @formatter:off
+    final int maxEndRow = 1000;
     Map<String,String> props = Map.of(
       Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
       Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
       Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
-      Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000"
+      Property.TABLE_MAX_END_ROW_SIZE.getKey(), ""+maxEndRow
     );
     // @formatter:on
 
@@ -302,8 +307,12 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     assertEquals(numOfMutations, extra);
     assertEquals(max, count);
 
-    // Make sure no splits occurred in the table
-    assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
+    // Make sure any splits are below the threshold. Accumulo may shorten splits by examining the
+    // longest common prefix between consecutive rows. Since some rows in this data may have a
+    // short longest common prefix, splits could be found. Any splits found should be below the
+    // configured threshold.
+    assertTrue(client.tableOperations().listSplits(tableName).stream()
+        .allMatch(split -> split.getLength() < maxEndRow));
   }
 
 }

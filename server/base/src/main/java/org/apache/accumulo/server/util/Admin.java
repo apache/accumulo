@@ -54,14 +54,18 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -438,7 +442,7 @@ public class Admin implements KeywordExecutable {
       try {
         Set<String> tables = context.tableOperations().tableIdMap().keySet();
         for (String table : tables) {
-          if (table.equals(MetadataTable.NAME)) {
+          if (table.equals(AccumuloTable.METADATA.tableName())) {
             continue;
           }
           try {
@@ -762,6 +766,9 @@ public class Admin implements KeywordExecutable {
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
     ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+    AccumuloStore<Admin> as = new AccumuloStore<>(context);
+    Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores =
+        Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
 
     if (fateOpsCommand.cancel) {
       cancelSubmittedFateTxs(context, fateOpsCommand.txList);
@@ -783,14 +790,16 @@ public class Admin implements KeywordExecutable {
     if (fateOpsCommand.print) {
       final Set<Long> sortedTxs = new TreeSet<>();
       fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
-      EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(fateOpsCommand.states);
-      admin.print(zs, zk, zTableLocksPath, new Formatter(System.out), sortedTxs, statusFilter);
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
+          getCmdLineStatusFilters(fateOpsCommand.states);
+      admin.print(fateStores, zk, zTableLocksPath, new Formatter(System.out), sortedTxs,
+          statusFilter);
       // print line break at the end
       System.out.println();
     }
 
     if (fateOpsCommand.summarize) {
-      summarizeFateTx(context, fateOpsCommand, admin, zs, zTableLocksPath);
+      summarizeFateTx(context, fateOpsCommand, admin, fateStores, zTableLocksPath);
     }
   }
 
@@ -808,8 +817,10 @@ public class Admin implements KeywordExecutable {
   private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
       throws AccumuloException {
     for (String txStr : txList) {
+      // TODO: We need to pass and then parse the instance type to create TFateId,
+      // maybe something like <type>:txid
       long txid = Long.parseLong(txStr, 16);
-      boolean cancelled = cancelFateOperation(context, txid);
+      boolean cancelled = cancelFateOperation(context, new TFateId(TFateInstanceType.META, txid));
       if (cancelled) {
         System.out.println("FaTE transaction " + FateTxId.formatTid(txid)
             + " was cancelled or already completed.");
@@ -820,7 +831,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private boolean cancelFateOperation(ClientContext context, long txid) throws AccumuloException {
+  private boolean cancelFateOperation(ClientContext context, TFateId txid)
+      throws AccumuloException {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
@@ -835,11 +847,12 @@ public class Admin implements KeywordExecutable {
   }
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
-      ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
+      Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores,
+      ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();
-    var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
+    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
@@ -854,7 +867,7 @@ public class Admin implements KeywordExecutable {
       }
     });
 
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
 
     FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
 
@@ -881,12 +894,12 @@ public class Admin implements KeywordExecutable {
    *
    * @return a set of status filters, or an empty set if none provides
    */
-  private EnumSet<ReadOnlyTStore.TStatus> getCmdLineStatusFilters(List<String> states) {
-    EnumSet<ReadOnlyTStore.TStatus> statusFilter = null;
+  private EnumSet<ReadOnlyFateStore.TStatus> getCmdLineStatusFilters(List<String> states) {
+    EnumSet<ReadOnlyFateStore.TStatus> statusFilter = null;
     if (!states.isEmpty()) {
-      statusFilter = EnumSet.noneOf(ReadOnlyTStore.TStatus.class);
+      statusFilter = EnumSet.noneOf(ReadOnlyFateStore.TStatus.class);
       for (String element : states) {
-        statusFilter.add(ReadOnlyTStore.TStatus.valueOf(element));
+        statusFilter.add(ReadOnlyFateStore.TStatus.valueOf(element));
       }
     }
     return statusFilter;

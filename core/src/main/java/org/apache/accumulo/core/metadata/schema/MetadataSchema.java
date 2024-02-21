@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -152,6 +152,12 @@ public class MetadataSchema {
       public static final String PREV_ROW_QUAL = "~pr";
       public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text(PREV_ROW_QUAL));
 
+      public static final String AVAILABILITY_QUAL = "availability";
+      public static final ColumnFQ AVAILABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(AVAILABILITY_QUAL));
+      public static final String REQUESTED_QUAL = "requestToHost";
+      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
+
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
           return new Value(new byte[] {0});
@@ -172,19 +178,6 @@ public class MetadataSchema {
 
         return per;
       }
-
-      /**
-       * A temporary field in case a split fails and we need to roll back
-       */
-      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
-      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
-          new ColumnFQ(NAME, new Text(OLD_PREV_ROW_QUAL));
-      /**
-       * A temporary field for splits to optimize certain operations
-       */
-      public static final String SPLIT_RATIO_QUAL = "splitRatio";
-      public static final ColumnFQ SPLIT_RATIO_COLUMN =
-          new ColumnFQ(NAME, new Text(SPLIT_RATIO_QUAL));
 
       /**
        * Creates a mutation that encodes a KeyExtent as a prevRow entry.
@@ -242,9 +235,6 @@ public class MetadataSchema {
       public static final String FLUSH_QUAL = "flush";
       public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
 
-      // ELASTICITY_TODO remove this from code and remove it from metadata in upgrade
-      public static final String COMPACT_QUAL = "compact";
-      public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text(COMPACT_QUAL));
       /**
        * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
        * tablet is not dead
@@ -344,18 +334,13 @@ public class MetadataSchema {
       public static final String STR_NAME = "loaded";
       public static final Text NAME = new Text(STR_NAME);
 
-      public static long getBulkLoadTid(Value v) {
+      public static FateId getBulkLoadTid(Value v) {
         return getBulkLoadTid(v.toString());
       }
 
-      public static long getBulkLoadTid(String vs) {
-        if (FateTxId.isFormatedTid(vs)) {
-          return FateTxId.fromString(vs);
-        } else {
-          // a new serialization format was introduce in 2.0. This code support deserializing the
-          // old format.
-          return Long.parseLong(vs);
-        }
+      public static FateId getBulkLoadTid(String vs) {
+        // ELASTICITY_TODO issue 4044 - May need to introduce code in upgrade to handle old format.
+        return FateId.from(vs);
       }
     }
 
@@ -392,9 +377,31 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    /**
+     * Column family for indicating that the files in a tablet have been trimmed to only include
+     * data for the current tablet, so that they are safe to merge
+     */
+    public static class ChoppedColumnFamily {
+      // kept to support upgrades to 3.1; name is used for both col fam and col qual
+      @Deprecated(since = "3.1.0")
+      public static final Text NAME = new Text("chopped");
+    }
+
     public static class ExternalCompactionColumnFamily {
       public static final String STR_NAME = "ecomp";
       public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * Column family for indicating that the files in a tablet contain fenced files that have been
+     * merged from other tablets during a merge operation. This is used to support resuming a failed
+     * merge operation.
+     */
+    public static class MergedColumnFamily {
+      public static final String STR_NAME = "merged";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ MERGED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
+      public static final Value MERGED_VALUE = new Value("merged");
     }
 
     /**
@@ -406,13 +413,24 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
-    public static class HostingColumnFamily {
-      public static final String STR_NAME = "hosting";
-      public static final Text NAME = new Text(STR_NAME);
-      public static final String GOAL_QUAL = "goal";
-      public static final ColumnFQ GOAL_COLUMN = new ColumnFQ(NAME, new Text(GOAL_QUAL));
-      public static final String REQUESTED_QUAL = "requested";
-      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
+    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
+    public static class Upgrade12to13 {
+
+      /**
+       * A temporary field in case a split fails and we need to roll back
+       */
+      public static final String OLD_PREV_ROW_QUAL = "oldprevrow";
+      public static final ColumnFQ OLD_PREV_ROW_COLUMN =
+          new ColumnFQ(TabletColumnFamily.NAME, new Text(OLD_PREV_ROW_QUAL));
+      /**
+       * A temporary field for splits to optimize certain operations
+       */
+      public static final String SPLIT_RATIO_QUAL = "splitRatio";
+      public static final ColumnFQ SPLIT_RATIO_COLUMN =
+          new ColumnFQ(TabletColumnFamily.NAME, new Text(SPLIT_RATIO_QUAL));
+
+      public static final ColumnFQ COMPACT_COL =
+          new ColumnFQ(ServerColumnFamily.NAME, new Text("compact"));
     }
   }
 
@@ -501,19 +519,6 @@ public class MetadataSchema {
   public static class ScanServerFileReferenceSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-  }
-
-  public static class RefreshSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "refresh", true, RESERVED_PREFIX + "refresi", false);
 
     public static Range getRange() {
       return section.getRange();

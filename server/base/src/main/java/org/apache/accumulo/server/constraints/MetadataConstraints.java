@@ -26,36 +26,37 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
-import org.apache.accumulo.core.metadata.schema.UpgraderDeprecatedConstants;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -81,18 +82,22 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          Upgrade12to13.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          Upgrade12to13.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
-          ServerColumnFamily.COMPACT_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
-          HostingColumnFamily.GOAL_COLUMN,
-          HostingColumnFamily.REQUESTED_COLUMN,
-              ServerColumnFamily.SELECTED_COLUMN);
+          TabletColumnFamily.AVAILABILITY_COLUMN,
+          TabletColumnFamily.REQUESTED_COLUMN,
+          ServerColumnFamily.SELECTED_COLUMN,
+          Upgrade12to13.COMPACT_COL);
+
+  @SuppressWarnings("deprecation")
+  private static final Text CHOPPED = ChoppedColumnFamily.NAME;
+
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
           LogColumnFamily.NAME,
@@ -103,8 +108,9 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ClonedColumnFamily.NAME,
           ExternalCompactionColumnFamily.NAME,
-              CompactedColumnFamily.NAME,
-          UpgraderDeprecatedConstants.ChoppedColumnFamily.NAME
+          CompactedColumnFamily.NAME,
+          CHOPPED,
+          MergedColumnFamily.NAME
       );
   // @formatter:on
 
@@ -202,7 +208,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than Constants.METADATA_TABLE_ID
-    if (new Text(row).compareTo(new Text(MetadataTable.ID.canonical())) < 0) {
+    if (new Text(row).compareTo(new Text(AccumuloTable.METADATA.tableId().canonical())) < 0) {
       violations = addViolation(violations, 5);
     }
 
@@ -219,9 +225,10 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          && !columnFamily.equals(CompactedColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+          || columnFamily.equals(LogColumnFamily.NAME)
+          || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+          || columnFamily.equals(CompactedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -241,9 +248,9 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
         violations = validateDataFileMetadata(violations,
             new String(columnUpdate.getColumnQualifier(), UTF_8));
-      } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
+      } else if (TabletColumnFamily.AVAILABILITY_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
-          TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
+          TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 10);
         }
@@ -260,7 +267,7 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 11);
         }
       } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
-        if (!FateTxId.isFormatedTid(columnQualifier.toString())) {
+        if (!FateId.isFateId(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
@@ -405,17 +412,18 @@ public class MetadataConstraints implements Constraint {
       case 4:
         return "Invalid metadata row format";
       case 5:
-        return "Row can not be less than " + MetadataTable.ID;
+        return "Row can not be less than " + AccumuloTable.METADATA.tableId();
       case 6:
-        return "Empty values are not allowed for any " + MetadataTable.NAME + " column";
+        return "Empty values are not allowed for any " + AccumuloTable.METADATA.tableName()
+            + " column";
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:
-        return "Bulk load transaction no longer running";
+        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
       case 9:
         return "Malformed operation id";
       case 10:
-        return "Malformed hosting goal";
+        return "Malformed availability value";
       case 11:
         return "Malformed file selection value";
       case 12:

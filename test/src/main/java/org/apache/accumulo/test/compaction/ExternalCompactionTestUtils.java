@@ -195,41 +195,42 @@ public class ExternalCompactionTestUtils {
     cfg.setClientProps(clProps);
 
     // configure the compaction services to use the queues
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
-        "[{'name':'all', 'type': 'external', 'group': '" + GROUP1 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+        "[{'name':'" + GROUP1 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP2 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.groups",
+        "[{'name':'" + GROUP2 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP3 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner.opts.groups",
+        "[{'name':'" + GROUP3 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP4 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner.opts.groups",
+        "[{'name':'" + GROUP4 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP5 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner.opts.groups",
+        "[{'name':'" + GROUP5 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP6 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner.opts.groups",
+        "[{'name':'" + GROUP6 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP7 + "'}]");
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner",
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner.opts.groups",
+        "[{'name':'" + GROUP7 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner",
         DefaultCompactionPlanner.class.getName());
-    cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','group': '" + GROUP8 + "'}]");
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner.opts.groups",
+        "[{'name':'" + GROUP8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
+    cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
     cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
     cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
@@ -368,17 +369,18 @@ public class ExternalCompactionTestUtils {
 
   public static void assertNoCompactionMetadata(ServerContext ctx, String tableName) {
     var tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
-    var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build();
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
 
-    int count = 0;
+      int count = 0;
 
-    for (var tabletMetadata : tabletsMetadata) {
-      assertEquals(Set.of(), tabletMetadata.getCompacted());
-      assertNull(tabletMetadata.getSelectedFiles());
-      assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
-      count++;
+      for (var tabletMetadata : tabletsMetadata) {
+        assertEquals(Set.of(), tabletMetadata.getCompacted());
+        assertNull(tabletMetadata.getSelectedFiles());
+        assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+        count++;
+      }
+
+      assertTrue(count > 0);
     }
-
-    assertTrue(count > 0);
   }
 }

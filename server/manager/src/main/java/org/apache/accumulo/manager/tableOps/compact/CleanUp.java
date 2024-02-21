@@ -22,11 +22,14 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.Manager;
@@ -55,46 +58,58 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
     var ample = manager.getContext().getAmple();
+
+    AtomicLong rejectedCount = new AtomicLong(0);
+    Consumer<Ample.ConditionalResult> resultConsumer = result -> {
+      if (result.getStatus() == Status.REJECTED) {
+        log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+        rejectedCount.incrementAndGet();
+      }
+    };
+
+    long t1, t2, submitted = 0, total = 0;
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
             .fetch(PREV_ROW, COMPACTED).checkConsistency().build();
-        var tabletsMutator = ample.conditionallyMutateTablets()) {
+        var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
-      long t1 = System.nanoTime();
+      t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
-        if (tablet.getCompacted().contains(tid)) {
+        total++;
+        if (tablet.getCompacted().contains(fateId)) {
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(tid)
-              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(tid));
+              .requireSame(tablet, COMPACTED).deleteCompacted(fateId)
+              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId));
+          submitted++;
         }
       }
 
-      long rejected = tabletsMutator.process().values().stream()
-          .filter(result -> result.getStatus() == Status.REJECTED).peek(result -> log
-              .debug("{} update for {} was rejected ", FateTxId.formatTid(tid), result.getExtent()))
-          .count();
+      t2 = System.nanoTime();
+    }
 
-      long t2 = System.nanoTime();
+    long scanTime = Duration.ofNanos(t2 - t1).toMillis();
 
-      if (rejected > 0) {
-        long sleepTime = Duration.ofNanos(t2 - t1).toMillis();
-        sleepTime = Math.max(100, Math.min(30000, sleepTime * 2));
-        return sleepTime;
-      }
+    log.debug("{} removed {} of {} compacted markers for {} tablets in {}ms", fateId,
+        submitted - rejectedCount.get(), submitted, total, scanTime);
+
+    if (rejectedCount.get() > 0) {
+      long sleepTime = scanTime;
+      sleepTime = Math.max(100, Math.min(30000, sleepTime * 2));
+      return sleepTime;
     }
 
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    CompactionConfigStorage.deleteConfig(manager.getContext(), tid);
-    Utils.getReadLock(manager, tableId, tid).unlock();
-    Utils.getReadLock(manager, namespaceId, tid).unlock();
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
+    Utils.getReadLock(manager, tableId, fateId).unlock();
+    Utils.getReadLock(manager, namespaceId, fateId).unlock();
     return null;
   }
 }

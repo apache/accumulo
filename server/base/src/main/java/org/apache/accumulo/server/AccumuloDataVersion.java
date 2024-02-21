@@ -37,13 +37,13 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
-   * version (12) reflects On-Demand tablets starting with 4.0
+   * version (13) reflects On-Demand tablets starting with 4.0
    */
   public static final int ONDEMAND_TABLETS_FOR_VERSION_4 = 13;
 
   /**
    * version (12) reflect changes to support no chop merges including json encoding of the file
-   * column family stored in root and metadata tables.
+   * column family stored in root and metadata tables in version 3.1
    */
   public static final int METADATA_FILE_JSON_ENCODING = 12;
 
@@ -53,10 +53,15 @@ public class AccumuloDataVersion {
   public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
 
   /**
-   * Historic data versions
+   * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}
+   */
+  public static final int ROOT_TABLET_META_CHANGES = 10;
+
+  /**
+   * Historic data versions.
    *
    * <ul>
-   * <li>version (10) Changes to how root tablet metadata is serialized in zookeeper in 2.1.0</li>
    * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
    * <li>version (8) RFile index (ACCUMULO-1124) and wal tracking in ZK in 1.8.0</li>
    * <li>version (7) also reflects the addition of a replication table in 1.7.0
@@ -78,6 +83,8 @@ public class AccumuloDataVersion {
   }
 
   // ELASTICITY_TODO get upgrade working
+  // public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES,
+  // REMOVE_DEPRECATIONS_FOR_VERSION_3, METADATA_FILE_JSON_ENCODING, CURRENT_VERSION);
   public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION);
 
   /**
@@ -93,12 +100,18 @@ public class AccumuloDataVersion {
     return cv;
   }
 
+  public static int oldestUpgradeableVersion() {
+    return CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow();
+  }
+
   public static String oldestUpgradeableVersionName() {
-    return dataVersionToReleaseName(CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow());
+    return dataVersionToReleaseName(oldestUpgradeableVersion());
   }
 
   private static String dataVersionToReleaseName(final int version) {
     switch (version) {
+      case ROOT_TABLET_META_CHANGES:
+        return "2.1.0";
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
       case METADATA_FILE_JSON_ENCODING:

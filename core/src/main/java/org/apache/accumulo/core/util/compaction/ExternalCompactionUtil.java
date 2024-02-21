@@ -114,7 +114,6 @@ public class ExternalCompactionUtil {
       ZooReader zooReader = context.getZooReader();
       List<String> groups = zooReader.getChildren(compactorGroupsPath);
       for (String group : groups) {
-        groupsAndAddresses.putIfAbsent(group, new ArrayList<>());
         try {
           List<String> compactors = zooReader.getChildren(compactorGroupsPath + "/" + group);
           for (String compactor : compactors) {
@@ -124,6 +123,7 @@ public class ExternalCompactionUtil {
                 zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
+              groupsAndAddresses.putIfAbsent(group, new ArrayList<>());
               groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
             }
           }

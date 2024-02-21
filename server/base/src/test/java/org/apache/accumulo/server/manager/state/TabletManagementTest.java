@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -36,7 +35,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -73,7 +72,10 @@ public class TabletManagementTest {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
-    COMPACT_COLUMN.put(mutation, new Value("5"));
+    FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
+    FateId fateId56L = FateId.from(type, 56L);
+    FateId fateId59L = FateId.from(type, 59L);
+
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
@@ -83,9 +85,9 @@ public class TabletManagementTest {
     StoredTabletFile bf2 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/bf2")).insert();
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1.getMetadata())
-        .put(FateTxId.formatTid(56));
+        .put(fateId56L.canonical());
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2.getMetadata())
-        .put(FateTxId.formatTid(59));
+        .put(fateId59L.canonical());
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
@@ -102,12 +104,10 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le1.getColumnQualifier())
-        .put(le1.getValue());
-    LogEntry le2 = new LogEntry("localhost:8020/" + UUID.randomUUID());
-    mutation.at().family(LogColumnFamily.NAME).qualifier(le2.getColumnQualifier())
-        .put(le2.getValue());
+    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    le1.addToMutation(mutation);
+    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    le2.addToMutation(mutation);
 
     StoredTabletFile sf1 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();

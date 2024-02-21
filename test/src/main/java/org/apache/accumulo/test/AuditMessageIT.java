@@ -45,7 +45,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,7 +63,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -444,13 +445,14 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @Test
-  @Disabled // ELASTICITY_TODO
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, TableNotFoundException, IOException {
 
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    client.tableOperations().create(OLD_TEST_TABLE_NAME);
+    NewTableConfiguration ntc =
+        new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
+    client.tableOperations().create(OLD_TEST_TABLE_NAME, ntc);
     auditAccumuloClient =
         getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
 

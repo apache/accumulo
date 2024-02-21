@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -63,11 +64,11 @@ public class CompactionJobGenerator {
   private final Cache<TableId,CompactionDispatcher> dispatchers;
   private final Set<CompactionServiceId> serviceIds;
   private final PluginEnvironment env;
-  private final Map<Long,Map<String,String>> allExecutionHints;
+  private final Map<FateId,Map<String,String>> allExecutionHints;
   private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
 
   public CompactionJobGenerator(PluginEnvironment env,
-      Map<Long,Map<String,String>> executionHints) {
+      Map<FateId,Map<String,String>> executionHints) {
     servicesConfig = new CompactionServicesConfig(env.getConfiguration());
     serviceIds = servicesConfig.getPlanners().keySet().stream().map(CompactionServiceId::of)
         .collect(Collectors.toUnmodifiableSet());
@@ -106,7 +107,7 @@ public class CompactionJobGenerator {
     Collection<CompactionJob> userJobs = Set.of();
 
     if (kinds.contains(CompactionKind.USER) && tablet.getSelectedFiles() != null) {
-      var hints = allExecutionHints.get(tablet.getSelectedFiles().getFateTxId());
+      var hints = allExecutionHints.get(tablet.getSelectedFiles().getFateId());
       if (hints != null) {
         CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet, hints);
         userJobs = planCompactions(serviceId, CompactionKind.USER, tablet, hints);
@@ -266,7 +267,7 @@ public class CompactionJobGenerator {
           Collection<CompactableFile> files = ecMeta.getJobFiles().stream()
               .map(f -> new CompactableFileImpl(f, allFiles2.get(f))).collect(Collectors.toList());
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-              ecMeta.getCompactionExecutorId(), files, ecMeta.getKind(), Optional.empty());
+              ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
           return job;
         }).collect(Collectors.toUnmodifiableList());
       }
@@ -295,6 +296,7 @@ public class CompactionJobGenerator {
       options = servicesConfig.getOptions().get(serviceId.canonical());
       planner = env.instantiate(tableId, plannerClassName, CompactionPlanner.class);
       CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
+          servicesConfig.getPlannerPrefix(serviceId.canonical()),
           servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
       planner.init(initParameters);
     } catch (Exception e) {

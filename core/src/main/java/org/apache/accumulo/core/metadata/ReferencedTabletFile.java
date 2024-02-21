@@ -97,6 +97,8 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   public static FileParts parsePath(Path filePath) {
     // File name construct: <volume>/<tablePath>/<tableId>/<tablet>/<file>
     // Example: hdfs://namenode:9020/accumulo/tables/1/default_tablet/F00001.rf
+    // Example compaction tmp file:
+    // hdfs://namenode:9020/accumulo/tables/1/default_tablet/F00001.rf_tmp_ECID-<uuid>
     final URI uri = filePath.toUri();
 
     // validate that this is a fully qualified uri

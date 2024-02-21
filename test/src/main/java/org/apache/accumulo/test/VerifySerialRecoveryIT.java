@@ -35,8 +35,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -48,10 +47,8 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
   private static final byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
@@ -130,8 +127,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata tables
-        if (line.contains(MetadataTable.ID.canonical())
-            || line.contains(RootTable.ID.canonical())) {
+        if (line.contains(AccumuloTable.METADATA.tableId().canonical())
+            || line.contains(AccumuloTable.ROOT.tableId().canonical())) {
           continue;
         }
         if (line.contains("recovering data from walogs")) {

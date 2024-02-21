@@ -29,29 +29,29 @@ public class FateService {
 
   public interface Iface {
 
-    public long beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public TFateId beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public java.lang.String waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public java.lang.String waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public boolean cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public boolean cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException;
+    public void beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type, org.apache.thrift.async.AsyncMethodCallback<TFateId> resultHandler) throws org.apache.thrift.TException;
 
-    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
+    public void waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
 
-    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
+    public void cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -78,21 +78,22 @@ public class FateService {
     }
 
     @Override
-    public long beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TFateId beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      send_beginFateOperation(tinfo, credentials);
+      send_beginFateOperation(tinfo, credentials, type);
       return recv_beginFateOperation();
     }
 
-    public void send_beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type) throws org.apache.thrift.TException
     {
       beginFateOperation_args args = new beginFateOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
+      args.setType(type);
       sendBase("beginFateOperation", args);
     }
 
-    public long recv_beginFateOperation() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TFateId recv_beginFateOperation() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       beginFateOperation_result result = new beginFateOperation_result();
       receiveBase(result, "beginFateOperation");
@@ -109,13 +110,13 @@ public class FateService {
     }
 
     @Override
-    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_executeFateOperation(tinfo, credentials, opid, op, arguments, options, autoClean);
       recv_executeFateOperation();
     }
 
-    public void send_executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.thrift.TException
+    public void send_executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean) throws org.apache.thrift.TException
     {
       executeFateOperation_args args = new executeFateOperation_args();
       args.setTinfo(tinfo);
@@ -145,13 +146,13 @@ public class FateService {
     }
 
     @Override
-    public java.lang.String waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public java.lang.String waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_waitForFateOperation(tinfo, credentials, opid);
       return recv_waitForFateOperation();
     }
 
-    public void send_waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
+    public void send_waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.thrift.TException
     {
       waitForFateOperation_args args = new waitForFateOperation_args();
       args.setTinfo(tinfo);
@@ -180,13 +181,13 @@ public class FateService {
     }
 
     @Override
-    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_finishFateOperation(tinfo, credentials, opid);
       recv_finishFateOperation();
     }
 
-    public void send_finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
+    public void send_finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.thrift.TException
     {
       finishFateOperation_args args = new finishFateOperation_args();
       args.setTinfo(tinfo);
@@ -209,13 +210,13 @@ public class FateService {
     }
 
     @Override
-    public boolean cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public boolean cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_cancelFateOperation(tinfo, credentials, opid);
       return recv_cancelFateOperation();
     }
 
-    public void send_cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
+    public void send_cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid) throws org.apache.thrift.TException
     {
       cancelFateOperation_args args = new cancelFateOperation_args();
       args.setTinfo(tinfo);
@@ -260,20 +261,22 @@ public class FateService {
     }
 
     @Override
-    public void beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
+    public void beginFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type, org.apache.thrift.async.AsyncMethodCallback<TFateId> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      beginFateOperation_call method_call = new beginFateOperation_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      beginFateOperation_call method_call = new beginFateOperation_call(tinfo, credentials, type, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class beginFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Long> {
+    public static class beginFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<TFateId> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public beginFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TFateInstanceType type;
+      public beginFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateInstanceType type, org.apache.thrift.async.AsyncMethodCallback<TFateId> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
+        this.type = type;
       }
 
       @Override
@@ -282,12 +285,13 @@ public class FateService {
         beginFateOperation_args args = new beginFateOperation_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
+        args.setType(type);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
       @Override
-      public java.lang.Long getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public TFateId getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -298,7 +302,7 @@ public class FateService {
     }
 
     @Override
-    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void executeFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       executeFateOperation_call method_call = new executeFateOperation_call(tinfo, credentials, opid, op, arguments, options, autoClean, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -308,12 +312,12 @@ public class FateService {
     public static class executeFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private long opid;
+      private TFateId opid;
       private FateOperation op;
       private java.util.List<java.nio.ByteBuffer> arguments;
       private java.util.Map<java.lang.String,java.lang.String> options;
       private boolean autoClean;
-      public executeFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public executeFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, FateOperation op, java.util.List<java.nio.ByteBuffer> arguments, java.util.Map<java.lang.String,java.lang.String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -352,7 +356,7 @@ public class FateService {
     }
 
     @Override
-    public void waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
+    public void waitForFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       waitForFateOperation_call method_call = new waitForFateOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -362,8 +366,8 @@ public class FateService {
     public static class waitForFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.String> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private long opid;
-      public waitForFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TFateId opid;
+      public waitForFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -393,7 +397,7 @@ public class FateService {
     }
 
     @Override
-    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void finishFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       finishFateOperation_call method_call = new finishFateOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -403,8 +407,8 @@ public class FateService {
     public static class finishFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private long opid;
-      public finishFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TFateId opid;
+      public finishFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -435,7 +439,7 @@ public class FateService {
     }
 
     @Override
-    public void cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
+    public void cancelFateOperation(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       cancelFateOperation_call method_call = new cancelFateOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -445,8 +449,8 @@ public class FateService {
     public static class cancelFateOperation_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Boolean> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private long opid;
-      public cancelFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TFateId opid;
+      public cancelFateOperation_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TFateId opid, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -520,8 +524,7 @@ public class FateService {
       public beginFateOperation_result getResult(I iface, beginFateOperation_args args) throws org.apache.thrift.TException {
         beginFateOperation_result result = new beginFateOperation_result();
         try {
-          result.success = iface.beginFateOperation(args.tinfo, args.credentials);
-          result.setSuccessIsSet(true);
+          result.success = iface.beginFateOperation(args.tinfo, args.credentials, args.type);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
@@ -693,7 +696,7 @@ public class FateService {
       return processMap;
     }
 
-    public static class beginFateOperation<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, beginFateOperation_args, java.lang.Long> {
+    public static class beginFateOperation<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, beginFateOperation_args, TFateId> {
       public beginFateOperation() {
         super("beginFateOperation");
       }
@@ -704,14 +707,13 @@ public class FateService {
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<TFateId> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Long>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<TFateId>() { 
           @Override
-          public void onComplete(java.lang.Long o) {
+          public void onComplete(TFateId o) {
             beginFateOperation_result result = new beginFateOperation_result();
             result.success = o;
-            result.setSuccessIsSet(true);
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
             } catch (org.apache.thrift.transport.TTransportException e) {
@@ -764,8 +766,8 @@ public class FateService {
       }
 
       @Override
-      public void start(I iface, beginFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
-        iface.beginFateOperation(args.tinfo, args.credentials,resultHandler);
+      public void start(I iface, beginFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<TFateId> resultHandler) throws org.apache.thrift.TException {
+        iface.beginFateOperation(args.tinfo, args.credentials, args.type,resultHandler);
       }
     }
 
@@ -1084,17 +1086,28 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new beginFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new beginFateOperation_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    /**
+     * 
+     * @see TFateInstanceType
+     */
+    public @org.apache.thrift.annotation.Nullable TFateInstanceType type; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
-      CREDENTIALS((short)2, "credentials");
+      CREDENTIALS((short)2, "credentials"),
+      /**
+       * 
+       * @see TFateInstanceType
+       */
+      TYPE((short)3, "type");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -1114,6 +1127,8 @@ public class FateService {
             return TINFO;
           case 2: // CREDENTIALS
             return CREDENTIALS;
+          case 3: // TYPE
+            return TYPE;
           default:
             return null;
         }
@@ -1164,6 +1179,8 @@ public class FateService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TFateInstanceType.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginFateOperation_args.class, metaDataMap);
     }
@@ -1173,11 +1190,13 @@ public class FateService {
 
     public beginFateOperation_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
-      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      TFateInstanceType type)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
+      this.type = type;
     }
 
     /**
@@ -1190,6 +1209,9 @@ public class FateService {
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
+      if (other.isSetType()) {
+        this.type = other.type;
+      }
     }
 
     @Override
@@ -1201,6 +1223,7 @@ public class FateService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
+      this.type = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -1253,6 +1276,39 @@ public class FateService {
       }
     }
 
+    /**
+     * 
+     * @see TFateInstanceType
+     */
+    @org.apache.thrift.annotation.Nullable
+    public TFateInstanceType getType() {
+      return this.type;
+    }
+
+    /**
+     * 
+     * @see TFateInstanceType
+     */
+    public beginFateOperation_args setType(@org.apache.thrift.annotation.Nullable TFateInstanceType type) {
+      this.type = type;
+      return this;
+    }
+
+    public void unsetType() {
+      this.type = null;
+    }
+
+    /** Returns true if field type is set (has been assigned a value) and false otherwise */
+    public boolean isSetType() {
+      return this.type != null;
+    }
+
+    public void setTypeIsSet(boolean value) {
+      if (!value) {
+        this.type = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -1272,6 +1328,14 @@ public class FateService {
         }
         break;
 
+      case TYPE:
+        if (value == null) {
+          unsetType();
+        } else {
+          setType((TFateInstanceType)value);
+        }
+        break;
+
       }
     }
 
@@ -1284,6 +1348,9 @@ public class FateService {
 
       case CREDENTIALS:
         return getCredentials();
+
+      case TYPE:
+        return getType();
 
       }
       throw new java.lang.IllegalStateException();
@@ -1301,6 +1368,8 @@ public class FateService {
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
+      case TYPE:
+        return isSetType();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -1336,6 +1405,15 @@ public class FateService {
           return false;
       }
 
+      boolean this_present_type = true && this.isSetType();
+      boolean that_present_type = true && that.isSetType();
+      if (this_present_type || that_present_type) {
+        if (!(this_present_type && that_present_type))
+          return false;
+        if (!this.type.equals(that.type))
+          return false;
+      }
+
       return true;
     }
 
@@ -1350,6 +1428,10 @@ public class FateService {
       hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetType()) ? 131071 : 524287);
+      if (isSetType())
+        hashCode = hashCode * 8191 + type.getValue();
 
       return hashCode;
     }
@@ -1378,6 +1460,16 @@ public class FateService {
       }
       if (isSetCredentials()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetType(), other.isSetType());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetType()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.type, other.type);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1419,6 +1511,14 @@ public class FateService {
         sb.append("null");
       } else {
         sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("type:");
+      if (this.type == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.type);
       }
       first = false;
       sb.append(")");
@@ -1490,6 +1590,14 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // TYPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.type = org.apache.accumulo.core.manager.thrift.TFateInstanceType.findByValue(iprot.readI32());
+                struct.setTypeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -1514,6 +1622,11 @@ public class FateService {
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.type != null) {
+          oprot.writeFieldBegin(TYPE_FIELD_DESC);
+          oprot.writeI32(struct.type.getValue());
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -1541,19 +1654,25 @@ public class FateService {
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetType()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
+        if (struct.isSetType()) {
+          oprot.writeI32(struct.type.getValue());
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, beginFateOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -1563,6 +1682,10 @@ public class FateService {
           struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.type = org.apache.accumulo.core.manager.thrift.TFateInstanceType.findByValue(iprot.readI32());
+          struct.setTypeIsSet(true);
         }
       }
     }
@@ -1576,14 +1699,14 @@ public class FateService {
   public static class beginFateOperation_result implements org.apache.thrift.TBase<beginFateOperation_result, beginFateOperation_result._Fields>, java.io.Serializable, Cloneable, Comparable<beginFateOperation_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginFateOperation_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new beginFateOperation_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new beginFateOperation_resultTupleSchemeFactory();
 
-    public long success; // required
+    public @org.apache.thrift.annotation.Nullable TFateId success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
@@ -1656,13 +1779,11 @@ public class FateService {
     }
 
     // isset id assignments
-    private static final int __SUCCESS_ISSET_ID = 0;
-    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFateId.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -1675,13 +1796,12 @@ public class FateService {
     }
 
     public beginFateOperation_result(
-      long success,
+      TFateId success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
     {
       this();
       this.success = success;
-      setSuccessIsSet(true);
       this.sec = sec;
       this.tnase = tnase;
     }
@@ -1690,8 +1810,9 @@ public class FateService {
      * Performs a deep copy on <i>other</i>.
      */
     public beginFateOperation_result(beginFateOperation_result other) {
-      __isset_bitfield = other.__isset_bitfield;
-      this.success = other.success;
+      if (other.isSetSuccess()) {
+        this.success = new TFateId(other.success);
+      }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
@@ -1707,33 +1828,34 @@ public class FateService {
 
     @Override
     public void clear() {
-      setSuccessIsSet(false);
-      this.success = 0;
+      this.success = null;
       this.sec = null;
       this.tnase = null;
     }
 
-    public long getSuccess() {
+    @org.apache.thrift.annotation.Nullable
+    public TFateId getSuccess() {
       return this.success;
     }
 
-    public beginFateOperation_result setSuccess(long success) {
+    public beginFateOperation_result setSuccess(@org.apache.thrift.annotation.Nullable TFateId success) {
       this.success = success;
-      setSuccessIsSet(true);
       return this;
     }
 
     public void unsetSuccess() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+      this.success = null;
     }
 
     /** Returns true if field success is set (has been assigned a value) and false otherwise */
     public boolean isSetSuccess() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+      return this.success != null;
     }
 
     public void setSuccessIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
+      if (!value) {
+        this.success = null;
+      }
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -1793,7 +1915,7 @@ public class FateService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((java.lang.Long)value);
+          setSuccess((TFateId)value);
         }
         break;
 
@@ -1864,12 +1986,12 @@ public class FateService {
       if (this == that)
         return true;
 
-      boolean this_present_success = true;
-      boolean that_present_success = true;
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
         if (!(this_present_success && that_present_success))
           return false;
-        if (this.success != that.success)
+        if (!this.success.equals(that.success))
           return false;
       }
 
@@ -1898,7 +2020,9 @@ public class FateService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(success);
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
@@ -1973,7 +2097,11 @@ public class FateService {
       boolean first = true;
 
       sb.append("success:");
-      sb.append(this.success);
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
       first = false;
       if (!first) sb.append(", ");
       sb.append("sec:");
@@ -1998,6 +2126,9 @@ public class FateService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -2010,8 +2141,6 @@ public class FateService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -2039,8 +2168,9 @@ public class FateService {
           }
           switch (schemeField.id) {
             case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.success = iprot.readI64();
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TFateId();
+                struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -2080,9 +2210,9 @@ public class FateService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.isSetSuccess()) {
+        if (struct.success != null) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          oprot.writeI64(struct.success);
+          struct.success.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.sec != null) {
@@ -2125,7 +2255,7 @@ public class FateService {
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
-          oprot.writeI64(struct.success);
+          struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
@@ -2140,7 +2270,8 @@ public class FateService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.success = iprot.readI64();
+          struct.success = new TFateId();
+          struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
@@ -2167,7 +2298,7 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)4);
     private static final org.apache.thrift.protocol.TField ARGUMENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("arguments", org.apache.thrift.protocol.TType.LIST, (short)5);
     private static final org.apache.thrift.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("options", org.apache.thrift.protocol.TType.MAP, (short)6);
@@ -2178,7 +2309,7 @@ public class FateService {
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public long opid; // required
+    public @org.apache.thrift.annotation.Nullable TFateId opid; // required
     /**
      * 
      * @see FateOperation
@@ -2273,8 +2404,7 @@ public class FateService {
     }
 
     // isset id assignments
-    private static final int __OPID_ISSET_ID = 0;
-    private static final int __AUTOCLEAN_ISSET_ID = 1;
+    private static final int __AUTOCLEAN_ISSET_ID = 0;
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -2284,7 +2414,7 @@ public class FateService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFateId.class)));
       tmpMap.put(_Fields.OP, new org.apache.thrift.meta_data.FieldMetaData("op", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, FateOperation.class)));
       tmpMap.put(_Fields.ARGUMENTS, new org.apache.thrift.meta_data.FieldMetaData("arguments", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -2306,7 +2436,7 @@ public class FateService {
     public executeFateOperation_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      long opid,
+      TFateId opid,
       FateOperation op,
       java.util.List<java.nio.ByteBuffer> arguments,
       java.util.Map<java.lang.String,java.lang.String> options,
@@ -2316,7 +2446,6 @@ public class FateService {
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.opid = opid;
-      setOpidIsSet(true);
       this.op = op;
       this.arguments = arguments;
       this.options = options;
@@ -2335,7 +2464,9 @@ public class FateService {
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      this.opid = other.opid;
+      if (other.isSetOpid()) {
+        this.opid = new TFateId(other.opid);
+      }
       if (other.isSetOp()) {
         this.op = other.op;
       }
@@ -2359,8 +2490,7 @@ public class FateService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      setOpidIsSet(false);
-      this.opid = 0;
+      this.opid = null;
       this.op = null;
       this.arguments = null;
       this.options = null;
@@ -2418,27 +2548,29 @@ public class FateService {
       }
     }
 
-    public long getOpid() {
+    @org.apache.thrift.annotation.Nullable
+    public TFateId getOpid() {
       return this.opid;
     }
 
-    public executeFateOperation_args setOpid(long opid) {
+    public executeFateOperation_args setOpid(@org.apache.thrift.annotation.Nullable TFateId opid) {
       this.opid = opid;
-      setOpidIsSet(true);
       return this;
     }
 
     public void unsetOpid() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __OPID_ISSET_ID);
+      this.opid = null;
     }
 
     /** Returns true if field opid is set (has been assigned a value) and false otherwise */
     public boolean isSetOpid() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __OPID_ISSET_ID);
+      return this.opid != null;
     }
 
     public void setOpidIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
+      if (!value) {
+        this.opid = null;
+      }
     }
 
     /**
@@ -2597,7 +2729,7 @@ public class FateService {
         if (value == null) {
           unsetOpid();
         } else {
-          setOpid((java.lang.Long)value);
+          setOpid((TFateId)value);
         }
         break;
 
@@ -2722,12 +2854,12 @@ public class FateService {
           return false;
       }
 
-      boolean this_present_opid = true;
-      boolean that_present_opid = true;
+      boolean this_present_opid = true && this.isSetOpid();
+      boolean that_present_opid = true && that.isSetOpid();
       if (this_present_opid || that_present_opid) {
         if (!(this_present_opid && that_present_opid))
           return false;
-        if (this.opid != that.opid)
+        if (!this.opid.equals(that.opid))
           return false;
       }
 
@@ -2782,7 +2914,9 @@ public class FateService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(opid);
+      hashCode = hashCode * 8191 + ((isSetOpid()) ? 131071 : 524287);
+      if (isSetOpid())
+        hashCode = hashCode * 8191 + opid.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetOp()) ? 131071 : 524287);
       if (isSetOp())
@@ -2920,7 +3054,11 @@ public class FateService {
       first = false;
       if (!first) sb.append(", ");
       sb.append("opid:");
-      sb.append(this.opid);
+      if (this.opid == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.opid);
+      }
       first = false;
       if (!first) sb.append(", ");
       sb.append("op:");
@@ -2962,6 +3100,9 @@ public class FateService {
       }
       if (credentials != null) {
         credentials.validate();
+      }
+      if (opid != null) {
+        opid.validate();
       }
     }
 
@@ -3022,8 +3163,9 @@ public class FateService {
               }
               break;
             case 3: // OPID
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.opid = iprot.readI64();
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.opid = new TFateId();
+                struct.opid.read(iprot);
                 struct.setOpidIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -3109,9 +3251,11 @@ public class FateService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(OPID_FIELD_DESC);
-        oprot.writeI64(struct.opid);
-        oprot.writeFieldEnd();
+        if (struct.opid != null) {
+          oprot.writeFieldBegin(OPID_FIELD_DESC);
+          struct.opid.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.op != null) {
           oprot.writeFieldBegin(OP_FIELD_DESC);
           oprot.writeI32(struct.op.getValue());
@@ -3193,7 +3337,7 @@ public class FateService {
           struct.credentials.write(oprot);
         }
         if (struct.isSetOpid()) {
-          oprot.writeI64(struct.opid);
+          struct.opid.write(oprot);
         }
         if (struct.isSetOp()) {
           oprot.writeI32(struct.op.getValue());
@@ -3237,7 +3381,8 @@ public class FateService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.opid = iprot.readI64();
+          struct.opid = new TFateId();
+          struct.opid.read(iprot);
           struct.setOpidIsSet(true);
         }
         if (incoming.get(3)) {
@@ -3884,14 +4029,14 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new waitForFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new waitForFateOperation_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public long opid; // required
+    public @org.apache.thrift.annotation.Nullable TFateId opid; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -3962,8 +4107,6 @@ public class FateService {
     }
 
     // isset id assignments
-    private static final int __OPID_ISSET_ID = 0;
-    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -3972,7 +4115,7 @@ public class FateService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFateId.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForFateOperation_args.class, metaDataMap);
     }
@@ -3983,27 +4126,27 @@ public class FateService {
     public waitForFateOperation_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      long opid)
+      TFateId opid)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.opid = opid;
-      setOpidIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public waitForFateOperation_args(waitForFateOperation_args other) {
-      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      this.opid = other.opid;
+      if (other.isSetOpid()) {
+        this.opid = new TFateId(other.opid);
+      }
     }
 
     @Override
@@ -4015,8 +4158,7 @@ public class FateService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      setOpidIsSet(false);
-      this.opid = 0;
+      this.opid = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -4069,27 +4211,29 @@ public class FateService {
       }
     }
 
-    public long getOpid() {
+    @org.apache.thrift.annotation.Nullable
+    public TFateId getOpid() {
       return this.opid;
     }
 
-    public waitForFateOperation_args setOpid(long opid) {
+    public waitForFateOperation_args setOpid(@org.apache.thrift.annotation.Nullable TFateId opid) {
       this.opid = opid;
-      setOpidIsSet(true);
       return this;
     }
 
     public void unsetOpid() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __OPID_ISSET_ID);
+      this.opid = null;
     }
 
     /** Returns true if field opid is set (has been assigned a value) and false otherwise */
     public boolean isSetOpid() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __OPID_ISSET_ID);
+      return this.opid != null;
     }
 
     public void setOpidIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
+      if (!value) {
+        this.opid = null;
+      }
     }
 
     @Override
@@ -4115,7 +4259,7 @@ public class FateService {
         if (value == null) {
           unsetOpid();
         } else {
-          setOpid((java.lang.Long)value);
+          setOpid((TFateId)value);
         }
         break;
 
@@ -4188,12 +4332,12 @@ public class FateService {
           return false;
       }
 
-      boolean this_present_opid = true;
-      boolean that_present_opid = true;
+      boolean this_present_opid = true && this.isSetOpid();
+      boolean that_present_opid = true && that.isSetOpid();
       if (this_present_opid || that_present_opid) {
         if (!(this_present_opid && that_present_opid))
           return false;
-        if (this.opid != that.opid)
+        if (!this.opid.equals(that.opid))
           return false;
       }
 
@@ -4212,7 +4356,9 @@ public class FateService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(opid);
+      hashCode = hashCode * 8191 + ((isSetOpid()) ? 131071 : 524287);
+      if (isSetOpid())
+        hashCode = hashCode * 8191 + opid.hashCode();
 
       return hashCode;
     }
@@ -4296,7 +4442,11 @@ public class FateService {
       first = false;
       if (!first) sb.append(", ");
       sb.append("opid:");
-      sb.append(this.opid);
+      if (this.opid == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.opid);
+      }
       first = false;
       sb.append(")");
       return sb.toString();
@@ -4311,6 +4461,9 @@ public class FateService {
       if (credentials != null) {
         credentials.validate();
       }
+      if (opid != null) {
+        opid.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -4323,8 +4476,6 @@ public class FateService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -4370,8 +4521,9 @@ public class FateService {
               }
               break;
             case 3: // OPID
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.opid = iprot.readI64();
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.opid = new TFateId();
+                struct.opid.read(iprot);
                 struct.setOpidIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -4403,9 +4555,11 @@ public class FateService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(OPID_FIELD_DESC);
-        oprot.writeI64(struct.opid);
-        oprot.writeFieldEnd();
+        if (struct.opid != null) {
+          oprot.writeFieldBegin(OPID_FIELD_DESC);
+          struct.opid.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -4442,7 +4596,7 @@ public class FateService {
           struct.credentials.write(oprot);
         }
         if (struct.isSetOpid()) {
-          oprot.writeI64(struct.opid);
+          struct.opid.write(oprot);
         }
       }
 
@@ -4461,7 +4615,8 @@ public class FateService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.opid = iprot.readI64();
+          struct.opid = new TFateId();
+          struct.opid.read(iprot);
           struct.setOpidIsSet(true);
         }
       }
@@ -5177,14 +5332,14 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new finishFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new finishFateOperation_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public long opid; // required
+    public @org.apache.thrift.annotation.Nullable TFateId opid; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -5255,8 +5410,6 @@ public class FateService {
     }
 
     // isset id assignments
-    private static final int __OPID_ISSET_ID = 0;
-    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -5265,7 +5418,7 @@ public class FateService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFateId.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishFateOperation_args.class, metaDataMap);
     }
@@ -5276,27 +5429,27 @@ public class FateService {
     public finishFateOperation_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      long opid)
+      TFateId opid)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.opid = opid;
-      setOpidIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public finishFateOperation_args(finishFateOperation_args other) {
-      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      this.opid = other.opid;
+      if (other.isSetOpid()) {
+        this.opid = new TFateId(other.opid);
+      }
     }
 
     @Override
@@ -5308,8 +5461,7 @@ public class FateService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      setOpidIsSet(false);
-      this.opid = 0;
+      this.opid = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -5362,27 +5514,29 @@ public class FateService {
       }
     }
 
-    public long getOpid() {
+    @org.apache.thrift.annotation.Nullable
+    public TFateId getOpid() {
       return this.opid;
     }
 
-    public finishFateOperation_args setOpid(long opid) {
+    public finishFateOperation_args setOpid(@org.apache.thrift.annotation.Nullable TFateId opid) {
       this.opid = opid;
-      setOpidIsSet(true);
       return this;
     }
 
     public void unsetOpid() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __OPID_ISSET_ID);
+      this.opid = null;
     }
 
     /** Returns true if field opid is set (has been assigned a value) and false otherwise */
     public boolean isSetOpid() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __OPID_ISSET_ID);
+      return this.opid != null;
     }
 
     public void setOpidIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
+      if (!value) {
+        this.opid = null;
+      }
     }
 
     @Override
@@ -5408,7 +5562,7 @@ public class FateService {
         if (value == null) {
           unsetOpid();
         } else {
-          setOpid((java.lang.Long)value);
+          setOpid((TFateId)value);
         }
         break;
 
@@ -5481,12 +5635,12 @@ public class FateService {
           return false;
       }
 
-      boolean this_present_opid = true;
-      boolean that_present_opid = true;
+      boolean this_present_opid = true && this.isSetOpid();
+      boolean that_present_opid = true && that.isSetOpid();
       if (this_present_opid || that_present_opid) {
         if (!(this_present_opid && that_present_opid))
           return false;
-        if (this.opid != that.opid)
+        if (!this.opid.equals(that.opid))
           return false;
       }
 
@@ -5505,7 +5659,9 @@ public class FateService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(opid);
+      hashCode = hashCode * 8191 + ((isSetOpid()) ? 131071 : 524287);
+      if (isSetOpid())
+        hashCode = hashCode * 8191 + opid.hashCode();
 
       return hashCode;
     }
@@ -5589,7 +5745,11 @@ public class FateService {
       first = false;
       if (!first) sb.append(", ");
       sb.append("opid:");
-      sb.append(this.opid);
+      if (this.opid == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.opid);
+      }
       first = false;
       sb.append(")");
       return sb.toString();
@@ -5604,6 +5764,9 @@ public class FateService {
       if (credentials != null) {
         credentials.validate();
       }
+      if (opid != null) {
+        opid.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -5616,8 +5779,6 @@ public class FateService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -5663,8 +5824,9 @@ public class FateService {
               }
               break;
             case 3: // OPID
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.opid = iprot.readI64();
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.opid = new TFateId();
+                struct.opid.read(iprot);
                 struct.setOpidIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -5696,9 +5858,11 @@ public class FateService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(OPID_FIELD_DESC);
-        oprot.writeI64(struct.opid);
-        oprot.writeFieldEnd();
+        if (struct.opid != null) {
+          oprot.writeFieldBegin(OPID_FIELD_DESC);
+          struct.opid.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -5735,7 +5899,7 @@ public class FateService {
           struct.credentials.write(oprot);
         }
         if (struct.isSetOpid()) {
-          oprot.writeI64(struct.opid);
+          struct.opid.write(oprot);
         }
       }
 
@@ -5754,7 +5918,8 @@ public class FateService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.opid = iprot.readI64();
+          struct.opid = new TFateId();
+          struct.opid.read(iprot);
           struct.setOpidIsSet(true);
         }
       }
@@ -6258,14 +6423,14 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new cancelFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new cancelFateOperation_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public long opid; // required
+    public @org.apache.thrift.annotation.Nullable TFateId opid; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -6336,8 +6501,6 @@ public class FateService {
     }
 
     // isset id assignments
-    private static final int __OPID_ISSET_ID = 0;
-    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -6346,7 +6509,7 @@ public class FateService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFateId.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancelFateOperation_args.class, metaDataMap);
     }
@@ -6357,27 +6520,27 @@ public class FateService {
     public cancelFateOperation_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      long opid)
+      TFateId opid)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.opid = opid;
-      setOpidIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public cancelFateOperation_args(cancelFateOperation_args other) {
-      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      this.opid = other.opid;
+      if (other.isSetOpid()) {
+        this.opid = new TFateId(other.opid);
+      }
     }
 
     @Override
@@ -6389,8 +6552,7 @@ public class FateService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      setOpidIsSet(false);
-      this.opid = 0;
+      this.opid = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -6443,27 +6605,29 @@ public class FateService {
       }
     }
 
-    public long getOpid() {
+    @org.apache.thrift.annotation.Nullable
+    public TFateId getOpid() {
       return this.opid;
     }
 
-    public cancelFateOperation_args setOpid(long opid) {
+    public cancelFateOperation_args setOpid(@org.apache.thrift.annotation.Nullable TFateId opid) {
       this.opid = opid;
-      setOpidIsSet(true);
       return this;
     }
 
     public void unsetOpid() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __OPID_ISSET_ID);
+      this.opid = null;
     }
 
     /** Returns true if field opid is set (has been assigned a value) and false otherwise */
     public boolean isSetOpid() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __OPID_ISSET_ID);
+      return this.opid != null;
     }
 
     public void setOpidIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
+      if (!value) {
+        this.opid = null;
+      }
     }
 
     @Override
@@ -6489,7 +6653,7 @@ public class FateService {
         if (value == null) {
           unsetOpid();
         } else {
-          setOpid((java.lang.Long)value);
+          setOpid((TFateId)value);
         }
         break;
 
@@ -6562,12 +6726,12 @@ public class FateService {
           return false;
       }
 
-      boolean this_present_opid = true;
-      boolean that_present_opid = true;
+      boolean this_present_opid = true && this.isSetOpid();
+      boolean that_present_opid = true && that.isSetOpid();
       if (this_present_opid || that_present_opid) {
         if (!(this_present_opid && that_present_opid))
           return false;
-        if (this.opid != that.opid)
+        if (!this.opid.equals(that.opid))
           return false;
       }
 
@@ -6586,7 +6750,9 @@ public class FateService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(opid);
+      hashCode = hashCode * 8191 + ((isSetOpid()) ? 131071 : 524287);
+      if (isSetOpid())
+        hashCode = hashCode * 8191 + opid.hashCode();
 
       return hashCode;
     }
@@ -6670,7 +6836,11 @@ public class FateService {
       first = false;
       if (!first) sb.append(", ");
       sb.append("opid:");
-      sb.append(this.opid);
+      if (this.opid == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.opid);
+      }
       first = false;
       sb.append(")");
       return sb.toString();
@@ -6685,6 +6855,9 @@ public class FateService {
       if (credentials != null) {
         credentials.validate();
       }
+      if (opid != null) {
+        opid.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -6697,8 +6870,6 @@ public class FateService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -6744,8 +6915,9 @@ public class FateService {
               }
               break;
             case 3: // OPID
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.opid = iprot.readI64();
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.opid = new TFateId();
+                struct.opid.read(iprot);
                 struct.setOpidIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -6777,9 +6949,11 @@ public class FateService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(OPID_FIELD_DESC);
-        oprot.writeI64(struct.opid);
-        oprot.writeFieldEnd();
+        if (struct.opid != null) {
+          oprot.writeFieldBegin(OPID_FIELD_DESC);
+          struct.opid.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -6816,7 +6990,7 @@ public class FateService {
           struct.credentials.write(oprot);
         }
         if (struct.isSetOpid()) {
-          oprot.writeI64(struct.opid);
+          struct.opid.write(oprot);
         }
       }
 
@@ -6835,7 +7009,8 @@ public class FateService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.opid = iprot.readI64();
+          struct.opid = new TFateId();
+          struct.opid.read(iprot);
           struct.setOpidIsSet(true);
         }
       }

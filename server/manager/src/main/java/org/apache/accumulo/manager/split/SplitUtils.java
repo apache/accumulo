@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -218,19 +219,19 @@ public class SplitUtils {
 
     try (var indexIterable = new IndexIterable(context, tableConf, tabletMetadata.getFiles(),
         tabletMetadata.getEndRow(), tabletMetadata.getPrevEndRow())) {
-      var splits = findSplits(indexIterable, calculateDesiredSplits(estimatedSize, threshold));
 
-      splits.removeIf(split -> {
-        if (split.getLength() >= maxEndRowSize) {
+      Predicate<ByteSequence> splitPredicate = splitCandidate -> {
+        if (splitCandidate.length() >= maxEndRowSize) {
           log.warn("Ignoring split point for {} of length {}", tabletMetadata.getExtent(),
-              split.getLength());
-          return true;
+              splitCandidate.length());
+          return false;
         }
 
-        return false;
-      });
+        return true;
+      };
 
-      return splits;
+      return findSplits(indexIterable, calculateDesiredSplits(estimatedSize, threshold),
+          splitPredicate);
     }
   }
 
@@ -243,7 +244,8 @@ public class SplitUtils {
     return common;
   }
 
-  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterator, int desiredSplits) {
+  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterator, int desiredSplits,
+      Predicate<ByteSequence> rowPredicate) {
     Preconditions.checkArgument(desiredSplits >= 1);
 
     int numKeys = Iterables.size(tabletIndexIterator);
@@ -263,17 +265,24 @@ public class SplitUtils {
       }
 
       count++;
+
       if (count >= Math.round((splits.size() + 1) * interSplitDistance)) {
         if (prevRow == null) {
-          splits.add(key.getRow());
+          if (rowPredicate.test(key.getRowData())) {
+            splits.add(key.getRow());
+          }
         } else {
           var lcl = longestCommonLength(prevRow, key.getRowData());
           if (lcl + 1 >= key.getRowData().length()) {
-            splits.add(key.getRow());
+            if (rowPredicate.test(key.getRowData())) {
+              splits.add(key.getRow());
+            }
           } else {
-            splits.add(new Text(key.getRowData().subSequence(0, lcl + 1).toArray()));
+            var shortenedRow = key.getRowData().subSequence(0, lcl + 1);
+            if (rowPredicate.test(shortenedRow)) {
+              splits.add(new Text(shortenedRow.toArray()));
+            }
           }
-
         }
 
         if (splits.size() >= desiredSplits) {

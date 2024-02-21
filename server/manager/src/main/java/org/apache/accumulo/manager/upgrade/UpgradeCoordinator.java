@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
+import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -32,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -112,8 +114,10 @@ public class UpgradeCoordinator {
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private final Map<Integer,Upgrader> upgraders = Collections.unmodifiableMap(
-      new TreeMap<>(Map.of(REMOVE_DEPRECATIONS_FOR_VERSION_3, new Upgrader11to12())));
+  private final Map<Integer,
+      Upgrader> upgraders = Collections.unmodifiableMap(new TreeMap<>(
+          Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3,
+              new Upgrader11to12(), METADATA_FILE_JSON_ENCODING, new Upgrader12to13())));
 
   private volatile UpgradeStatus status;
 
@@ -268,15 +272,17 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<UpgradeCoordinator> fate = new ZooStore<>(
+      final ReadOnlyFateStore<UpgradeCoordinator> fate = new ZooStore<>(
           context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
-      if (!fate.list().isEmpty()) {
-        throw new AccumuloException("Aborting upgrade because there are"
-            + " outstanding FATE transactions from a previous Accumulo version."
-            + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are incomplete transactions, you will need to roll"
-            + " back and fix those issues. Please see the following page for more information: "
-            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+      try (var idStream = fate.list()) {
+        if (idStream.findFirst().isPresent()) {
+          throw new AccumuloException("Aborting upgrade because there are"
+              + " outstanding FATE transactions from a previous Accumulo version."
+              + " You can start the tservers and then use the shell to delete completed "
+              + " transactions. If there are incomplete transactions, you will need to roll"
+              + " back and fix those issues. Please see the following page for more information: "
+              + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+        }
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);

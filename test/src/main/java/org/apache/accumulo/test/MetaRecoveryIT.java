@@ -32,21 +32,18 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 // ACCUMULO-3211
-@Disabled // ELASTICITY_TODO
 public class MetaRecoveryIT extends ConfigurableMacBase {
 
   @Override
@@ -81,14 +78,14 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
         log.info("Data written to table {}", i);
         i++;
       }
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
+      c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
       SortedSet<Text> splits = new TreeSet<>();
       for (i = 1; i < tables.length; i++) {
         splits.add(new Text("" + i));
       }
-      c.tableOperations().addSplits(MetadataTable.NAME, splits);
-      log.info("Added {} splits to {}", splits.size(), MetadataTable.NAME);
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), splits);
+      log.info("Added {} splits to {}", splits.size(), AccumuloTable.METADATA.tableName());
       c.instanceOperations().waitForBalance();
       log.info("Restarting");
       getCluster().getClusterControl().kill(ServerType.TABLET_SERVER, "localhost");

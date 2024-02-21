@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.Merge.Size;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -57,8 +58,34 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename,
-        final Text start, final Text end) throws MergeException {
+    public void mergomatic(AccumuloClient client, String table, Text start, Text end, long goalSize,
+        boolean force) throws MergeException {
+      if (table.equals(AccumuloTable.METADATA.tableName())) {
+        throw new IllegalArgumentException("cannot merge tablets on the metadata table");
+      }
+
+      List<Size> sizes = new ArrayList<>();
+      long totalSize = 0;
+
+      Iterator<Size> sizeIterator = getSizeIterator(start, end);
+
+      while (sizeIterator.hasNext()) {
+        Size next = sizeIterator.next();
+        totalSize += next.size;
+        sizes.add(next);
+        if (totalSize > goalSize) {
+          mergeMany(client, table, sizes, goalSize, force, false);
+          sizes.clear();
+          sizes.add(next);
+          totalSize = next.size;
+        }
+      }
+      if (sizes.size() > 1) {
+        mergeMany(client, table, sizes, goalSize, force, true);
+      }
+    }
+
+    protected Iterator<Size> getSizeIterator(final Text start, final Text end) {
       final Iterator<Size> impl = tablets.iterator();
       return new Iterator<>() {
         Size next = skip();

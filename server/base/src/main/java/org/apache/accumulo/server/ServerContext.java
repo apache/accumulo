@@ -32,7 +32,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -58,7 +57,6 @@ import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -286,7 +284,7 @@ public class ServerContext extends ClientContext {
     return serverDirs.getBaseUris();
   }
 
-  public List<Pair<Path,Path>> getVolumeReplacements() {
+  public Map<Path,Path> getVolumeReplacements() {
     return serverDirs.getVolumeReplacements();
   }
 

@@ -44,7 +44,7 @@ public class TabletManagement {
 
   public static final EnumSet<ColumnType> CONFIGURED_COLUMNS =
       EnumSet.of(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS,
-          ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST,
+          ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST,
           ColumnType.OPID, ColumnType.ECOMP, ColumnType.DIR, ColumnType.SELECTED);
 
   private static final Text ERROR_COLUMN_NAME = new Text("ERROR");
@@ -53,7 +53,12 @@ public class TabletManagement {
   private static final Text EMPTY = new Text("");
 
   public static enum ManagementAction {
-    BAD_STATE, NEEDS_COMPACTING, NEEDS_LOCATION_UPDATE, NEEDS_SPLITTING;
+    BAD_STATE,
+    NEEDS_COMPACTING,
+    NEEDS_LOCATION_UPDATE,
+    NEEDS_RECOVERY,
+    NEEDS_SPLITTING,
+    NEEDS_VOLUME_REPLACEMENT;
   }
 
   public static void addActions(final SortedMap<Key,Value> decodedRow,

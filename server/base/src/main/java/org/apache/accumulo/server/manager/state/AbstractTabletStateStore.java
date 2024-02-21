@@ -28,20 +28,18 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTabletStateStore implements TabletStateStore {
 
-  private final ClientContext context;
   private final Ample ample;
 
   protected AbstractTabletStateStore(ClientContext context) {
-    this.context = context;
     this.ample = context.getAmple();
   }
 
@@ -54,8 +52,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             .putLocation(TabletMetadata.Location.current(assignment.server))
             .deleteLocation(TabletMetadata.Location.future(assignment.server)).deleteSuspension();
 
-        ManagerMetadataUtil.updateLastForAssignmentMode(context, conditionalMutator,
-            assignment.server, assignment.lastLocation);
+        updateLastLocation(conditionalMutator, assignment.server, assignment.lastLocation);
 
         conditionalMutator.submit(tabletMetadata -> {
           Preconditions.checkArgument(tabletMetadata.getExtent().equals(assignment.tablet));
@@ -131,14 +128,13 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         if (tm.hasCurrent()) {
 
-          ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
-              tm.getLocation().getServerInstance(), tm.getLast());
+          updateLastLocation(tabletMutator, tm.getLocation().getServerInstance(), tm.getLast());
           tabletMutator.deleteLocation(tm.getLocation());
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tm.getLocation().getServerInstance());
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(log.toString());
+                LogEntry entry = LogEntry.fromPath(log.toString());
                 tabletMutator.putWal(entry);
               }
             }
@@ -166,4 +162,20 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       throw new DistributedStoreException(ex);
     }
   }
+
+  protected static void updateLastLocation(Ample.TabletUpdates<?> tabletMutator,
+      TServerInstance location, Location lastLocation) {
+    Preconditions.checkArgument(
+        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
+    Location newLocation = Location.last(location);
+    if (lastLocation != null) {
+      if (!lastLocation.equals(newLocation)) {
+        tabletMutator.deleteLocation(lastLocation);
+        tabletMutator.putLocation(newLocation);
+      }
+    } else {
+      tabletMutator.putLocation(newLocation);
+    }
+  }
+
 }

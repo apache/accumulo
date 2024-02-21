@@ -32,11 +32,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -59,14 +58,15 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // ensure the metadata table is online
-      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
       c.instanceOperations().waitForBalance();
       assertTrue(isBalanced(c));
       final String tableName = getUniqueNames(1)[0];
       NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(tableName, ntc);
       c.instanceOperations().waitForBalance();
       final SortedSet<Text> partitionKeys = new TreeSet<>();
@@ -83,7 +83,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   private boolean isBalanced(AccumuloClient c) throws Exception {
     final Map<String,Integer> counts = new HashMap<>();
     int offline = 0;
-    for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
+    for (String tableName : new String[] {AccumuloTable.METADATA.tableName(),
+        AccumuloTable.ROOT.tableName()}) {
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange());
         s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);

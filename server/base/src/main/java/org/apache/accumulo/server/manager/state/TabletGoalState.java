@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,8 @@ public enum TabletGoalState {
     TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
     if (systemGoalState == TabletGoalState.HOSTED) {
+      // All the code in this block should look for reasons to return something other than HOSTED.
+
       if (!params.isParentLevelUpgraded()) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
@@ -87,13 +90,20 @@ public enum TabletGoalState {
         return UNASSIGNED;
       }
 
-      switch (tm.getHostingGoal()) {
-        case NEVER:
-          return UNASSIGNED;
-        case ONDEMAND:
-          if (!tm.getHostingRequested()) {
+      // Only want to override the HOSTED goal for tablet availability if there are no walog
+      // present. If a tablet has walogs, then it should be hosted for recovery no matter what the
+      // current tablet availability settings are. When tablet availability is ONDEMAND or UNHOSTED,
+      // then this tablet will eventually become unhosted after recovery occurs. This could cause a
+      // little bit of churn on the cluster w/r/t balancing, but it's necessary.
+      if (tm.getLogs().isEmpty()) {
+        switch (tm.getTabletAvailability()) {
+          case UNHOSTED:
             return UNASSIGNED;
-          }
+          case ONDEMAND:
+            if (!tm.getHostingRequested()) {
+              return UNASSIGNED;
+            }
+        }
       }
 
       TServerInstance dest = params.getMigrations().get(extent);
@@ -143,6 +153,11 @@ public enum TabletGoalState {
               "Could not find resource group for tserver {}, so did not consult balancer.  Need to determine the cause of this.",
               tm.getLocation().getServerInstance());
         }
+      }
+
+      if (params.getVolumeReplacements().size() > 0
+          && VolumeUtil.needsVolumeReplacement(params.getVolumeReplacements(), tm)) {
+        return UNASSIGNED;
       }
 
       if (tm.hasCurrent()

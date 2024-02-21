@@ -82,10 +82,6 @@
       <artifactId>opentelemetry-context</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-semconv</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
@@ -202,7 +198,6 @@
                   <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
                   <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
                   <exclude>src/test/resources/*.jceks</exclude>
-                  <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -215,7 +210,6 @@
             <excludes>
               <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
               <exclude>src/test/resources/*.jceks</exclude>
-              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -360,7 +354,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/server-properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/server-properties3.md</argument>
               </arguments>
             </configuration>
           </execution>
@@ -375,7 +369,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/client-properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/client-properties3.md</argument>
               </arguments>
             </configuration>
           </execution>
