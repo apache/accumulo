@@ -29,6 +29,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -73,6 +77,15 @@ public class UpgradeCoordinator {
      * This signifies that only zookeeper and the root table have been upgraded so far.
      */
     UPGRADED_ROOT {
+      @Override
+      public boolean isParentLevelUpgraded(KeyExtent extent) {
+        return extent.isMeta();
+      }
+    },
+    /**
+     * This signifies that zookeeper and the root and metadata tables have been upgraded so far.
+     */
+    UPGRADED_METADATA {
       @Override
       public boolean isParentLevelUpgraded(KeyExtent extent) {
         return extent.isMeta();
@@ -188,13 +201,16 @@ public class UpgradeCoordinator {
                 log.info("Upgrading Root from data version {}", v);
                 upgraders.get(v).upgradeRoot(context);
               }
-
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Metadata from data version {}", v);
                 upgraders.get(v).upgradeMetadata(context);
               }
+              setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
+
+              log.info("Validating configuration properties.");
+              validateProperties(context);
 
               log.info("Updating persistent data version.");
               updateAccumuloVersion(context.getServerDirs(), context.getVolumeManager(),
@@ -208,6 +224,25 @@ public class UpgradeCoordinator {
           });
     } else {
       return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  private void validateProperties(ServerContext context) {
+    ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
+    ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
+    try {
+      for (String ns : context.namespaceOperations().list()) {
+        ConfigCheckUtil.validate(
+            context.namespaceOperations().getNamespaceProperties(ns).entrySet(),
+            ns + " namespace configuration");
+      }
+      for (String table : context.tableOperations().list()) {
+        ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
+            table + " table configuration");
+      }
+    } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
+        | TableNotFoundException e) {
+      throw new IllegalStateException("Error checking properties", e);
     }
   }
 
