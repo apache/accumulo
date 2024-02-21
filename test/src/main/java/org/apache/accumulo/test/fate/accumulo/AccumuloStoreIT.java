@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -28,14 +29,28 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.fate.FateIT;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +69,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private static class TestAccumuloStore extends AccumuloStore<String> {
+  private static class TestAccumuloStore extends AccumuloStore<FateIT.TestEnv> {
     private final Iterator<FateId> fateIdIterator;
 
     // use the list of fateIds to simulate collisions on fateIds
@@ -70,6 +85,10 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       } else {
         return FateId.from(fateInstanceType, -1L);
       }
+    }
+
+    public TStatus getStatus(FateId fateId) {
+      return _getStatus(fateId);
     }
   }
 
@@ -97,4 +116,91 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       assertThrows(IllegalStateException.class, store::create);
     }
   }
+
+  @Nested
+  class TestStatusEnforcement {
+
+    String tableName;
+    ClientContext client;
+    FateId fateId;
+    TestAccumuloStore store;
+    FateStore.FateTxStore<FateIT.TestEnv> txStore;
+
+    @BeforeEach
+    public void setup() throws Exception {
+      client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
+      tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      fateId = FateId.from(fateInstanceType, 1L);
+      store = new TestAccumuloStore(client, tableName, List.of(fateId));
+      store.create();
+      txStore = store.reserve(fateId);
+    }
+
+    @AfterEach
+    public void teardown() throws Exception {
+      client.close();
+    }
+
+    private void testOperationWithStatuses(Runnable beforeOperation, Executable operation,
+        Set<ReadOnlyFateStore.TStatus> acceptableStatuses) throws Exception {
+      for (ReadOnlyFateStore.TStatus status : ReadOnlyFateStore.TStatus.values()) {
+        // Run any needed setup for the operation before each iteration
+        beforeOperation.run();
+
+        injectStatus(client, tableName, fateId, status);
+        assertEquals(status, store.getStatus(fateId));
+        if (!acceptableStatuses.contains(status)) {
+          assertThrows(IllegalStateException.class, operation,
+              "Expected operation to fail with status " + status + " but it did not");
+        } else {
+          assertDoesNotThrow(operation,
+              "Expected operation to succeed with status " + status + " but it did not");
+        }
+      }
+    }
+
+    @Test
+    public void push() throws Exception {
+      testOperationWithStatuses(() -> {}, // No special setup needed for push
+          () -> txStore.push(new FateIT.TestRepo("testOp")),
+          Set.of(ReadOnlyFateStore.TStatus.IN_PROGRESS, ReadOnlyFateStore.TStatus.NEW));
+    }
+
+    @Test
+    public void pop() throws Exception {
+      testOperationWithStatuses(() -> {
+        // Setup for pop: Ensure there something to pop by first pushing
+        try {
+          injectStatus(client, tableName, fateId, ReadOnlyFateStore.TStatus.NEW);
+          txStore.push(new FateIT.TestRepo("testOp"));
+        } catch (Exception e) {
+          throw new RuntimeException("Failed to setup for pop", e);
+        }
+      }, txStore::pop, Set.of(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS));
+    }
+
+    @Test
+    public void delete() throws Exception {
+      testOperationWithStatuses(() -> {}, // No special setup needed for delete
+          txStore::delete,
+          Set.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.SUBMITTED,
+              ReadOnlyFateStore.TStatus.SUCCESSFUL, ReadOnlyFateStore.TStatus.FAILED));
+    }
+  }
+
+  /**
+   * Inject a status into the status col of the fate store table for a given transaction id.
+   */
+  private void injectStatus(ClientContext client, String table, FateId fateId,
+      ReadOnlyFateStore.TStatus status) throws TableNotFoundException {
+    try (BatchWriter writer = client.createBatchWriter(table)) {
+      Mutation mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
+      FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+      writer.addMutation(mutation);
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 }

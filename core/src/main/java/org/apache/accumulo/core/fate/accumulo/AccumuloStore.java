@@ -351,7 +351,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
-      FateMutator<T> fateMutator = newMutator(fateId);
+      FateMutator<T> fateMutator =
+          newMutator(fateId).requireStatus(TStatus.IN_PROGRESS, TStatus.NEW);
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
@@ -360,7 +361,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newMutator(fateId).deleteRepo(t).mutate());
+      top.ifPresent(
+          t -> newMutator(fateId).requireStatus(TStatus.FAILED_IN_PROGRESS).deleteRepo(t).mutate());
     }
 
     @Override
@@ -384,7 +386,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void delete() {
       verifyReserved(true);
 
-      newMutator(fateId).delete().mutate();
+      var mutator = newMutator(fateId);
+      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+      mutator.delete().mutate();
     }
 
     private Optional<Integer> findTop() {
