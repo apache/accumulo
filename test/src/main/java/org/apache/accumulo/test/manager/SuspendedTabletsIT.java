@@ -95,7 +95,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     // Start with 1 tserver, we'll increase that later
@@ -252,7 +251,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         splitPoints.add(new Text("" + i));
       }
       log.info("Creating table " + tableName);
+      Map<String,String> properties = new HashMap<>();
+      properties.put(Property.TABLE_SUSPEND_DURATION.getKey(), SUSPEND_DURATION + "s");
+
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+      ntc.setProperties(properties);
       ctx.tableOperations().create(tableName, ntc);
 
       // Wait for all of the tablets to hosted ...
@@ -322,6 +325,20 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
       }
+
+      // Remove the table suspend property and shut down the TabletServer normally. This should
+      // clear the suspension marker in the metadata
+      client.tableOperations().removeProperty(tableName, Property.TABLE_SUSPEND_DURATION.getKey());
+      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER, restartedServer.toString());
+
+      log.info("Awaiting tablet unload");
+      while (ds.hostedCount > TABLETS) {
+        Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
+      }
+
+      assertEquals(0, ds.assignedCount);
+      assertEquals(0, ds.suspendedCount);
     }
   }
 
