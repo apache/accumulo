@@ -60,12 +60,12 @@ public class MetricsUtil {
     initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
         conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
         conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address, instanceName,
-        resourceGroup);
+        resourceGroup, conf.get(Property.GENERAL_MICROMETER_USER_TAGS));
   }
 
   private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
       String factoryClass, String appName, HostAndPort address, String instanceName,
-      String resourceGroup) throws ClassNotFoundException, InstantiationException,
+      String resourceGroup, String userTags) throws ClassNotFoundException, InstantiationException,
       IllegalAccessException, IllegalArgumentException, InvocationTargetException,
       NoSuchMethodException, SecurityException {
 
@@ -89,6 +89,19 @@ public class MetricsUtil {
         }
         if (address.getPort() > 0) {
           tags.add(Tag.of("port", Integer.toString(address.getPort())));
+        }
+      }
+
+      if (!userTags.isEmpty()) {
+        String[] userTagList = userTags.split(",");
+        for (String userTag : userTagList) {
+          String[] tagParts = userTag.split("=");
+          if (tagParts.length == 2) {
+            tags.add(Tag.of(tagParts[0], tagParts[1]));
+          } else {
+            LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+                Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+          }
         }
       }
 
@@ -129,29 +142,34 @@ public class MetricsUtil {
   }
 
   /**
-   * Centralize any specific string formatting for metric names and/or tags. Ensure strings match
-   * the micrometer naming convention.
+   * This method replaces any intended delimiters with the "." delimiter that is used by micrometer.
+   * Micrometer will then transform these delimiters to the metric producer's delimiter. Example:
+   * "compactorQueue" becomes "compactor.queue" in micrometer. When using Prometheus,
+   * "compactor.queue" would become "compactor_queue".
+   *
    */
   public static String formatString(String name) {
 
-    // Handle spaces
+    // Replace spaces with dot delimiter
     name = name.replace(" ", ".");
-    // Handle snake_case notation
+    // Replace snake_case with dot delimiter
     name = name.replace("_", ".");
-    // Handle Hyphens
+    // Replace hyphens with dot delimiter
     name = name.replace("-", ".");
 
-    // Handle camelCase notation
+    // Insert a dot delimiter before each capital letter found in the regex pattern.
     Matcher matcher = camelCasePattern.matcher(name);
     StringBuilder output = new StringBuilder(name);
     int insertCount = 0;
     while (matcher.find()) {
-      // Pattern matches at a lowercase letter, but the insert is at the second position.
+      // Pattern matches on a "aAa" pattern and inserts the dot before the uppercase character.
+      // Results in "aAa" becoming "a.Aa".
       output.insert(matcher.start() + 1 + insertCount, ".");
       // The correct index position will shift as inserts occur.
       insertCount++;
     }
     name = output.toString();
+    // remove all capital letters after the dot delimiters have been inserted.
     return name.toLowerCase();
   }
 

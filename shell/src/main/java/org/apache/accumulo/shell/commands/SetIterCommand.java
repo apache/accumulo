@@ -40,7 +40,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -92,7 +92,7 @@ public class SetIterCommand extends Command {
     String configuredName;
     try {
       if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
-        tmpTable = MetadataTable.NAME;
+        tmpTable = AccumuloTable.METADATA.tableName();
         shellState.setTableName(tmpTable);
         tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }

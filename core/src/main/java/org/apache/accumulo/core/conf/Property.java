@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
@@ -53,12 +53,40 @@ public enum Property {
           + "A new external compaction service would be defined like the following:\n"
           + "`compaction.service.newService.planner="
           + "\"org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner\".`\n"
-          + "`compaction.service.newService.opts.queues=\""
+          + "`compaction.service.newService.opts.groups=\""
           + "[{\"name\": \"small\", \"maxSize\":\"32M\"},"
           + "{ \"name\":\"medium\", \"maxSize\":\"512M\"},{\"name\":\"large\"}]`\n"
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
       "3.1.0"),
+  COMPACTION_SERVICE_ROOT_PLANNER(COMPACTION_SERVICE_PREFIX + "root.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for root tablet service.", "4.0.0"),
+  COMPACTION_SERVICE_ROOT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "root.planner.opts.maxOpen", "30",
+      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
+  COMPACTION_SERVICE_ROOT_GROUPS(COMPACTION_SERVICE_PREFIX + "root.planner.opts.groups",
+      "[{'name':'accumulo_meta'}]".replaceAll("'", "\""), PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "4.0.0"),
+  COMPACTION_SERVICE_META_PLANNER(COMPACTION_SERVICE_PREFIX + "meta.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Compaction planner for metadata table.", "4.0.0"),
+  COMPACTION_SERVICE_META_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.maxOpen", "30",
+      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
+  COMPACTION_SERVICE_META_GROUPS(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.groups",
+      "[{'name':'accumulo_meta'}]".replaceAll("'", "\""), PropertyType.JSON,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "4.0.0"),
+  COMPACTION_SERVICE_DEFAULT_PLANNER(COMPACTION_SERVICE_PREFIX + "default.planner",
+      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+      "Planner for default compaction service.", "4.0.0"),
+  COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "default.planner.opts.maxOpen",
+      "10", PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
+  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups",
+      ("[{'name':'user_small','maxSize':'128M'}, {'name':'user_large'}]").replaceAll("'", "\""),
+      PropertyType.STRING,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
       "3.1.0"),
@@ -290,6 +318,9 @@ public enum Property {
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d",
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
+  GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
+      "Amount of time a process must be idle before the accumulo.server.idle metric is incremented.",
+      "4.0.0"),
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
       PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
@@ -326,6 +357,10 @@ public enum Property {
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements MeterRegistryFactory.", "2.1.0"),
+  GENERAL_MICROMETER_USER_TAGS("general.micrometer.user.tags", "", PropertyType.STRING,
+      "A comma separated list of tags to emit with all metrics from the process. Example:"
+          + "\"tag1=value1,tag2=value2\".",
+      "4.0.0"),
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
@@ -385,7 +420,7 @@ public enum Property {
           + "indicates an unlimited number of threads will be used.",
       "1.8.0"),
   MANAGER_METADATA_SUSPENDABLE("manager.metadata.suspendable", "false", PropertyType.BOOLEAN,
-      "Allow tablets for the " + MetadataTable.NAME
+      "Allow tablets for the " + AccumuloTable.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
@@ -406,6 +441,8 @@ public enum Property {
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      // ELASTICITY_TODO: It might be good to note that there is a priority queue per compactor
+      // resource group
       "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
   // properties that are specific to scan server behavior
   @Experimental
@@ -483,6 +520,9 @@ public enum Property {
   @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
+  @Experimental
+  SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
+      "The maximum number of threads to use to sort logs during recovery.", "4.0.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers.", "1.3.5"),
@@ -598,63 +638,8 @@ public enum Property {
       "2.1.0"),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server.", "1.3.5"),
-  @Deprecated(since = "3.1")
-  @ReplacedBy(property = COMPACTION_SERVICE_PREFIX)
-  TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
-      "Prefix for compaction services.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
-      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
-      "tserver.compaction.major.service.root.planner.opts.executors",
-      "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
-      PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
-      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
-      "tserver.compaction.major.service.meta.planner.opts.executors",
-      "[{'name':'all','type':'external','group':'accumulo_meta'}]".replaceAll("'", "\""),
-      PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Planner for default compaction service.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
-      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
-      "tserver.compaction.major.service.default.planner.opts.executors",
-      ("[{'name':'small','type':'external','maxSize':'128M','group':'user_small'}, {'name':'large','type':'external','group':'user_large'}]")
-          .replaceAll("'", "\""),
-      PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server.", "1.3.5"),
-  @Deprecated(since = "3.1")
-  @ReplacedBy(property = COMPACTION_WARN_TIME)
-  TSERV_COMPACTION_WARN_TIME("tserver.compaction.warn.time", "10m", PropertyType.TIMEDURATION,
-      "When a compaction has not made progress for this time period, a warning will be logged.",
-      "1.6.0"),
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground.",
@@ -706,10 +691,6 @@ public enum Property {
           + " that begin with 'table.file' can be used here. For example, to set the compression"
           + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'.",
       "2.1.0"),
-  TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
-      "The number of threads for the distributed work queue. These threads are"
-          + " used for copying failed bulk import RFiles.",
-      "1.4.2"),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents"
           + " problems recovering from sudden system resets.",
@@ -773,11 +754,6 @@ public enum Property {
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
-  @Experimental
-  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "true", PropertyType.BOOLEAN,
-      "GC will remove deletion candidates that are in-use from the metadata location. "
-          + "This is expected to increase the speed of subsequent GC runs.",
-      "2.1.3"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files.", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
@@ -950,8 +926,12 @@ public enum Property {
           + " adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make"
           + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
-          + " from having more RFiles than can be opened. Setting this property low may"
-          + " throttle ingest and increase query performance.",
+          + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
+          + " was used to trigger merging minor compactions, but merging minor compactions"
+          + " were removed in 2.1.0. Now this property is only used by the"
+          + " DefaultCompactionStrategy and the DefaultCompactionPlanner."
+          + " The DefaultCompactionPlanner started using this property in 2.1.3, before"
+          + " that it did not use the property.",
       "1.4.0"),
   TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
       "The maximum number of files that a merge operation will process.  Before "
@@ -1132,11 +1112,11 @@ public enum Property {
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
           + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
-      "4.0.0"),
+      "2.1.3"),
   COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
-      "4.0.0"),
+      "2.1.3"),
   @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),

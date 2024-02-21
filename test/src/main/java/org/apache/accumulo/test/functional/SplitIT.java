@@ -57,11 +57,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
@@ -92,6 +93,7 @@ public class SplitIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+    cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
   }
 
   private String tservMaxMem, tservMajcDelay;
@@ -145,7 +147,7 @@ public class SplitIT extends AccumuloClusterHarness {
         Thread.sleep(SECONDS.toMillis(15));
       }
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(table));
-      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         KeyExtent extent = new KeyExtent(id, null, null);
         s.setRange(extent.toMetaRange());
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);

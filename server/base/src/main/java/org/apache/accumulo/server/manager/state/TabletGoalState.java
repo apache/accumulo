@@ -70,6 +70,8 @@ public enum TabletGoalState {
     TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
     if (systemGoalState == TabletGoalState.HOSTED) {
+      // All the code in this block should look for reasons to return something other than HOSTED.
+
       if (!params.isParentLevelUpgraded()) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
@@ -88,13 +90,20 @@ public enum TabletGoalState {
         return UNASSIGNED;
       }
 
-      switch (tm.getHostingGoal()) {
-        case NEVER:
-          return UNASSIGNED;
-        case ONDEMAND:
-          if (!tm.getHostingRequested()) {
+      // Only want to override the HOSTED goal for tablet availability if there are no walog
+      // present. If a tablet has walogs, then it should be hosted for recovery no matter what the
+      // current tablet availability settings are. When tablet availability is ONDEMAND or UNHOSTED,
+      // then this tablet will eventually become unhosted after recovery occurs. This could cause a
+      // little bit of churn on the cluster w/r/t balancing, but it's necessary.
+      if (tm.getLogs().isEmpty()) {
+        switch (tm.getTabletAvailability()) {
+          case UNHOSTED:
             return UNASSIGNED;
-          }
+          case ONDEMAND:
+            if (!tm.getHostingRequested()) {
+              return UNASSIGNED;
+            }
+        }
       }
 
       TServerInstance dest = params.getMigrations().get(extent);

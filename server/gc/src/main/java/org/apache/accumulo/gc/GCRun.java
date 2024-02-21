@@ -53,7 +53,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
@@ -64,7 +64,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -176,9 +175,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
+      TabletsMetadata tm = TabletsMetadata.builder(context).scanTable(level.metaTable())
           .checkConsistency().fetch(DIR, FILES, SCANS).build();
-      tabletStream = tabletsMetadata.stream();
+      tabletStream = tm.stream().onClose(tm::close);
     }
 
     // there is a lot going on in this "one line" so see below for more info
@@ -266,7 +265,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       throws TableNotFoundException {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
-        ? context.getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
+        ? context.getZooKeeperRoot() + " for " + AccumuloTable.ROOT.tableName() : level.metaTable();
 
     if (inSafeMode()) {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
@@ -287,7 +286,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS, false);
 
-    final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
+    final Map<Path,Path> replacements = context.getVolumeReplacements();
 
     for (final GcCandidate delete : confirmedDeletes.values()) {
 
@@ -474,16 +473,6 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   /**
-   * Checks if InUse Candidates can be removed.
-   *
-   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
-   */
-  @Override
-  public boolean canRemoveInUseCandidates() {
-    return context.getConfiguration().getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES);
-  }
-
-  /**
    * Moves a file to trash. If this garbage collector is not using trash, this method returns false
    * and leaves the file alone. If the file is missing, this method returns false as opposed to
    * throwing an exception.
@@ -542,9 +531,9 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {
     if (level == DataLevel.ROOT) {
-      return Set.of(RootTable.ID);
+      return Set.of(AccumuloTable.ROOT.tableId());
     } else if (level == DataLevel.METADATA) {
-      return Set.of(MetadataTable.ID);
+      return Set.of(AccumuloTable.METADATA.tableId());
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
@@ -554,8 +543,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           tableIds.add(k);
         }
       });
-      tableIds.remove(MetadataTable.ID);
-      tableIds.remove(RootTable.ID);
+      tableIds.remove(AccumuloTable.METADATA.tableId());
+      tableIds.remove(AccumuloTable.ROOT.tableId());
       return tableIds;
     } else {
       throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());

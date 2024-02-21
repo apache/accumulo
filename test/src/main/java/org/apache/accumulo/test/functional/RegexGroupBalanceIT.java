@@ -32,12 +32,12 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -90,7 +90,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       props.put(Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
 
       client.tableOperations().create(tablename, new NewTableConfiguration().setProperties(props)
-          .withSplits(splits).withInitialHostingGoal(TabletHostingGoal.ALWAYS));
+          .withSplits(splits).withInitialTabletAvailability(TabletAvailability.HOSTED));
 
       while (true) {
         Thread.sleep(250);
@@ -181,7 +181,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   private Table<String,String,MutableInt> getCounts(AccumuloClient client, String tablename)
       throws TableNotFoundException {
-    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s =
+        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tablename));
       s.setRange(TabletsSection.getRange(tableId));

@@ -18,17 +18,15 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -44,20 +42,19 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -68,7 +65,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -98,13 +94,11 @@ public class TabletMetadata {
   private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
-  private Text oldPrevEndRow;
-  private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
-  private Map<StoredTabletFile,Long> loadedFiles;
+  private Map<StoredTabletFile,FateId> loadedFiles;
   private SelectedFiles selectedFiles;
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
@@ -117,14 +111,13 @@ public class TabletMetadata {
   private OptionalLong flush = OptionalLong.empty();
   private OptionalLong flushNonce = OptionalLong.empty();
   private List<LogEntry> logs;
-  private Double splitRatio = null;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
-  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  private TabletAvailability availability = TabletAvailability.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
-  private Set<Long> compacted;
+  private Set<FateId> compacted;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -137,7 +130,6 @@ public class TabletMetadata {
   public enum ColumnType {
     LOCATION,
     PREV_ROW,
-    OLD_PREV_ROW,
     FILES,
     LAST,
     LOADED,
@@ -148,11 +140,10 @@ public class TabletMetadata {
     FLUSH_ID,
     FLUSH_NONCE,
     LOGS,
-    SPLIT_RATIO,
     SUSPEND,
     ECOMP,
     MERGED,
-    HOSTING_GOAL,
+    AVAILABILITY,
     HOSTING_REQUESTED,
     OPID,
     SELECTED,
@@ -283,21 +274,6 @@ public class TabletMetadata {
     return sawPrevEndRow;
   }
 
-  public Text getOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    if (!sawOldPrevEndRow) {
-      throw new IllegalStateException(
-          "No old prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
-    }
-    return oldPrevEndRow;
-  }
-
-  // ELASTICITY_TODO remove and handle in upgrade
-  public boolean sawOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    return sawOldPrevEndRow;
-  }
-
   public Text getEndRow() {
     return endRow;
   }
@@ -312,7 +288,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<StoredTabletFile,Long> getLoaded() {
+  public Map<StoredTabletFile,FateId> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -377,23 +353,19 @@ public class TabletMetadata {
     return flushNonce;
   }
 
-  public Double getSplitRatio() {
-    ensureFetched(ColumnType.SPLIT_RATIO);
-    return splitRatio;
-  }
-
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
     return merged;
   }
 
-  public TabletHostingGoal getHostingGoal() {
-    if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
-      // Override the goal for the system tables
-      return TabletHostingGoal.ALWAYS;
+  public TabletAvailability getTabletAvailability() {
+    if (AccumuloTable.ROOT.tableId().equals(getTableId())
+        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
+      // Override the availability for the system tables
+      return TabletAvailability.HOSTED;
     }
-    ensureFetched(ColumnType.HOSTING_GOAL);
-    return goal;
+    ensureFetched(ColumnType.AVAILABILITY);
+    return availability;
   }
 
   public boolean getHostingRequested() {
@@ -405,14 +377,13 @@ public class TabletMetadata {
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
         .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
-        .append("oldPrevEndRow", oldPrevEndRow).append("sawOldPrevEndRow", sawOldPrevEndRow)
         .append("endRow", endRow).append("location", location).append("files", files)
         .append("scans", scans).append("loadedFiles", loadedFiles)
         .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
         .append("suspend", suspend).append("dirName", dirName).append("time", time)
         .append("cloned", cloned).append("flush", flush).append("logs", logs)
-        .append("splitRatio", splitRatio).append("extCompactions", extCompactions)
-        .append("goal", goal).append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("extCompactions", extCompactions).append("availability", availability)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
   }
@@ -422,18 +393,18 @@ public class TabletMetadata {
     return keyValues;
   }
 
-  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+  public Map<ExternalCompactionId,CompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
   }
 
-  public Set<Long> getCompacted() {
+  public Set<FateId> getCompacted() {
     ensureFetched(ColumnType.COMPACTED);
     return compacted;
   }
 
   /**
-   * @return the operation id if it exist, null otherwise
+   * @return the operation id if it exists, null otherwise
    * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
   public TabletOperationId getOperationId() {
@@ -457,10 +428,9 @@ public class TabletMetadata {
     final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
     final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     final var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var extCompBuilder =
-        ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
-    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
-    final var compactedBuilder = ImmutableSet.<Long>builder();
+    final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
+    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,FateId>builder();
+    final var compactedBuilder = ImmutableSet.<FateId>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -484,20 +454,21 @@ public class TabletMetadata {
             "Input contains more than one row : " + row + " " + key.getRowData());
       }
 
-      switch (fam.toString()) {
+      switch (fam) {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
               te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawPrevEndRow = true;
               break;
-            case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawOldPrevEndRow = true;
+            case AVAILABILITY_QUAL:
+              te.availability = TabletAvailabilityUtil.fromValue(kv.getValue());
               break;
-            case SPLIT_RATIO_QUAL:
-              te.splitRatio = Double.parseDouble(val);
+            case REQUESTED_QUAL:
+              te.onDemandHostingRequested = true;
               break;
+            default:
+              throw new IllegalStateException("Unexpected TabletColumnFamily qualifier: " + qual);
           }
           break;
         case ServerColumnFamily.STR_NAME:
@@ -553,26 +524,13 @@ public class TabletMetadata {
           logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
           break;
         case ExternalCompactionColumnFamily.STR_NAME:
-          extCompBuilder.put(ExternalCompactionId.of(qual),
-              ExternalCompactionMetadata.fromJson(val));
+          extCompBuilder.put(ExternalCompactionId.of(qual), CompactionMetadata.fromJson(val));
           break;
         case MergedColumnFamily.STR_NAME:
           te.merged = true;
           break;
         case CompactedColumnFamily.STR_NAME:
-          compactedBuilder.add(FateTxId.fromString(qual));
-          break;
-        case HostingColumnFamily.STR_NAME:
-          switch (qual) {
-            case GOAL_QUAL:
-              te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
-              break;
-            case REQUESTED_QUAL:
-              te.onDemandHostingRequested = true;
-              break;
-            default:
-              throw new IllegalStateException("Unexpected qualifier " + fam);
-          }
+          compactedBuilder.add(FateId.from(qual));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
@@ -580,9 +538,10 @@ public class TabletMetadata {
       }
     }
 
-    if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
-      // Override the goal for the system tables
-      te.goal = TabletHostingGoal.ALWAYS;
+    if (AccumuloTable.ROOT.tableId().equals(te.tableId)
+        || AccumuloTable.METADATA.tableId().equals(te.tableId)) {
+      // Override the availability for the system tables
+      te.availability = TabletAvailability.HOSTED;
     }
 
     te.files = filesBuilder.build();

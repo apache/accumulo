@@ -26,9 +26,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -99,7 +99,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
@@ -132,14 +132,16 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.manager.thrift.TFateId;
+import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
@@ -214,7 +216,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean exists(String tableName) {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+    if (tableName.equals(AccumuloTable.METADATA.tableName())
+        || tableName.equals(AccumuloTable.ROOT.tableName())) {
       return true;
     }
 
@@ -253,8 +256,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
     // Send info relating to initial table creation i.e, create online or offline
     args.add(ByteBuffer.wrap(ntc.getInitialTableState().name().getBytes(UTF_8)));
-    // send initialHostingGoal information
-    args.add(ByteBuffer.wrap(ntc.getInitialHostingGoal().name().getBytes(UTF_8)));
+    // send initial tablet availability information
+    args.add(ByteBuffer.wrap(ntc.getInitialTabletAvailability().name().getBytes(UTF_8)));
     // Check for possible initial splits to be added at table creation
     // Always send number of initial splits to be created, even if zero. If greater than zero,
     // add the splits to the argument List which will be used by the FATE operations.
@@ -277,12 +280,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private long beginFateOperation() throws ThriftSecurityException, TException {
+  private TFateId beginFateOperation(TFateInstanceType type)
+      throws ThriftSecurityException, TException {
     while (true) {
       FateService.Client client = null;
       try {
         client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
-        return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
+        return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), type);
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
@@ -298,7 +302,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   // This method is for retrying in the case of network failures;
   // anything else it passes to the caller to deal with
-  private void executeFateOperation(long opid, FateOperation op, List<ByteBuffer> args,
+  private void executeFateOperation(TFateId opid, FateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
@@ -321,7 +325,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private String waitForFateOperation(long opid)
+  private String waitForFateOperation(TFateId opid)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
       FateService.Client client = null;
@@ -341,7 +345,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
+  private void finishFateOperation(TFateId opid) throws ThriftSecurityException, TException {
     while (true) {
       FateService.Client client = null;
       try {
@@ -387,10 +391,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       String tableOrNamespaceName, boolean wait)
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
-    Long opid = null;
+    TFateId opid = null;
 
     try {
-      opid = beginFateOperation();
+      TFateInstanceType t =
+          FateInstanceType.fromNamespaceOrTableName(tableOrNamespaceName).toThrift();
+      opid = beginFateOperation(t);
       executeFateOperation(opid, op, args, opts, !wait);
       if (!wait) {
         opid = null;
@@ -631,9 +637,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TableId tableId = context.getTableId(tableName);
 
     while (true) {
-      try {
-        return context.getAmple().readTablets().forTable(tableId).fetch(PREV_ROW).checkConsistency()
-            .build().stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
+      try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forTable(tableId)
+          .fetch(PREV_ROW).checkConsistency().build()) {
+        return tabletsMetadata.stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
             .collect(Collectors.toList());
       } catch (TabletDeletedException tde) {
         // see if the table was deleted
@@ -1289,9 +1295,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
         range = new Range(startRow, lastRow);
       }
 
-      TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build();
-
       KeyExtent lastExtent = null;
 
       int total = 0;
@@ -1300,37 +1303,41 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Text continueRow = null;
       MapCounter<String> serverCounts = new MapCounter<>();
 
-      for (TabletMetadata tablet : tablets) {
-        total++;
-        Location loc = tablet.getLocation();
-        TabletHostingGoal goal = tablet.getHostingGoal();
+      try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(range).fetch(AVAILABILITY, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
 
-        if ((expectedState == TableState.ONLINE
-            && (goal == TabletHostingGoal.ALWAYS
-                || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
-            && (loc == null || loc.getType() == LocationType.FUTURE))
-            || (expectedState == TableState.OFFLINE && loc != null)) {
-          if (continueRow == null) {
-            continueRow = tablet.getExtent().toMetaRow();
+        for (TabletMetadata tablet : tablets) {
+          total++;
+          Location loc = tablet.getLocation();
+          TabletAvailability availability = tablet.getTabletAvailability();
+
+          if ((expectedState == TableState.ONLINE
+              && (availability == TabletAvailability.HOSTED
+                  || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
+              && (loc == null || loc.getType() == LocationType.FUTURE))
+              || (expectedState == TableState.OFFLINE && loc != null)) {
+            if (continueRow == null) {
+              continueRow = tablet.getExtent().toMetaRow();
+            }
+            waitFor++;
+            lastRow = tablet.getExtent().toMetaRow();
+
+            if (loc != null) {
+              serverCounts.increment(loc.getHostPortSession(), 1);
+            }
           }
-          waitFor++;
-          lastRow = tablet.getExtent().toMetaRow();
 
-          if (loc != null) {
-            serverCounts.increment(loc.getHostPortSession(), 1);
+          if (!tablet.getExtent().tableId().equals(tableId)) {
+            throw new AccumuloException(
+                "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
           }
-        }
 
-        if (!tablet.getExtent().tableId().equals(tableId)) {
-          throw new AccumuloException(
-              "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
-        }
+          if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
+            holes++;
+          }
 
-        if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
-          holes++;
+          lastExtent = tablet.getExtent();
         }
-
-        lastExtent = tablet.getExtent();
       }
 
       if (continueRow != null) {
@@ -1400,13 +1407,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = FateOperation.TABLE_OFFLINE;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+        if (tableName.equals(AccumuloTable.METADATA.tableName())
+            || tableName.equals(AccumuloTable.ROOT.tableName())) {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
       case ONLINE:
         op = FateOperation.TABLE_ONLINE;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+        if (tableName.equals(AccumuloTable.METADATA.tableName())
+            || tableName.equals(AccumuloTable.ROOT.tableName())) {
           // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
@@ -1880,11 +1889,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
       // We want tablets that are currently hosted (location present) and
-      // are where their tablet hosting goal is ALWAYS (not OnDemand)
-      if (cachedTablet.getGoal() != TabletHostingGoal.ALWAYS) {
+      // their tablet availability is HOSTED (not OnDemand)
+      if (cachedTablet.getAvailability() != TabletAvailability.HOSTED) {
         foundOnDemandTabletInRange.set(true);
       } else if (cachedTablet.getTserverLocation().isPresent()
-          && cachedTablet.getGoal() == TabletHostingGoal.ALWAYS) {
+          && cachedTablet.getAvailability() == TabletAvailability.HOSTED) {
         ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
       } else {
         locationLess.add(cachedTablet.getExtent());
@@ -1898,9 +1907,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       if (foundOnDemandTabletInRange.get()) {
         throw new AccumuloException(
-            "TableOperations.locate() only works with tablets that have a hosting goal of "
-                + TabletHostingGoal.ALWAYS + ". Tablets with other hosting goals were seen.  table:"
-                + tableName + " table id:" + tableId);
+            "TableOperations.locate() only works with tablets that have an availability of "
+                + TabletAvailability.HOSTED
+                + ". Tablets with other availabilities were seen.  table:" + tableName
+                + " table id:" + tableId);
       }
 
       while (!failed.isEmpty() || !locationLess.isEmpty()) {
@@ -1910,9 +1920,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         if (foundOnDemandTabletInRange.get()) {
           throw new AccumuloException(
-              "TableOperations.locate() only works with tablets that have a hosting goal of "
-                  + TabletHostingGoal.ALWAYS
-                  + ". Tablets with other hosting goals were seen.  table:" + tableName
+              "TableOperations.locate() only works with tablets that have a tablet availability of "
+                  + TabletAvailability.HOSTED
+                  + ". Tablets with other availabilities were seen.  table:" + tableName
                   + " table id:" + tableId);
         }
 
@@ -2092,9 +2102,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public TimeType getTimeType(final String tableName) throws TableNotFoundException {
     TableId tableId = context.getTableId(tableName);
-    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
-        .fetch(TIME).checkConsistency().build().stream().findFirst();
-
+    Optional<TabletMetadata> tabletMetadata;
+    try (TabletsMetadata tabletsMetadata =
+        context.getAmple().readTablets().forTable(tableId).fetch(TIME).checkConsistency().build()) {
+      tabletMetadata = tabletsMetadata.stream().findFirst();
+    }
     TabletMetadata timeData =
         tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();
@@ -2125,12 +2137,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+  public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
       throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
     NOT_BUILTIN_TABLE.validate(tableName);
     checkArgument(range != null, "range is null");
-    checkArgument(goal != null, "goal is null");
+    checkArgument(availability != null, "tabletAvailability is null");
 
     byte[] bRange;
     try {
@@ -2142,13 +2154,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(ByteBuffer.wrap(bRange));
-    args.add(ByteBuffer.wrap(goal.name().getBytes(UTF_8)));
+    args.add(ByteBuffer.wrap(availability.name().getBytes(UTF_8)));
 
     Map<String,String> opts = Collections.emptyMap();
 
     try {
-      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_HOSTING_GOAL,
-          args, opts);
+      doTableFateOperation(tableName, AccumuloException.class,
+          FateOperation.TABLE_TABLET_AVAILABILITY, args, opts);
     } catch (TableNotFoundException | TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -2165,7 +2177,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TabletsMetadata tabletsMetadata =
         context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(HOSTING_GOAL, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
+            .fetch(AVAILABILITY, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
             .checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);

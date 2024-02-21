@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -57,7 +58,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -79,6 +82,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ScanConsistencyIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanConsistencyIT.class);
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // Sometimes a merge will run on a single tablet with an active compaction. Merge code will set
+    // an opid, determine that it is a single tablet, and then unset the opid. If the compaction
+    // tries to commit in this case it will fail to commit leaving a dead compaction. This dead
+    // compaction can prevent other user compactions from running.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "3s");
+  }
 
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
       justification = "predictable random is ok for testing")
@@ -134,6 +146,26 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       // let the threads know to exit
       testContext.keepRunning.set(false);
 
+      // start a task to scan the metadata table for the case when the test gets stuck
+      AtomicBoolean keepLogging = new AtomicBoolean(true);
+      var debugTask = executor.submit(() -> {
+        try {
+          while (keepLogging.get()) {
+            Thread.sleep(10000);
+            if (keepLogging.get()) {
+              try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+                log.debug("Scanning metadata table");
+                scanner.forEach((k, v) -> log.debug(k.toStringNoTruncate() + " " + v));
+              }
+            }
+          }
+        } catch (InterruptedException e) {
+          // ignore
+        } catch (Exception e) {
+          log.warn("Failed to scan metadata table", e);
+        }
+      });
+
       for (Future<WriteStats> writeTask : writeTasks) {
         var stats = writeTask.get();
         log.debug(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
@@ -152,6 +184,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       }
 
       log.debug(tableOpsTask.get());
+
+      keepLogging.set(false);
+      debugTask.cancel(true);
 
       var stats1 = scanData(testContext, random, new Range(), false);
       var stats2 = scanData(testContext, random, new Range(), true);

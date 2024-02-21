@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -46,8 +47,9 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   protected final String applicationName;
   private final String hostname;
   private final String resourceGroup;
-
   private final ProcessMetrics processMetrics;
+  protected final long idleReportingPeriodNanos;
+  private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -73,6 +75,23 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
+    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+  }
+
+  protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
+    boolean idle = idleCondition.get();
+    if (!idle || idleReportingPeriodNanos == 0) {
+      idlePeriodStartNanos = 0;
+    } else if (idlePeriodStartNanos == 0) {
+      idlePeriodStartNanos = System.nanoTime();
+    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
+      // increment the counter and reset the start of the idle period.
+      processMetrics.incrementIdleCounter();
+      idlePeriodStartNanos = 0;
+    } else {
+      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
+    }
   }
 
   protected String getResourceGroupPropertyValue(SiteConfiguration conf) {

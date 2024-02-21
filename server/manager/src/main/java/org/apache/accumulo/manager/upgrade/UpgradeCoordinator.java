@@ -274,13 +274,15 @@ public class UpgradeCoordinator {
     try {
       final ReadOnlyFateStore<UpgradeCoordinator> fate = new ZooStore<>(
           context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
-      if (!fate.list().isEmpty()) {
-        throw new AccumuloException("Aborting upgrade because there are"
-            + " outstanding FATE transactions from a previous Accumulo version."
-            + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are incomplete transactions, you will need to roll"
-            + " back and fix those issues. Please see the following page for more information: "
-            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+      try (var idStream = fate.list()) {
+        if (idStream.findFirst().isPresent()) {
+          throw new AccumuloException("Aborting upgrade because there are"
+              + " outstanding FATE transactions from a previous Accumulo version."
+              + " You can start the tservers and then use the shell to delete completed "
+              + " transactions. If there are incomplete transactions, you will need to roll"
+              + " back and fix those issues. Please see the following page for more information: "
+              + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+        }
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);

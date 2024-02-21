@@ -41,11 +41,11 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
@@ -162,13 +162,13 @@ public class Initialize implements KeywordExecutable {
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
-      var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
+      var chooserEnv =
+          new VolumeChooserEnvironmentImpl(Scope.INIT, AccumuloTable.ROOT.tableId(), null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-      String rootTabletFileUri = new Path(
-          fs.choose(chooserEnv, initConfig.getVolumeUris()) + SEPARATOR + TABLE_DIR + SEPARATOR
-              + RootTable.ID + SEPARATOR + rootTabletDirName + SEPARATOR + "00000_00000." + ext)
-          .toString();
+      String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
+          + SEPARATOR + TABLE_DIR + SEPARATOR + AccumuloTable.ROOT.tableId() + SEPARATOR
+          + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
       zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
           rootTabletFileUri);
 
@@ -177,8 +177,8 @@ public class Initialize implements KeywordExecutable {
       }
       var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, instanceId);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
-      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + SEPARATOR
-          + rootTabletDirName);
+      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR
+          + AccumuloTable.ROOT.tableId() + SEPARATOR + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
@@ -453,8 +453,8 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
     InstanceId instanceId = VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf);
-    for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
-      if (aBasePath.equals(replacementVolume.getFirst())) {
+    for (Path replacedVolume : serverDirs.getVolumeReplacements().keySet()) {
+      if (aBasePath.equals(replacedVolume)) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
                 + " It is highly recommended that this property be removed as data"

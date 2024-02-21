@@ -59,9 +59,8 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -343,7 +342,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : List.of());
+            : Map.of());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -362,7 +361,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
-    TableMgmtStats tableMgmtStats = new TableMgmtStats();
+    final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
         tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
@@ -400,13 +399,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tm.getExtent(), mtiError);
         this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
         continue;
-      }
-
-      final Set<ManagementAction> actions = mti.getActions();
-      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
       }
 
       final TableId tableId = tm.getTableId();
@@ -454,12 +446,20 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           state = newState;
         }
       }
+      tableMgmtStats.counts[state.ordinal()]++;
 
       // This is final because nothing in this method should change the goal. All computation of the
       // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
       // will compute a consistent goal.
       final TabletGoalState goal =
           TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
+
+      final Set<ManagementAction> actions = mti.getActions();
+
+      if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
+        LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
+            goal);
+      }
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
         tableMgmtStats.totalVolumeReplacements++;
@@ -489,6 +489,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
 
+      if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
+        throw new BadLocationStateException(
+            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
+            tm.getExtent().toMetaRow());
+      }
+
       final Location location = tm.getLocation();
       Location current = null;
       Location future = null;
@@ -507,14 +513,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (Manager.log.isTraceEnabled()) {
         Manager.log.trace(
-            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{}",
+            "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {} actions:{} #wals:{}",
             store.name(), tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet()),
             dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tm.getExtent(),
-            state, goal, actions);
+            state, goal, actions, tm.getLogs().size());
       }
 
-      if (actions.contains(ManagementAction.NEEDS_SPLITTING)
-          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+      if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
         LOG.debug("{} may need splitting.", tm.getExtent());
         if (manager.getSplitter().isSplittable(tm)) {
           if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
@@ -529,12 +534,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING)
-          && !actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
+      if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
         var jobs = compactionGenerator.generateJobs(tm,
             TabletManagementIterator.determineCompactionKinds(actions));
         LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
-        manager.getCompactionQueues().add(tm, jobs);
+        manager.getCompactionCoordinator().addJobs(tm, jobs);
       }
 
       // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
@@ -543,14 +547,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // entries from the queue because we see nothing here for that case. After a full
       // metadata scan could remove any tablets that were not updated during the scan.
 
-      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
+      if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)
+          || actions.contains(ManagementAction.NEEDS_RECOVERY)) {
 
         if (tm.getLocation() != null) {
           filteredServersToShutdown.remove(tm.getLocation().getServerInstance());
         }
 
         if (goal == TabletGoalState.HOSTED) {
-          if ((state != TabletState.HOSTED && !tm.getLogs().isEmpty())
+
+          // RecoveryManager.recoverLogs will return false when all of the logs
+          // have been sorted so that recovery can occur. Delay the hosting of
+          // the Tablet until the sorting is finished.
+          if ((state != TabletState.HOSTED && actions.contains(ManagementAction.NEEDS_RECOVERY))
               && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());
@@ -611,7 +620,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               break;
           }
         }
-        tableMgmtStats.counts[state.ordinal()]++;
       }
     }
 
@@ -805,9 +813,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<Key,Value> future = new HashMap<>();
       Map<Key,Value> assigned = new HashMap<>();
       KeyExtent extent = KeyExtent.fromMetaRow(row);
-      String table = MetadataTable.NAME;
+      String table = AccumuloTable.METADATA.tableName();
       if (extent.isMeta()) {
-        table = RootTable.NAME;
+        table = AccumuloTable.ROOT.tableName();
       }
       Scanner scanner = manager.getContext().createScanner(table, Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);

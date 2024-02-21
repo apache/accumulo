@@ -23,6 +23,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -50,9 +51,9 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.DELETE);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, fateId, false, true, TableOperation.DELETE);
   }
 
   private void preventFutureCompactions(Manager environment)
@@ -64,7 +65,7 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     try {
       preventFutureCompactions(environment);
 
@@ -76,15 +77,15 @@ public class PreDeleteTable extends ManagerRepo {
       }
       return new DeleteTable(namespaceId, tableId);
     } finally {
-      Utils.unreserveTable(environment, tableId, tid, false);
-      Utils.unreserveNamespace(environment, namespaceId, tid, false);
+      Utils.unreserveTable(environment, tableId, fateId, false);
+      Utils.unreserveNamespace(environment, namespaceId, fateId, false);
     }
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, false);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, false);
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
   }
 
 }

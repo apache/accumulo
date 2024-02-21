@@ -203,10 +203,6 @@
       <artifactId>junit-jupiter-params</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.opentest4j</groupId>
-      <artifactId>opentest4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -236,6 +232,23 @@
             <mapping>
               <shellit>SCRIPT_STYLE</shellit>
             </mapping>
+            <licenseSets>
+              <licenseSet>
+                <header>${rootlocation}/src/build/license-header.txt</header>
+                <excludes>
+                  <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>

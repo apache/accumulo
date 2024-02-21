@@ -33,9 +33,11 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -124,25 +126,26 @@ public class SplitUtilsTest {
     };
   }
 
+  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterator, int desiredSplits) {
+    return SplitUtils.findSplits(tabletIndexIterator, desiredSplits, sc -> true);
+  }
+
   @Test
   public void testFindSplits() {
     List<Key> keys = IntStream.range(1, 101).mapToObj(SplitUtilsTest::newKey).collect(toList());
-    assertEquals(newRowsSet(50), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(33, 67), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowsSet(25, 50, 75), SplitUtils.findSplits(keys, 3));
-    assertEquals(newRowsSet(20, 40, 60, 80), SplitUtils.findSplits(keys, 4));
-    assertEquals(newRowsSet(17, 33, 50, 67, 83), SplitUtils.findSplits(keys, 5));
-    assertEquals(newRowsSet(14, 29, 43, 57, 71, 86), SplitUtils.findSplits(keys, 6));
-    assertEquals(newRowsSet(13, 25, 38, 50, 63, 75, 88), SplitUtils.findSplits(keys, 7));
-    assertEquals(newRowsSet(IntStream.range(1, 10).map(i -> i * 10)),
-        SplitUtils.findSplits(keys, 9));
-    assertEquals(newRowsSet(IntStream.range(1, 20).map(i -> i * 5)),
-        SplitUtils.findSplits(keys, 19));
-    assertEquals(newRowsSet(IntStream.range(1, 50).map(i -> i * 2)),
-        SplitUtils.findSplits(keys, 49));
-    assertEquals(newRowsSet(IntStream.range(1, 100)), SplitUtils.findSplits(keys, 99));
-    assertEquals(newRowsSet(IntStream.range(1, 101)), SplitUtils.findSplits(keys, 100));
-    assertEquals(newRowsSet(IntStream.range(1, 101)), SplitUtils.findSplits(keys, 1000));
+    assertEquals(newRowsSet(50), findSplits(keys, 1));
+    assertEquals(newRowsSet(33, 67), findSplits(keys, 2));
+    assertEquals(newRowsSet(25, 50, 75), findSplits(keys, 3));
+    assertEquals(newRowsSet(20, 40, 60, 80), findSplits(keys, 4));
+    assertEquals(newRowsSet(17, 33, 50, 67, 83), findSplits(keys, 5));
+    assertEquals(newRowsSet(14, 29, 43, 57, 71, 86), findSplits(keys, 6));
+    assertEquals(newRowsSet(13, 25, 38, 50, 63, 75, 88), findSplits(keys, 7));
+    assertEquals(newRowsSet(IntStream.range(1, 10).map(i -> i * 10)), findSplits(keys, 9));
+    assertEquals(newRowsSet(IntStream.range(1, 20).map(i -> i * 5)), findSplits(keys, 19));
+    assertEquals(newRowsSet(IntStream.range(1, 50).map(i -> i * 2)), findSplits(keys, 49));
+    assertEquals(newRowsSet(IntStream.range(1, 100)), findSplits(keys, 99));
+    assertEquals(newRowsSet(IntStream.range(1, 101)), findSplits(keys, 100));
+    assertEquals(newRowsSet(IntStream.range(1, 101)), findSplits(keys, 1000));
   }
 
   @Test
@@ -150,42 +153,42 @@ public class SplitUtilsTest {
     List<Key> keys = IntStream.range(1, 101).map(i -> i / 10 * 10).mapToObj(SplitUtilsTest::newKey)
         .collect(toList());
 
-    assertEquals(newRowsSet(50), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(i -> i - 10, 30, 60), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowsSet(i -> i - 10, 20, 50, 70), SplitUtils.findSplits(keys, 3));
+    assertEquals(newRowsSet(50), findSplits(keys, 1));
+    assertEquals(newRowsSet(i -> i - 10, 30, 60), findSplits(keys, 2));
+    assertEquals(newRowsSet(i -> i - 10, 20, 50, 70), findSplits(keys, 3));
     assertEquals(newRowsSet(IntStream.range(1, 10).map(i -> i * 10), i -> i - 10),
-        SplitUtils.findSplits(keys, 9));
+        findSplits(keys, 9));
     assertEquals(newRowsSet(IntStream.range(0, 11).map(i -> i * 10), i -> i == 0 ? null : i - 10),
-        SplitUtils.findSplits(keys, 19));
+        findSplits(keys, 19));
     assertEquals(newRowsSet(IntStream.range(0, 11).map(i -> i * 10), i -> i == 0 ? null : i - 10),
-        SplitUtils.findSplits(keys, 100));
+        findSplits(keys, 100));
   }
 
   @Test
   public void testIndexIterator() {
     Iterable<Key> keys = newIndexIterable(IntStream.range(1, 101), null, null);
-    assertEquals(newRowsSet(50), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(25, 50, 75), SplitUtils.findSplits(keys, 3));
-    assertEquals(newRowsSet(14, 29, 43, 57, 71, 86), SplitUtils.findSplits(keys, 6));
-    assertEquals(newRowsSet(IntStream.range(1, 101)), SplitUtils.findSplits(keys, 200));
+    assertEquals(newRowsSet(50), findSplits(keys, 1));
+    assertEquals(newRowsSet(25, 50, 75), findSplits(keys, 3));
+    assertEquals(newRowsSet(14, 29, 43, 57, 71, 86), findSplits(keys, 6));
+    assertEquals(newRowsSet(IntStream.range(1, 101)), findSplits(keys, 200));
 
     keys = newIndexIterable(IntStream.range(1, 101), null, 50);
-    assertEquals(newRowsSet(75), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(67, 83), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowsSet(60, 70, 80, 90), SplitUtils.findSplits(keys, 4));
-    assertEquals(newRowsSet(IntStream.range(51, 101)), SplitUtils.findSplits(keys, 60));
+    assertEquals(newRowsSet(75), findSplits(keys, 1));
+    assertEquals(newRowsSet(67, 83), findSplits(keys, 2));
+    assertEquals(newRowsSet(60, 70, 80, 90), findSplits(keys, 4));
+    assertEquals(newRowsSet(IntStream.range(51, 101)), findSplits(keys, 60));
 
     keys = newIndexIterable(IntStream.range(1, 101), 50, null);
-    assertEquals(newRowsSet(25), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(17, 33), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowsSet(10, 20, 30, 40), SplitUtils.findSplits(keys, 4));
-    assertEquals(newRowsSet(IntStream.range(1, 51)), SplitUtils.findSplits(keys, 60));
+    assertEquals(newRowsSet(25), findSplits(keys, 1));
+    assertEquals(newRowsSet(17, 33), findSplits(keys, 2));
+    assertEquals(newRowsSet(10, 20, 30, 40), findSplits(keys, 4));
+    assertEquals(newRowsSet(IntStream.range(1, 51)), findSplits(keys, 60));
 
     keys = newIndexIterable(IntStream.range(1, 101), 75, 25);
-    assertEquals(newRowsSet(50), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowsSet(17 + 25, 33 + 25), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowsSet(35, 45, 55, 65), SplitUtils.findSplits(keys, 4));
-    assertEquals(newRowsSet(IntStream.range(26, 76)), SplitUtils.findSplits(keys, 60));
+    assertEquals(newRowsSet(50), findSplits(keys, 1));
+    assertEquals(newRowsSet(17 + 25, 33 + 25), findSplits(keys, 2));
+    assertEquals(newRowsSet(35, 45, 55, 65), findSplits(keys, 4));
+    assertEquals(newRowsSet(IntStream.range(26, 76)), findSplits(keys, 60));
   }
 
   @Test
@@ -194,8 +197,8 @@ public class SplitUtilsTest {
     // range falls between two index keys.
     Iterable<Key> keys = newIndexIterable(IntStream.range(1, 101).map(i -> i * 1000), 250, 150);
     assertFalse(keys.iterator().hasNext());
-    assertEquals(Set.of(), SplitUtils.findSplits(keys, 1));
-    assertEquals(Set.of(), SplitUtils.findSplits(keys, 2));
+    assertEquals(Set.of(), findSplits(keys, 1));
+    assertEquals(Set.of(), findSplits(keys, 2));
   }
 
   @Test
@@ -220,11 +223,25 @@ public class SplitUtilsTest {
     var keys = newIndexIterable(
         Stream.of("aa11", "aa112", "b", "bg45", "ct", "cz7882", "mn", "mn009", "mnrtssd", "mnz076"),
         null, null);
-    assertEquals(newRowSet("c"), SplitUtils.findSplits(keys, 1));
-    assertEquals(newRowSet("b", "m"), SplitUtils.findSplits(keys, 2));
-    assertEquals(newRowSet("b", "c", "mn0"), SplitUtils.findSplits(keys, 3));
-    assertEquals(newRowSet("aa112", "bg", "cz", "mn0"), SplitUtils.findSplits(keys, 4));
+    assertEquals(newRowSet("c"), findSplits(keys, 1));
+    assertEquals(newRowSet("b", "m"), findSplits(keys, 2));
+    assertEquals(newRowSet("b", "c", "mn0"), findSplits(keys, 3));
+    assertEquals(newRowSet("aa112", "bg", "cz", "mn0"), findSplits(keys, 4));
     assertEquals(newRowSet("aa11", "aa112", "b", "bg", "c", "cz", "m", "mn0", "mnr", "mnz"),
-        SplitUtils.findSplits(keys, 10));
+        findSplits(keys, 10));
+  }
+
+  @Test
+  public void testSplitFilter() {
+    List<Key> keys = IntStream.range(1, 101).mapToObj(SplitUtilsTest::newKey).collect(toList());
+    Predicate<ByteSequence> splitFilter = splitCandidate -> {
+      int i = Integer.parseInt(splitCandidate.toString());
+      return i % 3 != 0;
+    };
+
+    assertEquals(newRowsSet(50), SplitUtils.findSplits(keys, 1, splitFilter));
+    assertEquals(newRowsSet(34, 67), SplitUtils.findSplits(keys, 2, splitFilter));
+    assertEquals(newRowsSet(25, 50, 76), SplitUtils.findSplits(keys, 3, splitFilter));
+    assertEquals(newRowsSet(20, 40, 61, 80), SplitUtils.findSplits(keys, 4, splitFilter));
   }
 }

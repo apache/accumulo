@@ -24,12 +24,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -75,32 +75,33 @@ public class FindOfflineTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    Iterator<TabletMetadata> zooScanner =
-        context.getAmple().readTablets().forLevel(DataLevel.ROOT).build().iterator();
-
     int offline = 0;
 
-    System.out.println("Scanning zookeeper");
-    if ((offline = checkTablets(context, zooScanner, tservers)) > 0) {
-      return offline;
+    try (TabletsMetadata tabletsMetadata =
+        context.getAmple().readTablets().forLevel(DataLevel.ROOT).build()) {
+      System.out.println("Scanning zookeeper");
+      if ((offline = checkTablets(context, tabletsMetadata.iterator(), tservers)) > 0) {
+        return offline;
+      }
     }
 
-    if (RootTable.NAME.equals(tableName)) {
+    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletMetadata> rootScanner =
-        context.getAmple().readTablets().forLevel(DataLevel.METADATA).build().iterator();
-    if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
-      return offline;
+    System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
+    try (TabletsMetadata tabletsMetadata =
+        context.getAmple().readTablets().forLevel(DataLevel.METADATA).build()) {
+      if ((offline = checkTablets(context, tabletsMetadata.iterator(), tservers)) > 0) {
+        return offline;
+      }
     }
 
-    if (MetadataTable.NAME.equals(tableName)) {
+    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + MetadataTable.NAME);
+    System.out.println("Scanning " + AccumuloTable.METADATA.tableName());
 
     try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
       return checkTablets(context, metaScanner.iterator(), tservers);

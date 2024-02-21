@@ -40,7 +40,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -51,12 +51,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -124,6 +124,13 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   }
 
+  private static List<TabletMetadata> getLocations(Ample ample, String tableId) {
+    try (TabletsMetadata tabletsMetadata = ample.readTablets().forTable(TableId.of(tableId))
+        .fetch(TabletMetadata.ColumnType.LOCATION).build()) {
+      return tabletsMetadata.stream().collect(Collectors.toList());
+    }
+  }
+
   @Test
   public void testBalancerWithResourceGroups() throws Exception {
 
@@ -131,14 +138,14 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
 
     Map<String,String> properties = new HashMap<>();
     properties.put("table.custom.assignment.group", "GROUP1");
 
     NewTableConfiguration ntc2 = new NewTableConfiguration();
-    ntc2.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc2.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc2.withSplits(splits);
     ntc2.setProperties(properties);
 
@@ -156,8 +163,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       // Check table names[0]
       String tableId = client.tableOperations().tableIdMap().get(names[0]);
-      List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
-          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      List<TabletMetadata> locations = getLocations(ample, tableId);
 
       assertEquals(26, locations.size());
       Location l1 = locations.get(0).getLocation();
@@ -166,8 +172,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       // Check table names[1]
       tableId = client.tableOperations().tableIdMap().get(names[1]);
-      locations = ample.readTablets().forTable(TableId.of(tableId))
-          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      locations = getLocations(ample, tableId);
 
       assertEquals(26, locations.size());
       Location l2 = locations.get(0).getLocation();
@@ -190,7 +195,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     properties.put("table.custom.assignment.group", "GROUP2");
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
     ntc1.setProperties(properties);
 
@@ -243,7 +248,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
-    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
     ntc1.withSplits(splits);
 
     String tableName = this.getUniqueNames(1)[0];
@@ -271,8 +276,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, MetadataTable.NAME,
-          getCountOfHostedTablets(client, MetadataTable.NAME));
+      testResourceGroupPropertyChange(client, AccumuloTable.METADATA.tableName(),
+          getCountOfHostedTablets(client, AccumuloTable.METADATA.tableName()));
     }
   }
 
@@ -282,8 +287,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, RootTable.NAME,
-          getCountOfHostedTablets(client, RootTable.NAME));
+      testResourceGroupPropertyChange(client, AccumuloTable.ROOT.tableName(),
+          getCountOfHostedTablets(client, AccumuloTable.ROOT.tableName()));
     }
   }
 
@@ -302,8 +307,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     // Validate that all of the tables tablets are on the same tserver and that
     // the tserver is in the default resource group
-    List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
-        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    List<TabletMetadata> locations = getLocations(ample, tableId);
     assertEquals(numExpectedSplits, locations.size());
     Location l1 = locations.get(0).getLocation();
     assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
@@ -312,16 +316,14 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     // change the resource group property for the table
     client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
 
-    locations = ample.readTablets().forTable(TableId.of(tableId))
-        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    locations = getLocations(ample, tableId);
     // wait for GROUP1 to show up in the list of locations as the current location
     while ((locations == null || locations.isEmpty() || locations.size() != numExpectedSplits
         || locations.get(0).getLocation() == null
         || locations.get(0).getLocation().getType() == LocationType.FUTURE)
         || (locations.get(0).getLocation().getType() == LocationType.CURRENT && !tserverGroups
             .get(locations.get(0).getLocation().getHostAndPort().toString()).equals("GROUP1"))) {
-      locations = ample.readTablets().forTable(TableId.of(tableId))
-          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      locations = getLocations(ample, tableId);
     }
     Location group1Location = locations.get(0).getLocation();
     assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString()).equals("GROUP1"));
@@ -329,11 +331,9 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     client.instanceOperations().waitForBalance();
 
     // validate that all tablets have the same location as the first tablet
-    locations = ample.readTablets().forTable(TableId.of(tableId))
-        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+    locations = getLocations(ample, tableId);
     while (locations == null || locations.isEmpty() || locations.size() != numExpectedSplits) {
-      locations = ample.readTablets().forTable(TableId.of(tableId))
-          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      locations = getLocations(ample, tableId);
     }
     if (locations.stream().map(TabletMetadata::getLocation)
         .allMatch((l) -> group1Location.equals(l))) {
