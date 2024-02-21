@@ -614,9 +614,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     final List<KeyExtent> success = new ArrayList<>();
     final List<KeyExtent> inProgress = new ArrayList<>();
     extents.forEach(e -> {
-      log.info("Tablet hosting requested for: {} ", KeyExtent.fromThrift(e));
       KeyExtent ke = KeyExtent.fromThrift(e);
       if (hostingRequestInProgress.add(ke)) {
+        log.info("Tablet hosting requested for: {} ", KeyExtent.fromThrift(e));
         inProgress.add(ke);
       } else {
         log.trace("Ignoring hosting request because another thread is currently processing it {}",
