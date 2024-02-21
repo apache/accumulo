@@ -58,6 +58,14 @@ public class FindSplits extends ManagerRepo {
       return null;
     }
 
+    if (!tabletMetadata.getLogs().isEmpty()) {
+      // This code is only called by system initiated splits, so if walogs are present it probably
+      // makes sense to wait for the data in them to be written to a file before finding splits
+      // points.
+      log.debug("Not splitting {} because it has walogs {}", tabletMetadata.getExtent(),
+          tabletMetadata.getLogs().size());
+    }
+
     SortedSet<Text> splits = SplitUtils.findSplits(manager.getContext(), tabletMetadata);
 
     if (extent.endRow() != null) {
