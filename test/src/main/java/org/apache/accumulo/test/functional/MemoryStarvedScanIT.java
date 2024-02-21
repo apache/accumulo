@@ -25,6 +25,7 @@ import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -33,18 +34,30 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.DoubleAdder;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -54,6 +67,7 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.thrift.transport.TTransport;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,8 +84,6 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
-      // check on 1s intervals and set low mem condition if more than 80% of
-      // the heap is used.
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(FREE_MEMORY_THRESHOLD));
@@ -87,7 +99,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     }
   }
 
-  public static final double FREE_MEMORY_THRESHOLD = 0.20D;
+  public static final double FREE_MEMORY_THRESHOLD = 0.40D;
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryStarvedScanIT.class);
   private static final DoubleAdder SCAN_START_DELAYED = new DoubleAdder();
@@ -175,10 +187,25 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   }
 
   static void freeServerMemory(AccumuloClient client) throws Exception {
-    // Instantiating this class on the TabletServer will free the memory as it
-    // frees the buffers created by the MemoryConsumingIterator in its constructor.
-    client.instanceOperations().testClassLoad(MemoryFreeingIterator.class.getName(),
+
+    final ClientContext context = (ClientContext) client;
+    final long rpcTimeout = context.getClientTimeoutInMillis();
+    final ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+    final String serverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    final ZooCache zc = context.getZooCache();
+
+    for (String server : zc.getChildren(serverPath)) {
+      ServiceLockPath zLocPath = ServiceLock.path(serverPath + "/" + server);
+      zc.getLockData(zLocPath).map(sld -> sld.getAddress(ThriftService.CLIENT))
+          .map(address -> new ThriftTransportKey(address, rpcTimeout, context))
+          .ifPresent(servers::add);
+    }
+
+    Pair<String,TTransport> pair = context.getTransportPool().getAnyTransport(servers, false);
+    Client clientService = ThriftUtil.createClient(ThriftClientTypes.CLIENT, pair.getSecond());
+    clientService.checkClass(new TInfo(), context.rpcCreds(), MemoryFreeingIterator.class.getName(),
         WrappingIterator.class.getName());
+
   }
 
   @Test

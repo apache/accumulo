@@ -632,55 +632,56 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     }
   }
 
-  // Verify that createtable handles initial hosting goal parameters.
+  // Verify that createtable handles initial TabletAvailability parameters.
   // Argument should handle upper/lower/mixed case as value.
-  // If splits are supplied, each created tablet should contain the hosting:goal value in the
+  // If splits are supplied, each created tablet should contain the ~tab:availability value in
+  // the
   // metadata table.
   @Test
-  public void testCreateTableWithInitialHostingGoal() throws Exception {
+  public void testCreateTableWithInitialTabletAvailability() throws Exception {
     final String[] tables = getUniqueNames(5);
 
-    // createtable with no goal argument supplied
+    // createtable with no tablet availability argument supplied
     String createCmd = "createtable " + tables[0];
-    verifyTableWithGoal(createCmd, tables[0], "ONDEMAND", 1);
+    verifyTableWithTabletAvailability(createCmd, tables[0], "ONDEMAND", 1);
 
-    // createtable with '-g' argument supplied
-    createCmd = "createtable " + tables[1] + " -g always";
-    verifyTableWithGoal(createCmd, tables[1], "ALWAYS", 1);
+    // createtable with '-a' argument supplied
+    createCmd = "createtable " + tables[1] + " -a hosted";
+    verifyTableWithTabletAvailability(createCmd, tables[1], "HOSTED", 1);
 
-    // using --goal
-    createCmd = "createtable " + tables[2] + " --goal NEVER";
-    verifyTableWithGoal(createCmd, tables[2], "NEVER", 1);
+    // using --availability
+    createCmd = "createtable " + tables[2] + " --availability unHosted";
+    verifyTableWithTabletAvailability(createCmd, tables[2], "UNHOSTED", 1);
 
     String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
     Path splitFilePath = Paths.get(splitsFile);
     try {
       generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
-      createCmd = "createtable " + tables[3] + " -g Always -sf " + splitsFile;
-      verifyTableWithGoal(createCmd, tables[3], "ALWAYS", 11);
+      createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[3], "HOSTED", 11);
     } finally {
       Files.delete(splitFilePath);
     }
 
     try {
       generateSplitsFile(splitsFile, 5, 5, true, true, true, false, false);
-      createCmd = "createtable " + tables[4] + " -g NeVeR -sf " + splitsFile;
-      verifyTableWithGoal(createCmd, tables[4], "NEVER", 6);
+      createCmd = "createtable " + tables[4] + " -a unhosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[4], "UNHOSTED", 6);
     } finally {
       Files.delete(splitFilePath);
     }
   }
 
-  private void verifyTableWithGoal(String cmd, String tableName, String goal, int expectedTabletCnt)
-      throws Exception {
+  private void verifyTableWithTabletAvailability(String cmd, String tableName,
+      String tabletAvailability, int expectedTabletCnt) throws Exception {
     ts.exec(cmd);
     String tableId = getTableId(tableName);
-    String result =
-        ts.exec("scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c hosting:goal");
-    // the hosting:goal entry should be created at table creation
-    assertTrue(result.contains("hosting:goal"));
-    // There should be a corresponding goal value for each expected tablet
-    assertEquals(expectedTabletCnt, StringUtils.countMatches(result, goal));
+    String result = ts.exec(
+        "scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c ~tab:availability");
+    // the ~tab:availability entry should be created at table creation
+    assertTrue(result.contains("~tab:availability"));
+    // There should be a corresponding tablet availability value for each expected tablet
+    assertEquals(expectedTabletCnt, StringUtils.countMatches(result, tabletAvailability));
   }
 
   private String getTableId(String tableName) throws Exception {

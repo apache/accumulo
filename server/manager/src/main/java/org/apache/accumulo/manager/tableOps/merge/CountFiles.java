@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -38,7 +38,7 @@ public class CountFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
     var range = data.getReserveExtent();
 
@@ -70,8 +70,7 @@ public class CountFiles extends ManagerRepo {
     long maxFiles = env.getContext().getTableConfiguration(data.getOriginalExtent().tableId())
         .getCount(Property.TABLE_MERGE_FILE_MAX);
 
-    log.debug("{} found {} files in the merge range, maxFiles is {}", FateTxId.formatTid(tid),
-        totalFiles, maxFiles);
+    log.debug("{} found {} files in the merge range, maxFiles is {}", fateId, totalFiles, maxFiles);
 
     if (totalFiles >= maxFiles) {
       return new UnreserveAndError(data, totalFiles, maxFiles);

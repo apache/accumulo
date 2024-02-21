@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import java.util.EnumSet;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
@@ -40,21 +43,23 @@ public class DeleteTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, fateId, true, true, TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
-    env.getTableManager().transitionTableState(tableId, TableState.DELETING);
+  public Repo<Manager> call(FateId fateId, Manager env) {
+    final EnumSet<TableState> expectedCurrStates =
+        EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
+    env.getTableManager().transitionTableState(tableId, TableState.DELETING, expectedCurrStates);
     env.getEventCoordinator().event(tableId, "deleting table %s ", tableId);
     return new ReserveTablets(tableId, namespaceId);
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, true);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, true);
+    Utils.unreserveNamespace(env, namespaceId, fateId, false);
   }
 }

@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
@@ -57,6 +57,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -64,8 +66,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -177,7 +178,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
       }
 
-      if (tableId.equals(RootTable.ID)) {
+      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
         break; // this code does not properly handle the root tablet. See #798
       }
 
@@ -220,8 +221,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
 
       } catch (TabletDeletedException e) {
-        Manager.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
-            tableId, e);
+        Manager.log.debug("Failed to scan {} table to wait for flush {}",
+            AccumuloTable.METADATA.tableName(), tableId, e);
       }
     }
 
@@ -329,15 +330,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<Manager> fate = manager.fate();
-    long tid = fate.startTransaction();
+    Fate<Manager> fate = manager.fate(FateInstanceType.META);
+    FateId fateId = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;
 
-    fate.seedTransaction("ShutdownTServer", tid,
+    fate.seedTransaction("ShutdownTServer", fateId,
         new TraceRepo<>(new ShutdownTServer(doomed, force)), false, msg);
-    fate.waitForCompletion(tid);
-    fate.delete(tid);
+    fate.waitForCompletion(fateId);
+    fate.delete(fateId);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
   }
@@ -629,7 +630,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         KeyExtent ke = KeyExtent.fromThrift(e);
         if (recentHostingRequest.getIfPresent(ke) == null) {
           mutator.mutateTablet(ke).requireAbsentOperation()
-              .requireHostingGoal(TabletHostingGoal.ONDEMAND).requireAbsentLocation()
+              .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
               .setHostingRequested().submit(TabletMetadata::getHostingRequested);
         } else {
           log.trace("Ignoring hosting request because it was recently requested {}", ke);

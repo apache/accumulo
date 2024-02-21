@@ -44,6 +44,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -61,7 +62,8 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -742,10 +744,10 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       // create a table with a lot of initial config
       client.tableOperations().create(everythingTable, getEverythingTableConfig());
 
-      // set last tablet in table to be always hosted, setting a hosting goal here will tests export
-      // and cloning tables with hosting goals
-      client.tableOperations().setTabletHostingGoal(everythingTable,
-          new Range(everythingSplits.last(), false, null, true), TabletHostingGoal.ALWAYS);
+      // set last tablet in table to always be HOSTED, setting a tablet availability here will test
+      // export and cloning tables with tablet availabilities
+      client.tableOperations().setTabletAvailability(everythingTable,
+          new Range(everythingSplits.last(), false, null, true), TabletAvailability.HOSTED);
 
       write(client, everythingTable, generateMutations(0, 100, tr -> true));
 
@@ -914,13 +916,16 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     assertEquals(iterSetting, client.tableOperations().getIteratorSetting(table, "fam9",
         IteratorUtil.IteratorScope.scan));
 
-    client.tableOperations().getTabletInformation(table, new Range()).forEach(tabletInformation -> {
-      if (tabletInformation.getTabletId().getEndRow() == null) {
-        assertEquals(TabletHostingGoal.ALWAYS, tabletInformation.getHostingGoal());
-      } else {
-        assertEquals(TabletHostingGoal.ONDEMAND, tabletInformation.getHostingGoal());
-      }
-    });
+    try (Stream<TabletInformation> tabletInfo =
+        client.tableOperations().getTabletInformation(table, new Range())) {
+      tabletInfo.forEach(tabletInformation -> {
+        if (tabletInformation.getTabletId().getEndRow() == null) {
+          assertEquals(TabletAvailability.HOSTED, tabletInformation.getTabletAvailability());
+        } else {
+          assertEquals(TabletAvailability.ONDEMAND, tabletInformation.getTabletAvailability());
+        }
+      });
+    }
 
     verifyData(client, table, Authorizations.EMPTY,
         generateKeys(0, 100, tr -> tr.fam != 9 && tr.vis.isEmpty()));

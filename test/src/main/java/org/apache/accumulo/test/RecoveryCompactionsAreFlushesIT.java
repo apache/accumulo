@@ -32,7 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -40,11 +40,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 // Accumulo3010
-@Disabled // ELASTICITY_TODO
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
@@ -97,7 +95,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       }
 
       // ensure that the recovery was not a merging minor compaction
-      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         for (Entry<Key,Value> entry : s) {
           String filename = entry.getKey().getColumnQualifier().toString();

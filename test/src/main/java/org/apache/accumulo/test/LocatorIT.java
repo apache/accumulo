@@ -41,7 +41,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -94,8 +94,8 @@ public class LocatorIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    final Predicate<TabletMetadata> alwaysHostedAndCurrentNotNull =
-        t -> t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent()
+    final Predicate<TabletMetadata> hostedAndCurrentNotNull =
+        t -> t.getTabletAvailability() == TabletAvailability.HOSTED && t.hasCurrent()
             && t.getLocation().getHostAndPort() != null;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -126,8 +126,8 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ranges.clear();
 
-      tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-      Wait.waitFor(() -> alwaysHostedAndCurrentNotNull
+      tableOps.setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      Wait.waitFor(() -> hostedAndCurrentNotNull
           .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ranges.add(r1);
@@ -143,7 +143,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       splits.add(new Text("r"));
       tableOps.addSplits(tableName, splits);
 
-      Wait.waitFor(() -> alwaysHostedAndCurrentNotNull
+      Wait.waitFor(() -> hostedAndCurrentNotNull
           .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ret = tableOps.locate(tableName, ranges);
@@ -157,7 +157,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       tableOps.online(tableName, true);
 
       Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull
+          () -> hostedAndCurrentNotNull
               .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, new Text("r"))),
           60000, 250);
 

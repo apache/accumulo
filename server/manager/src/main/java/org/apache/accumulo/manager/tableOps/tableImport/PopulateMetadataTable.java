@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION_2;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -34,20 +35,20 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
@@ -93,13 +94,15 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     Path path = new Path(tableInfo.exportFile);
 
     VolumeManager fs = manager.getVolumeManager();
 
-    try (BatchWriter mbw = manager.getContext().createBatchWriter(MetadataTable.NAME);
+    try (
+        BatchWriter mbw =
+            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
         ZipInputStream zis = new ZipInputStream(fs.open(path))) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
@@ -122,7 +125,7 @@ class PopulateMetadataTable extends ManagerRepo {
           Text currentRow = null;
           int dirCount = 0;
 
-          boolean sawHostingGoal = false;
+          boolean sawTabletAvailability = false;
 
           while (true) {
             key.readFields(in);
@@ -134,8 +137,17 @@ class PopulateMetadataTable extends ManagerRepo {
             Text cq;
 
             if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-              final StoredTabletFile oldTabletFile = StoredTabletFile.of(key.getColumnQualifier());
-              String oldName = oldTabletFile.getFileName();
+              StoredTabletFile exportedRef;
+              var dataFileCQ = key.getColumnQualifier().toString();
+              if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
+                // written without fenced range information (accumulo < 3.1), use default
+                // (null,null)
+                exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
+              } else {
+                exportedRef = StoredTabletFile.of(key.getColumnQualifier());
+              }
+
+              String oldName = exportedRef.getFileName();
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
@@ -145,7 +157,7 @@ class PopulateMetadataTable extends ManagerRepo {
               }
 
               // Copy over the range for the new file
-              cq = StoredTabletFile.of(URI.create(newName), oldTabletFile.getRange())
+              cq = StoredTabletFile.of(URI.create(newName), exportedRef.getRange())
                   .getMetadataText();
             } else {
               cq = key.getColumnQualifier();
@@ -154,10 +166,10 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
-                if (!sawHostingGoal) {
-                  // add a default hosting goal
-                  HostingColumnFamily.GOAL_COLUMN.put(m,
-                      TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
+                if (!sawTabletAvailability) {
+                  // add a default tablet availability
+                  TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                      TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
                 }
                 mbw.addMutation(m);
               }
@@ -171,24 +183,24 @@ class PopulateMetadataTable extends ManagerRepo {
               m = new Mutation(metadataRow);
               ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
               currentRow = metadataRow;
-              sawHostingGoal = false;
+              sawTabletAvailability = false;
             }
 
-            if (HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
-              sawHostingGoal = true;
+            if (TabletColumnFamily.AVAILABILITY_COLUMN.hasColumns(key)) {
+              sawTabletAvailability = true;
             }
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
 
-              if (!sawHostingGoal) {
-                // add a default hosting goal
-                HostingColumnFamily.GOAL_COLUMN.put(m,
-                    TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
+              if (!sawTabletAvailability) {
+                // add a default tablet availability
+                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                    TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
               }
 
               mbw.addMutation(m);
-              break; // its the last column in the last row
+              break; // it is the last column in the last row
             }
           }
           break;
@@ -205,7 +217,7 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
         environment.getManagerLock());
   }

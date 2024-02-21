@@ -22,7 +22,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -49,14 +49,14 @@ public class TableInfo implements Serializable {
 
   public Map<String,String> props;
 
-  private TabletHostingGoal initialHostingGoal;
+  private TabletAvailability initialTabletAvailability;
 
-  public TabletHostingGoal getInitialHostingGoal() {
-    return initialHostingGoal;
+  public TabletAvailability getInitialTabletAvailability() {
+    return initialTabletAvailability;
   }
 
-  public void setInitialHostingGoal(TabletHostingGoal initialHostingGoal) {
-    this.initialHostingGoal = initialHostingGoal;
+  public void setInitialTabletAvailability(TabletAvailability initialTabletAvailability) {
+    this.initialTabletAvailability = initialTabletAvailability;
   }
 
   public String getTableName() {

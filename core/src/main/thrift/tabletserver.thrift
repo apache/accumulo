@@ -111,7 +111,7 @@ struct TExternalCompactionJob {
   5:string outputFile
   6:bool propagateDeletes
   7:TCompactionKind kind
-  8:i64 fateTxId
+  8:manager.TFateId fateId
   9:map<string, string> overrides
 }
 
@@ -236,6 +236,13 @@ service TabletServerClientService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<data.TKeyExtent> tabletsToRefresh
+  )
+
+  map<data.TKeyExtent, i64> allocateTimestamps(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<data.TKeyExtent> tablets
+    4:i32 numStamps
   )
 }
 

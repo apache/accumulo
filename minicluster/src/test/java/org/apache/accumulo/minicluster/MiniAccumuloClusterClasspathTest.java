@@ -78,7 +78,7 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
-    site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
+    site.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1G");
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();

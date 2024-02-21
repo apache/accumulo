@@ -42,10 +42,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -126,7 +126,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
-    if (RootTable.ID.equals(tableId)) {
+    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
@@ -160,14 +160,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void addBulkLoadInProgressFlag(String path, long fateTxid) {
+  public void addBulkLoadInProgressFlag(String path, FateId fateId) {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
+    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(fateId.canonical()));
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -182,7 +182,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -205,10 +205,20 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
 
     try (BatchWriter writer = context.createBatchWriter(level.metaTable())) {
-      for (GcCandidate candidate : candidates) {
-        Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
-        m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
-        writer.addMutation(m);
+      if (type == GcCandidateType.VALID) {
+        for (GcCandidate candidate : candidates) {
+          Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes all versions of the candidate to avoid reprocessing deleted file entries
+          m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+          writer.addMutation(m);
+        }
+      } else {
+        for (GcCandidate candidate : candidates) {
+          Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
+          // Removes this and older versions while allowing newer candidate versions to persist
+          m.putDelete(EMPTY_TEXT, EMPTY_TEXT, candidate.getUid());
+          writer.addMutation(m);
+        }
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -283,7 +293,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
-      return StreamSupport.stream(scanner.spliterator(), false)
+      return scanner.stream().onClose(scanner::close)
           .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {
@@ -328,10 +338,4 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       throw new IllegalStateException(e);
     }
   }
-
-  @Override
-  public Refreshes refreshes(DataLevel dataLevel) {
-    return new RefreshesImpl(context, dataLevel);
-  }
-
 }

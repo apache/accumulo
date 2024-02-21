@@ -49,13 +49,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TabletManagementIterator extends SkippingIterator {
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
-  private static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
+  public static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
 
@@ -89,6 +89,10 @@ public class TabletManagementIterator extends SkippingIterator {
 
   private boolean shouldReturnDueToLocation(final TabletMetadata tm) {
 
+    if (tm.getExtent().isRootTablet()) {
+      return true;
+    }
+
     if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
       // be returned. However, the Manager/TGW currently needs everything in the migrating set
@@ -100,8 +104,9 @@ public class TabletManagementIterator extends SkippingIterator {
     TabletState state = TabletState.compute(tm, tabletMgmtParams.getOnlineTsevers());
     TabletGoalState goalState = TabletGoalState.compute(tm, state, balancer, tabletMgmtParams);
     if (LOG.isTraceEnabled()) {
-      LOG.trace("extent:{} state:{} goalState:{} hostingGoal:{}, hostingRequested: {}, opId: {}",
-          tm.getExtent(), state, goalState, tm.getHostingGoal(), tm.getHostingRequested(),
+      LOG.trace(
+          "extent:{} state:{} goalState:{} tabletAvailability:{}, hostingRequested: {}, opId: {}",
+          tm.getExtent(), state, goalState, tm.getTabletAvailability(), tm.getHostingRequested(),
           tm.getOperationId());
     }
 
@@ -128,7 +133,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
-    scanner.fetchColumnFamily(HostingColumnFamily.NAME);
+    scanner.fetchColumnFamily(TabletColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
     ServerColumnFamily.OPID_COLUMN.fetch(scanner);
@@ -196,14 +201,18 @@ public class TabletManagementIterator extends SkippingIterator {
       actions.clear();
       Exception error = null;
       try {
-        if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
-            || tabletMgmtParams.getOnlineTsevers().isEmpty()
-            || tabletMgmtParams.getOnlineTables().isEmpty()) {
-          // when manager is in the process of starting up or shutting down return everything.
-          actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-        } else {
-          LOG.trace("Evaluating extent: {}", tm);
+        LOG.trace("Evaluating extent: {}", tm);
+        if (tm.getExtent().isMeta()) {
           computeTabletManagementActions(tm, actions);
+        } else {
+          if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
+              || tabletMgmtParams.getOnlineTsevers().isEmpty()
+              || tabletMgmtParams.getOnlineTables().isEmpty()) {
+            // when manager is in the process of starting up or shutting down return everything.
+            actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+          } else {
+            computeTabletManagementActions(tm, actions);
+          }
         }
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
@@ -234,6 +243,10 @@ public class TabletManagementIterator extends SkippingIterator {
     }
   }
 
+  private static final Set<ManagementAction> REASONS_NOT_TO_SPLIT_OR_COMPACT =
+      Collections.unmodifiableSet(EnumSet.of(ManagementAction.BAD_STATE,
+          ManagementAction.NEEDS_VOLUME_REPLACEMENT, ManagementAction.NEEDS_RECOVERY));
+
   /**
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
@@ -244,7 +257,11 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.isFutureAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
-      return;
+    }
+
+    if (!tm.getLogs().isEmpty() && (tm.getOperationId() == null
+        || tm.getOperationId().getType() != TabletOperationType.DELETING)) {
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_RECOVERY);
     }
 
     if (VolumeUtil.needsVolumeReplacement(tabletMgmtParams.getVolumeReplacements(), tm)) {
@@ -255,7 +272,8 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    if (tm.getOperationId() == null) {
+    if (tm.getOperationId() == null
+        && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
         final long splitThreshold =
             ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()

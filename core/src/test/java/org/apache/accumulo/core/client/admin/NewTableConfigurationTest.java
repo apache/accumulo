@@ -104,22 +104,22 @@ public class NewTableConfigurationTest {
   }
 
   @Test
-  public void testWithAndGetInitialHostingGoals() {
+  public void testWithAndGetInitialTabletAvailability() {
     NewTableConfiguration ntc = new NewTableConfiguration();
-    TabletHostingGoal initialHostingGoal = ntc.getInitialHostingGoal();
-    assertEquals(TabletHostingGoal.ONDEMAND, initialHostingGoal);
+    TabletAvailability initialTabletAvailability = ntc.getInitialTabletAvailability();
+    assertEquals(TabletAvailability.ONDEMAND, initialTabletAvailability);
 
-    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ONDEMAND);
-    initialHostingGoal = ntc.getInitialHostingGoal();
-    assertEquals(TabletHostingGoal.ONDEMAND, initialHostingGoal);
+    ntc = new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.ONDEMAND);
+    initialTabletAvailability = ntc.getInitialTabletAvailability();
+    assertEquals(TabletAvailability.ONDEMAND, initialTabletAvailability);
 
-    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
-    initialHostingGoal = ntc.getInitialHostingGoal();
-    assertEquals(TabletHostingGoal.ALWAYS, initialHostingGoal);
+    ntc = new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
+    initialTabletAvailability = ntc.getInitialTabletAvailability();
+    assertEquals(TabletAvailability.HOSTED, initialTabletAvailability);
 
-    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.NEVER);
-    initialHostingGoal = ntc.getInitialHostingGoal();
-    assertEquals(TabletHostingGoal.NEVER, initialHostingGoal);
+    ntc = new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.UNHOSTED);
+    initialTabletAvailability = ntc.getInitialTabletAvailability();
+    assertEquals(TabletAvailability.UNHOSTED, initialTabletAvailability);
   }
 
   /**

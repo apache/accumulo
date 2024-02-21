@@ -49,6 +49,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -383,9 +384,7 @@ public class ServiceLockIT {
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       ZooUtil.digestAuth(zk, "secret");
 
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> !watcher.isConnected(), 30_000, 200);
 
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
@@ -434,13 +433,8 @@ public class ServiceLockIT {
       ZooUtil.digestAuth(zk1, "secret");
       ZooUtil.digestAuth(zk2, "secret");
 
-      while (!watcher1.isConnected()) {
-        Thread.sleep(200);
-      }
-
-      while (!watcher2.isConnected()) {
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> !watcher1.isConnected(), 30_000, 200);
+      Wait.waitFor(() -> !watcher2.isConnected(), 30_000, 200);
 
       // Create the parent node
       zk1.createOnce(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -506,8 +500,6 @@ public class ServiceLockIT {
 
       assertTrue(zlw2.isLockHeld());
       zl2.unlock();
-      zk2.close();
-
     }
 
   }
@@ -547,9 +539,8 @@ public class ServiceLockIT {
         try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
           ZooUtil.digestAuth(zk, "secret");
 
-          while (!watcher.isConnected()) {
-            Thread.sleep(50);
-          }
+          Wait.waitFor(() -> !watcher.isConnected(), 30_000, 50);
+
           ServiceLock zl = getZooLock(zk, parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
@@ -670,9 +661,7 @@ public class ServiceLockIT {
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       ZooUtil.digestAuth(zk, "secret");
 
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> !watcher.isConnected(), 30_000, 200);
 
       for (int i = 0; i < 10; i++) {
         zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -709,9 +698,7 @@ public class ServiceLockIT {
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       ZooUtil.digestAuth(zk, "secret");
 
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> !watcher.isConnected(), 30_000, 200);
 
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 

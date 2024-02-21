@@ -46,8 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -476,11 +475,11 @@ public class KeyExtent implements Comparable<KeyExtent> {
   }
 
   public boolean isMeta() {
-    return tableId().equals(MetadataTable.ID) || isRootTablet();
+    return tableId().equals(AccumuloTable.METADATA.tableId()) || isRootTablet();
   }
 
   public boolean isRootTablet() {
-    return tableId().equals(RootTable.ID);
+    return tableId().equals(AccumuloTable.ROOT.tableId());
   }
 
   public String obscured() {

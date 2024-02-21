@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -56,12 +56,14 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -70,8 +72,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -79,7 +80,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -93,7 +93,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -101,8 +100,6 @@ import com.google.common.net.HostAndPort;
  */
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
-
-  private final HostAndPort validHost = HostAndPort.fromParts("default", 8080);
 
   @Override
   protected Duration defaultTimeout() {
@@ -115,7 +112,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String[] tables = getUniqueNames(8);
+      String[] tables = getUniqueNames(9);
       final String t1 = tables[0];
       final String t2 = tables[1];
       final String t3 = tables[2];
@@ -124,6 +121,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       final String metaCopy2 = tables[5];
       final String metaCopy3 = tables[6];
       final String metaCopy4 = tables[7];
+      final String metaCopy5 = tables[8];
 
       // create some metadata
       createTable(client, t1, true);
@@ -139,14 +137,14 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       var unused = Iterables.size(s); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, MetadataTable.NAME, metaCopy1);
+      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
       TabletManagementParameters tabletMgmtParams = createParameters(client);
       int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       while (tabletsInFlux > 0) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
-        copyTable(client, MetadataTable.NAME, metaCopy1);
+        copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       }
       assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
@@ -157,14 +155,15 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       copyTable(client, metaCopy1, metaCopy2);
       copyTable(client, metaCopy1, metaCopy3);
       copyTable(client, metaCopy1, metaCopy4);
+      copyTable(client, metaCopy1, metaCopy5);
 
       // t1 is unassigned, setting to always will generate a change to host tablets
-      setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoal.ALWAYS.name());
+      setTabletAvailability(client, metaCopy1, t1, TabletAvailability.HOSTED.name());
       // t3 is hosted, setting to never will generate a change to unhost tablets
-      setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoal.NEVER.name());
+      setTabletAvailability(client, metaCopy1, t3, TabletAvailability.UNHOSTED.name());
       tabletMgmtParams = createParameters(client);
       assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
-          "Should have four tablets with hosting goal changes");
+          "Should have four tablets with hosting availability changes");
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
@@ -182,12 +181,24 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
 
+      // Test the recovery cases
+      createLogEntry(client, metaCopy5, t1);
+      setTabletAvailability(client, metaCopy5, t1, TabletAvailability.UNHOSTED.name());
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+          "Only 1 of 2 tablets in table t1 should be returned");
+      setTabletAvailability(client, metaCopy5, t1, TabletAvailability.ONDEMAND.name());
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+          "Only 1 of 2 tablets in table t1 should be returned");
+      setTabletAvailability(client, metaCopy5, t1, TabletAvailability.HOSTED.name());
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+          "2 tablets in table t1 should be returned");
+
       // Remove location and set merge operation id on both tablets
       // These tablets should not need attention as they have no WALs
-      setTabletHostingGoal(client, metaCopy4, t4, TabletHostingGoal.ALWAYS.name());
+      setTabletAvailability(client, metaCopy4, t4, TabletAvailability.HOSTED.name());
       removeLocation(client, metaCopy4, t4);
       assertEquals(2, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
-          "Tablets have no location and a hosting goal of always, so they should need attention");
+          "Tablets have no location and a tablet availability of hosted, so they should need attention");
 
       // Test MERGING and SPLITTING do not need attention with no location or wals
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
@@ -223,19 +234,18 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // the metadata for t4, then run the TabletManagementIterator with
       // volume replacements
       addFiles(client, metaCopy4, t4);
-      List<Pair<Path,Path>> replacements = new ArrayList<>();
-      replacements.add(new Pair<Path,Path>(new Path("file:/vol1/accumulo/inst_id"),
-          new Path("file:/vol2/accumulo/inst_id")));
+      Map<Path,Path> replacements =
+          Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
       tabletMgmtParams = createParameters(client, replacements);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have one tablet that needs a volume replacement");
 
       // clean up
-      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4);
+      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5);
     }
   }
 
-  private void setTabletHostingGoal(AccumuloClient client, String table, String tableNameToModify,
+  private void setTabletAvailability(AccumuloClient client, String table, String tableNameToModify,
       String state) throws TableNotFoundException, MutationsRejectedException {
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
@@ -244,9 +254,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
       for (Entry<Key,Value> entry : scanner) {
         Mutation m = new Mutation(entry.getKey().getRow());
-        m.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
-            HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), entry.getKey().getTimestamp() + 1,
-            new Value(state));
+        m.put(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
+            TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier(),
+            entry.getKey().getTimestamp() + 1, new Value(state));
         try (BatchWriter bw = client.createBatchWriter(table)) {
           bw.addMutation(m);
         }
@@ -314,7 +324,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   // Sets an operation type on all tablets up to the end row
   private void setOperationId(AccumuloClient client, String table, String tableNameToModify,
       Text end, TabletOperationType opType) throws TableNotFoundException {
-    var opid = TabletOperationId.from(opType, 42L);
+    FateInstanceType type = FateInstanceType.fromNamespaceOrTableName(table);
+    FateId fateId = FateId.from(type, 42L);
+    var opid = TabletOperationId.from(opType, fateId);
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     try (TabletsMetadata tabletsMetadata =
@@ -406,10 +418,10 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key k = entry.getKey();
+
           if (m == null) {
             m = new Mutation(k.getRow());
           }
-
           m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
               k.getTimestamp(), entry.getValue());
         }
@@ -418,9 +430,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       }
     }
 
-    // metadata should be stable with only 6 rows (2 for each table)
+    // metadata should be stable with only 9 rows (2 for each table) + 1 for the FateTable
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals(8, mutations.size(), "Metadata should have 8 rows (2 for each table)");
+    assertEquals(9, mutations.size(),
+        "Metadata should have 8 rows (2 for each table) + one row for "
+            + AccumuloTable.FATE.tableId().canonical());
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {
@@ -447,21 +461,20 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    LogEntry logEntry = new LogEntry(
-        java.nio.file.Path.of(validHost.toString(), UUID.randomUUID().toString()).toString());
-    m.at().family(LogColumnFamily.NAME).qualifier(logEntry.getColumnQualifier())
-        .put(logEntry.getValue());
+    String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
+    LogEntry logEntry = LogEntry.fromPath(fileName);
+    logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
   }
 
   private static TabletManagementParameters createParameters(AccumuloClient client) {
-    return createParameters(client, List.of());
+    return createParameters(client, Map.of());
   }
 
   private static TabletManagementParameters createParameters(AccumuloClient client,
-      List<Pair<Path,Path>> replacements) {
+      Map<Path,Path> replacements) {
     var context = (ClientContext) client;
     Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
         tableId -> context.getTableState(tableId) == TableState.ONLINE);

@@ -21,7 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
-import static org.apache.accumulo.test.ScanServerIT.setupTableWithHostingMix;
+import static org.apache.accumulo.test.ScanServerIT.setupTableWithTabletAvailabilityMix;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -190,19 +190,19 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanWithTabletHostingMix() throws Exception {
+  public void testScanWithTabletAvailabilityMix() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      setupTableWithHostingMix(client, tableName);
+      setupTableWithTabletAvailabilityMix(client, tableName);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // Throws an exception because no scan servers and falls back to tablet server with tablets
-        // with the NEVER hosting goal
+        // with UNHOSTED availability
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
-        // Throws an exception because of the tablets with the NEVER hosting goal
+        // Throws an exception because of the tablets with UNHOSTED availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
 
@@ -218,19 +218,19 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testBatchScanWithTabletHostingMix() throws Exception {
+  public void testBatchScanWithTabletAvailabilityMix() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      setupTableWithHostingMix(client, tableName);
+      setupTableWithTabletAvailabilityMix(client, tableName);
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singleton(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // Throws an exception because no scan servers and falls back to tablet server with tablets
-        // with the NEVER hosting goal
+        // with UNHOSTED availability
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
-        // Throws an exception because of the tablets with the NEVER hosting goal
+        // Throws an exception because of the tablets with UNHOSTED availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
 

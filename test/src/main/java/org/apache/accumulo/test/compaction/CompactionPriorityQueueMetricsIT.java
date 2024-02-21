@@ -56,10 +56,12 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -97,7 +99,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   private String rootPath;
 
   public static final String QUEUE1 = "METRICSQ1";
-  public static final String QUEUE1_METRIC_LABEL = "e." + MetricsUtil.formatString(QUEUE1);
+  public static final String QUEUE1_METRIC_LABEL = MetricsUtil.formatString(QUEUE1);
   public static final String QUEUE1_SERVICE = "Q1";
   public static final int QUEUE1_SIZE = 6;
 
@@ -153,11 +155,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultCompactors(0);
 
       // Create a new queue with zero compactors.
-      cfg.setProperty("tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner",
+      cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner",
           DefaultCompactionPlanner.class.getName());
       cfg.setProperty(
-          "tserver.compaction.major.service." + QUEUE1_SERVICE + ".planner.opts.executors",
-          "[{'name':'all', 'type': 'external', 'group': '" + QUEUE1 + "'}]");
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
+          "[{'name':'" + QUEUE1 + "'}]");
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
@@ -360,7 +362,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // Priority is the file counts + number of compactions for that tablet.
     // The lowestPriority job in the queue should have been
     // at least 1 count higher than the highest file count.
-    assertTrue(lowestPriority > highestFileCount);
+    short highestFileCountPrio = CompactionJobPrioritizer.createPriority(
+        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
+        (int) highestFileCount, 0);
+    assertTrue(lowestPriority > highestFileCountPrio,
+        lowestPriority + " " + highestFileCount + " " + highestFileCountPrio);
 
     // Multiple Queues have been created
     assertTrue(sawQueues);
@@ -383,6 +389,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         if (metric.getName()
             .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
             && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          if (Integer.parseInt(metric.getValue()) == 0) {
+            emptyQueue = true;
+          }
+        }
+
+        // Check if the total number of queues is zero, if so then will not see metrics for the
+        // above queue.
+        if (metric.getName().equals(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue = true;
           }

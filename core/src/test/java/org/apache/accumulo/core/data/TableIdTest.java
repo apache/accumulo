@@ -25,8 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.apache.accumulo.core.WithTestNames;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
@@ -52,7 +51,7 @@ public class TableIdTest extends WithTestNames {
 
     // the next line just preloads the built-ins, since they now exist in a separate class from
     // TableId, and aren't preloaded when the TableId class is referenced
-    assertNotSame(RootTable.ID, MetadataTable.ID);
+    assertNotSame(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId());
 
     String tableString = "table-" + testName();
     long initialSize = cacheCount();
@@ -62,9 +61,9 @@ public class TableIdTest extends WithTestNames {
 
     // ensure duplicates are not created
     TableId builtInTableId = TableId.of("!0");
-    assertSame(MetadataTable.ID, builtInTableId);
+    assertSame(AccumuloTable.METADATA.tableId(), builtInTableId);
     builtInTableId = TableId.of("+r");
-    assertSame(RootTable.ID, builtInTableId);
+    assertSame(AccumuloTable.ROOT.tableId(), builtInTableId);
     table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());

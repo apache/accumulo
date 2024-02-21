@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.data.AbstractId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 
 import com.google.common.base.Preconditions;
 
@@ -32,7 +32,7 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
   private static final long serialVersionUID = 1L;
 
   public static String validate(String opid) {
-    var fields = opid.split(":");
+    var fields = opid.split(":", 2);
     Preconditions.checkArgument(fields.length == 2, "Malformed operation id %s", opid);
     try {
       TabletOperationType.valueOf(fields[0]);
@@ -40,7 +40,7 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
       throw new IllegalArgumentException("Malformed operation id " + opid, e);
     }
 
-    if (!FateTxId.isFormatedTid(fields[1])) {
+    if (!FateId.isFateId(fields[1])) {
       throw new IllegalArgumentException("Malformed operation id " + opid);
     }
 
@@ -52,7 +52,7 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
   }
 
   public TabletOperationType getType() {
-    var fields = canonical().split(":");
+    var fields = canonical().split(":", 2);
     Preconditions.checkState(fields.length == 2);
     return TabletOperationType.valueOf(fields[0]);
   }
@@ -61,7 +61,7 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
     return new TabletOperationId(validate(opid));
   }
 
-  public static TabletOperationId from(TabletOperationType type, long txid) {
-    return new TabletOperationId(type + ":" + FateTxId.formatTid(txid));
+  public static TabletOperationId from(TabletOperationType type, FateId fateId) {
+    return new TabletOperationId(type + ":" + fateId);
   }
 }

@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
@@ -64,8 +63,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
@@ -77,7 +77,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
@@ -115,6 +114,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
+    private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -127,6 +127,22 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         // single-tablet options
         checkState(range == null && table == null && level == null && !checkConsistency);
         return buildExtents(_client);
+      }
+
+      if (!tabletMetadataFilters.isEmpty()) {
+        checkState(!checkConsistency, "Can not check tablet consistency and filter tablets");
+        if (!fetchedCols.isEmpty()) {
+          for (var filter : tabletMetadataFilters) {
+            // This defends against the case where the columns needed by the filter were not
+            // fetched. For example, the following code only fetches the file column and then
+            // configures the WAL filter which also needs the column for write ahead logs.
+            // ample.readTablets().forLevel(DataLevel.USER).fetch(ColumnType.FILES).filter(new
+            // HasWalsFilter()).build();
+            checkState(fetchedCols.containsAll(filter.getColumns()),
+                "%s needs cols %s however only %s were fetched", filter.getClass().getSimpleName(),
+                filter.getColumns(), fetchedCols);
+          }
+        }
       }
 
       checkState((level == null) != (table == null),
@@ -169,7 +185,17 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             scanner.setRanges(ranges);
 
             configureColumns(scanner);
-            IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
+            int iteratorPriority = 100;
+
+            for (TabletMetadataFilter tmf : tabletMetadataFilters) {
+              IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+              iterSetting.addOptions(tmf.getServerSideOptions());
+              scanner.addScanIterator(iterSetting);
+              iteratorPriority++;
+            }
+
+            IteratorSetting iterSetting =
+                new IteratorSetting(iteratorPriority, WholeRowIterator.class);
             scanner.addScanIterator(iterSetting);
 
             Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
@@ -240,6 +266,16 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         configureColumns(scanner);
         Range range1 = scanner.getRange();
 
+        if (!tabletMetadataFilters.isEmpty()) {
+          int iteratorPriority = 100;
+          for (TabletMetadataFilter tmf : tabletMetadataFilters) {
+            iteratorPriority++;
+            IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+            iterSetting.addOptions(tmf.getServerSideOptions());
+            scanner.addScanIterator(iterSetting);
+          }
+        }
+
         Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
           synchronized (scanner) {
             scanner.setRange(r);
@@ -301,9 +337,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case CLONED:
             families.add(ClonedColumnFamily.NAME);
             break;
-          case COMPACT_ID:
-            qualifiers.add(COMPACT_COLUMN);
-            break;
           case DIR:
             qualifiers.add(DIRECTORY_COLUMN);
             break;
@@ -313,11 +346,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case FLUSH_ID:
             qualifiers.add(FLUSH_COLUMN);
             break;
-          case HOSTING_GOAL:
-            qualifiers.add(HostingColumnFamily.GOAL_COLUMN);
+          case AVAILABILITY:
+            qualifiers.add(TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN);
             break;
           case HOSTING_REQUESTED:
-            qualifiers.add(HostingColumnFamily.REQUESTED_COLUMN);
+            qualifiers.add(TabletsSection.TabletColumnFamily.REQUESTED_COLUMN);
             break;
           case LAST:
             families.add(LastLocationColumnFamily.NAME);
@@ -450,6 +483,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
+    public Options filter(TabletMetadataFilter filter) {
+      this.tabletMetadataFilters.add(filter);
+      return this;
+    }
+
+    @Override
     public Options readConsistency(ReadConsistency readConsistency) {
       this.readConsistency = Objects.requireNonNull(readConsistency);
       return this;
@@ -479,6 +518,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * {@link ReadConsistency#IMMEDIATE}
      */
     Options readConsistency(ReadConsistency readConsistency);
+
+    /**
+     * Adds a filter to be applied while fetching the data. Filters are applied in the order they
+     * are added. This method can be called multiple times to chain multiple filters together. The
+     * first filter added has the highest priority and each subsequent filter is applied with a
+     * sequentially lower priority. If columns needed by a filter are not fetched then a runtime
+     * exception is thrown.
+     */
+    Options filter(TabletMetadataFilter filter);
   }
 
   public interface RangeOptions extends Options {
@@ -524,7 +572,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * {@link TabletsSection#getRange()}
      */
     default RangeOptions scanMetadataTable() {
-      return scanTable(MetadataTable.NAME);
+      return scanTable(AccumuloTable.METADATA.tableName());
     }
 
     /**

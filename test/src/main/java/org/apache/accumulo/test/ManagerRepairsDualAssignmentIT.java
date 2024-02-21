@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -31,16 +31,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -48,10 +46,8 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // ELASTICITY_TODO
 public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override
@@ -73,21 +69,23 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       ServerContext serverContext = cluster.getServerContext();
       String table = this.getUniqueNames(1)[0];
-      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      c.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
           TablePermission.WRITE);
-      c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
+      c.securityOperations().grantTablePermission("root", AccumuloTable.ROOT.tableName(),
+          TablePermission.WRITE);
       SortedSet<Text> partitions = new TreeSet<>();
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
       }
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions)
-          .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+          .withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
-      Set<TabletMetadata.Location> states = new HashSet<>();
-      Set<TabletMetadata> oldLocations = new HashSet<>();
+      final Set<TabletMetadata.Location> states = new HashSet<>();
+      final Set<TabletMetadata> oldLocations = new HashSet<>();
+
       while (states.size() < 2) {
-        UtilWaitThread.sleep(250);
+        Thread.sleep(250);
         oldLocations.clear();
         try (
             var tablets = serverContext.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
@@ -106,7 +104,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       // Find out which tablet server remains
       while (true) {
-        UtilWaitThread.sleep(1000);
+        Thread.sleep(1000);
         states.clear();
         AtomicBoolean allAssigned = new AtomicBoolean(true);
         try (
@@ -132,7 +130,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           moved = old;
         }
       }
-      assertNotEquals(null, moved);
+      assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.getExtent());
       tabletMutator.putLocation(moved.getLocation());
@@ -140,21 +138,22 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // wait for the manager to fix the problem
       waitForCleanStore(serverContext, DataLevel.USER);
       // now jam up the metadata table
-      tabletMutator =
-          serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
+      tabletMutator = serverContext.getAmple()
+          .mutateTablet(new KeyExtent(AccumuloTable.METADATA.tableId(), null, null));
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       waitForCleanStore(serverContext, DataLevel.METADATA);
     }
   }
 
-  private void waitForCleanStore(ServerContext serverContext, DataLevel level) {
+  private void waitForCleanStore(ServerContext serverContext, DataLevel level)
+      throws InterruptedException {
     while (true) {
       try (var tablets = serverContext.getAmple().readTablets().forLevel(level).build()) {
         tablets.iterator().forEachRemaining(t -> {});
       } catch (Exception ex) {
-        System.out.println(ex);
-        UtilWaitThread.sleep(250);
+        System.out.println(ex.getMessage());
+        Thread.sleep(250);
         continue;
       }
       break;

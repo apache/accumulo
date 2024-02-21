@@ -29,7 +29,7 @@ import java.time.Duration;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -49,7 +49,7 @@ public class LastLocationIT extends ConfigurableMacBase {
         getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
       NewTableConfiguration ntc =
-          new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online

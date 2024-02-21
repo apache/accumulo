@@ -40,7 +40,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -119,7 +118,12 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       Thread.sleep(3000);
 
       Thread configFixer = new Thread(() -> {
-        UtilWaitThread.sleep(3000);
+        try {
+          Thread.sleep(3000);
+        } catch (InterruptedException ex) {
+          // ignore exception
+          Thread.currentThread().interrupt();
+        }
         removeInvalidClassLoaderContextProperty(client, tableName);
       });
 
@@ -218,7 +222,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
       c.tableOperations().flush(tableName, null, null, false);
 
-      UtilWaitThread.sleep(5000);
+      Thread.sleep(5000);
 
       // minc should fail, so there should be no files
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
@@ -229,7 +233,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // The offine operation should not be able to complete because the tablet can not minor
       // compact, give the offline operation a bit of time to attempt to complete even though it
       // should never be able to complete.
-      UtilWaitThread.sleep(5000);
+      Thread.sleep(5000);
 
       assertTrue(countHostedTablets(c, tid) > 0);
 

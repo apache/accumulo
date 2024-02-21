@@ -66,15 +66,18 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -84,6 +87,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -92,7 +96,6 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
@@ -660,7 +663,37 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Set<String> groupNames = new HashSet<>();
     AccumuloConfiguration aconf = new ConfigurationCopy(config.getSiteConfig());
     CompactionServicesConfig csc = new CompactionServicesConfig(aconf);
-    ServiceEnvironment senv = new ServiceEnvironmentImpl(getServerContext());
+
+    ServiceEnvironment senv = new ServiceEnvironment() {
+
+      @Override
+      public String getTableName(TableId tableId) throws TableNotFoundException {
+        return null;
+      }
+
+      @Override
+      public <T> T instantiate(String className, Class<T> base)
+          throws ReflectiveOperationException {
+        return ConfigurationTypeHelper.getClassInstance(null, className, base);
+      }
+
+      @Override
+      public <T> T instantiate(TableId tableId, String className, Class<T> base)
+          throws ReflectiveOperationException {
+        return null;
+      }
+
+      @Override
+      public Configuration getConfiguration() {
+        return new ConfigurationImpl(aconf);
+      }
+
+      @Override
+      public Configuration getConfiguration(TableId tableId) {
+        return null;
+      }
+
+    };
 
     for (var entry : csc.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
@@ -671,16 +704,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
             csc.getPlannerPrefix(serviceId), csc.getOptions().get(serviceId), senv);
         cp.init(initParams);
-        initParams.getRequestedExternalExecutors().forEach(ceid -> {
-          String id = ceid.canonical();
-          if (id.startsWith("e.")) {
-            groupNames.add(id.substring(2));
-          } else {
-            groupNames.add(id);
-          }
-        });
+        initParams.getRequestedGroups().forEach(gid -> groupNames.add(gid.canonical()));
       } catch (Exception e) {
-        log.error("For compaction service {}, failed to get compaction queues from planner {}.",
+        log.error("For compaction service {}, failed to get compactor groups from planner {}.",
             serviceId, plannerClass, e);
       }
     }
