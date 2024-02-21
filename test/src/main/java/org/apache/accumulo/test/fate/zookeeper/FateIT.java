@@ -225,10 +225,6 @@ public class FateIT {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
-
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -237,6 +233,11 @@ public class FateIT {
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+
+      fate.startTransactionRunners(config);
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
+
       // wait for call() to be called
       callStarted.await();
       assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
@@ -406,10 +407,6 @@ public class FateIT {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
-
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -419,6 +416,11 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
+
+      fate.startTransactionRunners(config);
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
+
       // wait for call() to be called
       callStarted.await();
       // cancel the transaction
@@ -467,12 +469,12 @@ public class FateIT {
       long txid = fate.startTransaction();
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperationFails", txid,
-          new TestOperationFails(1, ExceptionLocation.CALL), true, "Test Op Fails");
-      assertEquals(SUBMITTED, getTxStatus(zk, txid));
+          new TestOperationFails(1, ExceptionLocation.CALL), false, "Test Op Fails");
       // Wait for all the undo() calls to complete
       undoLatch.await();
       assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
-      assertEquals(FAILED_IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(FAILED, fate.waitForCompletion(txid));
+      assertTrue(fate.getException(txid).getMessage().contains("call() failed"));
       /*
        * Test exception in isReady()
        */
@@ -481,12 +483,12 @@ public class FateIT {
       txid = fate.startTransaction();
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction("TestOperationFails", txid,
-          new TestOperationFails(1, ExceptionLocation.IS_READY), true, "Test Op Fails");
-      assertEquals(SUBMITTED, getTxStatus(zk, txid));
+          new TestOperationFails(1, ExceptionLocation.IS_READY), false, "Test Op Fails");
       // Wait for all the undo() calls to complete
       undoLatch.await();
       assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
-      assertEquals(FAILED_IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(FAILED, fate.waitForCompletion(txid));
+      assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
     } finally {
       fate.shutdown();
     }
