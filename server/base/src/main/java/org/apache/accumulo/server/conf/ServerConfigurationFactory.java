@@ -77,8 +77,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    this.systemConfig = memoize(() -> new SystemConfiguration(context,
-        SystemPropKey.of(context.getInstanceID()), siteConfig));
+    this.systemConfig = memoize(() -> {
+      var sysConf =
+          new SystemConfiguration(context, SystemPropKey.of(context.getInstanceID()), siteConfig);
+      ConfigCheckUtil.validate(sysConf);
+      return sysConf;
+    });
     tableParentConfigs =
         Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
     tableConfigs =
