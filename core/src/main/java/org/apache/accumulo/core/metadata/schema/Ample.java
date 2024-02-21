@@ -529,6 +529,8 @@ public interface Ample {
     ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
         ColumnType... otherTypes);
 
+    ConditionalTabletMutator requireAbsentLogs();
+
     /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
