@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
@@ -108,6 +109,7 @@ public class TabletMetadata {
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
+  private OptionalLong flushNonce = OptionalLong.empty();
   private List<LogEntry> logs;
   private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
@@ -136,6 +138,7 @@ public class TabletMetadata {
     TIME,
     CLONED,
     FLUSH_ID,
+    FLUSH_NONCE,
     LOGS,
     SUSPEND,
     ECOMP,
@@ -345,6 +348,11 @@ public class TabletMetadata {
     return flush;
   }
 
+  public OptionalLong getFlushNonce() {
+    ensureFetched(ColumnType.FLUSH_NONCE);
+    return flushNonce;
+  }
+
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
     return merged;
@@ -475,6 +483,9 @@ public class TabletMetadata {
               break;
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
+              break;
+            case FLUSH_NONCE_QUAL:
+              te.flushNonce = OptionalLong.of(Long.parseUnsignedLong(val, 16));
               break;
             case OPID_QUAL:
               te.setOperationIdOnce(val, suppressLocationError);

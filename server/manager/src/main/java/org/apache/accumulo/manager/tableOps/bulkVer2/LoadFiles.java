@@ -175,8 +175,10 @@ class LoadFiles extends ManagerRepo {
               dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
                   tabletTime.getAndUpdateTime());
             } else {
+              long fileTime = hostedTimestamps.get(tablet.getExtent()) + timeOffset;
               dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
-                  hostedTimestamps.get(tablet.getExtent()) + timeOffset);
+                  fileTime);
+              tabletTime.updateTimeIfGreater(fileTime);
               timeOffset++;
             }
           } else {
@@ -193,15 +195,21 @@ class LoadFiles extends ManagerRepo {
         });
 
         if (!filesToLoad.isEmpty()) {
-          var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-              .requireAbsentOperation().requireSame(tablet, LOADED, TIME, LOCATION);
+          var tabletMutator =
+              conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
+
+          if (setTime) {
+            tabletMutator.requireSame(tablet, LOADED, TIME, LOCATION);
+          } else {
+            tabletMutator.requireSame(tablet, LOADED, LOCATION);
+          }
 
           filesToLoad.forEach((f, v) -> {
             tabletMutator.putBulkFile(f, fateId);
             tabletMutator.putFile(f, v);
           });
 
-          if (setTime && tablet.getLocation() == null) {
+          if (setTime) {
             tabletMutator.putTime(tabletTime.getMetadataTime());
           }
 
