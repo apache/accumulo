@@ -77,7 +77,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -93,19 +92,14 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
-import com.github.benmanes.caffeine.cache.Weigher;
-
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private final Manager manager;
   private final Set<KeyExtent> hostingRequestInProgress;
 
-  private static final int TEN_MB = 10 * 1024 * 1024;
-
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
-    Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
     this.hostingRequestInProgress = new ConcurrentSkipListSet<>();
   }
 
