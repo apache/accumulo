@@ -28,7 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +60,11 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
+  private static CountDownLatch undoLatch;
+
+  private enum ExceptionLocation {
+    CALL, IS_READY
+  }
 
   public static class TestRepo implements Repo<TestEnv> {
     private static final long serialVersionUID = 1L;
@@ -97,6 +104,67 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     @Override
     public String getReturn() {
       return data + "_ret";
+    }
+  }
+
+  public static class TestOperationFails implements Repo<TestEnv> {
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(TestOperationFails.class);
+    private static List<String> undoOrder = new ArrayList<>();
+    private static final int TOTAL_NUM_OPS = 3;
+    private int opNum;
+    private final String opName;
+    private final ExceptionLocation location;
+
+    public TestOperationFails(int opNum, ExceptionLocation location) {
+      this.opNum = opNum;
+      this.opName = "OP" + opNum;
+      this.location = location;
+    }
+
+    @Override
+    public long isReady(FateId fateId, TestEnv environment) throws Exception {
+      LOG.debug("{} {} Entered isReady()", opName, fateId);
+      if (location == ExceptionLocation.IS_READY) {
+        if (opNum < TOTAL_NUM_OPS) {
+          return 0;
+        } else {
+          throw new Exception(opName + " " + fateId + " isReady() failed - this is expected");
+        }
+      } else {
+        return 0;
+      }
+    }
+
+    @Override
+    public String getName() {
+      return getClass().getName();
+    }
+
+    @Override
+    public void undo(FateId fateId, TestEnv environment) throws Exception {
+      LOG.debug("{} {} Entered undo()", opName, fateId);
+      undoOrder.add(opName);
+      undoLatch.countDown();
+    }
+
+    @Override
+    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
+      LOG.debug("{} {} Entered call()", opName, fateId);
+      if (location == ExceptionLocation.CALL) {
+        if (opNum < TOTAL_NUM_OPS) {
+          return new TestOperationFails(++opNum, location);
+        } else {
+          throw new Exception(opName + " " + fateId + " call() failed - this is expected");
+        }
+      } else {
+        return new TestOperationFails(++opNum, location);
+      }
+    }
+
+    @Override
+    public String getReturn() {
+      return "none";
     }
   }
 
@@ -349,6 +417,63 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
         return transactions.isEmpty();
       });
 
+    } finally {
+      fate.shutdown(10, TimeUnit.MINUTES);
+    }
+  }
+
+  @Test
+  @Timeout(30)
+  public void testRepoFails() throws Exception {
+    // Set a maximum deferred map size of 10 transactions so that when the 11th
+    // is seen the Fate store should clear the deferred map and mark
+    // the flag as overflow so that all the deferred transactions will be run
+    executeTest(this::testRepoFails, 10, AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
+  }
+
+  protected void testRepoFails(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+    /*
+     * This test ensures that when an exception occurs in a Repo's call() or isReady() methods, that
+     * undo() will be called back up the chain of Repo's and in the correct order. The test works as
+     * follows: 1) Repo1 is called and returns Repo2, 2) Repo2 is called and returns Repo3, 3) Repo3
+     * is called and throws an exception (in call() or isReady()). It is then expected that: 1)
+     * undo() is called on Repo3, 2) undo() is called on Repo2, 3) undo() is called on Repo1
+     */
+    Fate<TestEnv> fate = initializeFate(store);
+    try {
+
+      // Wait for the transaction runner to be scheduled.
+      Thread.sleep(3000);
+
+      List<String> expectedUndoOrder = List.of("OP3", "OP2", "OP1");
+      /*
+       * Test exception in call()
+       */
+      TestOperationFails.undoOrder = new ArrayList<>();
+      undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
+      FateId fateId = fate.startTransaction();
+      assertEquals(NEW, getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperationFails", fateId,
+          new TestOperationFails(1, ExceptionLocation.CALL), false, "Test Op Fails");
+      // Wait for all the undo() calls to complete
+      undoLatch.await();
+      assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
+      assertEquals(FAILED, fate.waitForCompletion(fateId));
+      assertTrue(fate.getException(fateId).getMessage().contains("call() failed"));
+      /*
+       * Test exception in isReady()
+       */
+      TestOperationFails.undoOrder = new ArrayList<>();
+      undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
+      fateId = fate.startTransaction();
+      assertEquals(NEW, getTxStatus(sctx, fateId));
+      fate.seedTransaction("TestOperationFails", fateId,
+          new TestOperationFails(1, ExceptionLocation.IS_READY), false, "Test Op Fails");
+      // Wait for all the undo() calls to complete
+      undoLatch.await();
+      assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
+      assertEquals(FAILED, fate.waitForCompletion(fateId));
+      assertTrue(fate.getException(fateId).getMessage().contains("isReady() failed"));
     } finally {
       fate.shutdown(10, TimeUnit.MINUTES);
     }
