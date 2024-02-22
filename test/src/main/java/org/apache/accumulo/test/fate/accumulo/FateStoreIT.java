@@ -332,7 +332,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey = FateKey.forSplit(ke);
 
     FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
-    ;
+
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);
@@ -342,6 +342,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertTrue(create(store, fateKey).isEmpty());
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
+      txStore.setStatus(TStatus.SUCCESSFUL);
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
     }
