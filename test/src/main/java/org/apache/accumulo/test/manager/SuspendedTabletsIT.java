@@ -83,7 +83,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 3;
-  public static final long SUSPEND_DURATION = 80;
   public static final int TABLETS = 30;
 
   private ProcessReference metadataTserverProcess;
@@ -95,7 +94,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     // Start with 1 tserver, we'll increase that later
@@ -149,33 +147,165 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     getCluster().start();
   }
 
+  enum AfterSuspendAction {
+    RESUME("80s"),
+    // Set a long suspend time for testing offline table, want the suspension to be cleared because
+    // the tablet went offline and not the because the suspension timed out.
+    OFFLINE("800s");
+
+    public final String suspendTime;
+
+    AfterSuspendAction(String suspendTime) {
+      this.suspendTime = suspendTime;
+    }
+  }
+
   @Test
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
-    suspensionTestBody((ctx, locs, count) -> {
-      // Exclude the tablet server hosting the metadata table from the list and only
-      // kill tablet servers that are not hosting the metadata table.
-      List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
-          .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
-      Collections.shuffle(procs, random);
-      assertEquals(TSERVERS - 1, procs.size(), "Not enough tservers exist");
-      assertTrue(procs.size() >= count, "Attempting to kill more tservers (" + count
-          + ") than exist in the cluster (" + procs.size() + ")");
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.RESUME);
+  }
 
-      for (int i = 0; i < count; ++i) {
-        ProcessReference pr = procs.get(i);
-        log.info("Crashing {}", pr.getProcess());
-        getCluster().killProcess(ServerType.TABLET_SERVER, pr);
-      }
-    });
+  @Test
+  public void crashAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    // Suspension markers can prevent balancing and possibly cause other problems, so its good to
+    // clear them for offline tables.
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.OFFLINE);
   }
 
   @Test
   public void shutdownAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
-    suspensionTestBody((ctx, locs, count) -> {
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.RESUME);
+  }
+
+  @Test
+  public void shutdownAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.OFFLINE);
+  }
+
+  /**
+   * Main test body for suspension tests.
+   *
+   * @param serverStopper callback which shuts down some tablet servers.
+   */
+  private void suspensionTestBody(TServerKiller serverStopper, AfterSuspendAction action)
+      throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      ClientContext ctx = (ClientContext) client;
+
+      String tableName = getUniqueNames(1)[0];
+
+      SortedSet<Text> splitPoints = new TreeSet<>();
+      for (int i = 1; i < TABLETS; ++i) {
+        splitPoints.add(new Text("" + i));
+      }
+      log.info("Creating table " + tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+      ntc.setProperties(Map.of(Property.TABLE_SUSPEND_DURATION.getKey(), action.suspendTime));
+      ctx.tableOperations().create(tableName, ntc);
+
+      // Wait for all of the tablets to hosted ...
+      log.info("Waiting on hosting and balance");
+      TabletLocations ds;
+      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+          ds = TabletLocations.retrieve(ctx, tableName)) {
+        Thread.sleep(1000);
+      }
+
+      // ... and balanced.
+      ctx.instanceOperations().waitForBalance();
+      do {
+        // Keep checking until all tablets are hosted and spread out across the tablet servers
+        Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
+      } while (ds.hostedCount != TABLETS || ds.hosted.keySet().size() != (TSERVERS - 1));
+
+      // Given the loop exit condition above, at this point we're sure that all tablets are hosted
+      // and some are hosted on each of the tablet servers other than the one reserved for hosting
+      // the metadata table.
+      assertEquals(TSERVERS - 1, ds.hosted.keySet().size());
+
+      // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
+      // and thus halt balancing.
+
+      TabletLocations beforeDeathState = ds;
+      log.info("Eliminating tablet servers");
+      serverStopper.eliminateTabletServers(ctx, beforeDeathState, TSERVERS - 1);
+
+      // All tablets should be either hosted or suspended.
+      log.info("Waiting on suspended tablets");
+      do {
+        Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
+      } while (ds.suspended.keySet().size() != (TSERVERS - 1)
+          || (ds.suspendedCount + ds.hostedCount) != TABLETS);
+
+      SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
+
+      // All suspended tablets should "belong" to the dead tablet servers, and should be in exactly
+      // the same place as before any tserver death.
+      for (HostAndPort server : deadTabletsByServer.keySet()) {
+        // Comparing pre-death, hosted tablets to suspended tablets on a server
+        assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
+      }
+      assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
+
+      assertTrue(ds.suspendedCount > 0);
+
+      if (action == AfterSuspendAction.OFFLINE) {
+        client.tableOperations().offline(tableName, true);
+
+        while (ds.suspendedCount > 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+          log.info("Waiting for suspended {}", ds.suspended);
+        }
+      } else if (action == AfterSuspendAction.RESUME) {
+        // Restart the first tablet server, making sure it ends up on the same port
+        HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
+        log.info("Restarting " + restartedServer);
+        getCluster().getClusterControl()
+            .start(
+                ServerType.TABLET_SERVER, Map.of(Property.TSERV_CLIENTPORT.getKey(),
+                    "" + restartedServer.getPort(), Property.TSERV_PORTSEARCH.getKey(), "false"),
+                1);
+
+        // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
+        log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
+        while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+        assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+
+        // Finally, after much longer, remaining suspended tablets should be reassigned.
+        log.info("Awaiting tablet reassignment for remaining tablets");
+        while (ds.hostedCount != TABLETS) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+      } else {
+        throw new IllegalStateException("Unknown action " + action);
+      }
+    }
+  }
+
+  private interface TServerKiller {
+    void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception;
+  }
+
+  private class ShutdownTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+
       Set<TServerInstance> tserverSet = new HashSet<>();
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
@@ -233,101 +363,30 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         }
       }
       throw new IllegalStateException("Tablet servers didn't die!");
-    });
-  }
 
-  /**
-   * Main test body for suspension tests.
-   *
-   * @param serverStopper callback which shuts down some tablet servers.
-   */
-  private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      ClientContext ctx = (ClientContext) client;
-
-      String tableName = getUniqueNames(1)[0];
-
-      SortedSet<Text> splitPoints = new TreeSet<>();
-      for (int i = 1; i < TABLETS; ++i) {
-        splitPoints.add(new Text("" + i));
-      }
-      log.info("Creating table " + tableName);
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
-      ctx.tableOperations().create(tableName, ntc);
-
-      // Wait for all of the tablets to hosted ...
-      log.info("Waiting on hosting and balance");
-      TabletLocations ds;
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
-        Thread.sleep(1000);
-      }
-
-      // ... and balanced.
-      ctx.instanceOperations().waitForBalance();
-      do {
-        // Keep checking until all tablets are hosted and spread out across the tablet servers
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.hostedCount != TABLETS || ds.hosted.keySet().size() != (TSERVERS - 1));
-
-      // Given the loop exit condition above, at this point we're sure that all tablets are hosted
-      // and some are hosted on each of the tablet servers other than the one reserved for hosting
-      // the metadata table.
-      assertEquals(TSERVERS - 1, ds.hosted.keySet().size());
-
-      // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
-      // and thus halt balancing.
-
-      TabletLocations beforeDeathState = ds;
-      log.info("Eliminating tablet servers");
-      serverStopper.eliminateTabletServers(ctx, beforeDeathState, TSERVERS - 1);
-
-      // All tablets should be either hosted or suspended.
-      log.info("Waiting on suspended tablets");
-      do {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.suspended.keySet().size() != (TSERVERS - 1)
-          || (ds.suspendedCount + ds.hostedCount) != TABLETS);
-
-      SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
-
-      // All suspended tablets should "belong" to the dead tablet servers, and should be in exactly
-      // the same place as before any tserver death.
-      for (HostAndPort server : deadTabletsByServer.keySet()) {
-        // Comparing pre-death, hosted tablets to suspended tablets on a server
-        assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
-      }
-      assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
-      // Restart the first tablet server, making sure it ends up on the same port
-      HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
-      log.info("Restarting " + restartedServer);
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER,
-          Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
-              Property.TSERV_PORTSEARCH.getKey(), "false"),
-          1);
-
-      // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
-      log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      }
-      assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
-
-      // Finally, after much longer, remaining suspended tablets should be reassigned.
-      log.info("Awaiting tablet reassignment for remaining tablets");
-      while (ds.hostedCount != TABLETS) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      }
     }
   }
 
-  private interface TServerKiller {
-    void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
-        throws Exception;
+  private class CrashTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+      // Exclude the tablet server hosting the metadata table from the list and only
+      // kill tablet servers that are not hosting the metadata table.
+      List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
+          .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
+      Collections.shuffle(procs, random);
+      assertEquals(TSERVERS - 1, procs.size(), "Not enough tservers exist");
+      assertTrue(procs.size() >= count, "Attempting to kill more tservers (" + count
+          + ") than exist in the cluster (" + procs.size() + ")");
+
+      for (int i = 0; i < count; ++i) {
+        ProcessReference pr = procs.get(i);
+        log.info("Crashing {}", pr.getProcess());
+        getCluster().killProcess(ServerType.TABLET_SERVER, pr);
+      }
+    }
   }
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);

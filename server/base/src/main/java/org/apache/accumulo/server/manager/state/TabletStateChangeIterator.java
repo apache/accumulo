@@ -209,6 +209,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
         case ASSIGNED_TO_DEAD_SERVER:
           return;
         case SUSPENDED:
+          // Always return data about suspended tablets. Need to clear the suspension stats when the
+          // tablet is offline. May need to assign the tablet when the tablet is online.
+          return;
         case UNASSIGNED:
           if (shouldBeOnline) {
             return;
