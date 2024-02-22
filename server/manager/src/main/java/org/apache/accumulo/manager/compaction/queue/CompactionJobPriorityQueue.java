@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -47,7 +48,7 @@ import com.google.common.base.Preconditions;
  * </p>
  */
 public class CompactionJobPriorityQueue {
-  // ELASTICITY_TODO unit test this class
+
   private final CompactorGroupId groupId;
 
   private class CjpqKey implements Comparable<CjpqKey> {
@@ -59,7 +60,7 @@ public class CompactionJobPriorityQueue {
 
     CjpqKey(CompactionJob job) {
       this.job = job;
-      this.seq = nextSeq++;
+      this.seq = nextSeq.incrementAndGet();
     }
 
     @Override
@@ -102,9 +103,9 @@ public class CompactionJobPriorityQueue {
   // jobs in the queue when new jobs are queued for a tablet.
   private final Map<KeyExtent,List<CjpqKey>> tabletJobs;
 
-  private long nextSeq;
+  private final AtomicLong nextSeq = new AtomicLong(0);
 
-  private boolean closed = false;
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
@@ -116,7 +117,7 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized boolean add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    if (closed) {
+    if (closed.get()) {
       return false;
     }
 
@@ -130,6 +131,10 @@ public class CompactionJobPriorityQueue {
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         newEntries.add(cjqpKey);
+      } else {
+        // The priority for this job was lower than all other priorities and not added
+        // In this case we will return true even though a subset of the jobs, or none,
+        // were added
       }
     }
 
@@ -180,7 +185,7 @@ public class CompactionJobPriorityQueue {
 
   public synchronized boolean closeIfEmpty() {
     if (jobQueue.isEmpty()) {
-      closed = true;
+      closed.set(true);
       return true;
     }
 
