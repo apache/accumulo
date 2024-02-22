@@ -126,6 +126,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   }
 
   public TableId getTableId() {
+    ensureOpen();
     return tableId;
   }
 
