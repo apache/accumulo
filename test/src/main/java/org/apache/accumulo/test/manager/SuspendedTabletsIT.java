@@ -83,7 +83,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 3;
-  public static final long SUSPEND_DURATION = 800;
   public static final int TABLETS = 30;
 
   private ProcessReference metadataTserverProcess;
