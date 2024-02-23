@@ -256,6 +256,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
         }
       }
 
+      // Writes to a tablet should not change time unless it flushes, so time in metadata table
+      // should be the same
+      assertEquals(new MetadataTime(1, TimeType.LOGICAL),
+          ctx.getAmple().readTablet(extent).getTime());
+
       // verify data written by batch writer overwrote bulk imported data
       try (var scanner = client.createScanner(tableName)) {
         assertEquals(2,
@@ -287,9 +292,19 @@ public class BulkNewIT extends SharedMiniClusterBase {
         });
       }
 
-      client.tableOperations().flush(tableName, null, null, true);
+      // the bulk import should update the time in the metadata table
       assertEquals(new MetadataTime(2 + added, TimeType.LOGICAL),
           ctx.getAmple().readTablet(extent).getTime());
+
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // the flush should not change the time in the metadata table
+      assertEquals(new MetadataTime(2 + added, TimeType.LOGICAL),
+          ctx.getAmple().readTablet(extent).getTime());
+
+      try (var scanner = client.createScanner("accumulo.metadata")) {
+        scanner.forEach((k, v) -> System.out.println(k + " " + v));
+      }
 
     }
   }

@@ -256,6 +256,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
+  public Ample.ConditionalTabletMutator requireAbsentLogs() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    // create a tablet metadata with an empty set of logs and require the same as that
+    requireSameSingle(TabletMetadata.builder(extent).build(ColumnType.LOGS), ColumnType.LOGS);
+    return this;
+  }
+
+  @Override
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");

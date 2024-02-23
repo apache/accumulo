@@ -73,7 +73,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
-import org.apache.accumulo.manager.split.SplitTask;
+import org.apache.accumulo.manager.split.SeedSplitTask;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -361,7 +361,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
       IOException {
 
-    TableMgmtStats tableMgmtStats = new TableMgmtStats();
+    final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
         tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet());
     if (shuttingDownAllTabletServers && !isFullScan) {
@@ -446,6 +446,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           state = newState;
         }
       }
+      tableMgmtStats.counts[state.ordinal()]++;
 
       // This is final because nothing in this method should change the goal. All computation of the
       // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
@@ -520,17 +521,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
         LOG.debug("{} may need splitting.", tm.getExtent());
-        if (manager.getSplitter().isSplittable(tm)) {
-          if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
-            LOG.debug("submitting tablet {} for split", tm.getExtent());
-            manager.getSplitter().executeSplit(new SplitTask(manager.getContext(), tm, manager));
-          }
-        } else {
-          LOG.debug("{} is not splittable.", tm.getExtent());
-        }
-        // ELASITICITY_TODO: See #3605. Merge is non-functional. Left this commented out code to
-        // show where merge used to make a call to split a tablet.
-        // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
+        manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
       }
 
       if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
@@ -619,7 +610,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               break;
           }
         }
-        tableMgmtStats.counts[state.ordinal()]++;
       }
     }
 

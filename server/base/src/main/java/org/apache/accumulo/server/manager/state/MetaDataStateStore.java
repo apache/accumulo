@@ -68,12 +68,11 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
         if (tm.getSuspend() != null) {
-          continue;
+          // ELASTICITY_TODO add conditional mutation check that tls.suspend is what currently
+          // exists in the tablet
+          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation().deleteSuspension()
+              .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
         }
-
-        // ELASTICITY_TODO pending #3314, add conditional mutation check that tls.suspend exists
-        tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation().deleteSuspension()
-            .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
       }
 
       boolean unacceptedConditions = tabletsMutator.process().values().stream()

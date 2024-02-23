@@ -90,6 +90,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
+          ServerColumnFamily.FLUSH_NONCE_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
