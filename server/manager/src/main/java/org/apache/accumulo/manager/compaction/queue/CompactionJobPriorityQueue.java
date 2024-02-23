@@ -183,6 +183,12 @@ public class CompactionJobPriorityQueue {
     return first == null ? null : first.getValue();
   }
 
+  // exists for tests
+  synchronized CompactionJobQueues.MetaJob peek() {
+    var firstEntry = jobQueue.firstEntry();
+    return firstEntry == null ? null : firstEntry.getValue();
+  }
+
   public synchronized boolean closeIfEmpty() {
     if (jobQueue.isEmpty()) {
       closed.set(true);
@@ -210,7 +216,9 @@ public class CompactionJobPriorityQueue {
         return null;
       } else {
         // the new job has a higher priority than the lowest job in the queue, so remove the lowest
-        jobQueue.pollLastEntry();
+        if (jobQueue.pollLastEntry() != null) {
+          rejectedJobs.getAndIncrement();
+        }
       }
 
     }
