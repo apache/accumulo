@@ -127,7 +127,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   private static class GroupConfig {
-    String name;
+    String group;
     String maxSize;
   }
 
@@ -192,7 +192,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
             : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
         CompactorGroupId cgid;
-        String group = Objects.requireNonNull(groupConfig.name, "'name' must be specified");
+        String group = Objects.requireNonNull(groupConfig.group, "'group' must be specified");
         cgid = params.getGroupManager().getGroup(group);
         tmpGroups.add(new CompactionGroup(cgid, maxSize));
       }
