@@ -31,7 +31,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
@@ -58,6 +57,43 @@ public enum Property {
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
       "3.1.0"),
+  COMPACTION_DEFAULT_MAX_OPEN(COMPACTION_PREFIX + "default.maxOpen", "10", PropertyType.COUNT,
+      "The default maximum number of files a compaction will open."
+          + "Instead of overriding this property, user's should specify their own maxOpen as a compaction service option."
+          + "compaction.service.test.planner.opts.maxOpen=<value>.",
+      "2.1.0"),
+  @Deprecated(since = "3.1")
+  COMPACTION_DEFAULT_RATE_LIMIT(COMPACTION_PREFIX + "default.rate.limit", "0B", PropertyType.BYTES,
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions in this compaction service, or 0B for unlimited. This property has"
+          + " been deprecated in anticipation of it being removed in a future release that"
+          + " removes the rate limiting feature.",
+      "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER(COMPACTION_SERVICE_PREFIX + "default.planner", null,
+      "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner", PropertyType.CLASSNAME,
+      "Planner for default compaction service.", "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER_MAXOPEN(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.maxOpen", null, "10", PropertyType.STRING,
+      "The maximum number of files a compaction will open.", "2.1.0"),
+  @Example
+  COMPACTION_SERVICE_DEFAULT_PLANNER_GROUPS(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups", null,
+      "[{'name':'default'},{'name':'large'}]".replaceAll("'", "\""), PropertyType.JSON,
+      "The various compactor groups for this compaction service."
+          + " See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "3.1.0"),
+  @Example
+  @Deprecated(since = "3.1")
+  @ReplacedBy(property = COMPACTION_SERVICE_DEFAULT_PLANNER_GROUPS)
+  COMPACTION_SERVICE_DEFAULT_PLANNER_EXECUTORS(
+      COMPACTION_SERVICE_PREFIX + "default.planner.opts.executors", null,
+      "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
+          .replaceAll("'", "\""),
+      PropertyType.JSON,
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "2.1.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
       "3.1.0"),
@@ -104,7 +140,6 @@ public enum Property {
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
           + " and 'auth-conf'.",
       "1.7.0"),
-
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. "
@@ -589,78 +624,6 @@ public enum Property {
   @ReplacedBy(property = COMPACTION_SERVICE_PREFIX)
   TSERV_COMPACTION_SERVICE_PREFIX("tserver.compaction.major.service.", null, PropertyType.PREFIX,
       "Prefix for compaction services.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_PLANNER("tserver.compaction.major.service.root.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_RATE_LIMIT("tserver.compaction.major.service.root.rate.limit", "0B",
-      PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited.  This property has"
-          + " been deprecated in anticipation of it being removed in a future release that"
-          + " removes the rate limiting feature.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_MAX_OPEN(
-      "tserver.compaction.major.service.root.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
-      "tserver.compaction.major.service.root.planner.opts.executors",
-      "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]"
-          .replaceAll("'", "\""),
-      PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_RATE_LIMIT("tserver.compaction.major.service.meta.rate.limit", "0B",
-      PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited. This property has"
-          + " been deprecated in anticipation of it being removed in a future release that"
-          + " removes the rate limiting feature.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_MAX_OPEN(
-      "tserver.compaction.major.service.meta.planner.opts.maxOpen", "30", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_META_EXECUTORS(
-      "tserver.compaction.major.service.meta.planner.opts.executors",
-      "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
-          .replaceAll("'", "\""),
-      PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Planner for default compaction service.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
-      "0B", PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major"
-          + " compactions in this compaction service, or 0B for unlimited. This property has"
-          + " been deprecated in anticipation of it being removed in a future release that"
-          + " removes the rate limiting feature.",
-      "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
-      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
-  @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
-      "tserver.compaction.major.service.default.planner.opts.executors",
-      "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
-          .replaceAll("'", "\""),
-      PropertyType.STRING,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "2.1.0"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server.", "1.3.5"),
   @Deprecated(since = "3.1")
@@ -1211,12 +1174,15 @@ public enum Property {
 
   private final String key;
   private final String defaultValue;
+
+  private final String exampleValue;
   private final String description;
   private String deprecatedSince;
   private final String availableSince;
   private boolean annotationsComputed = false;
   private boolean isSensitive;
   private boolean isDeprecated;
+  private boolean isExample;
   private boolean isExperimental;
   private boolean isReplaced;
   private Property replacedBy = null;
@@ -1224,8 +1190,14 @@ public enum Property {
 
   Property(String name, String defaultValue, PropertyType type, String description,
       String availableSince) {
+    this(name, defaultValue, null, type, description, availableSince);
+  }
+
+  Property(String name, String defaultValue, String exampleValue, PropertyType type,
+      String description, String availableSince) {
     this.key = name;
     this.defaultValue = defaultValue;
+    this.exampleValue = exampleValue;
     this.description = description;
     this.availableSince = availableSince;
     this.type = type;
@@ -1256,6 +1228,15 @@ public enum Property {
   }
 
   /**
+   * Gets the example value for this property.
+   *
+   * @return example value
+   */
+  public String getExampleValue() {
+    return this.exampleValue;
+  }
+
+  /**
    * Gets the type of this property.
    *
    * @return property type
@@ -1271,6 +1252,17 @@ public enum Property {
    */
   public String getDescription() {
     return this.description;
+  }
+
+  /**
+   * Checks if this property is an example.
+   *
+   * @return true if this property is an example
+   */
+  public boolean isExample() {
+    Preconditions.checkState(annotationsComputed,
+        "precomputeAnnotations() must be called before calling this method");
+    return isExample;
   }
 
   /**
@@ -1367,6 +1359,7 @@ public enum Property {
     } else {
       isReplaced = false;
     }
+    isExample = hasAnnotation(Example.class) || hasPrefixWithAnnotation(getKey(), Example.class);
     annotationsComputed = true;
   }
 

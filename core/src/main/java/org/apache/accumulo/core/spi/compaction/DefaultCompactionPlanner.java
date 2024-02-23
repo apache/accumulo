@@ -301,7 +301,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     String maxOpen = params.getOptions().get("maxOpen");
     if (maxOpen == null) {
-      maxOpen = Property.TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN.getDefaultValue();
+      maxOpen = Property.COMPACTION_DEFAULT_MAX_OPEN.getDefaultValue();
       log.trace("default maxOpen not set, defaulting to {}", maxOpen);
     }
     this.maxFilesToCompact = Integer.parseInt(maxOpen);

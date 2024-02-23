@@ -164,6 +164,31 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
+      // Default Compactor
+      mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER_MAXOPEN.getKey(), "10");
+      @SuppressWarnings("deprecation")
+      String executorProp = Property.COMPACTION_SERVICE_DEFAULT_PLANNER_EXECUTORS.getKey();
+      mergeProp(executorProp,
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
+              .replaceAll("'", "\""));
+
+      // Meta Compactor
+      mergeProp("compaction.service.meta.planner",
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp("compaction.service.meta.planner.opts.maxOpen", "30");
+      mergeProp("compaction.service.meta.planner.opts.executors",
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
+              .replaceAll("'", "\""));
+      // Root Compactor
+      mergeProp("compaction.service.root.planner",
+          "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner");
+      mergeProp("compaction.service.root.planner.opts.maxOpen", "30");
+      mergeProp("compaction.service.root.planner.opts.executors",
+          "[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]"
+              .replaceAll("'", "\""));
+
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
       }

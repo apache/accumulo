@@ -61,9 +61,18 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
-            "Property " + prop + " has invalid default value " + prop.getDefaultValue()
-                + " for type " + prop.getType());
+        // Default Values aren't set for example properties, so test the example values instead.
+        if (prop.isExample()) {
+          var key = prop.getKey();
+          var value = prop.getExampleValue();
+          assertTrue(Property.isValidProperty(key, value));
+          assertTrue(prop.getDefaultValue() == null,
+              "Example property must have a default value of 'null'");
+        } else {
+          assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
+              "Property " + prop + " has invalid default value " + prop.getDefaultValue()
+                  + " for type " + prop.getType());
+        }
       }
 
       // make sure property has a description
@@ -140,6 +149,9 @@ public class PropertyTest {
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
       String invalidValue, validValue = property.getDefaultValue();
+      if (property.isExample()) {
+        validValue = property.getExampleValue();
+      }
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {

@@ -97,6 +97,8 @@ public class ConfigurationDocGen {
         "<a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey(),
         depr);
     String description = prop.isExperimental() ? "**Experimental**<br>" : "";
+    description +=
+        prop.isExample() ? "**Example: property is not set in default configuration**<br>" : "";
     description += "**Available since:** ";
     if (prop.getKey().startsWith("manager.")
         && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
@@ -115,17 +117,24 @@ public class ConfigurationDocGen {
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "
         + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
-    String defaultValue = sanitize(prop.getDefaultValue()).trim();
-    if (defaultValue.isEmpty()) {
-      description += strike("**default value:** empty", depr);
-    } else if (defaultValue.contains("\n")) {
-      // deal with multi-line values, skip strikethrough of value
-      description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
-    } else if (prop.getType() == PropertyType.CLASSNAME
-        && defaultValue.startsWith("org.apache.accumulo")) {
-      description += strike("**default value:** {% jlink -f " + defaultValue + " %}", depr);
+    String value, name;
+    if (prop.isExample()) {
+      value = sanitize(prop.getExampleValue()).trim();
+      name = "**example value:** ";
     } else {
-      description += strike("**default value:** `" + defaultValue + "`", depr);
+      value = sanitize(prop.getDefaultValue()).trim();
+      name = "**default value:** ";
+    }
+    if (value.isEmpty()) {
+      description += strike(name + "empty", depr);
+    } else if (value.contains("\n")) {
+      // deal with multi-line values, skip strikethrough of value
+      description += strike(name, depr) + "\n```\n" + value + "\n```\n";
+    } else if (prop.getType() == PropertyType.CLASSNAME
+        && value.startsWith("org.apache.accumulo")) {
+      description += strike(name + "{% jlink -f " + value + " %}", depr);
+    } else {
+      description += strike(name + "`" + value + "`", depr);
     }
     doc.println("| " + key + " | " + description + " |");
   }
