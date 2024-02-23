@@ -920,7 +920,7 @@ public class ScanServer extends AbstractServer
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
-    LOG.debug("close scan: {}", scanID);
+    LOG.trace("close scan: {}", scanID);
     delegate.closeScan(tinfo, scanID);
   }
 
@@ -958,7 +958,7 @@ public class ScanServer extends AbstractServer
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
 
-      LOG.debug("started scan: {}", ims.getScanID());
+      LOG.trace("started scan: {}", ims.getScanID());
       return ims;
     } catch (TException e) {
       LOG.error("Error starting scan", e);
@@ -972,7 +972,7 @@ public class ScanServer extends AbstractServer
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    LOG.debug("continue multi scan: {}", scanID);
+    LOG.trace("continue multi scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
@@ -982,7 +982,7 @@ public class ScanServer extends AbstractServer
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    LOG.debug("close multi scan: {}", scanID);
+    LOG.trace("close multi scan: {}", scanID);
     delegate.closeMultiScan(tinfo, scanID);
   }
 
