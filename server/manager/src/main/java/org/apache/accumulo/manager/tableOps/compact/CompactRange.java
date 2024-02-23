@@ -33,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.TextUtil;
@@ -89,8 +90,9 @@ public class CompactRange extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT);
+    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true,
+        TableOperation.COMPACT)
+        + Utils.reserveTable(env, tableId, tid, LockType.READ, true, TableOperation.COMPACT);
   }
 
   @Override
@@ -179,8 +181,8 @@ public class CompactRange extends ManagerRepo {
     try {
       removeIterators(env, tid, tableId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, tid, false);
-      Utils.unreserveTable(env, tableId, tid, false);
+      Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
+      Utils.unreserveTable(env, tableId, tid, LockType.READ);
     }
   }
 

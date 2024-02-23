@@ -29,6 +29,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -47,8 +48,8 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true, TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, tid, LockType.WRITE, true, TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -100,8 +101,8 @@ public class RenameTable extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(manager, tableId, tid, true);
-      Utils.unreserveNamespace(manager, namespaceId, tid, false);
+      Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
+      Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -112,8 +113,8 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, true);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
   }
 
 }
