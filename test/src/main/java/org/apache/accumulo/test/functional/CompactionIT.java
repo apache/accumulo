@@ -836,7 +836,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.groups",
-          ("[{'name':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
+          ("[{'group':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
 
       // create a compaction service named keepme
       c.instanceOperations().setProperty(
@@ -844,7 +844,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner.opts.groups",
-          ("[{'name':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
+          ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
 
       // create a table that uses the compaction service deleteme
       Map<String,String> props = new HashMap<>();
@@ -884,7 +884,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           DefaultCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
-          ("[{'name':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
+          ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
 
       // set table 1 to a compaction service newcs
       c.tableOperations().setProperty(table1,
