@@ -258,7 +258,7 @@ class CompactionDriver extends ManagerRepo {
                 tablet.getSelectedFiles().getFateId());
             otherSelected++;
           }
-        } else {
+        } else if(!tablet.getExternalCompactions().isEmpty() && !tablet.getUserCompactionsRequested().contains(fateId)) {
           // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
           log.debug("Marking {} as needing a user requested compaction for {}", tablet.getExtent(),
