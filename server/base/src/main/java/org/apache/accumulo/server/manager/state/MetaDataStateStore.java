@@ -150,9 +150,8 @@ class MetaDataStateStore implements TabletStateStore {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
         if (tls.suspend != null) {
-          continue;
+          tabletsMutator.mutateTablet(tls.extent).deleteSuspension().mutate();
         }
-        tabletsMutator.mutateTablet(tls.extent).deleteSuspension().mutate();
       }
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
