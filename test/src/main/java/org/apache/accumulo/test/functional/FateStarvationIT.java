@@ -53,7 +53,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    var groupName = "user_small";
+    var groupName = "default";
     // Add this check in case the config changes
     Preconditions.checkState(
         Property.COMPACTION_SERVICE_DEFAULT_GROUPS.getDefaultValue().contains(groupName));
