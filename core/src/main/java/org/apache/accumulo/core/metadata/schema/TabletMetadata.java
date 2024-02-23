@@ -393,7 +393,8 @@ public class TabletMetadata {
         .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
-        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
+        .append("userCompactionsRequested", userCompactionsRequested).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {

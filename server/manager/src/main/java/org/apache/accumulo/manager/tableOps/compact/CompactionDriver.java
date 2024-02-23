@@ -156,7 +156,8 @@ class CompactionDriver extends ManagerRepo {
     int noneSelected = 0;
     int alreadySelected = 0;
     int otherSelected = 0;
-    int otherCompaction = 0;
+    int userCompactionRequested = 0;
+    int userCompactionWaiting = 0;
     int selected = 0;
 
     KeyExtent minSelected = null;
@@ -258,17 +259,24 @@ class CompactionDriver extends ManagerRepo {
                 tablet.getSelectedFiles().getFateId());
             otherSelected++;
           }
-        } else if (!tablet.getExternalCompactions().isEmpty()
-            && !tablet.getUserCompactionsRequested().contains(fateId)) {
+        } else if (!tablet.getExternalCompactions().isEmpty()) {
           // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
-          log.debug("Marking {} as needing a user requested compaction for {}", tablet.getExtent(),
-              fateId);
-          var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
-              .putUserCompactionRequested(fateId);
-          mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
-          otherCompaction++;
+          if (!tablet.getUserCompactionsRequested().contains(fateId)) {
+            log.debug(
+                "Another compaction exists for {}, Marking {} as needing a user requested compaction",
+                tablet.getExtent(), fateId);
+            var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
+                .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
+                .putUserCompactionRequested(fateId);
+            mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
+            userCompactionRequested++;
+          } else {
+            // Marker was already added and we are waiting
+            log.debug("Waiting on {} for previously marked user requested compaction {} to run",
+                tablet.getExtent(), fateId);
+            userCompactionWaiting++;
+          }
         }
       }
     } catch (InterruptedException | KeeperException e) {
@@ -277,10 +285,12 @@ class CompactionDriver extends ManagerRepo {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug("{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{}"
-        + " selected_by_other:{} no_files:{} none_selected:{} other_compaction:{} opids:{} scan_update_time:{}ms",
+    log.debug(
+        "{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{} selected_by_other:{} "
+            + "no_files:{} none_selected:{} user_compaction_requested:{} user_compaction_waiting:{} "
+            + "opids:{} scan_update_time:{}ms",
         fateId, total, complete, selected, alreadySelected, otherSelected, noFiles, noneSelected,
-        otherCompaction, opidsSeen, t2 - t1);
+        userCompactionRequested, userCompactionWaiting, opidsSeen, t2 - t1);
 
     if (selected > 0) {
       manager.getEventCoordinator().event(

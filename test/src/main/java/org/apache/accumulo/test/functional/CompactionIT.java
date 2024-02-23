@@ -980,7 +980,6 @@ public class CompactionIT extends AccumuloClusterHarness {
 
         if (current.isPresent()) {
           var currentCompaction = current.orElseThrow();
-          log.debug("Current running compaction {}", currentCompaction.getKey());
           // Next compaction started - verify it is a USER compaction and not SYSTEM
           if (!current.orElseThrow().getKey().equals(initialCompaction.get())) {
             log.debug("Next compaction {} started as type {}", currentCompaction.getKey(),
