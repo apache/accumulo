@@ -22,6 +22,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -64,7 +65,7 @@ class NamespaceCleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveNamespace(manager, namespaceId, fateId, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
 
     log.debug("Deleted namespace " + namespaceId);
 

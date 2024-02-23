@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
@@ -41,8 +42,9 @@ public class TableRangeOp extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, data.namespaceId, fateId, false, true, TableOperation.MERGE)
-        + Utils.reserveTable(env, data.tableId, fateId, true, true, TableOperation.MERGE);
+    return Utils.reserveNamespace(env, data.namespaceId, fateId, LockType.READ, true,
+        TableOperation.MERGE)
+        + Utils.reserveTable(env, data.tableId, fateId, LockType.WRITE, true, TableOperation.MERGE);
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,
@@ -70,7 +72,7 @@ public class TableRangeOp extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    Utils.unreserveNamespace(env, data.namespaceId, fateId, false);
-    Utils.unreserveTable(env, data.tableId, fateId, true);
+    Utils.unreserveNamespace(env, data.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, data.tableId, fateId, LockType.WRITE);
   }
 }

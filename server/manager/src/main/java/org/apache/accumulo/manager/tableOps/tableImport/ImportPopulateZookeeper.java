@@ -29,6 +29,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -51,7 +52,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, fateId, true, false,
+    return Utils.reserveTable(environment, tableInfo.tableId, fateId, LockType.WRITE, false,
         TableOperation.IMPORT);
   }
 
@@ -105,7 +106,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
     env.getTableManager().removeTable(tableInfo.tableId);
-    Utils.unreserveTable(env, tableInfo.tableId, fateId, true);
+    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
     env.getContext().clearTableListCache();
   }
 }
