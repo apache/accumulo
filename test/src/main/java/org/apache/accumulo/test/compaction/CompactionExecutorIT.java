@@ -94,7 +94,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   public static class TestPlanner implements CompactionPlanner {
 
     private static class GroupConfig {
-      String name;
+      String group;
     }
 
     private int filesPerCompaction;
@@ -112,7 +112,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       for (JsonElement element : GSON.get().fromJson(groups, JsonArray.class)) {
         GroupConfig groupConfig = GSON.get().fromJson(element, GroupConfig.class);
-        var cgid = params.getGroupManager().getGroup(groupConfig.name);
+        var cgid = params.getGroupManager().getGroup(groupConfig.group);
         groupIds.add(cgid);
       }
 
@@ -158,28 +158,28 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       var csp = Property.COMPACTION_SERVICE_PREFIX.getKey();
       cfg.setProperty(csp + "cs1.planner", TestPlanner.class.getName());
       cfg.setProperty(csp + "cs1.planner.opts.groups",
-          "[{'name':'e1'},{'name':'e2'},{'name':'e3'}]");
+          "[{'group':'e1'},{'group':'e2'},{'group':'e3'}]");
       cfg.setProperty(csp + "cs1.planner.opts.filesPerCompaction", "5");
       cfg.setProperty(csp + "cs1.planner.opts.process", "SYSTEM");
 
       cfg.setProperty(csp + "cs2.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs2.planner.opts.groups", "[{'name':'f1'},{'name':'f2'}]");
+      cfg.setProperty(csp + "cs2.planner.opts.groups", "[{'group':'f1'},{'group':'f2'}]");
       cfg.setProperty(csp + "cs2.planner.opts.filesPerCompaction", "7");
       cfg.setProperty(csp + "cs2.planner.opts.process", "SYSTEM");
 
       cfg.setProperty(csp + "cs3.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs3.planner.opts.groups", "[{'name':'g1'}]");
+      cfg.setProperty(csp + "cs3.planner.opts.groups", "[{'group':'g1'}]");
       cfg.setProperty(csp + "cs3.planner.opts.filesPerCompaction", "3");
       cfg.setProperty(csp + "cs3.planner.opts.process", "USER");
 
       cfg.setProperty(csp + "cs4.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "cs4.planner.opts.groups", "[{'name':'h1'},{'name':'h2'}]");
+      cfg.setProperty(csp + "cs4.planner.opts.groups", "[{'group':'h1'},{'group':'h2'}]");
       cfg.setProperty(csp + "cs4.planner.opts.filesPerCompaction", "11");
       cfg.setProperty(csp + "cs4.planner.opts.process", "USER");
 
       // this is meant to be dynamically reconfigured
       cfg.setProperty(csp + "recfg.planner", TestPlanner.class.getName());
-      cfg.setProperty(csp + "recfg.planner.opts.groups", "[{'name':'i1'},{'name':'i2'}]");
+      cfg.setProperty(csp + "recfg.planner.opts.groups", "[{'group':'i1'},{'group':'i2'}]");
       cfg.setProperty(csp + "recfg.planner.opts.filesPerCompaction", "11");
       cfg.setProperty(csp + "recfg.planner.opts.process", "SYSTEM");
 
@@ -254,7 +254,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
           "5");
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "recfg.planner.opts.groups",
-          "[{'name':'group1'}]");
+          "[{'group':'group1'}]");
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup("group1",
           1);
       compactionGroups.add("group1");
@@ -280,7 +280,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.process", "SYSTEM");
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
-          "[{'name':'add1'},{'name':'add2'}, {'name':'add3'}]");
+          "[{'group':'add1'},{'group':'add2'}, {'group':'add3'}]");
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
           TestPlanner.class.getName());
