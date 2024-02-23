@@ -184,16 +184,15 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     public void delete() throws Exception {
       testOperationWithStatuses(() -> {}, // No special setup needed for delete
           txStore::delete,
-          Set.of(TStatus.NEW, TStatus.SUBMITTED,
-              TStatus.SUCCESSFUL, TStatus.FAILED));
+          Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED));
     }
   }
 
   /**
    * Inject a status into the status col of the fate store table for a given transaction id.
    */
-  private void injectStatus(ClientContext client, String table, FateId fateId,
-      TStatus status) throws TableNotFoundException {
+  private void injectStatus(ClientContext client, String table, FateId fateId, TStatus status)
+      throws TableNotFoundException {
     try (BatchWriter writer = client.createBatchWriter(table)) {
       Mutation mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
       FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
