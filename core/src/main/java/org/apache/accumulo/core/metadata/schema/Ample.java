@@ -419,6 +419,10 @@ public interface Ample {
     T putUserCompactionRequested(FateId fateId);
 
     T deleteUserCompactionRequested(FateId fateId);
+
+    T setUnSplittable(UnSplittableMetadata unSplittableMeta);
+
+    T deleteUnSplittable();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

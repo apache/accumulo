@@ -25,10 +25,12 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -47,6 +49,7 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -69,7 +72,23 @@ public class TabletManagementIterator extends SkippingIterator {
   private TabletBalancer balancer;
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
-      final long splitThreshold) {
+      final Configuration tableConfig) {
+
+    final long splitThreshold = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    final long maxEndRowSize = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
+    final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
+        tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
+
+    // If current config/files match unsplittable metadata then we can't split
+    if (Optional
+        .ofNullable(tm.getUnSplittable()).filter(um -> um.equals(UnSplittableMetadata
+            .toUnSplittable(splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles())))
+        .isPresent()) {
+      return false;
+    }
+
     final long sumOfFileSizes =
         tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
     final boolean shouldSplit = sumOfFileSizes > splitThreshold;
@@ -255,10 +274,7 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.getOperationId() == null
         && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
-        final long splitThreshold =
-            ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
-                .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-        if (shouldReturnDueToSplit(tm, splitThreshold)) {
+        if (shouldReturnDueToSplit(tm, this.env.getPluginEnv().getConfiguration(tm.getTableId()))) {
           reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
         }
         // important to call this since reasonsToReturnThisTablet is passed to it

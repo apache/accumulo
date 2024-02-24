@@ -246,6 +246,12 @@ public class UpdateTablets extends ManagerRepo {
             tabletMetadata.getSelectedFiles().getFateId());
       }
 
+      // Clean up any previous unsplittable marker
+      if (tabletMetadata.getUnSplittable() != null) {
+        mutator.deleteUnSplittable();
+        log.debug("{} deleting stale unsplittable metadata from {}", fateId, newExtent);
+      }
+
       mutator.submit(tm -> false);
 
       var result = tabletsMutator.process().get(splitInfo.getOriginal());

@@ -44,8 +44,12 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.manager.split.SplitUtils;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
@@ -129,7 +133,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
         Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
         Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
-        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000"
+        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000",
+        Property.TABLE_MAJC_RATIO.getKey(), "9999"
       );
       // @formatter:on
       client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
@@ -155,7 +160,19 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
       // for the table to split if need be.
       client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
-      Thread.sleep(500L);
+
+      // Wait for the tablet to be marked as unsplittable due to the system split running
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      Wait.waitFor(() -> {
+        TabletMetadata tm =
+            getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+        return tm.getUnSplittable() != null;
+      }, Wait.MAX_WAIT_MILLIS, 100);
+
+      // Verify that the unsplittable column is read correctly
+      TabletMetadata tm =
+          getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
 
       // Make sure all the data that was put in the table is still correct
       int count = 0;

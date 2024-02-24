@@ -295,6 +295,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public TabletMetadataBuilder setUnSplittable(UnSplittableMetadata unSplittableMeta) {
+    fetched.add(ECOMP);
+    internalBuilder.setUnSplittable(unSplittableMeta);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteUnSplittable() {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * @param extraFetched Anything that was put on the builder will automatically be added to the
    *        fetched set. However, for the case where something was not put and it needs to be

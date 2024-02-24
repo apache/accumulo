@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
@@ -120,6 +121,7 @@ public class TabletMetadata {
   private boolean futureAndCurrentLocationSet = false;
   private Set<FateId> compacted;
   private Set<FateId> userCompactionsRequested;
+  private UnSplittableMetadata unSplittableMetadata;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -150,7 +152,8 @@ public class TabletMetadata {
     OPID,
     SELECTED,
     COMPACTED,
-    USER_COMPACTION_REQUESTED
+    USER_COMPACTION_REQUESTED,
+    UNSPLITTABLE
   }
 
   public static class Location {
@@ -381,6 +384,11 @@ public class TabletMetadata {
     return onDemandHostingRequested;
   }
 
+  public UnSplittableMetadata getUnSplittable() {
+    ensureFetched(ColumnType.UNSPLITTABLE);
+    return unSplittableMetadata;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
@@ -544,6 +552,13 @@ public class TabletMetadata {
           break;
         case UserCompactionRequestedColumnFamily.STR_NAME:
           userCompactionsRequestedBuilder.add(FateId.from(qual));
+          break;
+        case SplitColumnFamily.STR_NAME:
+          if (qual.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
+            te.unSplittableMetadata = UnSplittableMetadata.fromJson(val);
+          } else {
+            throw new IllegalStateException("Unexpected SplitColumnFamily qualifier: " + qual);
+          }
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -294,5 +295,16 @@ public class SplitUtils {
     }
 
     return splits;
+  }
+
+  public static UnSplittableMetadata toUnSplittable(ServerContext context,
+      TabletMetadata tabletMetadata) {
+    var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
+    var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+    var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
+    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+
+    return new UnSplittableMetadata(splitThreshold, maxEndRowSize, maxFilesToOpen,
+        tabletMetadata.getFiles());
   }
 }
