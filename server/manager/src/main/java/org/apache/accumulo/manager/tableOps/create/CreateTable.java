@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -63,8 +64,8 @@ public class CreateTable extends ManagerRepo {
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, false, true,
-        TableOperation.CREATE);
+    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, LockType.READ,
+        true, TableOperation.CREATE);
   }
 
   @Override
@@ -98,7 +99,7 @@ public class CreateTable extends ManagerRepo {
     } catch (IOException e) {
       log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
-      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, false);
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
     }
   }
 

@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -43,7 +44,7 @@ class FinishCreateNamespace extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) {
 
-    Utils.unreserveNamespace(env, namespaceInfo.namespaceId, fateId, true);
+    Utils.unreserveNamespace(env, namespaceInfo.namespaceId, fateId, LockType.WRITE);
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 

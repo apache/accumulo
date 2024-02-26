@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
@@ -54,8 +55,8 @@ class FinishTableRangeOp extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     removeOperationIds(log, data, fateId, manager);
 
-    Utils.unreserveTable(manager, data.tableId, fateId, true);
-    Utils.unreserveNamespace(manager, data.namespaceId, fateId, false);
+    Utils.unreserveTable(manager, data.tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager, data.namespaceId, fateId, LockType.READ);
     return null;
   }
 

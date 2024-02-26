@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -45,9 +46,10 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, false, true,
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT_CANCEL)
-        + Utils.reserveTable(env, tableId, fateId, false, true, TableOperation.COMPACT_CANCEL);
+        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true,
+            TableOperation.COMPACT_CANCEL);
   }
 
   @Override
@@ -64,8 +66,8 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, false);
-    Utils.unreserveNamespace(env, namespaceId, fateId, false);
+    Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 
 }
