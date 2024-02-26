@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -41,8 +42,8 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceInfo.namespaceId, fateId, true, false,
-        TableOperation.CREATE);
+    return Utils.reserveNamespace(environment, namespaceInfo.namespaceId, fateId, LockType.WRITE,
+        false, TableOperation.CREATE);
   }
 
   @Override
@@ -72,7 +73,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   public void undo(FateId fateId, Manager manager) throws Exception {
     manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
     manager.getContext().clearTableListCache();
-    Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, fateId, true);
+    Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, fateId, LockType.WRITE);
   }
 
 }
