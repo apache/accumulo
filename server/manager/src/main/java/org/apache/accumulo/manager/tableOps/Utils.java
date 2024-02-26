@@ -169,7 +169,7 @@ public class Utils {
     DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock != null) {
       // Validate the recovered lock type
-      if (!lock.getType().equals(lockType)) {
+      if (lock.getType() != lockType) {
         throw new IllegalStateException("Unexpected lock type " + lock.getType()
             + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
             + ". Expected " + lockType + " lock instead.");
