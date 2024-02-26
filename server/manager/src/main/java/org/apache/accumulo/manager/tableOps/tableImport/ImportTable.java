@@ -40,6 +40,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -78,7 +79,7 @@ public class ImportTable extends ManagerRepo {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, LockType.READ, true,
         TableOperation.IMPORT);
     return result;
   }
@@ -161,7 +162,7 @@ public class ImportTable extends ManagerRepo {
       Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, LockType.READ);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {

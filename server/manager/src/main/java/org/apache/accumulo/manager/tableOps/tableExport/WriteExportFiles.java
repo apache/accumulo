@@ -48,6 +48,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -92,9 +93,10 @@ class WriteExportFiles extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, false, true,
+    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, LockType.READ, true,
         TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+        + Utils.reserveTable(manager, tableInfo.tableID, tid, LockType.READ, true,
+            TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
     }
@@ -141,16 +143,16 @@ class WriteExportFiles extends ManagerRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(manager, tableInfo.tableID, tid, false);
+    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, LockType.READ);
+    Utils.unreserveTable(manager, tableInfo.tableID, tid, LockType.READ);
     Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), tid);
     return null;
   }
 
   @Override
   public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(env, tableInfo.tableID, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, LockType.READ);
+    Utils.unreserveTable(env, tableInfo.tableID, tid, LockType.READ);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
