@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -326,6 +328,15 @@ public class FateCommandTest {
     terminal.setSize(new Size(80, 24));
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
     Shell shell = new Shell(reader) {
+      @Override
+      protected void populateZooCache() {}
+
+      @Override
+      protected boolean initialAuthentication(AccumuloClient accumuloClient,
+          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        return true;
+      }
+
       @Override
       protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token) {
         return true;

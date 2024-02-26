@@ -43,6 +43,8 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -61,13 +63,16 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -191,6 +196,21 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class Shell extends ShellOptions implements KeywordExecutable {
 
+  private class ZooCachePopulator implements Runnable {
+
+    @Override
+    public void run() {
+      // populate ZooCache by trying to get a connection
+      // to a random TabletServer
+      try {
+        ThriftClientTypes.CLIENT.executeVoid(context, client -> client.ping(context.rpcCreds()));
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException("Error pinging random TabletServer");
+      }
+    }
+
+  }
+
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
 
@@ -235,6 +255,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean logErrorsToConsole = false;
   private boolean askAgain = false;
   private boolean usedClientProps = false;
+  private Future<?> populatorFuture;
 
   static {
     // set the JLine output encoding to some reasonable default if it isn't already set
@@ -262,9 +283,24 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   // this is visible only for FateCommandTest, otherwise, should be private or inline
+  protected boolean initialAuthentication(AccumuloClient accumuloClient, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
+    final Credentials toAuth = new Credentials(accumuloClient.whoami(), token);
+    return ThriftClientTypes.SHELL.execute(context, c -> c.authenticateUser(TraceUtil.traceInfo(),
+        context.rpcCreds(), toAuth.toThrift(context.getInstanceID())));
+  }
+
+  // this is visible only for FateCommandTest, otherwise, should be private or inline
   protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
     return client.securityOperations().authenticateUser(client.whoami(), token);
+  }
+
+  // this is visible only for FateCommandTest, otherwise, should be private or inline
+  protected void populateZooCache() {
+    populatorFuture =
+        context.threadPools().createGeneralScheduledExecutorService(context.getConfiguration())
+            .submit(new ZooCachePopulator());
   }
 
   private AuthenticationToken getAuthenticationToken(String principal, String authenticationString,
@@ -372,8 +408,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
-        authenticateUser(accumuloClient, token);
+        initialAuthentication(accumuloClient, token);
         context = (ClientContext) accumuloClient;
+        populateZooCache();
       } catch (Exception e) {
         printException(e);
         exitCode = 1;
@@ -602,10 +639,21 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return exitCode;
     }
 
+    boolean zooCachePopulated = false;
     while (true) {
       try {
         if (hasExited()) {
           return exitCode;
+        }
+
+        if (!zooCachePopulated && this.populatorFuture.isDone()) {
+          try {
+            this.populatorFuture.get();
+          } catch (ExecutionException | InterruptedException e) {
+            log.warn("Exception in ZooCache populator thread", e);
+          } finally {
+            zooCachePopulated = true;
+          }
         }
 
         // If tab completion is true we need to reset

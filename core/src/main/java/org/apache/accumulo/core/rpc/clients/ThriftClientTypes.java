@@ -34,6 +34,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ClientServiceThriftClient CLIENT = new ClientServiceThriftClient("client");
 
+  public static final ShellAuthenticatorThriftClient SHELL =
+      new ShellAuthenticatorThriftClient("client");
+
   public static final CompactorServiceThriftClient COMPACTOR =
       new CompactorServiceThriftClient("compactor");
 
