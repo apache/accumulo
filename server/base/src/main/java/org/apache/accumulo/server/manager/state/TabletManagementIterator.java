@@ -45,16 +45,6 @@ import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
@@ -125,20 +115,8 @@ public class TabletManagementIterator extends SkippingIterator {
 
   public static void configureScanner(final ScannerBase scanner,
       final TabletManagementParameters tabletMgmtParams) {
-    // TODO so many columns are being fetch it may not make sense to fetch columns
-    TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-    ServerColumnFamily.SELECTED_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
-    scanner.fetchColumnFamily(LogColumnFamily.NAME);
-    scanner.fetchColumnFamily(TabletColumnFamily.NAME);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    ServerColumnFamily.OPID_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(UserCompactionRequestedColumnFamily.NAME);
+    // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
+    // must be updated
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
