@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -111,7 +112,8 @@ public class MetadataConstraints implements Constraint {
           ExternalCompactionColumnFamily.NAME,
           CompactedColumnFamily.NAME,
           CHOPPED,
-          MergedColumnFamily.NAME
+          MergedColumnFamily.NAME,
+          UserCompactionRequestedColumnFamily.NAME
       );
   // @formatter:on
 
@@ -229,7 +231,8 @@ public class MetadataConstraints implements Constraint {
       if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
           || columnFamily.equals(LogColumnFamily.NAME)
           || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          || columnFamily.equals(CompactedColumnFamily.NAME))) {
+          || columnFamily.equals(CompactedColumnFamily.NAME)
+          || columnFamily.equals(UserCompactionRequestedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -267,7 +270,8 @@ public class MetadataConstraints implements Constraint {
         } catch (RuntimeException e) {
           violations = addViolation(violations, 11);
         }
-      } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
+      } else if (CompactedColumnFamily.NAME.equals(columnFamily)
+          || UserCompactionRequestedColumnFamily.NAME.equals(columnFamily)) {
         if (!FateId.isFateId(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
         }

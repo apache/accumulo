@@ -36,6 +36,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -279,6 +280,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteMerged() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder putUserCompactionRequested(FateId fateId) {
+    fetched.add(USER_COMPACTION_REQUESTED);
+    internalBuilder.putUserCompactionRequested(fateId);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteUserCompactionRequested(FateId fateId) {
     throw new UnsupportedOperationException();
   }
 

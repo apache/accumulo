@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.compact;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,16 +75,24 @@ public class CleanUp extends ManagerRepo {
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(PREV_ROW, COMPACTED).checkConsistency().build();
+            .fetch(PREV_ROW, COMPACTED, USER_COMPACTION_REQUESTED).checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       t1 = System.nanoTime();
       for (TabletMetadata tablet : tablets) {
         total++;
-        if (tablet.getCompacted().contains(fateId)) {
-          tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, COMPACTED).deleteCompacted(fateId)
-              .submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId));
+        if (tablet.getCompacted().contains(fateId)
+            || tablet.getUserCompactionsRequested().contains(fateId)) {
+          var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
+              .requireSame(tablet, COMPACTED, USER_COMPACTION_REQUESTED);
+          if (tablet.getCompacted().contains(fateId)) {
+            mutator.deleteCompacted(fateId);
+          }
+          if (tablet.getUserCompactionsRequested().contains(fateId)) {
+            mutator.deleteUserCompactionRequested(fateId);
+          }
+          mutator.submit(tabletMetadata -> !tabletMetadata.getCompacted().contains(fateId)
+              && !tabletMetadata.getUserCompactionsRequested().contains(fateId));
           submitted++;
         }
       }

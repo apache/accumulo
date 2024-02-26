@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
@@ -492,18 +493,29 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testCompacted() {
+    testFateCqValidation(CompactedColumnFamily.STR_NAME);
+  }
+
+  @Test
+  public void testUserCompactionRequested() {
+    testFateCqValidation(UserCompactionRequestedColumnFamily.STR_NAME);
+  }
+
+  // Verify that columns that store a FateId in their CQ
+  // validate and only allow a correctly formatted FateId
+  private void testFateCqValidation(String column) {
     MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
     FateId fateId = FateId.from(FateInstanceType.META, 45L);
 
     m = new Mutation(new Text("0;foo"));
-    m.put(CompactedColumnFamily.STR_NAME, fateId.canonical(), "");
+    m.put(column, fateId.canonical(), "");
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     m = new Mutation(new Text("0;foo"));
-    m.put(CompactedColumnFamily.STR_NAME, "incorrect data", "");
+    m.put(column, "incorrect data", "");
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());

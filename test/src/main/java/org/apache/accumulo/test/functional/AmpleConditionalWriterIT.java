@@ -31,6 +31,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -892,6 +893,94 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(new MetadataTime(i + 1, TimeType.MILLIS),
             context.getAmple().readTablet(e1).getTime());
       }
+    }
+  }
+
+  @Test
+  public void testUserCompactionRequested() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId45L = FateId.from(type, 45L);
+      FateId fateId55L = FateId.from(type, 55L);
+      FateId fateId56L = FateId.from(type, 56L);
+      FateId fateId65L = FateId.from(type, 65L);
+      FateId fateId75L = FateId.from(type, 75L);
+
+      var tabletMeta1 = TabletMetadata.builder(e1).build(USER_COMPACTION_REQUESTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId55L)
+          .submit(
+              tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId55L));
+      var tabletMeta2 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId45L)
+          .build(USER_COMPACTION_REQUESTED);
+      ctmi.mutateTablet(e2).requireAbsentOperation()
+          .requireSame(tabletMeta2, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId56L)
+          .submit(
+              tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId56L));
+
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+
+      tabletMeta1 = context.getAmple().readTablet(e1);
+      assertEquals(Set.of(fateId55L), tabletMeta1.getUserCompactionsRequested());
+      assertEquals(Set.of(), context.getAmple().readTablet(e2).getUserCompactionsRequested());
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId65L)
+          .putUserCompactionRequested(fateId75L).submit(tabletMetadata -> false);
+
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      tabletMeta1 = context.getAmple().readTablet(e1);
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L),
+          tabletMeta1.getUserCompactionsRequested());
+
+      // test require same with a superset
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId55L)
+          .putUserCompactionRequested(fateId65L).putUserCompactionRequested(fateId75L)
+          .putUserCompactionRequested(fateId45L).build(USER_COMPACTION_REQUESTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId55L).deleteUserCompactionRequested(fateId65L)
+          .deleteUserCompactionRequested(fateId75L).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L),
+          context.getAmple().readTablet(e1).getUserCompactionsRequested());
+
+      // test require same with a subset
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId55L)
+          .putUserCompactionRequested(fateId65L).build(USER_COMPACTION_REQUESTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId55L).deleteUserCompactionRequested(fateId65L)
+          .deleteUserCompactionRequested(fateId75L).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Set.of(fateId55L, fateId65L, fateId75L),
+          context.getAmple().readTablet(e1).getUserCompactionsRequested());
+
+      // now use the exact set the tablet has
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId55L)
+          .putUserCompactionRequested(fateId65L).putUserCompactionRequested(fateId75L)
+          .build(USER_COMPACTION_REQUESTED);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId55L).deleteUserCompactionRequested(fateId65L)
+          .deleteUserCompactionRequested(fateId75L).submit(tabletMetadata -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Set.of(), context.getAmple().readTablet(e1).getUserCompactionsRequested());
     }
   }
 

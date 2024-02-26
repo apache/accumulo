@@ -47,6 +47,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Co
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -228,6 +229,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         if (tabletMetadata.getFlushId().isPresent()) {
           c = c.setValue(Long.toString(tabletMetadata.getFlushId().getAsLong()));
         }
+        mutation.addCondition(c);
+      }
+        break;
+      case USER_COMPACTION_REQUESTED: {
+        Condition c =
+            SetEqualityIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
+                fTid -> fTid.canonical().getBytes(UTF_8), UserCompactionRequestedColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

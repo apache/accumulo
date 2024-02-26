@@ -409,7 +409,13 @@ public class CompactionCoordinator
 
     switch (job.getKind()) {
       case SYSTEM:
-        if (tablet.getSelectedFiles() != null
+        var userRequestedCompactions = tablet.getUserCompactionsRequested().size();
+        if (userRequestedCompactions > 0) {
+          LOG.debug(
+              "Unable to reserve {} for system compaction, tablet has {} pending requested user compactions",
+              tablet.getExtent(), userRequestedCompactions);
+          return false;
+        } else if (tablet.getSelectedFiles() != null
             && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles())) {
           return false;
         }
