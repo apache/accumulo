@@ -167,8 +167,7 @@ public class Utils {
     if (lock != null) {
 
       // Validate the recovered lock type
-      boolean isWriteLock = lock.getType() == LockType.WRITE;
-      if (!lock.getType().equals(lockType)) {
+      if (lock.getType() != lockType) {
         throw new IllegalStateException(
             "Unexpected lock type " + lock.getType() + " recovered for transaction " + fateId
                 + " on object " + id + ". Expected " + lockType + " lock instead.");
