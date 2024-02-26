@@ -115,6 +115,8 @@ public class TabletManagementIterator extends SkippingIterator {
 
   public static void configureScanner(final ScannerBase scanner,
       final TabletManagementParameters tabletMgmtParams) {
+    // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
+    // must be updated
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
