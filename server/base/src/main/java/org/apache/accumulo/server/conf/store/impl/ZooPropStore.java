@@ -49,8 +49,6 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class ZooPropStore implements PropStore, PropChangeListener {
 
   private final static Logger log = LoggerFactory.getLogger(ZooPropStore.class);
@@ -83,8 +81,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param watcher a watcher. Optional, if null, one is created.
    * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
    */
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "random number not used in secure context")
   ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
