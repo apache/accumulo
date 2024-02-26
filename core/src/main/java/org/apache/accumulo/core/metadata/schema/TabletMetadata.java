@@ -488,7 +488,7 @@ public class TabletMetadata {
               te.flushNonce = OptionalLong.of(Long.parseUnsignedLong(val, 16));
               break;
             case OPID_QUAL:
-              te.setOperationIdOnce(val, suppressLocationError);
+              te.setOperationIdOnce(val);
               break;
             case SELECTED_QUAL:
               te.selectedFiles = SelectedFiles.from(val);
@@ -581,10 +581,9 @@ public class TabletMetadata {
    * Sets an operation ID only once.
    *
    * @param val operation id to set
-   * @param suppressError set to true to suppress an exception being thrown, else false
    * @throws IllegalStateException if an operation id or location is already set
    */
-  private void setOperationIdOnce(String val, boolean suppressError) {
+  private void setOperationIdOnce(String val) {
     Preconditions.checkState(operationId == null);
     operationId = TabletOperationId.from(val);
   }
