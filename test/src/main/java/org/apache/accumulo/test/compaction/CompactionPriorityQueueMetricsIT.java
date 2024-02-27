@@ -151,15 +151,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
       cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
-      // Zero the default compactors
-      cfg.getClusterServerConfiguration().setNumDefaultCompactors(0);
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
 
       // Create a new queue with zero compactors.
       cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner",
           DefaultCompactionPlanner.class.getName());
       cfg.setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
-          "[{'name':'" + QUEUE1 + "'}]");
+          "[{'group':'" + QUEUE1 + "'}]");
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);

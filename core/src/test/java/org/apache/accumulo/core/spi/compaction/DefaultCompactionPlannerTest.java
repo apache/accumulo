@@ -152,8 +152,8 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testRunningCompaction() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}, {'name':'huge'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
     var planner = createPlanner(defaultConf, groups);
 
@@ -187,8 +187,8 @@ public class DefaultCompactionPlannerTest {
     aconf.set(prefix + "cs1.planner.opts.maxOpen", "15");
     ConfigurationImpl config = new ConfigurationImpl(aconf);
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}, {'name':'huge'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
     var planner = createPlanner(config, groups);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
@@ -256,8 +256,8 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testMaxSize() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
 
     var planner = createPlanner(defaultConf, groups);
     var all = createCFs("F1", "128M", "F2", "129M", "F3", "130M", "F4", "131M", "F5", "132M");
@@ -281,8 +281,8 @@ public class DefaultCompactionPlannerTest {
   public void testMultipleCompactions() {
     // This test validates that when a tablet has many files that multiple compaction jobs can be
     // issued at the same time.
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
 
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
       var planner = createPlanner(defaultConf, groups);
@@ -315,8 +315,8 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testMultipleCompactionsAndLargeCompactionRatio() {
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     var planner = createPlanner(defaultConf, groups);
     var all = IntStream.range(0, 65).mapToObj(i -> createCF("F" + i, i + 1)).collect(toSet());
     // This compaction ratio would not cause a system compaction, how a user compaction must compact
@@ -349,8 +349,8 @@ public class DefaultCompactionPlannerTest {
     // This test validates that when a tablet has many files that multiple compaction jobs can be
     // issued at the same time even if there are running compaction as long everything meets the
     // compaction ratio.
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
       var planner = createPlanner(defaultConf, groups);
       var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
@@ -391,8 +391,8 @@ public class DefaultCompactionPlannerTest {
   public void testUserCompactionDoesNotWaitOnSystemCompaction() {
     // this test ensures user compactions do not wait on system compactions to complete
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     var planner = createPlanner(defaultConf, groups);
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "3M", "F5", "3M", "F6", "3M",
         "F7", "20M");
@@ -435,7 +435,7 @@ public class DefaultCompactionPlannerTest {
   public void testQueueCreation() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
 
-    String groups = "[{\"name\": \"small\", \"maxSize\":\"32M\"},{\"name\":\"midsize\"}]";
+    String groups = "[{\"group\": \"small\", \"maxSize\":\"32M\"},{\"group\":\"midsize\"}]";
     planner.init(getInitParams(defaultConf, groups));
 
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
@@ -463,7 +463,7 @@ public class DefaultCompactionPlannerTest {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
 
     String groups =
-        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"name\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
+        "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"group\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
 
     final InitParameters params = getInitParams(defaultConf, groups);
     assertNotNull(params);
@@ -480,14 +480,15 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testErrorGroupNoName() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    String groups = "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
+    String groups = "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
 
     final InitParameters params = getInitParams(defaultConf, groups);
     assertNotNull(params);
 
     var e = assertThrows(NullPointerException.class, () -> planner.init(params),
         "Failed to throw error");
-    assertEquals(e.getMessage(), "'name' must be specified", "Error message didn't contain 'name'");
+    assertEquals(e.getMessage(), "'group' must be specified",
+        "Error message didn't contain 'group'");
   }
 
   /**
@@ -512,7 +513,7 @@ public class DefaultCompactionPlannerTest {
   public void testErrorOnlyOneMaxSize() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
     String groups =
-        "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\"}, {\"name\":\"large\"}]";
+        "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Can only have one group w/o a maxSize"),
@@ -526,7 +527,7 @@ public class DefaultCompactionPlannerTest {
   public void testErrorDuplicateMaxSize() {
     DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
     String groups =
-        "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\", \"maxSize\":\"32M\"}, {\"name\":\"large\"}]";
+        "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\", \"maxSize\":\"32M\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Duplicate maxSize set in groups"),
@@ -538,8 +539,8 @@ public class DefaultCompactionPlannerTest {
   // compaction.
   @Test
   public void testMaxTabletFiles() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
@@ -614,8 +615,8 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testMaxTabletFilesNoCompaction() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large', 'maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large', 'maxSize':'512M'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
@@ -651,8 +652,8 @@ public class DefaultCompactionPlannerTest {
   // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
   @Test
   public void testMaxTableFilesFallback() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");

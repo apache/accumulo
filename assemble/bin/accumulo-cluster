@@ -526,11 +526,7 @@ tserver:
     - localhost
 
 compactor:
-  accumulo_meta:
-    - localhost
-  user_small:
-    - localhost
-  user_large:
+  default:
     - localhost
 
 sserver:

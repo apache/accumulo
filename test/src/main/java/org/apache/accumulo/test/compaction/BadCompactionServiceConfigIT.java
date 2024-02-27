@@ -70,10 +70,10 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
       Map<String,String> siteCfg = new HashMap<>();
       siteCfg.put(CSP + "default.planner", DefaultCompactionPlanner.class.getName());
-      siteCfg.put(CSP + "default.planner.opts.groups", "[{\"name\":\"default_group\"}]");
+      siteCfg.put(CSP + "default.planner.opts.groups", "[{\"group\":\"default_group\"}]");
       siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
       // place invalid json in the planners config
-      siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'name]");
+      siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'group]");
       cfg.setSiteConfig(siteCfg);
     }
   }
@@ -128,7 +128,7 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
                 .collect(MoreCollectors.onlyElement()));
           }
 
-          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          var value = "[{'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
 
           // start the compactor, it was not started initially because of bad config
@@ -166,7 +166,7 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
       fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
-          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          var value = "[{'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
         } catch (Exception e) {
           throw new RuntimeException(e);

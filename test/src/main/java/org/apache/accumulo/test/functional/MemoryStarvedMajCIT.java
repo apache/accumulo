@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -153,14 +154,14 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       // Start the Compactors that will consume and free memory when we need it to
       getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
           MemoryConsumingCompactor.class);
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 4, 60_000);
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.getCompactorAddrs(ctx).get("user_small").size() == 1,
-          60_000);
+      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 1, 60_000);
+      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx)
+          .get(Constants.DEFAULT_RESOURCE_GROUP_NAME).size() == 1, 60_000);
 
       Map<String,List<HostAndPort>> groupedCompactors =
           ExternalCompactionUtil.getCompactorAddrs(ctx);
-      List<HostAndPort> compactorAddresses = groupedCompactors.get("user_small");
+      List<HostAndPort> compactorAddresses =
+          groupedCompactors.get(Constants.DEFAULT_RESOURCE_GROUP_NAME);
       HostAndPort compactorAddr = compactorAddresses.get(0);
 
       TableOperations to = client.tableOperations();
