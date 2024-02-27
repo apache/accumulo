@@ -154,7 +154,7 @@ public class CompactionJobQueues {
 
     var pq = priorityQueues.computeIfAbsent(groupId,
         gid -> new CompactionJobPriorityQueue(gid, queueSize));
-    while (!pq.add(tabletMetadata, jobs)) {
+    while (pq.add(tabletMetadata, jobs) == 0 && pq.isClosed()) {
       // This loop handles race condition where poll() closes empty priority queues. The queue could
       // be closed after its obtained from the map and before add is called.
       pq = priorityQueues.computeIfAbsent(groupId,

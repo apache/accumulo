@@ -116,21 +116,19 @@ public class CompactionJobPriorityQueue {
     this.dequeuedJobs = new AtomicLong(0);
   }
 
-  public synchronized boolean add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    if (closed.get()) {
-      return false;
-    }
-
+  public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
     List<CjpqKey> newEntries = new ArrayList<>(jobs.size());
 
+    int jobsAdded = 0;
     for (CompactionJob job : jobs) {
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         newEntries.add(cjqpKey);
+        jobsAdded++;
       } else {
         // The priority for this job was lower than all other priorities and not added
         // In this case we will return true even though a subset of the jobs, or none,
@@ -142,7 +140,7 @@ public class CompactionJobPriorityQueue {
       checkState(tabletJobs.put(tabletMetadata.getExtent(), newEntries) == null);
     }
 
-    return true;
+    return jobsAdded;
   }
 
   public long getMaxSize() {
@@ -187,6 +185,10 @@ public class CompactionJobPriorityQueue {
   synchronized CompactionJobQueues.MetaJob peek() {
     var firstEntry = jobQueue.firstEntry();
     return firstEntry == null ? null : firstEntry.getValue();
+  }
+
+  public boolean isClosed() {
+    return closed.get();
   }
 
   public synchronized boolean closeIfEmpty() {

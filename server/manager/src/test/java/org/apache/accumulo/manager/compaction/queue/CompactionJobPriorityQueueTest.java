@@ -72,7 +72,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertTrue(queue.add(tm, List.of(cj1)));
+    assertEquals(1, queue.add(tm, List.of(cj1)));
 
     MetaJob job = queue.peek();
     assertEquals(cj1, job.getJob());
@@ -85,7 +85,7 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(1, queue.getQueuedJobs());
 
     // replace the files for the same tablet
-    assertTrue(queue.add(tm, List.of(cj2)));
+    assertEquals(1, queue.add(tm, List.of(cj2)));
 
     job = queue.peek();
     assertEquals(cj2, job.getJob());
@@ -127,7 +127,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertTrue(queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
 
     EasyMock.verify(tm, cj1, cj2);
 
@@ -184,7 +184,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2, cj3);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertTrue(queue.add(tm, List.of(cj1, cj2, cj3)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3)));
 
     EasyMock.verify(tm, cj1, cj2, cj3);
 
@@ -235,7 +235,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertTrue(queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
 
     assertFalse(queue.closeIfEmpty());
 
@@ -258,7 +258,7 @@ public class CompactionJobPriorityQueueTest {
 
     assertTrue(queue.closeIfEmpty());
 
-    assertFalse(queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
 
   }
 
