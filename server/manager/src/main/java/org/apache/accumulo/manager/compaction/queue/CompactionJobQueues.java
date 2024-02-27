@@ -147,7 +147,7 @@ public class CompactionJobQueues {
   private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
       Collection<CompactionJob> jobs) {
 
-    if (log.isDebugEnabled()) {
+    if (log.isTraceEnabled()) {
       log.trace("Adding jobs to queue {} {} {}", groupId, tabletMetadata.getExtent(),
           jobs.stream().map(job -> "#files:" + job.getFiles().size() + ",prio:" + job.getPriority()
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
