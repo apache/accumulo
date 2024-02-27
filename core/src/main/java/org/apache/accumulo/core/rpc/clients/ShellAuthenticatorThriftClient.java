@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class ShellAuthenticatorThriftClient extends ThriftClientTypes<Client>
     implements TServerClient<Client> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ClientServiceThriftClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ShellAuthenticatorThriftClient.class);
   private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
   public ShellAuthenticatorThriftClient(String serviceName) {
@@ -58,16 +58,26 @@ public class ShellAuthenticatorThriftClient extends ThriftClientTypes<Client>
     checkArgument(context != null, "context is null");
     final long rpcTimeout = context.getClientTimeoutInMillis();
 
-    List<String> tservers = new ArrayList<>();
     final ZooCache zc = context.getZooCache();
-    for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-      tservers.add(tserver);
-    }
-    if (tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
-      LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-      warnedAboutTServersBeingDown.set(true);
-      Collections.shuffle(tservers);
+    final List<String> tservers = new ArrayList<>();
 
+    for (int retries = 0; retries < 10; retries++) {
+      // Cluster may not be up, wait for tservers to come online
+      while (true) {
+        for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
+          tservers.add(tserver);
+        }
+        if (!tservers.isEmpty()) {
+          break;
+        }
+        if (!tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
+          LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
+          warnedAboutTServersBeingDown.set(true);
+        }
+      }
+
+      // Try to connect to an online tserver
+      Collections.shuffle(tservers);
       for (String tserver : tservers) {
         var zLocPath =
             ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
@@ -88,9 +98,9 @@ public class ShellAuthenticatorThriftClient extends ThriftClientTypes<Client>
             }
           }
         }
+        LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
       }
     }
-    LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
     throw new TTransportException("Failed to connect to a server");
   }
 
@@ -100,4 +110,14 @@ public class ShellAuthenticatorThriftClient extends ThriftClientTypes<Client>
     return getTabletServerConnection(LOG, this, context, preferCachedConnections,
         warnedAboutTServersBeingDown);
   }
+
+  @Override
+  public Client getConnection(ClientContext context) {
+    try {
+      return getTabletServerConnection(context, true).getSecond();
+    } catch (TTransportException e) {
+      throw new RuntimeException("Error creating client connection", e);
+    }
+  }
+
 }
