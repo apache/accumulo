@@ -18,17 +18,12 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.apache.accumulo.core.util.Retry.NeedsLogInterval;
 import org.apache.accumulo.core.util.Retry.NeedsMaxWait;
@@ -45,24 +40,23 @@ import org.slf4j.LoggerFactory;
 public class RetryTest {
 
   private Retry retry;
-  private static final long INITIAL_WAIT = 1000;
-  private static final long WAIT_INC = 1000;
+  private static final Duration INITIAL_WAIT = Duration.ofSeconds(1);
+  private static final Duration WAIT_INC = Duration.ofSeconds(1);
   private static final double BACKOFF_FACTOR = 1.0;
   private static final long MAX_RETRIES = 5;
-  private static final long LOG_INTERVAL = 1000;
+  private static final Duration LOG_INTERVAL = Duration.ofSeconds(1);
   private Retry unlimitedRetry;
-  private static final TimeUnit MS = MILLISECONDS;
 
   private static final Logger log = LoggerFactory.getLogger(RetryTest.class);
 
   @BeforeEach
   public void setup() {
-    retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS)
-        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
-        .logInterval(LOG_INTERVAL, MS).createRetry();
-    unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS)
-        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
-        .logInterval(LOG_INTERVAL, MS).createRetry();
+    retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT).incrementBy(WAIT_INC)
+        .maxWait(WAIT_INC.multipliedBy(MAX_RETRIES)).backOffFactor(BACKOFF_FACTOR)
+        .logInterval(LOG_INTERVAL).createRetry();
+    unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT)
+        .incrementBy(WAIT_INC).maxWait(WAIT_INC.multipliedBy(MAX_RETRIES))
+        .backOffFactor(BACKOFF_FACTOR).logInterval(LOG_INTERVAL).createRetry();
   }
 
   @Test
@@ -109,15 +103,15 @@ public class RetryTest {
     retry.setMaxRetries(MAX_RETRIES);
     retry.setStartWait(INITIAL_WAIT);
     retry.setWaitIncrement(WAIT_INC);
-    retry.setMaxWait(MAX_RETRIES * 1000);
+    retry.setMaxWait(Duration.ofSeconds(1).multipliedBy(MAX_RETRIES));
     retry.setBackOffFactor(1);
     retry.setDoTimeJitter(false);
 
-    long currentWait = INITIAL_WAIT;
+    Duration currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
       retry.sleep(currentWait);
       EasyMock.expectLastCall();
-      currentWait += WAIT_INC;
+      currentWait = currentWait.plus(WAIT_INC);
     }
 
     EasyMock.replay(retry);
@@ -136,9 +130,9 @@ public class RetryTest {
     retry.setMaxRetries(MAX_RETRIES);
     retry.setBackOffFactor(1.5);
     retry.setStartWait(INITIAL_WAIT);
-    long waitIncrement = 0, currentWait = INITIAL_WAIT;
+    Duration waitIncrement, currentWait = INITIAL_WAIT;
     retry.setWaitIncrement(WAIT_INC);
-    retry.setMaxWait(MAX_RETRIES * 128000);
+    retry.setMaxWait(Duration.ofSeconds(128).multipliedBy(MAX_RETRIES));
     retry.setDoTimeJitter(false);
     double backOfFactor = 1.5, originalBackoff = 1.5;
 
@@ -146,8 +140,13 @@ public class RetryTest {
       retry.sleep(currentWait);
       double waitFactor = backOfFactor;
       backOfFactor *= originalBackoff;
-      waitIncrement = (long) (Math.ceil(waitFactor * WAIT_INC));
-      currentWait = Math.min(retry.getMaxWait(), INITIAL_WAIT + waitIncrement);
+      waitIncrement = Duration.ofMillis((long) (Math.ceil(waitFactor * WAIT_INC.toMillis())));
+      Duration tempWait = INITIAL_WAIT.plus(waitIncrement);
+      if (tempWait.compareTo(retry.getMaxWait()) > 0) {
+        currentWait = retry.getMaxWait();
+      } else {
+        currentWait = tempWait;
+      }
       EasyMock.expectLastCall();
     }
 
@@ -168,16 +167,16 @@ public class RetryTest {
     retry.setStartWait(INITIAL_WAIT);
     retry.setWaitIncrement(WAIT_INC);
     // Make the last retry not increment in length
-    retry.setMaxWait((MAX_RETRIES - 1) * 1000);
+    retry.setMaxWait(Duration.ofSeconds(MAX_RETRIES - 1));
     retry.setBackOffFactor(1);
     retry.setDoTimeJitter(false);
 
-    long currentWait = INITIAL_WAIT;
+    Duration currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
       retry.sleep(currentWait);
       EasyMock.expectLastCall();
       if (i < MAX_RETRIES - 1) {
-        currentWait += WAIT_INC;
+        currentWait = currentWait.plus(WAIT_INC);
       }
     }
 
@@ -247,94 +246,102 @@ public class RetryTest {
   @Test
   public void testInitialWait() {
     NeedsRetryDelay builder = Retry.builder().maxRetries(10);
-    builder.retryAfter(10, NANOSECONDS);
-    builder.retryAfter(10, MILLISECONDS);
-    builder.retryAfter(10, DAYS);
-    builder.retryAfter(0, NANOSECONDS);
-    builder.retryAfter(0, MILLISECONDS);
-    builder.retryAfter(0, DAYS);
+    builder.retryAfter(Duration.ofNanos(10));
+    builder.retryAfter(Duration.ofMillis(10));
+    builder.retryAfter(Duration.ofDays(10));
+    builder.retryAfter(Duration.ofNanos(0));
+    builder.retryAfter(Duration.ofMillis(0));
+    builder.retryAfter(Duration.ofDays(0));
 
-    assertThrows(IllegalArgumentException.class, () -> builder.retryAfter(-1, NANOSECONDS),
+    assertThrows(IllegalArgumentException.class, () -> builder.retryAfter(Duration.ofNanos(-1)),
         "Should not allow negative wait times");
   }
 
   @Test
   public void testIncrementBy() {
-    NeedsTimeIncrement builder = Retry.builder().maxRetries(10).retryAfter(10, MILLISECONDS);
-    builder.incrementBy(10, DAYS);
-    builder.incrementBy(10, HOURS);
-    builder.incrementBy(10, NANOSECONDS);
-    builder.incrementBy(0, DAYS);
-    builder.incrementBy(0, HOURS);
-    builder.incrementBy(0, NANOSECONDS);
+    NeedsTimeIncrement builder = Retry.builder().maxRetries(10).retryAfter(Duration.ofMillis(10));
+    builder.incrementBy(Duration.ofDays(10));
+    builder.incrementBy(Duration.ofHours(10));
+    builder.incrementBy(Duration.ofNanos(10));
+    builder.incrementBy(Duration.ofDays(0));
+    builder.incrementBy(Duration.ofHours(0));
+    builder.incrementBy(Duration.ofNanos(0));
 
-    assertThrows(IllegalArgumentException.class, () -> builder.incrementBy(-1, NANOSECONDS),
+    assertThrows(IllegalArgumentException.class, () -> builder.incrementBy(Duration.ofNanos(-1)),
         "Should not allow negative increments");
   }
 
   @Test
   public void testMaxWait() {
-    NeedsMaxWait builder =
-        Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS).incrementBy(10, MILLISECONDS);
-    builder.maxWait(15, MILLISECONDS);
-    builder.maxWait(16, MILLISECONDS);
+    NeedsMaxWait builder = Retry.builder().maxRetries(10).retryAfter(Duration.ofMillis(15))
+        .incrementBy(Duration.ofMillis(10));
+    builder.maxWait(Duration.ofMillis(15));
+    builder.maxWait(Duration.ofMillis(16));
 
-    assertThrows(IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS),
+    assertThrows(IllegalArgumentException.class, () -> builder.maxWait(Duration.ofMillis(14)),
         "Max wait time should be greater than or equal to initial wait time");
   }
 
   @Test
   public void testLogInterval() {
-    NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
-        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES).backOffFactor(1);
-    builder.logInterval(10, DAYS);
-    builder.logInterval(10, HOURS);
-    builder.logInterval(10, NANOSECONDS);
-    builder.logInterval(0, DAYS);
-    builder.logInterval(0, HOURS);
-    builder.logInterval(0, NANOSECONDS);
+    NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(Duration.ofMillis(15))
+        .incrementBy(Duration.ofMillis(10)).maxWait(Duration.ofMinutes(16)).backOffFactor(1);
+    builder.logInterval(Duration.ofDays(10));
+    builder.logInterval(Duration.ofHours(10));
+    builder.logInterval(Duration.ofNanos(10));
+    builder.logInterval(Duration.ofDays(0));
+    builder.logInterval(Duration.ofHours(0));
+    builder.logInterval(Duration.ofNanos(0));
 
-    assertThrows(IllegalArgumentException.class, () -> builder.logInterval(-1, NANOSECONDS),
+    assertThrows(IllegalArgumentException.class, () -> builder.logInterval(Duration.ofNanos(-1)),
         "Log interval must not be negative");
   }
 
   @Test
   public void properArgumentsInRetry() {
-    long maxRetries = 10, startWait = 50L, maxWait = 5000L, waitIncrement = 500L,
-        logInterval = 10000L;
-    RetryFactory factory = Retry.builder().maxRetries(maxRetries).retryAfter(startWait, MS)
-        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(1)
-        .logInterval(logInterval, MS).createFactory();
+    long maxRetries = 10;
+    Duration startWait = Duration.ofMillis(50);
+    Duration maxWait = Duration.ofMillis(5000);
+    Duration waitIncrement = Duration.ofMillis(500);
+    Duration logInterval = Duration.ofMillis(10000);
+
+    RetryFactory factory =
+        Retry.builder().maxRetries(maxRetries).retryAfter(startWait).incrementBy(waitIncrement)
+            .maxWait(maxWait).backOffFactor(1).logInterval(logInterval).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(maxRetries, retry.getMaxRetries());
-    assertEquals(startWait, retry.getCurrentWait());
-    assertEquals(maxWait, retry.getMaxWait());
-    assertEquals(waitIncrement, retry.getWaitIncrement());
-    assertEquals(logInterval, retry.getLogInterval());
+    assertEquals(startWait.toMillis(), retry.getCurrentWait().toMillis());
+    assertEquals(maxWait.toMillis(), retry.getMaxWait().toMillis());
+    assertEquals(waitIncrement.toMillis(), retry.getWaitIncrement().toMillis());
+    assertEquals(logInterval.toMillis(), retry.getLogInterval().toMillis());
   }
 
   @Test
   public void properArgumentsInUnlimitedRetry() {
-    long startWait = 50L, maxWait = 5000L, waitIncrement = 500L, logInterval = 10000L;
+    Duration startWait = Duration.ofMillis(50);
+    Duration maxWait = Duration.ofSeconds(5);
+    Duration waitIncrement = Duration.ofMillis(500);
+    Duration logInterval = Duration.ofSeconds(10);
     double waitFactor = 1.0;
-    RetryFactory factory = Retry.builder().infiniteRetries().retryAfter(startWait, MS)
-        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(waitFactor)
-        .logInterval(logInterval, MS).createFactory();
+
+    RetryFactory factory =
+        Retry.builder().infiniteRetries().retryAfter(startWait).incrementBy(waitIncrement)
+            .maxWait(maxWait).backOffFactor(waitFactor).logInterval(logInterval).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(-1, retry.getMaxRetries());
-    assertEquals(startWait, retry.getCurrentWait());
-    assertEquals(maxWait, retry.getMaxWait());
-    assertEquals(waitIncrement, retry.getWaitIncrement());
-    assertEquals(logInterval, retry.getLogInterval());
+    assertEquals(startWait.toMillis(), retry.getCurrentWait().toMillis());
+    assertEquals(maxWait.toMillis(), retry.getMaxWait().toMillis());
+    assertEquals(waitIncrement.toMillis(), retry.getWaitIncrement().toMillis());
+    assertEquals(logInterval.toMillis(), retry.getLogInterval().toMillis());
   }
 
   @Test
   public void testInfiniteRetryWithBackoff() throws InterruptedException {
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(500, MILLISECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofMillis(500)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
     for (int i = 0; i < 100; i++) {
       try {
         retry.waitForNextAttempt(log, i + "");
