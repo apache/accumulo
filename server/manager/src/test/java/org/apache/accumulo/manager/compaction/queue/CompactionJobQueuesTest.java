@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +41,6 @@ import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class CompactionJobQueuesTest {
@@ -113,6 +114,6 @@ public class CompactionJobQueuesTest {
     executor.shutdown();
 
     // The background threads should have seen every job that was added
-    Assertions.assertEquals(numToAdd, totalSeen);
+    assertEquals(numToAdd, totalSeen);
   }
 }
