@@ -166,16 +166,6 @@ public class MiniAccumuloConfigImpl {
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
-      mergeProp(Property.COMPACTION_SERVICE_ROOT_PLANNER.getKey(),
-          Property.COMPACTION_SERVICE_ROOT_PLANNER.getDefaultValue());
-      mergeProp(Property.COMPACTION_SERVICE_ROOT_GROUPS.getKey(),
-          Property.COMPACTION_SERVICE_ROOT_GROUPS.getDefaultValue());
-
-      mergeProp(Property.COMPACTION_SERVICE_META_PLANNER.getKey(),
-          Property.COMPACTION_SERVICE_META_PLANNER.getDefaultValue());
-      mergeProp(Property.COMPACTION_SERVICE_META_GROUPS.getKey(),
-          Property.COMPACTION_SERVICE_META_GROUPS.getDefaultValue());
-
       mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
 

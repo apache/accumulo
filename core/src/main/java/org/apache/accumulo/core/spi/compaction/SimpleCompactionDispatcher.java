@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,7 +74,8 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
   public void init(InitParameters params) {
     services = new EnumMap<>(CompactionKind.class);
 
-    var defaultService = CompactionDispatch.builder().toService("default").build();
+    var defaultService =
+        CompactionDispatch.builder().toService(DEFAULT_COMPACTION_SERVICE_NAME).build();
 
     if (params.getOptions().containsKey("service")) {
       defaultService =

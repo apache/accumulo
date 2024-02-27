@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.init;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +53,8 @@ class InitialConfiguration {
     this.siteConf = siteConf;
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+        DEFAULT_COMPACTION_SERVICE_NAME);
 
     initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
     initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
@@ -88,9 +91,14 @@ class InitialConfiguration {
 
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+        DEFAULT_COMPACTION_SERVICE_NAME);
 
-    // TODO configure initial fate table config.. probably needs compaction config??
+    // ELASTICITY_TODO configure initial fate table config
+    initialFateTableConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+        SimpleCompactionDispatcher.class.getName());
+    initialFateTableConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+        DEFAULT_COMPACTION_SERVICE_NAME);
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name

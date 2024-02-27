@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -59,30 +61,13 @@ public enum Property {
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
       "3.1.0"),
-  COMPACTION_SERVICE_ROOT_PLANNER(COMPACTION_SERVICE_PREFIX + "root.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service.", "4.0.0"),
-  COMPACTION_SERVICE_ROOT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "root.planner.opts.maxOpen", "30",
-      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_ROOT_GROUPS(COMPACTION_SERVICE_PREFIX + "root.planner.opts.groups",
-      "[{'group':'default'}]".replaceAll("'", "\""), PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "4.0.0"),
-  COMPACTION_SERVICE_META_PLANNER(COMPACTION_SERVICE_PREFIX + "meta.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table.", "4.0.0"),
-  COMPACTION_SERVICE_META_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.maxOpen", "30",
-      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_META_GROUPS(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.groups",
-      "[{'group':'default'}]".replaceAll("'", "\""), PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_PLANNER(COMPACTION_SERVICE_PREFIX + "default.planner",
+  COMPACTION_SERVICE_DEFAULT_PLANNER(
+      COMPACTION_SERVICE_PREFIX + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "default.planner.opts.maxOpen",
-      "10", PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups",
+  COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.maxOpen", "10",
+      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
+  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.groups",
       ("[{'group':'default'}]").replaceAll("'", "\""), PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "4.0.0"),

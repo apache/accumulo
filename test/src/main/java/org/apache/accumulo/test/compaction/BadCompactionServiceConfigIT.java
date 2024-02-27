@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -69,8 +70,10 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
       Map<String,String> siteCfg = new HashMap<>();
-      siteCfg.put(CSP + "default.planner", DefaultCompactionPlanner.class.getName());
-      siteCfg.put(CSP + "default.planner.opts.groups", "[{\"group\":\"default_group\"}]");
+      siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+          DefaultCompactionPlanner.class.getName());
+      siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.groups",
+          "[{\"group\":\"default\"}]");
       siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
       // place invalid json in the planners config
       siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'group]");
@@ -225,7 +228,8 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
 
           // fix the compaction dispatcher config
           client.tableOperations().setProperty(table,
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "default");
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+              DEFAULT_COMPACTION_SERVICE_NAME);
 
         } catch (Exception e) {
           throw new RuntimeException(e);
