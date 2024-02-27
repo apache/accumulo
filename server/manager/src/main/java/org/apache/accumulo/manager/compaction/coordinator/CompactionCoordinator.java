@@ -97,7 +97,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -326,7 +325,7 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    CompactorGroupId groupId = CompactorGroupIdImpl.groupId(groupName);
+    CompactorGroupId groupId = CompactorGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
@@ -365,7 +364,7 @@ public class CompactionCoordinator
         LOG.debug(
             "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
             metaJob.getTabletMetadata().getExtent(), groupName);
-        metaJob = jobQueues.poll(CompactorGroupIdImpl.groupId(groupName));
+        metaJob = jobQueues.poll(CompactorGroupId.of(groupName));
       }
     }
 

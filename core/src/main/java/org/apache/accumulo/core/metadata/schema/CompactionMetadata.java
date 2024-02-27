@@ -31,7 +31,6 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 
 public class CompactionMetadata {
 
@@ -126,9 +125,8 @@ public class CompactionMetadata {
 
     return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
-        CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactorGroupIdImpl.groupId(jData.groupId), jData.propDels,
-        jData.fateId == null ? null : FateId.from(jData.fateId));
+        CompactionKind.valueOf(jData.kind), jData.priority, CompactorGroupId.of(jData.groupId),
+        jData.propDels, jData.fateId == null ? null : FateId.from(jData.fateId));
   }
 
   @Override

@@ -73,7 +73,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
@@ -697,7 +696,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
-          CompactorGroupId ceid = CompactorGroupIdImpl.groupId("G1");
+          CompactorGroupId ceid = CompactorGroupId.of("G1");
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
           CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
