@@ -53,7 +53,10 @@ public class CompactionJobQueuesTest {
    */
   @Test
   public void testAddPollRaceCondition() throws Exception {
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100_000);
+
+    final int numToAdd = 100_000;
+
+    CompactionJobQueues jobQueues = new CompactionJobQueues(numToAdd + 1);
     CompactorGroupId[] groups = Stream.of("G1", "G2", "G3")
         .map(s -> CompactorGroupIdImpl.groupId(s)).toArray(l -> new CompactorGroupId[l]);
 
@@ -87,7 +90,6 @@ public class CompactionJobQueuesTest {
 
     // Add jobs to queues spread across the groups. While these are being added the background
     // threads should concurrently empty queues causing them to be deleted.
-    final int numToAdd = 100_000;
     for (int i = 0; i < numToAdd; i++) {
       // Create unique exents because re-adding the same extent will clobber any jobs already in the
       // queue for that extent which could throw off the counts
