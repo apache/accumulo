@@ -36,6 +36,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -64,16 +65,17 @@ public class ShellAuthenticatorThriftClient extends ThriftClientTypes<Client>
     for (int retries = 0; retries < 10; retries++) {
       // Cluster may not be up, wait for tservers to come online
       while (true) {
-        for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-          tservers.add(tserver);
-        }
+        tservers.addAll(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
+
         if (!tservers.isEmpty()) {
           break;
         }
-        if (!tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
+
+        if (tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
           LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           warnedAboutTServersBeingDown.set(true);
         }
+        UtilWaitThread.sleep(100);
       }
 
       // Try to connect to an online tserver
