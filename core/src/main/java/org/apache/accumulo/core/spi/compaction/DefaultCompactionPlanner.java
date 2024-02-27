@@ -72,8 +72,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <th>Description</th>
  * </tr>
  * <tr>
- * <td>name</td>
- * <td>name of the compactor group (required)</td>
+ * <td>group</td>
+ * <td>name of the compactor resource group (required)</td>
  * </tr>
  * <tr>
  * <td>maxSize</td>
@@ -97,9 +97,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <pre>
  * {@code
  * [
- *  {"name":"small", "maxSize":"100M"},
- *  {"name":"medium", "maxSize":"500M"},
- *  {"name": "large"}
+ *  {"group":"small", "maxSize":"100M"},
+ *  {"group":"medium", "maxSize":"500M"},
+ *  {"group": "large"}
  * ]}
  * </pre>
  * </ul>
