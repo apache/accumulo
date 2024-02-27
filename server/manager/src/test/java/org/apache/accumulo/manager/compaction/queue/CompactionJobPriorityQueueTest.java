@@ -258,7 +258,7 @@ public class CompactionJobPriorityQueueTest {
 
     assertTrue(queue.closeIfEmpty());
 
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(-1, queue.add(tm, List.of(cj1, cj2)));
 
   }
 
