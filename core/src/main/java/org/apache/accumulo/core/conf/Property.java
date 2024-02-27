@@ -56,8 +56,8 @@ public enum Property {
           + "`compaction.service.newService.planner="
           + "\"org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner\".`\n"
           + "`compaction.service.newService.opts.groups=\""
-          + "[{\"name\": \"small\", \"maxSize\":\"32M\"},"
-          + "{ \"name\":\"medium\", \"maxSize\":\"512M\"},{\"name\":\"large\"}]`\n"
+          + "[{\"group\": \"small\", \"maxSize\":\"32M\"},"
+          + "{ \"group\":\"medium\", \"maxSize\":\"512M\"},{\"group\":\"large\"}]`\n"
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
       "3.1.0"),
