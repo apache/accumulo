@@ -116,8 +116,14 @@ public class CompactionJobPriorityQueue {
     this.dequeuedJobs = new AtomicLong(0);
   }
 
+  /**
+   * @return the number of jobs added. If the queue is closed returns -1
+   */
   public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
+    if (closed.get()) {
+      return -1;
+    }
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
