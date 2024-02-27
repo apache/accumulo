@@ -86,7 +86,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -836,7 +836,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       // create a compaction service named deleteme
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner",
-          DefaultCompactionPlanner.class.getName());
+          RatioBasedCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "deleteme.planner.opts.groups",
           ("[{'group':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
@@ -844,7 +844,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       // create a compaction service named keepme
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner",
-          DefaultCompactionPlanner.class.getName());
+          RatioBasedCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "keepme.planner.opts.groups",
           ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
@@ -884,7 +884,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       // add a new compaction service named newcs
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner",
-          DefaultCompactionPlanner.class.getName());
+          RatioBasedCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
           ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));

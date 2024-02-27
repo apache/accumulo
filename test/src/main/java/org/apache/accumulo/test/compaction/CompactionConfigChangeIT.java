@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -49,7 +49,7 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     cfg.getClusterServerConfiguration().addCompactorResourceGroup("big", 1);
 
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
         ("[{'group':'small','maxSize':'2M'}, {'group':'medium','maxSize':'128M'},"
             + "{'group':'large'}]").replaceAll("'", "\""));

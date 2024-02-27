@@ -122,9 +122,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @see org.apache.accumulo.core.spi.compaction
  */
 
-public class DefaultCompactionPlanner implements CompactionPlanner {
+public class RatioBasedCompactionPlanner implements CompactionPlanner {
 
-  private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
+  private final static Logger log = LoggerFactory.getLogger(RatioBasedCompactionPlanner.class);
 
   private static class GroupConfig {
     String group;

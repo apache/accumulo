@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -71,10 +71,10 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
       Map<String,String> siteCfg = new HashMap<>();
       siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
-          DefaultCompactionPlanner.class.getName());
+          RatioBasedCompactionPlanner.class.getName());
       siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.groups",
           "[{\"group\":\"default\"}]");
-      siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
+      siteCfg.put(CSP + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
       // place invalid json in the planners config
       siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'group]");
       cfg.setSiteConfig(siteCfg);

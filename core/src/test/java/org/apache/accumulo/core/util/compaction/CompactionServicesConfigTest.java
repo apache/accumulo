@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.junit.jupiter.api.Test;
 
 public class CompactionServicesConfigTest {
@@ -37,7 +37,7 @@ public class CompactionServicesConfigTest {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.maxOpen", "10");
     conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.groups",
         "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]");
@@ -55,7 +55,7 @@ public class CompactionServicesConfigTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     CompactionServicesConfig compactionConfig;
 
-    conf.set(prefix.getKey() + "cs1.planner", DefaultCompactionPlanner.class.getName());
+    conf.set(prefix.getKey() + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
     conf.set(prefix.getKey() + "cs1.rate.limit", "2M");
     compactionConfig = new CompactionServicesConfig(conf);
     assertEquals(2097152, compactionConfig.getRateLimits().get("cs1"));

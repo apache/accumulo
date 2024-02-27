@@ -61,7 +61,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonParseException;
 
-public class DefaultCompactionPlannerTest {
+public class RatioBasedCompactionPlannerTest {
 
   private static <T> T getOnlyElement(Collection<T> c) {
     return c.stream().collect(onlyElement());
@@ -433,7 +433,7 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testQueueCreation() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
 
     String groups = "[{\"group\": \"small\", \"maxSize\":\"32M\"},{\"group\":\"midsize\"}]";
     planner.init(getInitParams(defaultConf, groups));
@@ -460,7 +460,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorAdditionalConfigFields() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
 
     String groups =
         "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"group\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
@@ -479,7 +479,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorGroupNoName() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups = "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
 
     final InitParameters params = getInitParams(defaultConf, groups);
@@ -496,7 +496,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorNoGroups() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     var groupParams = getInitParams(defaultConf, "");
     assertNotNull(groupParams);
 
@@ -511,7 +511,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorOnlyOneMaxSize() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups =
         "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
@@ -525,7 +525,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorDuplicateMaxSize() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups =
         "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\", \"maxSize\":\"32M\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
@@ -750,7 +750,8 @@ public class DefaultCompactionPlannerTest {
 
   private static void testFFtC(Set<CompactableFile> expected, Set<CompactableFile> files,
       double ratio, int maxFiles, long maxSize) {
-    var result = DefaultCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
+    var result =
+        RatioBasedCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
     var expectedNames = expected.stream().map(CompactableFile::getUri).map(URI::getPath)
         .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(toSet());
     var resultNames = result.stream().map(CompactableFile::getUri).map(URI::getPath)
@@ -838,8 +839,8 @@ public class DefaultCompactionPlannerTest {
     return new CompactionPlannerInitParams(csid, prefix, options, senv);
   }
 
-  private static DefaultCompactionPlanner createPlanner(Configuration conf, String groups) {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+  private static RatioBasedCompactionPlanner createPlanner(Configuration conf, String groups) {
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     var initParams = getInitParams(conf, groups);
     planner.init(initParams);
     return planner;
