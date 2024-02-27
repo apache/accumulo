@@ -24,6 +24,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -31,16 +33,17 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -57,44 +60,54 @@ public interface TServerClient<C extends TServiceClient> {
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned)
       throws TTransportException {
     checkArgument(context != null, "context is null");
-    long rpcTimeout = context.getClientTimeoutInMillis();
-    // create list of servers
-    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+    final long rpcTimeout = context.getClientTimeoutInMillis();
 
-    // add tservers
-    ZooCache zc = context.getZooCache();
-    for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-      var zLocPath =
-          ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      byte[] data = zc.getLockData(zLocPath);
-      if (data != null) {
-        String strData = new String(data, UTF_8);
-        if (!strData.equals("manager")) {
-          servers.add(new ThriftTransportKey(
-              new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+    final ZooCache zc = context.getZooCache();
+    final List<String> tservers = new ArrayList<>();
+    final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
+
+    for (int retries = 0; retries < 10; retries++) {
+      // Cluster may not be up, wait for tservers to come online
+      while (true) {
+        tservers.addAll(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
+
+        if (!tservers.isEmpty()) {
+          break;
         }
-      }
-    }
 
-    boolean opened = false;
-    try {
-      Pair<String,TTransport> pair =
-          context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
-      C client = ThriftUtil.createClient(type, pair.getSecond());
-      opened = true;
-      warned.set(false);
-      return new Pair<>(pair.getFirst(), client);
-    } finally {
-      if (!opened) {
-        if (warned.compareAndSet(false, true)) {
-          if (servers.isEmpty()) {
-            LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-          } else {
-            LOG.warn("Failed to find an available server in the list of servers: {}", servers);
+        if (tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
+          LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
+          warnedAboutTServersBeingDown.set(true);
+        }
+        UtilWaitThread.sleep(100);
+      }
+
+      // Try to connect to an online tserver
+      Collections.shuffle(tservers);
+      for (String tserver : tservers) {
+        var zLocPath =
+            ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
+        byte[] data = zc.getLockData(zLocPath);
+        if (data != null) {
+          String strData = new String(data, UTF_8);
+          if (!strData.equals("manager")) {
+            final HostAndPort tserverClientAddress =
+                new ServerServices(strData).getAddress(Service.TSERV_CLIENT);
+            try {
+              TTransport transport = context.getTransportPool().getTransport(tserverClientAddress,
+                  rpcTimeout, context);
+              C client = ThriftUtil.createClient(type, transport);
+              return new Pair<String,C>(tserverClientAddress.toString(), client);
+            } catch (TTransportException e) {
+              LOG.trace("Error creating transport to {}", tserverClientAddress);
+              continue;
+            }
           }
         }
+        LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
       }
     }
+    throw new TTransportException("Failed to connect to a server");
   }
 
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
