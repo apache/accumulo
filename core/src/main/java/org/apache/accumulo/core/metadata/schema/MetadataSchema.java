@@ -421,6 +421,15 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    /**
+     * Column family for indicating that a user has requested to compact a tablet. The column
+     * qualifier is expected to contain the fate transaction id that is executing the request.
+     */
+    public static class UserCompactionRequestedColumnFamily {
+      public static final String STR_NAME = "userRequestToCompact";
+      public static final Text NAME = new Text(STR_NAME);
+    }
+
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
     public static class Upgrade12to13 {
 

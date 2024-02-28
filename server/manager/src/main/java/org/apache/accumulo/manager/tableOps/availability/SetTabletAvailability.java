@@ -29,6 +29,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -59,9 +60,9 @@ public class SetTabletAvailability extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager, namespaceId, fateId, false, true,
+    return Utils.reserveNamespace(manager, namespaceId, fateId, LockType.READ, true,
         TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager, tableId, fateId, true, true,
+        + Utils.reserveTable(manager, tableId, fateId, LockType.WRITE, true,
             TableOperation.SET_TABLET_AVAILABILITY);
   }
 
@@ -116,15 +117,15 @@ public class SetTabletAvailability extends ManagerRepo {
         mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
       }
     }
-    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
-    Utils.unreserveTable(manager, tableId, fateId, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
     return null;
   }
 
   @Override
   public void undo(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
-    Utils.unreserveTable(manager, tableId, fateId, true);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
   }
 
 }

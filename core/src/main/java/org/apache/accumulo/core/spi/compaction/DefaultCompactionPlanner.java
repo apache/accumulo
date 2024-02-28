@@ -72,8 +72,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <th>Description</th>
  * </tr>
  * <tr>
- * <td>name</td>
- * <td>name of the compactor group (required)</td>
+ * <td>group</td>
+ * <td>name of the compactor resource group (required)</td>
  * </tr>
  * <tr>
  * <td>maxSize</td>
@@ -97,9 +97,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <pre>
  * {@code
  * [
- *  {"name":"small", "maxSize":"100M"},
- *  {"name":"medium", "maxSize":"500M"},
- *  {"name": "large"}
+ *  {"group":"small", "maxSize":"100M"},
+ *  {"group":"medium", "maxSize":"500M"},
+ *  {"group": "large"}
  * ]}
  * </pre>
  * </ul>
@@ -127,7 +127,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   private final static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   private static class GroupConfig {
-    String name;
+    String group;
     String maxSize;
   }
 
@@ -192,7 +192,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
             : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
         CompactorGroupId cgid;
-        String group = Objects.requireNonNull(groupConfig.name, "'name' must be specified");
+        String group = Objects.requireNonNull(groupConfig.group, "'group' must be specified");
         cgid = params.getGroupManager().getGroup(group);
         tmpGroups.add(new CompactionGroup(cgid, maxSize));
       }

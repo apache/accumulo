@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -143,8 +143,8 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
 
     private void testOperationWithStatuses(Runnable beforeOperation, Executable operation,
-        Set<ReadOnlyFateStore.TStatus> acceptableStatuses) throws Exception {
-      for (ReadOnlyFateStore.TStatus status : ReadOnlyFateStore.TStatus.values()) {
+        Set<TStatus> acceptableStatuses) throws Exception {
+      for (TStatus status : TStatus.values()) {
         // Run any needed setup for the operation before each iteration
         beforeOperation.run();
 
@@ -164,7 +164,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     public void push() throws Exception {
       testOperationWithStatuses(() -> {}, // No special setup needed for push
           () -> txStore.push(new FateIT.TestRepo("testOp")),
-          Set.of(ReadOnlyFateStore.TStatus.IN_PROGRESS, ReadOnlyFateStore.TStatus.NEW));
+          Set.of(TStatus.IN_PROGRESS, TStatus.NEW));
     }
 
     @Test
@@ -172,28 +172,27 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       testOperationWithStatuses(() -> {
         // Setup for pop: Ensure there something to pop by first pushing
         try {
-          injectStatus(client, tableName, fateId, ReadOnlyFateStore.TStatus.NEW);
+          injectStatus(client, tableName, fateId, TStatus.NEW);
           txStore.push(new FateIT.TestRepo("testOp"));
         } catch (Exception e) {
           throw new RuntimeException("Failed to setup for pop", e);
         }
-      }, txStore::pop, Set.of(ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS));
+      }, txStore::pop, Set.of(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL));
     }
 
     @Test
     public void delete() throws Exception {
       testOperationWithStatuses(() -> {}, // No special setup needed for delete
           txStore::delete,
-          Set.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.SUBMITTED,
-              ReadOnlyFateStore.TStatus.SUCCESSFUL, ReadOnlyFateStore.TStatus.FAILED));
+          Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED));
     }
   }
 
   /**
    * Inject a status into the status col of the fate store table for a given transaction id.
    */
-  private void injectStatus(ClientContext client, String table, FateId fateId,
-      ReadOnlyFateStore.TStatus status) throws TableNotFoundException {
+  private void injectStatus(ClientContext client, String table, FateId fateId, TStatus status)
+      throws TableNotFoundException {
     try (BatchWriter writer = client.createBatchWriter(table)) {
       Mutation mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
       FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));

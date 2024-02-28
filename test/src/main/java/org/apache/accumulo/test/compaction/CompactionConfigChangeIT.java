@@ -51,8 +51,8 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
-        ("[{'name':'small','maxSize':'2M'}, {'name':'medium','maxSize':'128M'},"
-            + "{'name':'large'}]").replaceAll("'", "\""));
+        ("[{'group':'small','maxSize':'2M'}, {'group':'medium','maxSize':'128M'},"
+            + "{'group':'large'}]").replaceAll("'", "\""));
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -102,7 +102,7 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       // with running compactions.
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
-          ("[{'name':'little','maxSize':'128M'},{'name':'big'}]").replaceAll("'", "\""));
+          ("[{'group':'little','maxSize':'128M'},{'group':'big'}]").replaceAll("'", "\""));
 
       Wait.waitFor(() -> countFiles(client, table, "F") == 0, 60000);
 

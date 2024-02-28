@@ -516,9 +516,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int tableCount = 4;
 
-    // Start 4 Compactors for the user_small group
+    // Start 4 Compactors for the default group
     MiniAccumuloClusterImpl mini = (MiniAccumuloClusterImpl) getCluster();
-    mini.getConfig().getClusterServerConfiguration().addCompactorResourceGroup("user_small", 4);
+    mini.getConfig().getClusterServerConfiguration()
+        .addCompactorResourceGroup(Constants.DEFAULT_RESOURCE_GROUP_NAME, 4);
     mini.start();
 
     List<SlowOps> tables = Arrays.stream(getUniqueNames(tableCount))

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -47,7 +48,7 @@ import com.google.common.base.Preconditions;
  * </p>
  */
 public class CompactionJobPriorityQueue {
-  // ELASTICITY_TODO unit test this class
+
   private final CompactorGroupId groupId;
 
   private class CjpqKey implements Comparable<CjpqKey> {
@@ -59,7 +60,7 @@ public class CompactionJobPriorityQueue {
 
     CjpqKey(CompactionJob job) {
       this.job = job;
-      this.seq = nextSeq++;
+      this.seq = nextSeq.incrementAndGet();
     }
 
     @Override
@@ -102,9 +103,9 @@ public class CompactionJobPriorityQueue {
   // jobs in the queue when new jobs are queued for a tablet.
   private final Map<KeyExtent,List<CjpqKey>> tabletJobs;
 
-  private long nextSeq;
+  private final AtomicLong nextSeq = new AtomicLong(0);
 
-  private boolean closed = false;
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
@@ -115,21 +116,29 @@ public class CompactionJobPriorityQueue {
     this.dequeuedJobs = new AtomicLong(0);
   }
 
-  public synchronized boolean add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    if (closed) {
-      return false;
-    }
-
+  /**
+   * @return the number of jobs added. If the queue is closed returns -1
+   */
+  public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
+    if (closed.get()) {
+      return -1;
+    }
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
     List<CjpqKey> newEntries = new ArrayList<>(jobs.size());
 
+    int jobsAdded = 0;
     for (CompactionJob job : jobs) {
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         newEntries.add(cjqpKey);
+        jobsAdded++;
+      } else {
+        // The priority for this job was lower than all other priorities and not added
+        // In this case we will return true even though a subset of the jobs, or none,
+        // were added
       }
     }
 
@@ -137,7 +146,7 @@ public class CompactionJobPriorityQueue {
       checkState(tabletJobs.put(tabletMetadata.getExtent(), newEntries) == null);
     }
 
-    return true;
+    return jobsAdded;
   }
 
   public long getMaxSize() {
@@ -178,9 +187,19 @@ public class CompactionJobPriorityQueue {
     return first == null ? null : first.getValue();
   }
 
+  // exists for tests
+  synchronized CompactionJobQueues.MetaJob peek() {
+    var firstEntry = jobQueue.firstEntry();
+    return firstEntry == null ? null : firstEntry.getValue();
+  }
+
+  public boolean isClosed() {
+    return closed.get();
+  }
+
   public synchronized boolean closeIfEmpty() {
     if (jobQueue.isEmpty()) {
-      closed = true;
+      closed.set(true);
       return true;
     }
 
@@ -205,7 +224,9 @@ public class CompactionJobPriorityQueue {
         return null;
       } else {
         // the new job has a higher priority than the lowest job in the queue, so remove the lowest
-        jobQueue.pollLastEntry();
+        if (jobQueue.pollLastEntry() != null) {
+          rejectedJobs.getAndIncrement();
+        }
       }
 
     }

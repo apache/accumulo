@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -331,6 +332,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteMerged() {
     MergedColumnFamily.MERGED_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T putUserCompactionRequested(FateId fateId) {
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical(), "");
+    return getThis();
+  }
+
+  @Override
+  public T deleteUserCompactionRequested(FateId fateId) {
+    mutation.putDelete(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical());
     return getThis();
   }
 
