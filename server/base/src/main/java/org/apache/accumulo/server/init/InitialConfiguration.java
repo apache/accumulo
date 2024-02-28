@@ -56,22 +56,18 @@ class InitialConfiguration {
     commonConfig.put(Property.TABLE_DURABILITY.getKey(), "sync");
     commonConfig.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
     commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
-            "10," + VersioningIterator.class.getName());
-    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
-            "1");
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions", "1");
     commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
-            "10," + VersioningIterator.class.getName());
-    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
-            "1");
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions", "1");
     commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
-            "10," + VersioningIterator.class.getName());
-    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
-            "1");
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions", "1");
     commonConfig.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     commonConfig.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
     commonConfig.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
     commonConfig.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
-
 
     initialRootMetaConf.putAll(commonConfig);
     initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
