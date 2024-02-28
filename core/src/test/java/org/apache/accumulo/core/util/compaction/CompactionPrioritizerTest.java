@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.junit.jupiter.api.Test;
 
 public class CompactionPrioritizerTest {
@@ -48,7 +49,7 @@ public class CompactionPrioritizerTest {
     }
     // TODO pass numFiles
     return new CompactionJobImpl(createPriority(TableId.of("1"), kind, totalFiles, numFiles),
-        CompactorGroupIdImpl.groupId("test"), files, kind, Optional.of(false));
+        CompactorGroupId.of("test"), files, kind, Optional.of(false));
   }
 
   @Test

@@ -37,7 +37,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues.MetaJob;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -45,7 +44,7 @@ import org.junit.jupiter.api.Test;
 
 public class CompactionJobPriorityQueueTest {
 
-  private static final CompactorGroupId GROUP = CompactorGroupIdImpl.groupId("TEST");
+  private static final CompactorGroupId GROUP = CompactorGroupId.of("TEST");
 
   @Test
   public void testTabletFileReplacement() {
@@ -258,7 +257,7 @@ public class CompactionJobPriorityQueueTest {
 
     assertTrue(queue.closeIfEmpty());
 
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(-1, queue.add(tm, List.of(cj1, cj2)));
 
   }
 

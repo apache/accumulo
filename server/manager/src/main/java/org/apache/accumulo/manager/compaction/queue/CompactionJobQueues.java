@@ -29,6 +29,8 @@ import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class CompactionJobQueues {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionJobQueues.class);
@@ -145,16 +147,17 @@ public class CompactionJobQueues {
   private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
       Collection<CompactionJob> jobs) {
 
-    // TODO log level
-    if (log.isDebugEnabled()) {
-      log.debug("Adding jobs to queue {} {} {}", groupId, tabletMetadata.getExtent(),
+    if (log.isTraceEnabled()) {
+      log.trace("Adding jobs to queue {} {} {}", groupId, tabletMetadata.getExtent(),
           jobs.stream().map(job -> "#files:" + job.getFiles().size() + ",prio:" + job.getPriority()
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
     var pq = priorityQueues.computeIfAbsent(groupId,
         gid -> new CompactionJobPriorityQueue(gid, queueSize));
-    while (pq.add(tabletMetadata, jobs) == 0 && pq.isClosed()) {
+    while (pq.add(tabletMetadata, jobs) < 0) {
+      // When entering this loop its expected the queue is closed
+      Preconditions.checkState(pq.isClosed());
       // This loop handles race condition where poll() closes empty priority queues. The queue could
       // be closed after its obtained from the map and before add is called.
       pq = priorityQueues.computeIfAbsent(groupId,
