@@ -342,10 +342,9 @@ class CompactionDriver extends ManagerRepo {
         }
       };
 
-      try (
-          var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-              .fetch(PREV_ROW, COMPACTED, SELECTED).checkConsistency().build();
-          var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
+      try (var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
+          .fetch(PREV_ROW, COMPACTED, SELECTED, USER_COMPACTION_REQUESTED).checkConsistency()
+          .build(); var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
         Predicate<TabletMetadata> needsUpdate =
             tabletMetadata -> (tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getFateId().equals(fateId))
