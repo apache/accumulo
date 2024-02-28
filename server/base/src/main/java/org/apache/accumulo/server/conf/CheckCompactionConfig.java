@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.Set;
@@ -52,10 +54,6 @@ import com.google.auto.service.AutoService;
 public class CheckCompactionConfig implements KeywordExecutable {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
-
-  final static String DEFAULT = "default";
-  final static String META = "meta";
-  final static String ROOT = "root";
 
   static class Opts extends Help {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
@@ -95,9 +93,9 @@ public class CheckCompactionConfig implements KeywordExecutable {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
-    Set<String> defaultServices = Set.of(DEFAULT, META, ROOT);
-    if (servicesConfig.getPlanners().keySet().equals(defaultServices)) {
-      log.warn("Only the default compaction services were created - {}", defaultServices);
+    Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
+    if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
+      log.warn("Only the default compaction service was created - {}", defaultService);
       return;
     }
 

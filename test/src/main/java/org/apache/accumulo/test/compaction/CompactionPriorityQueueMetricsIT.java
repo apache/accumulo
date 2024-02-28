@@ -57,7 +57,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -155,7 +155,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
       // Create a new queue with zero compactors.
       cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner",
-          DefaultCompactionPlanner.class.getName());
+          RatioBasedCompactionPlanner.class.getName());
       cfg.setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
           "[{'group':'" + QUEUE1 + "'}]");
