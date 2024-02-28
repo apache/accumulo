@@ -63,7 +63,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
@@ -86,7 +85,7 @@ public class CompactionCoordinatorTest {
   private static final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances =
       new AtomicReference<>(Map.of());
 
-  private static final CompactorGroupId GROUP_ID = CompactorGroupIdImpl.groupId("R2DQ");
+  private static final CompactorGroupId GROUP_ID = CompactorGroupId.of("R2DQ");
 
   public class TestCoordinator extends CompactionCoordinator {
 

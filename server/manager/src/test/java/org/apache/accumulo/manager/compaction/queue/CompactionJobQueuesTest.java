@@ -39,7 +39,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -57,8 +56,8 @@ public class CompactionJobQueuesTest {
     final int numToAdd = 100_000;
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(numToAdd + 1);
-    CompactorGroupId[] groups = Stream.of("G1", "G2", "G3")
-        .map(s -> CompactorGroupIdImpl.groupId(s)).toArray(l -> new CompactorGroupId[l]);
+    CompactorGroupId[] groups =
+        Stream.of("G1", "G2", "G3").map(CompactorGroupId::of).toArray(CompactorGroupId[]::new);
 
     var executor = Executors.newFixedThreadPool(groups.length);
 
