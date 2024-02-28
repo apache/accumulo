@@ -43,7 +43,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -60,54 +59,56 @@ public interface TServerClient<C extends TServiceClient> {
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned)
       throws TTransportException {
     checkArgument(context != null, "context is null");
-    final long rpcTimeout = context.getClientTimeoutInMillis();
 
-    final ZooCache zc = context.getZooCache();
-    final List<String> tservers = new ArrayList<>();
-    final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
-
-    for (int retries = 0; retries < 10; retries++) {
-      // Cluster may not be up, wait for tservers to come online
-      while (true) {
-        tservers.addAll(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
-
-        if (!tservers.isEmpty()) {
-          break;
-        }
-
-        if (tservers.isEmpty() && !warnedAboutTServersBeingDown.get()) {
-          LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-          warnedAboutTServersBeingDown.set(true);
-        }
-        UtilWaitThread.sleep(100);
-      }
-
-      // Try to connect to an online tserver
-      Collections.shuffle(tservers);
-      for (String tserver : tservers) {
-        var zLocPath =
-            ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-        byte[] data = zc.getLockData(zLocPath);
-        if (data != null) {
-          String strData = new String(data, UTF_8);
-          if (!strData.equals("manager")) {
-            final HostAndPort tserverClientAddress =
-                new ServerServices(strData).getAddress(Service.TSERV_CLIENT);
-            try {
-              TTransport transport = context.getTransportPool().getTransport(tserverClientAddress,
-                  rpcTimeout, context);
-              C client = ThriftUtil.createClient(type, transport);
-              return new Pair<String,C>(tserverClientAddress.toString(), client);
-            } catch (TTransportException e) {
-              LOG.trace("Error creating transport to {}", tserverClientAddress);
-              continue;
-            }
-          }
-        }
-        LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
+    if (preferCachedConnections) {
+      Pair<String,TTransport> cachedTransport =
+          context.getTransportPool().getAnyCachedTransport(type);
+      if (cachedTransport != null) {
+        C client = ThriftUtil.createClient(type, cachedTransport.getSecond());
+        warned.set(false);
+        return new Pair<String,C>(cachedTransport.getFirst(), client);
       }
     }
-    throw new TTransportException("Failed to connect to a server");
+
+    final long rpcTimeout = context.getClientTimeoutInMillis();
+    final ZooCache zc = context.getZooCache();
+    final List<String> tservers = new ArrayList<>();
+
+    tservers.addAll(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
+
+    if (tservers.isEmpty()) {
+      if (warned.compareAndSet(false, true)) {
+        LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
+      }
+      throw new TTransportException("There are no servers for type: " + type);
+    }
+
+    // Try to connect to an online tserver
+    Collections.shuffle(tservers);
+    for (String tserver : tservers) {
+      var zLocPath =
+          ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
+      byte[] data = zc.getLockData(zLocPath);
+      if (data != null) {
+        String strData = new String(data, UTF_8);
+        if (!strData.equals("manager")) {
+          final HostAndPort tserverClientAddress =
+              new ServerServices(strData).getAddress(Service.TSERV_CLIENT);
+          try {
+            TTransport transport = context.getTransportPool().getTransport(type,
+                tserverClientAddress, rpcTimeout, context, preferCachedConnections);
+            C client = ThriftUtil.createClient(type, transport);
+            warned.set(false);
+            return new Pair<String,C>(tserverClientAddress.toString(), client);
+          } catch (TTransportException e) {
+            LOG.trace("Error creating transport to {}", tserverClientAddress);
+            continue;
+          }
+        }
+      }
+    }
+    LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
+    throw new TTransportException("Failed to connect to any server");
   }
 
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)

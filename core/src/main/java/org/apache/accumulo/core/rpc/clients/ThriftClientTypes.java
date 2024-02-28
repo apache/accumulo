@@ -122,4 +122,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
     throw new UnsupportedOperationException("This method has not been implemented");
   }
 
+  @Override
+  public String toString() {
+    return serviceName;
+  }
 }

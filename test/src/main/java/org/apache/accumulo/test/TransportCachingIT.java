@@ -32,7 +32,9 @@ import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -62,43 +64,44 @@ public class TransportCachingIT extends AccumuloClusterHarness {
           ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
       List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
-        return new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout, context);
+        return new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromString(serverStr),
+            rpcTimeout, context);
       }).collect(Collectors.toList());
 
       // only want to use one server for all subsequent test
-      servers = servers.subList(0, 1);
+      ThriftTransportKey ttk = servers.get(0);
 
       ThriftTransportPool pool = context.getTransportPool();
-      TTransport first = getAnyTransport(servers, pool, true);
+      TTransport first = getAnyTransport(ttk, pool, true);
 
       assertNotNull(first);
       // Return it to unreserve it
       pool.returnTransport(first);
 
-      TTransport second = getAnyTransport(servers, pool, true);
+      TTransport second = getAnyTransport(ttk, pool, true);
 
       // We should get the same transport
       assertSame(first, second, "Expected the first and second to be the same instance");
       pool.returnTransport(second);
 
       // Ensure does not get cached connection just returned
-      TTransport third = getAnyTransport(servers, pool, false);
+      TTransport third = getAnyTransport(ttk, pool, false);
       assertNotSame(second, third, "Expected second and third transport to be different instances");
 
-      TTransport fourth = getAnyTransport(servers, pool, false);
+      TTransport fourth = getAnyTransport(ttk, pool, false);
       assertNotSame(third, fourth, "Expected third and fourth transport to be different instances");
 
       pool.returnTransport(third);
       pool.returnTransport(fourth);
 
       // The following three asserts ensure the per server queue is LIFO
-      TTransport fifth = getAnyTransport(servers, pool, true);
+      TTransport fifth = getAnyTransport(ttk, pool, true);
       assertSame(fourth, fifth, "Expected fourth and fifth transport to be the same instance");
 
-      TTransport sixth = getAnyTransport(servers, pool, true);
+      TTransport sixth = getAnyTransport(ttk, pool, true);
       assertSame(third, sixth, "Expected third and sixth transport to be the same instance");
 
-      TTransport seventh = getAnyTransport(servers, pool, true);
+      TTransport seventh = getAnyTransport(ttk, pool, true);
       assertSame(second, seventh, "Expected second and seventh transport to be the same instance");
 
       pool.returnTransport(fifth);
@@ -107,16 +110,21 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     }
   }
 
-  private TTransport getAnyTransport(List<ThriftTransportKey> servers, ThriftTransportPool pool,
+  private TTransport getAnyTransport(ThriftTransportKey ttk, ThriftTransportPool pool,
       boolean preferCached) {
-    TTransport first = null;
-    while (first == null) {
-      try {
-        first = pool.getAnyTransport(servers, preferCached).getSecond();
-      } catch (TTransportException e) {
-        log.warn("Failed to obtain transport to {}", servers);
+    if (preferCached) {
+      Pair<String,TTransport> cached = pool.getAnyCachedTransport(ttk.getType());
+      if (cached != null) {
+        return cached.getSecond();
       }
     }
-    return first;
+    try {
+      return pool.getTransport(ttk.getType(), ttk.getServer(), ttk.getTimeout(), getServerContext(),
+          preferCached);
+    } catch (TTransportException e) {
+      log.warn("Failed to obtain transport to {}", ttk.getServer());
+    }
+    return null;
   }
+
 }

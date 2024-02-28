@@ -42,7 +42,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -100,7 +99,6 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -251,27 +249,6 @@ public class ClientContext implements AccumuloClient {
         clientThreadPools = ThreadPools.getClientThreadPools(ueh);
       }
     }
-    // Kick off a task to try and populate the ZooCache with TabletServer
-    // information. It may not be complete as the cluster may be starting.
-    // It's a best effort
-    clientThreadPools
-        .createThreadPool(0, 1, 1, TimeUnit.MINUTES, "TabletServerZooCachePopulator", false)
-        .execute(() -> {
-          while (true) {
-            List<String> tservers = zooCache.getChildren(getZooKeeperRoot() + Constants.ZTSERVERS);
-            if (tservers.isEmpty()) {
-              UtilWaitThread.sleep(100);
-              continue;
-            } else {
-              for (String tserver : tservers) {
-                var zLocPath =
-                    ServiceLock.path(getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-                zooCache.getLockData(zLocPath);
-              }
-              break;
-            }
-          }
-        });
   }
 
   public Ample getAmple() {
