@@ -48,6 +48,6 @@ public class CompactorGroupId extends AbstractId<CompactorGroupId> {
    * @return CompactorGroupId object
    */
   public static CompactorGroupId of(String canonical) {
-    return cache.get(canonical, k -> new CompactorGroupId(canonical));
+    return cache.get(canonical, CompactorGroupId::new);
   }
 }
