@@ -32,7 +32,7 @@ public abstract class AbstractId<T extends AbstractId<T>> implements Comparable<
   private final String canonical;
 
   protected AbstractId(final String canonical) {
-    this.canonical = Objects.requireNonNull(canonical, "canonical cannot be null");
+    this.canonical = Objects.requireNonNull(canonical, "canonical cannot be null").intern();
   }
 
   /**

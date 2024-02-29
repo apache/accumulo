@@ -19,6 +19,9 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.util.cache.Caches;
+
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * A unique identifier for a compaction service
@@ -28,11 +31,21 @@ import org.apache.accumulo.core.data.AbstractId;
 public class CompactionServiceId extends AbstractId<CompactionServiceId> {
   private static final long serialVersionUID = 1L;
 
+  static final Cache<String,CompactionServiceId> cache = Caches.getInstance()
+      .createNewBuilder(Caches.CacheName.COMPACTOR_GROUP_ID, false).weakValues().build();
+
   private CompactionServiceId(String canonical) {
     super(canonical);
   }
 
+  /**
+   * Get a CompactionServiceID object for the provided canonical string. This is guaranteed to be
+   * non-null.
+   *
+   * @param canonical compaction service ID string
+   * @return CompactionServiceId object
+   */
   public static CompactionServiceId of(String canonical) {
-    return new CompactionServiceId(canonical);
+    return cache.get(canonical, CompactionServiceId::new);
   }
 }
