@@ -21,6 +21,7 @@ package org.apache.accumulo.test.fate.accumulo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.List;
@@ -32,8 +33,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -41,6 +47,8 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.hadoop.io.Text;
@@ -53,6 +61,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.MoreCollectors;
 
 public class AccumuloStoreIT extends SharedMiniClusterBase {
 
@@ -92,12 +102,58 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
   }
 
+  // Test that configs related to the correctness of the FATE instance user table
+  // are initialized correctly
+  @Test
+  public void testFateInitialConfigCorrectness() throws Exception {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
+      var fateTableProps =
+          client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+
+      // Verify properties all have a table. prefix
+      assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+      // Verify properties are correctly set
+      assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+      assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
+      assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+      assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+
+      // Verify VersioningIterator related properties are correct
+      var iterClass = "10," + VersioningIterator.class.getName();
+      var maxVersions = "1";
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+      // Verify all tablets are HOSTED
+      try (var tablets =
+          client.getAmple().readTablets().forTable(AccumuloTable.FATE.tableId()).build()) {
+        assertTrue(tablets.stream()
+            .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      }
+    }
+  }
+
   @Test
   public void testCreateWithCollisionAndExceedRetryLimit() throws Exception {
     String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table);
+      createFateTable(client, table);
 
       List<Long> txids = List.of(1L, 1L, 1L, 2L, 3L, 3L, 3L, 3L, 4L, 4L, 5L, 5L, 5L, 5L, 5L, 5L);
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
@@ -130,7 +186,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     public void setup() throws Exception {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      createFateTable(client, tableName);
       fateId = FateId.from(fateInstanceType, 1L);
       store = new TestAccumuloStore(client, tableName, List.of(fateId));
       store.create();
@@ -202,4 +258,25 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
   }
 
+  // Create the fate table with the exact configuration as the real Fate user instance table
+  // including table properties and TabletAvailability
+  protected static void createFateTable(ClientContext client, String table) throws Exception {
+    final var fateTableProps =
+        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+
+    TabletAvailability availability;
+    try (var tabletStream = client.tableOperations()
+        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+      availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
+          .collect(MoreCollectors.onlyElement());
+    }
+
+    var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
+        .withoutDefaultIterators().setProperties(fateTableProps);
+    client.tableOperations().create(table, newTableConf);
+    var testFateTableProps = client.tableOperations().getTableProperties(table);
+
+    // ensure that create did not set any other props
+    assertEquals(fateTableProps, testFateTableProps);
+  }
 }
