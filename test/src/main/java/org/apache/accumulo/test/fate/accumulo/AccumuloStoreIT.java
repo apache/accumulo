@@ -41,6 +41,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.hadoop.io.Text;
@@ -97,7 +98,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table);
+      createFateTable(client, table);
 
       List<Long> txids = List.of(1L, 1L, 1L, 2L, 3L, 3L, 3L, 3L, 4L, 4L, 5L, 5L, 5L, 5L, 5L, 5L);
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
@@ -130,7 +131,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     public void setup() throws Exception {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      createFateTable(client, tableName);
       fateId = FateId.from(fateInstanceType, 1L);
       store = new TestAccumuloStore(client, tableName, List.of(fateId));
       store.create();
@@ -202,4 +203,22 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
   }
 
+  protected static void createFateTable(ClientContext client, String table) throws Exception {
+
+    final var fateTableProps =
+        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+    client.tableOperations().create(table);
+
+    // Use modifyProperties() instead of trying to set the properties as part of
+    // iniital table create and using NewTableConfiguration(). The reason is that
+    // the create operation sets extra properties as well, and by using modifyProperties()
+    // we can clear all existing properties first, so we end up with an identical config
+    // to the real FATE system table.
+    var testFateTableProps = client.tableOperations().modifyProperties(table, existing -> {
+      existing.clear();
+      existing.putAll(fateTableProps);
+    });
+
+    assertEquals(fateTableProps, testFateTableProps);
+  }
 }
