@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +35,6 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +47,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       // Verify expectations about the default config. Want to ensure there no other resource groups
       // configured.
-      Assertions.assertEquals(Map.of(Constants.DEFAULT_COMPACTION_SERVICE_NAME, 1),
+      assertEquals(Map.of(Constants.DEFAULT_COMPACTION_SERVICE_NAME, 1),
           cfg.getClusterServerConfiguration().getCompactorConfiguration());
 
       // Disable the default scan servers and compactors, just start 1
