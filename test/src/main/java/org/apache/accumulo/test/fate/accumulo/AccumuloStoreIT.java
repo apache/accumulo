@@ -32,8 +32,12 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -54,6 +58,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.MoreCollectors;
 
 public class AccumuloStoreIT extends SharedMiniClusterBase {
 
@@ -203,21 +209,25 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
   }
 
+  // Create the fate table with the exact configuration as the real Fate user instance table
+  // including table properties and TabletAvailability
   protected static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
         client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
-    client.tableOperations().create(table);
 
-    // Use modifyProperties() instead of trying to set the properties as part of
-    // initial table create and using NewTableConfiguration(). The reason is that
-    // the create operation sets extra properties as well, and by using modifyProperties()
-    // we can clear all existing properties first, so we end up with an identical config
-    // to the real FATE user instance table.
-    var testFateTableProps = client.tableOperations().modifyProperties(table, existing -> {
-      existing.clear();
-      existing.putAll(fateTableProps);
-    });
+    TabletAvailability availability;
+    try (var tabletStream = client.tableOperations()
+        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+      availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
+          .collect(MoreCollectors.onlyElement());
+    }
 
+    var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
+        .withoutDefaultIterators().setProperties(fateTableProps);
+    client.tableOperations().create(table, newTableConf);
+    var testFateTableProps = client.tableOperations().getTableProperties(table);
+
+    // ensure that create did not set any other props
     assertEquals(fateTableProps, testFateTableProps);
   }
 }
