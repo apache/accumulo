@@ -45,7 +45,7 @@
  * configure a compaction service. It makes decisions about which files to compact on which
  * compactor groups. See {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner},
  * {@link org.apache.accumulo.core.spi.compaction.CompactionPlanner#makePlan(org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters)},
- * and {@link org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner}
+ * and {@link org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner}
  * </ul>
  * </ul>
  * <ul>

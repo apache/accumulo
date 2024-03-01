@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -32,7 +34,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
@@ -49,42 +51,25 @@ public enum Property {
       "Both major and minor compaction properties can be included under this prefix.", "3.1.0"),
   COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
       "This prefix should be used to define all properties for the compaction services."
-          + "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.\n"
+          + "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.\n"
           + "A new external compaction service would be defined like the following:\n"
           + "`compaction.service.newService.planner="
-          + "\"org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner\".`\n"
+          + "\"org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner\".`\n"
           + "`compaction.service.newService.opts.groups=\""
-          + "[{\"name\": \"small\", \"maxSize\":\"32M\"},"
-          + "{ \"name\":\"medium\", \"maxSize\":\"512M\"},{\"name\":\"large\"}]`\n"
+          + "[{\"group\": \"small\", \"maxSize\":\"32M\"},"
+          + "{ \"group\":\"medium\", \"maxSize\":\"512M\"},{\"group\":\"large\"}]`\n"
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
       "3.1.0"),
-  COMPACTION_SERVICE_ROOT_PLANNER(COMPACTION_SERVICE_PREFIX + "root.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for root tablet service.", "4.0.0"),
-  COMPACTION_SERVICE_ROOT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "root.planner.opts.maxOpen", "30",
-      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_ROOT_GROUPS(COMPACTION_SERVICE_PREFIX + "root.planner.opts.groups",
-      "[{'group':'default'}]".replaceAll("'", "\""), PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "4.0.0"),
-  COMPACTION_SERVICE_META_PLANNER(COMPACTION_SERVICE_PREFIX + "meta.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
-      "Compaction planner for metadata table.", "4.0.0"),
-  COMPACTION_SERVICE_META_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.maxOpen", "30",
-      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_META_GROUPS(COMPACTION_SERVICE_PREFIX + "meta.planner.opts.groups",
-      "[{'group':'default'}]".replaceAll("'", "\""), PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
-      "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_PLANNER(COMPACTION_SERVICE_PREFIX + "default.planner",
-      DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
+  COMPACTION_SERVICE_DEFAULT_PLANNER(
+      COMPACTION_SERVICE_PREFIX + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+      RatioBasedCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_PREFIX + "default.planner.opts.maxOpen",
-      "10", PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_PREFIX + "default.planner.opts.groups",
+  COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.maxOpen", "10",
+      PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
+  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.groups",
       ("[{'group':'default'}]").replaceAll("'", "\""), PropertyType.JSON,
-      "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
+      "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.",
       "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
@@ -928,8 +913,8 @@ public enum Property {
           + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
           + " was used to trigger merging minor compactions, but merging minor compactions"
           + " were removed in 2.1.0. Now this property is only used by the"
-          + " DefaultCompactionStrategy and the DefaultCompactionPlanner."
-          + " The DefaultCompactionPlanner started using this property in 2.1.3, before"
+          + " DefaultCompactionStrategy and the RatioBasedCompactionPlanner."
+          + " The RatioBasedCompactionPlanner started using this property in 2.1.3, before"
           + " that it did not use the property.",
       "1.4.0"),
   TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
