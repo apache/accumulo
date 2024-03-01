@@ -21,6 +21,7 @@ package org.apache.accumulo.test.fate.accumulo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.List;
@@ -32,7 +33,9 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
@@ -41,6 +44,8 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.hadoop.io.Text;
@@ -89,6 +94,52 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
 
     public TStatus getStatus(FateId fateId) {
       return _getStatus(fateId);
+    }
+  }
+
+  // Test that configs related to the correctness of the FATE instance user table
+  // are initialized correctly
+  @Test
+  public void testFateInitialConfigCorrectness() throws Exception {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
+      var fateTableProps =
+          client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+
+      // Verify properties all have a table. prefix
+      assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+      // Verify properties are correctly set
+      assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+      assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
+      assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+      assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+
+      // Verify VersioningIterator related properties are correct
+      var iterClass = "10," + VersioningIterator.class.getName();
+      var maxVersions = "1";
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+      // Verify all tablets are HOSTED
+      try (var tablets =
+          client.getAmple().readTablets().forTable(AccumuloTable.FATE.tableId()).build()) {
+        assertTrue(tablets.stream()
+            .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      }
     }
   }
 
