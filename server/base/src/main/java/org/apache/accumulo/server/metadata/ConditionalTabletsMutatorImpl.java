@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -156,9 +153,9 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     while (!unknownResults.isEmpty()) {
       try {
         if (retry == null) {
-          retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-              .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-              .logInterval(3, MINUTES).createRetry();
+          retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+              .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
+              .logInterval(Duration.ofMinutes(3)).createRetry();
         }
         retry.waitForNextAttempt(log, "handle conditional mutations with unknown status");
       } catch (InterruptedException e) {
