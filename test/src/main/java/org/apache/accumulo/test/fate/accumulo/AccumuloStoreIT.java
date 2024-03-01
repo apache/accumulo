@@ -21,6 +21,7 @@ package org.apache.accumulo.test.fate.accumulo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -101,14 +103,22 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
   public void testFateInitialConfigCorrectness() throws Exception {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
       var fateTableProps =
           client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
 
+      // Verify properties all have a table. prefix
+      assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+      // Verify properties are correctly set
       assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
       assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
       assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
       assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
 
+      // Verify VersioningIterator related properties are correct
       var iterClass = "10," + VersioningIterator.class.getName();
       var maxVersions = "1";
       assertEquals(iterClass,
@@ -123,6 +133,13 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
           fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
       assertEquals(maxVersions, fateTableProps
           .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+      // Verify all tablets are HOSTED
+      try (var tablets =
+          client.getAmple().readTablets().forTable(AccumuloTable.FATE.tableId()).build()) {
+        assertTrue(tablets.stream()
+            .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      }
     }
   }
 
