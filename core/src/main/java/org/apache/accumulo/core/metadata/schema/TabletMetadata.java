@@ -402,7 +402,8 @@ public class TabletMetadata {
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
-        .append("userCompactionsRequested", userCompactionsRequested).toString();
+        .append("userCompactionsRequested", userCompactionsRequested)
+        .append("unSplittableMetadata", unSplittableMetadata).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
