@@ -204,16 +204,15 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
   }
 
   protected static void createFateTable(ClientContext client, String table) throws Exception {
-
     final var fateTableProps =
         client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
     client.tableOperations().create(table);
 
     // Use modifyProperties() instead of trying to set the properties as part of
-    // iniital table create and using NewTableConfiguration(). The reason is that
+    // initial table create and using NewTableConfiguration(). The reason is that
     // the create operation sets extra properties as well, and by using modifyProperties()
     // we can clear all existing properties first, so we end up with an identical config
-    // to the real FATE system table.
+    // to the real FATE user instance table.
     var testFateTableProps = client.tableOperations().modifyProperties(table, existing -> {
       existing.clear();
       existing.putAll(fateTableProps);
