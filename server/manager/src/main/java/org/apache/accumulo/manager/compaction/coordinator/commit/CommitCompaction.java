@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -138,6 +139,9 @@ public class CommitCompaction extends ManagerRepo {
 
         var result = tabletsMutator.process().get(getExtent());
         if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+          // Compaction was successfully committed to the tablet so log it
+          TabletLogger.compacted(getExtent(), ecid, commitData.kind, commitData.getJobFiles(),
+              newDatafile);
           break;
         } else {
           // compaction failed to commit, maybe something changed on the tablet so lets reread the

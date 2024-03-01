@@ -27,14 +27,16 @@ import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -127,40 +129,36 @@ public class TabletLogger {
         cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
-  public static void selected(KeyExtent extent, CompactionKind kind,
+  public static void selected(FateId fateId, KeyExtent extent,
       Collection<StoredTabletFile> inputs) {
-    fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
+    fileLog.trace("Selected files {} {} {}", extent, fateId,
         Collections2.transform(inputs, StoredTabletFile::toMinimalString));
   }
 
-  public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
+  public static void compacting(TabletMetadata tabletMetadata, ExternalCompactionId cid,
+      String compactorAddress, CompactionJob job) {
     if (fileLog.isDebugEnabled()) {
-      if (config == null) {
-        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getGroup(),
-            job.getKind(), asMinimalString(job.getFiles()), getSize(job.getFiles()));
+      if (job.getKind() == CompactionKind.USER) {
+        var fateId = tabletMetadata.getSelectedFiles().getFateId();
+        fileLog.debug(
+            "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            tabletMetadata.getExtent(), fateId, cid, job.getGroup(), compactorAddress,
+            job.getPriority(), getSize(job.getFiles()), job.getKind(),
+            asMinimalString(job.getFiles()));
       } else {
-        fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
-            job.getGroup(), job.getKind(), asMinimalString(job.getFiles()), getSize(job.getFiles()),
-            config);
+        fileLog.debug(
+            "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            tabletMetadata.getExtent(), cid, job.getGroup(), compactorAddress, job.getPriority(),
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       }
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
-    fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
-        asMinimalString(job.getFiles()));
-  }
-
-  public static void compactionFailed(KeyExtent extent, CompactionJob job,
-      CompactionConfig config) {
-    fileLog.debug("Failed to compact: extent: {}, input files: {}, iterators: {}", extent,
-        asMinimalString(job.getFiles()), config.getIterators());
-  }
-
-  public static void externalCompactionFailed(KeyExtent extent, ExternalCompactionId id,
-      CompactionJob job, CompactionConfig config) {
-    fileLog.debug("Failed to compact: id: {}, extent: {}, input files: {}, iterators: {}", id,
-        extent, asMinimalString(job.getFiles()), config.getIterators());
+  public static void compacted(KeyExtent extent, ExternalCompactionId ecid, CompactionKind kind,
+      Collection<StoredTabletFile> inputs, Optional<ReferencedTabletFile> output) {
+    var transformed = Collections2.transform(inputs, StoredTabletFile::toMinimalString);
+    fileLog.debug("{} compacted {} for {} created {} from {}", ecid, extent, kind,
+        output.map(f -> f + "").orElse("no output"), transformed);
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
@@ -198,4 +196,5 @@ public class TabletLogger {
   public static void walRefsChanged(KeyExtent extent, Collection<String> refsSupplier) {
     walsLog.trace("{} has unflushed data in wals: {} ", extent, refsSupplier);
   }
+
 }
