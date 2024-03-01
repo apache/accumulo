@@ -32,7 +32,7 @@ public class CompactionServiceId extends AbstractId<CompactionServiceId> {
   private static final long serialVersionUID = 1L;
 
   static final Cache<String,CompactionServiceId> cache = Caches.getInstance()
-      .createNewBuilder(Caches.CacheName.COMPACTOR_GROUP_ID, false).weakValues().build();
+      .createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false).weakValues().build();
 
   private CompactionServiceId(String canonical) {
     super(canonical);
