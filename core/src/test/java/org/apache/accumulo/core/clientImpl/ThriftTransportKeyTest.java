@@ -142,5 +142,6 @@ public class ThriftTransportKeyTest {
         HostAndPort.fromParts("localhost", 9999), 120_000, clientCtx);
 
     assertEquals(ttk, ttk, "Normal ThriftTransportKey doesn't equal itself");
+    assertEquals(ttk.hashCode(), ttk.hashCode());
   }
 }

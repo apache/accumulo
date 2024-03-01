@@ -107,8 +107,11 @@ public interface TServerClient<C extends TServiceClient> {
         }
       }
     }
-    LOG.warn("Failed to find an available server in the list of servers: {}", tservers);
-    throw new TTransportException("Failed to connect to any server");
+    if (warned.compareAndSet(false, true)) {
+      LOG.warn("Failed to find an available server in the list of servers: {} for API type: {}",
+          tservers, type);
+    }
+    throw new TTransportException("Failed to connect to any server for API type " + type);
   }
 
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)

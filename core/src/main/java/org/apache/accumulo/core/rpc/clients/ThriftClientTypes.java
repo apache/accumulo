@@ -80,7 +80,7 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   private final String serviceName;
   private final TServiceClientFactory<C> clientFactory;
 
-  public ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
+  protected ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
     this.serviceName = serviceName;
     this.clientFactory = factory;
   }
