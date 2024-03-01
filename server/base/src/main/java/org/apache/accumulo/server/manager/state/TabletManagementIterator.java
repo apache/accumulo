@@ -25,7 +25,6 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -81,14 +80,16 @@ public class TabletManagementIterator extends SkippingIterator {
     final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
         tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
 
-    // If current config/files match unsplittable metadata then we can't split
-    if (Optional
-        .ofNullable(tm.getUnSplittable()).filter(um -> um.equals(UnSplittableMetadata
-            .toUnSplittable(splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles())))
-        .isPresent()) {
-      return false;
+    // If the current computed metadata matches the current marker then we can't split,
+    // so we return false. If the marker is set but doesn't match then return true
+    // which gives a chance to clean up the marker and recheck.
+    var unsplittable = tm.getUnSplittable();
+    if (unsplittable != null) {
+      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(splitThreshold, maxEndRowSize,
+          maxFilesToOpen, tm.getFiles()));
     }
 
+    // If unspilttable is not set at all then check if over split threshold
     final long sumOfFileSizes =
         tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
     final boolean shouldSplit = sumOfFileSizes > splitThreshold;
