@@ -237,14 +237,15 @@ public class MetadataIT extends AccumuloClusterHarness {
       var rootTableProps = client.tableOperations().getTableProperties(RootTable.NAME);
       var metadataTableProps = client.tableOperations().getTableProperties(MetadataTable.NAME);
 
+      // Verify root table config
       testCommonSystemTableConfig(rootTableProps);
       assertEquals("root",
           rootTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
 
+      // Verify metadata table config
       testCommonSystemTableConfig(metadataTableProps);
       assertEquals("meta",
           metadataTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
-
     }
   }
 
@@ -285,6 +286,5 @@ public class MetadataIT extends AccumuloClusterHarness {
     assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
     assertEquals(maxVersions,
         tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
-
   }
 }
