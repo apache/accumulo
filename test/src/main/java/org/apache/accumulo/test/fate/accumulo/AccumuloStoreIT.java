@@ -33,10 +33,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -58,6 +61,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.MoreCollectors;
 
 public class AccumuloStoreIT extends SharedMiniClusterBase {
 
@@ -148,7 +153,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     String table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table);
+      createFateTable(client, table);
 
       List<Long> txids = List.of(1L, 1L, 1L, 2L, 3L, 3L, 3L, 3L, 4L, 4L, 5L, 5L, 5L, 5L, 5L, 5L);
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
@@ -181,7 +186,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     public void setup() throws Exception {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      createFateTable(client, tableName);
       fateId = FateId.from(fateInstanceType, 1L);
       store = new TestAccumuloStore(client, tableName, List.of(fateId));
       store.create();
@@ -253,4 +258,25 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     }
   }
 
+  // Create the fate table with the exact configuration as the real Fate user instance table
+  // including table properties and TabletAvailability
+  protected static void createFateTable(ClientContext client, String table) throws Exception {
+    final var fateTableProps =
+        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+
+    TabletAvailability availability;
+    try (var tabletStream = client.tableOperations()
+        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+      availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
+          .collect(MoreCollectors.onlyElement());
+    }
+
+    var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
+        .withoutDefaultIterators().setProperties(fateTableProps);
+    client.tableOperations().create(table, newTableConf);
+    var testFateTableProps = client.tableOperations().getTableProperties(table);
+
+    // ensure that create did not set any other props
+    assertEquals(fateTableProps, testFateTableProps);
+  }
 }
