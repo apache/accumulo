@@ -53,9 +53,9 @@ public class UnSplittableMetadata {
     this.maxFilesToOpen = maxFilesToOpen;
     this.filesHash = Objects.requireNonNull(filesHash);
 
-    Preconditions.checkState(splitThreshold > 0, "splitThreshold must be greater than 0");
-    Preconditions.checkState(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
-    Preconditions.checkState(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
+    Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");
+    Preconditions.checkArgument(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
+    Preconditions.checkArgument(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
   }
 
   public long getSplitThreshold() {

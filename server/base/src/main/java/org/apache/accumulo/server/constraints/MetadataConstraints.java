@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Up
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -272,10 +273,19 @@ public class MetadataConstraints implements Constraint {
         } catch (RuntimeException e) {
           violations = addViolation(violations, 11);
         }
-      } else if (CompactedColumnFamily.NAME.equals(columnFamily)
-          || UserCompactionRequestedColumnFamily.NAME.equals(columnFamily)) {
+      } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
         if (!FateId.isFateId(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
+        }
+      } else if (UserCompactionRequestedColumnFamily.NAME.equals(columnFamily)) {
+        if (!FateId.isFateId(columnQualifier.toString())) {
+          violations = addViolation(violations, 14);
+        }
+      } else if (SplitColumnFamily.UNSPLITTABLE_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          UnSplittableMetadata.fromJson(new String(columnUpdate.getValue(), UTF_8));
+        } catch (RuntimeException e) {
+          violations = addViolation(violations, 15);
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
@@ -437,6 +447,10 @@ public class MetadataConstraints implements Constraint {
         return "Invalid data file metadata format";
       case 13:
         return "Invalid compacted column";
+      case 14:
+        return "Invalid user compaction requested column";
+      case 15:
+        return "Invalid unsplittable column";
     }
     return null;
   }
