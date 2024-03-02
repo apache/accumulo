@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.SplitUtils;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -89,11 +93,25 @@ public class FindSplits extends ManagerRepo {
       log.info("Tablet {} needs to split, but no split points could be found.",
           tabletMetadata.getExtent());
 
-      // TODO: Do we care about conditional mutations here? I don't think it is required because
-      // If something changes TabletManagementIterator will be comparing anyways and will detect it
-      UnSplittableMetadata unSplittableMeta =
-          SplitUtils.toUnSplittable(manager.getContext(), tabletMetadata);
-      ample.mutateTablet(extent).setUnSplittable(unSplittableMeta).mutate();
+      Consumer<ConditionalResult> resultConsumer = result -> {
+        if (result.getStatus() == Status.REJECTED) {
+          log.debug("{} unsplittable metadata update for {} was rejected ", fateId,
+              result.getExtent());
+        }
+      };
+
+      var unSplittableMeta = SplitUtils.toUnSplittable(manager.getContext(), tabletMetadata);
+
+      // With the current design we don't need to require the files to be the same
+      // for correctness as the TabletManagementIterator will detect the difference
+      // when computing the hash and retry a new split operation if there is not a match.
+      // But if we already know there's a change now, it would be more efficient to fail and
+      // retry the current fate op vs completing and having the iterator submit a new one.
+      try (var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
+        var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
+            .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
+        mutator.submit(tm -> unSplittableMeta.equals(tm.getUnSplittable()));
+      }
 
       return null;
     }
