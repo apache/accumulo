@@ -249,7 +249,7 @@ public class UpdateTablets extends ManagerRepo {
       // Clean up any previous unsplittable marker
       if (tabletMetadata.getUnSplittable() != null) {
         mutator.deleteUnSplittable();
-        log.debug("{} deleting stale unsplittable metadata from {}", fateId, newExtent);
+        log.debug("{} deleting unsplittable metadata from {} because of split", fateId, newExtent);
       }
 
       mutator.submit(tm -> false);

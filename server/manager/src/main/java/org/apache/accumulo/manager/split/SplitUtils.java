@@ -198,8 +198,12 @@ public class SplitUtils {
   }
 
   public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata) {
-    var estimatedSize =
-        tabletMetadata.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+    return findSplits(context, tabletMetadata,
+        tabletMetadata.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum());
+  }
+
+  public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata,
+      long estimatedSize) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
@@ -304,7 +308,8 @@ public class SplitUtils {
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
     int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
 
-    return new UnSplittableMetadata(splitThreshold, maxEndRowSize, maxFilesToOpen,
+    return UnSplittableMetadata.toUnSplittable(splitThreshold, maxEndRowSize, maxFilesToOpen,
         tabletMetadata.getFiles());
   }
+
 }
