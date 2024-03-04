@@ -42,7 +42,7 @@ public class ClusterConfigParser {
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
   private static final Set<String> VALID_CONFIG_KEYS = Set.of("manager", "monitor", "gc", "tserver",
-      "tservers_per_host", "sservers_per_host", "compaction.coordinator");
+      "tservers_per_host", "sservers_per_host", "compaction.coordinator", "compactors_per_host");
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
       Set.of("compaction.compactor.", "sserver.");
@@ -149,6 +149,9 @@ public class ClusterConfigParser {
 
     String numSservers = config.getOrDefault("sservers_per_host", "1");
     out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
+
+    String numCompactors = config.getOrDefault("compactors_per_host", "1");
+    out.print("NUM_COMPACTORS=\"${NUM_COMPACTORS:=" + numCompactors + "}\"\n");
 
     out.flush();
   }
