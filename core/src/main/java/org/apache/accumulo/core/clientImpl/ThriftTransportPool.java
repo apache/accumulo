@@ -41,6 +41,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -50,7 +51,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -110,71 +110,40 @@ public class ThriftTransportPool {
     return pool;
   }
 
-  public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context)
-      throws TTransportException {
-    ThriftTransportKey cacheKey = new ThriftTransportKey(location, milliseconds, context);
+  public TTransport getTransport(ThriftClientTypes<?> type, HostAndPort location, long milliseconds,
+      ClientContext context, boolean preferCached) throws TTransportException {
 
-    CachedConnection connection = connectionPool.reserveAny(cacheKey);
-
-    if (connection != null) {
-      log.trace("Using existing connection to {}", cacheKey.getServer());
-      return connection.transport;
-    } else {
-      return createNewTransport(cacheKey);
+    ThriftTransportKey cacheKey = new ThriftTransportKey(type, location, milliseconds, context);
+    if (preferCached) {
+      CachedConnection connection = connectionPool.reserveAny(cacheKey);
+      if (connection != null) {
+        log.trace("Using existing connection to {}", cacheKey.getServer());
+        return connection.transport;
+      }
     }
+    return createNewTransport(cacheKey);
   }
 
-  @VisibleForTesting
-  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers,
-      boolean preferCachedConnection) throws TTransportException {
-
-    servers = new ArrayList<>(servers);
-
-    if (preferCachedConnection) {
-      HashSet<ThriftTransportKey> serversSet = new HashSet<>(servers);
-
-      // randomly pick a server from the connection cache
-      serversSet.retainAll(connectionPool.getThriftTransportKeys());
-
-      if (!serversSet.isEmpty()) {
-        ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
-        Collections.shuffle(cachedServers, random);
-
-        for (ThriftTransportKey ttk : cachedServers) {
-          CachedConnection connection = connectionPool.reserveAny(ttk);
-          if (connection != null) {
-            final String serverAddr = ttk.getServer().toString();
-            log.trace("Using existing connection to {}", serverAddr);
-            return new Pair<>(serverAddr, connection.transport);
-          }
-
-        }
+  public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type) {
+    final List<ThriftTransportKey> serversSet = new ArrayList<>();
+    for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
+      if (ttk.getType().equals(type)) {
+        serversSet.add(ttk);
       }
     }
-
-    int retryCount = 0;
-    while (!servers.isEmpty() && retryCount < 10) {
-
-      int index = random.nextInt(servers.size());
-      ThriftTransportKey ttk = servers.get(index);
-
-      if (preferCachedConnection) {
-        CachedConnection connection = connectionPool.reserveAnyIfPresent(ttk);
-        if (connection != null) {
-          return new Pair<>(ttk.getServer().toString(), connection.transport);
-        }
-      }
-
-      try {
-        return new Pair<>(ttk.getServer().toString(), createNewTransport(ttk));
-      } catch (TTransportException tte) {
-        log.debug("Failed to connect to {}", servers.get(index), tte);
-        servers.remove(index);
-        retryCount++;
+    if (serversSet.isEmpty()) {
+      return null;
+    }
+    Collections.shuffle(serversSet, random);
+    for (ThriftTransportKey ttk : serversSet) {
+      CachedConnection connection = connectionPool.reserveAny(ttk);
+      if (connection != null) {
+        final String serverAddr = ttk.getServer().toString();
+        log.trace("Using existing connection to {}", serverAddr);
+        return new Pair<>(serverAddr, connection.transport);
       }
     }
-
-    throw new TTransportException("Failed to connect to a server");
+    return null;
   }
 
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
@@ -391,27 +360,6 @@ public class ThriftTransportPool {
     }
 
     /**
-     * Reserve and return a new {@link CachedConnection} from the {@link CachedConnections} mapped
-     * to the specified transport key. If a {@link CachedConnections} is not found, null will be
-     * returned.
-     *
-     * <p>
-     *
-     * This operation locks access to the mapping for the key in {@link ConnectionPool#connections}
-     * until the operation completes.
-     *
-     * @param key the transport key
-     * @return the reserved {@link CachedConnection}, or null if none were available.
-     */
-    CachedConnection reserveAnyIfPresent(final ThriftTransportKey key) {
-      // It's possible that multiple locks from executeWithinLock will overlap with a single lock
-      // inside the ConcurrentHashMap which can unnecessarily block threads. Access the
-      // ConcurrentHashMap outside of executeWithinLock to prevent this.
-      var connections = getCachedConnections(key);
-      return connections == null ? null : executeWithinLock(key, connections::reserveAny);
-    }
-
-    /**
      * Puts the specified connection into the reserved map of the {@link CachedConnections} for the
      * specified transport key. If a {@link CachedConnections} is not found, one will be created.
      *
@@ -514,10 +462,6 @@ public class ThriftTransportPool {
       }
 
       return lock;
-    }
-
-    CachedConnections getCachedConnections(final ThriftTransportKey key) {
-      return connections.get(key);
     }
 
     CachedConnections getOrCreateCachedConnections(final ThriftTransportKey key) {
