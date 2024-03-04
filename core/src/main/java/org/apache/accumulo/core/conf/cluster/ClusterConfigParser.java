@@ -40,6 +40,7 @@ public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
+  private static final String COMPACTORS_PER_HOST_KEY = "compactors_per_host";
   private static final String GC_KEY = "gc";
   private static final String MANAGER_KEY = "manager";
   private static final String MONITOR_KEY = "monitor";
@@ -51,8 +52,8 @@ public class ClusterConfigParser {
   private static final String[] UNGROUPED_SECTIONS =
       new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS =
-      Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY, SSERVERS_PER_HOST_KEY, TSERVERS_PER_HOST_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY,
+      SSERVERS_PER_HOST_KEY, TSERVERS_PER_HOST_KEY, COMPACTORS_PER_HOST_KEY);
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
       Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
@@ -161,6 +162,9 @@ public class ClusterConfigParser {
 
     String numSservers = config.getOrDefault("sservers_per_host", "1");
     out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
+
+    String numCompactors = config.getOrDefault("compactors_per_host", "1");
+    out.print("NUM_COMPACTORS=\"${NUM_COMPACTORS:=" + numCompactors + "}\"\n");
 
     out.flush();
   }

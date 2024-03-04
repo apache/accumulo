@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate.accumulo;
 
 import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
+import static org.apache.accumulo.test.fate.accumulo.AccumuloStoreIT.createFateTable;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -53,7 +54,7 @@ public class AccumuloStoreFateIT extends FateStoreIT {
     String table = getUniqueNames(1)[0] + "fatestore";
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table);
+      createFateTable(client, table);
       testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
     }

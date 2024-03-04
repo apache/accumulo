@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
@@ -31,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -75,6 +75,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -125,6 +126,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
@@ -383,9 +385,9 @@ public class CompactionCoordinator
 
   }
 
-  // ELASTICITY_TODO unit test this code
-  private boolean canReserveCompaction(TabletMetadata tablet, CompactionJob job,
-      Set<StoredTabletFile> jobFiles) {
+  @VisibleForTesting
+  public static boolean canReserveCompaction(TabletMetadata tablet, CompactionKind kind,
+      Set<StoredTabletFile> jobFiles, ServerContext ctx) {
 
     if (tablet == null) {
       // the tablet no longer exist
@@ -393,6 +395,10 @@ public class CompactionCoordinator
     }
 
     if (tablet.getOperationId() != null) {
+      return false;
+    }
+
+    if (ctx.getTableState(tablet.getTableId()) != TableState.ONLINE) {
       return false;
     }
 
@@ -407,7 +413,7 @@ public class CompactionCoordinator
       return false;
     }
 
-    switch (job.getKind()) {
+    switch (kind) {
       case SYSTEM:
         var userRequestedCompactions = tablet.getUserCompactionsRequested().size();
         if (userRequestedCompactions > 0) {
@@ -428,7 +434,7 @@ public class CompactionCoordinator
         }
         break;
       default:
-        throw new UnsupportedOperationException("Not currently handling " + job.getKind());
+        throw new UnsupportedOperationException("Not currently handling " + kind);
     }
 
     return true;
@@ -501,15 +507,15 @@ public class CompactionCoordinator
     var jobFiles = metaJob.getJob().getFiles().stream().map(CompactableFileImpl::toStoredTabletFile)
         .collect(Collectors.toSet());
 
-    Retry retry =
-        Retry.builder().maxRetries(5).retryAfter(100, MILLISECONDS).incrementBy(100, MILLISECONDS)
-            .maxWait(10, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().maxRetries(5).retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(10)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
 
     while (retry.canRetry()) {
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var extent = metaJob.getTabletMetadata().getExtent();
 
-        if (!canReserveCompaction(tabletMetadata, metaJob.getJob(), jobFiles)) {
+        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx)) {
           return null;
         }
 
