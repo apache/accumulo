@@ -74,6 +74,7 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -347,10 +348,10 @@ public class CompactionCoordinator
 
       // Only reserve user compactions when the config is present. When compactions are canceled the
       // config is deleted.
+      var cid = ExternalCompactionId.from(externalCompactionId);
       if (kind == CompactionKind.SYSTEM
           || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(metaJob, compactorAddress,
-            ExternalCompactionId.from(externalCompactionId));
+        ecm = reserveCompaction(metaJob, compactorAddress, cid);
       }
 
       if (ecm != null) {
@@ -359,8 +360,8 @@ public class CompactionCoordinator
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupName));
-        LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
-            compactorAddress, ecm.getJobFiles().size());
+        TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
+            metaJob.getJob());
         break;
       } else {
         LOG.debug(

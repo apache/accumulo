@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -137,11 +139,23 @@ class CompactionDriver extends ManagerRepo {
 
     var ample = manager.getContext().getAmple();
 
-    // ELASTICITY_TODO use existing compaction logging
+    // This map tracks tablets that had a conditional mutation submitted to select files. If the
+    // conditional mutation is successful then want to log a message. Use a concurrent map as the
+    // result consumer may run in another thread.
+    ConcurrentHashMap<KeyExtent,Set<StoredTabletFile>> selectionsSubmitted =
+        new ConcurrentHashMap<>();
 
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.REJECTED) {
         log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+      }
+
+      // always remove extents from the map even if not successful in order to avoid placing too
+      // many in memory
+      var selected = selectionsSubmitted.remove(result.getExtent());
+      if (selected != null && result.getStatus() == Status.ACCEPTED) {
+        // successfully selected files so log this
+        TabletLogger.selected(fateId, result.getExtent(), selected);
       }
     };
 
@@ -229,6 +243,8 @@ class CompactionDriver extends ManagerRepo {
 
             mutator.putSelectedFiles(selectedFiles);
 
+            selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
+
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getMetadataValue()
                     .equals(selectedFiles.getMetadataValue()));
@@ -261,7 +277,7 @@ class CompactionDriver extends ManagerRepo {
           // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
           if (!tablet.getUserCompactionsRequested().contains(fateId)) {
-            log.debug(
+            log.trace(
                 "Another compaction exists for {}, Marking {} as needing a user requested compaction",
                 tablet.getExtent(), fateId);
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
@@ -271,7 +287,7 @@ class CompactionDriver extends ManagerRepo {
             userCompactionRequested++;
           } else {
             // Marker was already added and we are waiting
-            log.debug("Waiting on {} for previously marked user requested compaction {} to run",
+            log.trace("Waiting on {} for previously marked user requested compaction {} to run",
                 tablet.getExtent(), fateId);
             userCompactionWaiting++;
           }
