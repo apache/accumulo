@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -79,6 +81,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.MoreCollectors;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -391,6 +394,57 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // should have 1000 entries
       assertEquals(1000, c.createScanner(tableName).stream().count());
+    }
+  }
+
+  /**
+   * Test attempting to split a tablet that has an unexpected column
+   */
+  @Test
+  public void testUnexpectedColumn() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+
+      var ctx = getServerContext();
+      var tableId = ctx.getTableId(tableName);
+      var extent = new KeyExtent(tableId, null, null);
+
+      // This column is not expected to be present
+      var tabletMutator = ctx.getAmple().mutateTablet(extent);
+      tabletMutator.setMerged();
+      tabletMutator.mutate();
+
+      var tabletMetadata = ctx.getAmple().readTablets().forTable(tableId).saveKeyValues().build()
+          .stream().collect(MoreCollectors.onlyElement());
+      assertEquals(extent, tabletMetadata.getExtent());
+
+      tabletMetadata.getKeyValues();
+
+      // Split operation should fail because of the unexpected column.
+      var splits = new TreeSet<>(List.of(new Text("m")));
+      assertThrows(AccumuloException.class, () -> c.tableOperations().addSplits(tableName, splits));
+      assertEquals(Set.of(), Set.copyOf(c.tableOperations().listSplits(tableName)));
+
+      // The tablet should be left in a bad state, so simulate a manual cleanup
+      var tabletMetadata2 = ctx.getAmple().readTablets().forTable(tableId).saveKeyValues().build()
+          .stream().collect(MoreCollectors.onlyElement());
+      assertEquals(extent, tabletMetadata.getExtent());
+
+      // tablet should have an operation id set, but nothing else changed
+      var kvCopy = new TreeMap<>(tabletMetadata2.getKeyValues());
+      assertTrue(kvCopy.keySet().removeIf(OPID_COLUMN::hasColumns));
+      assertEquals(tabletMetadata.getKeyValues(), kvCopy);
+
+      // remove the offending columns
+      tabletMutator = ctx.getAmple().mutateTablet(extent);
+      tabletMutator.deleteMerged();
+      tabletMutator.deleteOperation();
+      tabletMutator.mutate();
+
+      // after cleaning up the tablet metadata, should be able to split
+      c.tableOperations().addSplits(tableName, splits);
+      assertEquals(Set.of(new Text("m")), Set.copyOf(c.tableOperations().listSplits(tableName)));
     }
   }
 }
