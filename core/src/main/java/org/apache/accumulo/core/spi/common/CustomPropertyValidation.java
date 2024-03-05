@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi;
+package org.apache.accumulo.core.spi.common;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 
@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.PluginEnvironment;
  * should log any configuration issues at the warning level before finally returning false.
  *
  */
-public interface SpiConfigurationValidation {
+public interface CustomPropertyValidation {
 
   /**
    * Validates implementation custom property configuration

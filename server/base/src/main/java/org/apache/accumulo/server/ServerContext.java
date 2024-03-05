@@ -60,7 +60,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.SpiConfigurationValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -515,14 +515,14 @@ public class ServerContext extends ClientContext {
       return true;
     }
     try {
-      Class<? extends SpiConfigurationValidation> clazz;
+      Class<? extends CustomPropertyValidation> clazz;
       try {
-        clazz = ClassLoaderUtil.loadClass(context, className, SpiConfigurationValidation.class);
+        clazz = ClassLoaderUtil.loadClass(context, className, CustomPropertyValidation.class);
       } catch (ClassNotFoundException e) {
         log.error("Unable to load class for configuration validation: " + className);
         return false;
       }
-      SpiConfigurationValidation instance = clazz.getDeclaredConstructor().newInstance();
+      CustomPropertyValidation instance = clazz.getDeclaredConstructor().newInstance();
       return instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration());
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException | NoSuchMethodException | SecurityException e) {

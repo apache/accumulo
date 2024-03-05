@@ -24,7 +24,7 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-import org.apache.accumulo.core.spi.SpiConfigurationValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +33,7 @@ import org.slf4j.LoggerFactory;
  * {@link #GENERAL_SERVICE_NAME_PROP} and then {@link #TABLE_SERVICE_NAME_PROP}. Useful for general
  * purpose on disk encryption, with no Table context.
  */
-public class GenericCryptoServiceFactory
-    implements CryptoServiceFactory, SpiConfigurationValidation {
+public class GenericCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidation {
 
   private static final Logger LOG = LoggerFactory.getLogger(GenericCryptoServiceFactory.class);
 

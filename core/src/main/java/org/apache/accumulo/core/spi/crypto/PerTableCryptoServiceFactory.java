@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.spi.SpiConfigurationValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * A factory that loads a CryptoService based on {@link TableId}.
  */
 public class PerTableCryptoServiceFactory
-    implements CryptoServiceFactory, SpiConfigurationValidation {
+    implements CryptoServiceFactory, CustomPropertyValidation {
   private static final Logger log = LoggerFactory.getLogger(PerTableCryptoServiceFactory.class);
   private final ConcurrentHashMap<TableId,CryptoService> cryptoServiceMap =
       new ConcurrentHashMap<>();
