@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 
@@ -46,7 +47,7 @@ public class Info implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws KeeperException, InterruptedException {
-    var context = new ServerContext(SiteConfiguration.auto());
+    var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
     System.out.println("monitor: " + MonitorUtil.getLocation(context));
     System.out.println("managers: " + context.getManagerLocations());
     System.out.println("zookeepers: " + context.getZooKeepers());

@@ -89,6 +89,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -206,7 +207,7 @@ public class ScanServer extends AbstractServer
   private final String groupName;
 
   public ScanServer(ScanServerOpts opts, String[] args) {
-    super("sserver", opts, args);
+    super(ServerType.SCAN_SERVER, "sserver", opts, args);
 
     context = super.getContext();
     log.info("Version " + Constants.VERSION);

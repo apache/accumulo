@@ -81,6 +81,7 @@ import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -117,7 +118,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   Monitor(ServerOpts opts, String[] args) {
-    super("monitor", opts, args);
+    super(ServerType.MONITOR, "monitor", opts, args);
     START_TIME = System.currentTimeMillis();
   }
 

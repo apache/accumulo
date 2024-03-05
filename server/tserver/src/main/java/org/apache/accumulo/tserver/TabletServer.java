@@ -110,6 +110,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -245,7 +246,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   protected TabletServer(ServerOpts opts, String[] args) {
-    super("tserver", opts, args);
+    super(ServerType.TABLET_SERVER, "tserver", opts, args);
     context = super.getContext();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();

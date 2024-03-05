@@ -25,6 +25,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
@@ -45,7 +46,7 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
+    try (var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto())) {
       AccumuloConfiguration config = context.getConfiguration();
       Authenticator authenticator = ClassLoaderUtil
           .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR), Authenticator.class)

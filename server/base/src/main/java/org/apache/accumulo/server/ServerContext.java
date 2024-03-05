@@ -68,6 +68,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -110,8 +111,8 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
 
-  public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig), true);
+  public ServerContext(ServerType type, SiteConfiguration siteConfig) {
+    this(new ServerInfo(type, siteConfig), true);
   }
 
   private ServerContext(ServerInfo info, boolean validateSpiProperties) {
@@ -135,7 +136,7 @@ public class ServerContext extends ClientContext {
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     if (validateSpiProperties) {
       try {
-        validateSpiConfiguration();
+        validateSpiConfiguration(info.getServerType() == ServerType.MANAGER);
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException("Error validating spi class configuration", e);
       }
@@ -145,18 +146,18 @@ public class ServerContext extends ClientContext {
   /**
    * Used during initialization to set the instance name and ID.
    */
-  public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      InstanceId instanceID) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID), false);
+  public static ServerContext initialize(ServerType type, SiteConfiguration siteConfig,
+      String instanceName, InstanceId instanceID) {
+    return new ServerContext(new ServerInfo(type, siteConfig, instanceName, instanceID), false);
   }
 
   /**
    * Override properties for testing
    */
-  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
-      String zooKeepers, int zkSessionTimeOut) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
-        true);
+  public static ServerContext override(ServerType type, SiteConfiguration siteConfig,
+      String instanceName, String zooKeepers, int zkSessionTimeOut) {
+    return new ServerContext(
+        new ServerInfo(type, siteConfig, instanceName, zooKeepers, zkSessionTimeOut), true);
   }
 
   @Override
@@ -460,16 +461,19 @@ public class ServerContext extends ClientContext {
     return securityOperation.get();
   }
 
-  public void validateSpiConfiguration() throws AccumuloException, AccumuloSecurityException {
+  public void validateSpiConfiguration(boolean validateNsAndTables)
+      throws AccumuloException, AccumuloSecurityException {
     boolean valid = validateClasses(getSiteConfiguration());
     valid = valid && validateClasses(getConfiguration());
-    for (String ns : namespaceOperations().list()) {
-      NamespaceId nsId = NamespaceId.of(namespaceOperations().namespaceIdMap().get(ns));
-      valid = valid && validateClasses(getNamespaceConfiguration(nsId));
-    }
-    for (String table : tableOperations().list()) {
-      TableId tableId = TableId.of(tableOperations().tableIdMap().get(table));
-      valid = valid && validateClasses(getTableConfiguration(tableId));
+    if (validateNsAndTables) {
+      for (String ns : namespaceOperations().list()) {
+        NamespaceId nsId = NamespaceId.of(namespaceOperations().namespaceIdMap().get(ns));
+        valid = valid && validateClasses(getNamespaceConfiguration(nsId));
+      }
+      for (String table : tableOperations().list()) {
+        TableId tableId = TableId.of(tableOperations().tableIdMap().get(table));
+        valid = valid && validateClasses(getTableConfiguration(tableId));
+      }
     }
     if (!valid) {
       throw new IllegalStateException("SPI class configuration validation failed.");

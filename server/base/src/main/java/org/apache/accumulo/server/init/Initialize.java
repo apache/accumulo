@@ -51,6 +51,7 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -163,8 +164,8 @@ public class Initialize implements KeywordExecutable {
     ZooKeeperInitializer zki = new ZooKeeperInitializer();
     zki.initializeConfig(instanceId, zoo);
 
-    try (ServerContext context =
-        ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
+    try (ServerContext context = ServerContext.initialize(ServerType.UTILITY,
+        initConfig.getSiteConf(), instanceName, instanceId)) {
       var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
@@ -558,7 +559,7 @@ public class Initialize implements KeywordExecutable {
 
   private boolean resetSecurity(InitialConfiguration initConfig, Opts opts, VolumeManager fs) {
     log.info("Resetting security on accumulo.");
-    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+    try (ServerContext context = new ServerContext(ServerType.UTILITY, initConfig.getSiteConf())) {
       if (!isInitialized(fs, initConfig)) {
         throw new IllegalStateException(
             "FATAL: Attempted to reset security on accumulo before it was initialized");

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
@@ -90,7 +91,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
     monitorLocator = () -> {
       // lazily set up context/path
       if (context == null) {
-        context = new ServerContext(SiteConfiguration.auto());
+        context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
         path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       }
       // get the current location from the cache

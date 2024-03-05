@@ -43,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
@@ -112,7 +113,7 @@ public class LogReader implements KeywordExecutable {
     }
 
     var siteConfig = opts.getSiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig);
+    ServerContext context = new ServerContext(ServerType.UTILITY, siteConfig);
     try (VolumeManager fs = context.getVolumeManager()) {
       var walCryptoService = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.WAL,
           siteConfig.getAllCryptoProperties());

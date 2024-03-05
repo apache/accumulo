@@ -23,6 +23,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,7 @@ public class RenameMasterDirInZK {
   private static final Logger LOG = LoggerFactory.getLogger(RenameMasterDirInZK.class);
 
   public static void main(String[] args) {
-    var ctx = new ServerContext(SiteConfiguration.auto());
+    var ctx = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
     if (!renameMasterDirInZK(ctx)) {
       LOG.info(
           "Masters directory in ZooKeeper has already been renamed to managers. No action was taken.");

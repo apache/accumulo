@@ -55,6 +55,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -119,7 +120,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     ZooReader zooReader = new ZooReaderWriter(conf);
 
-    try (ServerContext context = new ServerContext(conf)) {
+    try (ServerContext context = new ServerContext(ServerType.UTILITY, conf)) {
       InstanceId iid = context.getInstanceID();
       generateReport(iid, opts, zooReader);
     }

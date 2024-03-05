@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -28,7 +29,7 @@ import com.google.auto.service.AutoService;
 public class CheckServerConfig implements KeywordExecutable {
 
   public static void main(String[] args) {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
+    try (var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto())) {
       context.getConfiguration();
     }
   }

@@ -86,6 +86,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
@@ -247,7 +248,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File siteFile = new File(config.getConfDir(), "accumulo.properties");
     writeConfigProperties(siteFile, config.getSiteConfig());
     this.siteConfig = SiteConfiguration.fromFile(siteFile).build();
-    this.context = Suppliers.memoize(() -> new ServerContext(siteConfig));
+    this.context =
+        Suppliers.memoize(() -> new ServerContext(ServerInfo.ServerType.UTILITY, siteConfig));
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
