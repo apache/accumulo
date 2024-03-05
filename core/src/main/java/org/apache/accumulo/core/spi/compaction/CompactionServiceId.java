@@ -23,6 +23,8 @@ import org.apache.accumulo.core.util.cache.Caches;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * A unique identifier for a compaction service
  *
@@ -32,7 +34,7 @@ public class CompactionServiceId extends AbstractId<CompactionServiceId> {
   private static final long serialVersionUID = 1L;
 
   static final Cache<String,CompactionServiceId> cache = Caches.getInstance()
-      .createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false).weakValues().build();
+      .createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false).expireAfterAccess(1, TimeUnit.DAYS).build();
 
   private CompactionServiceId(String canonical) {
     super(canonical);
