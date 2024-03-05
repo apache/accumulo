@@ -108,10 +108,20 @@ public class PerTableCryptoServiceFactory
     String wal = conf.get(WAL_NAME_PROP);
     String recovery = conf.get(RECOVERY_NAME_PROP);
     String table = conf.get(TABLE_SERVICE_NAME_PROP);
-    if (wal == null || recovery == null || table == null || wal.isBlank() || recovery.isBlank()
-        || table.isBlank()) {
-      return false;
+    boolean result = true;
+    if (wal == null || wal.isBlank()) {
+      log.warn("The property " + WAL_NAME_PROP + " is required for encrypting WALs.");
+      result = false;
     }
-    return true;
+    if (recovery == null || recovery.isBlank()) {
+      log.warn(
+          "The property " + RECOVERY_NAME_PROP + " is required for encrypting during recovery.");
+      result = false;
+    }
+    if (table == null || table.isBlank()) {
+      log.warn("The property " + TABLE_SERVICE_NAME_PROP + " is required for encrypting tables.");
+      result = false;
+    }
+    return result;
   }
 }

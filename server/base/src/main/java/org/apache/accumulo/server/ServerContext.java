@@ -461,19 +461,22 @@ public class ServerContext extends ClientContext {
   }
 
   public void validateSpiConfiguration() throws AccumuloException, AccumuloSecurityException {
-    validateClasses(getSiteConfiguration());
-    validateClasses(getConfiguration());
+    boolean valid = validateClasses(getSiteConfiguration());
+    valid = valid && validateClasses(getConfiguration());
     for (String ns : namespaceOperations().list()) {
       NamespaceId nsId = NamespaceId.of(namespaceOperations().namespaceIdMap().get(ns));
-      validateClasses(getNamespaceConfiguration(nsId));
+      valid = valid && validateClasses(getNamespaceConfiguration(nsId));
     }
     for (String table : tableOperations().list()) {
       TableId tableId = TableId.of(tableOperations().tableIdMap().get(table));
-      validateClasses(getTableConfiguration(tableId));
+      valid = valid && validateClasses(getTableConfiguration(tableId));
+    }
+    if (!valid) {
+      throw new IllegalStateException("SPI class configuration validation failed.");
     }
   }
 
-  private void validateClasses(AccumuloConfiguration conf) {
+  private boolean validateClasses(AccumuloConfiguration conf) {
 
     String context = null;
     if (conf instanceof TableConfiguration) {
@@ -484,54 +487,50 @@ public class ServerContext extends ClientContext {
       context = nconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
     }
 
+    boolean valid = true;
     for (Property p : Property.values()) {
       if (p.getType().equals(PropertyType.CLASSNAMELIST)) {
         String[] classNames = conf.get(p).split(",");
         for (String className : classNames) {
-          try {
-            validateClassConfiguration(conf, p, context);
-          } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(
-                "Unable to load class for configuration validation: " + className);
-          }
+          valid = valid && validateClassConfiguration(conf, p, context, className);
         }
       } else if (p.getType().equals(PropertyType.CLASSNAME)) {
-        try {
-          validateClassConfiguration(conf, p, context);
-        } catch (ClassNotFoundException e) {
-          throw new IllegalStateException(
-              "Unable to load class for configuration validation: " + conf.get(p));
-        }
+        valid = valid && validateClassConfiguration(conf, p, context, conf.get(p));
       }
     }
+    return valid;
   }
 
-  private void validateClassConfiguration(AccumuloConfiguration conf, Property p, String context)
-      throws ClassNotFoundException {
+  private boolean validateClassConfiguration(AccumuloConfiguration conf, Property p, String context,
+      String className) {
 
     if (p.isDeprecated()) {
       // Some deprecated properties reference classes that don't exist. For example in 2.1 the
       // property TRACE_SPAN_RECEIVERS references org.apache.accumulo.tracer.ZooTraceClient
-      return;
+      return true;
     }
 
-    String className = conf.get(p);
     if (className == null || className.isBlank()) {
-      return;
+      // No class is configured for the property
+      return true;
     }
     try {
-      Class<? extends SpiConfigurationValidation> clazz =
-          ClassLoaderUtil.loadClass(context, className, SpiConfigurationValidation.class);
-      SpiConfigurationValidation instance = clazz.getDeclaredConstructor().newInstance();
-      if (!instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration())) {
-        throw new IllegalStateException("SPI class configuration validation failed.");
+      Class<? extends SpiConfigurationValidation> clazz;
+      try {
+        clazz = ClassLoaderUtil.loadClass(context, className, SpiConfigurationValidation.class);
+      } catch (ClassNotFoundException e) {
+        log.error("Unable to load class for configuration validation: " + className);
+        return false;
       }
+      SpiConfigurationValidation instance = clazz.getDeclaredConstructor().newInstance();
+      return instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration());
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-      throw new IllegalArgumentException(
-          className + " does not implement no-arg constructor for configuration validation");
+      log.error(className + " does not implement no-arg constructor for configuration validation");
+      return false;
     } catch (ClassCastException e) {
       // not an error, this class does not implement CustomSPIConfiguration
+      return true;
     }
   }
 

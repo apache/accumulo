@@ -20,8 +20,21 @@ package org.apache.accumulo.core.spi;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 
+/**
+ * Interface to be used on SPI classes where custom properties are in use. When
+ * {@code #validateConfiguration(org.apache.accumulo.core.client.PluginEnvironment.Configuration)}
+ * is called validation of the custom properties should be performed, if applicable. Implementations
+ * should log any configuration issues at the warning level before finally returning false.
+ *
+ */
 public interface SpiConfigurationValidation {
 
+  /**
+   * Validates implementation custom property configuration
+   *
+   * @param conf configuration
+   * @return true if configuration is valid, else false after logging all warnings
+   */
   public boolean validateConfiguration(PluginEnvironment.Configuration conf);
 
 }
