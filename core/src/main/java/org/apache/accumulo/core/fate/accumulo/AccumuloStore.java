@@ -174,6 +174,20 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    try {
+      Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
+      scanner.setRange(new Range());
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      return scanner.stream().onClose(scanner::close)
+          .map(e -> FateKey.deserialize(e.getValue().get()))
+          .filter(fateKey -> fateKey.getType() == type);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
+  }
+
+  @Override
   protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));

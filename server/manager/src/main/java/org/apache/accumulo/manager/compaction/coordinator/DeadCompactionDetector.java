@@ -27,11 +27,16 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -39,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
@@ -55,13 +61,16 @@ public class DeadCompactionDetector {
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
 
   public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
-      ScheduledThreadPoolExecutor stpe) {
+      ScheduledThreadPoolExecutor stpe,
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
     this.context = context;
     this.coordinator = coordinator;
     this.schedExecutor = stpe;
     this.deadCompactions = new ConcurrentHashMap<>();
+    this.fateInstances = fateInstances;
   }
 
   public void addTableId(TableId tableWithUnreferencedTmpFiles) {
@@ -73,11 +82,11 @@ public class DeadCompactionDetector {
   private void detectDeadCompactions() {
 
     // The order of obtaining information is very important to avoid race conditions.
-
     log.debug("Starting to look for dead compactions");
 
+    // ELASTICITY_TODO not looking for dead compactions in the metadata table
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
-    //
+
     // find what external compactions tablets think are running
     try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forLevel(DataLevel.USER)
         .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
@@ -111,7 +120,7 @@ public class DeadCompactionDetector {
       Collection<ExternalCompactionId> running =
           ExternalCompactionUtil.getCompactionIdsRunningOnCompactors(context);
 
-      running.forEach((ecid) -> {
+      running.forEach(ecid -> {
         if (tabletCompactions.remove(ecid) != null) {
           log.debug("Ignoring compaction {} that is running on a compactor", ecid);
         }
@@ -119,6 +128,27 @@ public class DeadCompactionDetector {
           log.debug("Removed {} from the dead compaction map, it's running on a compactor", ecid);
         }
       });
+
+      if (!tabletCompactions.isEmpty()) {
+        // look for any compactions committing in fate and remove those
+        var fateMap = fateInstances.get();
+        if (fateMap == null) {
+          log.warn("Fate is not present, can not look for dead compactions");
+          return;
+        }
+        // ELASTICITY_TODO need to handle metadata
+        var fate = fateMap.get(FateInstanceType.USER);
+        try (Stream<FateKey> keyStream = fate.list(FateKey.FateKeyType.COMPACTION_COMMIT)) {
+          keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
+            if (tabletCompactions.remove(ecid) != null) {
+              log.debug("Ignoring compaction {} that is committing in a fate", ecid);
+            }
+            if (this.deadCompactions.remove(ecid) != null) {
+              log.debug("Removed {} from the dead compaction map, it's committing in fate", ecid);
+            }
+          });
+        }
+      }
 
       tabletCompactions.forEach((ecid, extent) -> {
         log.info("Possible dead compaction detected {} {}", ecid, extent);

@@ -121,6 +121,11 @@ public class FateLogger {
       }
 
       @Override
+      public Stream<FateKey> list(FateKey.FateKeyType type) {
+        return store.list(type);
+      }
+
+      @Override
       public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }

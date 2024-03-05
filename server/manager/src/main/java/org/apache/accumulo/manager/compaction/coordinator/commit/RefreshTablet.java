@@ -27,6 +27,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -38,8 +39,10 @@ public class RefreshTablet extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
   private final String tserverInstance;
+  private final String compactionId;
 
-  public RefreshTablet(TKeyExtent extent, String tserverInstance) {
+  public RefreshTablet(String ecid, TKeyExtent extent, String tserverInstance) {
+    this.compactionId = ecid;
     this.extent = extent;
     this.tserverInstance = tserverInstance;
   }
@@ -59,6 +62,8 @@ public class RefreshTablet extends ManagerRepo {
     } finally {
       executorService.shutdownNow();
     }
+
+    manager.getCompactionCoordinator().recordCompletion(ExternalCompactionId.of(compactionId));
 
     return null;
   }

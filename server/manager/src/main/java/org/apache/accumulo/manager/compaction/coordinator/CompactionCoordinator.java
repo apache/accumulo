@@ -71,6 +71,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
@@ -202,7 +203,8 @@ public class CompactionCoordinator
     tabletDirCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
         .maximumWeight(10485760L).weigher(weigher).build();
 
-    deadCompactionDetector = new DeadCompactionDetector(this.ctx, this, schedExecutor);
+    deadCompactionDetector =
+        new DeadCompactionDetector(this.ctx, this, schedExecutor, fateInstances);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
@@ -684,31 +686,14 @@ public class CompactionCoordinator
       return;
     }
 
+    // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
+    var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
+        renameOp, true, "Commit compaction " + ecid);
 
-    // ELASTICITY_TODO add tag to fate that ECID can be added to. This solves two problem. First it
-    // defends against starting multiple fate txs for the same thing. This will help the split code
-    // also. Second the tag can be used by the dead compaction detector to ignore committing
-    // compactions. The imple coould hash the key to produce the fate tx id.
-    var txid = localFate.startTransaction();
-    localFate.seedTransaction("COMMIT_COMPACTION", txid, renameOp, true,
-        "Commit compaction " + ecid);
-
-    // ELASTICITY_TODO need to remove this wait. It is here because when the dead compaction
-    // detector ask a compactor what its currently running it expects that cover commit. To remove
-    // this wait would need another way for the dead compaction detector to know about committing
-    // compactions. Could add a tag to the fate tx with the ecid and have dead compaction detector
-    // scan these tags. This wait makes the code running in fate not be fault tolerant because in
-    // the
-    // case of faults the dead compaction detector may remove the compaction entry.
-    localFate.waitForCompletion(txid);
-
-    // It's possible that RUNNING might not have an entry for this ecid in the case
-    // of a coordinator restart when the Coordinator can't find the TServer for the
-    // corresponding external compaction.
-    recordCompletion(ecid);
-    // ELASTICITY_TODO should above call move into fate code?
+    txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
+        () -> LOG.debug("compaction commit already initiated for {}", ecid));
   }
 
   @Override
@@ -844,7 +829,7 @@ public class CompactionCoordinator
     }
   }
 
-  private void recordCompletion(ExternalCompactionId ecid) {
+  public void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
       completed.put(ecid, rc);
