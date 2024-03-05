@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -41,10 +42,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
@@ -55,8 +60,11 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.SpiConfigurationValidation;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -103,10 +111,10 @@ public class ServerContext extends ClientContext {
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig));
+    this(new ServerInfo(siteConfig), true);
   }
 
-  private ServerContext(ServerInfo info) {
+  private ServerContext(ServerInfo info, boolean validateSpiProperties) {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
@@ -125,6 +133,13 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    if (validateSpiProperties) {
+      try {
+        validateSpiConfiguration();
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new IllegalStateException("Error validating spi class configuration", e);
+      }
+    }
   }
 
   /**
@@ -132,7 +147,7 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID), false);
   }
 
   /**
@@ -140,8 +155,8 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
-    return new ServerContext(
-        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+    return new ServerContext(new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
+        true);
   }
 
   @Override
@@ -443,6 +458,111 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
+  }
+
+  public void validateSpiConfiguration() throws AccumuloException, AccumuloSecurityException {
+    validateClasses(getSiteConfiguration());
+    validateClasses(getConfiguration());
+    for (String ns : namespaceOperations().list()) {
+      NamespaceId nsId = NamespaceId.of(namespaceOperations().namespaceIdMap().get(ns));
+      validateClasses(getNamespaceConfiguration(nsId));
+    }
+    for (String table : tableOperations().list()) {
+      TableId tableId = TableId.of(tableOperations().tableIdMap().get(table));
+      validateClasses(getTableConfiguration(tableId));
+    }
+  }
+
+  private void validateClasses(AccumuloConfiguration conf) {
+
+    String context = null;
+    if (conf instanceof TableConfiguration) {
+      TableConfiguration tconf = (TableConfiguration) conf;
+      context = tconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
+    } else if (conf instanceof NamespaceConfiguration) {
+      NamespaceConfiguration nconf = (NamespaceConfiguration) conf;
+      context = nconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
+    }
+
+    for (Property p : Property.values()) {
+      if (p.getType().equals(PropertyType.CLASSNAMELIST)) {
+        String[] classNames = conf.get(p).split(",");
+        for (String className : classNames) {
+          try {
+            validateClassConfiguration(conf, p, context);
+          } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(
+                "Unable to load class for configuration validation: " + className);
+          }
+        }
+      } else if (p.getType().equals(PropertyType.CLASSNAME)) {
+        try {
+          validateClassConfiguration(conf, p, context);
+        } catch (ClassNotFoundException e) {
+          throw new IllegalStateException(
+              "Unable to load class for configuration validation: " + conf.get(p));
+        }
+      }
+    }
+  }
+
+  private void validateClassConfiguration(AccumuloConfiguration conf, Property p, String context)
+      throws ClassNotFoundException {
+
+    if (p.isDeprecated()) {
+      // Some deprecated properties reference classes that don't exist. For example in 2.1 the
+      // property TRACE_SPAN_RECEIVERS references org.apache.accumulo.tracer.ZooTraceClient
+      return;
+    }
+
+    String className = conf.get(p);
+    if (className == null || className.isBlank()) {
+      return;
+    }
+    try {
+      Class<? extends SpiConfigurationValidation> clazz =
+          ClassLoaderUtil.loadClass(context, className, SpiConfigurationValidation.class);
+      SpiConfigurationValidation instance = clazz.getDeclaredConstructor().newInstance();
+      if (!instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration())) {
+        throw new IllegalStateException("SPI class configuration validation failed.");
+      }
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+        | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+      throw new IllegalArgumentException(
+          className + " does not implement no-arg constructor for configuration validation");
+    } catch (ClassCastException e) {
+      // not an error, this class does not implement CustomSPIConfiguration
+    }
+  }
+
+  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+    return new ServiceEnvironment() {
+
+      @Override
+      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T instantiate(String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String getTableName(TableId tableId) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public Configuration getConfiguration(TableId tableId) {
+        return new ConfigurationImpl(config);
+      }
+
+      @Override
+      public Configuration getConfiguration() {
+        return new ConfigurationImpl(config);
+      }
+    };
   }
 
 }

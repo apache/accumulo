@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.upgrade;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -29,31 +28,20 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.spi.SpiConfigurationValidation;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.conf.NamespaceConfiguration;
-import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -241,107 +229,22 @@ public class UpgradeCoordinator {
 
   private void validateProperties(ServerContext context) {
     ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
-    validateClasses(context.getSiteConfiguration());
     ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
-    validateClasses(context.getConfiguration());
     try {
       for (String ns : context.namespaceOperations().list()) {
         ConfigCheckUtil.validate(
             context.namespaceOperations().getNamespaceProperties(ns).entrySet(),
             ns + " namespace configuration");
-        NamespaceId nsId = NamespaceId.of(context.namespaceOperations().namespaceIdMap().get(ns));
-        validateClasses(context.getNamespaceConfiguration(nsId));
       }
       for (String table : context.tableOperations().list()) {
         ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
             table + " table configuration");
-        TableId tableId = TableId.of(context.tableOperations().tableIdMap().get(table));
-        validateClasses(context.getTableConfiguration(tableId));
       }
+      context.validateSpiConfiguration();
     } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
         | TableNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);
     }
-  }
-
-  private void validateClasses(AccumuloConfiguration conf) {
-
-    String context = null;
-    if (conf instanceof TableConfiguration) {
-      TableConfiguration tconf = (TableConfiguration) conf;
-      context = tconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
-    } else if (conf instanceof NamespaceConfiguration) {
-      NamespaceConfiguration nconf = (NamespaceConfiguration) conf;
-      context = nconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
-    }
-
-    for (Property p : Property.values()) {
-      if (p.getType().equals(PropertyType.CLASSNAMELIST)) {
-        String[] classNames = conf.get(p).split(",");
-        for (String className : classNames) {
-          try {
-            validateClassConfiguration(conf, p, context);
-          } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(
-                "Unable to load class for configuration validation: " + className);
-          }
-        }
-      } else if (p.getType().equals(PropertyType.CLASSNAME)) {
-        try {
-          validateClassConfiguration(conf, p, context);
-        } catch (ClassNotFoundException e) {
-          throw new IllegalStateException(
-              "Unable to load class for configuration validation: " + conf.get(p));
-        }
-      }
-    }
-  }
-
-  private void validateClassConfiguration(AccumuloConfiguration conf, Property p, String context)
-      throws ClassNotFoundException {
-    String className = conf.get(p);
-    try {
-      Class<? extends SpiConfigurationValidation> clazz =
-          ClassLoaderUtil.loadClass(context, className, SpiConfigurationValidation.class);
-      SpiConfigurationValidation instance = clazz.getDeclaredConstructor().newInstance();
-      instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration());
-    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-        | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-      throw new IllegalArgumentException(
-          className + " does not implement no-arg constructor for configuration validation");
-    } catch (ClassCastException e) {
-      // not an error, this class does not implement CustomSPIConfiguration
-    }
-  }
-
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
-    return new ServiceEnvironment() {
-
-      @Override
-      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public <T> T instantiate(String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public String getTableName(TableId tableId) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public Configuration getConfiguration(TableId tableId) {
-        return new ConfigurationImpl(config);
-      }
-
-      @Override
-      public Configuration getConfiguration() {
-        return new ConfigurationImpl(config);
-      }
-    };
   }
 
   // visible for testing

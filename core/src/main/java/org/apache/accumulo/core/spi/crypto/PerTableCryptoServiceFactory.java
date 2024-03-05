@@ -25,14 +25,17 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.SpiConfigurationValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A factory that loads a CryptoService based on {@link TableId}.
  */
-public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
+public class PerTableCryptoServiceFactory
+    implements CryptoServiceFactory, SpiConfigurationValidation {
   private static final Logger log = LoggerFactory.getLogger(PerTableCryptoServiceFactory.class);
   private final ConcurrentHashMap<TableId,CryptoService> cryptoServiceMap =
       new ConcurrentHashMap<>();
@@ -98,5 +101,17 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
 
   public int getCount() {
     return cryptoServiceMap.size();
+  }
+
+  @Override
+  public boolean validateConfiguration(Configuration conf) {
+    String wal = conf.get(WAL_NAME_PROP);
+    String recovery = conf.get(RECOVERY_NAME_PROP);
+    String table = conf.get(TABLE_SERVICE_NAME_PROP);
+    if (wal == null || recovery == null || table == null || wal.isBlank() || recovery.isBlank()
+        || table.isBlank()) {
+      return false;
+    }
+    return true;
   }
 }
