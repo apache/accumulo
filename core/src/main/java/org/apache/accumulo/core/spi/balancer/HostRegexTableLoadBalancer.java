@@ -49,6 +49,7 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TableStatisticsImpl;
+import org.apache.accumulo.core.spi.SpiConfigurationValidation;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -91,7 +92,8 @@ import com.google.common.collect.Multimap;
  *
  * @since 2.1.0
  */
-public class HostRegexTableLoadBalancer extends TableLoadBalancer {
+public class HostRegexTableLoadBalancer extends TableLoadBalancer
+    implements SpiConfigurationValidation {
 
   private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
@@ -566,6 +568,17 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private static String limitTen(Collection<?> iterable) {
     return iterable.stream().limit(10).map(String::valueOf)
         .collect(Collectors.joining(", ", "[", "]"));
+  }
+
+  @Override
+  public boolean validateConfiguration(PluginEnvironment.Configuration conf) {
+    try {
+      new HrtlbConf(conf);
+      return true;
+    } catch (RuntimeException e) {
+      LOG.warn("Error validating configuration", e);
+      return false;
+    }
   }
 
 }
