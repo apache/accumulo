@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.util.cache.Caches;
 
 import com.github.benmanes.caffeine.cache.Cache;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * A unique identifier for a compaction service
@@ -33,8 +33,9 @@ import java.util.concurrent.TimeUnit;
 public class CompactionServiceId extends AbstractId<CompactionServiceId> {
   private static final long serialVersionUID = 1L;
 
-  static final Cache<String,CompactionServiceId> cache = Caches.getInstance()
-      .createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false).expireAfterAccess(1, TimeUnit.DAYS).build();
+  static final Cache<String,CompactionServiceId> cache =
+      Caches.getInstance().createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false)
+          .expireAfterAccess(1, TimeUnit.DAYS).build();
 
   private CompactionServiceId(String canonical) {
     super(canonical);
