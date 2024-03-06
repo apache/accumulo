@@ -176,7 +176,7 @@ public class CompactorTest {
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, context.getConfiguration());
+      super(new CompactorServerOpts(), new String[] {"-q", "testQ"});
       this.uuid = uuid;
       this.address = address;
       this.job = job;
@@ -190,13 +190,7 @@ public class CompactorTest {
     }
 
     @Override
-    protected void setupSecurity() {}
-
-    @Override
     protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
-    protected void printStartupMsg() {}
 
     @Override
     public ServerContext getContext() {
@@ -469,13 +463,14 @@ public class CompactorTest {
 
     PowerMock.replayAll();
 
-    SuccessfulCompactor c = new SuccessfulCompactor(null, null, null, context, null);
-    PowerMock.verifyAll();
+    try (var c = new SuccessfulCompactor(null, null, null, context, null)) {
+      Long maxWait = c.getWaitTimeBetweenCompactionChecks();
+      // compaction jitter means maxWait is between 0.9 and 1.1 of the desired value.
+      assertTrue(maxWait >= 720L);
+      assertTrue(maxWait <= 968L);
+    }
 
-    Long maxWait = c.getWaitTimeBetweenCompactionChecks();
-    // compaction jitter means maxWait is between 0.9 and 1.1 of the desired value.
-    assertTrue(maxWait >= 720L);
-    assertTrue(maxWait <= 968L);
+    PowerMock.verifyAll();
   }
 
 }
