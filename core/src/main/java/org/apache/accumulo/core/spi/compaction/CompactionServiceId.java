@@ -35,7 +35,7 @@ public class CompactionServiceId extends AbstractId<CompactionServiceId> {
 
   static final Cache<String,CompactionServiceId> cache =
       Caches.getInstance().createNewBuilder(Caches.CacheName.COMPACTION_SERVICE_ID, false)
-          .expireAfterAccess(1, TimeUnit.DAYS).build();
+          .weakValues().expireAfterAccess(1, TimeUnit.DAYS).build();
 
   private CompactionServiceId(String canonical) {
     super(canonical);
