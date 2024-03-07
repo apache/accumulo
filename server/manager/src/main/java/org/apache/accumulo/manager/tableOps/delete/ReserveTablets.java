@@ -81,22 +81,28 @@ public class ReserveTablets extends ManagerRepo {
         tabletsSeen++;
         if (tabletMeta.getLocation() != null) {
           locations++;
+          log.debug("Delete table is waiting on tablet unload {} {} {}", tabletMeta.getExtent(),
+              tabletMeta.getLocation(), fateId);
+          continue;
         }
 
         if (tabletMeta.getOperationId() != null) {
           if (!opid.equals(tabletMeta.getOperationId())) {
             otherOps++;
+            log.debug("Delete table is waiting on tablet with operation {} {} {}",
+                tabletMeta.getExtent(), tabletMeta.getOperationId(), fateId);
           }
         } else {
           conditionalMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
-              .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
+              .requireSame(tabletMeta, LOCATION).putOperation(opid)
+              .submit(tm -> opid.equals(tm.getOperationId()));
           submitted++;
         }
       }
     }
 
     if (locations > 0 || otherOps > 0 || submitted != accepted.get()) {
-      log.debug("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
+      log.info("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
           fateId, locations, otherOps, submitted, accepted.get());
       return Math.min(Math.max(100, tabletsSeen), 30000);
     }
