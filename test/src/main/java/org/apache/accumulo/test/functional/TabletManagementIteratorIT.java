@@ -262,7 +262,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           "No tablets should need attention");
 
       // clean up
-      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5);
+      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
+          metaCopy6);
     }
   }
 
