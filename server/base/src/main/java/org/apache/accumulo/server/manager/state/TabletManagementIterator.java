@@ -252,7 +252,7 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    if (tm.getOperationId() == null
+    if (tm.getOperationId() == null && tabletMgmtParams.isTableOnline(tm.getTableId())
         && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
         final long splitThreshold =
