@@ -275,7 +275,8 @@ public class GenerateSplits implements KeywordExecutable {
           String errMsg = "non printable char: \\x" + Integer.toHexString(c);
           // Fail if non-printable characters are detected.
           if (!humanRead) {
-            throw new UnsupportedOperationException(errMsg + " detected");
+            throw new UnsupportedOperationException(
+                errMsg + " detected. Must use Base64 encoded output");
           }
           log.info("Dropping {}", errMsg);
         }
