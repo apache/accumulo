@@ -24,10 +24,13 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.clientImpl.bulk.ConcurrentKeyExtentCache;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
@@ -36,6 +39,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +87,23 @@ public class CompactRange extends ManagerRepo {
   @Override
   public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
-    return new CompactionDriver(namespaceId, tableId, startRow, endRow);
+    BulkImport.KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, env.getContext());
+    KeyExtent keyExtent = extentCache.lookup(new Text(startRow));
+    byte[] prevRowOfStartRowTablet = startRow;
+    byte[] endRowOfEndRowTablet = endRow;
+
+    if (startRow != null) {
+      // find the tablet containing startRow and pass its prev row to the CompactionDriver
+      prevRowOfStartRowTablet = keyExtent.prevEndRow().getBytes();
+    }
+
+    keyExtent = extentCache.lookup(new Text(endRow));
+    if (endRow != null) {
+      // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
+      endRowOfEndRowTablet = keyExtent.endRow().getBytes();
+    }
+    return new CompactionDriver(namespaceId, tableId, prevRowOfStartRowTablet,
+        endRowOfEndRowTablet);
   }
 
   @Override

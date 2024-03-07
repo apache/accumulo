@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-class ConcurrentKeyExtentCache implements KeyExtentCache {
+public class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
@@ -59,7 +59,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   private TableId tableId;
   private ClientContext ctx;
 
-  ConcurrentKeyExtentCache(TableId tableId, ClientContext ctx) {
+  public ConcurrentKeyExtentCache(TableId tableId, ClientContext ctx) {
     this.tableId = tableId;
     this.ctx = ctx;
   }
