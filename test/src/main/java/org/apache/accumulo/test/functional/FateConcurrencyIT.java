@@ -269,10 +269,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
             Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
 
-        withLocks = admin.getStatus(fateStores, zk, lockPath, null, null);
+        withLocks = admin.getStatus(fateStores, zk, lockPath, null, null, null);
 
         // call method that does not use locks.
-        noLocks = admin.getTransactionStatus(fateStores, null, null);
+        noLocks = admin.getTransactionStatus(fateStores, null, null, null);
 
         // no zk exception, no need to retry
         break;
@@ -304,10 +304,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       if (isCompaction(tx)) {
 
-        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+        log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
 
         for (AdminUtil.TransactionStatus tx2 : noLocks) {
-          if (tx2.getTxid().equals(tx.getTxid())) {
+          if (tx2.getFateId().equals(tx.getFateId())) {
             matchCount++;
           }
         }
@@ -358,7 +358,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       var lockPath =
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
@@ -386,7 +386,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       AccumuloStore<String> as = new AccumuloStore<>(context);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(as, null, null);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(as, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
@@ -418,7 +418,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       return false;
     }
 
-    log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+    log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
 
     String top = tx.getTop();
     String txName = tx.getTxName();

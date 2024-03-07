@@ -233,7 +233,7 @@ public class FunctionalTestUtils {
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-      return admin.getStatus(zs, zk, lockPath, null, null);
+      return admin.getStatus(zs, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

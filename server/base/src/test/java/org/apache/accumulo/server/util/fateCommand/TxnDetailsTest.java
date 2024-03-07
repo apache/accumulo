@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ class TxnDetailsTest {
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
     expect(status1.getTxName()).andReturn("runningTx1").anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:abcdabcd")).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
@@ -62,7 +63,7 @@ class TxnDetailsTest {
     expect(status2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status2.getTop()).andReturn("step2").anyTimes();
     expect(status2.getTxName()).andReturn("runningTx2").anyTimes();
-    expect(status2.getTxid()).andReturn("123456789").anyTimes();
+    expect(status2.getFateId()).andReturn(FateId.from("FATE:USER:123456789")).anyTimes();
     expect(status2.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status2.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
@@ -96,7 +97,7 @@ class TxnDetailsTest {
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
     expect(status1.getTxName()).andReturn("runningTx").anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:abcdabcd")).anyTimes();
     // incomplete lock info (W unknown ns id, no table))
     expect(status1.getHeldLocks()).andReturn(List.of("R:1", "R:2", "W:a")).anyTimes();
     // blank names

@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -40,6 +39,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -54,8 +54,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
@@ -64,7 +65,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
-import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -214,34 +214,40 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
   static class FateOpsCommand {
-    @Parameter(description = "[<txId>...]")
-    List<String> txList = new ArrayList<>();
+    @Parameter(description = "[<FateId>...]")
+    List<String> fateIdList = new ArrayList<>();
 
     @Parameter(names = {"-c", "--cancel"},
-        description = "<txId>... Cancel new or submitted FaTE transactions")
+        description = "<FateId>... Cancel new or submitted FaTE transactions")
     boolean cancel;
 
     @Parameter(names = {"-f", "--fail"},
-        description = "<txId>... Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
+        description = "<FateId>... Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
     boolean fail;
 
     @Parameter(names = {"-d", "--delete"},
-        description = "<txId>... Delete locks associated with transactions (Requires Manager to be down)")
+        description = "<FateId>... Delete locks associated with transactions (Requires Manager to be down)")
     boolean delete;
 
     @Parameter(names = {"-p", "--print", "-print", "-l", "--list", "-list"},
-        description = "[<txId>...] Print information about FaTE transactions. Print only the 'txId's specified or print all transactions if empty. Use -s to only print certain states.")
+        description = "[<FateId>...] Print information about FaTE transactions. Print only the FateId's specified or print all transactions if empty. Use -s to only print those with certain states. Use -t to only print those with certain FateInstanceTypes.")
     boolean print;
 
-    @Parameter(names = "--summary", description = "Print a summary of all FaTE transactions")
+    @Parameter(names = "--summary",
+        description = "[<FateId>...] Print a summary of FaTE transactions. Print only the FateId's specified or print all transactions if empty. Use -s to only print those with certain states. Use -t to only print those with certain FateInstanceTypes. Use -j to print the transactions in json.")
     boolean summarize;
 
-    @Parameter(names = {"-j", "--json"}, description = "Print transactions in json")
+    @Parameter(names = {"-j", "--json"},
+        description = "Print transactions in json. Only useful for --summary command.")
     boolean printJson;
 
     @Parameter(names = {"-s", "--state"},
         description = "<state>... Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
+
+    @Parameter(names = {"-t", "--type"},
+        description = "<type>... Print transactions of fate instance type(s) {USER, META}")
+    List<String> instanceTypes = new ArrayList<>();
   }
 
   public static void main(String[] args) {
@@ -767,39 +773,43 @@ public class Admin implements KeywordExecutable {
     ZooReaderWriter zk = context.getZooReaderWriter();
     ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
     AccumuloStore<Admin> as = new AccumuloStore<>(context);
-    Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores =
+    Map<FateInstanceType,FateStore<Admin>> fateStores =
+        Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
+    Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores =
         Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
 
     if (fateOpsCommand.cancel) {
-      cancelSubmittedFateTxs(context, fateOpsCommand.txList);
+      cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
     } else if (fateOpsCommand.fail) {
-      for (String txid : fateOpsCommand.txList) {
-        if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
-          throw new AccumuloException("Could not fail transaction: " + txid);
+      for (String fateIdStr : fateOpsCommand.fateIdList) {
+        if (!admin.prepFail(fateStores, zk, zLockManagerPath, fateIdStr)) {
+          throw new AccumuloException("Could not fail transaction: " + fateIdStr);
         }
       }
     } else if (fateOpsCommand.delete) {
-      for (String txid : fateOpsCommand.txList) {
-        if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
-          throw new AccumuloException("Could not delete transaction: " + txid);
+      for (String fateIdStr : fateOpsCommand.fateIdList) {
+        if (!admin.prepDelete(fateStores, zk, zLockManagerPath, fateIdStr)) {
+          throw new AccumuloException("Could not delete transaction: " + fateIdStr);
         }
-        admin.deleteLocks(zk, zTableLocksPath, txid);
+        admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
       }
     }
 
     if (fateOpsCommand.print) {
-      final Set<Long> sortedTxs = new TreeSet<>();
-      fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
+      final Set<FateId> fateIdFilter = new TreeSet<>();
+      fateOpsCommand.fateIdList.forEach(fateIdStr -> fateIdFilter.add(FateId.from(fateIdStr)));
       EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
           getCmdLineStatusFilters(fateOpsCommand.states);
-      admin.print(fateStores, zk, zTableLocksPath, new Formatter(System.out), sortedTxs,
-          statusFilter);
+      EnumSet<FateInstanceType> typesFilter =
+          getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
+      admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out), fateIdFilter,
+          statusFilter, typesFilter);
       // print line break at the end
       System.out.println();
     }
 
     if (fateOpsCommand.summarize) {
-      summarizeFateTx(context, fateOpsCommand, admin, fateStores, zTableLocksPath);
+      summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
     }
   }
 
@@ -808,35 +818,33 @@ public class Admin implements KeywordExecutable {
       throw new IllegalArgumentException(
           "Can only perform one of the following at a time: cancel, fail or delete.");
     }
-    if ((cmd.cancel || cmd.fail || cmd.delete) && cmd.txList.isEmpty()) {
+    if ((cmd.cancel || cmd.fail || cmd.delete) && cmd.fateIdList.isEmpty()) {
       throw new IllegalArgumentException(
           "At least one txId required when using cancel, fail or delete");
     }
   }
 
-  private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
+  private void cancelSubmittedFateTxs(ServerContext context, List<String> fateIdList)
       throws AccumuloException {
-    for (String txStr : txList) {
-      // TODO: We need to pass and then parse the instance type to create TFateId,
-      // maybe something like <type>:txid
-      long txid = Long.parseLong(txStr, 16);
-      boolean cancelled = cancelFateOperation(context, new TFateId(TFateInstanceType.META, txid));
+    for (String fateIdStr : fateIdList) {
+      FateId fateId = FateId.from(fateIdStr);
+      TFateId thriftFateId = fateId.toThrift();
+      boolean cancelled = cancelFateOperation(context, thriftFateId);
       if (cancelled) {
-        System.out.println("FaTE transaction " + FateTxId.formatTid(txid)
-            + " was cancelled or already completed.");
+        System.out.println("FaTE transaction " + fateId + " was cancelled or already completed.");
       } else {
-        System.out.println("FaTE transaction " + FateTxId.formatTid(txid)
-            + " was not cancelled, status may have changed.");
+        System.out
+            .println("FaTE transaction " + fateId + " was not cancelled, status may have changed.");
       }
     }
   }
 
-  private boolean cancelFateOperation(ClientContext context, TFateId txid)
+  private boolean cancelFateOperation(ClientContext context, TFateId thriftFateId)
       throws AccumuloException {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
-      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), thriftFateId);
     } catch (Exception e) {
       throw new AccumuloException(e);
     } finally {
@@ -852,7 +860,7 @@ public class Admin implements KeywordExecutable {
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();
-    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null);
+    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
@@ -867,9 +875,13 @@ public class Admin implements KeywordExecutable {
       }
     });
 
+    Set<FateId> fateIdFilter =
+        cmd.fateIdList.stream().map(FateId::from).collect(Collectors.toSet());
     EnumSet<ReadOnlyFateStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+    EnumSet<FateInstanceType> typesFilter = getCmdLineInstanceTypeFilters(cmd.instanceTypes);
 
-    FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
+    FateSummaryReport report =
+        new FateSummaryReport(idsToNameMap, fateIdFilter, statusFilter, typesFilter);
 
     // gather statistics
     transactions.getTransactions().forEach(report::gatherTxnStatus);
@@ -892,7 +904,7 @@ public class Admin implements KeywordExecutable {
   /**
    * If provided on the command line, get the TStatus values provided.
    *
-   * @return a set of status filters, or an empty set if none provides
+   * @return a set of status filters, or null if none provided
    */
   private EnumSet<ReadOnlyFateStore.TStatus> getCmdLineStatusFilters(List<String> states) {
     EnumSet<ReadOnlyFateStore.TStatus> statusFilter = null;
@@ -903,5 +915,21 @@ public class Admin implements KeywordExecutable {
       }
     }
     return statusFilter;
+  }
+
+  /**
+   * If provided on the command line, get the FateInstanceType values provided.
+   *
+   * @return a set of fate instance types filters, or null if none provided
+   */
+  private EnumSet<FateInstanceType> getCmdLineInstanceTypeFilters(List<String> instanceTypes) {
+    EnumSet<FateInstanceType> typesFilter = null;
+    if (!instanceTypes.isEmpty()) {
+      typesFilter = EnumSet.noneOf(FateInstanceType.class);
+      for (String instanceType : instanceTypes) {
+        typesFilter.add(FateInstanceType.valueOf(instanceType));
+      }
+    }
+    return typesFilter;
   }
 }

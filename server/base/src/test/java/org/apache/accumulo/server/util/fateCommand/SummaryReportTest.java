@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ class SummaryReportTest {
   @Test
   public void blankReport() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
-    FateSummaryReport report = new FateSummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null, null, null);
 
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -53,6 +54,8 @@ class SummaryReportTest {
     assertEquals(Map.of(), report.getStepCounts());
     assertEquals(Set.of(), report.getFateDetails());
     assertEquals(Set.of(), report.getStatusFilterNames());
+    assertEquals(Set.of(), report.getInstanceTypesFilterNames());
+    assertEquals(Set.of(), report.getFateIdFilter());
     assertNotNull(report.toJson());
     assertNotNull(report.formatLines());
 
@@ -70,13 +73,13 @@ class SummaryReportTest {
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn(null).anyTimes();
     expect(status1.getTxName()).andReturn(null).anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:abcdabcd")).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
     replay(status1);
     Map<String,String> idMap = Map.of("1", "ns1", "2", "");
-    FateSummaryReport report = new FateSummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null, null, null);
     report.gatherTxnStatus(status1);
 
     assertNotNull(report);
@@ -85,6 +88,8 @@ class SummaryReportTest {
     assertEquals(Map.of("?", 1), report.getCmdCounts());
     assertEquals(Map.of("?", 1), report.getStepCounts());
     assertEquals(Set.of(), report.getStatusFilterNames());
+    assertEquals(Set.of(), report.getInstanceTypesFilterNames());
+    assertEquals(Set.of(), report.getFateIdFilter());
     assertNotNull(report.toJson());
     assertNotNull(report.formatLines());
 
