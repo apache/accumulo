@@ -72,6 +72,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class GenerateSplits implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplits.class);
 
+  private static final String encodeFlag = "-b64";
+
   static class Opts extends ConfigOpts {
     @Parameter(names = {"-n", "--num"},
         description = "The number of split points to generate. Can be used to create n+1 tablets. Cannot use with the split size option.")
@@ -81,7 +83,8 @@ public class GenerateSplits implements KeywordExecutable {
         description = "The minimum split size in uncompressed bytes. Cannot use with num splits option.")
     public long splitSize = 0;
 
-    @Parameter(names = {"-b64", "--base64encoded"}, description = "Base 64 encode the split points")
+    @Parameter(names = {encodeFlag, "--base64encoded"},
+        description = "Base 64 encode the split points")
     public boolean base64encode = false;
 
     @Parameter(names = {"-sf", "--splits-file"}, description = "Output the splits to a file")
@@ -89,6 +92,10 @@ public class GenerateSplits implements KeywordExecutable {
 
     @Parameter(description = "<file|directory>[ <file|directory>...] -n <num> | -ss <split_size>")
     public List<String> files = new ArrayList<>();
+
+    @Parameter(names = {"-hr", "--human-readable"},
+        description = "Generate output that is human readable, but not valid.")
+    public boolean humanReadable = false;
   }
 
   @Override
@@ -118,6 +125,7 @@ public class GenerateSplits implements KeywordExecutable {
     CryptoService cryptoService = CryptoFactoryLoader
         .getServiceForClient(CryptoEnvironment.Scope.TABLE, siteConf.getAllCryptoProperties());
     boolean encode = opts.base64encode;
+    boolean human = opts.humanReadable;
 
     TreeSet<String> splits;
 
@@ -147,18 +155,18 @@ public class GenerateSplits implements KeywordExecutable {
 
     // if no size specified look at indexed keys first
     if (opts.splitSize == 0) {
-      splits = getIndexKeys(siteConf, hadoopConf, fs, filePaths, requestedNumSplits, encode,
+      splits = getIndexKeys(siteConf, hadoopConf, fs, filePaths, requestedNumSplits, encode, human,
           cryptoService);
       // if there weren't enough splits indexed, try again with size = 0
       if (splits.size() < requestedNumSplits) {
         log.info("Only found {} indexed keys but need {}. Doing a full scan on files {}",
             splits.size(), requestedNumSplits, filePaths);
         splits = getSplitsFromFullScan(siteConf, hadoopConf, filePaths, fs, requestedNumSplits,
-            encode, cryptoService);
+            encode, human, cryptoService);
       }
     } else {
-      splits =
-          getSplitsBySize(siteConf, hadoopConf, filePaths, fs, splitSize, encode, cryptoService);
+      splits = getSplitsBySize(siteConf, hadoopConf, filePaths, fs, splitSize, encode, human,
+          cryptoService);
     }
 
     TreeSet<String> desiredSplits;
@@ -248,7 +256,7 @@ public class GenerateSplits implements KeywordExecutable {
     return desiredSplits;
   }
 
-  private static String encode(boolean encode, Text text) {
+  private static String encode(boolean encode, Text text, boolean humanRead) {
     if (text == null) {
       return null;
     }
@@ -256,7 +264,6 @@ public class GenerateSplits implements KeywordExecutable {
     if (encode) {
       return Base64.getEncoder().encodeToString(bytes);
     } else {
-      // drop non printable characters
       StringBuilder sb = new StringBuilder();
       for (byte aByte : bytes) {
         int c = 0xff & aByte;
@@ -265,7 +272,12 @@ public class GenerateSplits implements KeywordExecutable {
         } else if (c >= 32 && c <= 126) {
           sb.append((char) c);
         } else {
-          log.debug("Dropping non printable char: \\x{}", Integer.toHexString(c));
+          String errMsg = "non printable char: \\x" + Integer.toHexString(c);
+          // Fail if non-printable characters are detected.
+          if (!humanRead) {
+            throw new UnsupportedOperationException(errMsg + " detected");
+          }
+          log.info("Dropping {}", errMsg);
         }
       }
       return sb.toString();
@@ -277,7 +289,7 @@ public class GenerateSplits implements KeywordExecutable {
    */
   private TreeSet<String> getIndexKeys(AccumuloConfiguration accumuloConf, Configuration hadoopConf,
       FileSystem fs, List<Path> files, int requestedNumSplits, boolean base64encode,
-      CryptoService cs) throws IOException {
+      boolean humanReadable, CryptoService cs) throws IOException {
     Text[] splitArray;
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
@@ -298,13 +310,13 @@ public class GenerateSplits implements KeywordExecutable {
     }
 
     log.debug("Got {} splits from indices of {}", splitArray.length, files);
-    return Arrays.stream(splitArray).map(t -> encode(base64encode, t))
+    return Arrays.stream(splitArray).map(t -> encode(base64encode, t, humanReadable))
         .collect(toCollection(TreeSet::new));
   }
 
   private TreeSet<String> getSplitsFromFullScan(SiteConfiguration accumuloConf,
       Configuration hadoopConf, List<Path> files, FileSystem fs, int numSplits,
-      boolean base64encode, CryptoService cs) throws IOException {
+      boolean base64encode, boolean humanReadable, CryptoService cs) throws IOException {
     Text[] splitArray;
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
@@ -328,7 +340,7 @@ public class GenerateSplits implements KeywordExecutable {
     }
 
     log.debug("Got {} splits from quantiles across {} files", splitArray.length, files.size());
-    return Arrays.stream(splitArray).map(t -> encode(base64encode, t))
+    return Arrays.stream(splitArray).map(t -> encode(base64encode, t, humanReadable))
         .collect(toCollection(TreeSet::new));
   }
 
@@ -337,7 +349,7 @@ public class GenerateSplits implements KeywordExecutable {
    */
   private TreeSet<String> getSplitsBySize(AccumuloConfiguration accumuloConf,
       Configuration hadoopConf, List<Path> files, FileSystem fs, long splitSize,
-      boolean base64encode, CryptoService cs) throws IOException {
+      boolean base64encode, boolean humanReadable, CryptoService cs) throws IOException {
     long currentSplitSize = 0;
     long totalSize = 0;
     TreeSet<String> splits = new TreeSet<>();
@@ -361,7 +373,7 @@ public class GenerateSplits implements KeywordExecutable {
         currentSplitSize += size;
         totalSize += size;
         if (currentSplitSize > splitSize) {
-          splits.add(encode(base64encode, key.getRow()));
+          splits.add(encode(base64encode, key.getRow(), humanReadable));
           currentSplitSize = 0;
         }
         iterator.next();
