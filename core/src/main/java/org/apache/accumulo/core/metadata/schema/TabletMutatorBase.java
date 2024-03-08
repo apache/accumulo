@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
@@ -344,6 +345,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteUserCompactionRequested(FateId fateId) {
     mutation.putDelete(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical());
+    return getThis();
+  }
+
+  @Override
+  public T setUnSplittable(UnSplittableMetadata unSplittableMeta) {
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unSplittableMeta.toBase64()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteUnSplittable() {
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.putDelete(mutation);
     return getThis();
   }
 

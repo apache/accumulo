@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -44,9 +45,9 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -54,6 +55,7 @@ import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
+import org.apache.accumulo.server.split.SplitUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,12 +71,28 @@ public class TabletManagementIterator extends SkippingIterator {
   private TabletBalancer balancer;
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
-      final long splitThreshold) {
-    final long sumOfFileSizes =
-        tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-    final boolean shouldSplit = sumOfFileSizes > splitThreshold;
-    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
-        splitThreshold, shouldSplit);
+      final Configuration tableConfig) {
+
+    final long splitThreshold = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    final long maxEndRowSize = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
+    final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
+        tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
+
+    // If the current computed metadata matches the current marker then we can't split,
+    // so we return false. If the marker is set but doesn't match then return true
+    // which gives a chance to clean up the marker and recheck.
+    var unsplittable = tm.getUnSplittable();
+    if (unsplittable != null) {
+      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(),
+          splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles()));
+    }
+
+    // If unsplittable is not set at all then check if over split threshold
+    final boolean shouldSplit = SplitUtils.needsSplit(tableConfig, tm);
+    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(),
+        tm.getFileSize(), splitThreshold, shouldSplit);
     return shouldSplit;
   }
 
@@ -255,10 +273,7 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.getOperationId() == null
         && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
-        final long splitThreshold =
-            ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
-                .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-        if (shouldReturnDueToSplit(tm, splitThreshold)) {
+        if (shouldReturnDueToSplit(tm, this.env.getPluginEnv().getConfiguration(tm.getTableId()))) {
           reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
         }
         // important to call this since reasonsToReturnThisTablet is passed to it
