@@ -55,6 +55,7 @@ import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
+import org.apache.accumulo.server.split.SplitUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,15 +85,14 @@ public class TabletManagementIterator extends SkippingIterator {
     // which gives a chance to clean up the marker and recheck.
     var unsplittable = tm.getUnSplittable();
     if (unsplittable != null) {
-      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(splitThreshold, maxEndRowSize,
-          maxFilesToOpen, tm.getFiles()));
+      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(),
+          splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles()));
     }
 
-    // If unspilttable is not set at all then check if over split threshold
-    final long sumOfFileSizes = tm.getFileSize();
-    final boolean shouldSplit = sumOfFileSizes > splitThreshold;
-    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
-        splitThreshold, shouldSplit);
+    // If unsplittable is not set at all then check if over split threshold
+    final boolean shouldSplit = SplitUtils.needsSplit(tableConfig, tm);
+    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(),
+        tm.getFileSize(), splitThreshold, shouldSplit);
     return shouldSplit;
   }
 

@@ -322,6 +322,9 @@ public class TabletMetadata {
     return files;
   }
 
+  /**
+   * @return the sum of the tablets files sizes
+   */
   public long getFileSize() {
     ensureFetched(ColumnType.FILES);
     return fileSize.get();

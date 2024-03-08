@@ -25,18 +25,15 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.split.SplitUtils;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +109,7 @@ public class FindSplits extends ManagerRepo {
         // Case 1: If a split is needed then set the unsplittable marker as no split
         // points could be found so that we don't keep trying again until the
         // split metadata is changed
-        if (stillNeedsSplit(manager.getContext(), tabletMetadata)) {
+        if (SplitUtils.needsSplit(manager.getContext(), tabletMetadata)) {
           log.info("Tablet {} needs to split, but no split points could be found.",
               tabletMetadata.getExtent());
           var unSplittableMeta = computedUnsplittable
@@ -151,16 +148,6 @@ public class FindSplits extends ManagerRepo {
     }
 
     return new PreSplit(extent, splits);
-  }
-
-  private boolean stillNeedsSplit(ServerContext context, TabletMetadata tabletMetadata) {
-    if (tabletMetadata.getUnSplittable() != null) {
-      // Recheck threshold if existing marker exists
-      var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
-      var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-      return tabletMetadata.getFileSize() > splitThreshold;
-    }
-    return true;
   }
 
 }

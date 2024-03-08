@@ -20,10 +20,15 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 
 import com.google.common.base.Preconditions;
@@ -34,12 +39,12 @@ public class UnSplittableMetadata {
 
   private final HashCode hashOfSplitParameters;
 
-  public UnSplittableMetadata(long splitThreshold, long maxEndRowSize, int maxFilesToOpen,
-      Set<StoredTabletFile> files) {
-    this(caclulateSplitParamsHash(splitThreshold, maxEndRowSize, maxFilesToOpen, files));
+  private UnSplittableMetadata(KeyExtent keyExtent, long splitThreshold, long maxEndRowSize,
+      int maxFilesToOpen, Set<StoredTabletFile> files) {
+    this(calculateSplitParamsHash(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files));
   }
 
-  public UnSplittableMetadata(HashCode hashOfSplitParameters) {
+  private UnSplittableMetadata(HashCode hashOfSplitParameters) {
     this.hashOfSplitParameters = Objects.requireNonNull(hashOfSplitParameters);
   }
 
@@ -70,8 +75,8 @@ public class UnSplittableMetadata {
   }
 
   @SuppressWarnings("UnstableApiUsage")
-  private static HashCode caclulateSplitParamsHash(long splitThreshold, long maxEndRowSize,
-      int maxFilesToOpen, Set<StoredTabletFile> files) {
+  private static HashCode calculateSplitParamsHash(KeyExtent keyExtent, long splitThreshold,
+      long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
     Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");
     Preconditions.checkArgument(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
     Preconditions.checkArgument(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
@@ -80,23 +85,32 @@ public class UnSplittableMetadata {
     // Hashing.goodFastHash will seed with the current time, and we need the seed to be
     // the same across restarts and instances
     var hasher = Hashing.murmur3_128().newHasher();
-    hasher.putLong(splitThreshold).putLong(maxEndRowSize).putInt(maxFilesToOpen);
+    hasher.putBytes(serializeKeyExtent(keyExtent)).putLong(splitThreshold).putLong(maxEndRowSize)
+        .putInt(maxFilesToOpen);
     files.stream().map(StoredTabletFile::getNormalizedPathStr).sorted()
         .forEach(path -> hasher.putString(path, UTF_8));
     return hasher.hash();
   }
 
+  public static UnSplittableMetadata toUnSplittable(KeyExtent keyExtent, long splitThreshold,
+      long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
+    return new UnSplittableMetadata(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen,
+        files);
+  }
+
   public static UnSplittableMetadata toUnSplittable(String base64HashOfSplitParameters) {
-    return toUnSplittable(Base64.getDecoder().decode(base64HashOfSplitParameters));
+    return new UnSplittableMetadata(
+        HashCode.fromBytes(Base64.getDecoder().decode(base64HashOfSplitParameters)));
   }
 
-  public static UnSplittableMetadata toUnSplittable(byte[] hashOfSplitParameters) {
-    return new UnSplittableMetadata(HashCode.fromBytes(hashOfSplitParameters));
+  private static byte[] serializeKeyExtent(KeyExtent keyExtent) {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      keyExtent.writeTo(dos);
+      dos.close();
+      return baos.toByteArray();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
-
-  public static UnSplittableMetadata toUnSplittable(long splitThreshold, long maxEndRowSize,
-      int maxFilesToOpen, Set<StoredTabletFile> files) {
-    return new UnSplittableMetadata(splitThreshold, maxEndRowSize, maxFilesToOpen, files);
-  }
-
 }

@@ -134,7 +134,8 @@ public class TabletMetadataTest {
     MERGED_COLUMN.put(mutation, new Value());
     mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, FateId.from(type, 17).canonical(),
         "");
-    var unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2));
+    var unsplittableMeta =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
@@ -148,6 +149,8 @@ public class TabletMetadataTest {
     assertEquals(extent, tm.getExtent());
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
+    assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
+        tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId56L, new StoredTabletFile(bf2), fateId59L),
@@ -354,7 +357,7 @@ public class TabletMetadataTest {
 
     // Test with files
     var unsplittableMeta1 =
-        UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2, sf3));
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2, sf3));
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta1.toBase64()));
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
@@ -364,7 +367,7 @@ public class TabletMetadataTest {
     assertEquals(unsplittableMeta1.toBase64(), tm.getUnSplittable().toBase64());
 
     // Test empty file set
-    var unsplittableMeta2 = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of());
+    var unsplittableMeta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of());
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta2.toBase64()));
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
@@ -450,6 +453,8 @@ public class TabletMetadataTest {
     assertEquals(Location.future(ser1), tm.getLocation());
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
+    assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
+        tm.getFileSize());
     assertEquals(Map.of(rf1.insert(), FateId.from(type, 25L), rf2.insert(), FateId.from(type, 35L)),
         tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
@@ -495,7 +500,8 @@ public class TabletMetadataTest {
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, FateId.from(type, 159L));
-    var unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2));
+    var unsplittableMeta =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)

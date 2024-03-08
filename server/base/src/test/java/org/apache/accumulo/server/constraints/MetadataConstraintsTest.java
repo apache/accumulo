@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -533,7 +534,8 @@ public class MetadataConstraintsTest {
     List<Short> violations;
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
-    var unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1));
+    var unsplittableMeta = UnSplittableMetadata
+        .toUnSplittable(KeyExtent.fromMetaRow(new Text("0;foo")), 100, 110, 120, Set.of(sf1));
 
     m = new Mutation(new Text("0;foo"));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toBase64()));
@@ -549,18 +551,19 @@ public class MetadataConstraintsTest {
     assertIterableEquals(List.of((short) 6, (short) 15), violations);
 
     // test invalid args
+    KeyExtent extent = KeyExtent.fromMetaRow(new Text("0;foo"));
     assertThrows(IllegalArgumentException.class,
-        () -> UnSplittableMetadata.toUnSplittable(-100, 110, 120, Set.of(sf1)));
+        () -> UnSplittableMetadata.toUnSplittable(extent, -100, 110, 120, Set.of(sf1)));
     assertThrows(IllegalArgumentException.class,
-        () -> UnSplittableMetadata.toUnSplittable(100, -110, 120, Set.of(sf1)));
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, -110, 120, Set.of(sf1)));
     assertThrows(IllegalArgumentException.class,
-        () -> UnSplittableMetadata.toUnSplittable(100, 110, -120, Set.of(sf1)));
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, 110, -120, Set.of(sf1)));
     assertThrows(NullPointerException.class,
-        () -> UnSplittableMetadata.toUnSplittable(100, 110, 120, null));
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, null));
 
     // Test metadata constraints validate invalid hashcode
     m = new Mutation(new Text("0;foo"));
-    unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1));
+    unsplittableMeta = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1));
     // partial hashcode is invalid
     var invalidHashCode =
         unsplittableMeta.toBase64().substring(0, unsplittableMeta.toBase64().length() - 1);
