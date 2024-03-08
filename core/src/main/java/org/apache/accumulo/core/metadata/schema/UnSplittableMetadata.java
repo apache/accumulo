@@ -87,7 +87,7 @@ public class UnSplittableMetadata {
     var hasher = Hashing.murmur3_128().newHasher();
     hasher.putBytes(serializeKeyExtent(keyExtent)).putLong(splitThreshold).putLong(maxEndRowSize)
         .putInt(maxFilesToOpen);
-    files.stream().map(StoredTabletFile::getNormalizedPathStr).sorted()
+    files.stream().map(StoredTabletFile::getMetadata).sorted()
         .forEach(path -> hasher.putString(path, UTF_8));
     return hasher.hash();
   }

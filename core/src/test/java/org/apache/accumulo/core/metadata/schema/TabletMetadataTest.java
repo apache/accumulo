@@ -36,7 +36,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -354,6 +354,9 @@ public class TabletMetadataTest {
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
     StoredTabletFile sf3 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"));
+    // Same path as sf4 but with a range
+    StoredTabletFile sf4 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"), new Range("a", "b"));
 
     // Test with files
     var unsplittableMeta1 =
@@ -362,9 +365,7 @@ public class TabletMetadataTest {
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta1.toBase64()));
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(UNSPLITTABLE), true, false);
-    assertEquals(unsplittableMeta1, tm.getUnSplittable());
-    assertEquals(unsplittableMeta1.hashCode(), tm.getUnSplittable().hashCode());
-    assertEquals(unsplittableMeta1.toBase64(), tm.getUnSplittable().toBase64());
+    assertUnsplittable(unsplittableMeta1, tm.getUnSplittable(), true);
 
     // Test empty file set
     var unsplittableMeta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of());
@@ -372,14 +373,23 @@ public class TabletMetadataTest {
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta2.toBase64()));
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(UNSPLITTABLE), true, false);
-    assertEquals(unsplittableMeta2, tm.getUnSplittable());
-    assertEquals(unsplittableMeta2.hashCode(), tm.getUnSplittable().hashCode());
-    assertEquals(unsplittableMeta2.toBase64(), tm.getUnSplittable().toBase64());
+    assertUnsplittable(unsplittableMeta2, tm.getUnSplittable(), true);
 
     // Make sure not equals works as well
-    assertNotEquals(unsplittableMeta1, unsplittableMeta2);
-    assertNotEquals(unsplittableMeta1.hashCode(), unsplittableMeta2.hashCode());
-    assertNotEquals(unsplittableMeta1.toBase64(), unsplittableMeta2.toBase64());
+    assertUnsplittable(unsplittableMeta1, unsplittableMeta2, false);
+
+    // Test with ranges
+    // use sf4 which includes sf4 instead of sf3 which has a range
+    var unsplittableMeta3 =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2, sf4));
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta3.toBase64()));
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(UNSPLITTABLE), true, false);
+    assertUnsplittable(unsplittableMeta3, tm.getUnSplittable(), true);
+
+    // make sure not equals when all the file paths are equal but one has a range
+    assertUnsplittable(unsplittableMeta1, unsplittableMeta3, false);
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -392,6 +402,34 @@ public class TabletMetadataTest {
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.PREV_ROW), true, false);
     assertThrows(IllegalStateException.class, tm::getUnSplittable);
+  }
+
+  @Test
+  public void testUnsplittableWithRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    // Files with same path and different ranges
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "b"));
+    StoredTabletFile sf3 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "d"));
+
+    var meta1 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1));
+    var meta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf2));
+    var meta3 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf3));
+
+    // compare each against the others to make sure not equal
+    assertUnsplittable(meta1, meta2, false);
+    assertUnsplittable(meta1, meta3, false);
+    assertUnsplittable(meta2, meta3, false);
+  }
+
+  private void assertUnsplittable(UnSplittableMetadata meta1, UnSplittableMetadata meta2,
+      boolean equal) {
+    assertEquals(equal, meta1.equals(meta2));
+    assertEquals(equal, meta1.hashCode() == meta2.hashCode());
+    assertEquals(equal, meta1.toBase64().equals(meta2.toBase64()));
   }
 
   @Test

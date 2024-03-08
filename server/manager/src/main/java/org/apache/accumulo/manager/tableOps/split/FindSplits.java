@@ -140,7 +140,7 @@ public class FindSplits extends ManagerRepo {
           // Case 3: The table config and/or set of files changed since the tablet mgmt iterator
           // examined this tablet.
         } else {
-          log.info("Tablet {} no longer needs to split, ignoring it.", tabletMetadata.getExtent());
+          log.debug("Tablet {} no longer needs to split, ignoring it.", tabletMetadata.getExtent());
         }
       }
 

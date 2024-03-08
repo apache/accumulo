@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -261,7 +262,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletMeta.getHostingRequested()).andReturn(true).atLeastOnce();
     EasyMock.expect(tabletMeta.getSuspend()).andReturn(suspendingTServer).atLeastOnce();
     EasyMock.expect(tabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
-    EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(null).atLeastOnce();
+    UnSplittableMetadata usm =
+        UnSplittableMetadata.toUnSplittable(origExtent, 1000, 1001, 1002, tabletFiles.keySet());
+    EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(usm).atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tabletMeta);
 
@@ -341,6 +344,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet3Mutator.deleteHostingRequested()).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteSuspension()).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteLocation(lastLocation)).andReturn(tablet3Mutator);
+    EasyMock.expect(tablet3Mutator.deleteUnSplittable()).andReturn(tablet3Mutator);
     tablet3Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
     EasyMock.expect(tabletsMutator.mutateTablet(origExtent)).andReturn(tablet3Mutator);

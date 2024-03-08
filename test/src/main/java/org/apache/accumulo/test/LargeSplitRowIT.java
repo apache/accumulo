@@ -304,10 +304,26 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Verify that the unsplittable column is read correctly
       TabletMetadata tm =
           getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
-      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
+      var unsplittable = tm.getUnSplittable();
+      assertEquals(unsplittable, SplitUtils.toUnSplittable(getServerContext(), tm));
 
       // Make sure no splits occurred in the table
       assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
+
+      // Bump the value for max end row by 1, we should still not be able to split but this should
+      // trigger an update to the unsplittable metadata value
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "101");
+
+      // wait for the unsplittable marker to be set to a new value due to the property change
+      Wait.waitFor(() -> {
+        var updatedUnsplittable = getServerContext().getAmple()
+            .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
+        return updatedUnsplittable != null && !updatedUnsplittable.equals(unsplittable);
+      }, Wait.MAX_WAIT_MILLIS, 100);
+      // recheck with the computed meta is correct after property update
+      tm = getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
 
       // Bump max end row size and verify split occurs and unsplittable column is cleaned up
       client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
