@@ -105,8 +105,6 @@ public class MergeTablets extends ManagerRepo {
 
         tabletsSeen++;
 
-        // TODO only expect merged marker in last tablet
-
         // want to gather the following for all tablets, including the last tablet
         maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, tabletMeta.getTime());
         tabletAvailabilities.add(tabletMeta.getTabletAvailability());
