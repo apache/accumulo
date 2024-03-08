@@ -19,10 +19,9 @@
 package org.apache.accumulo.tserver.session;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -243,9 +242,9 @@ public class SessionManager {
 
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
     if (!session.cleanup()) {
-      var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
-          .incrementBy(25, MILLISECONDS).maxWait(5, SECONDS).backOffFactor(1.5)
-          .logInterval(1, MINUTES).createRetry();
+      var retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(25))
+          .incrementBy(Duration.ofMillis(25)).maxWait(Duration.ofSeconds(5)).backOffFactor(1.5)
+          .logInterval(Duration.ofMinutes(1)).createRetry();
 
       while (!deferredCleanupQueue.offer(session)) {
         if (session.cleanup()) {

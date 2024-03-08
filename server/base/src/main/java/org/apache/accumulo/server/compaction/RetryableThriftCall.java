@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.time.Duration.ofMillis;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.NeedsRetryDelay;
@@ -78,8 +78,8 @@ public class RetryableThriftCall<T> {
     } else {
       builder = Retry.builder().maxRetries(maxNumRetries);
     }
-    this.retry = builder.retryAfter(start, MILLISECONDS).incrementBy(0, MILLISECONDS)
-        .maxWait(maxWaitTime, MILLISECONDS).backOffFactor(2).logInterval(1, TimeUnit.MINUTES)
+    this.retry = builder.retryAfter(Duration.ofMillis(start)).incrementBy(Duration.ZERO)
+        .maxWait(Duration.ofMillis(maxWaitTime)).backOffFactor(2).logInterval(Duration.ofMinutes(1))
         .createRetry();
   }
 
@@ -95,11 +95,18 @@ public class RetryableThriftCall<T> {
    */
   public T run() throws RetriesExceededException {
     T result = null;
+    var errorsSeen = 0;
     do {
       try {
         result = function.execute();
       } catch (TException e) {
-        LOG.error("Error in Thrift function, retrying ...", e);
+        errorsSeen++;
+        // Log higher levels of errors on every 5th error
+        if (errorsSeen >= 5 && errorsSeen % 5 == 0) {
+          LOG.warn("Error in Thrift function, retrying ...", e);
+        } else {
+          LOG.debug("Error in Thrift function, retrying ...", e);
+        }
       }
       if (result == null) {
         if (this.retry.canRetry()) {

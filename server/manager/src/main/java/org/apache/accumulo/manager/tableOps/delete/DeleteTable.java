@@ -24,6 +24,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -43,8 +44,9 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, false,
+        TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, tid, LockType.WRITE, true, TableOperation.DELETE);
   }
 
   @Override
@@ -58,7 +60,7 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, true);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
   }
 }

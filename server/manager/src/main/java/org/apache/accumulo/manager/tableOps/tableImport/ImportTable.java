@@ -40,6 +40,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -78,7 +79,7 @@ public class ImportTable extends ManagerRepo {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, LockType.READ, true,
         TableOperation.IMPORT);
     return result;
   }
@@ -110,7 +111,7 @@ public class ImportTable extends ManagerRepo {
 
     log.debug("Searching for export file in {}", exportDirs);
 
-    Integer exportVersion = null;
+    tableInfo.exportedVersion = null;
     Integer dataVersion = null;
 
     try {
@@ -127,7 +128,7 @@ public class ImportTable extends ManagerRepo {
           while ((line = in.readLine()) != null) {
             String[] sa = line.split(":", 2);
             if (sa[0].equals(ExportTable.EXPORT_VERSION_PROP)) {
-              exportVersion = Integer.parseInt(sa[1]);
+              tableInfo.exportedVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {
               dataVersion = Integer.parseInt(sa[1]);
             }
@@ -142,10 +143,10 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (exportVersion == null || exportVersion > ExportTable.VERSION) {
+    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.CURR_VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Incompatible export version " + exportVersion);
+          "Incompatible export version " + tableInfo.exportedVersion);
     }
 
     if (dataVersion == null || dataVersion > AccumuloDataVersion.get()) {
@@ -161,7 +162,7 @@ public class ImportTable extends ManagerRepo {
       Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, LockType.READ);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {

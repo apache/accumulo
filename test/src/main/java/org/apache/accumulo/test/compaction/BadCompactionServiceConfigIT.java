@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -210,7 +211,8 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
           // fix the compaction dispatcher config
           client.tableOperations().setProperty(table,
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "default");
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+              DEFAULT_COMPACTION_SERVICE_NAME);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

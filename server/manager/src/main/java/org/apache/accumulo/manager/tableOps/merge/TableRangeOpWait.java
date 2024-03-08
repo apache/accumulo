@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -71,8 +72,8 @@ class TableRangeOpWait extends ManagerRepo {
     MergeInfo mergeInfo = manager.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
     manager.clearMergeState(tableId);
-    Utils.unreserveTable(manager, tableId, tid, true);
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
+    Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
     return null;
   }
 

@@ -101,12 +101,12 @@ public class CompactableImpl implements Compactable {
 
   private final FileManager fileMgr;
 
-  private Set<CompactionJob> runningJobs = new HashSet<>();
+  private final Set<CompactionJob> runningJobs = new HashSet<>();
   private volatile boolean compactionRunning = false;
 
-  private Supplier<Set<CompactionServiceId>> servicesInUse;
+  private final Supplier<Set<CompactionServiceId>> servicesInUse;
 
-  private Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
+  private final Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
 
   // status of special compactions
   enum FileSelectionStatus {
@@ -117,16 +117,16 @@ public class CompactableImpl implements Compactable {
   private Long compactionId;
   private CompactionConfig compactionConfig;
 
-  private CompactionManager manager;
+  private final CompactionManager manager;
 
   AtomicLong lastSeenCompactionCancelId = new AtomicLong(Long.MIN_VALUE);
 
   private volatile boolean closed = false;
 
-  private Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
+  private final Map<ExternalCompactionId,ExternalCompactionInfo> externalCompactions =
       new ConcurrentHashMap<>();
 
-  private Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
+  private final Set<ExternalCompactionId> externalCompactionsCommitting = new HashSet<>();
 
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
@@ -1279,7 +1279,7 @@ public class CompactableImpl implements Compactable {
 
       if (dispatcher == null) {
         log.error(
-            "Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
+            "Failed to dispatch compaction, no dispatcher. extent:{} kind:{} hints:{}, falling back to {} service. Unable to instantiate dispatcher plugin. Check server log.",
             getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE);
         return CompactionServicesConfig.DEFAULT_SERVICE;
       }
@@ -1326,7 +1326,8 @@ public class CompactableImpl implements Compactable {
 
       return dispatch.getService();
     } catch (RuntimeException e) {
-      log.error("Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service.",
+      log.error(
+          "Failed to dispatch compaction due to exception. extent:{} kind:{} hints:{}, falling back to {} service.",
           getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE, e);
       return CompactionServicesConfig.DEFAULT_SERVICE;
     }
@@ -1350,7 +1351,7 @@ public class CompactableImpl implements Compactable {
    * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
-  public synchronized void close() {
+  public void close() {
     synchronized (this) {
       if (closed) {
         return;
@@ -1373,7 +1374,6 @@ public class CompactableImpl implements Compactable {
         }
       }
     }
-
     manager.compactableClosed(getExtent(), servicesUsed, externalCompactions.keySet());
   }
 }

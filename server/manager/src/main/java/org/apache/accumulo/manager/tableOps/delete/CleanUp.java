@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -206,8 +207,8 @@ class CleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(manager, tableId, tid, true);
-    Utils.unreserveNamespace(manager, namespaceId, tid, false);
+    Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 

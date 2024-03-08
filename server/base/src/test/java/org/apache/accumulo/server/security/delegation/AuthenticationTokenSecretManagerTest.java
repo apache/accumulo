@@ -207,6 +207,12 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     // The passwords line up against multiple calls with the same ID
     assertArrayEquals(password, secretManager.retrievePassword(id));
 
+    // Sleep 50 ms to make sure we generate another token for the test
+    // System.currentTimeMillis() is used as part of the token generation and if
+    // the test runs fast enough it can return the same value that was used
+    // when generating the first token and the test will fail
+    Thread.sleep(50);
+
     // Make a second token for the same user
     // Briefly sleep to guarantee token is unique, since the token is based on the time
     Thread.sleep(100);
