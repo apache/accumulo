@@ -100,7 +100,7 @@ public class MergeTabletsTest {
    * This is a set of tablet metadata columns that the merge code is known to handle. The purpose of
    * the set is to detect when a new tablet metadata column was added without considering the
    * implications for merging tablets. For a column to be in this set it means an Accumulo developer
-   * has determined that split code can handle that column OR has opened an issue about handling it.
+   * has determined that merge code can handle that column OR has opened an issue about handling it.
    */
   private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE =
       EnumSet.of(TIME, LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED,
