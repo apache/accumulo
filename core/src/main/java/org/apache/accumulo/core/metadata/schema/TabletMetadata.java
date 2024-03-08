@@ -83,6 +83,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -122,6 +124,7 @@ public class TabletMetadata {
   private Set<FateId> compacted;
   private Set<FateId> userCompactionsRequested;
   private UnSplittableMetadata unSplittableMetadata;
+  private Supplier<Long> fileSize;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -317,6 +320,11 @@ public class TabletMetadata {
   public Map<StoredTabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
     return files;
+  }
+
+  public long getFileSize() {
+    ensureFetched(ColumnType.FILES);
+    return fileSize.get();
   }
 
   public SelectedFiles getSelectedFiles() {
@@ -573,7 +581,10 @@ public class TabletMetadata {
       te.availability = TabletAvailability.HOSTED;
     }
 
-    te.files = filesBuilder.build();
+    var files = filesBuilder.build();
+    te.files = files;
+    te.fileSize =
+        Suppliers.memoize(() -> files.values().stream().mapToLong(DataFileValue::getSize).sum());
     te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();

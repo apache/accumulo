@@ -31,7 +31,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.manager.Manager;
@@ -41,8 +40,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class FindSplits extends ManagerRepo {
 
@@ -73,14 +70,16 @@ public class FindSplits extends ManagerRepo {
       return null;
     }
 
-    // The TabletManagementIterator should not be trying to split if the tablet was marked
+    // The TabletManagementIterator should normally not be trying to split if the tablet was marked
     // as unsplittable and the metadata hasn't changed so check that the metadata is different
     if (tabletMetadata.getUnSplittable() != null) {
       computedUnsplittable =
           Optional.of(SplitUtils.toUnSplittable(manager.getContext(), tabletMetadata));
-      Preconditions.checkState(
-          !tabletMetadata.getUnSplittable().equals(computedUnsplittable.orElseThrow()),
-          "Unexpected split attempted on tablet %s that was marked as unsplittable", extent);
+      if (tabletMetadata.getUnSplittable().equals(computedUnsplittable.orElseThrow())) {
+        log.debug("Not splitting {} because unsplittable metadata is present and did not change",
+            extent);
+        return null;
+      }
     }
 
     if (!tabletMetadata.getLogs().isEmpty()) {
@@ -92,10 +91,7 @@ public class FindSplits extends ManagerRepo {
       return null;
     }
 
-    var estimatedSize =
-        tabletMetadata.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-    SortedSet<Text> splits =
-        SplitUtils.findSplits(manager.getContext(), tabletMetadata, estimatedSize);
+    SortedSet<Text> splits = SplitUtils.findSplits(manager.getContext(), tabletMetadata);
 
     if (extent.endRow() != null) {
       splits.remove(extent.endRow());
@@ -110,12 +106,13 @@ public class FindSplits extends ManagerRepo {
       };
 
       try (var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
-        // Check if we still need to split. It's possible we don't if the unsplittable marker
-        // has already been previously set. This could happen in some scenarios such as
-        // a compaction that shrinks a previously unsplittable tablet below the threshold
-        // or if the threshold has been raised higher because the tablet management iterator
-        // will try and split any time the computed metadata changes.
-        if (stillNeedsSplit(manager.getContext(), tabletMetadata, estimatedSize)) {
+        // No split points were found, so we need to check if the tablet still
+        // needs to be split but is unsplittable, or if a split is not needed
+
+        // Case 1: If a split is needed then set the unsplittable marker as no split
+        // points could be found so that we don't keep trying again until the
+        // split metadata is changed
+        if (stillNeedsSplit(manager.getContext(), tabletMetadata)) {
           log.info("Tablet {} needs to split, but no split points could be found.",
               tabletMetadata.getExtent());
           var unSplittableMeta = computedUnsplittable
@@ -131,13 +128,22 @@ public class FindSplits extends ManagerRepo {
           var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
               .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
           mutator.submit(tm -> unSplittableMeta.equals(tm.getUnSplittable()));
-        } else {
-          // We no longer need to split so we can clear the marker.
+
+          // Case 2: If the unsplittable marker has already been previously set, but we do not need
+          // to split then clear the marker. This could happen in some scenarios such as
+          // a compaction that shrinks a previously unsplittable tablet below the threshold
+          // or if the threshold has been raised higher because the tablet management iterator
+          // will try and split any time the computed metadata changes.
+        } else if (tabletMetadata.getUnSplittable() != null) {
           log.info("Tablet {} no longer needs to split, deleting unsplittable marker.",
               tabletMetadata.getExtent());
           var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
               .requireSame(tabletMetadata, FILES).deleteUnSplittable();
           mutator.submit(tm -> tm.getUnSplittable() == null);
+          // Case 3: The table config and/or set of files changed since the tablet mgmt iterator
+          // examined this tablet.
+        } else {
+          log.info("Tablet {} no longer needs to split, ignoring it.", tabletMetadata.getExtent());
         }
       }
 
@@ -147,13 +153,12 @@ public class FindSplits extends ManagerRepo {
     return new PreSplit(extent, splits);
   }
 
-  private boolean stillNeedsSplit(ServerContext context, TabletMetadata tabletMetadata,
-      long estimatedSize) {
+  private boolean stillNeedsSplit(ServerContext context, TabletMetadata tabletMetadata) {
     if (tabletMetadata.getUnSplittable() != null) {
       // Recheck threshold if existing marker exists
       var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
       var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-      return estimatedSize > splitThreshold;
+      return tabletMetadata.getFileSize() > splitThreshold;
     }
     return true;
   }

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
@@ -90,8 +89,7 @@ public class TabletManagementIterator extends SkippingIterator {
     }
 
     // If unspilttable is not set at all then check if over split threshold
-    final long sumOfFileSizes =
-        tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+    final long sumOfFileSizes = tm.getFileSize();
     final boolean shouldSplit = sumOfFileSizes > splitThreshold;
     LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
         splitThreshold, shouldSplit);

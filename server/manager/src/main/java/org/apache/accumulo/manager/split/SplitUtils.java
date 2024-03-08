@@ -39,7 +39,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.server.ServerContext;
@@ -198,12 +197,6 @@ public class SplitUtils {
   }
 
   public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata) {
-    return findSplits(context, tabletMetadata,
-        tabletMetadata.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum());
-  }
-
-  public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata,
-      long estimatedSize) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
@@ -212,6 +205,7 @@ public class SplitUtils {
     // anymore.
     int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
 
+    var estimatedSize = tabletMetadata.getFileSize();
     if (estimatedSize <= threshold) {
       return new TreeSet<>();
     }
