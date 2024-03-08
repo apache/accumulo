@@ -88,7 +88,7 @@ public class UpdateTabletsTest {
           ColumnType.LOADED, ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED,
           ColumnType.LAST, ColumnType.SCANS, ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID,
           ColumnType.FLUSH_NONCE, ColumnType.SUSPEND, ColumnType.AVAILABILITY,
-          ColumnType.HOSTING_REQUESTED, ColumnType.COMPACTED);
+          ColumnType.HOSTING_REQUESTED, ColumnType.COMPACTED, ColumnType.UNSPLITTABLE);
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -261,6 +261,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletMeta.getHostingRequested()).andReturn(true).atLeastOnce();
     EasyMock.expect(tabletMeta.getSuspend()).andReturn(suspendingTServer).atLeastOnce();
     EasyMock.expect(tabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
+    EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(null).atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tabletMeta);
 
