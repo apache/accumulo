@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.compact.cancel;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -37,8 +38,8 @@ class FinishCancelCompaction extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) {
-    Utils.unreserveTable(environment, tableId, tid, false);
-    Utils.unreserveNamespace(environment, namespaceId, tid, false);
+    Utils.unreserveTable(environment, tableId, tid, LockType.READ);
+    Utils.unreserveNamespace(environment, namespaceId, tid, LockType.READ);
     return null;
   }
 

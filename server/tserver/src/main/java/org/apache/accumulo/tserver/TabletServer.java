@@ -322,17 +322,17 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION);
     final RetryFactory walCreationRetryFactory =
         Retry.builder().maxRetries(toleratedWalCreationFailures)
-            .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-            .logInterval(3, TimeUnit.MINUTES).createFactory();
+            .retryAfter(Duration.ofMillis(walFailureRetryIncrement))
+            .incrementBy(Duration.ofMillis(walFailureRetryIncrement))
+            .maxWait(Duration.ofMillis(walFailureRetryMax)).backOffFactor(1.5)
+            .logInterval(Duration.ofMinutes(3)).createFactory();
     // Tolerate infinite failures for the write, however backing off the same as for creation
     // failures.
-    final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createFactory();
+    final RetryFactory walWritingRetryFactory =
+        Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(walFailureRetryIncrement))
+            .incrementBy(Duration.ofMillis(walFailureRetryIncrement))
+            .maxWait(Duration.ofMillis(walFailureRetryMax)).backOffFactor(1.5)
+            .logInterval(Duration.ofMinutes(3)).createFactory();
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);

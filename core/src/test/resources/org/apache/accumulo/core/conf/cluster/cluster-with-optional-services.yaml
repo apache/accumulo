@@ -59,4 +59,5 @@ compaction:
         - localhost4
 
 tservers_per_host: 2
-sservers_per_host: 1
+sservers_per_host: 2
+compactors_per_host: 3

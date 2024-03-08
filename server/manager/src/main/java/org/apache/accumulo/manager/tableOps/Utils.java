@@ -90,9 +90,9 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, long tid, boolean writeLock,
+  public static long reserveTable(Manager env, TableId tableId, long tid, LockType lockType,
       boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
+    if (getLock(env.getContext(), tableId, tid, lockType).tryLock()) {
       if (tableMustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId)) {
@@ -101,29 +101,27 @@ public class Utils {
         }
       }
       log.info("table {} {} locked for {} operation: {}", tableId, FateTxId.formatTid(tid),
-          (writeLock ? "write" : "read"), op);
+          lockType, op);
       return 0;
     } else {
       return 100;
     }
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
-    getLock(env.getContext(), tableId, tid, writeLock).unlock();
-    log.info("table {} {} unlocked for {}", tableId, FateTxId.formatTid(tid),
-        (writeLock ? "write" : "read"));
+  public static void unreserveTable(Manager env, TableId tableId, long tid, LockType lockType) {
+    getLock(env.getContext(), tableId, tid, lockType).unlock();
+    log.info("table {} {} unlocked for {}", tableId, FateTxId.formatTid(tid), lockType);
   }
 
   public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
-      boolean writeLock) {
-    getLock(env.getContext(), namespaceId, id, writeLock).unlock();
-    log.info("namespace {} {} unlocked for {}", namespaceId, FateTxId.formatTid(id),
-        (writeLock ? "write" : "read"));
+      LockType lockType) {
+    getLock(env.getContext(), namespaceId, id, lockType).unlock();
+    log.info("namespace {} {} unlocked for {}", namespaceId, FateTxId.formatTid(id), lockType);
   }
 
   public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
-      boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
+      LockType lockType, boolean mustExist, TableOperation op) throws Exception {
+    if (getLock(env.getContext(), namespaceId, id, lockType).tryLock()) {
       if (mustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
@@ -133,7 +131,7 @@ public class Utils {
         }
       }
       log.info("namespace {} {} locked for {} operation: {}", namespaceId, FateTxId.formatTid(id),
-          (writeLock ? "write" : "read"), op);
+          lockType, op);
       return 0;
     } else {
       return 100;
@@ -163,27 +161,30 @@ public class Utils {
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
-      boolean writeLock) {
+      LockType lockType) {
     byte[] lockData = FastFormat.toZeroPaddedHex(tid);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
     DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock != null) {
-
       // Validate the recovered lock type
-      boolean isWriteLock = lock.getType() == LockType.WRITE;
-      if (writeLock != isWriteLock) {
+      if (lock.getType() != lockType) {
         throw new IllegalStateException("Unexpected lock type " + lock.getType()
             + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
-            + ". Expected " + (writeLock ? LockType.WRITE : LockType.READ) + " lock instead.");
+            + ". Expected " + lockType + " lock instead.");
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
-      if (writeLock) {
-        lock = locker.writeLock();
-      } else {
-        lock = locker.readLock();
+      switch (lockType) {
+        case WRITE:
+          lock = locker.writeLock();
+          break;
+        case READ:
+          lock = locker.readLock();
+          break;
+        default:
+          throw new IllegalStateException("Unexpected LockType: " + lockType);
       }
     }
     return lock;
@@ -198,7 +199,7 @@ public class Utils {
   }
 
   public static Lock getReadLock(Manager env, AbstractId<?> id, long tid) {
-    return Utils.getLock(env.getContext(), id, tid, false);
+    return Utils.getLock(env.getContext(), id, tid, LockType.READ);
   }
 
   public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,

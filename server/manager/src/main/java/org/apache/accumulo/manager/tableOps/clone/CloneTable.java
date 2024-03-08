@@ -25,6 +25,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -48,9 +49,9 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
-    long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false, true,
-        TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, false, true,
+    long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, LockType.READ,
+        true, TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, LockType.READ, true,
         TableOperation.CLONE);
     return val;
   }
@@ -71,8 +72,8 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager environment) {
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, LockType.READ);
+    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, LockType.READ);
   }
 
 }

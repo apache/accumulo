@@ -24,6 +24,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
@@ -51,8 +52,8 @@ public class PreDeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true, TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, tid, LockType.READ, true, TableOperation.DELETE);
   }
 
   private void preventFutureCompactions(Manager environment)
@@ -69,15 +70,15 @@ public class PreDeleteTable extends ManagerRepo {
       CancelCompactions.mutateZooKeeper(tid, tableId, environment);
       return new DeleteTable(namespaceId, tableId);
     } finally {
-      Utils.unreserveTable(environment, tableId, tid, false);
-      Utils.unreserveNamespace(environment, namespaceId, tid, false);
+      Utils.unreserveTable(environment, tableId, tid, LockType.READ);
+      Utils.unreserveNamespace(environment, namespaceId, tid, LockType.READ);
     }
   }
 
   @Override
   public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, false);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, LockType.READ);
+    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
   }
 
 }

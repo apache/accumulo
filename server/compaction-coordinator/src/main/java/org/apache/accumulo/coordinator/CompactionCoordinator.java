@@ -490,8 +490,8 @@ public class CompactionCoordinator extends AbstractServer
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
     ServerContext serverContext = getContext();
-    TTransport transport =
-        serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
+    TTransport transport = serverContext.getTransportPool().getTransport(
+        ThriftClientTypes.TABLET_SERVER, connection.getAddress(), 0, serverContext, true);
     return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 

@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,9 +101,9 @@ public class CompactionManager {
 
     long increment = Math.max(1, maxTimeBetweenChecks / 10);
 
-    var retryFactory = Retry.builder().infiniteRetries().retryAfter(increment, MILLISECONDS)
-        .incrementBy(increment, MILLISECONDS).maxWait(maxTimeBetweenChecks, MILLISECONDS)
-        .backOffFactor(1.07).logInterval(1, MINUTES).createFactory();
+    var retryFactory = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(increment))
+        .incrementBy(Duration.ofMillis(increment)).maxWait(Duration.ofMillis(maxTimeBetweenChecks))
+        .backOffFactor(1.07).logInterval(Duration.ofMinutes(1)).createFactory();
     var retry = retryFactory.createRetry();
     Compactable last = null;
 

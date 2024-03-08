@@ -53,6 +53,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -90,14 +91,15 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
-          + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
+      return Utils.reserveNamespace(manager, namespaceId, tid, LockType.READ, true,
+          TableOperation.RENAME)
+          + Utils.reserveTable(manager, tableId, tid, LockType.WRITE, true, TableOperation.RENAME);
     }
 
     @Override
     public void undo(long tid, Manager manager) throws Exception {
-      Utils.unreserveNamespace(manager, namespaceId, tid, false);
-      Utils.unreserveTable(manager, tableId, tid, true);
+      Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
+      Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
     }
 
     @Override
@@ -107,8 +109,8 @@ public class FateIT {
         FateIT.inCall();
         return null;
       } finally {
-        Utils.unreserveNamespace(manager, namespaceId, tid, false);
-        Utils.unreserveTable(manager, tableId, tid, true);
+        Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
+        Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
         LOG.debug("Leaving call {}", FateTxId.formatTid(tid));
       }
 

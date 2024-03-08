@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
-  final static String DEFAULT = "default";
+  final static String DEFAULT = DEFAULT_COMPACTION_SERVICE_NAME;
   final static String META = "meta";
   final static String ROOT = "root";
 
