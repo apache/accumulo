@@ -248,7 +248,7 @@ public class Manager extends AbstractServer
   // refactoring was needed to get that small bit of information to this method. Would be best to
   // address this after issue. May be best to attempt this after #3576.
   public Map<FateId,Map<String,String>> getCompactionHints() {
-    Map<FateId,CompactionConfig> allConfig = null;
+    Map<FateId,CompactionConfig> allConfig;
     try {
       allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
     } catch (InterruptedException | KeeperException e) {
@@ -622,7 +622,7 @@ public class Manager extends AbstractServer
     public void run() {
       EventCoordinator.Tracker eventTracker = nextEvent.getTracker();
       while (stillManager()) {
-        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        long wait;
         try {
           switch (getManagerGoalState()) {
             case NORMAL:
@@ -960,7 +960,7 @@ public class Manager extends AbstractServer
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
-    ServiceLockData sld = null;
+    ServiceLockData sld;
     try {
       sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
@@ -1072,9 +1072,9 @@ public class Manager extends AbstractServer
     }
 
     try {
-      var metaInstance = initializeFateInstance(context, FateInstanceType.META,
+      var metaInstance = initializeFateInstance(context,
           new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
-      var userInstance = initializeFateInstance(context, FateInstanceType.USER,
+      var userInstance = initializeFateInstance(context,
           new AccumuloStore<>(context, AccumuloTable.FATE.tableName()));
 
       if (!fateRefs.compareAndSet(null,
@@ -1125,7 +1125,7 @@ public class Manager extends AbstractServer
     }
 
     sld = new ServiceLockData(descriptors);
-    log.info("Setting manager lock data to {}", sld.toString());
+    log.info("Setting manager lock data to {}", sld);
     try {
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
@@ -1182,8 +1182,7 @@ public class Manager extends AbstractServer
     log.info("exiting");
   }
 
-  private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
-      FateStore<Manager> store) {
+  private Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
@@ -1331,7 +1330,7 @@ public class Manager extends AbstractServer
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
             -1);
       }
 
@@ -1343,7 +1342,9 @@ public class Manager extends AbstractServer
       while (!acquiredLock && !failedToAcquireLock) {
         try {
           wait();
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+          // empty
+        }
       }
     }
   }
@@ -1496,7 +1497,7 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
-      if ((state != null) && (state == TableState.ONLINE)) {
+      if (state == TableState.ONLINE) {
         result.add(tableId);
       }
     }
