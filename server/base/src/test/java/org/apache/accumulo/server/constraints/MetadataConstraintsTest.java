@@ -536,7 +536,7 @@ public class MetadataConstraintsTest {
     var unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1));
 
     m = new Mutation(new Text("0;foo"));
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toJson()));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toBase64()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
@@ -556,13 +556,15 @@ public class MetadataConstraintsTest {
     assertThrows(IllegalArgumentException.class,
         () -> UnSplittableMetadata.toUnSplittable(100, 110, -120, Set.of(sf1)));
     assertThrows(NullPointerException.class,
-        () -> UnSplittableMetadata.toUnSplittable(100, 110, -120, null));
+        () -> UnSplittableMetadata.toUnSplittable(100, 110, 120, null));
 
-    // Test metadata constraints validate invalid json (negative arg)
+    // Test metadata constraints validate invalid hashcode
     m = new Mutation(new Text("0;foo"));
     unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1));
-    var invalidJson = unsplittableMeta.toJson().replace("100", "-100");
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(invalidJson));
+    // partial hashcode is invalid
+    var invalidHashCode =
+        unsplittableMeta.toBase64().substring(0, unsplittableMeta.toBase64().length() - 1);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(invalidHashCode));
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());

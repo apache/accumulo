@@ -556,7 +556,7 @@ public class TabletMetadata {
           break;
         case SplitColumnFamily.STR_NAME:
           if (qual.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
-            te.unSplittableMetadata = UnSplittableMetadata.fromJson(val);
+            te.unSplittableMetadata = UnSplittableMetadata.toUnSplittable(val);
           } else {
             throw new IllegalStateException("Unexpected SplitColumnFamily qualifier: " + qual);
           }

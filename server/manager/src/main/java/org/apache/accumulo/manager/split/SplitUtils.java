@@ -308,8 +308,15 @@ public class SplitUtils {
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
     int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
 
-    return UnSplittableMetadata.toUnSplittable(splitThreshold, maxEndRowSize, maxFilesToOpen,
-        tabletMetadata.getFiles());
+    var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(splitThreshold, maxEndRowSize,
+        maxFilesToOpen, tabletMetadata.getFiles());
+
+    log.trace(
+        "Created unsplittable metadata for tablet {}. splitThreshold: {}, maxEndRowSize:{}, maxFilesToOpen: {}, hashCode: {}",
+        tabletMetadata.getExtent(), splitThreshold, maxEndRowSize, maxFilesToOpen,
+        unSplittableMetadata);
+
+    return unSplittableMetadata;
   }
 
 }

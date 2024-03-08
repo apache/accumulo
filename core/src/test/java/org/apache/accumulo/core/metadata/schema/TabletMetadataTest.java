@@ -36,6 +36,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -134,7 +135,7 @@ public class TabletMetadataTest {
     mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, FateId.from(type, 17).canonical(),
         "");
     var unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2));
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toJson()));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -350,25 +351,32 @@ public class TabletMetadataTest {
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
     StoredTabletFile sf3 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"));
-    var unsplittableMeta =
-        UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2, sf3));
 
     // Test with files
+    var unsplittableMeta1 =
+        UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of(sf1, sf2, sf3));
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toJson()));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta1.toBase64()));
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(UNSPLITTABLE), true, false);
-    assertEquals(unsplittableMeta, tm.getUnSplittable());
-    assertEquals(unsplittableMeta.toJson(), tm.getUnSplittable().toJson());
+    assertEquals(unsplittableMeta1, tm.getUnSplittable());
+    assertEquals(unsplittableMeta1.hashCode(), tm.getUnSplittable().hashCode());
+    assertEquals(unsplittableMeta1.toBase64(), tm.getUnSplittable().toBase64());
 
     // Test empty file set
-    unsplittableMeta = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of());
+    var unsplittableMeta2 = UnSplittableMetadata.toUnSplittable(100, 110, 120, Set.of());
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toJson()));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta2.toBase64()));
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(UNSPLITTABLE), true, false);
-    assertEquals(unsplittableMeta, tm.getUnSplittable());
-    assertEquals(unsplittableMeta.toJson(), tm.getUnSplittable().toJson());
+    assertEquals(unsplittableMeta2, tm.getUnSplittable());
+    assertEquals(unsplittableMeta2.hashCode(), tm.getUnSplittable().hashCode());
+    assertEquals(unsplittableMeta2.toBase64(), tm.getUnSplittable().toBase64());
+
+    // Make sure not equals works as well
+    assertNotEquals(unsplittableMeta1, unsplittableMeta2);
+    assertNotEquals(unsplittableMeta1.hashCode(), unsplittableMeta2.hashCode());
+    assertNotEquals(unsplittableMeta1.toBase64(), unsplittableMeta2.toBase64());
 
     // Column not set
     mutation = TabletColumnFamily.createPrevRowMutation(extent);

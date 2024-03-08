@@ -19,59 +19,28 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.util.Base64;
 import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.google.gson.Gson;
 
 public class UnSplittableMetadata {
 
-  private static final Gson GSON = ByteArrayToBase64TypeAdapter.createBase64Gson();
-
-  private final long splitThreshold;
-  private final long maxEndRowSize;
-  private final int maxFilesToOpen;
-  private final HashCode filesHash;
+  private final HashCode hashOfSplitParameters;
 
   public UnSplittableMetadata(long splitThreshold, long maxEndRowSize, int maxFilesToOpen,
       Set<StoredTabletFile> files) {
-    this(splitThreshold, maxEndRowSize, maxFilesToOpen, caclulateFilesHash(files));
+    this(caclulateSplitParamsHash(splitThreshold, maxEndRowSize, maxFilesToOpen, files));
   }
 
-  public UnSplittableMetadata(long splitThreshold, long maxEndRowSize, int maxFilesToOpen,
-      HashCode filesHash) {
-    this.splitThreshold = splitThreshold;
-    this.maxEndRowSize = maxEndRowSize;
-    this.maxFilesToOpen = maxFilesToOpen;
-    this.filesHash = Objects.requireNonNull(filesHash);
-
-    Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");
-    Preconditions.checkArgument(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
-    Preconditions.checkArgument(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
-  }
-
-  public long getSplitThreshold() {
-    return splitThreshold;
-  }
-
-  public long getMaxEndRowSize() {
-    return maxEndRowSize;
-  }
-
-  public int getMaxFilesToOpen() {
-    return maxFilesToOpen;
-  }
-
-  public HashCode getFilesHash() {
-    return filesHash;
+  public UnSplittableMetadata(HashCode hashOfSplitParameters) {
+    this.hashOfSplitParameters = Objects.requireNonNull(hashOfSplitParameters);
   }
 
   @Override
@@ -83,55 +52,46 @@ public class UnSplittableMetadata {
       return false;
     }
     UnSplittableMetadata that = (UnSplittableMetadata) o;
-    return splitThreshold == that.splitThreshold && maxEndRowSize == that.maxEndRowSize
-        && maxFilesToOpen == that.maxFilesToOpen && Objects.equals(filesHash, that.filesHash);
+    return Objects.equals(hashOfSplitParameters, that.hashOfSplitParameters);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(splitThreshold, maxEndRowSize, maxFilesToOpen, filesHash);
+    return Objects.hash(hashOfSplitParameters);
   }
 
-  private static HashCode caclulateFilesHash(Set<StoredTabletFile> files) {
+  @Override
+  public String toString() {
+    return toBase64();
+  }
+
+  public String toBase64() {
+    return Base64.getEncoder().encodeToString(hashOfSplitParameters.asBytes());
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private static HashCode caclulateSplitParamsHash(long splitThreshold, long maxEndRowSize,
+      int maxFilesToOpen, Set<StoredTabletFile> files) {
+    Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");
+    Preconditions.checkArgument(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
+    Preconditions.checkArgument(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
+
     // Use static call to murmur3_128() so the seed is always the same
     // Hashing.goodFastHash will seed with the current time, and we need the seed to be
     // the same across restarts and instances
     var hasher = Hashing.murmur3_128().newHasher();
+    hasher.putLong(splitThreshold).putLong(maxEndRowSize).putInt(maxFilesToOpen);
     files.stream().map(StoredTabletFile::getNormalizedPathStr).sorted()
         .forEach(path -> hasher.putString(path, UTF_8));
     return hasher.hash();
   }
 
-  // This class is used to serialize and deserialize this class using GSon. Any changes to this
-  // class must consider persisted data.
-  private static class GSonData {
-    long splitThreshold;
-    long maxEndRowSize;
-    int maxFilesToOpen;
-    byte[] filesHash;
+  public static UnSplittableMetadata toUnSplittable(String base64HashOfSplitParameters) {
+    return toUnSplittable(Base64.getDecoder().decode(base64HashOfSplitParameters));
   }
 
-  public String toJson() {
-    GSonData jData = new GSonData();
-
-    jData.splitThreshold = splitThreshold;
-    jData.maxEndRowSize = maxEndRowSize;
-    jData.maxFilesToOpen = maxFilesToOpen;
-    jData.filesHash = filesHash.asBytes();
-
-    return GSON.toJson(jData);
-  }
-
-  public static UnSplittableMetadata fromJson(String json) {
-    GSonData jData = GSON.fromJson(json, GSonData.class);
-
-    return new UnSplittableMetadata(jData.splitThreshold, jData.maxEndRowSize, jData.maxFilesToOpen,
-        HashCode.fromBytes(jData.filesHash));
-  }
-
-  @Override
-  public String toString() {
-    return toJson();
+  public static UnSplittableMetadata toUnSplittable(byte[] hashOfSplitParameters) {
+    return new UnSplittableMetadata(HashCode.fromBytes(hashOfSplitParameters));
   }
 
   public static UnSplittableMetadata toUnSplittable(long splitThreshold, long maxEndRowSize,

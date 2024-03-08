@@ -89,6 +89,7 @@ public class FindSplits extends ManagerRepo {
       // points.
       log.debug("Not splitting {} because it has walogs {}", tabletMetadata.getExtent(),
           tabletMetadata.getLogs().size());
+      return null;
     }
 
     var estimatedSize =
@@ -125,6 +126,8 @@ public class FindSplits extends ManagerRepo {
           // when computing the hash and retry a new split operation if there is not a match.
           // But if we already know there's a change now, it would be more efficient to fail and
           // retry the current fate op vs completing and having the iterator submit a new one.
+          log.debug("Setting unsplittable metadata on tablet {}. hashCode: {}",
+              tabletMetadata.getExtent(), unSplittableMeta);
           var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
               .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
           mutator.submit(tm -> unSplittableMeta.equals(tm.getUnSplittable()));

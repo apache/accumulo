@@ -283,7 +283,7 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (SplitColumnFamily.UNSPLITTABLE_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
-          UnSplittableMetadata.fromJson(new String(columnUpdate.getValue(), UTF_8));
+          UnSplittableMetadata.toUnSplittable(new String(columnUpdate.getValue(), UTF_8));
         } catch (RuntimeException e) {
           violations = addViolation(violations, 15);
         }
