@@ -195,8 +195,13 @@ public class MergeTablets extends ManagerRepo {
         }
 
         if (lastTabletMeta.getLast() != null) {
-          // This is no longer the same tablet, so lets delete the last location.
+          // This is no longer the same tablet, so let's delete the last location.
           tabletMutator.deleteLocation(lastTabletMeta.getLast());
+        }
+
+        if (lastTabletMeta.getUnSplittable() != null) {
+          // This is no longer the same tablet, so let's delete the unsplittable marker
+          tabletMutator.deleteUnSplittable();
         }
 
         // Set merged marker on the last tablet when we are finished
