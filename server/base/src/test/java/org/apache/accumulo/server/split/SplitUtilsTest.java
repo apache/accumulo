@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.split;
+package org.apache.accumulo.server.split;
 
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;

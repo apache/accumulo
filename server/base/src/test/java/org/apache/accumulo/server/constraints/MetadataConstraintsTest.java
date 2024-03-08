@@ -19,8 +19,10 @@
 package org.apache.accumulo.server.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Method;
 import java.util.Base64;
@@ -31,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -43,9 +46,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -493,17 +498,17 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testCompacted() {
-    testFateCqValidation(CompactedColumnFamily.STR_NAME);
+    testFateCqValidation(CompactedColumnFamily.STR_NAME, (short) 13);
   }
 
   @Test
   public void testUserCompactionRequested() {
-    testFateCqValidation(UserCompactionRequestedColumnFamily.STR_NAME);
+    testFateCqValidation(UserCompactionRequestedColumnFamily.STR_NAME, (short) 14);
   }
 
   // Verify that columns that store a FateId in their CQ
   // validate and only allow a correctly formatted FateId
-  private void testFateCqValidation(String column) {
+  private void testFateCqValidation(String column, short violation) {
     MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
@@ -519,7 +524,54 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
-    assertEquals(Short.valueOf((short) 13), violations.get(0));
+    assertEquals(violation, violations.get(0));
+  }
+
+  @Test
+  public void testUnsplittableColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    var unsplittableMeta = UnSplittableMetadata
+        .toUnSplittable(KeyExtent.fromMetaRow(new Text("0;foo")), 100, 110, 120, Set.of(sf1));
+
+    m = new Mutation(new Text("0;foo"));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toBase64()));
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    // Verify empty value not allowed
+    m = new Mutation(new Text("0;foo"));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value());
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(2, violations.size());
+    assertIterableEquals(List.of((short) 6, (short) 15), violations);
+
+    // test invalid args
+    KeyExtent extent = KeyExtent.fromMetaRow(new Text("0;foo"));
+    assertThrows(IllegalArgumentException.class,
+        () -> UnSplittableMetadata.toUnSplittable(extent, -100, 110, 120, Set.of(sf1)));
+    assertThrows(IllegalArgumentException.class,
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, -110, 120, Set.of(sf1)));
+    assertThrows(IllegalArgumentException.class,
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, 110, -120, Set.of(sf1)));
+    assertThrows(NullPointerException.class,
+        () -> UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, null));
+
+    // Test metadata constraints validate invalid hashcode
+    m = new Mutation(new Text("0;foo"));
+    unsplittableMeta = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1));
+    // partial hashcode is invalid
+    var invalidHashCode =
+        unsplittableMeta.toBase64().substring(0, unsplittableMeta.toBase64().length() - 1);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(invalidHashCode));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 15), violations.get(0));
   }
 
   // Encode a row how it would appear in Json

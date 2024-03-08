@@ -44,9 +44,13 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -129,7 +133,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
         Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
         Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
-        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000"
+        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000",
+        Property.TABLE_MAJC_RATIO.getKey(), "9999"
       );
       // @formatter:on
       client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
@@ -155,7 +160,17 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
       // for the table to split if need be.
       client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
-      Thread.sleep(500L);
+
+      // Wait for the tablet to be marked as unsplittable due to the system split running
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      Wait.waitFor(() -> getServerContext().getAmple()
+          .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
+          Wait.MAX_WAIT_MILLIS, 100);
+
+      // Verify that the unsplittable column is read correctly
+      TabletMetadata tm =
+          getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
 
       // Make sure all the data that was put in the table is still correct
       int count = 0;
@@ -239,6 +254,164 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Wait.Condition splitsToBePresent =
           () -> client.tableOperations().listSplits(tableName).stream().findAny().isPresent();
       Wait.waitFor(splitsToBePresent, SECONDS.toMillis(60L), 250L);
+    }
+  }
+
+  @Test
+  @Timeout(60)
+  public void testUnsplittableColumn() throws Exception {
+    log.info("Unsplittable Column Test");
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // make a table and lower the configuration properties
+      // @formatter:off
+      var maxEndRow = 100;
+      Map<String,String> props = Map.of(
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K",
+          Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
+          Property.TABLE_MAX_END_ROW_SIZE.getKey(), "" + maxEndRow,
+          Property.TABLE_MAJC_RATIO.getKey(), "9999"
+      );
+      // @formatter:on
+
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
+
+      // Create a key for a table entry that is longer than the allowed size for an
+      // end row and fill this key with all m's except the last spot
+      byte[] data = new byte[maxEndRow + 1];
+      Arrays.fill(data, 0, data.length - 2, (byte) 'm');
+
+      final int numOfMutations = 20;
+      try (BatchWriter batchWriter = client.createBatchWriter(tableName)) {
+        // Make the last place in the key different for every entry added to the table
+        for (int i = 0; i < numOfMutations; i++) {
+          data[data.length - 1] = (byte) i;
+          Mutation m = new Mutation(data);
+          m.put("cf", "cq", "value");
+          batchWriter.addMutation(m);
+        }
+      }
+      // Flush the BatchWriter and table
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // Wait for the tablets to be marked as unsplittable due to the system split running
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      Wait.waitFor(() -> getServerContext().getAmple()
+          .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
+          Wait.MAX_WAIT_MILLIS, 100);
+
+      // Verify that the unsplittable column is read correctly
+      TabletMetadata tm =
+          getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      var unsplittable = tm.getUnSplittable();
+      assertEquals(unsplittable, SplitUtils.toUnSplittable(getServerContext(), tm));
+
+      // Make sure no splits occurred in the table
+      assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
+
+      // Bump the value for max end row by 1, we should still not be able to split but this should
+      // trigger an update to the unsplittable metadata value
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "101");
+
+      // wait for the unsplittable marker to be set to a new value due to the property change
+      Wait.waitFor(() -> {
+        var updatedUnsplittable = getServerContext().getAmple()
+            .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
+        return updatedUnsplittable != null && !updatedUnsplittable.equals(unsplittable);
+      }, Wait.MAX_WAIT_MILLIS, 100);
+      // recheck with the computed meta is correct after property update
+      tm = getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
+
+      // Bump max end row size and verify split occurs and unsplittable column is cleaned up
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "500");
+
+      // Wait for splits to occur
+      assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
+      Wait.waitFor(() -> !client.tableOperations().listSplits(tableName).isEmpty(),
+          Wait.MAX_WAIT_MILLIS, 100);
+
+      // Verify all tablets have no unsplittable metadata column
+      Wait.waitFor(() -> {
+        try (var tabletsMetadata =
+            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+          return tabletsMetadata.stream()
+              .allMatch(tabletMetadata -> tabletMetadata.getUnSplittable() == null);
+        }
+      }, Wait.MAX_WAIT_MILLIS, 100);
+    }
+  }
+
+  // Test the unsplittable column is cleaned up if a previously marked unsplittable tablet
+  // no longer needs to be split
+  @Test
+  @Timeout(60)
+  public void testUnsplittableCleanup() throws Exception {
+    log.info("Unsplittable Column Cleanup");
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // make a table and lower the configuration properties
+      // @formatter:off
+      Map<String,String> props = Map.of(
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K",
+          Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
+          Property.TABLE_MAJC_RATIO.getKey(), "9999"
+      );
+      // @formatter:on
+
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
+
+      byte[] data = new byte[100];
+      Arrays.fill(data, 0, data.length - 1, (byte) 'm');
+
+      // Write enough data that will cause a split. The row is not too large for a split
+      // but all the rows are the same so tablets won't be able to split except for
+      // the last tablet (null end row)
+      final int numOfMutations = 20;
+      try (BatchWriter batchWriter = client.createBatchWriter(tableName)) {
+        // Make the last place in the key different for every entry added to the table
+        for (int i = 0; i < numOfMutations; i++) {
+          Mutation m = new Mutation(data);
+          m.put("cf", "cq" + i, "value");
+          batchWriter.addMutation(m);
+        }
+      }
+      // Flush the BatchWriter and table
+      client.tableOperations().flush(tableName, null, null, true);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+      // Wait for a tablet to be marked as unsplittable due to the system split running
+      // There is enough data to split more than once so at least one tablet should be marked
+      // as unsplittable due to the same end row for all keys after the default tablet is split
+      Wait.waitFor(() -> {
+        try (var tabletsMetadata =
+            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+          return tabletsMetadata.stream().anyMatch(tm -> tm.getUnSplittable() != null);
+        }
+      }, Wait.MAX_WAIT_MILLIS, 100);
+
+      var splits = client.tableOperations().listSplits(tableName);
+
+      // Bump split threshold and verify marker is cleared
+      client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "1M");
+
+      // All tablets should now be cleared of the unsplittable marker, and we should have the
+      // same number of splits as before
+      Wait.waitFor(() -> {
+        try (var tabletsMetadata =
+            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+          return tabletsMetadata.stream().allMatch(tm -> tm.getUnSplittable() == null);
+        }
+      }, Wait.MAX_WAIT_MILLIS, 100);
+
+      // no more splits should have happened
+      assertEquals(splits, client.tableOperations().listSplits(tableName));
     }
   }
 

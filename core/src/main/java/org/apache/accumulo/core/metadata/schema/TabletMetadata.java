@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
@@ -82,6 +83,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -120,6 +123,8 @@ public class TabletMetadata {
   private boolean futureAndCurrentLocationSet = false;
   private Set<FateId> compacted;
   private Set<FateId> userCompactionsRequested;
+  private UnSplittableMetadata unSplittableMetadata;
+  private Supplier<Long> fileSize;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -150,7 +155,8 @@ public class TabletMetadata {
     OPID,
     SELECTED,
     COMPACTED,
-    USER_COMPACTION_REQUESTED
+    USER_COMPACTION_REQUESTED,
+    UNSPLITTABLE
   }
 
   public static class Location {
@@ -316,6 +322,14 @@ public class TabletMetadata {
     return files;
   }
 
+  /**
+   * @return the sum of the tablets files sizes
+   */
+  public long getFileSize() {
+    ensureFetched(ColumnType.FILES);
+    return fileSize.get();
+  }
+
   public SelectedFiles getSelectedFiles() {
     ensureFetched(ColumnType.SELECTED);
     return selectedFiles;
@@ -381,6 +395,11 @@ public class TabletMetadata {
     return onDemandHostingRequested;
   }
 
+  public UnSplittableMetadata getUnSplittable() {
+    ensureFetched(ColumnType.UNSPLITTABLE);
+    return unSplittableMetadata;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
@@ -394,7 +413,8 @@ public class TabletMetadata {
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
-        .append("userCompactionsRequested", userCompactionsRequested).toString();
+        .append("userCompactionsRequested", userCompactionsRequested)
+        .append("unSplittableMetadata", unSplittableMetadata).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -545,6 +565,13 @@ public class TabletMetadata {
         case UserCompactionRequestedColumnFamily.STR_NAME:
           userCompactionsRequestedBuilder.add(FateId.from(qual));
           break;
+        case SplitColumnFamily.STR_NAME:
+          if (qual.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
+            te.unSplittableMetadata = UnSplittableMetadata.toUnSplittable(val);
+          } else {
+            throw new IllegalStateException("Unexpected SplitColumnFamily qualifier: " + qual);
+          }
+          break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
 
@@ -557,7 +584,10 @@ public class TabletMetadata {
       te.availability = TabletAvailability.HOSTED;
     }
 
-    te.files = filesBuilder.build();
+    var files = filesBuilder.build();
+    te.files = files;
+    te.fileSize =
+        Suppliers.memoize(() -> files.values().stream().mapToLong(DataFileValue::getSize).sum());
     te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();

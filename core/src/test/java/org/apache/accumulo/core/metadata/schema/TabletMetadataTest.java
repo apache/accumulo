@@ -32,6 +32,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -69,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
@@ -131,6 +134,9 @@ public class TabletMetadataTest {
     MERGED_COLUMN.put(mutation, new Value());
     mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, FateId.from(type, 17).canonical(),
         "");
+    var unsplittableMeta =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -143,6 +149,8 @@ public class TabletMetadataTest {
     assertEquals(extent, tm.getExtent());
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
+    assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
+        tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId56L, new StoredTabletFile(bf2), fateId59L),
@@ -162,6 +170,7 @@ public class TabletMetadataTest {
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
     assertTrue(tm.hasMerged());
     assertTrue(tm.getUserCompactionsRequested().contains(FateId.from(type, 17)));
+    assertEquals(unsplittableMeta, tm.getUnSplittable());
   }
 
   @Test
@@ -339,7 +348,92 @@ public class TabletMetadataTest {
   }
 
   @Test
-  public void testUnkownColFamily() {
+  public void testUnsplittableColumn() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
+    StoredTabletFile sf3 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"));
+    // Same path as sf4 but with a range
+    StoredTabletFile sf4 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"), new Range("a", "b"));
+
+    // Test with files
+    var unsplittableMeta1 =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2, sf3));
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta1.toBase64()));
+    TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(UNSPLITTABLE), true, false);
+    assertUnsplittable(unsplittableMeta1, tm.getUnSplittable(), true);
+
+    // Test empty file set
+    var unsplittableMeta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of());
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta2.toBase64()));
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(UNSPLITTABLE), true, false);
+    assertUnsplittable(unsplittableMeta2, tm.getUnSplittable(), true);
+
+    // Make sure not equals works as well
+    assertUnsplittable(unsplittableMeta1, unsplittableMeta2, false);
+
+    // Test with ranges
+    // use sf4 which includes sf4 instead of sf3 which has a range
+    var unsplittableMeta3 =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2, sf4));
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta3.toBase64()));
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(UNSPLITTABLE), true, false);
+    assertUnsplittable(unsplittableMeta3, tm.getUnSplittable(), true);
+
+    // make sure not equals when all the file paths are equal but one has a range
+    assertUnsplittable(unsplittableMeta1, unsplittableMeta3, false);
+
+    // Column not set
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(UNSPLITTABLE), true, false);
+    assertNull(tm.getUnSplittable());
+
+    // Column not fetched
+    mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
+        EnumSet.of(ColumnType.PREV_ROW), true, false);
+    assertThrows(IllegalStateException.class, tm::getUnSplittable);
+  }
+
+  @Test
+  public void testUnsplittableWithRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    // Files with same path and different ranges
+    StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "b"));
+    StoredTabletFile sf3 =
+        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "d"));
+
+    var meta1 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1));
+    var meta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf2));
+    var meta3 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf3));
+
+    // compare each against the others to make sure not equal
+    assertUnsplittable(meta1, meta2, false);
+    assertUnsplittable(meta1, meta3, false);
+    assertUnsplittable(meta2, meta3, false);
+  }
+
+  private void assertUnsplittable(UnSplittableMetadata meta1, UnSplittableMetadata meta2,
+      boolean equal) {
+    assertEquals(equal, meta1.equals(meta2));
+    assertEquals(equal, meta1.hashCode() == meta2.hashCode());
+    assertEquals(equal, meta1.toBase64().equals(meta2.toBase64()));
+  }
+
+  @Test
+  public void testUnknownColFamily() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
@@ -390,13 +484,15 @@ public class TabletMetadataTest {
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, FateId.from(type, 25))
         .putBulkFile(rf2, FateId.from(type, 35)).putFlushId(27).putDirName("dir1").putScan(sf3)
         .putScan(sf4).putCompacted(FateId.from(type, 17)).putCompacted(FateId.from(type, 23))
-        .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED);
+        .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(TabletAvailability.UNHOSTED, tm.getTabletAvailability());
     assertEquals(Location.future(ser1), tm.getLocation());
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
+    assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
+        tm.getFileSize());
     assertEquals(Map.of(rf1.insert(), FateId.from(type, 25L), rf2.insert(), FateId.from(type, 35L)),
         tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
@@ -406,6 +502,7 @@ public class TabletMetadataTest {
     assertFalse(tm.getHostingRequested());
     assertTrue(tm.getUserCompactionsRequested().isEmpty());
     assertFalse(tm.hasMerged());
+    assertNull(tm.getUnSplittable());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -429,6 +526,9 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::getHostingRequested);
     assertThrows(IllegalStateException.class, tm2::getSelectedFiles);
     assertThrows(IllegalStateException.class, tm2::getCompacted);
+    assertThrows(IllegalStateException.class, tm2::hasMerged);
+    assertThrows(IllegalStateException.class, tm2::getUserCompactionsRequested);
+    assertThrows(IllegalStateException.class, tm2::getUnSplittable);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm = new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
@@ -438,11 +538,14 @@ public class TabletMetadataTest {
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, FateId.from(type, 159L));
+    var unsplittableMeta =
+        UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
         .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged()
-        .putUserCompactionRequested(FateId.from(type, 159L)).build();
+        .putUserCompactionRequested(FateId.from(type, 159L)).setUnSplittable(unsplittableMeta)
+        .build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -458,6 +561,7 @@ public class TabletMetadataTest {
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
     assertTrue(tm3.hasMerged());
     assertTrue(tm3.getUserCompactionsRequested().contains(FateId.from(type, 159L)));
+    assertEquals(unsplittableMeta, tm3.getUnSplittable());
   }
 
 }

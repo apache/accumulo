@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.split;
+package org.apache.accumulo.server.split;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,6 +29,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -39,8 +41,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -197,8 +199,6 @@ public class SplitUtils {
   }
 
   public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata) {
-    var estimatedSize =
-        tabletMetadata.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
@@ -207,7 +207,8 @@ public class SplitUtils {
     // anymore.
     int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
 
-    if (estimatedSize <= threshold) {
+    var estimatedSize = tabletMetadata.getFileSize();
+    if (!needsSplit(context, tabletMetadata)) {
       return new TreeSet<>();
     }
 
@@ -295,4 +296,39 @@ public class SplitUtils {
 
     return splits;
   }
+
+  public static boolean needsSplit(ServerContext context, TabletMetadata tabletMetadata) {
+    var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
+    var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+    return needsSplit(splitThreshold, tabletMetadata);
+  }
+
+  public static boolean needsSplit(final Configuration tableConf, TabletMetadata tabletMetadata) {
+    var splitThreshold = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConf.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    return needsSplit(splitThreshold, tabletMetadata);
+  }
+
+  public static boolean needsSplit(long splitThreshold, TabletMetadata tabletMetadata) {
+    return tabletMetadata.getFileSize() > splitThreshold;
+  }
+
+  public static UnSplittableMetadata toUnSplittable(ServerContext context,
+      TabletMetadata tabletMetadata) {
+    var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
+    var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+    var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
+    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+
+    var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(),
+        splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles());
+
+    log.trace(
+        "Created unsplittable metadata for tablet {}. splitThreshold: {}, maxEndRowSize:{}, maxFilesToOpen: {}, hashCode: {}",
+        tabletMetadata.getExtent(), splitThreshold, maxEndRowSize, maxFilesToOpen,
+        unSplittableMetadata);
+
+    return unSplittableMetadata;
+  }
+
 }
