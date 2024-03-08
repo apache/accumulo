@@ -182,26 +182,22 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
 
         // scan entries are related to a hosted tablet, this tablet is not hosted so can safely
-        // delete
-        // these
+        // delete these
         lastTabletMeta.getScans().forEach(tabletMutator::deleteScan);
 
         if (lastTabletMeta.getHostingRequested()) {
-          // The range of the tablet is changing, so lets delete the hosting requested column in
-          // case
-          // this tablet does not actually need to be hosted.
+          // The range of the tablet is changing, so let's delete the hosting requested column in
+          // case this tablet does not actually need to be hosted.
           tabletMutator.deleteHostingRequested();
         }
 
         if (lastTabletMeta.getSuspend() != null) {
-          // This no longer the exact tablet that was suspended. For consistency should either
-          // delete
-          // the suspension marker OR add it to the new tablets. Choosing to delete it.
+          // This no longer the exact tablet that was suspended, so let's delete the suspend marker.
           tabletMutator.deleteSuspension();
         }
 
         if (lastTabletMeta.getLast() != null) {
-          // This is no longer the same tablet so lets delete the last location.
+          // This is no longer the same tablet, so lets delete the last location.
           tabletMutator.deleteLocation(lastTabletMeta.getLast());
         }
 
