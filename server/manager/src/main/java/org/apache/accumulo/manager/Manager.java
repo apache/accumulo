@@ -520,16 +520,6 @@ public class Manager extends AbstractServer
     }
   }
 
-  public boolean hasCycled(long time) {
-    for (TabletGroupWatcher watcher : watchers) {
-      if (watcher.stats.lastScanFinished() < time) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
       migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));

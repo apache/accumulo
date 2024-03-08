@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -82,7 +83,7 @@ public class UpdateTablets extends ManagerRepo {
       }
     }
 
-    Preconditions.checkState(tabletMetadata.getOperationId().equals(opid),
+    Preconditions.checkState(opid.equals(tabletMetadata.getOperationId()),
         "Tablet %s does not have expected operation id %s it has %s", splitInfo.getOriginal(), opid,
         tabletMetadata.getOperationId());
 
@@ -92,6 +93,13 @@ public class UpdateTablets extends ManagerRepo {
 
     Preconditions.checkState(tabletMetadata.getLogs().isEmpty(),
         "Tablet unexpectedly had walogs %s %s %s", fateId, tabletMetadata.getLogs(),
+        tabletMetadata.getExtent());
+
+    Preconditions.checkState(!tabletMetadata.hasMerged(),
+        "Tablet unexpectedly has a merged marker %s %s", fateId, tabletMetadata.getExtent());
+
+    Preconditions.checkState(tabletMetadata.getCloned() == null,
+        "Tablet unexpectedly has a cloned marker %s %s %s", fateId, tabletMetadata.getCloned(),
         tabletMetadata.getExtent());
 
     var newTablets = splitInfo.getTablets();
@@ -120,7 +128,7 @@ public class UpdateTablets extends ManagerRepo {
 
     newTablets.forEach(extent -> tabletsFiles.put(extent, new HashMap<>()));
 
-    // determine while files overlap which tablets and their estimated sizes
+    // determine which files overlap which tablets and their estimated sizes
     tabletMetadata.getFilesMap().forEach((file, dataFileValue) -> {
       FileUtil.FileInfo fileInfo = fileInfoProvider.apply(file);
 
@@ -187,6 +195,7 @@ public class UpdateTablets extends ManagerRepo {
         mutator.putTime(tabletMetadata.getTime());
         tabletMetadata.getFlushId().ifPresent(mutator::putFlushId);
         mutator.putPrevEndRow(newExtent.prevEndRow());
+
         tabletMetadata.getCompacted().forEach(mutator::putCompacted);
 
         tabletMetadata.getCompacted().forEach(compactedFateId -> log
@@ -195,7 +204,6 @@ public class UpdateTablets extends ManagerRepo {
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
 
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
-        tabletMetadata.getLogs().forEach(mutator::putWal);
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);
 
@@ -221,6 +229,9 @@ public class UpdateTablets extends ManagerRepo {
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
           .requireAbsentLocation().requireAbsentLogs();
 
+      Preconditions
+          .checkArgument(Objects.equals(tabletMetadata.getExtent().endRow(), newExtent.endRow()));
+
       mutator.putPrevEndRow(newExtent.prevEndRow());
 
       newTabletsFiles.get(newExtent).forEach(mutator::putFile);
@@ -244,6 +255,31 @@ public class UpdateTablets extends ManagerRepo {
         mutator.deleteSelectedFiles();
         log.debug("{} deleting selected files {} because of split", fateId,
             tabletMetadata.getSelectedFiles().getFateId());
+      }
+
+      // Remove any user compaction requested markers as the tablet may fall outside the compaction
+      // range. The markers will be recreated if needed.
+      tabletMetadata.getUserCompactionsRequested().forEach(mutator::deleteUserCompactionRequested);
+
+      // scan entries are related to a hosted tablet, this tablet is not hosted so can safely delete
+      // these
+      tabletMetadata.getScans().forEach(mutator::deleteScan);
+
+      if (tabletMetadata.getHostingRequested()) {
+        // The range of the tablet is changing, so lets delete the hosting requested column in case
+        // this tablet does not actually need to be hosted.
+        mutator.deleteHostingRequested();
+      }
+
+      if (tabletMetadata.getSuspend() != null) {
+        // This no longer the exact tablet that was suspended. For consistency should either delete
+        // the suspension marker OR add it to the new tablets. Choosing to delete it.
+        mutator.deleteSuspension();
+      }
+
+      if (tabletMetadata.getLast() != null) {
+        // This is no longer the same tablet so lets delete the last location.
+        mutator.deleteLocation(tabletMetadata.getLast());
       }
 
       // Clean up any previous unsplittable marker
