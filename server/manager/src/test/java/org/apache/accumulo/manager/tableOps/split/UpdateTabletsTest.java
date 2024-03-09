@@ -66,7 +66,7 @@ import org.junit.jupiter.api.Test;
 
 public class UpdateTabletsTest {
 
-  StoredTabletFile newSTF(int fileNum) {
+  public static StoredTabletFile newSTF(int fileNum) {
     return new ReferencedTabletFile(new Path(
         "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F00000" + fileNum + ".rf"))
         .insert();

@@ -18,16 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.manager.tableOps.merge.DeleteRows.verifyAccepted;
 
 import java.util.ArrayList;
@@ -87,11 +77,11 @@ public class MergeTablets extends ManagerRepo {
     TabletMetadata lastTabletMeta = null;
 
     try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
-        .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-        .fetch(OPID, LOCATION, AVAILABILITY, FILES, TIME, DIR, ECOMP, PREV_ROW, LOGS, MERGED)
-        .build()) {
+        .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow()).build()) {
 
       int tabletsSeen = 0;
+
+      KeyExtent prevExtent = null;
 
       for (var tabletMeta : tabletsMetadata) {
         Preconditions.checkState(lastTabletMeta == null,
@@ -101,6 +91,16 @@ public class MergeTablets extends ManagerRepo {
 
         if (firstTabletMeta == null) {
           firstTabletMeta = Objects.requireNonNull(tabletMeta);
+        }
+
+        if (prevExtent == null) {
+          prevExtent = tabletMeta.getExtent();
+        } else {
+          Preconditions.checkState(
+              Objects.equals(prevExtent.endRow(), tabletMeta.getExtent().prevEndRow()),
+              "%s unexpectedly saw a hole in the metadata table %s %s", fateId, prevExtent,
+              tabletMeta.getExtent());
+          prevExtent = tabletMeta.getExtent();
         }
 
         tabletsSeen++;
@@ -115,6 +115,10 @@ public class MergeTablets extends ManagerRepo {
         if (isLastTablet) {
           lastTabletMeta = tabletMeta;
         } else {
+          // only expect to see the merged marker in the last tablet
+          Preconditions.checkState(!tabletMeta.hasMerged(),
+              "%s tablet %s has unexpected merge marker", fateId, tabletMeta.getExtent());
+
           // files for the last tablet need to specially handled, so only add other tablets files
           // here
           tabletMeta.getFilesMap().forEach((file, dfv) -> {
@@ -175,6 +179,31 @@ public class MergeTablets extends ManagerRepo {
             DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
 
+        // scan entries are related to a hosted tablet, this tablet is not hosted so can safely
+        // delete these
+        lastTabletMeta.getScans().forEach(tabletMutator::deleteScan);
+
+        if (lastTabletMeta.getHostingRequested()) {
+          // The range of the tablet is changing, so let's delete the hosting requested column in
+          // case this tablet does not actually need to be hosted.
+          tabletMutator.deleteHostingRequested();
+        }
+
+        if (lastTabletMeta.getSuspend() != null) {
+          // This no longer the exact tablet that was suspended, so let's delete the suspend marker.
+          tabletMutator.deleteSuspension();
+        }
+
+        if (lastTabletMeta.getLast() != null) {
+          // This is no longer the same tablet, so let's delete the last location.
+          tabletMutator.deleteLocation(lastTabletMeta.getLast());
+        }
+
+        if (lastTabletMeta.getUnSplittable() != null) {
+          // This is no longer the same tablet, so let's delete the unsplittable marker
+          tabletMutator.deleteUnSplittable();
+        }
+
         // Set merged marker on the last tablet when we are finished
         // so we know that we already updated metadata if the process restarts
         tabletMutator.setMerged();
@@ -210,6 +239,21 @@ public class MergeTablets extends ManagerRepo {
     Preconditions.checkState(tabletMeta.getLogs().isEmpty(),
         "%s merging tablet %s has unexpected walogs %s", fateId, tabletMeta.getExtent(),
         tabletMeta.getLogs().size());
+    // The table lock that merge gets should prevent concurrent table compactions and bulk imports
+    // from running. Therefore metadata columns related to these operations are unexpected and not
+    // currently handled by the merge code. Since the code does not handle them, throw an exception
+    // if they are seen.
+    Preconditions.checkState(tabletMeta.getCompacted().isEmpty(),
+        "%s tablet %s has unexpected compacted columns", fateId, tabletMeta.getExtent());
+    Preconditions.checkState(tabletMeta.getSelectedFiles() == null,
+        "%s tablet %s has unexpected selected file column", fateId, tabletMeta.getExtent());
+    Preconditions.checkState(tabletMeta.getUserCompactionsRequested().isEmpty(),
+        "%s tablet %s has unexpected use compaction requested column", fateId,
+        tabletMeta.getExtent());
+    Preconditions.checkState(tabletMeta.getLoaded().isEmpty(),
+        "%s tablet %s has unexpected loaded column", fateId, tabletMeta.getExtent());
+    Preconditions.checkState(tabletMeta.getCloned() == null,
+        "%s tablet %s has unexpected cloned column", fateId, tabletMeta.getExtent());
   }
 
   /**
