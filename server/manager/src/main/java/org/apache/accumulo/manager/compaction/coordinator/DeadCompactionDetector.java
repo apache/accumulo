@@ -81,7 +81,64 @@ public class DeadCompactionDetector {
 
   private void detectDeadCompactions() {
 
-    // The order of obtaining information is very important to avoid race conditions.
+    /*
+     * The order of obtaining information is very important to avoid race conditions. This algorithm
+     * ask compactors for information about what they are running. Compactors do the following.
+     *
+     * 1. Generate a compaction UUID.
+     *
+     * 2. Set the UUID as what they are currently working. This is reported to any other process
+     * that ask, like this dead compaction detection code.
+     *
+     * 3. Request work from the coordinator under the UUID. The coordinator will use this UUID to
+     * create a compaction entry in the metadata table.
+     *
+     * 4. Run the compaction
+     *
+     * 5. Ask the coordinator to commit the compaction. The coordinator will seed the fate operation
+     * that commits the compaction.
+     *
+     * 6. Clear the UUID they are currently working on.
+     *
+     * Given the fact that compactors report they are running a UUID until after its been seeded in
+     * fate, we can deduce the following for compactions that succeed.
+     *
+     * - There is time range from T1 to T2 where only the compactor will report a UUID.
+     *
+     * - There is a time range T2 to T3 where compactor and fate will report a UUID.
+     *
+     * - There is a time range T3 to T4 where only fate will report a UUID
+     *
+     * - After time T4 the compaction is complete and nothing will report the UUID
+     *
+     * This algorithm does the following.
+     *
+     * 1. Scan the metadata table looking for compaction UUIDs
+     *
+     * 2. Ask compactors what they are running
+     *
+     * 3. Ask Fate what compactions its committing.
+     *
+     * 4. Consider anything it saw in the metadata table that compactors or fate did not report as a
+     * possible dead compaction.
+     *
+     * When we see a compaction id in the metadata table, then we know we are already at time
+     * greater than T1 because the compactor generates and advertises ids prior to placing them in
+     * the metadata table.
+     *
+     * If this process ask a compactor if it's running a compaction uuid and it says yes, then that
+     * implies we are in the time range T1 to T3.
+     *
+     * If this process ask a compactor if it's running a compaction uuid and it says no, then that
+     * implies we are in the time range >T3 defined above. So if the compaction is still active then
+     * it will be reported by fate. If the time is >T4, then the compaction is finished and not
+     * dead.
+     *
+     * If a time gap existed between when a compactor reported and when fate reported, then it could
+     * result in false positives for dead compaction detection. If fate was queried before
+     * compactors, then it could result in false positives. If compactors were queried before the
+     * metadata table, then it could cause false positives.
+     */
     log.debug("Starting to look for dead compactions");
 
     // ELASTICITY_TODO not looking for dead compactions in the metadata table
