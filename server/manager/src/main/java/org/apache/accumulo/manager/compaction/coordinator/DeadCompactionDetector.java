@@ -40,6 +40,7 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -145,9 +146,14 @@ public class DeadCompactionDetector {
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
     // find what external compactions tablets think are running
-    try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forLevel(DataLevel.USER)
-        .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
-        .build()) {
+    try (Stream<TabletMetadata> tabletsMetadata = Stream
+        // Listing the data levels vs using DataLevel.values() prevents unexpected
+        // behavior if a new DataLevel is added
+        .of(DataLevel.ROOT, DataLevel.METADATA, DataLevel.USER)
+        .map(dataLevel -> context.getAmple().readTablets().forLevel(dataLevel)
+            .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
+            .build())
+        .map(TabletsMetadata::stream).reduce(Stream::concat).orElseThrow()) {
       tabletsMetadata.forEach(tm -> {
         tm.getExternalCompactions().keySet().forEach(ecid -> {
           tabletCompactions.put(ecid, tm.getExtent());
@@ -193,9 +199,9 @@ public class DeadCompactionDetector {
           log.warn("Fate is not present, can not look for dead compactions");
           return;
         }
-        // ELASTICITY_TODO need to handle metadata
-        var fate = fateMap.get(FateInstanceType.USER);
-        try (Stream<FateKey> keyStream = fate.list(FateKey.FateKeyType.COMPACTION_COMMIT)) {
+        try (Stream<FateKey> keyStream =
+            fateMap.values().stream().map(fate -> fate.list(FateKey.FateKeyType.COMPACTION_COMMIT))
+                .reduce(Stream::concat).orElse(Stream.empty())) {
           keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
             if (tabletCompactions.remove(ecid) != null) {
               log.debug("Ignoring compaction {} that is committing in a fate", ecid);
