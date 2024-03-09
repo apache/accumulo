@@ -377,6 +377,12 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  @Override
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    return getTransactions().flatMap(fis -> getKey(fis.getFateId()).stream())
+        .filter(fateKey -> fateKey.getType() == type);
+  }
+
   protected static class NodeValue {
     final TStatus status;
     final Optional<FateKey> fateKey;

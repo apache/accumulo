@@ -139,6 +139,11 @@ public interface ReadOnlyFateStore<T> {
   Stream<FateIdStatus> list();
 
   /**
+   * list transaction in the store that have a given fate key type.
+   */
+  Stream<FateKey> list(FateKey.FateKeyType type);
+
+  /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids
    * that are found are passed to the consumer. This method will block until at least one runnable
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids

@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 
@@ -41,12 +41,13 @@ public class PutGcCandidates extends ManagerRepo {
     manager.getContext().getAmple().putGcCandidates(commitData.getTableId(),
         commitData.getJobFiles());
 
-    if (commitData.kind == CompactionKind.USER || refreshLocation == null) {
-      // user compactions will refresh tablets as part of the FATE operation driving the user
-      // compaction, so no need to do it here
+    if (refreshLocation == null) {
+      manager.getCompactionCoordinator().recordCompletion(ExternalCompactionId.of(commitData.ecid));
       return null;
     }
 
-    return new RefreshTablet(commitData.textent, refreshLocation);
+    // For user initiated table compactions, the fate operation will refresh tablets. Can also
+    // refresh as part of this compaction commit as it may run sooner.
+    return new RefreshTablet(commitData.ecid, commitData.textent, refreshLocation);
   }
 }

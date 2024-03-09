@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -480,6 +481,13 @@ public class Fate<T> {
     } finally {
       txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
+  }
+
+  /**
+   * Lists transctions for a given fate key type.
+   */
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    return store.list(type);
   }
 
   /**

@@ -48,6 +48,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
@@ -69,20 +71,31 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -203,6 +216,90 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       compact(client, table2, 3, GROUP2, true);
       verify(client, table2, 3);
 
+    }
+  }
+
+  /**
+   * This test verifies the dead compaction detector does not remove compactions that are committing
+   * in fate.
+   */
+  @Test
+  public void testCompactionCommitAndDeadDetection() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(row(MAX_DATA / 2)));
+
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      writeData(c, tableName);
+      c.tableOperations().flush(tableName, null, null, true);
+
+      var ctx = getCluster().getServerContext();
+      var tableId = ctx.getTableId(tableName);
+
+      // Create two random compaction ids
+      var cids = List.of(ExternalCompactionId.generate(UUID.randomUUID()),
+          ExternalCompactionId.generate(UUID.randomUUID()));
+      AccumuloStore<Manager> accumuloStore = new AccumuloStore<>(ctx);
+
+      // Create a fate transaction for one of the compaction ids that is in the new state, it should
+      // never run. Its purpose is to prevent the dead compaction detector from deleting the id.
+      FateStore.FateTxStore<Manager> fateTx =
+          accumuloStore.createAndReserve(FateKey.forCompactionCommit(cids.get(0))).orElseThrow();
+      var fateId = fateTx.getID();
+      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+
+      // Read the tablet metadata
+      var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()
+          .collect(Collectors.toList());
+      assertEquals(2, tabletsMeta.size());
+
+      // Insert fake compaction entries in the metadata table. No compactor will report ownership of
+      // these, so they should look like dead compactions and be removed. However, one of them has
+      // an associated fate tx that should prevent its removal.
+      try (var mutator = ctx.getAmple().mutateTablets()) {
+        for (int i = 0; i < tabletsMeta.size(); i++) {
+          var tabletMeta = tabletsMeta.get(0);
+          var tabletDir =
+              tabletMeta.getFiles().stream().findFirst().orElseThrow().getPath().getParent();
+          var tmpFile = new Path(tabletDir, "C1234.rf_tmp");
+
+          CompactionMetadata cm = new CompactionMetadata(tabletMeta.getFiles(),
+              ReferencedTabletFile.of(tmpFile), "localhost:16789", CompactionKind.SYSTEM,
+              (short) 10, CompactorGroupId.of(GROUP1), false, null);
+
+          mutator.mutateTablet(tabletMeta.getExtent()).putExternalCompaction(cids.get(i), cm)
+              .mutate();
+        }
+      }
+
+      // Wait until the compaction id w/o a fate transaction is removed, should still see the one
+      // with a fate transaction
+      Wait.waitFor(() -> {
+        Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId)
+            .build().stream().map(TabletMetadata::getExternalCompactions)
+            .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
+        System.out.println("currentIds1:" + currentIds);
+        assertTrue(currentIds.size() == 1 || currentIds.size() == 2);
+        return currentIds.equals(Set.of(cids.get(0)));
+      });
+
+      // Delete the fate transaction, should allow the dead compaction detector to clean up the
+      // remaining external compaction id
+      fateTx = accumuloStore.reserve(fateId);
+      fateTx.delete();
+      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+
+      // wait for the remaining compaction id to be removed
+      Wait.waitFor(() -> {
+        Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId)
+            .build().stream().map(TabletMetadata::getExternalCompactions)
+            .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
+        System.out.println("currentIds2:" + currentIds);
+        assertTrue(currentIds.size() <= 1);
+        return currentIds.isEmpty();
+      });
     }
   }
 

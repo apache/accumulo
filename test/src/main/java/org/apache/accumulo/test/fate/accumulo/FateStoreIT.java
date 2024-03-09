@@ -29,8 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -47,6 +50,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -419,6 +423,67 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.unreserve(0, TimeUnit.SECONDS);
     }
 
+  }
+
+  @Test
+  public void testListFateKeys() throws Exception {
+    executeTest(this::testListFateKeys);
+  }
+
+  protected void testListFateKeys(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+
+    // this should not be seen when listing by key type because it has no key
+    var id1 = store.create();
+
+    TableId tid1 = TableId.of("test");
+    var extent1 = new KeyExtent(tid1, new Text("m"), null);
+    var extent2 = new KeyExtent(tid1, null, new Text("m"));
+    var fateKey1 = FateKey.forSplit(extent1);
+    var fateKey2 = FateKey.forSplit(extent2);
+
+    var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    assertNotEquals(cid1, cid2);
+
+    var fateKey3 = FateKey.forCompactionCommit(cid1);
+    var fateKey4 = FateKey.forCompactionCommit(cid2);
+
+    Map<FateKey,FateId> fateKeyIds = new HashMap<>();
+    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
+      var fateTx = store.createAndReserve(fateKey).orElseThrow();
+      fateKeyIds.put(fateKey, fateTx.getID());
+      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+    }
+
+    HashSet<FateId> allIds = new HashSet<>();
+    allIds.addAll(fateKeyIds.values());
+    allIds.add(id1);
+    assertEquals(allIds, store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+    assertEquals(5, allIds.size());
+
+    assertEquals(4, fateKeyIds.size());
+    assertEquals(4, fateKeyIds.values().stream().distinct().count());
+
+    HashSet<KeyExtent> seenExtents = new HashSet<>();
+    store.list(FateKey.FateKeyType.SPLIT).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.SPLIT, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
+    });
+
+    assertEquals(2, fateKeyIds.size());
+    assertEquals(Set.of(extent1, extent2), seenExtents);
+
+    HashSet<ExternalCompactionId> seenCids = new HashSet<>();
+    store.list(FateKey.FateKeyType.COMPACTION_COMMIT).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.COMPACTION_COMMIT, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenCids.add(fateKey.getCompactionId().orElseThrow()));
+    });
+
+    assertEquals(0, fateKeyIds.size());
+    assertEquals(Set.of(cid1, cid2), seenCids);
   }
 
   // create(fateKey) method is private so expose for testing to check error states
