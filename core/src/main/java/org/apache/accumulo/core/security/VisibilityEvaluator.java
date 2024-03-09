@@ -26,8 +26,10 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 
 /**
  * A class which evaluates visibility expressions against a set of authorizations.
+ *
+ * @deprecated since 3.1.0 Use Accumulo Access library instead
  */
-// TODO deprecate this type
+@Deprecated(since = "3.1.0")
 public class VisibilityEvaluator {
   private final AccessEvaluator accessEvaluator;
 
@@ -38,7 +40,6 @@ public class VisibilityEvaluator {
    * @param quote true to wrap escaped authorization in quotes
    * @return escaped authorization string
    */
-  @Deprecated(since = "3.1.0")
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
 

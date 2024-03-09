@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("deprecation")
 public class VisibilityEvaluatorTest {
 
   @Test
@@ -70,7 +71,6 @@ public class VisibilityEvaluatorTest {
     runQuoteTest(ct);
   }
 
-  @SuppressWarnings("deprecation")
   private void runQuoteTest(VisibilityEvaluator ct) throws VisibilityParseException {
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
     assertTrue(ct.evaluate(
@@ -88,7 +88,6 @@ public class VisibilityEvaluatorTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void testQuote() {
     assertEquals("\"A#C\"", quote("A#C"));
     assertEquals("\"A\\\"C\"", quote("A\"C"));
@@ -99,7 +98,6 @@ public class VisibilityEvaluatorTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void testNonAscii() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("五", "六", "八", "九", "五十"));
 

@@ -43,10 +43,12 @@ public class VisibilityConstraintTest {
   Environment env;
   Mutation mutation;
 
-  static final ColumnVisibility good = new ColumnVisibility("good");
-  static final ColumnVisibility bad = new ColumnVisibility("bad");
+  static final ColumnVisibility good = new ColumnVisibility("good|bad");
+  static final ColumnVisibility bad = new ColumnVisibility("good&bad");
 
   static final String D = "don't care";
+
+  static final List<Short> ILLEGAL = Arrays.asList((short) 1);
 
   static final List<Short> ENOAUTH = Arrays.asList((short) 2);
 
@@ -98,4 +100,11 @@ public class VisibilityConstraintTest {
     assertEquals(ENOAUTH, vc.check(env, mutation), "unauthorized");
   }
 
+  @Test
+  public void testIllegalVisibility() {
+    mutation.put(D, D, good, D);
+    // set an illegal visibility string
+    mutation.at().family(D).qualifier(D).visibility("good&").put(D);
+    assertEquals(ILLEGAL, vc.check(env, mutation), "unauthorized");
+  }
 }
