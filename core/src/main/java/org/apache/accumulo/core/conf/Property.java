@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -638,12 +640,14 @@ public enum Property {
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %}.",
       "2.1.0"),
   @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
+  TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER(
+      "tserver.compaction.major.service." + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
       DefaultCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
       "Planner for default compaction service.", "2.1.0"),
   @Deprecated(since = "3.1")
-  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT("tserver.compaction.major.service.default.rate.limit",
-      "0B", PropertyType.BYTES,
+  TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT(
+      "tserver.compaction.major.service." + DEFAULT_COMPACTION_SERVICE_NAME + ".rate.limit", "0B",
+      PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major"
           + " compactions in this compaction service, or 0B for unlimited. This property has"
           + " been deprecated in anticipation of it being removed in a future release that"
@@ -651,11 +655,13 @@ public enum Property {
       "2.1.0"),
   @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_MAX_OPEN(
-      "tserver.compaction.major.service.default.planner.opts.maxOpen", "10", PropertyType.COUNT,
-      "The maximum number of files a compaction will open.", "2.1.0"),
+      "tserver.compaction.major.service." + DEFAULT_COMPACTION_SERVICE_NAME
+          + ".planner.opts.maxOpen",
+      "10", PropertyType.COUNT, "The maximum number of files a compaction will open.", "2.1.0"),
   @Deprecated(since = "3.1")
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
-      "tserver.compaction.major.service.default.planner.opts.executors",
+      "tserver.compaction.major.service." + DEFAULT_COMPACTION_SERVICE_NAME
+          + ".planner.opts.executors",
       "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]"
           .replaceAll("'", "\""),
       PropertyType.STRING,
@@ -1126,6 +1132,16 @@ public enum Property {
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  @Experimental
+  COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
+      "The minimum amount of time to wait between checks for the next compaction job, backing off"
+          + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
+      "2.1.3"),
+  @Experimental
+  COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
+      "Compactors do exponential backoff when their request for work repeatedly come back empty. "
+          + "This is the maximum amount of time to wait between checks for the next compaction job.",
+      "2.1.3"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "false", PropertyType.BOOLEAN,
       "If the compactor.port.client is in use, search higher ports until one is available.",

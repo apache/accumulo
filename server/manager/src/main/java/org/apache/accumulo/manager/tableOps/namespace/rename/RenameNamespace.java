@@ -26,6 +26,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -41,7 +42,8 @@ public class RenameNamespace extends ManagerRepo {
 
   @Override
   public long isReady(long id, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(environment, namespaceId, id, LockType.WRITE, true,
+        TableOperation.RENAME);
   }
 
   public RenameNamespace(NamespaceId namespaceId, String oldName, String newName) {
@@ -77,7 +79,7 @@ public class RenameNamespace extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveNamespace(manager, namespaceId, id, true);
+      Utils.unreserveNamespace(manager, namespaceId, id, LockType.WRITE);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -88,7 +90,7 @@ public class RenameNamespace extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, LockType.WRITE);
   }
 
 }

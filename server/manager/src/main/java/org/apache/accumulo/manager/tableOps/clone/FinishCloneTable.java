@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.clone;
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -58,12 +59,12 @@ class FinishCloneTable extends ManagerRepo {
           expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, LockType.READ);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
-    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
+    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, LockType.READ);
+    Utils.unreserveTable(environment, cloneInfo.tableId, tid, LockType.WRITE);
 
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName,
         cloneInfo.srcTableId);

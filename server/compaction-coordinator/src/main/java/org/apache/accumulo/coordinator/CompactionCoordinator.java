@@ -104,8 +104,6 @@ public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
-  private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
-
   protected static final QueueSummaries QUEUE_SUMMARIES = new QueueSummaries();
 
   /*
@@ -382,7 +380,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected long getMissingCompactorWarningTime() {
-    return FIFTEEN_MINUTES;
+    return getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
   protected long getTServerCheckInterval() {
@@ -492,8 +490,8 @@ public class CompactionCoordinator extends AbstractServer
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
     ServerContext serverContext = getContext();
-    TTransport transport =
-        serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
+    TTransport transport = serverContext.getTransportPool().getTransport(
+        ThriftClientTypes.TABLET_SERVER, connection.getAddress(), 0, serverContext, true);
     return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 

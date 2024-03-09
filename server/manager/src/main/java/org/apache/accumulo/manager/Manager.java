@@ -30,6 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -597,7 +598,6 @@ public class Manager extends AbstractServer
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
       case STOP:
         return TabletGoalState.UNASSIGNED;
       default:
@@ -759,7 +759,7 @@ public class Manager extends AbstractServer
     public void run() {
       EventCoordinator.Listener eventListener = nextEvent.getListener();
       while (stillManager()) {
-        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        long wait;
         try {
           switch (getManagerGoalState()) {
             case NORMAL:
@@ -1345,9 +1345,10 @@ public class Manager extends AbstractServer
       waitIncrement = 5;
     }
 
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
-        .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, SECONDS).backOffFactor(1)
-        .logInterval(30, SECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().maxRetries(retries)
+        .retryAfter(Duration.ofSeconds(initialWait)).incrementBy(Duration.ofSeconds(waitIncrement))
+        .maxWait(Duration.ofSeconds(maxWaitPeriod)).backOffFactor(1)
+        .logInterval(Duration.ofSeconds(30)).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
@@ -1432,7 +1433,7 @@ public class Manager extends AbstractServer
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
             -1);
       }
 
@@ -1444,7 +1445,9 @@ public class Manager extends AbstractServer
       while (!acquiredLock && !failedToAcquireLock) {
         try {
           wait();
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+          // empty
+        }
       }
     }
   }
@@ -1593,7 +1596,7 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
-      if ((state != null) && (state == TableState.ONLINE)) {
+      if (state == TableState.ONLINE) {
         result.add(tableId);
       }
     }
