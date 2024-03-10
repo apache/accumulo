@@ -2190,9 +2190,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> (TabletInformation) new TabletInformationImpl(tm,
-            TabletState.compute(tm, liveTserverSet).toString()))
-        .onClose(tabletsMetadata::close);
+        .map(tm -> new TabletInformationImpl(tm,
+            TabletState.compute(tm, liveTserverSet).toString()));
   }
 
 }
