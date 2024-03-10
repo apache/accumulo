@@ -20,6 +20,9 @@ package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -81,6 +84,7 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -97,6 +101,7 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -577,7 +582,7 @@ public class CompactionCoordinator
       var dfv = metaJob.getTabletMetadata().getFilesMap().get(storedTabletFile);
       return new InputFile(storedTabletFile.getMetadata(), dfv.getSize(), dfv.getNumEntries(),
           dfv.getTime());
-    }).collect(Collectors.toList());
+    }).collect(toList());
 
     FateInstanceType type = FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId());
     FateId fateId = FateId.from(type, 0);
@@ -708,6 +713,15 @@ public class CompactionCoordinator
     LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+  }
+
+  void compactionsFailed(Map<ExternalCompactionId,Pair<KeyExtent,DataLevel>> compactionsByLevel) {
+    // Need to process each level by itself because the conditional tablet mutator does not support
+    // mutating multiple data levels at the same time
+    compactionsByLevel.entrySet().stream()
+        .collect(groupingBy(entry -> entry.getValue().getSecond(),
+            Collectors.toMap(Entry::getKey, e -> e.getValue().getFirst())))
+        .forEach((level, compactions) -> compactionFailed(compactions));
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
