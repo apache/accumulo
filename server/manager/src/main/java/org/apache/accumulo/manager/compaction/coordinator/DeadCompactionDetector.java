@@ -153,7 +153,7 @@ public class DeadCompactionDetector {
         .map(dataLevel -> context.getAmple().readTablets().forLevel(dataLevel)
             .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
             .build())
-        .map(TabletsMetadata::stream).reduce(Stream::concat).orElseThrow()) {
+        .flatMap(TabletsMetadata::stream)) {
       tabletsMetadata.forEach(tm -> {
         tm.getExternalCompactions().keySet().forEach(ecid -> {
           tabletCompactions.put(ecid, new Pair<>(tm.getExtent(), DataLevel.of(tm.getTableId())));
@@ -200,9 +200,8 @@ public class DeadCompactionDetector {
           log.warn("Fate is not present, can not look for dead compactions");
           return;
         }
-        try (Stream<FateKey> keyStream =
-            fateMap.values().stream().map(fate -> fate.list(FateKey.FateKeyType.COMPACTION_COMMIT))
-                .reduce(Stream::concat).orElse(Stream.empty())) {
+        try (Stream<FateKey> keyStream = fateMap.values().stream()
+            .flatMap(fate -> fate.list(FateKey.FateKeyType.COMPACTION_COMMIT))) {
           keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
             if (tabletCompactions.remove(ecid) != null) {
               log.debug("Ignoring compaction {} that is committing in a fate", ecid);
