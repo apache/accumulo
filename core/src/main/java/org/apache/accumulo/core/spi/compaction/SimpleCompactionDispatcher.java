@@ -168,6 +168,7 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher, CustomP
       });
       return true;
     } catch (RuntimeException e) {
+      LOG.warn("Error validating configuration", e);
       return false;
     }
   }

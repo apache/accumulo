@@ -638,7 +638,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner, CustomProper
       }
       return true;
     } catch (RuntimeException e) {
-      log.warn("Error validating DefaultCompactionPlanner configuration", e);
+      log.warn("Error validating configuration", e);
       return false;
     }
   }
