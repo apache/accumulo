@@ -559,6 +559,7 @@ public class ServerContext extends ClientContext {
         return new ConfigurationImpl(config);
       }
 
+      @Override
       public Optional<TableId> getTableId() {
         return (config instanceof TableConfiguration)
             ? Optional.of(((TableConfiguration) config).getTableId()) : Optional.empty();
