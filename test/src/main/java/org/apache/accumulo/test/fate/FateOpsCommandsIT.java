@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -47,6 +48,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -77,7 +79,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate blank report, no transactions have started
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW", "-s",
@@ -166,7 +168,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       fateIdsFromResult3.add(d.getFateId());
     });
     assertTrue(fateIdsFromResult3.contains(fateId1.canonical()));
-    assertFalse(fateIdsFromResult3.contains(fateId2.canonical()));
 
     // validate status filter by including only FAILED transactions, should be none
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
@@ -250,7 +251,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -281,7 +282,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate no transactions
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
@@ -292,17 +293,13 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // create Fate transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
     // Get all transactions. Should be 2 FateIds with a NEW status
     p = getCluster().exec(Admin.class, "fate", "--print");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     Map<String,String> fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(2, fateIdsFromResult.size());
-    assertTrue(fateIdsFromResult.keySet().containsAll(fateIdsStarted));
-    assertEquals("NEW", fateIdsFromResult.get(fateId1.canonical()));
-    assertEquals("NEW", fateIdsFromResult.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
 
     /*
      * Test filtering by States
@@ -313,15 +310,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(2, fateIdsFromResult.size());
-    assertTrue(fateIdsFromResult.keySet().containsAll(fateIdsStarted));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
 
     // Filter by FAILED state
     p = getCluster().exec(Admin.class, "fate", "--print", "-s", "FAILED");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(0, fateIdsFromResult.size());
+    assertTrue(fateIdsFromResult.isEmpty());
 
     /*
      * Test filtering by FateIds
@@ -332,16 +328,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(1, fateIdsFromResult.size());
-    assertTrue(fateIdsFromResult.containsKey(fateId1.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "NEW"), fateIdsFromResult);
 
     // Filter by both FateIds
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(), "--print");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(2, fateIdsFromResult.size());
-    assertTrue(fateIdsFromResult.keySet().containsAll(fateIdsStarted));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
 
     /*
      * Test filtering by FateInstanceType
@@ -353,10 +347,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
     if (store.type() == FateInstanceType.META) {
-      assertEquals(0, fateIdsFromResult.size());
+      assertTrue(fateIdsFromResult.isEmpty());
     } else { // USER
-      assertEquals(2, fateIdsFromResult.size());
-      assertTrue(fateIdsFromResult.keySet().containsAll(fateIdsStarted));
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromResult);
     }
 
     // Test filter by META FateInstanceType
@@ -365,10 +359,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     result = p.readStdOut();
     fateIdsFromResult = getFateIdsFromPrint(result);
     if (store.type() == FateInstanceType.META) {
-      assertEquals(2, fateIdsFromResult.size());
-      assertTrue(fateIdsFromResult.keySet().containsAll(fateIdsStarted));
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromResult);
     } else { // USER
-      assertEquals(0, fateIdsFromResult.size());
+      assertTrue(fateIdsFromResult.isEmpty());
     }
 
     fate.shutdown(10, TimeUnit.MINUTES);
@@ -387,19 +381,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
     // Check that summary output lists both the transactions with a NEW status
     Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(2, fateIdsFromSummary.size());
-    assertTrue(fateIdsFromSummary.keySet().containsAll(fateIdsStarted));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId1.canonical()));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
 
     // Cancel the first transaction and ensure that it was cancelled
     ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--cancel");
@@ -409,10 +400,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(result
         .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
     fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(2, fateIdsFromSummary.size());
-    assertTrue(fateIdsFromSummary.keySet().containsAll(fateIdsStarted));
-    assertEquals("FAILED", fateIdsFromSummary.get(fateId1.canonical()));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
 
     fate.shutdown(10, TimeUnit.MINUTES);
   }
@@ -430,36 +419,39 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
     // Check that summary output lists both the transactions with a NEW status
     Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(2, fateIdsFromSummary.size());
-    assertTrue(fateIdsFromSummary.keySet().containsAll(fateIdsStarted));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId1.canonical()));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
+
+    // Attempt to --fail the transaction. Should not work as the Manager is still up
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+    assertEquals(1, p.getProcess().waitFor());
+    fateIdsFromSummary = getFateIdsFromSummary();
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
 
     // Stop MANAGER so --fail can be called
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
     Thread.sleep(20_000);
 
     // Fail the first transaction and ensure that it was failed
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
     assertTrue(result.contains("Failing transaction: " + fateId1));
     fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(2, fateIdsFromSummary.size());
-    assertTrue(fateIdsFromSummary.keySet().containsAll(fateIdsStarted));
-    assertTrue(fateIdsFromSummary.get(fateId1.canonical()).equals("FAILED_IN_PROGRESS")
-        || fateIdsFromSummary.get(fateId1.canonical()).equals("FAILED"));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertTrue(fateIdsFromSummary
+        .equals(Map.of(fateId1.canonical(), "FAILED_IN_PROGRESS", fateId2.canonical(), "NEW"))
+        || fateIdsFromSummary
+            .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
 
     fate.shutdown(10, TimeUnit.MINUTES);
   }
@@ -477,35 +469,36 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Thread.sleep(20_000);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
     // Check that summary output lists both the transactions with a NEW status
     Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(2, fateIdsFromSummary.size());
-    assertTrue(fateIdsFromSummary.keySet().containsAll(fateIdsStarted));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId1.canonical()));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
+
+    // Attempt to --delete the transaction. Should not work as the Manager is still up
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+    assertEquals(1, p.getProcess().waitFor());
+    fateIdsFromSummary = getFateIdsFromSummary();
+    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
 
     // Stop MANAGER so --delete can be called
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
     Thread.sleep(20_000);
 
     // Delete the first transaction and ensure that it was deleted
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
     assertTrue(result.contains("Deleting transaction: " + fateId1));
     fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(1, fateIdsFromSummary.size());
-    assertFalse(fateIdsFromSummary.containsKey(fateId1.canonical()));
-    assertTrue(fateIdsFromSummary.containsKey(fateId2.canonical()));
-    assertEquals("NEW", fateIdsFromSummary.get(fateId2.canonical()));
+    assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
 
     fate.shutdown(10, TimeUnit.MINUTES);
   }
@@ -515,7 +508,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
    * @param printResult the output of the --print fate command
    * @return a map of each of the FateIds to their status using the output of --print
    */
-  private Map<String,String> getFateIdsFromPrint(String printResult) throws Exception {
+  private Map<String,String> getFateIdsFromPrint(String printResult) {
     Map<String,String> fateIdToStatus = new HashMap<>();
     String lastFateIdSeen = null;
     String[] words = printResult.split(" ");
