@@ -89,8 +89,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   protected Stream<KeyExtent> lookupExtents(Text row) {
     TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
         .overlapping(row, true, null).checkConsistency().fetch(PREV_ROW).build();
-    return tabletsMetadata.stream().onClose(tabletsMetadata::close).limit(100)
-        .map(TabletMetadata::getExtent);
+    return tabletsMetadata.stream().limit(100).map(TabletMetadata::getExtent);
   }
 
   @Override
