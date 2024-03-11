@@ -63,7 +63,7 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,Long> deferred;
+  private Map<Long,Long> deferred; // use Long here to properly handle System.nanoTime()
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
