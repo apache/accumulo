@@ -63,7 +63,7 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,Duration> deferred;
+  private Map<Long,Long> deferred;
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -163,7 +163,7 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              if (deferred.get(tid).minusNanos(System.nanoTime()).isNegative()) {
+              if (deferred.get(tid) - System.nanoTime() < 0) {
                 deferred.remove(tid);
               } else {
                 continue;
@@ -203,10 +203,9 @@ public class ZooStore<T> implements TStore<T> {
               this.wait(5000);
             } else {
               final long now = System.nanoTime();
-              Duration minWait = deferred.values().stream().map(l -> l.minusNanos(now))
-                  .min(Duration::compareTo).orElseThrow();
-              if (minWait.compareTo(Duration.ZERO) > 0) {
-                this.wait(Math.min(minWait.toMillis(), 5000));
+              long minWait = deferred.values().stream().mapToLong(l -> l - now).min().orElseThrow();
+              if (minWait > 0) {
+                this.wait(Math.min(minWait, 5000));
               }
             }
           }
@@ -284,7 +283,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       if (deferTime.compareTo(Duration.ZERO) > 0) {
-        deferred.put(tid, deferTime.plusNanos(System.nanoTime()));
+        deferred.put(tid, deferTime.toNanos() + System.nanoTime());
       }
 
       this.notifyAll();
