@@ -285,7 +285,7 @@ public class GenerateSplits implements KeywordExecutable {
         } else {
           // Fail if non-printable characters are detected.
           throw new UnsupportedOperationException("Non printable char: \\x" + Integer.toHexString(c)
-              + " detected. Must use Base64 encoded output");
+              + " detected. Must use Base64 encoded output.  The behavior around non printable chars changed in 2.1.3 to throw an error, the previous behavior was likely to cause bugs.");
         }
       }
       return sb.toString();
