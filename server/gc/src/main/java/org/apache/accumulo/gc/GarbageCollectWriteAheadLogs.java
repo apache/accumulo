@@ -61,7 +61,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Streams;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -99,17 +98,10 @@ public class GarbageCollectWriteAheadLogs {
   Stream<TabletMetadata> createStore(Set<TServerInstance> liveTServers) {
     GcWalsFilter walsFilter = new GcWalsFilter(liveTServers);
 
-    TabletsMetadata root = context.getAmple().readTablets().forLevel(DataLevel.ROOT)
-        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
-    TabletsMetadata metadata = context.getAmple().readTablets().forLevel(DataLevel.METADATA)
-        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
-    TabletsMetadata user = context.getAmple().readTablets().forLevel(DataLevel.USER)
-        .filter(walsFilter).fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build();
-    return Streams.concat(root.stream(), metadata.stream(), user.stream()).onClose(() -> {
-      root.close();
-      metadata.close();
-      user.close();
-    });
+    return Stream.of(DataLevel.ROOT, DataLevel.METADATA, DataLevel.USER)
+        .map(dataLevel -> context.getAmple().readTablets().forLevel(dataLevel).filter(walsFilter)
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build())
+        .flatMap(TabletsMetadata::stream);
   }
 
   public void collect(GCStatus status) {
