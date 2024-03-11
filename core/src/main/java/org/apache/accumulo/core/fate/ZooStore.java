@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -205,7 +206,7 @@ public class ZooStore<T> implements TStore<T> {
               final long now = System.nanoTime();
               long minWait = deferred.values().stream().mapToLong(l -> l - now).min().orElseThrow();
               if (minWait > 0) {
-                this.wait(Math.min(minWait, 5000));
+                this.wait(Math.min(TimeUnit.NANOSECONDS.toMillis(minWait), 5000));
               }
             }
           }
