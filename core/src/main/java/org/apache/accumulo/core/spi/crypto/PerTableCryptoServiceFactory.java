@@ -25,17 +25,15 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A factory that loads a CryptoService based on {@link TableId}.
  */
-public class PerTableCryptoServiceFactory
-    implements CryptoServiceFactory, CustomPropertyValidation {
+public class PerTableCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidator {
   private static final Logger log = LoggerFactory.getLogger(PerTableCryptoServiceFactory.class);
   private final ConcurrentHashMap<TableId,CryptoService> cryptoServiceMap =
       new ConcurrentHashMap<>();
@@ -104,10 +102,10 @@ public class PerTableCryptoServiceFactory
   }
 
   @Override
-  public boolean validateConfiguration(Configuration conf) {
-    String wal = conf.get(WAL_NAME_PROP);
-    String recovery = conf.get(RECOVERY_NAME_PROP);
-    String table = conf.get(TABLE_SERVICE_NAME_PROP);
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+    String wal = env.getConfiguration().get(WAL_NAME_PROP);
+    String recovery = env.getConfiguration().get(RECOVERY_NAME_PROP);
+    String table = env.getConfiguration().get(TABLE_SERVICE_NAME_PROP);
     boolean result = true;
     if (wal == null || wal.isBlank()) {
       log.warn("The property " + WAL_NAME_PROP + " is required for encrypting WALs.");

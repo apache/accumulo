@@ -54,7 +54,7 @@ import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
-import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -93,7 +93,7 @@ import com.google.common.collect.Multimap;
  * @since 2.1.0
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer
-    implements CustomPropertyValidation {
+    implements CustomPropertyValidator {
 
   private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
@@ -571,9 +571,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer
   }
 
   @Override
-  public boolean validateConfiguration(PluginEnvironment.Configuration conf) {
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
     try {
-      new HrtlbConf(conf);
+      new HrtlbConf(env.getConfiguration());
       return true;
     } catch (RuntimeException e) {
       LOG.warn("Error validating configuration", e);

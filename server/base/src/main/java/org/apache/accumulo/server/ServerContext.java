@@ -34,6 +34,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
@@ -60,8 +61,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator.PropertyValidationEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
@@ -482,30 +483,21 @@ public class ServerContext extends ClientContext {
 
   private boolean validateClasses(AccumuloConfiguration conf) {
 
-    String context = null;
-    if (conf instanceof TableConfiguration) {
-      TableConfiguration tconf = (TableConfiguration) conf;
-      context = tconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
-    } else if (conf instanceof NamespaceConfiguration) {
-      NamespaceConfiguration nconf = (NamespaceConfiguration) conf;
-      context = nconf.get(Property.TABLE_CLASSLOADER_CONTEXT);
-    }
-
     boolean valid = true;
     for (Property p : Property.values()) {
       if (p.getType().equals(PropertyType.CLASSNAMELIST)) {
         String[] classNames = conf.get(p).split(",");
         for (String className : classNames) {
-          valid = valid && validateClassConfiguration(conf, p, context, className);
+          valid = valid && validateClassConfiguration(conf, p, className);
         }
       } else if (p.getType().equals(PropertyType.CLASSNAME)) {
-        valid = valid && validateClassConfiguration(conf, p, context, conf.get(p));
+        valid = valid && validateClassConfiguration(conf, p, conf.get(p));
       }
     }
     return valid;
   }
 
-  private boolean validateClassConfiguration(AccumuloConfiguration conf, Property p, String context,
+  private boolean validateClassConfiguration(AccumuloConfiguration conf, Property p,
       String className) {
 
     if (p.isDeprecated()) {
@@ -519,15 +511,16 @@ public class ServerContext extends ClientContext {
       return true;
     }
     try {
-      Class<? extends CustomPropertyValidation> clazz;
+      Class<? extends CustomPropertyValidator> clazz;
       try {
-        clazz = ClassLoaderUtil.loadClass(context, className, CustomPropertyValidation.class);
+        String contextName = conf.get(Property.TABLE_CLASSLOADER_CONTEXT);
+        clazz = ClassLoaderUtil.loadClass(contextName, className, CustomPropertyValidator.class);
       } catch (ClassNotFoundException e) {
         log.error("Unable to load class for configuration validation: " + className);
         return false;
       }
-      CustomPropertyValidation instance = clazz.getDeclaredConstructor().newInstance();
-      return instance.validateConfiguration(createServiceEnvironment(conf).getConfiguration());
+      CustomPropertyValidator instance = clazz.getDeclaredConstructor().newInstance();
+      return instance.validateConfiguration(createValidationEnvironment(conf));
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       log.error(className + " does not implement no-arg constructor for configuration validation");
@@ -538,8 +531,8 @@ public class ServerContext extends ClientContext {
     }
   }
 
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
-    return new ServiceEnvironment() {
+  private PropertyValidationEnvironment createValidationEnvironment(AccumuloConfiguration config) {
+    return new PropertyValidationEnvironment() {
 
       @Override
       public <T> T instantiate(TableId tableId, String className, Class<T> base) {
@@ -564,6 +557,11 @@ public class ServerContext extends ClientContext {
       @Override
       public Configuration getConfiguration() {
         return new ConfigurationImpl(config);
+      }
+
+      public Optional<TableId> getTableId() {
+        return (config instanceof TableConfiguration)
+            ? Optional.of(((TableConfiguration) config).getTableId()) : Optional.empty();
       }
     };
   }

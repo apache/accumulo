@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.core.spi.common;
 
-import org.apache.accumulo.core.client.PluginEnvironment;
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.TableId;
 
 /**
  * Interface to be used on SPI classes where custom properties are in use. When
@@ -26,15 +28,22 @@ import org.apache.accumulo.core.client.PluginEnvironment;
  * is called validation of the custom properties should be performed, if applicable. Implementations
  * should log any configuration issues at the warning level before finally returning false.
  *
+ * @since 2.1.3
  */
-public interface CustomPropertyValidation {
+public interface CustomPropertyValidator {
+
+  public interface PropertyValidationEnvironment extends ServiceEnvironment {
+
+    public Optional<TableId> getTableId();
+
+  }
 
   /**
    * Validates implementation custom property configuration
    *
-   * @param conf configuration
+   * @param env PropertyValidationEnvironment instance
    * @return true if configuration is valid, else false after logging all warnings
    */
-  public boolean validateConfiguration(PluginEnvironment.Configuration conf);
+  public boolean validateConfiguration(PropertyValidationEnvironment env);
 
 }

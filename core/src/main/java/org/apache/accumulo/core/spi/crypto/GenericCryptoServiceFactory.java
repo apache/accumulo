@@ -23,8 +23,7 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-import org.apache.accumulo.core.spi.common.CustomPropertyValidation;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * {@link #GENERAL_SERVICE_NAME_PROP} and then {@link #TABLE_SERVICE_NAME_PROP}. Useful for general
  * purpose on disk encryption, with no Table context.
  */
-public class GenericCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidation {
+public class GenericCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidator {
 
   private static final Logger LOG = LoggerFactory.getLogger(GenericCryptoServiceFactory.class);
 
@@ -60,14 +59,14 @@ public class GenericCryptoServiceFactory implements CryptoServiceFactory, Custom
   }
 
   @Override
-  public boolean validateConfiguration(Configuration conf) {
-    String generalService = conf.get(GENERAL_SERVICE_NAME_PROP);
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+    String generalService = env.getConfiguration().get(GENERAL_SERVICE_NAME_PROP);
     if (generalService == null || generalService.isBlank()) {
       LOG.warn("GenericCryptoServiceFactory configured, but " + GENERAL_SERVICE_NAME_PROP
           + " is not set.");
     }
 
-    String tableService = conf.get(TABLE_SERVICE_NAME_PROP);
+    String tableService = env.getConfiguration().get(TABLE_SERVICE_NAME_PROP);
     if (tableService == null || tableService.isBlank()) {
       LOG.warn("GenericCryptoServiceFactory configured, but " + TABLE_SERVICE_NAME_PROP
           + " is not set.");
