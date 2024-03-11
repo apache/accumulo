@@ -40,8 +40,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Constructor;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -314,6 +316,27 @@ public class TabletMetadataTest {
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.PREV_ROW), true, false);
     assertThrows(IllegalStateException.class, tm::hasMerged);
+  }
+
+  @Test
+  public void testTabletsMetadataAutoClose() throws Exception {
+    AtomicBoolean closeCalled = new AtomicBoolean();
+    AutoCloseable autoCloseable = () -> closeCalled.set(true);
+    Constructor<TabletsMetadata> tmConstructor =
+        TabletsMetadata.class.getDeclaredConstructor(AutoCloseable.class, Iterable.class);
+    tmConstructor.setAccessible(true);
+
+    try (TabletsMetadata ignored = tmConstructor.newInstance(autoCloseable, List.of())) {
+      // test autoCloseable used directly on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
+
+    closeCalled.set(false);
+    try (Stream<TabletMetadata> ignored =
+        tmConstructor.newInstance(autoCloseable, List.of()).stream()) {
+      // test stream delegates to close on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
   }
 
   @Test
