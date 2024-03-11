@@ -194,19 +194,11 @@ public class GenerateSplitsTest {
     assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
 
-    List<String> args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
+    List<String> finalArgs = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
+    assertThrows(UnsupportedOperationException.class,
+        () -> GenerateSplits.main(finalArgs.toArray(new String[0])));
 
-    try {
-      GenerateSplits.main(args.toArray(new String[0]));
-    } catch (Exception e) {
-      assertEquals(e.getClass(), UnsupportedOperationException.class);
-    }
-    args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath, "-hr");
-    GenerateSplits.main(args.toArray(new String[0]));
-    // Verify that malformed split points exist in the output
-    verifySplitsFile(false, "r6f", "r3c");
-
-    args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath, "-b64");
+    List<String> args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath, "-b64");
     GenerateSplits.main(args.toArray(new String[0]));
     // Validate that base64 split points are working
     verifySplitsFile(true, "r6\0f", "r3\0c");
