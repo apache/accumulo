@@ -101,7 +101,7 @@ public class GarbageCollectWriteAheadLogs {
     return Stream.of(DataLevel.ROOT, DataLevel.METADATA, DataLevel.USER)
         .map(dataLevel -> context.getAmple().readTablets().forLevel(dataLevel).filter(walsFilter)
             .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build())
-        .map(TabletsMetadata::stream).reduce(Stream::concat).orElseThrow();
+        .flatMap(TabletsMetadata::stream);
   }
 
   public void collect(GCStatus status) {
