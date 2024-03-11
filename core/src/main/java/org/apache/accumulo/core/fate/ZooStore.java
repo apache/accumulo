@@ -30,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -38,7 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -63,7 +63,7 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,Long> deferred;
+  private Map<Long,Duration> deferred;
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -163,7 +163,7 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              if ((deferred.get(tid) - System.nanoTime()) < 0) {
+              if (deferred.get(tid).minusNanos(System.nanoTime()).isNegative()) {
                 deferred.remove(tid);
               } else {
                 continue;
@@ -202,12 +202,11 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              long currTime = System.nanoTime();
-              long minWait =
-                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-              long waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
-              if (waitTime > 0) {
-                this.wait(Math.min(waitTime, 5000));
+              final long now = System.nanoTime();
+              Duration minWait = deferred.values().stream().map(l -> l.minusNanos(now))
+                  .min(Duration::compareTo).orElseThrow();
+              if (minWait.compareTo(Duration.ZERO) > 0) {
+                this.wait(Math.min(minWait.toMillis(), 5000));
               }
             }
           }
@@ -272,10 +271,9 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
-    deferTime = TimeUnit.NANOSECONDS.convert(deferTime, deferTimeUnit);
+  public void unreserve(long tid, Duration deferTime) {
 
-    if (deferTime < 0) {
+    if (deferTime.isNegative()) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
     }
 
@@ -285,8 +283,8 @@ public class ZooStore<T> implements TStore<T> {
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
       }
 
-      if (deferTime > 0) {
-        deferred.put(tid, System.nanoTime() + deferTime);
+      if (deferTime.compareTo(Duration.ZERO) > 0) {
+        deferred.put(tid, deferTime.plusNanos(System.nanoTime()));
       }
 
       this.notifyAll();
