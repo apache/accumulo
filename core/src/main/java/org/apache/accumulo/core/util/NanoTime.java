@@ -22,7 +22,7 @@ import java.time.Duration;
 
 /**
  * This class implements a strong type for System.nanoTime() that offers the limited operations that
- * can be performed on a nanoTime.
+ * can be performed on a nanoTime. See the System.nanoTime() javadoc for details.
  */
 public final class NanoTime {
   // In the System.nanoTime javadoc it describes the returned value as the "nanoseconds since some
