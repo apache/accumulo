@@ -51,6 +51,20 @@ public final class NanoTime {
     return Duration.ofNanos(System.nanoTime() - nanosSinceAO);
   }
 
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof NanoTime) {
+      return nanosSinceAO == ((NanoTime) other).nanosSinceAO;
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Long.hashCode(nanosSinceAO);
+  }
+
   /**
    * @return a NanoTime created using System.nanoTime()
    */
