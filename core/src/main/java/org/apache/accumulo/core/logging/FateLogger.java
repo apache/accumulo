@@ -21,9 +21,9 @@ package org.apache.accumulo.core.logging;
 import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.fate.Fate;
@@ -62,8 +62,8 @@ public class FateLogger {
       }
 
       @Override
-      public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
-        store.unreserve(tid, deferTime, deferTimeUnit);
+      public void unreserve(long tid, Duration deferTime) {
+        store.unreserve(tid, deferTime);
       }
 
       @Override
