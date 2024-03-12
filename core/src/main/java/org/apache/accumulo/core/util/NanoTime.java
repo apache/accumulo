@@ -23,10 +23,10 @@ import java.time.Duration;
 /**
  * This class implements a strong type for System.nanoTime() that offers the limited operations that
  * can be performed on a nanoTime. See the System.nanoTime() javadoc for details - specifically
- * these values are meaningful only when the difference between two such values, obtained within 
- * the same instance of a Java virtual machine, are computed.
+ * these values are meaningful only when the difference between two such values, obtained within the
+ * same instance of a Java virtual machine, are computed.
  */
-public final class NanoTime {
+public final class NanoTime implements Comparable<NanoTime> {
   // In the System.nanoTime javadoc it describes the returned value as the "nanoseconds since some
   // fixed but arbitrary origin time (perhaps in the future, so values may be negative)". This
   // variable name is derived from that where AO is arbitrary origin.
@@ -65,6 +65,15 @@ public final class NanoTime {
   @Override
   public int hashCode() {
     return Long.hashCode(nanosSinceAO);
+  }
+
+  @Override
+  public int compareTo(NanoTime other) {
+    long now = System.nanoTime();
+    // all operations w/ nanoTimes must compute elapsed times first
+    long elapsed1 = now - nanosSinceAO;
+    long elapsed2 = now - other.nanosSinceAO;
+    return Long.compare(elapsed1, elapsed2);
   }
 
   /**
