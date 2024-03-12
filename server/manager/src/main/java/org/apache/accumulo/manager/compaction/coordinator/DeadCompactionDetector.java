@@ -40,6 +40,7 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.iterators.user.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -49,8 +50,11 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.hadoop.fs.Path;
+import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 public class DeadCompactionDetector {
 
@@ -77,6 +81,32 @@ public class DeadCompactionDetector {
     synchronized (tablesWithUnreferencedTmpFiles) {
       tablesWithUnreferencedTmpFiles.add(tableWithUnreferencedTmpFiles);
     }
+  }
+
+  @SuppressModernizer
+  private Map<ExternalCompactionId,KeyExtent> getTabletsWithExternalCompactions() {
+
+    Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
+
+    try (
+        TabletsMetadata rootMetadata = context.getAmple().readTablets().forLevel(DataLevel.ROOT)
+            .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
+            .build();
+        TabletsMetadata metaMetadata = context.getAmple().readTablets().forLevel(DataLevel.METADATA)
+            .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
+            .build();
+        TabletsMetadata userMetadata = context.getAmple().readTablets().forLevel(DataLevel.USER)
+            .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
+            .build()) {
+      Iterable<TabletMetadata> tabletsMetadata =
+          Iterables.concat(rootMetadata, metaMetadata, userMetadata);
+      tabletsMetadata.forEach(tm -> {
+        tm.getExternalCompactions().keySet().forEach(ecid -> {
+          tabletCompactions.put(ecid, tm.getExtent());
+        });
+      });
+    }
+    return tabletCompactions;
   }
 
   private void detectDeadCompactions() {
@@ -141,19 +171,7 @@ public class DeadCompactionDetector {
      */
     log.debug("Starting to look for dead compactions");
 
-    // ELASTICITY_TODO not looking for dead compactions in the metadata table
-    Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
-
-    // find what external compactions tablets think are running
-    try (TabletsMetadata tabletsMetadata = context.getAmple().readTablets().forLevel(DataLevel.USER)
-        .filter(new HasExternalCompactionsFilter()).fetch(ColumnType.ECOMP, ColumnType.PREV_ROW)
-        .build()) {
-      tabletsMetadata.forEach(tm -> {
-        tm.getExternalCompactions().keySet().forEach(ecid -> {
-          tabletCompactions.put(ecid, tm.getExtent());
-        });
-      });
-    }
+    Map<ExternalCompactionId,KeyExtent> tabletCompactions = getTabletsWithExternalCompactions();
 
     if (tabletCompactions.isEmpty()) {
       // Clear out dead compactions, tservers don't think anything is running
@@ -193,17 +211,23 @@ public class DeadCompactionDetector {
           log.warn("Fate is not present, can not look for dead compactions");
           return;
         }
-        // ELASTICITY_TODO need to handle metadata
-        var fate = fateMap.get(FateInstanceType.USER);
-        try (Stream<FateKey> keyStream = fate.list(FateKey.FateKeyType.COMPACTION_COMMIT)) {
-          keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
-            if (tabletCompactions.remove(ecid) != null) {
-              log.debug("Ignoring compaction {} that is committing in a fate", ecid);
-            }
-            if (this.deadCompactions.remove(ecid) != null) {
-              log.debug("Removed {} from the dead compaction map, it's committing in fate", ecid);
-            }
-          });
+        Fate<Manager> systemFateOps = fateMap.get(FateInstanceType.META);
+        Fate<Manager> userFateOps = fateMap.get(FateInstanceType.USER);
+        try (
+            Stream<FateKey> sysKeyStream =
+                systemFateOps.list(FateKey.FateKeyType.COMPACTION_COMMIT);
+            Stream<FateKey> userKeyStream =
+                userFateOps.list(FateKey.FateKeyType.COMPACTION_COMMIT)) {
+          Stream.concat(sysKeyStream, userKeyStream)
+              .map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
+                if (tabletCompactions.remove(ecid) != null) {
+                  log.debug("Ignoring compaction {} that is committing in a fate", ecid);
+                }
+                if (this.deadCompactions.remove(ecid) != null) {
+                  log.debug("Removed {} from the dead compaction map, it's committing in fate",
+                      ecid);
+                }
+              });
         }
       }
 

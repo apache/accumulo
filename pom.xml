@@ -149,6 +149,7 @@
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.24.1</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
+    <version.modernizer>2.7.0</version.modernizer>
     <version.opentelemetry>1.34.1</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.11</version.slf4j>
@@ -556,6 +557,11 @@
         <version>2.3.32</version>
       </dependency>
       <dependency>
+        <groupId>org.gaul</groupId>
+        <artifactId>modernizer-maven-annotations</artifactId>
+        <version>${version.modernizer}</version>
+      </dependency>
+      <dependency>
         <groupId>org.glassfish</groupId>
         <artifactId>jakarta.el</artifactId>
         <version>4.0.2</version>
@@ -674,7 +680,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>2.7.0</version>
+          <version>${version.modernizer}</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
