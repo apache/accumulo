@@ -159,8 +159,8 @@ public class ScanServer extends AbstractServer
       Collection<KeyExtent> extents = (Collection<KeyExtent>) keys;
       try (TabletsMetadata tabletsMetadata =
           ample.readTablets().forTablets(extents, Optional.empty()).build()) {
-        tms = tabletsMetadata.stream().onClose(tabletsMetadata::close)
-            .collect(Collectors.toMap(TabletMetadata::getExtent, tm -> tm));
+        tms =
+            tabletsMetadata.stream().collect(Collectors.toMap(TabletMetadata::getExtent, tm -> tm));
       }
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
