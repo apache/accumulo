@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.util.time;
 
 import java.time.Duration;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * This class implements a strong type for System.nanoTime() that offers the limited operations that
@@ -32,7 +34,11 @@ public final class NanoTime implements Comparable<NanoTime> {
   // variable name is derived from that where AO is arbitrary origin.
   private final long nanosSinceAO;
 
-  private NanoTime(long ntsao) {
+  // This method should only be called by test inorder to test edge conditions, that is why it is
+  // package private. Calling this outside of test makes it hard to reason about the correctness of
+  // using this class.
+  @VisibleForTesting
+  NanoTime(long ntsao) {
     this.nanosSinceAO = ntsao;
   }
 
@@ -69,11 +75,17 @@ public final class NanoTime implements Comparable<NanoTime> {
 
   @Override
   public int compareTo(NanoTime other) {
-    long now = System.nanoTime();
-    // all operations w/ nanoTimes must compute elapsed times first
-    long elapsed1 = now - nanosSinceAO;
-    long elapsed2 = now - other.nanosSinceAO;
-    return Long.compare(elapsed1, elapsed2);
+    // All operations w/ nanoTimes must use differences, can not directly compare. This is because a
+    // nano time of Long.MAX_VALUE -10 is considered less than Long.MAX_VALUE +10
+    long diff = nanosSinceAO - other.nanosSinceAO;
+
+    if (diff < 0) {
+      return -1;
+    } else if (diff > 0) {
+      return 1;
+    } else {
+      return 0;
+    }
   }
 
   /**
