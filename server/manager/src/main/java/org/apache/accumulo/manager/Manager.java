@@ -244,12 +244,7 @@ public class Manager extends AbstractServer
   }
 
   public Map<FateId,Map<String,String>> getCompactionHints(DataLevel level) {
-    Predicate<TableId> tablePredicate = (tableId) -> true;
-    if (level == DataLevel.ROOT) {
-      tablePredicate = (tableId) -> AccumuloTable.ROOT.tableId().equals(tableId) ? true : false;
-    } else if (level == DataLevel.METADATA) {
-      tablePredicate = (tableId) -> AccumuloTable.METADATA.tableId().equals(tableId) ? true : false;
-    }
+    Predicate<TableId> tablePredicate = (tableId) -> DataLevel.of(tableId) == level;
     Map<FateId,CompactionConfig> allConfig;
     try {
       allConfig = CompactionConfigStorage.getAllConfig(getContext(), tablePredicate);
