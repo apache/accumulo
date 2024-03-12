@@ -340,7 +340,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-        store.getLevel(), manager.getCompactionHints(), canSuspendTablets(),
+        store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
             : Map.of());
   }
