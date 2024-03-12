@@ -43,7 +43,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
-import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
@@ -200,18 +199,7 @@ public class TabletManagementIterator extends SkippingIterator {
       Exception error = null;
       try {
         LOG.trace("Evaluating extent: {}", tm);
-        if (tm.getExtent().isMeta()) {
-          computeTabletManagementActions(tm, actions);
-        } else {
-          if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
-              || tabletMgmtParams.getOnlineTsevers().isEmpty()
-              || tabletMgmtParams.getOnlineTables().isEmpty()) {
-            // when manager is in the process of starting up or shutting down return everything.
-            actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-          } else {
-            computeTabletManagementActions(tm, actions);
-          }
-        }
+        computeTabletManagementActions(tm, actions);
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
         error = e;
