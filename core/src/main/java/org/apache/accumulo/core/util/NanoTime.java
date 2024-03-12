@@ -25,17 +25,20 @@ import java.time.Duration;
  * can be performed on a nanoTime.
  */
 public final class NanoTime {
-  private final long nanoTime;
+  // In the System.nanoTime javadoc it describes the returned value as the "nanoseconds since some
+  // fixed but arbitrary origin time (perhaps in the future, so values may be negative)". This
+  // variable name is derived from that where AO is arbitrary origin.
+  private final long nanosSinceAO;
 
-  private NanoTime(long nanoTime) {
-    this.nanoTime = nanoTime;
+  private NanoTime(long ntsao) {
+    this.nanosSinceAO = ntsao;
   }
 
   /**
    * @return this.nanoTime - other.nanoTime as a Duration
    */
   public Duration subtract(NanoTime other) {
-    return Duration.ofNanos(nanoTime - other.nanoTime);
+    return Duration.ofNanos(nanosSinceAO - other.nanosSinceAO);
   }
 
   /**
@@ -45,7 +48,7 @@ public final class NanoTime {
    * @return System.nanoTime() - this.nanoTime
    */
   public Duration elapsed() {
-    return Duration.ofNanos(System.nanoTime() - nanoTime);
+    return Duration.ofNanos(System.nanoTime() - nanosSinceAO);
   }
 
   /**
