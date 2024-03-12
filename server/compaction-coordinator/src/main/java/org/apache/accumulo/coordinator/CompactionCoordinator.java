@@ -303,9 +303,12 @@ public class CompactionCoordinator extends AbstractServer
       updateSummaries();
 
       long now = System.currentTimeMillis();
-      TIME_COMPACTOR_LAST_CHECKED.forEach((k, v) -> {
-        if ((now - v) > getMissingCompactorWarningTime()) {
-          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", k,
+
+      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+      TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
+        if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+            && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
+          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
               getMissingCompactorWarningTime());
         }
       });
@@ -319,6 +322,21 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     LOG.info("Shutting down");
+  }
+
+  private Map<String,List<HostAndPort>> getIdleCompactors() {
+    Map<String,List<HostAndPort>> queuesAndCompactors =
+        ExternalCompactionUtil.getCompactorAddrs(getContext());
+    RUNNING_CACHE.values().forEach(rc -> {
+      List<HostAndPort> compactors = queuesAndCompactors.get(rc.getQueueName());
+      if (compactors != null
+          && compactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
+        if (compactors.isEmpty()) {
+          queuesAndCompactors.remove(rc.getQueueName());
+        }
+      }
+    });
+    return queuesAndCompactors;
   }
 
   private void updateSummaries() {

@@ -100,6 +100,10 @@ public class QueueSummaries {
     }
   }
 
+  synchronized boolean isCompactionsQueued(String queue) {
+    return QUEUES.containsKey(queue) && QUEUES.get(queue) != null && !QUEUES.get(queue).isEmpty();
+  }
+
   synchronized PrioTserver getNextTserver(String queue) {
 
     Entry<Short,TreeSet<TServerInstance>> entry = getNextTserverEntry(queue);
