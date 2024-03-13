@@ -214,6 +214,7 @@ public class CompactionCoordinatorTest {
     var coordinator = new TestCoordinator(null, null, null, null, context, null);
     // Should be equal to 3 * 15_000 milliseconds
     assertEquals(45_000, coordinator.getMissingCompactorWarningTime());
+    coordinator.close();
   }
 
   @Test
@@ -231,6 +232,7 @@ public class CompactionCoordinatorTest {
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
+    expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
@@ -284,6 +286,7 @@ public class CompactionCoordinatorTest {
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
+    expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
@@ -363,6 +366,7 @@ public class CompactionCoordinatorTest {
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
+    expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
@@ -443,6 +447,7 @@ public class CompactionCoordinatorTest {
     runningCompactions.add(new RunningCompaction(job, tserverAddress.toString(), "queue"));
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
+    expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
@@ -508,6 +513,7 @@ public class CompactionCoordinatorTest {
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
+    expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
