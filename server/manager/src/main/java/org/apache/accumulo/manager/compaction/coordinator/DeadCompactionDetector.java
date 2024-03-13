@@ -43,7 +43,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
@@ -143,7 +142,7 @@ public class DeadCompactionDetector {
      */
     log.debug("Starting to look for dead compactions");
 
-    Map<ExternalCompactionId,Pair<KeyExtent,DataLevel>> tabletCompactions = new HashMap<>();
+    Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
     // find what external compactions tablets think are running
     try (Stream<TabletMetadata> tabletsMetadata = Stream
@@ -156,7 +155,7 @@ public class DeadCompactionDetector {
         .flatMap(TabletsMetadata::stream)) {
       tabletsMetadata.forEach(tm -> {
         tm.getExternalCompactions().keySet().forEach(ecid -> {
-          tabletCompactions.put(ecid, new Pair<>(tm.getExtent(), DataLevel.of(tm.getTableId())));
+          tabletCompactions.put(ecid, tm.getExtent());
         });
       });
     }
@@ -168,8 +167,7 @@ public class DeadCompactionDetector {
       // no need to look for dead compactions when tablets don't have anything recorded as running
     } else {
       if (log.isTraceEnabled()) {
-        tabletCompactions
-            .forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent.getFirst()));
+        tabletCompactions.forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent));
       }
 
       // Remove from the dead map any compactions that the Tablet's
@@ -214,7 +212,7 @@ public class DeadCompactionDetector {
       }
 
       tabletCompactions.forEach((ecid, extent) -> {
-        log.info("Possible dead compaction detected {} {}", ecid, extent.getFirst());
+        log.info("Possible dead compaction detected {} {}", ecid, extent);
         this.deadCompactions.merge(ecid, 1L, Long::sum);
       });
 

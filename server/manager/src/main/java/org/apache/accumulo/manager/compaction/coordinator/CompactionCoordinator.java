@@ -101,7 +101,6 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -712,19 +711,19 @@ public class CompactionCoordinator
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
     LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
-  void compactionsFailed(Map<ExternalCompactionId,Pair<KeyExtent,DataLevel>> compactionsByLevel) {
+  void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactionsByLevel) {
     // Need to process each level by itself because the conditional tablet mutator does not support
     // mutating multiple data levels at the same time
     compactionsByLevel.entrySet().stream()
-        .collect(groupingBy(entry -> entry.getValue().getSecond(),
-            Collectors.toMap(Entry::getKey, e -> e.getValue().getFirst())))
-        .forEach((level, compactions) -> compactionFailed(compactions));
+        .collect(groupingBy(entry -> DataLevel.of(entry.getValue().tableId()),
+            Collectors.toMap(Entry::getKey, Entry::getValue)))
+        .forEach((level, compactions) -> compactionFailedForLevel(compactions));
   }
 
-  void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
+  void compactionFailedForLevel(Map<ExternalCompactionId,KeyExtent> compactions) {
 
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((ecid, extent) -> {
