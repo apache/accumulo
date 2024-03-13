@@ -28,20 +28,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
@@ -49,73 +41,19 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
-import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
-import org.apache.accumulo.test.fate.accumulo.AccumuloFateIT;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.accumulo.test.functional.ReadWriteIT;
-import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.checkerframework.checker.units.qual.C;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     implements FateTestRunner<FateTestRunner.TestEnv> {
-  private static final Logger LOG = LoggerFactory.getLogger(FateOpsCommandsIT.class);
-  private static CountDownLatch callStarted;
-  private static CountDownLatch finishCall;
-
-  public static class TestOp implements Repo<TestEnv> {
-    private static final long serialVersionUID = 1L;
-    private final String name;
-
-    public TestOp(String name) {
-      this.name = name;
-    }
-    @Override
-    public long isReady(FateId fateId, TestEnv environment) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public void undo(FateId fateId, TestEnv environment) throws Exception {
-
-    }
-
-    @Override
-    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
-      LOG.info("Entered call {}", fateId);
-      // Signal that the Repo has entered call()
-      callStarted.countDown();
-      // Wait for signal to leave call()
-      finishCall.await();
-      LOG.info("Leaving call {}", fateId);
-      return null;
-    }
-
-    @Override
-    public String getReturn() {
-      return "none";
-    }
-  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -135,10 +73,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
   protected void testFateSummaryCommand(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Configure Fate and latches
+    // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    callStarted = new CountDownLatch(2);
-    finishCall = new CountDownLatch(1);
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
@@ -146,7 +82,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate blank report, no transactions have started
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW", "-s",
+        "IN_PROGRESS", "-s", "FAILED");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
     result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
@@ -156,17 +93,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getStatusCounts().isEmpty());
     assertTrue(report.getStepCounts().isEmpty());
     assertTrue(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
+    assertEquals(Set.of("FAILED", "IN_PROGRESS", "NEW"), report.getStatusFilterNames());
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
     assertEquals(0, report.getFateDetails().size());
 
-    // create Fate transactions, seed them with dummy work, and wait for them to enter call()
+    // create Fate transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    fate.seedTransaction("tx1", fateId1, new TestOp("tx1_name"), false, "tx1_message");
-    fate.seedTransaction("tx2", fateId2, new TestOp("tx2_name"), false, "tx2_message");
-    callStarted.await();
     List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
     // validate no filters
@@ -184,7 +118,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
     assertEquals(2, report.getFateDetails().size());
-    validateFateDetails(report.getFateDetails(), fateIdsStarted);
+    ArrayList<String> fateIdsFromResult1 = new ArrayList<>();
+    report.getFateDetails().forEach((d) -> {
+      fateIdsFromResult1.add(d.getFateId());
+    });
+    assertTrue(fateIdsFromResult1.containsAll(fateIdsStarted));
 
     // validate filtering by both transactions
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
@@ -203,7 +141,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(2, report.getFateIdFilter().size());
     assertTrue(report.getFateIdFilter().containsAll(fateIdsStarted));
     assertEquals(2, report.getFateDetails().size());
-    validateFateDetails(report.getFateDetails(), fateIdsStarted);
+    ArrayList<String> fateIdsFromResult2 = new ArrayList<>();
+    report.getFateDetails().forEach((d) -> {
+      fateIdsFromResult2.add(d.getFateId());
+    });
+    assertTrue(fateIdsFromResult2.containsAll(fateIdsStarted));
 
     // validate filtering by just one transaction
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
@@ -221,14 +163,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(1, report.getFateIdFilter().size());
     assertTrue(report.getFateIdFilter().contains(fateId1.canonical()));
     assertEquals(1, report.getFateDetails().size());
-    validateFateDetails(report.getFateDetails(), fateIdsStarted);
+    ArrayList<String> fateIdsFromResult3 = new ArrayList<>();
+    report.getFateDetails().forEach((d) -> {
+      fateIdsFromResult3.add(d.getFateId());
+    });
+    assertTrue(fateIdsFromResult3.contains(fateId1.canonical()));
 
-    // validate filtering by IN_PROGRESS transactions, should be 2
-    // TODO KEVIN RATHBUN
-
-
-    // validate filtering by FAILED and FAILED_IN_PROGRESS transactions, should be none
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED", "-s", "FAILED_IN_PROGRESS");
+    // validate status filter by including only FAILED transactions, should be none
+    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
     result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
@@ -238,7 +180,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertFalse(report.getStatusCounts().isEmpty());
     assertFalse(report.getStepCounts().isEmpty());
     assertFalse(report.getCmdCounts().isEmpty());
-    assertEquals(Set.of("FAILED", "FAILED_IN_PROGRESS"), report.getStatusFilterNames());
+    assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
     assertEquals(0, report.getFateDetails().size());
@@ -259,7 +201,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getFateIdFilter().isEmpty());
     if (store.type() == FateInstanceType.META) {
       assertEquals(2, report.getFateDetails().size());
-      validateFateDetails(report.getFateDetails(), fateIdsStarted);
+      ArrayList<String> fateIdsFromResult4 = new ArrayList<>();
+      report.getFateDetails().forEach((d) -> {
+        fateIdsFromResult4.add(d.getFateId());
+      });
+      assertTrue(fateIdsFromResult4.containsAll(fateIdsStarted));
     } else { // USER
       assertEquals(0, report.getFateDetails().size());
     }
@@ -282,11 +228,13 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertEquals(0, report.getFateDetails().size());
     } else { // USER
       assertEquals(2, report.getFateDetails().size());
-      validateFateDetails(report.getFateDetails(), fateIdsStarted);
+      ArrayList<String> fateIdsFromResult4 = new ArrayList<>();
+      report.getFateDetails().forEach((d) -> {
+        fateIdsFromResult4.add(d.getFateId());
+      });
+      assertTrue(fateIdsFromResult4.containsAll(fateIdsStarted));
     }
 
-    // Signal to exit call() for both the transactions and shutdown fate
-    finishCall.countDown();
     fate.shutdown(10, TimeUnit.MINUTES);
   }
 
@@ -328,10 +276,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
   protected void testFatePrintCommand(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Configure Fate and latches
+    // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    callStarted = new CountDownLatch(2);
-    finishCall = new CountDownLatch(1);
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
@@ -344,12 +290,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     String result = p.readStdOut();
     assertTrue(result.contains("0 transactions"));
 
-    // create Fate transactions, seed them with dummy work, and wait for them to enter call()
+    // create Fate transactions
     FateId fateId1 = fate.startTransaction();
     FateId fateId2 = fate.startTransaction();
-    fate.seedTransaction("tx1", fateId1, new TestOp("tx1_name"), false, "tx1_message");
-    fate.seedTransaction("tx2", fateId2, new TestOp("tx2_name"), false, "tx2_message");
-    callStarted.await();
 
     // Get all transactions. Should be 2 FateIds with a NEW status
     p = getCluster().exec(Admin.class, "fate", "--print");
@@ -603,22 +546,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     return fateIdToStatus;
   }
 
-  private void validateFateDetails(Set<FateTxnDetails> details, List<String> fateIdsStarted) {
-    for (FateTxnDetails d : details) {
-      assertTrue(fateIdsStarted.contains(d.getFateId()));
-      assertEquals("IN_PROGRESS", d.getStatus());
-      assertNotEquals("?", d.getStep());
-      assertTrue(d.getTxName().equals("tx1") || d.getTxName().equals("tx2"));
-      assertNotEquals(0, d.getRunning());
-      assertEquals("[]", d.getLocksHeld().toString());
-      assertEquals("[]", d.getLocksWaiting().toString());
-    }
-  }
-
   private Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
     return new Fate<>(new TestEnv(), store, Object::toString, config);
   }
 

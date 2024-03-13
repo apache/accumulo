@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util.fateCommand;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -93,30 +92,12 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return formattedLocks;
   }
 
-  public long getRunning() { return running; }
-
-  public String getTxName() {
-    return txName;
-  }
-
-  public String getStep() {
-    return step;
-  }
-
   public String getFateId() {
     return fateId;
   }
 
   public String getStatus() {
     return status;
-  }
-
-  public List<String> getLocksHeld() {
-    return Collections.unmodifiableList(locksHeld);
-  }
-
-  public List<String> getLocksWaiting() {
-    return Collections.unmodifiableList(locksWaiting);
   }
 
   /**

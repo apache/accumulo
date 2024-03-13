@@ -159,10 +159,6 @@ public class Fate<T> {
           } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
-              log.info("KEVIN RATHBUN ENV CLASS " + environment.getClass());
-              log.info("KEVIN RATHBUN ENV OBJ " + environment);
-              log.info("KEVIN RATHBUN FATEID " + txStore.getID());
-              log.info("KEVIN RATHBUN OP CLASS " + op.getClass());
               deferTime = op.isReady(txStore.getID(), environment);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
