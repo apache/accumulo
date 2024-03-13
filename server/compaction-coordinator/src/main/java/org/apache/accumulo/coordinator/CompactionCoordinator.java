@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -325,18 +326,25 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   private Map<String,List<HostAndPort>> getIdleCompactors() {
-    Map<String,List<HostAndPort>> queuesAndCompactors =
+
+    Map<String,List<HostAndPort>> allCompactors =
         ExternalCompactionUtil.getCompactorAddrs(getContext());
+
+    Set<String> emptyQueues = new HashSet<>();
+
+    // Remove all of the compactors that are running a compaction
     RUNNING_CACHE.values().forEach(rc -> {
-      List<HostAndPort> compactors = queuesAndCompactors.get(rc.getQueueName());
-      if (compactors != null
-          && compactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
-        if (compactors.isEmpty()) {
-          queuesAndCompactors.remove(rc.getQueueName());
+      List<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
+      if (busyCompactors != null
+          && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
+        if (busyCompactors.isEmpty()) {
+          emptyQueues.add(rc.getQueueName());
         }
       }
     });
-    return queuesAndCompactors;
+    // Remove entries with empty queues
+    emptyQueues.forEach(e -> allCompactors.remove(e));
+    return allCompactors;
   }
 
   private void updateSummaries() {

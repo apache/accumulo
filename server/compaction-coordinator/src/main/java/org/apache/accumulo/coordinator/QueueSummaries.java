@@ -101,7 +101,11 @@ public class QueueSummaries {
   }
 
   synchronized boolean isCompactionsQueued(String queue) {
-    return QUEUES.containsKey(queue) && QUEUES.get(queue) != null && !QUEUES.get(queue).isEmpty();
+    var q = QUEUES.get(queue);
+    if (q == null) {
+      return false;
+    }
+    return !q.isEmpty();
   }
 
   synchronized PrioTserver getNextTserver(String queue) {
