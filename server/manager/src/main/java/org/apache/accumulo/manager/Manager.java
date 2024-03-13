@@ -53,6 +53,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -226,7 +227,6 @@ public class Manager extends AbstractServer
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
   volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
 
-  // ELASTICITY_TODO is this still needed?
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
@@ -243,14 +243,11 @@ public class Manager extends AbstractServer
     return state;
   }
 
-  // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only
-  // retrieve information about compactions in that data level. Attempted this and a lot of
-  // refactoring was needed to get that small bit of information to this method. Would be best to
-  // address this after issue. May be best to attempt this after #3576.
-  public Map<FateId,Map<String,String>> getCompactionHints() {
+  public Map<FateId,Map<String,String>> getCompactionHints(DataLevel level) {
+    Predicate<TableId> tablePredicate = (tableId) -> DataLevel.of(tableId) == level;
     Map<FateId,CompactionConfig> allConfig;
     try {
-      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
+      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tablePredicate);
     } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
