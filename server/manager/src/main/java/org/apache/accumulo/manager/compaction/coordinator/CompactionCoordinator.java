@@ -714,13 +714,13 @@ public class CompactionCoordinator
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
-  void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactionsByLevel) {
+  void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
     // Need to process each level by itself because the conditional tablet mutator does not support
     // mutating multiple data levels at the same time
-    compactionsByLevel.entrySet().stream()
+    compactions.entrySet().stream()
         .collect(groupingBy(entry -> DataLevel.of(entry.getValue().tableId()),
             Collectors.toMap(Entry::getKey, Entry::getValue)))
-        .forEach((level, compactions) -> compactionFailedForLevel(compactions));
+        .forEach((level, compactionsByLevel) -> compactionFailedForLevel(compactionsByLevel));
   }
 
   void compactionFailedForLevel(Map<ExternalCompactionId,KeyExtent> compactions) {
