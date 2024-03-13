@@ -111,7 +111,7 @@ class FateMetricValues {
     try {
 
       List<AdminUtil.TransactionStatus> currFates =
-          admin.getTransactionStatus(Map.of(FateInstanceType.META, zooStore), null, null);
+          admin.getTransactionStatus(Map.of(FateInstanceType.META, zooStore), null, null, null);
 
       builder.withCurrentFateOps(currFates.size());
 

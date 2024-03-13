@@ -33,6 +33,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 
 import com.google.gson.Gson;
@@ -47,18 +49,26 @@ public class FateSummaryReport {
   // epoch millis to avoid needing gson type adapter.
   private final long reportTime = Instant.now().toEpochMilli();
 
+  private final Set<String> fateIdFilter = new TreeSet<>();
   private final Set<String> statusFilterNames = new TreeSet<>();
+  private final Set<String> instanceTypesFilterNames = new TreeSet<>();
 
   private final static Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
   // exclude from json output
   private final transient Map<String,String> idsToNameMap;
 
-  public FateSummaryReport(Map<String,String> idsToNameMap,
-      EnumSet<ReadOnlyFateStore.TStatus> statusFilter) {
+  public FateSummaryReport(Map<String,String> idsToNameMap, Set<FateId> fateIdFilter,
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter) {
     this.idsToNameMap = idsToNameMap;
+    if (fateIdFilter != null) {
+      fateIdFilter.forEach(f -> this.fateIdFilter.add(f.canonical()));
+    }
     if (statusFilter != null) {
       statusFilter.forEach(f -> this.statusFilterNames.add(f.name()));
+    }
+    if (typesFilter != null) {
+      typesFilter.forEach(f -> this.instanceTypesFilterNames.add(f.name()));
     }
   }
 
@@ -75,8 +85,17 @@ public class FateSummaryReport {
     String runningRepo = txnStatus.getTxName();
     cmdCounts.merge(Objects.requireNonNullElse(runningRepo, "?"), 1, Integer::sum);
 
+    // filter transactions if provided
+    if (!fateIdFilter.isEmpty() && !fateIdFilter.contains(txnStatus.getFateId().canonical())) {
+      return;
+    }
     // filter status if provided.
     if (!statusFilterNames.isEmpty() && !statusFilterNames.contains(txnStatus.getStatus().name())) {
+      return;
+    }
+    // filter FateInstanceType if provided
+    if (!instanceTypesFilterNames.isEmpty()
+        && !instanceTypesFilterNames.contains(txnStatus.getInstanceType().name())) {
       return;
     }
     fateDetails.add(new FateTxnDetails(reportTime, txnStatus, idsToNameMap));
@@ -102,8 +121,16 @@ public class FateSummaryReport {
     return reportTime;
   }
 
+  public Set<String> getFateIdFilter() {
+    return fateIdFilter;
+  }
+
   public Set<String> getStatusFilterNames() {
     return statusFilterNames;
+  }
+
+  public Set<String> getInstanceTypesFilterNames() {
+    return instanceTypesFilterNames;
   }
 
   public String toJson() {
@@ -142,6 +169,9 @@ public class FateSummaryReport {
     lines.add("\nFate transactions (oldest first):");
     lines.add("Status Filters: "
         + (statusFilterNames.isEmpty() ? "[NONE]" : statusFilterNames.toString()));
+    lines.add("Fate ID Filters: " + (fateIdFilter.isEmpty() ? "[NONE]" : fateIdFilter.toString()));
+    lines.add("Instance Types Filters: "
+        + (instanceTypesFilterNames.isEmpty() ? "[NONE]" : instanceTypesFilterNames.toString()));
 
     lines.add(FateTxnDetails.TXN_HEADER);
     fateDetails.forEach(txnDetails -> lines.add(txnDetails.toString()));
