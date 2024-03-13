@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.clientImpl;
 
-import java.util.regex.PatternSyntaxException;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import java.util.ArrayList;
+import java.util.List;
 
-public final class BadArgumentException extends PatternSyntaxException {
-  private static final long serialVersionUID = 1L;
+import org.apache.accumulo.core.security.Authorizations;
 
-  public BadArgumentException(String desc, String badarg, int index) {
-    super(desc, badarg, index);
-  }
+public class AccumuloAccessUtils {
+  public static org.apache.accumulo.access.Authorizations convert(Authorizations auths) {
+    List<String> authStrings = new ArrayList<>(auths.size());
+    for (byte[] authBytes : auths.getAuthorizations()) {
+      authStrings.add(new String(authBytes, UTF_8));
+    }
 
-  public BadArgumentException(IllegalAccessExpressionException e) {
-    super(e.getDescription(), e.getPattern(), e.getIndex());
-    super.initCause(e);
+    return org.apache.accumulo.access.Authorizations.of(authStrings);
   }
 }
