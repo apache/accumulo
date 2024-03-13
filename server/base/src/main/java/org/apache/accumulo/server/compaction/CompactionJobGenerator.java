@@ -55,7 +55,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class CompactionJobGenerator {
   private static final Logger log = LoggerFactory.getLogger(CompactionJobGenerator.class);
@@ -86,7 +85,8 @@ public class CompactionJobGenerator {
           v.isEmpty() ? Map.of() : Collections.unmodifiableMap(v)));
     }
     unknownCompactionServiceErrorCache =
-        Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).build();
+        Caches.getInstance().createNewBuilder(CacheName.COMPACTION_SERVICE_UNKNOWN, false)
+            .expireAfterWrite(5, TimeUnit.MINUTES).build();
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {

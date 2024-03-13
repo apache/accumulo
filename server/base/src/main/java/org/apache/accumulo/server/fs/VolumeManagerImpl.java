@@ -47,6 +47,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -70,7 +72,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -81,7 +82,8 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<>();
 
   private static final Cache<Pair<Configuration,String>,Configuration> HDFS_CONFIGS_FOR_VOLUME =
-      Caffeine.newBuilder().expireAfterWrite(24, TimeUnit.HOURS).build();
+      Caches.getInstance().createNewBuilder(CacheName.VOLUME_HDFS_CONFIGS, false)
+          .expireAfterWrite(24, TimeUnit.HOURS).build();
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;

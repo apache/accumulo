@@ -21,13 +21,9 @@ package org.apache.accumulo.core.metadata;
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public enum TabletState {
   UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED;
-
-  private static Logger log = LoggerFactory.getLogger(TabletState.class);
 
   public static TabletState compute(TabletMetadata tm, Set<TServerInstance> liveTServers) {
     TabletMetadata.Location current = null;
