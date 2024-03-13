@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -189,7 +189,7 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public void unreserve(long deferTime, TimeUnit timeUnit) {
+    public void unreserve(Duration deferTime) {
       if (!reserved.remove(fateId)) {
         throw new IllegalStateException();
       }

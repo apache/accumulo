@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   };
 
   protected final Set<FateId> reserved;
-  protected final Map<FateId,Long> deferred;
+  protected final Map<FateId,NanoTime> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
   private final FateIdGenerator fateIdGenerator;
@@ -164,7 +165,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
               synchronized (AbstractFateStore.this) {
                 var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
-                  if ((deferredTime - System.nanoTime()) >= 0) {
+                  if (deferredTime.elapsed().isNegative()) {
+                    // negative elapsed time indicates the deferal time is in the future
                     return false;
                   } else {
                     deferred.remove(fateId);
@@ -186,10 +188,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           long waitTime = 5000;
           synchronized (AbstractFateStore.this) {
             if (!deferred.isEmpty()) {
-              long currTime = System.nanoTime();
-              long minWait =
-                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-              waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+              var now = NanoTime.now();
+              waitTime = deferred.values().stream()
+                  .mapToLong(nanoTime -> nanoTime.subtract(now).toMillis()).min().getAsLong();
             }
           }
 
@@ -382,10 +383,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(long deferTime, TimeUnit timeUnit) {
-      deferTime = TimeUnit.NANOSECONDS.convert(deferTime, timeUnit);
+    public void unreserve(Duration deferTime) {
 
-      if (deferTime < 0) {
+      if (deferTime.isNegative()) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
@@ -401,7 +401,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         // and clear the map and set the flag. This will cause the next execution
         // of runnable to process all the transactions and to not defer as we
         // have a large backlog and want to make progress
-        if (deferTime > 0 && !deferredOverflow.get()) {
+        if (deferTime.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
           if (deferred.size() >= maxDeferred) {
             log.info(
                 "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
@@ -409,7 +409,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(fateId, System.nanoTime() + deferTime);
+            deferred.put(fateId, NanoTime.nowPlus(deferTime));
           }
         }
       }

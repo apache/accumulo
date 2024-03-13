@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -193,7 +192,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
       assertTrue(txStore.timeCreated() > 0);
-      txStore.unreserve(10, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(10));
     }
 
     // Verify we have 10 transactions and all are deferred
@@ -223,7 +222,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       transactions.add(fateId);
       FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
-      txStore.unreserve(30, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(30));
 
       // Verify we have 11 transactions stored and none
       // deferred anymore because of the overflow
@@ -246,7 +245,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // still be false as we are under the limit
       assertFalse(store.isDeferredOverflow());
       txStore = store.reserve(store.create());
-      txStore.unreserve(30, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(30));
       assertEquals(1, store.getDeferredCount());
       assertFalse(store.isDeferredOverflow());
     } finally {
@@ -290,8 +289,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore1.delete();
       txStore2.delete();
-      txStore1.unreserve(0, TimeUnit.SECONDS);
-      txStore2.unreserve(0, TimeUnit.SECONDS);
+      txStore1.unreserve(Duration.ZERO);
+      txStore2.unreserve(Duration.ZERO);
     }
   }
 
@@ -320,7 +319,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(1, store.list().count());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
   }
 
@@ -348,7 +347,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.setStatus(TStatus.SUCCESSFUL);
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
     try {
@@ -358,7 +357,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore.getStatus());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -386,7 +385,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -420,7 +419,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore.getStatus());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -453,7 +452,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
       var fateTx = store.createAndReserve(fateKey).orElseThrow();
       fateKeyIds.put(fateKey, fateTx.getID());
-      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+      fateTx.unreserve(Duration.ZERO);
     }
 
     HashSet<FateId> allIds = new HashSet<>();
