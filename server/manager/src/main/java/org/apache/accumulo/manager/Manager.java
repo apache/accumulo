@@ -112,6 +112,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -156,6 +157,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -1022,11 +1024,12 @@ public class Manager extends AbstractServer
       }));
     }
     // wait at least 10 seconds
-    final long nanosToWait = Math.max(SECONDS.toNanos(10), MILLISECONDS.toNanos(rpcTimeout) / 3);
-    final long startTime = System.nanoTime();
+    final Duration timeToWait =
+        Comparators.max(Duration.ofSeconds(10), Duration.ofMillis(rpcTimeout / 3));
+    final NanoTime startTime = NanoTime.now();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = ((System.nanoTime() - startTime) > nanosToWait);
+      boolean cancel = (startTime.elapsed().compareTo(timeToWait) > 0);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
