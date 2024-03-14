@@ -56,6 +56,7 @@ public class MiniAccumuloConfig {
    *
    * @param numTservers the number of tablet servers that mini accumulo cluster should start
    */
+  @Deprecated(since = "3.1.0")
   public MiniAccumuloConfig setNumTservers(int numTservers) {
     impl.setNumTservers(numTservers);
     return this;
@@ -67,6 +68,7 @@ public class MiniAccumuloConfig {
    * @param numScanServers the number of scan servers that mini accumulo cluster should start
    * @since 2.1.0
    */
+  @Deprecated(since = "3.1.0")
   public MiniAccumuloConfig setNumScanServers(int numScanServers) {
     impl.setNumScanServers(numScanServers);
     return this;
@@ -224,6 +226,7 @@ public class MiniAccumuloConfig {
   /**
    * @return the number of tservers configured for this cluster
    */
+  @Deprecated(since = "3.1.0")
   public int getNumTservers() {
     return impl.getNumTservers();
   }
