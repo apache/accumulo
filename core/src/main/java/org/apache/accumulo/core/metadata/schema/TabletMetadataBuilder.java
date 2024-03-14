@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_NONCE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -35,6 +36,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -119,6 +122,13 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   public TabletMetadataBuilder putFlushId(long flushId) {
     fetched.add(FLUSH_ID);
     internalBuilder.putFlushId(flushId);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder putFlushNonce(long flushNonce) {
+    fetched.add(FLUSH_NONCE);
+    internalBuilder.putFlushId(flushNonce);
     return this;
   }
 
@@ -271,6 +281,30 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteMerged() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder putUserCompactionRequested(FateId fateId) {
+    fetched.add(USER_COMPACTION_REQUESTED);
+    internalBuilder.putUserCompactionRequested(fateId);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteUserCompactionRequested(FateId fateId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder setUnSplittable(UnSplittableMetadata unSplittableMeta) {
+    fetched.add(UNSPLITTABLE);
+    internalBuilder.setUnSplittable(unSplittableMeta);
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder deleteUnSplittable() {
     throw new UnsupportedOperationException();
   }
 

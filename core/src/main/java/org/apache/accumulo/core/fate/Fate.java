@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -56,6 +57,8 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Fault tolerant executor
@@ -334,6 +337,44 @@ public class Fate<T> {
     return store.create();
   }
 
+  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+      boolean autoCleanUp, String goalMessage) {
+
+    Optional<FateTxStore<T>> optTxStore = store.createAndReserve(fateKey);
+
+    return optTxStore.map(txStore -> {
+      var fateId = txStore.getID();
+      try {
+        Preconditions.checkState(txStore.getStatus() == NEW);
+        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
+      } finally {
+        txStore.unreserve(0, MILLISECONDS);
+      }
+      return fateId;
+    });
+  }
+
+  private void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
+      String goalMessage, FateTxStore<T> txStore) {
+    if (txStore.top() == null) {
+      try {
+        log.info("Seeding {} {}", fateId, goalMessage);
+        txStore.push(repo);
+      } catch (StackOverflowException e) {
+        // this should not happen
+        throw new IllegalStateException(e);
+      }
+    }
+
+    if (autoCleanUp) {
+      txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
+    }
+
+    txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
+
+    txStore.setStatus(SUBMITTED);
+  }
+
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
@@ -341,23 +382,7 @@ public class Fate<T> {
     FateTxStore<T> txStore = store.reserve(fateId);
     try {
       if (txStore.getStatus() == NEW) {
-        if (txStore.top() == null) {
-          try {
-            log.info("Seeding {} {}", fateId, goalMessage);
-            txStore.push(repo);
-          } catch (StackOverflowException e) {
-            // this should not happen
-            throw new IllegalStateException(e);
-          }
-        }
-
-        if (autoCleanUp) {
-          txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
-        }
-
-        txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
-
-        txStore.setStatus(SUBMITTED);
+        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
       }
     } finally {
       txStore.unreserve(0, TimeUnit.MILLISECONDS);
@@ -456,6 +481,13 @@ public class Fate<T> {
     } finally {
       txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
+  }
+
+  /**
+   * Lists transctions for a given fate key type.
+   */
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    return store.list(type);
   }
 
   /**

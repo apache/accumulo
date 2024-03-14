@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -49,10 +49,10 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     cfg.getClusterServerConfiguration().addCompactorResourceGroup("big", 1);
 
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
-        ("[{'name':'small','maxSize':'2M'}, {'name':'medium','maxSize':'128M'},"
-            + "{'name':'large'}]").replaceAll("'", "\""));
+        ("[{'group':'small','maxSize':'2M'}, {'group':'medium','maxSize':'128M'},"
+            + "{'group':'large'}]").replaceAll("'", "\""));
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -102,7 +102,7 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       // with running compactions.
       client.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
-          ("[{'name':'little','maxSize':'128M'},{'name':'big'}]").replaceAll("'", "\""));
+          ("[{'group':'little','maxSize':'128M'},{'group':'big'}]").replaceAll("'", "\""));
 
       Wait.waitFor(() -> countFiles(client, table, "F") == 0, 60000);
 

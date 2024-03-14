@@ -358,6 +358,8 @@ public interface Ample {
 
     T putFlushId(long flushId);
 
+    T putFlushNonce(long flushNonce);
+
     T putLocation(Location location);
 
     T deleteLocation(Location location);
@@ -413,6 +415,14 @@ public interface Ample {
     T setMerged();
 
     T deleteMerged();
+
+    T putUserCompactionRequested(FateId fateId);
+
+    T deleteUserCompactionRequested(FateId fateId);
+
+    T setUnSplittable(UnSplittableMetadata unSplittableMeta);
+
+    T deleteUnSplittable();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -528,6 +538,8 @@ public interface Ample {
      */
     ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
         ColumnType... otherTypes);
+
+    ConditionalTabletMutator requireAbsentLogs();
 
     /**
      * <p>

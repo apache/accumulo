@@ -52,11 +52,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -89,10 +92,12 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
+          ServerColumnFamily.FLUSH_NONCE_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
+          SplitColumnFamily.UNSPLITTABLE_COLUMN,
           Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
@@ -110,7 +115,8 @@ public class MetadataConstraints implements Constraint {
           ExternalCompactionColumnFamily.NAME,
           CompactedColumnFamily.NAME,
           CHOPPED,
-          MergedColumnFamily.NAME
+          MergedColumnFamily.NAME,
+          UserCompactionRequestedColumnFamily.NAME
       );
   // @formatter:on
 
@@ -228,7 +234,8 @@ public class MetadataConstraints implements Constraint {
       if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
           || columnFamily.equals(LogColumnFamily.NAME)
           || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
-          || columnFamily.equals(CompactedColumnFamily.NAME))) {
+          || columnFamily.equals(CompactedColumnFamily.NAME)
+          || columnFamily.equals(UserCompactionRequestedColumnFamily.NAME))) {
         violations = addViolation(violations, 6);
       }
 
@@ -269,6 +276,16 @@ public class MetadataConstraints implements Constraint {
       } else if (CompactedColumnFamily.NAME.equals(columnFamily)) {
         if (!FateId.isFateId(columnQualifier.toString())) {
           violations = addViolation(violations, 13);
+        }
+      } else if (UserCompactionRequestedColumnFamily.NAME.equals(columnFamily)) {
+        if (!FateId.isFateId(columnQualifier.toString())) {
+          violations = addViolation(violations, 14);
+        }
+      } else if (SplitColumnFamily.UNSPLITTABLE_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          UnSplittableMetadata.toUnSplittable(new String(columnUpdate.getValue(), UTF_8));
+        } catch (RuntimeException e) {
+          violations = addViolation(violations, 15);
         }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
@@ -430,6 +447,10 @@ public class MetadataConstraints implements Constraint {
         return "Invalid data file metadata format";
       case 13:
         return "Invalid compacted column";
+      case 14:
+        return "Invalid user compaction requested column";
+      case 15:
+        return "Invalid unsplittable column";
     }
     return null;
   }

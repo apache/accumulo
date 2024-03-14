@@ -28,13 +28,13 @@ import org.apache.accumulo.core.fate.AdminUtil;
 
 public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =
-      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
+      "Running\tfate_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
 
   private long running;
   private String status = "?";
   private String txName = "?";
   private String step = "?";
-  private String txnId = "?";
+  private String fateId = "?";
   private List<String> locksHeld = List.of();
   private List<String> locksWaiting = List.of();
 
@@ -71,8 +71,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTxName() != null) {
       txName = txnStatus.getTxName();
     }
-    if (txnStatus.getTxid() != null) {
-      txnId = txnStatus.getTxid();
+    if (txnStatus.getFateId() != null) {
+      fateId = txnStatus.getFateId().canonical();
     }
     locksHeld = formatLockInfo(txnStatus.getHeldLocks(), idsToNameMap);
     locksWaiting = formatLockInfo(txnStatus.getWaitingLocks(), idsToNameMap);
@@ -92,8 +92,12 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return formattedLocks;
   }
 
-  public String getTxnId() {
-    return txnId;
+  public String getFateId() {
+    return fateId;
+  }
+
+  public String getStatus() {
+    return status;
   }
 
   /**
@@ -109,7 +113,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (v != 0) {
       return v;
     }
-    return txnId.compareTo(other.txnId);
+    return fateId.compareTo(other.fateId);
   }
 
   @Override
@@ -122,12 +126,12 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
       return false;
     }
     FateTxnDetails that = (FateTxnDetails) o;
-    return running == that.running && txnId.equals(that.txnId);
+    return running == that.running && fateId.equals(that.fateId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(running, txnId);
+    return Objects.hash(running, fateId);
   }
 
   @Override
@@ -136,7 +140,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + txnId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
+    return hms + "\t" + fateId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
         + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 

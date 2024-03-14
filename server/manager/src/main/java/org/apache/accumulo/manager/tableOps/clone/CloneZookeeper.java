@@ -24,6 +24,7 @@ import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -46,10 +47,10 @@ class CloneZookeeper extends ManagerRepo {
   public long isReady(FateId fateId, Manager environment) throws Exception {
     long val = 0;
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, fateId, false, true,
+      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, fateId, LockType.READ, true,
           TableOperation.CLONE);
     }
-    val += Utils.reserveTable(environment, cloneInfo.tableId, fateId, true, false,
+    val += Utils.reserveTable(environment, cloneInfo.tableId, fateId, LockType.WRITE, false,
         TableOperation.CLONE);
     return val;
   }
@@ -78,9 +79,9 @@ class CloneZookeeper extends ManagerRepo {
   public void undo(FateId fateId, Manager environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.tableId);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, fateId, false);
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, fateId, LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.tableId, fateId, true);
+    Utils.unreserveTable(environment, cloneInfo.tableId, fateId, LockType.WRITE);
     environment.getContext().clearTableListCache();
   }
 

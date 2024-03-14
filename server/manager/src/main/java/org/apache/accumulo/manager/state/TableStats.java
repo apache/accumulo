@@ -76,10 +76,6 @@ public class TableStats {
     return endScan - startScan;
   }
 
-  public synchronized long lastScanFinished() {
-    return endScan;
-  }
-
   @Override
   public String toString() {
     return new StringBuilder().append("last: ").append(last.toString()).toString();

@@ -19,6 +19,9 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.util.cache.Caches;
+
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * A unique identifier for a compactor group that a {@link CompactionPlanner} can schedule
@@ -28,10 +31,23 @@ import org.apache.accumulo.core.data.AbstractId;
  * @see org.apache.accumulo.core.spi.compaction
  */
 public class CompactorGroupId extends AbstractId<CompactorGroupId> {
-  // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
   private static final long serialVersionUID = 1L;
 
-  protected CompactorGroupId(String canonical) {
+  static final Cache<String,CompactorGroupId> cache = Caches.getInstance()
+      .createNewBuilder(Caches.CacheName.COMPACTOR_GROUP_ID, false).weakValues().build();
+
+  private CompactorGroupId(String canonical) {
     super(canonical);
+  }
+
+  /**
+   * Get a CompactorGroupId object for the provided canonical string. This is guaranteed to be
+   * non-null.
+   *
+   * @param canonical compactor group ID string
+   * @return CompactorGroupId object
+   */
+  public static CompactorGroupId of(String canonical) {
+    return cache.get(canonical, CompactorGroupId::new);
   }
 }

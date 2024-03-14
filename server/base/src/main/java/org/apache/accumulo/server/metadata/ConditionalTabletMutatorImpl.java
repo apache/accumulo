@@ -47,6 +47,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Co
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -231,6 +232,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         mutation.addCondition(c);
       }
         break;
+      case USER_COMPACTION_REQUESTED: {
+        Condition c =
+            SetEqualityIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
+                fTid -> fTid.canonical().getBytes(UTF_8), UserCompactionRequestedColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+        break;
       default:
         throw new UnsupportedOperationException("Column type " + type + " is not supported.");
     }
@@ -244,6 +252,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     for (var ct : otherTypes) {
       requireSameSingle(tabletMetadata, ct);
     }
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireAbsentLogs() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    // create a tablet metadata with an empty set of logs and require the same as that
+    requireSameSingle(TabletMetadata.builder(extent).build(ColumnType.LOGS), ColumnType.LOGS);
     return this;
   }
 

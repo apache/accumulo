@@ -42,10 +42,7 @@ import com.google.common.base.Splitter;
  */
 public class TabletManagement {
 
-  public static final EnumSet<ColumnType> CONFIGURED_COLUMNS =
-      EnumSet.of(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS,
-          ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST,
-          ColumnType.OPID, ColumnType.ECOMP, ColumnType.DIR, ColumnType.SELECTED);
+  public static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.allOf(ColumnType.class);
 
   private static final Text ERROR_COLUMN_NAME = new Text("ERROR");
   private static final Text REASONS_COLUMN_NAME = new Text("REASONS");

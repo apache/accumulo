@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -75,6 +76,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -270,7 +272,7 @@ public class Tablet extends TabletBase {
             });
 
         if (maxTime.get() != Long.MIN_VALUE) {
-          tabletTime.useMaxTimeFromWALog(maxTime.get());
+          tabletTime.updateTimeIfGreater(maxTime.get());
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
@@ -1301,63 +1303,76 @@ public class Tablet extends TabletBase {
     // Read these once in case of buggy race conditions will get consistent logging. If all other
     // code is locking properly these should not change during this method.
     var lastTabletMetadata = getMetadata();
-    var expectedTime = lastTabletMetadata.getTime();
 
-    // Expect time to only move forward from what was recently seen in metadata table.
-    Preconditions.checkArgument(maxCommittedTime >= expectedTime.getTime());
+    while (true) {
+      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
 
-    // The tablet time is used to determine if the write succeeded, in order to do this the tablet
-    // time needs to be different from what is currently stored in the metadata table.
-    while (maxCommittedTime == expectedTime.getTime()) {
-      var nextTime = tabletTime.getAndUpdateTime();
-      Preconditions.checkState(nextTime >= maxCommittedTime);
-      if (nextTime > maxCommittedTime) {
-        maxCommittedTime++;
+        var expectedLocation = mincReason == MinorCompactionReason.RECOVERY
+            ? Location.future(tabletServer.getTabletSession())
+            : Location.current(tabletServer.getTabletSession());
+
+        var tablet = tabletsMutator.mutateTablet(extent).requireLocation(expectedLocation);
+
+        Optional<StoredTabletFile> newFile = Optional.empty();
+
+        // if entries are present, write to path to metadata table
+        if (dfv.getNumEntries() > 0) {
+          tablet.putFile(newDatafile, dfv);
+          newFile = Optional.of(newDatafile.insert());
+        }
+
+        boolean setTime = false;
+        // bulk imports can also update time in the metadata table, so only update if we are moving
+        // time forward
+        if (maxCommittedTime > lastTabletMetadata.getTime().getTime()) {
+          tablet.requireSame(lastTabletMetadata, ColumnType.TIME);
+          var newTime = tabletTime.getMetadataTime(maxCommittedTime);
+          tablet.putTime(newTime);
+          setTime = true;
+        }
+
+        tablet.putFlushId(flushId);
+
+        long flushNonce = RANDOM.get().nextLong();
+        tablet.putFlushNonce(flushNonce);
+
+        unusedWalLogs.forEach(tablet::deleteWal);
+
+        tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
+
+        // When trying to determine if write was successful, check if the flush nonce was updated.
+        // Can not check if the new file exists because of two reasons. First, it could be compacted
+        // away between the write and check. Second, some flushes do not produce a file.
+        tablet.submit(tabletMetadata -> {
+          // ELASTICITY_TODO need to test this, need a general way of testing these failure checks
+          var persistedNonce = tabletMetadata.getFlushNonce();
+          if (persistedNonce.isPresent()) {
+            return persistedNonce.getAsLong() == flushNonce;
+          }
+          return false;
+        });
+
+        var result = tabletsMutator.process().get(extent);
+        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+          return newFile;
+        } else {
+          var updatedTableMetadata = result.readMetadata();
+          if (setTime && expectedLocation.equals(updatedTableMetadata.getLocation())
+              && !lastTabletMetadata.getTime().equals(updatedTableMetadata.getTime())) {
+            // ELASTICITY_TODO need to test this
+            // The update failed because the time changed, so lets try again.
+            log.debug("Failed to add {} to {} because time changed {}!={}, will retry", newFile,
+                extent, lastTabletMetadata.getTime(), updatedTableMetadata.getTime());
+            lastTabletMetadata = updatedTableMetadata;
+            UtilWaitThread.sleep(1000);
+          } else {
+            log.error("Metadata for failed tablet file update : {}", updatedTableMetadata);
+            // Include the things that could have caused the write to fail.
+            throw new IllegalStateException(
+                "Unable to add file to tablet.  " + extent + " " + expectedLocation);
+          }
+        }
       }
-    }
-
-    try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-
-      var expectedLocation = mincReason == MinorCompactionReason.RECOVERY
-          ? Location.future(tabletServer.getTabletSession())
-          : Location.current(tabletServer.getTabletSession());
-
-      var tablet = tabletsMutator.mutateTablet(extent).requireLocation(expectedLocation)
-          .requireSame(lastTabletMetadata, ColumnType.TIME);
-
-      Optional<StoredTabletFile> newFile = Optional.empty();
-
-      // if entries are present, write to path to metadata table
-      if (dfv.getNumEntries() > 0) {
-        tablet.putFile(newDatafile, dfv);
-        newFile = Optional.of(newDatafile.insert());
-      }
-
-      var newTime = tabletTime.getMetadataTime(maxCommittedTime);
-      tablet.putTime(newTime);
-
-      tablet.putFlushId(flushId);
-
-      unusedWalLogs.forEach(tablet::deleteWal);
-
-      tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
-
-      // When trying to determine if write was successful, check if the time was updated. Can not
-      // check if the new file exists because of two reasons. First, it could be compacted away
-      // between the write and check. Second, some flushes do not produce a file.
-      tablet.submit(tabletMetadata -> tabletMetadata.getTime().equals(newTime));
-
-      var result = tabletsMutator.process().get(extent);
-      if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
-
-        log.error("Metadata for failed tablet file update : {}", result.readMetadata());
-
-        // Include the things that could have caused the write to fail.
-        throw new IllegalStateException("Unable to write minor compaction.  " + extent + " "
-            + expectedLocation + " " + expectedTime);
-      }
-
-      return newFile;
     }
   }
 
@@ -1540,13 +1555,21 @@ public class Tablet extends TabletBase {
         var prevMetadata = latestMetadata;
         latestMetadata = tabletMetadata;
 
+        // Its expected that what is persisted should be less than equal to the time that tablet has
+        // in memory.
+        Preconditions.checkState(tabletMetadata.getTime().getTime() <= tabletTime.getTime(),
+            "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
+            tabletMetadata.getTime());
+
         if (log.isDebugEnabled() && !prevMetadata.getFiles().equals(latestMetadata.getFiles())) {
           SetView<StoredTabletFile> removed =
               Sets.difference(prevMetadata.getFiles(), latestMetadata.getFiles());
           SetView<StoredTabletFile> added =
               Sets.difference(latestMetadata.getFiles(), prevMetadata.getFiles());
-          log.debug("Tablet {} was refreshed. Files removed: {} Files added: {}", this.getExtent(),
-              removed, added);
+          log.debug("Tablet {} was refreshed because {}. Files removed: [{}] Files added: [{}]",
+              this.getExtent(), refreshPurpose,
+              removed.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")),
+              added.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")));
         }
 
         if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {

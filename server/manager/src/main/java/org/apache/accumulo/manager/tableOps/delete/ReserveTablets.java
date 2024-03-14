@@ -81,13 +81,20 @@ public class ReserveTablets extends ManagerRepo {
         tabletsSeen++;
         if (tabletMeta.getLocation() != null) {
           locations++;
+          log.debug("Delete table is waiting on tablet unload {} {} {}", tabletMeta.getExtent(),
+              tabletMeta.getLocation(), fateId);
         }
 
         if (tabletMeta.getOperationId() != null) {
           if (!opid.equals(tabletMeta.getOperationId())) {
             otherOps++;
+            log.debug("Delete table is waiting on tablet with operation {} {} {}",
+                tabletMeta.getExtent(), tabletMeta.getOperationId(), fateId);
           }
         } else {
+          // Its ok to set the operation id on a tablet with a location, but after setting it we
+          // must wait for the tablet to have no location before proceeding to actually delete. See
+          // the documentation about the opid column in the MetadataSchema class for more details.
           conditionalMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
               .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
           submitted++;
@@ -96,11 +103,15 @@ public class ReserveTablets extends ManagerRepo {
     }
 
     if (locations > 0 || otherOps > 0 || submitted != accepted.get()) {
-      log.debug("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
+      log.info("{} Waiting to delete table locations:{} operations:{}  submitted:{} accepted:{}",
           fateId, locations, otherOps, submitted, accepted.get());
       return Math.min(Math.max(100, tabletsSeen), 30000);
     }
 
+    // Once all tablets have the delete opid column set AND no tablets have a location set then its
+    // safe to proceed with deleting the tablets. These two conditions being true should prevent any
+    // concurrent writes to tablet metadata by other threads assuming they are using conditional
+    // writes with standard conditional checks.
     return 0;
   }
 

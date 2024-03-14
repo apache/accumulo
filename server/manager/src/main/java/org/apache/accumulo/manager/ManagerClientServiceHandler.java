@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -68,7 +69,6 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -77,8 +77,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -94,24 +92,15 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Weigher;
-
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private final Manager manager;
-
-  private final Cache<KeyExtent,Long> recentHostingRequest;
-
-  private static final int TEN_MB = 10 * 1024 * 1024;
+  private final Set<KeyExtent> hostingRequestInProgress;
 
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
-    Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
-    this.recentHostingRequest = this.manager.getContext().getCaches()
-        .createNewBuilder(CacheName.HOSTING_REQUEST_CACHE, true)
-        .expireAfterWrite(1, TimeUnit.MINUTES).maximumWeight(TEN_MB).weigher(weigher).build();
+    this.hostingRequestInProgress = new ConcurrentSkipListSet<>();
   }
 
   @Override
@@ -623,25 +612,31 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     manager.mustBeOnline(tableId);
 
     final List<KeyExtent> success = new ArrayList<>();
-    final Ample ample = manager.getContext().getAmple();
-    try (var mutator = ample.conditionallyMutateTablets()) {
-      extents.forEach(e -> {
+    final List<KeyExtent> inProgress = new ArrayList<>();
+    extents.forEach(e -> {
+      KeyExtent ke = KeyExtent.fromThrift(e);
+      if (hostingRequestInProgress.add(ke)) {
         log.info("Tablet hosting requested for: {} ", KeyExtent.fromThrift(e));
-        KeyExtent ke = KeyExtent.fromThrift(e);
-        if (recentHostingRequest.getIfPresent(ke) == null) {
-          mutator.mutateTablet(ke).requireAbsentOperation()
-              .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
-              .setHostingRequested().submit(TabletMetadata::getHostingRequested);
-        } else {
-          log.trace("Ignoring hosting request because it was recently requested {}", ke);
-        }
+        inProgress.add(ke);
+      } else {
+        log.trace("Ignoring hosting request because another thread is currently processing it {}",
+            ke);
+      }
+    });
+    // Do not add any code here, it may interfere with the finally block removing extents from
+    // hostingRequestInProgress
+    try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      inProgress.forEach(ke -> {
+        mutator.mutateTablet(ke).requireAbsentOperation()
+            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
+            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
+
       });
 
       mutator.process().forEach((extent, result) -> {
         if (result.getStatus() == Status.ACCEPTED) {
           // cache this success for a bit
           success.add(extent);
-          recentHostingRequest.put(extent, System.currentTimeMillis());
         } else {
           if (log.isTraceEnabled()) {
             // only read the metadata if the logging is enabled
@@ -649,8 +644,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           }
         }
       });
+    } finally {
+      inProgress.forEach(hostingRequestInProgress::remove);
     }
 
+    // ELASTICITY_TODO pass ranges of individual tablets
     manager.getEventCoordinator().event(success, "Tablet hosting requested for %d tablets in %s",
         success.size(), tableId);
   }

@@ -23,7 +23,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
@@ -46,6 +45,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -991,9 +991,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    Retry retry =
-        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
-            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(25))
+        .incrementBy(Duration.ofMillis(25)).maxWait(Duration.ofSeconds(30)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
 
     while (true) {
       try {
@@ -1879,9 +1879,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
     locator.invalidateCache();
 
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
 
     final ArrayList<KeyExtent> locationLess = new ArrayList<>();
     final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
@@ -2190,9 +2190,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> (TabletInformation) new TabletInformationImpl(tm,
-            TabletState.compute(tm, liveTserverSet).toString()))
-        .onClose(tabletsMetadata::close);
+        .map(tm -> new TabletInformationImpl(tm,
+            TabletState.compute(tm, liveTserverSet).toString()));
   }
 
 }

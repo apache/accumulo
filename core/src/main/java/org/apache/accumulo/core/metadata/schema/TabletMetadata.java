@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
@@ -69,8 +70,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -80,6 +83,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -108,6 +113,7 @@ public class TabletMetadata {
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
+  private OptionalLong flushNonce = OptionalLong.empty();
   private List<LogEntry> logs;
   private Map<ExternalCompactionId,CompactionMetadata> extCompactions;
   private boolean merged;
@@ -116,6 +122,9 @@ public class TabletMetadata {
   private TabletOperationId operationId;
   private boolean futureAndCurrentLocationSet = false;
   private Set<FateId> compacted;
+  private Set<FateId> userCompactionsRequested;
+  private UnSplittableMetadata unSplittableMetadata;
+  private Supplier<Long> fileSize;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);
@@ -136,6 +145,7 @@ public class TabletMetadata {
     TIME,
     CLONED,
     FLUSH_ID,
+    FLUSH_NONCE,
     LOGS,
     SUSPEND,
     ECOMP,
@@ -144,7 +154,9 @@ public class TabletMetadata {
     HOSTING_REQUESTED,
     OPID,
     SELECTED,
-    COMPACTED
+    COMPACTED,
+    USER_COMPACTION_REQUESTED,
+    UNSPLITTABLE
   }
 
   public static class Location {
@@ -310,6 +322,14 @@ public class TabletMetadata {
     return files;
   }
 
+  /**
+   * @return the sum of the tablets files sizes
+   */
+  public long getFileSize() {
+    ensureFetched(ColumnType.FILES);
+    return fileSize.get();
+  }
+
   public SelectedFiles getSelectedFiles() {
     ensureFetched(ColumnType.SELECTED);
     return selectedFiles;
@@ -345,9 +365,19 @@ public class TabletMetadata {
     return flush;
   }
 
+  public OptionalLong getFlushNonce() {
+    ensureFetched(ColumnType.FLUSH_NONCE);
+    return flushNonce;
+  }
+
   public boolean hasMerged() {
     ensureFetched(ColumnType.MERGED);
     return merged;
+  }
+
+  public Set<FateId> getUserCompactionsRequested() {
+    ensureFetched(ColumnType.USER_COMPACTION_REQUESTED);
+    return userCompactionsRequested;
   }
 
   public TabletAvailability getTabletAvailability() {
@@ -365,6 +395,11 @@ public class TabletMetadata {
     return onDemandHostingRequested;
   }
 
+  public UnSplittableMetadata getUnSplittable() {
+    ensureFetched(ColumnType.UNSPLITTABLE);
+    return unSplittableMetadata;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
@@ -377,7 +412,9 @@ public class TabletMetadata {
         .append("extCompactions", extCompactions).append("availability", availability)
         .append("onDemandHostingRequested", onDemandHostingRequested)
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
-        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet).toString();
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
+        .append("userCompactionsRequested", userCompactionsRequested)
+        .append("unSplittableMetadata", unSplittableMetadata).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -423,6 +460,7 @@ public class TabletMetadata {
     final var extCompBuilder = ImmutableMap.<ExternalCompactionId,CompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,FateId>builder();
     final var compactedBuilder = ImmutableSet.<FateId>builder();
+    final var userCompactionsRequestedBuilder = ImmutableSet.<FateId>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -476,8 +514,11 @@ public class TabletMetadata {
             case FLUSH_QUAL:
               te.flush = OptionalLong.of(Long.parseLong(val));
               break;
+            case FLUSH_NONCE_QUAL:
+              te.flushNonce = OptionalLong.of(Long.parseUnsignedLong(val, 16));
+              break;
             case OPID_QUAL:
-              te.setOperationIdOnce(val, suppressLocationError);
+              te.setOperationIdOnce(val);
               break;
             case SELECTED_QUAL:
               te.selectedFiles = SelectedFiles.from(val);
@@ -521,6 +562,16 @@ public class TabletMetadata {
         case CompactedColumnFamily.STR_NAME:
           compactedBuilder.add(FateId.from(qual));
           break;
+        case UserCompactionRequestedColumnFamily.STR_NAME:
+          userCompactionsRequestedBuilder.add(FateId.from(qual));
+          break;
+        case SplitColumnFamily.STR_NAME:
+          if (qual.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
+            te.unSplittableMetadata = UnSplittableMetadata.toUnSplittable(val);
+          } else {
+            throw new IllegalStateException("Unexpected SplitColumnFamily qualifier: " + qual);
+          }
+          break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
 
@@ -533,13 +584,17 @@ public class TabletMetadata {
       te.availability = TabletAvailability.HOSTED;
     }
 
-    te.files = filesBuilder.build();
+    var files = filesBuilder.build();
+    te.files = files;
+    te.fileSize =
+        Suppliers.memoize(() -> files.values().stream().mapToLong(DataFileValue::getSize).sum());
     te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
     te.compacted = compactedBuilder.build();
+    te.userCompactionsRequested = userCompactionsRequestedBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }
@@ -570,10 +625,9 @@ public class TabletMetadata {
    * Sets an operation ID only once.
    *
    * @param val operation id to set
-   * @param suppressError set to true to suppress an exception being thrown, else false
    * @throws IllegalStateException if an operation id or location is already set
    */
-  private void setOperationIdOnce(String val, boolean suppressError) {
+  private void setOperationIdOnce(String val) {
     Preconditions.checkState(operationId == null);
     operationId = TabletOperationId.from(val);
   }

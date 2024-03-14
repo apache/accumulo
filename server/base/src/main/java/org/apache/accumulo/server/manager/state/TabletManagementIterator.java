@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -42,20 +43,10 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
-import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -63,6 +54,7 @@ import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
+import org.apache.accumulo.server.split.SplitUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,12 +70,28 @@ public class TabletManagementIterator extends SkippingIterator {
   private TabletBalancer balancer;
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
-      final long splitThreshold) {
-    final long sumOfFileSizes =
-        tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-    final boolean shouldSplit = sumOfFileSizes > splitThreshold;
-    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
-        splitThreshold, shouldSplit);
+      final Configuration tableConfig) {
+
+    final long splitThreshold = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    final long maxEndRowSize = ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
+    final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
+        tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
+
+    // If the current computed metadata matches the current marker then we can't split,
+    // so we return false. If the marker is set but doesn't match then return true
+    // which gives a chance to clean up the marker and recheck.
+    var unsplittable = tm.getUnSplittable();
+    if (unsplittable != null) {
+      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(),
+          splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles()));
+    }
+
+    // If unsplittable is not set at all then check if over split threshold
+    final boolean shouldSplit = SplitUtils.needsSplit(tableConfig, tm);
+    LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(),
+        tm.getFileSize(), splitThreshold, shouldSplit);
     return shouldSplit;
   }
 
@@ -124,19 +132,8 @@ public class TabletManagementIterator extends SkippingIterator {
 
   public static void configureScanner(final ScannerBase scanner,
       final TabletManagementParameters tabletMgmtParams) {
-    // TODO so many columns are being fetch it may not make sense to fetch columns
-    TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-    ServerColumnFamily.SELECTED_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
-    scanner.fetchColumnFamily(LogColumnFamily.NAME);
-    scanner.fetchColumnFamily(TabletColumnFamily.NAME);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
-    ServerColumnFamily.OPID_COLUMN.fetch(scanner);
+    // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
+    // must be updated
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
@@ -202,18 +199,7 @@ public class TabletManagementIterator extends SkippingIterator {
       Exception error = null;
       try {
         LOG.trace("Evaluating extent: {}", tm);
-        if (tm.getExtent().isMeta()) {
-          computeTabletManagementActions(tm, actions);
-        } else {
-          if (tabletMgmtParams.getManagerState() != ManagerState.NORMAL
-              || tabletMgmtParams.getOnlineTsevers().isEmpty()
-              || tabletMgmtParams.getOnlineTables().isEmpty()) {
-            // when manager is in the process of starting up or shutting down return everything.
-            actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-          } else {
-            computeTabletManagementActions(tm, actions);
-          }
-        }
+        computeTabletManagementActions(tm, actions);
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
         error = e;
@@ -272,13 +258,10 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    if (tm.getOperationId() == null
+    if (tm.getOperationId() == null && tabletMgmtParams.isTableOnline(tm.getTableId())
         && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
-        final long splitThreshold =
-            ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
-                .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-        if (shouldReturnDueToSplit(tm, splitThreshold)) {
+        if (shouldReturnDueToSplit(tm, this.env.getPluginEnv().getConfiguration(tm.getTableId()))) {
           reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
         }
         // important to call this since reasonsToReturnThisTablet is passed to it

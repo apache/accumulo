@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -48,8 +49,9 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, fateId, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+        TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -101,8 +103,8 @@ public class RenameTable extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(manager, tableId, fateId, true);
-      Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+      Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -113,8 +115,8 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, true);
-    Utils.unreserveNamespace(env, namespaceId, fateId, false);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 
 }

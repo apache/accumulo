@@ -65,6 +65,8 @@ public class StatusMappingIterator implements SortedKeyValueIterator<Key,Value> 
     if (options.containsKey(STATUS_SET_KEY)) {
       String[] statuses = decodeStatuses(options.get(STATUS_SET_KEY));
       acceptableStatuses.addAll(Arrays.asList(statuses));
+    } else {
+      throw new IllegalArgumentException("Expected option " + STATUS_SET_KEY + " to be set.");
     }
   }
 

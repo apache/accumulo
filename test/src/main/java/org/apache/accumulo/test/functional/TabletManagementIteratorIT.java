@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -112,7 +113,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String[] tables = getUniqueNames(9);
+      String[] tables = getUniqueNames(10);
       final String t1 = tables[0];
       final String t2 = tables[1];
       final String t3 = tables[2];
@@ -122,6 +123,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       final String metaCopy3 = tables[6];
       final String metaCopy4 = tables[7];
       final String metaCopy5 = tables[8];
+      final String metaCopy6 = tables[9];
 
       // create some metadata
       createTable(client, t1, true);
@@ -156,6 +158,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       copyTable(client, metaCopy1, metaCopy3);
       copyTable(client, metaCopy1, metaCopy4);
       copyTable(client, metaCopy1, metaCopy5);
+      copyTable(client, metaCopy1, metaCopy6);
 
       // t1 is unassigned, setting to always will generate a change to host tablets
       setTabletAvailability(client, metaCopy1, t1, TabletAvailability.HOSTED.name());
@@ -240,8 +243,27 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have one tablet that needs a volume replacement");
 
+      // In preparation for split an offline testing ensure nothing needs attention
+      tabletMgmtParams = createParameters(client);
+      addFiles(client, metaCopy6, t4);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+          "No tablets should need attention");
+      // Lower the split threshold for the table, should cause the files added to need attention.
+      client.tableOperations().setProperty(tables[3], Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "1K");
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+          "Should have one tablet that needs splitting");
+
+      // Take the table offline which should prevent the tablet from being returned for needing to
+      // split
+      client.tableOperations().offline(tables[3], false);
+      tabletMgmtParams = createParameters(client);
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+          "No tablets should need attention");
+
       // clean up
-      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5);
+      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
+          metaCopy6);
     }
   }
 
@@ -283,7 +305,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     m.put(DataFileColumnFamily.NAME,
         new Text(StoredTabletFile
             .serialize("file:/vol1/accumulo/inst_id/tables/2a/default_tablet/F0000072.rf")),
-        new Value(new DataFileValue(0, 0, 0).encode()));
+        new Value(new DataFileValue(1000000, 100000, 0).encode()));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
@@ -369,6 +391,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           TabletManagement mti = TabletManagementIterator.decode(e);
           results++;
           log.debug("Found tablets that changed state: {}", mti.getTabletMetadata().getExtent());
+          log.debug("actions : {}", mti.getActions());
           log.debug("metadata: {}", mti.getTabletMetadata());
           resultList.add(mti.getTabletMetadata().getExtent());
         }

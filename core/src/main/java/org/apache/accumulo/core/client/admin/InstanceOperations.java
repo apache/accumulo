@@ -90,7 +90,7 @@ public interface InstanceOperations {
    *               var planner = currProps.get("compaction.service.default.planner");
    *               //This code will only change the compaction planner if its currently set to default settings.
    *               //The endsWith() function was used to make the example short, would be better to use equals().
-   *               if(planner != null && planner.endsWith("DefaultCompactionPlanner") {
+   *               if(planner != null && planner.endsWith("RatioBasedCompactionPlanner") {
    *                 // tservers will eventually see these compaction planner changes and when they do they will see all of the changes at once
    *                 currProps.keySet().removeIf(
    *                    prop -> prop.startsWith("compaction.service.default.planner.opts."));

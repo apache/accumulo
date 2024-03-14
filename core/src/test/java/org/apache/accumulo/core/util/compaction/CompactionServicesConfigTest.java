@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.junit.jupiter.api.Test;
 
 public class CompactionServicesConfigTest {
@@ -35,17 +36,18 @@ public class CompactionServicesConfigTest {
   public void testCompactionProps() {
     ConfigurationCopy conf = new ConfigurationCopy();
 
-    conf.set(prefix.getKey() + "default.planner", DefaultCompactionPlanner.class.getName());
-    conf.set(prefix.getKey() + "default.planner.opts.maxOpen", "10");
-    conf.set(prefix.getKey() + "default.planner.opts.groups",
-        "[{'name':'small','maxSize':'32M'},{'name':'medium','maxSize':'128M'},{'name':'large'}]");
+    conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+        RatioBasedCompactionPlanner.class.getName());
+    conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.maxOpen", "10");
+    conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.groups",
+        "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]");
 
-    conf.set(prefix.getKey() + "default.planner.opts.validProp", "1");
+    conf.set(prefix.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.validProp", "1");
 
     var compactionConfig = new CompactionServicesConfig(conf);
     assertEquals(Map.of("maxOpen", "10", "groups",
-        "[{'name':'small','maxSize':'32M'},{'name':'medium','maxSize':'128M'},{'name':'large'}]",
-        "validProp", "1"), compactionConfig.getOptions().get("default"));
+        "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]",
+        "validProp", "1"), compactionConfig.getOptions().get(DEFAULT_COMPACTION_SERVICE_NAME));
   }
 
   @Test
@@ -53,7 +55,7 @@ public class CompactionServicesConfigTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     CompactionServicesConfig compactionConfig;
 
-    conf.set(prefix.getKey() + "cs1.planner", DefaultCompactionPlanner.class.getName());
+    conf.set(prefix.getKey() + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
     conf.set(prefix.getKey() + "cs1.rate.limit", "2M");
     compactionConfig = new CompactionServicesConfig(conf);
     assertEquals(2097152, compactionConfig.getRateLimits().get("cs1"));

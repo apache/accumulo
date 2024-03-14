@@ -174,6 +174,20 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    try {
+      Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
+      scanner.setRange(new Range());
+      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      return scanner.stream().onClose(scanner::close)
+          .map(e -> FateKey.deserialize(e.getValue().get()))
+          .filter(fateKey -> fateKey.getType() == type);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
+  }
+
+  @Override
   protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
@@ -351,7 +365,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
-      FateMutator<T> fateMutator = newMutator(fateId);
+      FateMutator<T> fateMutator =
+          newMutator(fateId).requireStatus(TStatus.IN_PROGRESS, TStatus.NEW);
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
@@ -360,7 +375,8 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
       verifyReserved(true);
 
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newMutator(fateId).deleteRepo(t).mutate());
+      top.ifPresent(t -> newMutator(fateId)
+          .requireStatus(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL).deleteRepo(t).mutate());
     }
 
     @Override
@@ -384,7 +400,9 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
     public void delete() {
       verifyReserved(true);
 
-      newMutator(fateId).delete().mutate();
+      var mutator = newMutator(fateId);
+      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+      mutator.delete().mutate();
     }
 
     private Optional<Integer> findTop() {

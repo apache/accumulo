@@ -18,10 +18,18 @@
  */
 package org.apache.accumulo.manager.compaction;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator.canReserveCompaction;
 import static org.easymock.EasyMock.expect;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,12 +55,17 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -63,7 +76,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
@@ -86,7 +98,7 @@ public class CompactionCoordinatorTest {
   private static final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances =
       new AtomicReference<>(Map.of());
 
-  private static final CompactorGroupId GROUP_ID = CompactorGroupIdImpl.groupId("R2DQ");
+  private static final CompactorGroupId GROUP_ID = CompactorGroupId.of("R2DQ");
 
   public class TestCoordinator extends CompactionCoordinator {
 
@@ -374,5 +386,140 @@ public class CompactionCoordinatorTest {
 
     EasyMock.verify(context, creds, security);
 
+  }
+
+  @Test
+  public void testCanReserve() throws Exception {
+    TableId tableId1 = TableId.of("5");
+    TableId tableId2 = TableId.of("6");
+
+    var file1 = StoredTabletFile.of(new URI("file:///accumulo/tables/1/default_tablet/F00001.rf"));
+    var file2 = StoredTabletFile.of(new URI("file:///accumulo/tables/1/default_tablet/F00002.rf"));
+    var file3 = StoredTabletFile.of(new URI("file:///accumulo/tables/1/default_tablet/F00003.rf"));
+    var file4 = StoredTabletFile.of(new URI("file:///accumulo/tables/1/default_tablet/F00004.rf"));
+
+    ServerContext context = EasyMock.mock(ServerContext.class);
+    EasyMock.expect(context.getTableState(tableId1)).andReturn(TableState.ONLINE).atLeastOnce();
+    EasyMock.expect(context.getTableState(tableId2)).andReturn(TableState.OFFLINE).atLeastOnce();
+
+    FateId fateId1 = FateId.from(FateInstanceType.USER, 1234L);
+
+    CompactorGroupId cgid = CompactorGroupId.of("G1");
+    ReferencedTabletFile tmp1 =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/1/default_tablet/C00005.rf_tmp"));
+    CompactionMetadata cm1 = new CompactionMetadata(Set.of(file1, file2), tmp1, "localhost:4444",
+        CompactionKind.SYSTEM, (short) 5, cgid, false, null);
+
+    ReferencedTabletFile tmp2 =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/1/default_tablet/C00006.rf_tmp"));
+    CompactionMetadata cm2 = new CompactionMetadata(Set.of(file3), tmp2, "localhost:5555",
+        CompactionKind.USER, (short) 5, cgid, false, fateId1);
+
+    EasyMock.replay(context);
+
+    KeyExtent extent1 = new KeyExtent(tableId1, null, null);
+
+    var dfv = new DataFileValue(1000, 100);
+
+    var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    var selected = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1);
+
+    // should not be able to compact an offline table
+    var tabletOffline = TabletMetadata.builder(new KeyExtent(tableId2, null, null))
+        .putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv).putFile(file4, dfv)
+        .build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
+    assertFalse(
+        canReserveCompaction(tabletOffline, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+
+    // nothing should prevent this compaction
+    var tablet1 =
+        TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv)
+            .putFile(file4, dfv).build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
+    assertTrue(canReserveCompaction(tablet1, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+
+    // should not be able to do a user compaction unless selected files are present
+    assertFalse(canReserveCompaction(tablet1, CompactionKind.USER, Set.of(file1, file2), context));
+
+    // should not be able to compact a tablet with user compaction request in place
+    var tablet3 =
+        TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv)
+            .putFile(file4, dfv).putUserCompactionRequested(fateId1).build(OPID, ECOMP, SELECTED);
+    assertFalse(
+        canReserveCompaction(tablet3, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+
+    // should not be able to compact a tablet when the job has files not present in the tablet
+    var tablet4 = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
+    assertFalse(
+        canReserveCompaction(tablet4, CompactionKind.SYSTEM, Set.of(file1, file2, file4), context));
+
+    // should not be able to compact a tablet with an operation id present
+    TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId1);
+    var tablet5 = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putOperation(opid)
+        .build(ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
+    assertFalse(
+        canReserveCompaction(tablet5, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+
+    // should not be able to compact a tablet if the job files overlaps with running compactions
+    var tablet6 = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putExternalCompaction(cid1, cm1)
+        .putExternalCompaction(cid2, cm2).build(OPID, USER_COMPACTION_REQUESTED, SELECTED);
+    assertFalse(
+        canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+    // should be able to compact the file that is outside of the set of files currently compacting
+    assertTrue(canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file4), context));
+
+    // create a tablet with a selected set of files
+    var selTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+        .build(OPID, USER_COMPACTION_REQUESTED, ECOMP);
+    // should not be able to start a system compaction if the set of files overlaps with the
+    // selected files
+    assertFalse(
+        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+    assertFalse(
+        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file3, file4), context));
+    // should be able to start a system compaction on the set of files not in the selected set
+    assertTrue(canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file4), context));
+    // should be able to start user compactions on files that are selected
+    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2), context));
+    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file2, file3), context));
+    assertTrue(
+        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2, file3), context));
+    // should not be able to start user compactions on files that fall outside of the selected set
+    assertFalse(
+        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file4), context));
+    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file4), context));
+    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER,
+        Set.of(file1, file2, file3, file4), context));
+
+    // test selected files and running compaction
+    var selRunningTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+        .putExternalCompaction(cid2, cm2).build(OPID, USER_COMPACTION_REQUESTED);
+    // should be able to compact files that are in the selected set and not in the running set
+    assertTrue(
+        canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file1, file2), context));
+    // should not be able to compact because files overlap the running set
+    assertFalse(
+        canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file2, file3), context));
+    // should not be able to start a system compaction if the set of files overlaps with the
+    // selected files and/or the running set
+    assertFalse(canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file1, file2),
+        context));
+    assertFalse(canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file3, file4),
+        context));
+    // should be able to start a system compaction on the set of files not in the selected set
+    assertTrue(
+        canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file4), context));
+
+    // should not be able to compact a tablet that does not exists
+    assertFalse(canReserveCompaction(null, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+    assertFalse(canReserveCompaction(null, CompactionKind.USER, Set.of(file1, file2), context));
+
+    EasyMock.verify(context);
   }
 }

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -69,11 +70,13 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
       Map<String,String> siteCfg = new HashMap<>();
-      siteCfg.put(CSP + "default.planner", DefaultCompactionPlanner.class.getName());
-      siteCfg.put(CSP + "default.planner.opts.groups", "[{\"name\":\"default_group\"}]");
-      siteCfg.put(CSP + "cs1.planner", DefaultCompactionPlanner.class.getName());
+      siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+          RatioBasedCompactionPlanner.class.getName());
+      siteCfg.put(CSP + DEFAULT_COMPACTION_SERVICE_NAME + ".planner.opts.groups",
+          "[{\"group\":\"default\"}]");
+      siteCfg.put(CSP + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
       // place invalid json in the planners config
-      siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'name]");
+      siteCfg.put(CSP + "cs1.planner.opts.groups", "{{'group]");
       cfg.setSiteConfig(siteCfg);
     }
   }
@@ -128,7 +131,7 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
                 .collect(MoreCollectors.onlyElement()));
           }
 
-          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          var value = "[{'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
 
           // start the compactor, it was not started initially because of bad config
@@ -166,7 +169,7 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
       fixerFuture = executorService.submit(() -> {
         try {
           Thread.sleep(2000);
-          var value = "[{'name':'cs1q1'}]".replaceAll("'", "\"");
+          var value = "[{'group':'cs1q1'}]".replaceAll("'", "\"");
           client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
         } catch (Exception e) {
           throw new RuntimeException(e);
@@ -225,7 +228,8 @@ public class BadCompactionServiceConfigIT extends SharedMiniClusterBase {
 
           // fix the compaction dispatcher config
           client.tableOperations().setProperty(table,
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "default");
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
+              DEFAULT_COMPACTION_SERVICE_NAME);
 
         } catch (Exception e) {
           throw new RuntimeException(e);

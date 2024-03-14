@@ -18,11 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.manager.tableOps.merge.MergeTablets.validateTablet;
 
 import java.util.ArrayList;
@@ -88,9 +83,9 @@ public class DeleteRows extends ManagerRepo {
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     try (
-        var tabletsMetadata = manager.getContext().getAmple().readTablets()
-            .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow())
-            .fetch(OPID, LOCATION, FILES, PREV_ROW, LOGS).checkConsistency().build();
+        var tabletsMetadata =
+            manager.getContext().getAmple().readTablets().forTable(range.tableId())
+                .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
         var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
       KeyExtent firstCompleteContained = null;

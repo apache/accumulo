@@ -54,14 +54,13 @@ import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
-import org.apache.accumulo.core.util.compaction.CompactorGroupIdImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonParseException;
 
-public class DefaultCompactionPlannerTest {
+public class RatioBasedCompactionPlannerTest {
 
   private static <T> T getOnlyElement(Collection<T> c) {
     return c.stream().collect(onlyElement());
@@ -152,8 +151,8 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testRunningCompaction() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}, {'name':'huge'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
     var planner = createPlanner(defaultConf, groups);
 
@@ -178,7 +177,7 @@ public class DefaultCompactionPlannerTest {
     // planner should compact.
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
   }
 
   @Test
@@ -187,8 +186,8 @@ public class DefaultCompactionPlannerTest {
     aconf.set(prefix + "cs1.planner.opts.maxOpen", "15");
     ConfigurationImpl config = new ConfigurationImpl(aconf);
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}, {'name':'huge'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
     var planner = createPlanner(config, groups);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
@@ -201,7 +200,7 @@ public class DefaultCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
     assertEquals(CompactionJobPrioritizer.createPriority(TableId.of("42"), CompactionKind.USER,
         all.size(), job.getFiles().size()), job.getPriority());
 
@@ -221,7 +220,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupId.of("small"), job.getGroup());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -231,7 +230,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("huge"), job.getGroup());
+    assertEquals(CompactorGroupId.of("huge"), job.getGroup());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files that meets the compaction ratio
@@ -241,7 +240,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupId.of("small"), job.getGroup());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -250,14 +249,14 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("medium"), job.getGroup());
+    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
 
   }
 
   @Test
   public void testMaxSize() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
 
     var planner = createPlanner(defaultConf, groups);
     var all = createCFs("F1", "128M", "F2", "129M", "F3", "130M", "F4", "131M", "F5", "132M");
@@ -267,22 +266,22 @@ public class DefaultCompactionPlannerTest {
     // should only compact files less than max size
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("large"), job.getGroup());
+    assertEquals(CompactorGroupId.of("large"), job.getGroup());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("large"), job.getGroup());
+    assertEquals(CompactorGroupId.of("large"), job.getGroup());
   }
 
   @Test
   public void testMultipleCompactions() {
     // This test validates that when a tablet has many files that multiple compaction jobs can be
     // issued at the same time.
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
 
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
       var planner = createPlanner(defaultConf, groups);
@@ -300,7 +299,7 @@ public class DefaultCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
+        assertEquals(CompactorGroupId.of("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -315,8 +314,8 @@ public class DefaultCompactionPlannerTest {
   @Test
   public void testMultipleCompactionsAndLargeCompactionRatio() {
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     var planner = createPlanner(defaultConf, groups);
     var all = IntStream.range(0, 65).mapToObj(i -> createCF("F" + i, i + 1)).collect(toSet());
     // This compaction ratio would not cause a system compaction, how a user compaction must compact
@@ -349,8 +348,8 @@ public class DefaultCompactionPlannerTest {
     // This test validates that when a tablet has many files that multiple compaction jobs can be
     // issued at the same time even if there are running compaction as long everything meets the
     // compaction ratio.
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
       var planner = createPlanner(defaultConf, groups);
       var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
@@ -375,7 +374,7 @@ public class DefaultCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
+        assertEquals(CompactorGroupId.of("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -391,8 +390,8 @@ public class DefaultCompactionPlannerTest {
   public void testUserCompactionDoesNotWaitOnSystemCompaction() {
     // this test ensures user compactions do not wait on system compactions to complete
 
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large','maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}]";
     var planner = createPlanner(defaultConf, groups);
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "3M", "F5", "3M", "F6", "3M",
         "F7", "20M");
@@ -433,9 +432,9 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testQueueCreation() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
 
-    String groups = "[{\"name\": \"small\", \"maxSize\":\"32M\"},{\"name\":\"midsize\"}]";
+    String groups = "[{\"group\": \"small\", \"maxSize\":\"32M\"},{\"group\":\"midsize\"}]";
     planner.init(getInitParams(defaultConf, groups));
 
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
@@ -444,7 +443,7 @@ public class DefaultCompactionPlannerTest {
 
     var job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("small"), job.getGroup());
+    assertEquals(CompactorGroupId.of("small"), job.getGroup());
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -452,7 +451,7 @@ public class DefaultCompactionPlannerTest {
 
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupIdImpl.groupId("midsize"), job.getGroup());
+    assertEquals(CompactorGroupId.of("midsize"), job.getGroup());
   }
 
   /**
@@ -460,10 +459,10 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorAdditionalConfigFields() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
 
     String groups =
-        "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"name\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
+        "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"group\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
 
     final InitParameters params = getInitParams(defaultConf, groups);
     assertNotNull(params);
@@ -479,15 +478,16 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorGroupNoName() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
-    String groups = "[{\"name\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
+    String groups = "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
 
     final InitParameters params = getInitParams(defaultConf, groups);
     assertNotNull(params);
 
     var e = assertThrows(NullPointerException.class, () -> planner.init(params),
         "Failed to throw error");
-    assertEquals(e.getMessage(), "'name' must be specified", "Error message didn't contain 'name'");
+    assertEquals(e.getMessage(), "'group' must be specified",
+        "Error message didn't contain 'group'");
   }
 
   /**
@@ -495,7 +495,7 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorNoGroups() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     var groupParams = getInitParams(defaultConf, "");
     assertNotNull(groupParams);
 
@@ -510,9 +510,9 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorOnlyOneMaxSize() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups =
-        "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\"}, {\"name\":\"large\"}]";
+        "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Can only have one group w/o a maxSize"),
@@ -524,9 +524,9 @@ public class DefaultCompactionPlannerTest {
    */
   @Test
   public void testErrorDuplicateMaxSize() {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups =
-        "[{\"name\":\"small\", \"maxSize\":\"32M\"}, {\"name\":\"medium\", \"maxSize\":\"32M\"}, {\"name\":\"large\"}]";
+        "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\", \"maxSize\":\"32M\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
         () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Duplicate maxSize set in groups"),
@@ -538,8 +538,8 @@ public class DefaultCompactionPlannerTest {
   // compaction.
   @Test
   public void testMaxTabletFiles() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
@@ -614,8 +614,8 @@ public class DefaultCompactionPlannerTest {
 
   @Test
   public void testMaxTabletFilesNoCompaction() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large', 'maxSize':'512M'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large', 'maxSize':'512M'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
@@ -633,8 +633,8 @@ public class DefaultCompactionPlannerTest {
     // ensure when a compaction is running and we are over files max but below the compaction ratio
     // that a compaction is not planned
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
-    var job = new CompactionJobImpl((short) 1, CompactorGroupIdImpl.groupId("ee1"),
-        createCFs("F1", "1000"), CompactionKind.SYSTEM, Optional.of(false));
+    var job = new CompactionJobImpl((short) 1, CompactorGroupId.of("ee1"), createCFs("F1", "1000"),
+        CompactionKind.SYSTEM, Optional.of(false));
     params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
 
@@ -651,8 +651,8 @@ public class DefaultCompactionPlannerTest {
   // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
   @Test
   public void testMaxTableFilesFallback() {
-    String groups = "[{'name':'small','maxSize':'32M'}, {'name':'medium','maxSize':'128M'},"
-        + "{'name':'large'}]";
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large'}]";
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
@@ -671,7 +671,7 @@ public class DefaultCompactionPlannerTest {
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
-        .addJob((short) all.size(), CompactorGroupIdImpl.groupId("small"), files).build().getJobs()
+        .addJob((short) all.size(), CompactorGroupId.of("small"), files).build().getJobs()
         .iterator().next();
   }
 
@@ -749,7 +749,8 @@ public class DefaultCompactionPlannerTest {
 
   private static void testFFtC(Set<CompactableFile> expected, Set<CompactableFile> files,
       double ratio, int maxFiles, long maxSize) {
-    var result = DefaultCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
+    var result =
+        RatioBasedCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
     var expectedNames = expected.stream().map(CompactableFile::getUri).map(URI::getPath)
         .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(toSet());
     var resultNames = result.stream().map(CompactableFile::getUri).map(URI::getPath)
@@ -837,8 +838,8 @@ public class DefaultCompactionPlannerTest {
     return new CompactionPlannerInitParams(csid, prefix, options, senv);
   }
 
-  private static DefaultCompactionPlanner createPlanner(Configuration conf, String groups) {
-    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+  private static RatioBasedCompactionPlanner createPlanner(Configuration conf, String groups) {
+    RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     var initParams = getInitParams(conf, groups);
     planner.init(initParams);
     return planner;

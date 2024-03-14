@@ -30,8 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -39,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,6 +51,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -100,6 +104,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(1, store.list().count());
 
     // Push a test FATE op and verify we can read it back
+    txStore.setStatus(TStatus.IN_PROGRESS);
     txStore.push(new TestRepo("testOp"));
     TestRepo op = (TestRepo) txStore.top();
     assertNotNull(op);
@@ -115,6 +120,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // Try setting a second test op to test getStack()
     // when listing or popping TestOperation2 should be first
     assertEquals(1, txStore.getStack().size());
+    txStore.setStatus(TStatus.IN_PROGRESS);
     txStore.push(new TestOperation2());
     // test top returns TestOperation2
     ReadOnlyRepo<TestEnv> top = txStore.top();
@@ -127,6 +133,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(TestRepo.class, ops.get(1).getClass());
 
     // test pop, TestOperation should be left
+    txStore.setStatus(TStatus.FAILED_IN_PROGRESS); // needed to satisfy the condition on pop
     txStore.pop();
     ops = txStore.getStack();
     assertEquals(1, ops.size());
@@ -137,8 +144,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(2, store.list().count());
 
     // test delete
+    txStore.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore.delete();
     assertEquals(1, store.list().count());
+    txStore2.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore2.delete();
     assertEquals(0, store.list().count());
   }
@@ -328,7 +337,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey = FateKey.forSplit(ke);
 
     FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
-    ;
+
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);
@@ -338,6 +347,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertTrue(create(store, fateKey).isEmpty());
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
+      txStore.setStatus(TStatus.SUCCESSFUL);
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
     }
@@ -414,6 +424,67 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.unreserve(0, TimeUnit.SECONDS);
     }
 
+  }
+
+  @Test
+  public void testListFateKeys() throws Exception {
+    executeTest(this::testListFateKeys);
+  }
+
+  protected void testListFateKeys(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+
+    // this should not be seen when listing by key type because it has no key
+    var id1 = store.create();
+
+    TableId tid1 = TableId.of("test");
+    var extent1 = new KeyExtent(tid1, new Text("m"), null);
+    var extent2 = new KeyExtent(tid1, null, new Text("m"));
+    var fateKey1 = FateKey.forSplit(extent1);
+    var fateKey2 = FateKey.forSplit(extent2);
+
+    var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    assertNotEquals(cid1, cid2);
+
+    var fateKey3 = FateKey.forCompactionCommit(cid1);
+    var fateKey4 = FateKey.forCompactionCommit(cid2);
+
+    Map<FateKey,FateId> fateKeyIds = new HashMap<>();
+    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
+      var fateTx = store.createAndReserve(fateKey).orElseThrow();
+      fateKeyIds.put(fateKey, fateTx.getID());
+      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+    }
+
+    HashSet<FateId> allIds = new HashSet<>();
+    allIds.addAll(fateKeyIds.values());
+    allIds.add(id1);
+    assertEquals(allIds, store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+    assertEquals(5, allIds.size());
+
+    assertEquals(4, fateKeyIds.size());
+    assertEquals(4, fateKeyIds.values().stream().distinct().count());
+
+    HashSet<KeyExtent> seenExtents = new HashSet<>();
+    store.list(FateKey.FateKeyType.SPLIT).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.SPLIT, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
+    });
+
+    assertEquals(2, fateKeyIds.size());
+    assertEquals(Set.of(extent1, extent2), seenExtents);
+
+    HashSet<ExternalCompactionId> seenCids = new HashSet<>();
+    store.list(FateKey.FateKeyType.COMPACTION_COMMIT).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.COMPACTION_COMMIT, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenCids.add(fateKey.getCompactionId().orElseThrow()));
+    });
+
+    assertEquals(0, fateKeyIds.size());
+    assertEquals(Set.of(cid1, cid2), seenCids);
   }
 
   // create(fateKey) method is private so expose for testing to check error states

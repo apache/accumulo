@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
@@ -40,12 +41,16 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -219,6 +224,70 @@ public class MetadataIT extends AccumuloClusterHarness {
       assertEquals(infoEndRow0, testInfoEndRow0);
       assertEquals(infoEndRow1, testInfoEndRow1);
 
+    }
+  }
+
+  // Test that configs related to the correctness of the Root/Metadata tables
+  // are initialized correctly
+  @Test
+  public void testSystemTablesInitialConfigCorrectness() throws Exception {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
+      var rootTableProps =
+          client.tableOperations().getTableProperties(AccumuloTable.ROOT.tableName());
+      var metadataTableProps =
+          client.tableOperations().getTableProperties(AccumuloTable.METADATA.tableName());
+
+      // Verify root table config
+      testCommonSystemTableConfig(client, AccumuloTable.ROOT.tableId(), rootTableProps);
+
+      // Verify metadata table config
+      testCommonSystemTableConfig(client, AccumuloTable.METADATA.tableId(), metadataTableProps);
+    }
+  }
+
+  private void testCommonSystemTableConfig(ClientContext client, TableId tableId,
+      Map<String,String> tableProps) {
+    // Verify properties all have a table. prefix
+    assertTrue(tableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+    // Verify properties are correctly set
+    assertEquals("5", tableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+    assertEquals("sync", tableProps.get(Property.TABLE_DURABILITY.getKey()));
+    assertEquals("false", tableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+    assertEquals("", tableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+    assertEquals("tablet,server", tableProps.get(Property.TABLE_LOCALITY_GROUPS.getKey()));
+    assertEquals(
+        String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,
+            MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME),
+        tableProps.get(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet"));
+    assertEquals(
+        String.format("%s,%s,%s,%s", MetadataSchema.TabletsSection.DataFileColumnFamily.NAME,
+            MetadataSchema.TabletsSection.LogColumnFamily.NAME,
+            MetadataSchema.TabletsSection.ServerColumnFamily.NAME,
+            MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME),
+        tableProps.get(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server"));
+
+    // Verify VersioningIterator related properties are correct
+    var iterClass = "10," + VersioningIterator.class.getName();
+    var maxVersions = "1";
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+    // Verify all tablets are HOSTED
+    try (var tablets = client.getAmple().readTablets().forTable(tableId).build()) {
+      assertTrue(
+          tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
     }
   }
 }

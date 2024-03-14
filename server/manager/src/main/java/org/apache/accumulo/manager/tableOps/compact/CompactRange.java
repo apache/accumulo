@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -74,8 +75,9 @@ public class CompactRange extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, fateId, false, true, TableOperation.COMPACT);
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+        TableOperation.COMPACT)
+        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT);
   }
 
   @Override
@@ -89,8 +91,8 @@ public class CompactRange extends ManagerRepo {
     try {
       CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, fateId, false);
-      Utils.unreserveTable(env, tableId, fateId, false);
+      Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(env, tableId, fateId, LockType.READ);
     }
   }
 

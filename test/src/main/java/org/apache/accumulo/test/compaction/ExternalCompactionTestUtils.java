@@ -62,7 +62,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -196,37 +196,37 @@ public class ExternalCompactionTestUtils {
 
     // configure the compaction services to use the queues
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
-        "[{'name':'" + GROUP1 + "'}]");
+        "[{'group':'" + GROUP1 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.groups",
-        "[{'name':'" + GROUP2 + "'}]");
+        "[{'group':'" + GROUP2 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs3.planner.opts.groups",
-        "[{'name':'" + GROUP3 + "'}]");
+        "[{'group':'" + GROUP3 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs4.planner.opts.groups",
-        "[{'name':'" + GROUP4 + "'}]");
+        "[{'group':'" + GROUP4 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs5.planner.opts.groups",
-        "[{'name':'" + GROUP5 + "'}]");
+        "[{'group':'" + GROUP5 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs6.planner.opts.groups",
-        "[{'name':'" + GROUP6 + "'}]");
+        "[{'group':'" + GROUP6 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs7.planner.opts.groups",
-        "[{'name':'" + GROUP7 + "'}]");
+        "[{'group':'" + GROUP7 + "'}]");
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner",
-        DefaultCompactionPlanner.class.getName());
+        RatioBasedCompactionPlanner.class.getName());
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs8.planner.opts.groups",
-        "[{'name':'" + GROUP8 + "'}]");
+        "[{'group':'" + GROUP8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
@@ -377,6 +377,7 @@ public class ExternalCompactionTestUtils {
         assertEquals(Set.of(), tabletMetadata.getCompacted());
         assertNull(tabletMetadata.getSelectedFiles());
         assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
+        assertEquals(Set.of(), tabletMetadata.getUserCompactionsRequested());
         count++;
       }
 

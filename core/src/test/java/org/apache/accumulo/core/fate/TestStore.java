@@ -217,6 +217,11 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public Stream<FateKey> list(FateKey.FateKeyType type) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
     throw new UnsupportedOperationException();
   }

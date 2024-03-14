@@ -24,6 +24,7 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -59,8 +60,8 @@ class FinishImportTable extends ManagerRepo {
     final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
     env.getTableManager().transitionTableState(tableInfo.tableId, newState, expectedCurrStates);
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, false);
-    Utils.unreserveTable(env, tableInfo.tableId, fateId, true);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);

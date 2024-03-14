@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util.compaction;
+package org.apache.accumulo.test.fate.accumulo;
 
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.test.fate.FateOpsCommandsIT;
 
-public class CompactorGroupIdImpl extends CompactorGroupId {
-
-  protected CompactorGroupIdImpl(String canonical) {
-    super(canonical);
-  }
-
-  private static final long serialVersionUID = 1L;
-
-  public static CompactorGroupId groupId(String groupName) {
-    return new CompactorGroupIdImpl(groupName);
+public class AccumuloFateOpsCommandsIT extends FateOpsCommandsIT {
+  @Override
+  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+      AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
+    testMethod.execute(new AccumuloStore<>(getCluster().getServerContext()),
+        getCluster().getServerContext());
   }
 }

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -44,8 +45,9 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, fateId, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, false,
+        TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.DELETE);
   }
 
   @Override
@@ -53,13 +55,13 @@ public class DeleteTable extends ManagerRepo {
     final EnumSet<TableState> expectedCurrStates =
         EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
     env.getTableManager().transitionTableState(tableId, TableState.DELETING, expectedCurrStates);
-    env.getEventCoordinator().event(tableId, "deleting table %s ", tableId);
+    env.getEventCoordinator().event(tableId, "deleting table %s %s", tableId, fateId);
     return new ReserveTablets(tableId, namespaceId);
   }
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, true);
-    Utils.unreserveNamespace(env, namespaceId, fateId, false);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 }

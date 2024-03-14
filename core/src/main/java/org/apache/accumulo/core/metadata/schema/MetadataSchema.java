@@ -236,6 +236,14 @@ public class MetadataSchema {
       public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
 
       /**
+       * Holds a nonce that is written when a new flush file is added. The nonce is used to check if
+       * the write was successful in failure cases. The value is a random 64bit integer.
+       */
+      public static final String FLUSH_NONCE_QUAL = "flonce";
+      public static final ColumnFQ FLUSH_NONCE_COLUMN =
+          new ColumnFQ(NAME, new Text(FLUSH_NONCE_QUAL));
+
+      /**
        * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
        * tablet is not dead
        */
@@ -411,6 +419,28 @@ public class MetadataSchema {
     public static class CompactedColumnFamily {
       public static final String STR_NAME = "compacted";
       public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * Column family for indicating that a user has requested to compact a tablet. The column
+     * qualifier is expected to contain the fate transaction id that is executing the request.
+     */
+    public static class UserCompactionRequestedColumnFamily {
+      public static final String STR_NAME = "userRequestToCompact";
+      public static final Text NAME = new Text(STR_NAME);
+    }
+
+    /**
+     * This family is used to track information needed for splits. Currently, the only thing stored
+     * is if the tablets are un-splittable based on the files the tablet and configuration related
+     * to splits.
+     */
+    public static class SplitColumnFamily {
+      public static final String STR_NAME = "split";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final String UNSPLITTABLE_QUAL = "unsplittable";
+      public static final ColumnFQ UNSPLITTABLE_COLUMN =
+          new ColumnFQ(NAME, new Text(UNSPLITTABLE_QUAL));
     }
 
     // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.

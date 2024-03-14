@@ -103,6 +103,9 @@ public enum TabletGoalState {
             if (!tm.getHostingRequested()) {
               return UNASSIGNED;
             }
+            break;
+          default:
+            break;
         }
       }
 

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -60,32 +61,9 @@ class CleanUp extends ManagerRepo {
 
   private long creationTime;
 
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-
-    // handle the case where we start executing on a new machine where the current time is in the
-    // past relative to the previous machine
-    // if the new machine has time in the future, that will work ok w/ hasCycled
-    if (System.currentTimeMillis() < creationTime) {
-      creationTime = System.currentTimeMillis();
-    }
-
-  }
-
   public CleanUp(TableId tableId, NamespaceId namespaceId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-    creationTime = System.currentTimeMillis();
-  }
-
-  @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
-    // ELASTICITY_TODO investigate this, what is it for and is it still needed?
-    if (!manager.hasCycled(creationTime)) {
-      return 50;
-    }
-
-    return 0;
   }
 
   @Override
@@ -178,8 +156,8 @@ class CleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(manager, tableId, fateId, true);
-    Utils.unreserveNamespace(manager, namespaceId, fateId, false);
+    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 

@@ -21,6 +21,7 @@ package org.apache.accumulo.test.manager;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
@@ -83,7 +84,6 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
   private static final String TEST_GROUP_NAME = "SUSPEND_TEST";
 
   public static final int TSERVERS = 3;
-  public static final long SUSPEND_DURATION = 80;
   public static final int TABLETS = 30;
 
   private String defaultGroup;
@@ -100,7 +100,6 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
     cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
     cfg.setProperty(Property.TSERV_MIGRATE_MAXCONCURRENT, "50");
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
@@ -137,46 +136,45 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
     log.info("TabletServers in {} group: {}", TEST_GROUP_NAME, testGroup);
   }
 
+  enum AfterSuspendAction {
+    RESUME("80s"),
+    // Set a long suspend time for testing offline table, want the suspension to be cleared because
+    // the tablet went offline and not the because the suspension timed out.
+    OFFLINE("800s");
+
+    public final String suspendTime;
+
+    AfterSuspendAction(String suspendTime) {
+      this.suspendTime = suspendTime;
+    }
+  }
+
   @Test
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
-    suspensionTestBody((ctx, locs, count) -> {
-      tabletServerProcesses.forEach(proc -> {
-        try {
-          log.info("Killing processes: {}", proc);
-          ((MiniAccumuloClusterImpl) getCluster()).getClusterControl()
-              .killProcess(ServerType.TABLET_SERVER, proc);
-        } catch (ProcessNotFoundException | InterruptedException e) {
-          throw new RuntimeException("Error killing process: " + proc, e);
-        }
-      });
-    });
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.RESUME);
+  }
+
+  @Test
+  public void crashAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    // Suspension markers can prevent balancing and possibly cause other problems, so its good to
+    // clear them for offline tables.
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.OFFLINE);
   }
 
   @Test
   public void shutdownAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
-    suspensionTestBody((ctx, locs, count) -> {
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.RESUME);
+  }
 
-      testGroup.forEach(ts -> {
-        try {
-          ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
-            log.info("Sending shutdown command to {} via ManagerClientService", ts);
-            client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
-          });
-        } catch (AccumuloSecurityException | AccumuloException e) {
-          throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
-        }
-      });
-
-      try (AccumuloClient client =
-          Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-        Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
-      }
-
-    });
+  @Test
+  public void shutdownAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.OFFLINE);
   }
 
   /**
@@ -184,7 +182,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
    *
    * @param serverStopper callback which shuts down some tablet servers.
    */
-  private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
+  private void suspensionTestBody(TServerKiller serverStopper, AfterSuspendAction action)
+      throws Exception {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       ClientContext ctx = (ClientContext) client;
@@ -198,6 +197,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       log.info("Creating table " + tableName);
       Map<String,String> properties = new HashMap<>();
       properties.put("table.custom.assignment.group", TEST_GROUP_NAME);
+      properties.put(Property.TABLE_SUSPEND_DURATION.getKey(), action.suspendTime);
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints)
           .withInitialTabletAvailability(TabletAvailability.HOSTED);
@@ -251,27 +251,42 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
       }
       assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
-      // Restart the first tablet server, making sure it ends up on the same port
-      HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
-      log.info("Restarting " + restartedServer);
-      ((MiniAccumuloClusterImpl) getCluster())._exec(TabletServer.class, ServerType.TABLET_SERVER,
-          Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
-              Property.TSERV_PORTSEARCH.getKey(), "false"),
-          "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + TEST_GROUP_NAME);
 
-      // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
-      log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      }
-      assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+      assertTrue(ds.suspendedCount > 0);
 
-      // Finally, after much longer, remaining suspended tablets should be reassigned.
-      log.info("Awaiting tablet reassignment for remaining tablets (suspension timeout)");
-      while (ds.hostedCount != TABLETS) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
+      if (action == AfterSuspendAction.OFFLINE) {
+        client.tableOperations().offline(tableName, true);
+
+        while (ds.suspendedCount > 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+          log.info("Waiting for suspended {}", ds.suspended);
+        }
+      } else if (action == AfterSuspendAction.RESUME) {
+        // Restart the first tablet server, making sure it ends up on the same port
+        HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
+        log.info("Restarting " + restartedServer);
+        ((MiniAccumuloClusterImpl) getCluster())._exec(TabletServer.class, ServerType.TABLET_SERVER,
+            Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+                Property.TSERV_PORTSEARCH.getKey(), "false"),
+            "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + TEST_GROUP_NAME);
+
+        // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
+        log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
+        while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+        assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+
+        // Finally, after much longer, remaining suspended tablets should be reassigned.
+        log.info("Awaiting tablet reassignment for remaining tablets (suspension timeout)");
+        while (ds.hostedCount != TABLETS) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+      } else {
+        throw new IllegalStateException("Unknown action " + action);
       }
     }
   }
@@ -279,6 +294,47 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
   private interface TServerKiller {
     void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
         throws Exception;
+  }
+
+  private class ShutdownTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+      testGroup.forEach(ts -> {
+        try {
+          ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
+            log.info("Sending shutdown command to {} via ManagerClientService", ts);
+            client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
+          });
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
+        }
+      });
+
+      try (AccumuloClient client =
+          Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+        Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      }
+
+    }
+  }
+
+  private class CrashTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+      tabletServerProcesses.forEach(proc -> {
+        try {
+          log.info("Killing processes: {}", proc);
+          ((MiniAccumuloClusterImpl) getCluster()).getClusterControl()
+              .killProcess(ServerType.TABLET_SERVER, proc);
+        } catch (ProcessNotFoundException | InterruptedException e) {
+          throw new RuntimeException("Error killing process: " + proc, e);
+        }
+      });
+    }
   }
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);

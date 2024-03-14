@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.slf4j.LoggerFactory;
@@ -53,8 +54,8 @@ public class ChangeTableState extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
-    return Utils.reserveNamespace(env, namespaceId, fateId, false, true, top)
-        + Utils.reserveTable(env, tableId, fateId, true, true, top);
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true, top)
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top);
   }
 
   @Override
@@ -65,8 +66,8 @@ public class ChangeTableState extends ManagerRepo {
     }
 
     env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
-    Utils.unreserveNamespace(env, namespaceId, fateId, false);
-    Utils.unreserveTable(env, tableId, fateId, true);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
     env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
@@ -74,7 +75,7 @@ public class ChangeTableState extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, fateId, false);
-    Utils.unreserveTable(env, tableId, fateId, true);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
   }
 }

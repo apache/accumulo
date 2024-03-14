@@ -22,6 +22,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -38,7 +39,7 @@ public class DeleteNamespace extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, fateId, true, true,
+    return Utils.reserveNamespace(environment, namespaceId, fateId, LockType.WRITE, true,
         TableOperation.DELETE);
   }
 
@@ -50,7 +51,7 @@ public class DeleteNamespace extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager environment) {
-    Utils.unreserveNamespace(environment, namespaceId, fateId, true);
+    Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.WRITE);
   }
 
 }

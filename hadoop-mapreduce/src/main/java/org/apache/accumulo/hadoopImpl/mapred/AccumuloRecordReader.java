@@ -19,13 +19,11 @@
 package org.apache.accumulo.hadoopImpl.mapred;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -375,9 +373,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
               List<Range> failures =
                   tl.findTablets(context, ranges, consumer, LocationNeed.NOT_REQUIRED);
 
-              Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-                  .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-                  .logInterval(3, MINUTES).createRetry();
+              Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+                  .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2))
+                  .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
 
               while (!failures.isEmpty()) {
 

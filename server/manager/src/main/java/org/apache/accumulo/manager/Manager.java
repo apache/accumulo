@@ -53,6 +53,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -226,7 +227,6 @@ public class Manager extends AbstractServer
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
   volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
 
-  // ELASTICITY_TODO is this still needed?
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
@@ -243,14 +243,11 @@ public class Manager extends AbstractServer
     return state;
   }
 
-  // ELASTICITIY_TODO it would be nice if this method could take DataLevel as an argument and only
-  // retrieve information about compactions in that data level. Attempted this and a lot of
-  // refactoring was needed to get that small bit of information to this method. Would be best to
-  // address this after issue. May be best to attempt this after #3576.
-  public Map<FateId,Map<String,String>> getCompactionHints() {
-    Map<FateId,CompactionConfig> allConfig = null;
+  public Map<FateId,Map<String,String>> getCompactionHints(DataLevel level) {
+    Predicate<TableId> tablePredicate = (tableId) -> DataLevel.of(tableId) == level;
+    Map<FateId,CompactionConfig> allConfig;
     try {
-      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tableId -> true);
+      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tablePredicate);
     } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
@@ -520,16 +517,6 @@ public class Manager extends AbstractServer
     }
   }
 
-  public boolean hasCycled(long time) {
-    for (TabletGroupWatcher watcher : watchers) {
-      if (watcher.stats.lastScanFinished() < time) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
       migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));
@@ -632,7 +619,7 @@ public class Manager extends AbstractServer
     public void run() {
       EventCoordinator.Tracker eventTracker = nextEvent.getTracker();
       while (stillManager()) {
-        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        long wait;
         try {
           switch (getManagerGoalState()) {
             case NORMAL:
@@ -970,7 +957,7 @@ public class Manager extends AbstractServer
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
-    ServiceLockData sld = null;
+    ServiceLockData sld;
     try {
       sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
@@ -1082,9 +1069,9 @@ public class Manager extends AbstractServer
     }
 
     try {
-      var metaInstance = initializeFateInstance(context, FateInstanceType.META,
+      var metaInstance = initializeFateInstance(context,
           new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
-      var userInstance = initializeFateInstance(context, FateInstanceType.USER,
+      var userInstance = initializeFateInstance(context,
           new AccumuloStore<>(context, AccumuloTable.FATE.tableName()));
 
       if (!fateRefs.compareAndSet(null,
@@ -1135,7 +1122,7 @@ public class Manager extends AbstractServer
     }
 
     sld = new ServiceLockData(descriptors);
-    log.info("Setting manager lock data to {}", sld.toString());
+    log.info("Setting manager lock data to {}", sld);
     try {
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
@@ -1192,8 +1179,7 @@ public class Manager extends AbstractServer
     log.info("exiting");
   }
 
-  private Fate<Manager> initializeFateInstance(ServerContext context, FateInstanceType type,
-      FateStore<Manager> store) {
+  private Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
@@ -1253,9 +1239,10 @@ public class Manager extends AbstractServer
       waitIncrement = 5;
     }
 
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
-        .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, SECONDS).backOffFactor(1)
-        .logInterval(30, SECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().maxRetries(retries)
+        .retryAfter(Duration.ofSeconds(initialWait)).incrementBy(Duration.ofSeconds(waitIncrement))
+        .maxWait(Duration.ofSeconds(maxWaitPeriod)).backOffFactor(1)
+        .logInterval(Duration.ofSeconds(30)).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
@@ -1340,7 +1327,7 @@ public class Manager extends AbstractServer
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
             -1);
       }
 
@@ -1352,7 +1339,9 @@ public class Manager extends AbstractServer
       while (!acquiredLock && !failedToAcquireLock) {
         try {
           wait();
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+          // empty
+        }
       }
     }
   }
@@ -1505,7 +1494,7 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
-      if ((state != null) && (state == TableState.ONLINE)) {
+      if (state == TableState.ONLINE) {
         result.add(tableId);
       }
     }

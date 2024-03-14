@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
+import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -138,11 +139,23 @@ class CompactionDriver extends ManagerRepo {
 
     var ample = manager.getContext().getAmple();
 
-    // ELASTICITY_TODO use existing compaction logging
+    // This map tracks tablets that had a conditional mutation submitted to select files. If the
+    // conditional mutation is successful then want to log a message. Use a concurrent map as the
+    // result consumer may run in another thread.
+    ConcurrentHashMap<KeyExtent,Set<StoredTabletFile>> selectionsSubmitted =
+        new ConcurrentHashMap<>();
 
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.REJECTED) {
         log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+      }
+
+      // always remove extents from the map even if not successful in order to avoid placing too
+      // many in memory
+      var selected = selectionsSubmitted.remove(result.getExtent());
+      if (selected != null && result.getStatus() == Status.ACCEPTED) {
+        // successfully selected files so log this
+        TabletLogger.selected(fateId, result.getExtent(), selected);
       }
     };
 
@@ -155,7 +168,8 @@ class CompactionDriver extends ManagerRepo {
     int noneSelected = 0;
     int alreadySelected = 0;
     int otherSelected = 0;
-    int otherCompaction = 0;
+    int userCompactionRequested = 0;
+    int userCompactionWaiting = 0;
     int selected = 0;
 
     KeyExtent minSelected = null;
@@ -163,7 +177,8 @@ class CompactionDriver extends ManagerRepo {
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID).checkConsistency().build();
+            .fetch(PREV_ROW, COMPACTED, FILES, SELECTED, ECOMP, OPID, USER_COMPACTION_REQUESTED)
+            .checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
@@ -228,6 +243,8 @@ class CompactionDriver extends ManagerRepo {
 
             mutator.putSelectedFiles(selectedFiles);
 
+            selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
+
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getMetadataValue()
                     .equals(selectedFiles.getMetadataValue()));
@@ -256,10 +273,24 @@ class CompactionDriver extends ManagerRepo {
                 tablet.getSelectedFiles().getFateId());
             otherSelected++;
           }
-        } else {
-          // ELASTICITY_TODO if there are compactions preventing selection of files, then add
+        } else if (!tablet.getExternalCompactions().isEmpty()) {
+          // If there are compactions preventing selection of files, then add
           // selecting marker that prevents new compactions from starting
-          otherCompaction++;
+          if (!tablet.getUserCompactionsRequested().contains(fateId)) {
+            log.trace(
+                "Another compaction exists for {}, Marking {} as needing a user requested compaction",
+                tablet.getExtent(), fateId);
+            var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
+                .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
+                .putUserCompactionRequested(fateId);
+            mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
+            userCompactionRequested++;
+          } else {
+            // Marker was already added and we are waiting
+            log.trace("Waiting on {} for previously marked user requested compaction {} to run",
+                tablet.getExtent(), fateId);
+            userCompactionWaiting++;
+          }
         }
       }
     } catch (InterruptedException | KeeperException e) {
@@ -268,10 +299,12 @@ class CompactionDriver extends ManagerRepo {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug("{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{}"
-        + " selected_by_other:{} no_files:{} none_selected:{} other_compaction:{} opids:{} scan_update_time:{}ms",
+    log.debug(
+        "{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{} selected_by_other:{} "
+            + "no_files:{} none_selected:{} user_compaction_requested:{} user_compaction_waiting:{} "
+            + "opids:{} scan_update_time:{}ms",
         fateId, total, complete, selected, alreadySelected, otherSelected, noFiles, noneSelected,
-        otherCompaction, opidsSeen, t2 - t1);
+        userCompactionRequested, userCompactionWaiting, opidsSeen, t2 - t1);
 
     if (selected > 0) {
       manager.getEventCoordinator().event(
@@ -309,9 +342,9 @@ class CompactionDriver extends ManagerRepo {
 
     boolean allCleanedUp = false;
 
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(1)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
 
     while (!allCleanedUp) {
 
@@ -323,14 +356,14 @@ class CompactionDriver extends ManagerRepo {
         }
       };
 
-      try (
-          var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
-              .fetch(PREV_ROW, COMPACTED, SELECTED).checkConsistency().build();
-          var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
+      try (var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)
+          .fetch(PREV_ROW, COMPACTED, SELECTED, USER_COMPACTION_REQUESTED).checkConsistency()
+          .build(); var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
         Predicate<TabletMetadata> needsUpdate =
             tabletMetadata -> (tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getFateId().equals(fateId))
-                || tabletMetadata.getCompacted().contains(fateId);
+                || tabletMetadata.getCompacted().contains(fateId)
+                || tabletMetadata.getUserCompactionsRequested().contains(fateId);
         Predicate<TabletMetadata> needsNoUpdate = needsUpdate.negate();
 
         for (TabletMetadata tablet : tablets) {
@@ -345,6 +378,9 @@ class CompactionDriver extends ManagerRepo {
 
             if (tablet.getCompacted().contains(fateId)) {
               mutator.deleteCompacted(fateId);
+            }
+            if (tablet.getUserCompactionsRequested().contains(fateId)) {
+              mutator.deleteUserCompactionRequested(fateId);
             }
 
             mutator.submit(needsNoUpdate::test);

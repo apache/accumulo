@@ -44,8 +44,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -130,6 +132,13 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   public T putFlushId(long flushId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
+    return getThis();
+  }
+
+  @Override
+  public T putFlushNonce(long flushNonce) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    ServerColumnFamily.FLUSH_NONCE_COLUMN.put(mutation, new Value(Long.toHexString(flushNonce)));
     return getThis();
   }
 
@@ -324,6 +333,30 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteMerged() {
     MergedColumnFamily.MERGED_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T putUserCompactionRequested(FateId fateId) {
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical(), "");
+    return getThis();
+  }
+
+  @Override
+  public T deleteUserCompactionRequested(FateId fateId) {
+    mutation.putDelete(UserCompactionRequestedColumnFamily.STR_NAME, fateId.canonical());
+    return getThis();
+  }
+
+  @Override
+  public T setUnSplittable(UnSplittableMetadata unSplittableMeta) {
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unSplittableMeta.toBase64()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteUnSplittable() {
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.putDelete(mutation);
     return getThis();
   }
 
