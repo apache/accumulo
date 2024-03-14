@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,7 +54,7 @@ public class SelectedFilesTest {
   @Test
   public void testSerializationDeserialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(2);
-    FateId fateId = FateId.from(FateInstanceType.META, 12345L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     SelectedFiles original = new SelectedFiles(files, true, fateId);
 
@@ -70,7 +71,7 @@ public class SelectedFilesTest {
   @Test
   public void testEqualSerialization() {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
-    FateId fateId = FateId.from(FateInstanceType.META, 12345L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     SelectedFiles sf1 = new SelectedFiles(files, true, fateId);
     SelectedFiles sf2 = new SelectedFiles(files, true, fateId);
@@ -87,7 +88,7 @@ public class SelectedFilesTest {
   public void testDifferentFilesOrdering() {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
     SortedSet<StoredTabletFile> sortedFiles = new TreeSet<>(files);
-    FateId fateId = FateId.from(FateInstanceType.META, 654123L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     assertEquals(files, sortedFiles, "Entries in test file sets should be the same");
     assertNotEquals(files.toString(), sortedFiles.toString(),
@@ -108,7 +109,7 @@ public class SelectedFilesTest {
   public void testJsonSuperSetSubset() {
     Set<StoredTabletFile> filesSuperSet = getStoredTabletFiles(3);
     Set<StoredTabletFile> filesSubSet = new HashSet<>(filesSuperSet);
-    FateId fateId = FateId.from(FateInstanceType.META, 123456L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
     // Remove an element to create a subset
     filesSubSet.remove(filesSubSet.iterator().next());
 
@@ -133,9 +134,9 @@ public class SelectedFilesTest {
   }
 
   private static Stream<Arguments> provideTestJsons() {
-    return Stream.of(Arguments.of("FATE:META:123456", true, 12),
-        Arguments.of("FATE:META:123456", false, 12), Arguments.of("FATE:META:123456", false, 23),
-        Arguments.of("FATE:META:654321", false, 23), Arguments.of("FATE:META:AE56E", false, 23));
+    return Stream.of(Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", true, 12),
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 12), Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 23),
+        Arguments.of("FATE:META:abcdef12-3456-789a-bcde-f123456789ab", false, 23), Arguments.of("FATE:META:41b40c7c-55e5-4d3b-8d21-1b70d1e7f3fb", false, 23));
   }
 
   /**
@@ -175,7 +176,7 @@ public class SelectedFilesTest {
    *
    * <pre>
    * {
-   *   "fateId": "FATE:META:123456",
+   *   "fateId": "FATE:META:12345678-9abc-def1-2345-6789abcdef12",
    *   "selAll": true,
    *   "files": ["/path/to/file1.rf", "/path/to/file2.rf"]
    * }

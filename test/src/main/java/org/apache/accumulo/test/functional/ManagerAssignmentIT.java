@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -386,7 +387,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       var tableId = TableId.of(prepTableForScanTest(c, tableName));
 
       FateInstanceType type = FateInstanceType.fromTableId(tableId);
-      FateId fateId = FateId.from(type, 42L);
+      FateId fateId = FateId.from(type, UUID.randomUUID());
 
       assertEquals(0, countTabletsWithLocation(c, tableId));
 

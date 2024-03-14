@@ -95,7 +95,7 @@ public class ZookeeperFateIT extends FateIT {
   private static TStatus getTxStatus(ZooReaderWriter zrw, FateId fateId)
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
-    String txdir = String.format("%s%s/tx_%s", ZK_ROOT, Constants.ZFATE, fateId.getHexTid());
+    String txdir = String.format("%s%s/tx_%s", ZK_ROOT, Constants.ZFATE, fateId.getTxUUIDStr());
 
     try (DataInputBuffer buffer = new DataInputBuffer()) {
       var serialized = zrw.getData(txdir);

@@ -21,10 +21,14 @@ package org.apache.accumulo.test.fate.accumulo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -68,7 +72,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       if (fateIdIterator.hasNext()) {
         return fateIdIterator.next();
       } else {
-        return FateId.from(fateInstanceType, -1L);
+        return FateId.from(fateInstanceType, UUID.nameUUIDFromBytes("invalid".getBytes(StandardCharsets.UTF_8)));
       }
     }
   }
@@ -80,10 +84,14 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
-      List<Long> txids = List.of(1L, 1L, 1L, 2L, 3L, 3L, 3L, 3L, 4L, 4L, 5L, 5L, 5L, 5L, 5L, 5L);
+      UUID[] uuids = new UUID[5];
+      for (int i = 0; i < uuids.length; i++) {
+        uuids[i] = UUID.nameUUIDFromBytes(Integer.toString(i).getBytes(StandardCharsets.UTF_8));
+      }
+      List<UUID> txids = List.of(uuids[0], uuids[0], uuids[0], uuids[1], uuids[2], uuids[2], uuids[2], uuids[2], uuids[3], uuids[3], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4]);
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
           .collect(Collectors.toList());
-      Set<FateId> expectedFateIds = new TreeSet<>(fateIds);
+      Set<FateId> expectedFateIds = new LinkedHashSet<>(fateIds);
       TestAccumuloStore store = new TestAccumuloStore(client, table, fateIds);
 
       // call create and expect we get the unique txids
@@ -93,6 +101,8 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
         assertEquals(expectedFateId, fateId, "Expected " + expectedFateId + " but got " + fateId);
       }
 
+      // TODO KEVIN RATHBUN would prob be nice to include checking that the error message contains
+      // TODO "Failed to create new id after..."
       // Calling create again on 5L should throw an exception since we've exceeded the max retries
       assertThrows(IllegalStateException.class, store::create);
     }

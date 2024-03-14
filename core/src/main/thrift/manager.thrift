@@ -171,7 +171,7 @@ enum TFateInstanceType {
 
 struct TFateId {
   1:TFateInstanceType type
-  2:i64 tid
+  2:string TxUUIDStr
 }
 
 service FateService {

@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -62,7 +63,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   private ZooReaderWriter zk;
 
   private String getTXPath(FateId fateId) {
-    return path + "/tx_" + fateId.getHexTid();
+    return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
@@ -88,9 +89,8 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   public FateId create() {
     while (true) {
       try {
-        // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        FateId fateId = FateId.from(fateInstanceType, tid);
+        UUID txUUID = UUID.randomUUID();
+        FateId fateId = FateId.from(fateInstanceType, txUUID);
         zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;

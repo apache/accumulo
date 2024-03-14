@@ -42,11 +42,11 @@ import org.apache.zookeeper.KeeperException;
 import com.google.common.base.Preconditions;
 
 public class CompactionConfigStorage {
-  static final String DELIMITER = "-";
+  static final String DELIMITER = "_";
 
   private static String createPath(ServerContext context, FateId fateId) {
     return context.getZooKeeperRoot() + Constants.ZCOMPACTIONS + "/" + fateId.getType() + DELIMITER
-        + fateId.getHexTid();
+        + fateId.getTxUUIDStr();
   }
 
   public static byte[] encodeConfig(CompactionConfig config, TableId tableId) {

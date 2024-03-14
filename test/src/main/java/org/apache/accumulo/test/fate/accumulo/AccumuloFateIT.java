@@ -76,6 +76,6 @@ public class AccumuloFateIT extends FateIT {
   }
 
   private static Range getRow(FateId fateId) {
-    return new Range("tx_" + fateId.getHexTid());
+    return new Range("tx_" + fateId.getTxUUIDStr());
   }
 }

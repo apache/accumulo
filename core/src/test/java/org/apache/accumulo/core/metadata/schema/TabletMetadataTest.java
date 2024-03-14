@@ -91,8 +91,8 @@ public class TabletMetadataTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
-    FateId fateId56L = FateId.from(type, 56L);
-    FateId fateId59L = FateId.from(type, 59L);
+    FateId fateId1 = FateId.from(type, UUID.randomUUID());
+    FateId fateId2 = FateId.from(type, UUID.randomUUID());
 
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
@@ -100,8 +100,8 @@ public class TabletMetadataTest {
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(fateId56L.canonical());
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(fateId59L.canonical());
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(fateId1.canonical());
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(fateId2.canonical());
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
@@ -141,7 +141,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(Map.of(new StoredTabletFile(bf1), fateId56L, new StoredTabletFile(bf2), fateId59L),
+    assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
@@ -349,11 +349,17 @@ public class TabletMetadataTest {
     StoredTabletFile sf4 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/sf4.rf")).insert();
 
+    FateId loadedFateId1 = FateId.from(type, UUID.randomUUID());
+    FateId loadedFateId2 = FateId.from(type, UUID.randomUUID());
+    FateId compactFateId1 = FateId.from(type, UUID.randomUUID());
+    FateId compactFateId2 = FateId.from(type, UUID.randomUUID());
+
+
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
-        .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, FateId.from(type, 25))
-        .putBulkFile(rf2, FateId.from(type, 35)).putFlushId(27).putDirName("dir1").putScan(sf3)
-        .putScan(sf4).putCompacted(FateId.from(type, 17)).putCompacted(FateId.from(type, 23))
+        .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
+        .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3)
+        .putScan(sf4).putCompacted(compactFateId1).putCompacted(compactFateId2)
         .build(ECOMP, HOSTING_REQUESTED, MERGED);
 
     assertEquals(extent, tm.getExtent());
@@ -361,12 +367,12 @@ public class TabletMetadataTest {
     assertEquals(Location.future(ser1), tm.getLocation());
     assertEquals(27L, tm.getFlushId().orElse(-1));
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
-    assertEquals(Map.of(rf1.insert(), FateId.from(type, 25L), rf2.insert(), FateId.from(type, 35L)),
+    assertEquals(Map.of(rf1.insert(), loadedFateId1, rf2.insert(), loadedFateId2),
         tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
     assertEquals(Set.of(sf3, sf4), Set.copyOf(tm.getScans()));
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
-    assertEquals(Set.of(FateId.from(type, 17L), FateId.from(type, 23L)), tm.getCompacted());
+    assertEquals(Set.of(compactFateId1, compactFateId2), tm.getCompacted());
     assertFalse(tm.getHostingRequested());
     assertFalse(tm.hasMerged());
     assertThrows(IllegalStateException.class, tm::getOperationId);
@@ -374,7 +380,7 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm::getTime);
 
     TabletOperationId opid1 =
-        TabletOperationId.from(TabletOperationType.SPLITTING, FateId.from(type, 55));
+        TabletOperationId.from(TabletOperationType.SPLITTING, FateId.from(type, UUID.randomUUID()));
     TabletMetadata tm2 = TabletMetadata.builder(extent).putOperation(opid1).build(LOCATION);
 
     assertEquals(extent, tm2.getExtent());
@@ -396,12 +402,13 @@ public class TabletMetadataTest {
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =
         new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1", CompactionKind.USER, (short) 3,
-            CompactorGroupIdImpl.groupId("Q1"), true, FateId.from(type, 99L));
+            CompactorGroupIdImpl.groupId("Q1"), true, FateId.from(type, UUID.randomUUID()));
 
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
-    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, FateId.from(type, 159L));
+    FateId selFilesFateId = FateId.from(type, UUID.randomUUID());
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId);
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
@@ -416,7 +423,7 @@ public class TabletMetadataTest {
     assertEquals(Stream.of(le1, le2).map(LogEntry::toString).collect(toSet()),
         tm3.getLogs().stream().map(LogEntry::toString).collect(toSet()));
     assertEquals(Set.of(sf1, sf4), tm3.getSelectedFiles().getFiles());
-    assertEquals(FateId.from(type, 159L), tm3.getSelectedFiles().getFateId());
+    assertEquals(selFilesFateId, tm3.getSelectedFiles().getFateId());
     assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
     assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
     assertTrue(tm3.hasMerged());

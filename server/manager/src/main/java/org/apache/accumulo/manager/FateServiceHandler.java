@@ -127,7 +127,7 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftSecurityException {
     authenticate(credentials);
     return new TFateId(type,
-        manager.fate(FateInstanceType.fromThrift(type)).startTransaction().getTid());
+        manager.fate(FateInstanceType.fromThrift(type)).startTransaction().getTxUUIDStr());
   }
 
   @Override
@@ -136,9 +136,9 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     authenticate(c);
     String goalMessage = op.toString() + " ";
-    long tid = opid.getTid();
+    String txUUIDStr = opid.getTxUUIDStr();
     FateInstanceType type = FateInstanceType.fromThrift(opid.getType());
-    FateId fateId = FateId.from(type, tid);
+    FateId fateId = FateId.from(type, txUUIDStr);
 
     switch (op) {
       case NAMESPACE_CREATE: {
@@ -949,7 +949,7 @@ class FateServiceHandler implements FateService.Iface {
   public Path mkTempDir(TFateId opid) throws IOException {
     Volume vol = manager.getVolumeManager().getFirst();
     FateId fateId = FateId.fromThrift(opid);
-    Path p = vol.prefixChild("/tmp/fate-" + fateId.getType() + "-" + fateId.getHexTid());
+    Path p = vol.prefixChild("/tmp/fate-" + fateId.getType() + "-" + fateId.getTxUUIDStr());
     FileSystem fs = vol.getFileSystem();
     if (fs.exists(p)) {
       fs.delete(p, true);

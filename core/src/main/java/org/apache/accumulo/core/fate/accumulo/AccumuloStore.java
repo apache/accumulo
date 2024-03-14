@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -116,8 +117,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   public FateId getFateId() {
-    long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-    return FateId.from(fateInstanceType, tid);
+    return FateId.from(fateInstanceType, UUID.randomUUID());
   }
 
   @Override
@@ -236,7 +236,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   public static String getRowId(FateId fateId) {
-    return "tx_" + fateId.getHexTid();
+    return "tx_" + fateId.getTxUUIDStr();
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {
