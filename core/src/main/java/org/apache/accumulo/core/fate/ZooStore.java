@@ -274,7 +274,7 @@ public class ZooStore<T> implements TStore<T> {
   @Override
   public void unreserve(long tid, Duration deferTime) {
 
-    if (deferTime.compareTo(Duration.ZERO) < 0) {
+    if (deferTime.isNegative()) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
     }
 
