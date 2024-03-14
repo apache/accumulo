@@ -868,7 +868,7 @@
             <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${extraTestArgs}</argLine>
+            <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
             <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
