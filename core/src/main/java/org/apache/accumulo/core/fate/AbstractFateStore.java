@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -166,7 +167,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
                 var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
                   if (deferredTime.elapsed().isNegative()) {
-                    // negative elapsed time indicates the deferal time is in the future
+                    // negative elapsed time indicates the deferral time is in the future
                     return false;
                   } else {
                     deferred.remove(fateId);
@@ -383,9 +384,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(Duration deferTime) {
+    public void unreserve(long deferTime, TimeUnit timeUnit) {
+      Duration deferDuration = Duration.of(deferTime, timeUnit.toChronoUnit());
 
-      if (deferTime.isNegative()) {
+      if (deferDuration.isNegative()) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
@@ -401,7 +403,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         // and clear the map and set the flag. This will cause the next execution
         // of runnable to process all the transactions and to not defer as we
         // have a large backlog and want to make progress
-        if (deferTime.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
+        if (deferDuration.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
           if (deferred.size() >= maxDeferred) {
             log.info(
                 "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
@@ -409,7 +411,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(fateId, NanoTime.nowPlus(deferTime));
+            deferred.put(fateId, NanoTime.nowPlus(deferDuration));
           }
         }
       }

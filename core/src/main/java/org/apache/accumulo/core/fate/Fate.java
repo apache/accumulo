@@ -31,7 +31,6 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
-import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -206,7 +205,7 @@ public class Fate<T> {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           if (txStore != null) {
-            txStore.unreserve(Duration.ofMillis(deferTime));
+            txStore.unreserve(deferTime, TimeUnit.MILLISECONDS);
           }
         }
       }
@@ -349,7 +348,7 @@ public class Fate<T> {
         Preconditions.checkState(txStore.getStatus() == NEW);
         seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
       } finally {
-        txStore.unreserve(Duration.ZERO);
+        txStore.unreserve(0, MILLISECONDS);
       }
       return fateId;
     });
@@ -386,7 +385,7 @@ public class Fate<T> {
         seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
       }
     } finally {
-      txStore.unreserve(Duration.ZERO);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
 
   }
@@ -423,7 +422,7 @@ public class Fate<T> {
             return false;
           }
         } finally {
-          txStore.unreserve(Duration.ZERO);
+          txStore.unreserve(0, TimeUnit.MILLISECONDS);
         }
       } else {
         // reserved, lets retry.
@@ -453,7 +452,7 @@ public class Fate<T> {
           break;
       }
     } finally {
-      txStore.unreserve(Duration.ZERO);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -466,7 +465,7 @@ public class Fate<T> {
       }
       return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
-      txStore.unreserve(Duration.ZERO);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -480,7 +479,7 @@ public class Fate<T> {
       }
       return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {
-      txStore.unreserve(Duration.ZERO);
+      txStore.unreserve(0, TimeUnit.MILLISECONDS);
     }
   }
 

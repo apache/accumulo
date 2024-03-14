@@ -21,6 +21,7 @@ package org.apache.accumulo.core.fate;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -121,7 +122,7 @@ public class FateCleaner<T> {
               log.debug("Aged off FATE tx {}", idStatus.getFateId());
             }
           } finally {
-            txStore.unreserve(Duration.ZERO);
+            txStore.unreserve(0, TimeUnit.MILLISECONDS);
           }
         }));
   }

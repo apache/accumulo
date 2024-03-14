@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
-import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Transaction Store: a place to save transactions
@@ -100,11 +100,11 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * upon successful return the store now controls the referenced transaction id. caller should no
      * longer interact with it.
      *
-     * @param deferTime time to keep this transaction from being returned by
+     * @param deferTime time in millis to keep this transaction from being returned by
      *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.Consumer)}.
      *        Must be non-negative.
      */
-    void unreserve(Duration deferTime);
+    void unreserve(long deferTime, TimeUnit timeUnit);
   }
 
   /**

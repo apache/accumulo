@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateCleaner.TimeSource;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
@@ -54,7 +55,7 @@ public class FateCleanerTest {
     FateId fateId1 = testStore.create();
     var txStore1 = testStore.reserve(fateId1);
     txStore1.setStatus(TStatus.IN_PROGRESS);
-    txStore1.unreserve(Duration.ZERO);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     cleaner.ageOff();
 
@@ -62,7 +63,7 @@ public class FateCleanerTest {
     var txStore2 = testStore.reserve(fateId2);
     txStore2.setStatus(TStatus.IN_PROGRESS);
     txStore2.setStatus(TStatus.FAILED);
-    txStore2.unreserve(Duration.ZERO);
+    txStore2.unreserve(0, TimeUnit.MILLISECONDS);
 
     cleaner.ageOff();
 
@@ -72,7 +73,7 @@ public class FateCleanerTest {
     var txStore3 = testStore.reserve(fateId3);
     txStore3.setStatus(TStatus.IN_PROGRESS);
     txStore3.setStatus(TStatus.SUCCESSFUL);
-    txStore3.unreserve(Duration.ZERO);
+    txStore3.unreserve(0, TimeUnit.MILLISECONDS);
 
     cleaner.ageOff();
 
@@ -106,19 +107,19 @@ public class FateCleanerTest {
     FateId fateId1 = testStore.create();
     var txStore1 = testStore.reserve(fateId1);
     txStore1.setStatus(TStatus.IN_PROGRESS);
-    txStore1.unreserve(Duration.ZERO);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     FateId fateId2 = testStore.create();
     var txStore2 = testStore.reserve(fateId2);
     txStore2.setStatus(TStatus.IN_PROGRESS);
     txStore2.setStatus(TStatus.FAILED);
-    txStore2.unreserve(Duration.ZERO);
+    txStore2.unreserve(0, TimeUnit.MILLISECONDS);
 
     FateId fateId3 = testStore.create();
     var txStore3 = testStore.reserve(fateId3);
     txStore3.setStatus(TStatus.IN_PROGRESS);
     txStore3.setStatus(TStatus.SUCCESSFUL);
-    txStore3.unreserve(Duration.ZERO);
+    txStore3.unreserve(0, TimeUnit.MILLISECONDS);
 
     FateId fateId4 = testStore.create();
 
@@ -141,7 +142,7 @@ public class FateCleanerTest {
 
     txStore1 = testStore.reserve(fateId1);
     txStore1.setStatus(TStatus.FAILED_IN_PROGRESS);
-    txStore1.unreserve(Duration.ZERO);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     tts.time = 30;
 
@@ -151,7 +152,7 @@ public class FateCleanerTest {
 
     txStore1 = testStore.reserve(fateId1);
     txStore1.setStatus(TStatus.FAILED);
-    txStore1.unreserve(Duration.ZERO);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     cleaner.ageOff();
 
@@ -183,7 +184,7 @@ public class FateCleanerTest {
     var txStore2 = testStore.reserve(fateId2);
     txStore2.setStatus(TStatus.IN_PROGRESS);
     txStore2.setStatus(TStatus.FAILED);
-    txStore2.unreserve(Duration.ZERO);
+    txStore2.unreserve(0, TimeUnit.MILLISECONDS);
 
     // create another in the NEW state
     FateId fateId3 = testStore.create();
@@ -203,7 +204,7 @@ public class FateCleanerTest {
     var txStore1 = testStore.reserve(fateId1);
     txStore1.setStatus(TStatus.IN_PROGRESS);
     txStore1.setStatus(TStatus.FAILED);
-    txStore1.unreserve(Duration.ZERO);
+    txStore1.unreserve(0, TimeUnit.MILLISECONDS);
 
     // advance time by 2 hours, both should be able to age off.. however the status changed on txid1
     // so it should not age off

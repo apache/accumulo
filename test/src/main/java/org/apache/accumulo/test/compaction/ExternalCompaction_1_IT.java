@@ -39,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -51,6 +50,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
@@ -346,7 +346,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     FateStore.FateTxStore<Manager> fateTx = fateStore
         .createAndReserve(FateKey.forCompactionCommit(allCids.get(tableId).get(0))).orElseThrow();
     var fateId = fateTx.getID();
-    fateTx.unreserve(Duration.ZERO);
+    fateTx.unreserve(0, TimeUnit.MILLISECONDS);
 
     // Read the tablet metadata
     var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()
@@ -397,7 +397,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // remaining external compaction id
     var fateTx = fateStore.reserve(fateId);
     fateTx.delete();
-    fateTx.unreserve(Duration.ZERO);
+    fateTx.unreserve(0, TimeUnit.MILLISECONDS);
 
     // wait for the remaining compaction id to be removed
     Wait.waitFor(() -> {
