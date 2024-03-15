@@ -129,7 +129,8 @@ class CompactionDriver extends ManagerRepo {
     return sleepTime;
   }
 
-  private boolean isCancelled(FateId fateId, ServerContext context)
+  // visible for testing
+  protected boolean isCancelled(FateId fateId, ServerContext context)
       throws InterruptedException, KeeperException {
     return CompactionConfigStorage.getConfig(context, fateId) == null;
   }
