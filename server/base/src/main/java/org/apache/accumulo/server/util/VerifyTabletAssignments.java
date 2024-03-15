@@ -117,8 +117,8 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = ThreadPools.getServerThreadPools().getPoolBuilder()
-        .named("CheckTabletServer").numCoreThreads(20).build();
+    ExecutorService tp = ThreadPools.getServerThreadPools().getPoolBuilder("CheckTabletServer")
+        .numCoreThreads(20).build();
 
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {

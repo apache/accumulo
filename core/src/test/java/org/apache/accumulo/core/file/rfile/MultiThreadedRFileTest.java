@@ -232,9 +232,9 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().getPoolBuilder().named(name)
-          .numCoreThreads(maxThreads + 1).numMaxThreads(maxThreads + 1).withTimeOut(5, MINUTES)
-          .build();
+      ThreadPoolExecutor pool =
+          ThreadPools.getServerThreadPools().getPoolBuilder(name).numCoreThreads(maxThreads + 1)
+              .numMaxThreads(maxThreads + 1).withTimeOut(5, MINUTES).build();
       try {
         Runnable runnable = () -> {
           try {

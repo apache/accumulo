@@ -307,8 +307,8 @@ public class TServerUtils {
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().getPoolBuilder()
-        .named(serverName + "-ClientPool").numCoreThreads(executorThreads)
+    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(serverName + "-ClientPool").numCoreThreads(executorThreads)
         .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();
     // periodically adjust the number of threads we need by checking how busy our threads are
     ThreadPools.watchCriticalFixedDelay(conf, timeBetweenThreadChecks, () -> {

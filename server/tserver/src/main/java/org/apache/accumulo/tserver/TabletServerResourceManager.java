@@ -185,10 +185,10 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder()
-        .named("scan-" + sec.name).numCoreThreads(sec.getCurrentMaxThreads())
-        .numMaxThreads(sec.getCurrentMaxThreads()).withTimeOut(0L, MILLISECONDS).withQueue(queue)
-        .atPriority(sec.priority).enableThreadPoolMetrics().build();
+    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder("scan-" + sec.name)
+        .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
+        .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
+        .enableThreadPoolMetrics().build();
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name, es);
     return es;
 
@@ -308,15 +308,15 @@ public class TabletServerResourceManager {
         "minor compactor", minorCompactionThreadPool);
 
     splitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder().named("splitter").numCoreThreads(0)
+        ThreadPools.getServerThreadPools().getPoolBuilder("splitter").numCoreThreads(0)
             .numMaxThreads(1).withTimeOut(1, SECONDS).enableThreadPoolMetrics().build();
 
     defaultSplitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder().named("md splitter").numCoreThreads(0)
+        ThreadPools.getServerThreadPools().getPoolBuilder("md splitter").numCoreThreads(0)
             .numMaxThreads(1).withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
 
-    defaultMigrationPool = ThreadPools.getServerThreadPools().getPoolBuilder()
-        .named("metadata tablet migration").numCoreThreads(0).numMaxThreads(1)
+    defaultMigrationPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("metadata tablet migration").numCoreThreads(0).numMaxThreads(1)
         .withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
@@ -336,8 +336,8 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", assignmentPool);
 
-    assignMetaDataPool = ThreadPools.getServerThreadPools().getPoolBuilder()
-        .named("metadata tablet assignment").numCoreThreads(0).numMaxThreads(1)
+    assignMetaDataPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("metadata tablet assignment").numCoreThreads(0).numMaxThreads(1)
         .withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
 
     activeAssignments = new ConcurrentHashMap<>();

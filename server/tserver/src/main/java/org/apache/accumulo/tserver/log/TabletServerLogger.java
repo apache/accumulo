@@ -262,7 +262,7 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = ThreadPools.getServerThreadPools().getPoolBuilder().named("WALog creator")
+    nextLogMaker = ThreadPools.getServerThreadPools().getPoolBuilder("WALog creator")
         .numCoreThreads(1).enableThreadPoolMetrics().build();
     nextLogMaker.execute(new Runnable() {
       @Override

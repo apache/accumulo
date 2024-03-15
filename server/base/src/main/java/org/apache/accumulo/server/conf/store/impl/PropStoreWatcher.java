@@ -58,7 +58,7 @@ public class PropStoreWatcher implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(PropStoreWatcher.class);
 
   private static final ExecutorService executorService = ThreadPools.getServerThreadPools()
-      .getPoolBuilder().named("zoo_change_update").numCoreThreads(2).build();
+      .getPoolBuilder("zoo_change_update").numCoreThreads(2).build();
   private final ReentrantReadWriteLock listenerLock = new ReentrantReadWriteLock();
   private final ReentrantReadWriteLock.ReadLock listenerReadLock = listenerLock.readLock();
   private final ReentrantReadWriteLock.WriteLock listenerWriteLock = listenerLock.writeLock();

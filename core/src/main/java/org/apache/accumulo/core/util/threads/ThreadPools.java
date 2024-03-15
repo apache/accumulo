@@ -25,7 +25,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -81,8 +80,8 @@ public class ThreadPools {
     return new ThreadPools(ueh);
   }
 
-  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL = getServerThreadPools()
-      .getPoolBuilder().named("Scheduled Future Checker").numCoreThreads(1).build();
+  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
+      getServerThreadPools().getPoolBuilder("Scheduled Future Checker").numCoreThreads(1).build();
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
@@ -276,27 +275,26 @@ public class ThreadPools {
         return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
-        builder =
-            getPoolBuilder().named("bulk import").numCoreThreads(conf.getCount(p)).withTimeOut(
-                conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS);
+        builder = getPoolBuilder("bulk import").numCoreThreads(conf.getCount(p)).withTimeOut(
+            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case MANAGER_RENAME_THREADS:
-        builder = getPoolBuilder().named("bulk move").numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder("bulk move").numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case MANAGER_FATE_THREADPOOL_SIZE:
-        builder = getPoolBuilder().named("Repo Runner").numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder("Repo Runner").numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
-        builder = getPoolBuilder().named("GatherTableInformation");
+        builder = getPoolBuilder("GatherTableInformation");
         int threads = conf.getCount(p);
         if (threads == 0) {
           builder.numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
@@ -309,57 +307,57 @@ public class ThreadPools {
         }
         return builder.build();
       case TSERV_WORKQ_THREADS:
-        builder = getPoolBuilder().named("distributed work queue").numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder("distributed work queue").numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_MINC_MAXCONCURRENT:
-        builder = getPoolBuilder().named("minor compactor").numCoreThreads(conf.getCount(p))
-            .withTimeOut(0L, MILLISECONDS);
+        builder = getPoolBuilder("minor compactor").numCoreThreads(conf.getCount(p)).withTimeOut(0L,
+            MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_MIGRATE_MAXCONCURRENT:
-        builder = getPoolBuilder().named("tablet migration").numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder("tablet migration").numCoreThreads(conf.getCount(p))
             .withTimeOut(0L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        builder = getPoolBuilder().named("tablet assignment").numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder("tablet assignment").numCoreThreads(conf.getCount(p))
             .withTimeOut(0L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
-        builder = getPoolBuilder().named("summary file retriever").numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder("summary file retriever").numCoreThreads(conf.getCount(p))
             .withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_REMOTE_THREADS:
-        builder = getPoolBuilder().named("summary remote").numCoreThreads(conf.getCount(p))
-            .withTimeOut(60L, MILLISECONDS);
+        builder = getPoolBuilder("summary remote").numCoreThreads(conf.getCount(p)).withTimeOut(60L,
+            MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_PARTITION_THREADS:
-        builder = getPoolBuilder().named("summary partition").numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder("summary partition").numCoreThreads(conf.getCount(p))
             .withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case GC_DELETE_THREADS:
-        return getPoolBuilder().named("deleting").numCoreThreads(conf.getCount(p)).build();
+        return getPoolBuilder("deleting").numCoreThreads(conf.getCount(p)).build();
       case REPLICATION_WORKER_THREADS:
-        builder = getPoolBuilder().named("replication task").numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder("replication task").numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
@@ -370,27 +368,29 @@ public class ThreadPools {
     }
   }
 
-  public PoolBuilder getPoolBuilder() {
-    return new PoolBuilder();
+  public PoolBuilder getPoolBuilder(@NonNull final String name) {
+    return new PoolBuilder(name);
   }
 
   public class PoolBuilder {
+    final String name;
     int coreThreads = 0;
     int maxThreads = -1;
     long timeOut = DEFAULT_TIMEOUT_MILLISECS;
     TimeUnit units = MILLISECONDS;
-    String name = null;
     BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     OptionalInt priority = OptionalInt.empty();
     boolean emitThreadPoolMetrics = false;
 
     /**
-     * A fluent-style build to create a ThreadPoolExecutor
+     * A fluent-style build to create a ThreadPoolExecutor. The name is used when creating
+     * named-threads for the pool.
      */
-    PoolBuilder() {}
+    PoolBuilder(@NonNull final String name) {
+      this.name = name;
+    }
 
     public ThreadPoolExecutor build() {
-      Objects.requireNonNull(name, "a thread name must be provided");
       Preconditions.checkArgument(coreThreads >= 0,
           "The number of core threads must be 0 or larger");
       if (maxThreads < 0) {
@@ -398,7 +398,7 @@ public class ThreadPools {
         maxThreads = coreThreads == 0 ? 1 : coreThreads;
       }
       Preconditions.checkArgument(maxThreads >= coreThreads,
-          "The number of core threads must be 0 or larger");
+          "The number of max threads must be 0 or larger");
       Preconditions.checkArgument(
           priority.orElse(1) >= Thread.MIN_PRIORITY && priority.orElse(1) <= Thread.MAX_PRIORITY,
           "invalid thread priority, range must be Thread.MIN_PRIORITY <= priority <= Thread.MAX_PRIORITY");
@@ -420,9 +420,9 @@ public class ThreadPools {
 
     /**
      * Set the maximum number of threads in the pool. See
-     * {@link java.util.concurrent.ThreadPoolExecutor} If the maxThreads is not set, defaults to the
-     * number of core threads (if set) resulting in a fixed pool. If the number of core threads is
-     * not set, defaults to a single thread.
+     * {@link java.util.concurrent.ThreadPoolExecutor}. If the maxThreads is not set, defaults to
+     * the number of core threads (if set) resulting in a fixed pool. If the number of core threads
+     * is not set, defaults to a single thread.
      *
      * @param maxThreads max number of threads. Must be greater than 0 and equal or greater that the
      *        number of core threads.
@@ -444,17 +444,6 @@ public class ThreadPools {
     public PoolBuilder withTimeOut(long timeOut, @NonNull TimeUnit units) {
       this.timeOut = timeOut;
       this.units = units;
-      return this;
-    }
-
-    /**
-     * Set the names used when creating named-threads for the pool.
-     *
-     * @param name (required) the name use for creating named-threads.
-     * @return fluent-style builder instance
-     */
-    public PoolBuilder named(@NonNull String name) {
-      this.name = name;
       return this;
     }
 

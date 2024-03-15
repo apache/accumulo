@@ -297,7 +297,7 @@ public class LogSorter {
     int threadPoolSize = this.conf.getCount(this.conf
         .resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT, Property.TSERV_RECOVERY_MAX_CONCURRENT));
     ThreadPoolExecutor threadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder().named(this.getClass().getName())
+        ThreadPools.getServerThreadPools().getPoolBuilder(this.getClass().getName())
             .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
         context).startProcessing(new LogProcessor(), threadPool);

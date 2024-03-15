@@ -194,7 +194,7 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.getServerThreadPools().getPoolBuilder().named("UpgradeMetadataThreads")
+      return ThreadPools.getServerThreadPools().getPoolBuilder("UpgradeMetadataThreads")
           .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
