@@ -32,7 +32,7 @@ import com.google.common.base.Preconditions;
 
 public class TabletsMutatorImpl implements TabletsMutator {
 
-  private ServerContext context;
+  private final ServerContext context;
 
   private BatchWriter rootWriter;
   private BatchWriter metaWriter;
@@ -54,7 +54,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
         return rootWriter;
       } else {
         if (metaWriter == null) {
-          metaWriter = context.createBatchWriter(AccumuloTable.METADATA.tableName());
+          metaWriter = context.createBatchWriter(getMetadataTableName());
         }
 
         return metaWriter;
@@ -87,5 +87,9 @@ public class TabletsMutatorImpl implements TabletsMutator {
       throw new IllegalStateException(e);
     }
 
+  }
+
+  protected String getMetadataTableName() {
+    return AccumuloTable.METADATA.tableName();
   }
 }

@@ -250,10 +250,14 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     }
 
+    protected String getMetadataTable() {
+      return level.metaTable();
+    }
+
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
 
-        String resolvedTable = table == null ? level.metaTable() : table;
+        String resolvedTable = table == null ? getMetadataTable() : table;
 
         Scanner scanner =
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
@@ -654,6 +658,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public static TableOptions builder(AccumuloClient client) {
     return new Builder(client);
+  }
+
+  public static TableOptions builder(AccumuloClient client, String table) {
+    return new Builder(client) {
+      @Override
+      protected String getMetadataTable() {
+        return table;
+      }
+    };
   }
 
   private static TabletMetadata getRootMetadata(ClientContext ctx,

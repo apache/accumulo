@@ -68,7 +68,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
 
-  private ServerContext context;
+  private final ServerContext context;
 
   public ServerAmpleImpl(ServerContext context) {
     super(context);
@@ -337,5 +337,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 }
