@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -25,7 +27,6 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -193,9 +194,9 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.getServerThreadPools().createThreadPool(0, Integer.MAX_VALUE, 60L,
-          TimeUnit.SECONDS, "UpgradeMetadataThreads", new SynchronousQueue<>(), false)
-          .submit(() -> {
+      return ThreadPools.getServerThreadPools().getPoolBuilder().named("UpgradeMetadataThreads")
+          .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
+          .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root from data version {}", v);
