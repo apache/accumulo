@@ -38,8 +38,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +122,7 @@ public class UpdateTablets extends ManagerRepo {
    */
   static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(
       Set<KeyExtent> newTablets, TabletMetadata tabletMetadata,
-      Function<StoredTabletFile,FileUtil.FileInfo> fileInfoProvider) {
+      Function<StoredTabletFile,Splitter.FileInfo> fileInfoProvider) {
 
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> tabletsFiles = new TreeMap<>();
 
@@ -130,7 +130,7 @@ public class UpdateTablets extends ManagerRepo {
 
     // determine which files overlap which tablets and their estimated sizes
     tabletMetadata.getFilesMap().forEach((file, dataFileValue) -> {
-      FileUtil.FileInfo fileInfo = fileInfoProvider.apply(file);
+      Splitter.FileInfo fileInfo = fileInfoProvider.apply(file);
 
       Range fileRange;
       if (fileInfo != null) {
