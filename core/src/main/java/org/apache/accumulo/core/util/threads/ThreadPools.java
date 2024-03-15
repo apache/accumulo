@@ -398,7 +398,7 @@ public class ThreadPools {
         maxThreads = coreThreads == 0 ? 1 : coreThreads;
       }
       Preconditions.checkArgument(maxThreads >= coreThreads,
-          "The number of max threads must be 0 or larger");
+          "The number of max threads must be greater than 0 and greater than or equal to the number of core threads");
       Preconditions.checkArgument(
           priority.orElse(1) >= Thread.MIN_PRIORITY && priority.orElse(1) <= Thread.MAX_PRIORITY,
           "invalid thread priority, range must be Thread.MIN_PRIORITY <= priority <= Thread.MAX_PRIORITY");
