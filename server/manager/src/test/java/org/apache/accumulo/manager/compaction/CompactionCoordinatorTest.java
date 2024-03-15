@@ -128,8 +128,8 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected void startIdleCompactionWatcher() {
-      // This is called from CompactionCoordinator.run(). Setting shutdown to true
-      // here will exit the loop in run()
+      // This is called from CompactionCoordinator.run(). Counting down
+      // the latch will exit the run method
       this.shutdown.countDown();
     }
 
