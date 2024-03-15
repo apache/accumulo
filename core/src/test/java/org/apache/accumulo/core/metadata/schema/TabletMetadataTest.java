@@ -136,8 +136,7 @@ public class TabletMetadataTest {
 
     MERGED_COLUMN.put(mutation, new Value());
     FateId userCompactFateId = FateId.from(type, UUID.randomUUID());
-    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId.canonical(),
-        "");
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId.canonical(), "");
     var unsplittableMeta =
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
@@ -350,10 +349,8 @@ public class TabletMetadataTest {
 
     // Test column set
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId1.canonical(),
-        "");
-    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId2.canonical(),
-        "");
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId1.canonical(), "");
+    mutation.put(UserCompactionRequestedColumnFamily.STR_NAME, userCompactFateId2.canonical(), "");
 
     TabletMetadata tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(USER_COMPACTION_REQUESTED), true, false);
@@ -511,12 +508,11 @@ public class TabletMetadataTest {
     FateId compactFateId1 = FateId.from(type, UUID.randomUUID());
     FateId compactFateId2 = FateId.from(type, UUID.randomUUID());
 
-
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
-        .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3)
-        .putScan(sf4).putCompacted(compactFateId1).putCompacted(compactFateId2)
+        .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
+        .putCompacted(compactFateId1).putCompacted(compactFateId2)
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -526,8 +522,7 @@ public class TabletMetadataTest {
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
-    assertEquals(Map.of(rf1.insert(), loadedFateId1, rf2.insert(), loadedFateId2),
-        tm.getLoaded());
+    assertEquals(Map.of(rf1.insert(), loadedFateId1, rf2.insert(), loadedFateId2), tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
     assertEquals(Set.of(sf3, sf4), Set.copyOf(tm.getScans()));
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
@@ -565,8 +560,8 @@ public class TabletMetadataTest {
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =
-            new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
-                CompactionKind.USER, (short) 3, CompactorGroupId.of("Q1"), true, FateId.from(type, UUID.randomUUID()));
+        new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1", CompactionKind.USER, (short) 3,
+            CompactorGroupId.of("Q1"), true, FateId.from(type, UUID.randomUUID()));
 
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
@@ -579,8 +574,7 @@ public class TabletMetadataTest {
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
         .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
         .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged()
-        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta)
-        .build();
+        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta).build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());

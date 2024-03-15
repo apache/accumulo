@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.fate.accumulo;
 
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map.Entry;

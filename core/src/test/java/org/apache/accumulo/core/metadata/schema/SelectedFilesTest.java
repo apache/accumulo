@@ -135,8 +135,10 @@ public class SelectedFilesTest {
 
   private static Stream<Arguments> provideTestJsons() {
     return Stream.of(Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", true, 12),
-        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 12), Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 23),
-        Arguments.of("FATE:META:abcdef12-3456-789a-bcde-f123456789ab", false, 23), Arguments.of("FATE:META:41b40c7c-55e5-4d3b-8d21-1b70d1e7f3fb", false, 23));
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 12),
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 23),
+        Arguments.of("FATE:META:abcdef12-3456-789a-bcde-f123456789ab", false, 23),
+        Arguments.of("FATE:META:41b40c7c-55e5-4d3b-8d21-1b70d1e7f3fb", false, 23));
   }
 
   /**

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.accumulo;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -28,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -369,7 +369,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // Replace the default hashing algorithm with one that always returns the same tid so
     // we can check duplicate detection with different keys
     executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
-        (instanceType, fateKey) -> FateId.from(instanceType, UUID.nameUUIDFromBytes("testing uuid".getBytes(StandardCharsets.UTF_8))));
+        (instanceType, fateKey) -> FateId.from(instanceType,
+            UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8))));
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
@@ -383,7 +384,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
     try {
       var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
-      assertEquals("Collision detected for tid " + UUID.nameUUIDFromBytes("testing uuid".getBytes(StandardCharsets.UTF_8)), e.getMessage());
+      assertEquals(
+          "Collision detected for tid " + UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)),
+          e.getMessage());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();

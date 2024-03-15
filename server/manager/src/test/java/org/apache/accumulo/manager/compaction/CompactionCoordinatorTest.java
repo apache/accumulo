@@ -402,7 +402,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.getTableState(tableId1)).andReturn(TableState.ONLINE).atLeastOnce();
     EasyMock.expect(context.getTableState(tableId2)).andReturn(TableState.OFFLINE).atLeastOnce();
 
-    FateId fateId1 = FateId.from(FateInstanceType.USER, 1234L);
+    FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
     CompactorGroupId cgid = CompactorGroupId.of("G1");
     ReferencedTabletFile tmp1 =

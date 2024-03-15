@@ -692,8 +692,6 @@ public class MergeIT extends AccumuloClusterHarness {
           var tablet = tabletsMutator.mutateTablet(extent);
           ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
           FateInstanceType type = FateInstanceType.fromTableId(tableId);
-          // TODO KEVIN RATHBUN could potentially be a problem using random here but maybe not
-          // TODO before, was just using 44L as the id for each iteration of the loop
           FateId fateId = FateId.from(type, UUID.randomUUID());
 
           ReferencedTabletFile tmpFile =

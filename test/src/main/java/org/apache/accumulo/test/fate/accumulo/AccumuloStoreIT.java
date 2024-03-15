@@ -23,13 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -97,7 +94,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       if (fateIdIterator.hasNext()) {
         return fateIdIterator.next();
       } else {
-        return FateId.from(fateInstanceType, UUID.nameUUIDFromBytes("invalid".getBytes(StandardCharsets.UTF_8)));
+        return FateId.from(fateInstanceType, UUID.randomUUID());
       }
     }
 
@@ -161,9 +158,11 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
 
       UUID[] uuids = new UUID[5];
       for (int i = 0; i < uuids.length; i++) {
-        uuids[i] = UUID.nameUUIDFromBytes(Integer.toString(i).getBytes(StandardCharsets.UTF_8));
+        uuids[i] = UUID.randomUUID();
       }
-      List<UUID> txids = List.of(uuids[0], uuids[0], uuids[0], uuids[1], uuids[2], uuids[2], uuids[2], uuids[2], uuids[3], uuids[3], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4]);
+      List<UUID> txids =
+          List.of(uuids[0], uuids[0], uuids[0], uuids[1], uuids[2], uuids[2], uuids[2], uuids[2],
+              uuids[3], uuids[3], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4]);
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
           .collect(Collectors.toList());
       Set<FateId> expectedFateIds = new LinkedHashSet<>(fateIds);
@@ -176,8 +175,6 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
         assertEquals(expectedFateId, fateId, "Expected " + expectedFateId + " but got " + fateId);
       }
 
-      // TODO KEVIN RATHBUN would prob be nice to include checking that the error message contains
-      // TODO "Failed to create new id after..."
       // Calling create again on 5L should throw an exception since we've exceeded the max retries
       assertThrows(IllegalStateException.class, store::create);
     }
@@ -197,7 +194,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
       createFateTable(client, tableName);
-      fateId = FateId.from(fateInstanceType, 1L);
+      fateId = FateId.from(fateInstanceType, UUID.randomUUID());
       store = new TestAccumuloStore(client, tableName, List.of(fateId));
       store.create();
       txStore = store.reserve(fateId);
@@ -260,7 +257,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
   private void injectStatus(ClientContext client, String table, FateId fateId, TStatus status)
       throws TableNotFoundException {
     try (BatchWriter writer = client.createBatchWriter(table)) {
-      Mutation mutation = new Mutation(new Text("tx_" + fateId.getHexTid()));
+      Mutation mutation = new Mutation(new Text("tx_" + fateId.getTxUUIDStr()));
       FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {

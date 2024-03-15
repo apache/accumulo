@@ -469,7 +469,8 @@ public class MetadataConstraintsTest {
     assertViolation(mc, m, (short) 9);
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.OPID_COLUMN.put(m, new Value("MERGING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
+    ServerColumnFamily.OPID_COLUMN.put(m,
+        new Value("MERGING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }

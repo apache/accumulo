@@ -29,8 +29,8 @@ import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 
 /**
  * A strongly typed FATE Transaction ID. This is used to uniquely identify a FATE transaction.
- * Consists of its {@link FateInstanceType} and its transaction {@link UUID}. The canonical string is
- * of the form "FATE:[FateInstanceType]:[UUID]" (without the brackets).
+ * Consists of its {@link FateInstanceType} and its transaction {@link UUID}. The canonical string
+ * is of the form "FATE:[FateInstanceType]:[UUID]" (without the brackets).
  */
 public class FateId extends AbstractId<FateId> {
 
@@ -39,8 +39,8 @@ public class FateId extends AbstractId<FateId> {
   private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
   private static final Pattern UUID_PATTERN = Pattern.compile("^" + UUID_REGEX + "$");
   private static final Pattern FATEID_PATTERN = Pattern.compile("^" + PREFIX + "("
-      + Stream.of(FateInstanceType.values()).map(Enum::name).collect(Collectors.joining("|"))
-      + "):" + UUID_REGEX + "$");
+      + Stream.of(FateInstanceType.values()).map(Enum::name).collect(Collectors.joining("|")) + "):"
+      + UUID_REGEX + "$");
 
   private FateId(String canonical) {
     super(canonical);

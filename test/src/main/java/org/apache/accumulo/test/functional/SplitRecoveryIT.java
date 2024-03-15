@@ -169,9 +169,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
-      // TODO KEVIN RATHBUN could potentially be a problem using random here but maybe not
-      // TODO before, was just using 0 as the id for each iteration of the loop
-      FateId fateId = FateId.from(FateInstanceType.fromTableId(extent.tableId()), UUID.randomUUID());
+      FateId fateId =
+          FateId.from(FateInstanceType.fromTableId(extent.tableId()), UUID.randomUUID());
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
           new TreeMap<>(MetadataTableUtil.updateTabletDataFile(fateId, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));

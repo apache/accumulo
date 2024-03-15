@@ -20,7 +20,6 @@ package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
