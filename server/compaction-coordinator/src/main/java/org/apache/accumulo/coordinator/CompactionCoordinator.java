@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -303,9 +304,12 @@ public class CompactionCoordinator extends AbstractServer
       updateSummaries();
 
       long now = System.currentTimeMillis();
-      TIME_COMPACTOR_LAST_CHECKED.forEach((k, v) -> {
-        if ((now - v) > getMissingCompactorWarningTime()) {
-          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", k,
+
+      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+      TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
+        if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+            && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
+          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
               getMissingCompactorWarningTime());
         }
       });
@@ -319,6 +323,28 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     LOG.info("Shutting down");
+  }
+
+  private Map<String,List<HostAndPort>> getIdleCompactors() {
+
+    Map<String,List<HostAndPort>> allCompactors =
+        ExternalCompactionUtil.getCompactorAddrs(getContext());
+
+    Set<String> emptyQueues = new HashSet<>();
+
+    // Remove all of the compactors that are running a compaction
+    RUNNING_CACHE.values().forEach(rc -> {
+      List<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
+      if (busyCompactors != null
+          && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
+        if (busyCompactors.isEmpty()) {
+          emptyQueues.add(rc.getQueueName());
+        }
+      }
+    });
+    // Remove entries with empty queues
+    emptyQueues.forEach(e -> allCompactors.remove(e));
+    return allCompactors;
   }
 
   private void updateSummaries() {
