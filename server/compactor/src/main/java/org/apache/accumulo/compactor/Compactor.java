@@ -105,7 +105,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -115,7 +114,6 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
 
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -147,7 +145,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
 
-  private final Supplier<SecurityOperation> security;
   private ServiceLock compactorLock;
   private ServerAddress compactorAddress = null;
 
@@ -159,7 +156,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = opts.getQueueName();
-    security = Suppliers.memoize(() -> getContext().getSecurityOperation());
   }
 
   @Override
@@ -333,7 +329,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     TableId tableId = JOB_HOLDER.getTableId();
     try {
       NamespaceId nsId = getContext().getNamespaceId(tableId);
-      if (!security.get().canCompact(credentials, tableId, nsId)) {
+      if (!getContext().getSecurityOperation().canCompact(credentials, tableId, nsId)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();
       }
@@ -811,7 +807,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    if (!security.get().canPerformSystemActions(credentials)) {
+    if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
@@ -838,7 +834,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.get().canPerformSystemActions(credentials)) {
+    if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
@@ -863,7 +859,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   public String getRunningCompactionId(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.get().canPerformSystemActions(credentials)) {
+    if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }

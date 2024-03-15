@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -182,11 +181,6 @@ public class CompactorTest {
       this.job = job;
       this.context = context;
       this.eci = eci;
-    }
-
-    @Override
-    public AccumuloConfiguration getConfiguration() {
-      return context.getConfiguration();
     }
 
     @Override
