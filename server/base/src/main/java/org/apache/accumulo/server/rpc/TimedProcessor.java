@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -33,25 +32,25 @@ public class TimedProcessor implements TProcessor {
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
-  private long idleStart;
+  private NanoTime idleStart;
 
   public TimedProcessor(TProcessor next) {
     this.other = next;
     thriftMetrics = new ThriftMetrics();
     MetricsUtil.initializeProducers(thriftMetrics);
-    idleStart = System.nanoTime();
+    idleStart = NanoTime.now();
   }
 
   @Override
   public void process(TProtocol in, TProtocol out) throws TException {
-    long processStart = System.nanoTime();
-    thriftMetrics.addIdle(NANOSECONDS.toMillis(processStart - idleStart));
+    NanoTime processStart = NanoTime.now();
+    thriftMetrics.addIdle(processStart.subtract(idleStart).toMillis());
     try {
       other.process(in, out);
     } finally {
       // set idle to now, calc time in process
-      idleStart = System.nanoTime();
-      thriftMetrics.addExecute(NANOSECONDS.toMillis(idleStart - processStart));
+      idleStart = NanoTime.now();
+      thriftMetrics.addExecute(idleStart.subtract(processStart).toMillis());
     }
   }
 }

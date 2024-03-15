@@ -20,7 +20,10 @@ package org.apache.accumulo.core.util;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.core.util.time.NanoTime;
 
 /**
  * Provides a stop watch for timing a single type of event. This code is based on the
@@ -29,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 public class OpTimer {
 
   private boolean isStarted;
-  private long startNanos;
-  private long currentElapsedNanos;
+  private NanoTime startNanos;
+  private Duration currentElapsedNanos = Duration.ZERO;
 
   /**
    * Returns timer running state
@@ -52,7 +55,7 @@ public class OpTimer {
       throw new IllegalStateException("OpTimer is already running");
     }
     isStarted = true;
-    startNanos = System.nanoTime();
+    startNanos = NanoTime.now();
     return this;
   }
 
@@ -66,9 +69,8 @@ public class OpTimer {
     if (!isStarted) {
       throw new IllegalStateException("OpTimer is already stopped");
     }
-    long now = System.nanoTime();
     isStarted = false;
-    currentElapsedNanos += now - startNanos;
+    currentElapsedNanos = currentElapsedNanos.plus(startNanos.elapsed());
     return this;
   }
 
@@ -78,7 +80,7 @@ public class OpTimer {
    * @return this instance for fluent chaining
    */
   public OpTimer reset() {
-    currentElapsedNanos = 0;
+    currentElapsedNanos = Duration.ZERO;
     isStarted = false;
     return this;
   }
@@ -115,7 +117,11 @@ public class OpTimer {
    * @return elapsed time in nanoseconds.
    */
   public long now() {
-    return isStarted ? System.nanoTime() - startNanos + currentElapsedNanos : currentElapsedNanos;
+    if (isStarted) {
+      return startNanos.elapsed().plus(currentElapsedNanos).toNanos();
+    } else {
+      return currentElapsedNanos.toNanos();
+    }
   }
 
   /**

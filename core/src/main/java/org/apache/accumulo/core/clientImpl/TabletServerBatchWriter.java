@@ -43,7 +43,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -80,6 +79,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -1098,7 +1098,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         final HostAndPort parsedServer = HostAndPort.fromString(location);
 
-        long startTime = System.nanoTime();
+        NanoTime startTime = NanoTime.now();
 
         boolean useCloseUpdate = false;
 
@@ -1172,7 +1172,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           // if a timeout is set on the batch writer, then do not retry longer than the timeout
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > timeout) {
+          if (startTime.elapsed().toMillis() > timeout) {
             log.debug("Giving up on canceling session {} {} and timing out.", location, usid);
             throw new TimedOutException(Set.of(location));
           }

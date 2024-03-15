@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
 
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.slf4j.Logger;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -43,7 +44,7 @@ public class Retry {
 
   private boolean hasNeverLogged;
   private boolean hasLoggedWarn = false;
-  private long lastRetryLog;
+  private NanoTime lastRetryLog;
   private double currentBackOffFactor;
   private boolean doTimeJitter = true;
 
@@ -64,7 +65,7 @@ public class Retry {
     this.initialWait = startWait;
     this.logInterval = logInterval;
     this.hasNeverLogged = true;
-    this.lastRetryLog = -1;
+    this.lastRetryLog = null;
     this.backOffFactor = backOffFactor;
     this.currentBackOffFactor = this.backOffFactor;
 
@@ -201,14 +202,14 @@ public class Retry {
 
   public void logRetry(Logger log, String message, Throwable t) {
     // log the first time as debug, and then after every logInterval as a warning
-    long now = System.nanoTime();
+    NanoTime now = NanoTime.now();
     if (hasNeverLogged) {
       if (log.isDebugEnabled()) {
         log.debug(getMessage(message, t));
       }
       hasNeverLogged = false;
       lastRetryLog = now;
-    } else if ((now - lastRetryLog) > logInterval.toNanos()) {
+    } else if (now.subtract(lastRetryLog).compareTo(logInterval) > 0) {
       log.warn(getMessage(message), t);
       lastRetryLog = now;
       hasLoggedWarn = true;
@@ -221,14 +222,14 @@ public class Retry {
 
   public void logRetry(Logger log, String message) {
     // log the first time as debug, and then after every logInterval as a warning
-    long now = System.nanoTime();
+    NanoTime now = NanoTime.now();
     if (hasNeverLogged) {
       if (log.isDebugEnabled()) {
         log.debug(getMessage(message));
       }
       hasNeverLogged = false;
       lastRetryLog = now;
-    } else if ((now - lastRetryLog) > logInterval.toNanos()) {
+    } else if (now.subtract(lastRetryLog).compareTo(logInterval) > 0) {
       log.warn(getMessage(message));
       lastRetryLog = now;
       hasLoggedWarn = true;
