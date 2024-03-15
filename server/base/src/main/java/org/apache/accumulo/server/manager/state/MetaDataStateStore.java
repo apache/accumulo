@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -68,9 +70,8 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
         if (tm.getSuspend() != null) {
-          // ELASTICITY_TODO add conditional mutation check that tls.suspend is what currently
-          // exists in the tablet
-          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation().deleteSuspension()
+          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
+              .requireSame(tm, SUSPEND).deleteSuspension()
               .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
         }
       }
