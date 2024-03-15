@@ -1041,9 +1041,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       final Set<KeyExtent> tabletsWithWalCompactFlush = Set.of(e1, e2, e3);
       for (KeyExtent ke : tabletsWithWalCompactFlush) {
         FateInstanceType type = FateInstanceType.fromTableId(ke.tableId());
-        FateId fateId34L = FateId.from(type, UUID.randomUUID());
+        FateId fateId = FateId.from(type, UUID.randomUUID());
         ctmi = new ConditionalTabletsMutatorImpl(context);
-        ctmi.mutateTablet(ke).requireAbsentOperation().putCompacted(fateId34L)
+        ctmi.mutateTablet(ke).requireAbsentOperation().putCompacted(fateId)
             .putFlushId(TestTabletMetadataFilter.VALID_FLUSH_ID).putWal(wal)
             .submit(tabletMetadata -> false);
         var results = ctmi.process();

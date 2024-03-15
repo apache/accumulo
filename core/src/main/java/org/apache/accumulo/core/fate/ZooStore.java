@@ -88,8 +88,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   public FateId create() {
     while (true) {
       try {
-        UUID txUUID = UUID.randomUUID();
-        FateId fateId = FateId.from(fateInstanceType, txUUID);
+        FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
         zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;
