@@ -32,8 +32,8 @@ import org.apache.accumulo.core.util.time.NanoTime;
 public class OpTimer {
 
   private boolean isStarted;
-  private NanoTime startNanos;
-  private Duration currentElapsedNanos = Duration.ZERO;
+  private NanoTime start;
+  private Duration currentElapsed = Duration.ZERO;
 
   /**
    * Returns timer running state
@@ -55,7 +55,7 @@ public class OpTimer {
       throw new IllegalStateException("OpTimer is already running");
     }
     isStarted = true;
-    startNanos = NanoTime.now();
+    start = NanoTime.now();
     return this;
   }
 
@@ -70,7 +70,7 @@ public class OpTimer {
       throw new IllegalStateException("OpTimer is already stopped");
     }
     isStarted = false;
-    currentElapsedNanos = currentElapsedNanos.plus(startNanos.elapsed());
+    currentElapsed = currentElapsed.plus(start.elapsed());
     return this;
   }
 
@@ -80,7 +80,7 @@ public class OpTimer {
    * @return this instance for fluent chaining
    */
   public OpTimer reset() {
-    currentElapsedNanos = Duration.ZERO;
+    currentElapsed = Duration.ZERO;
     isStarted = false;
     return this;
   }
@@ -118,9 +118,9 @@ public class OpTimer {
    */
   public long now() {
     if (isStarted) {
-      return startNanos.elapsed().plus(currentElapsedNanos).toNanos();
+      return start.elapsed().plus(currentElapsed).toNanos();
     } else {
-      return currentElapsedNanos.toNanos();
+      return currentElapsed.toNanos();
     }
   }
 

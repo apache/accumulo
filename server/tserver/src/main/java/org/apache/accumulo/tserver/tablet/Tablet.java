@@ -1734,7 +1734,7 @@ public class Tablet extends TabletBase {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      Duration rpcTimeoutNanos = Duration.ofNanos(
+      Duration rpcTimeout = Duration.ofNanos(
           (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
               * 1.1));
 
@@ -1748,7 +1748,7 @@ public class Tablet extends TabletBase {
         }
 
         Duration lockWait = now.elapsed();
-        if (lockWait.compareTo(rpcTimeoutNanos) > 0) {
+        if (lockWait.compareTo(rpcTimeout) > 0) {
           throw new IOException("Timeout waiting " + lockWait.toSeconds()
               + " seconds to get tablet lock for " + extent + " " + tid);
         }
@@ -1760,7 +1760,7 @@ public class Tablet extends TabletBase {
       }
 
       Duration lockWait = now.elapsed();
-      if (lockWait.compareTo(rpcTimeoutNanos) > 0) {
+      if (lockWait.compareTo(rpcTimeout) > 0) {
         throw new IOException("Timeout waiting " + lockWait.toSeconds()
             + " seconds to get tablet lock for " + extent + " " + tid);
       }
