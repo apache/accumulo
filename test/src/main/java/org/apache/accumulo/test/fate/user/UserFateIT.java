@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.test.fate.accumulo.AccumuloStoreIT.createFateTable;
+import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
 
 import java.util.stream.StreamSupport;
 
@@ -30,8 +30,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
@@ -39,7 +39,7 @@ import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class AccumuloFateIT extends FateIT {
+public class UserFateIT extends FateIT {
 
   private String table;
 
@@ -60,7 +60,7 @@ public class AccumuloFateIT extends FateIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
+      testMethod.execute(new UserFateStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
     }
   }

@@ -54,9 +54,9 @@ import com.google.common.base.Suppliers;
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
-public class ZooStore<T> extends AbstractFateStore<T> {
+public class MetaFateStore<T> extends AbstractFateStore<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
+  private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.META;
   private String path;
   private ZooReaderWriter zk;
@@ -65,13 +65,14 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public MetaFateStore(String path, ZooReaderWriter zk)
+      throws KeeperException, InterruptedException {
     this(path, zk, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred, FateIdGenerator fateIdGenerator)
-      throws KeeperException, InterruptedException {
+  public MetaFateStore(String path, ZooReaderWriter zk, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws KeeperException, InterruptedException {
     super(maxDeferred, fateIdGenerator);
     this.path = path;
     this.zk = zk;
@@ -82,7 +83,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   /**
    * For testing only
    */
-  ZooStore() {}
+  MetaFateStore() {}
 
   @Override
   public FateId create() {
@@ -257,7 +258,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
       verifyReserved(false);
 
-      return ZooStore.this.getTransactionInfo(txInfo, fateId);
+      return MetaFateStore.this.getTransactionInfo(txInfo, fateId);
     }
 
     @Override

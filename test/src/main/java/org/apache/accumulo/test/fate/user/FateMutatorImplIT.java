@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.ACCEPTED;
-import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.REJECTED;
+import static org.apache.accumulo.core.fate.user.FateMutator.Status.ACCEPTED;
+import static org.apache.accumulo.core.fate.user.FateMutator.Status.REJECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.accumulo.FateMutatorImpl;
+import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;

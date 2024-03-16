@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
-import static org.apache.accumulo.test.fate.accumulo.AccumuloStoreIT.createFateTable;
+import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
+import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -29,14 +29,15 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FateStoreIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class AccumuloStoreFateIT extends FateStoreIT {
+public class UserFateStoreFateIT extends FateStoreIT {
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -55,7 +56,7 @@ public class AccumuloStoreFateIT extends FateStoreIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new AccumuloStore<>(client, table, maxDeferred, fateIdGenerator),
+      testMethod.execute(new UserFateStore<>(client, table, maxDeferred, fateIdGenerator),
           getCluster().getServerContext());
     }
   }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.zookeeper;
+package org.apache.accumulo.test.fate.meta;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
@@ -31,8 +31,8 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class ZookeeperFateIT extends FateIT {
+public class MetaFateIT extends FateIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
@@ -75,8 +75,8 @@ public class ZookeeperFateIT extends FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator),
-        sctx);
+    testMethod.execute(
+        new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator), sctx);
   }
 
   @Override
@@ -89,8 +89,8 @@ public class ZookeeperFateIT extends FateIT {
   }
 
   /*
-   * Get the status of the TX from ZK directly. Unable to call ZooStore.getStatus because this test
-   * thread does not have the reservation (the FaTE thread does)
+   * Get the status of the TX from ZK directly. Unable to call MetaFateStore.getStatus because this
+   * test thread does not have the reservation (the FaTE thread does)
    */
   private static TStatus getTxStatus(ZooReaderWriter zrw, FateId fateId)
       throws KeeperException, InterruptedException {
