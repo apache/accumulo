@@ -239,8 +239,6 @@ public class CompactionJobQueuesTest {
     var tmr = TabletMetadata.builder(root).build();
 
     var cg1 = CompactorGroupId.of("CG1");
-    var cg2 = CompactorGroupId.of("CG2");
-    var cg3 = CompactorGroupId.of("CG3");
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(100);
 

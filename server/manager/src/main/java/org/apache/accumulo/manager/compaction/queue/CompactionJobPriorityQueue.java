@@ -130,6 +130,9 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
+    if (closed.get()) {
+      return;
+    }
 
     List<KeyExtent> removals = new ArrayList<>();
 
