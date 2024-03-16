@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 
-import org.apache.accumulo.core.fate.FateId;
 import org.junit.jupiter.api.Test;
 
 public class FastFormatTest {
@@ -121,14 +120,10 @@ public class FastFormatTest {
 
   @Test
   public void testHexString() {
-    String prefix = "FATE:USER:";
-    assertEquals(FateId.formatTid(987654321L), FastFormat.toHexString(987654321L));
-    long txid = FateId.from(prefix + "2e429160071c63d8").getTid();
-    assertEquals(prefix + "2e429160071c63d8", FastFormat.toHexString(prefix, txid, ""));
     assertEquals(String.format("%016x", 64L), FastFormat.toHexString(64L));
     assertEquals(String.format("%016x", 0X2e429160071c63d8L),
         FastFormat.toHexString(0X2e429160071c63d8L));
-
+    assertEquals(String.format("%016x", 987654321L), FastFormat.toHexString(987654321L));
     assertEquals("-0000000000000040-", FastFormat.toHexString("-", 64L, "-"));
     assertEquals("-00000000075bcd15", FastFormat.toHexString("-", 123456789L, ""));
     assertEquals("000000000000000a", FastFormat.toHexString(0XaL));
