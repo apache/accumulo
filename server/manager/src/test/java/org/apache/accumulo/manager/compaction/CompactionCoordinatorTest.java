@@ -179,7 +179,7 @@ public class CompactionCoordinatorTest {
         Set<StoredTabletFile> jobFiles, TabletMetadata tablet, String compactorAddress,
         ExternalCompactionId externalCompactionId) {
       FateInstanceType type = FateInstanceType.fromTableId(tablet.getExtent().tableId());
-      FateId fateId = FateId.from(type, 1L);
+      FateId fateId = FateId.from(type, UUID.randomUUID());
       return new CompactionMetadata(jobFiles,
           new ReferencedTabletFile(new Path("file:///accumulo/tables/1/default_tablet/F00001.rf")),
           compactorAddress, job.getKind(), job.getPriority(), job.getGroup(), true, fateId);
@@ -195,7 +195,7 @@ public class CompactionCoordinatorTest {
           TCompactionKind.valueOf(ecm.getKind().name()),
           FateId
               .from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getExtent().tableId()),
-                  1L)
+                  UUID.randomUUID())
               .toThrift(),
           Map.of());
     }
@@ -402,7 +402,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.getTableState(tableId1)).andReturn(TableState.ONLINE).atLeastOnce();
     EasyMock.expect(context.getTableState(tableId2)).andReturn(TableState.OFFLINE).atLeastOnce();
 
-    FateId fateId1 = FateId.from(FateInstanceType.USER, 1234L);
+    FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
     CompactorGroupId cgid = CompactorGroupId.of("G1");
     ReferencedTabletFile tmp1 =

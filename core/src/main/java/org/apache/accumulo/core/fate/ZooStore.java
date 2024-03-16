@@ -20,7 +20,6 @@ package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -32,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -62,7 +62,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   private ZooReaderWriter zk;
 
   private String getTXPath(FateId fateId) {
-    return path + "/tx_" + fateId.getHexTid();
+    return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
   public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
@@ -88,9 +88,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   public FateId create() {
     while (true) {
       try {
-        // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        FateId fateId = FateId.from(fateInstanceType, tid);
+        FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
         zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;

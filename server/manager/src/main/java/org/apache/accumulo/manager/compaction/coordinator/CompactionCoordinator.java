@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -584,7 +585,7 @@ public class CompactionCoordinator
     }).collect(toList());
 
     FateInstanceType type = FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId());
-    FateId fateId = FateId.from(type, 0);
+    FateId fateId = FateId.from(type, UUID.randomUUID());
     if (metaJob.getJob().getKind() == CompactionKind.USER) {
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }

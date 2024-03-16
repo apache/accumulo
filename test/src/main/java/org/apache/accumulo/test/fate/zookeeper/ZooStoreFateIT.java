@@ -99,7 +99,7 @@ public class ZooStoreFateIT extends FateStoreIT {
 
       // Get the existing status for the node and build a new node with an empty key
       // but uses the existing tid
-      String txPath = ZK_ROOT + Constants.ZFATE + "/tx_" + fateId.getHexTid();
+      String txPath = ZK_ROOT + Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
       Object currentNode = serializedCons.newInstance(new Object[] {zk.getData(txPath)});
       TStatus currentStatus = (TStatus) nodeStatus.get(currentNode);
       // replace the node with no key and just a tid and existing status

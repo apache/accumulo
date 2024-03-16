@@ -20,11 +20,11 @@ package org.apache.accumulo.test.fate.accumulo;
 
 import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.ACCEPTED;
 import static org.apache.accumulo.core.fate.accumulo.FateMutator.Status.REJECTED;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -72,8 +72,8 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-      FateId fateId = FateId.from(FateInstanceType.fromNamespaceOrTableName(table), tid);
+      FateId fateId =
+          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
 
       // add some repos in order
       FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, fateId);
@@ -103,8 +103,8 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      final long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-      FateId fateId = FateId.from(FateInstanceType.fromNamespaceOrTableName(table), tid);
+      FateId fateId =
+          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
 
       // use require status passing all statuses. without the status column present this should fail
       assertThrows(IllegalStateException.class,

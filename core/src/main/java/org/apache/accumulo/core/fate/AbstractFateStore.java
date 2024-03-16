@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,8 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -64,9 +63,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   public static final FateIdGenerator DEFAULT_FATE_ID_GENERATOR = new FateIdGenerator() {
     @Override
     public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
-      HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
-      long tid = hashCode.asLong() & 0x7fffffffffffffffL;
-      return FateId.from(instanceType, tid);
+      UUID txUUID = UUID.nameUUIDFromBytes(fateKey.getSerialized());
+      return FateId.from(instanceType, txUUID);
     }
   };
 
@@ -271,9 +269,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       // mean a collision
       if (status == TStatus.NEW) {
         Preconditions.checkState(tFateKey.isPresent(), "Tx Key is missing from tid %s",
-            fateId.getTid());
+            fateId.getTxUUIDStr());
         Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
-            "Collision detected for tid %s", fateId.getTid());
+            "Collision detected for tid %s", fateId.getTxUUIDStr());
         // Case 2: Status is some other state which means already in progress
         // so we can just log and return empty optional
       } else {
