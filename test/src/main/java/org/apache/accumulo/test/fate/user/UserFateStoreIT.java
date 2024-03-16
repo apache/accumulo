@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate.user;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,12 +46,13 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -65,9 +66,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 
-public class AccumuloStoreIT extends SharedMiniClusterBase {
+public class UserFateStoreIT extends SharedMiniClusterBase {
 
-  private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
+  private static final Logger log = LoggerFactory.getLogger(UserFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
 
   @BeforeAll
@@ -80,11 +81,11 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private static class TestAccumuloStore extends AccumuloStore<FateIT.TestEnv> {
+  private static class TestUserFateStore extends UserFateStore<TestEnv> {
     private final Iterator<FateId> fateIdIterator;
 
     // use the list of fateIds to simulate collisions on fateIds
-    public TestAccumuloStore(ClientContext context, String tableName, List<FateId> fateIds) {
+    public TestUserFateStore(ClientContext context, String tableName, List<FateId> fateIds) {
       super(context, tableName);
       this.fateIdIterator = fateIds.iterator();
     }
@@ -166,7 +167,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
           .collect(Collectors.toList());
       Set<FateId> expectedFateIds = new LinkedHashSet<>(fateIds);
-      TestAccumuloStore store = new TestAccumuloStore(client, table, fateIds);
+      TestUserFateStore store = new TestUserFateStore(client, table, fateIds);
 
       // call create and expect we get the unique txids
       for (FateId expectedFateId : expectedFateIds) {
@@ -186,7 +187,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
     String tableName;
     ClientContext client;
     FateId fateId;
-    TestAccumuloStore store;
+    TestUserFateStore store;
     FateStore.FateTxStore<FateIT.TestEnv> txStore;
 
     @BeforeEach
@@ -195,7 +196,7 @@ public class AccumuloStoreIT extends SharedMiniClusterBase {
       tableName = getUniqueNames(1)[0];
       createFateTable(client, tableName);
       fateId = FateId.from(fateInstanceType, UUID.randomUUID());
-      store = new TestAccumuloStore(client, tableName, List.of(fateId));
+      store = new TestUserFateStore(client, tableName, List.of(fateId));
       store.create();
       txStore = store.reserve(fateId);
     }

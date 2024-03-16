@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.zookeeper;
+package org.apache.accumulo.test.fate.meta;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
@@ -32,12 +32,12 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.accumulo.FateStoreIT;
+import org.apache.accumulo.test.fate.FateStoreIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class ZooStoreFateIT extends FateStoreIT {
+public class MetaFateStoreFateIT extends FateStoreIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
@@ -75,8 +75,8 @@ public class ZooStoreFateIT extends FateStoreIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator),
-        sctx);
+    testMethod.execute(
+        new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator), sctx);
   }
 
   @Override
@@ -85,7 +85,7 @@ public class ZooStoreFateIT extends FateStoreIT {
       // We have to use reflection since the NodeValue is internal to the store
 
       // Grab both the constructor that uses the serialized bytes and status
-      Class<?> nodeClass = Class.forName(ZooStore.class.getName() + "$NodeValue");
+      Class<?> nodeClass = Class.forName(MetaFateStore.class.getName() + "$NodeValue");
       Constructor<?> statusCons = nodeClass.getDeclaredConstructor(TStatus.class);
       Constructor<?> serializedCons = nodeClass.getDeclaredConstructor(byte[].class);
       statusCons.setAccessible(true);
