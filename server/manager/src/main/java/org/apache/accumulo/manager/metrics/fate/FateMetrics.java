@@ -49,7 +49,7 @@ public class FateMetrics implements MetricsProducer {
   private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
-  private final ReadOnlyFateStore<FateMetrics> zooStore;
+  private final ReadOnlyFateStore<FateMetrics> fateStore;
   private final String fateRootPath;
   private final long refreshDelay;
 
@@ -71,7 +71,7 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter());
+      this.fateStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter());
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -86,7 +86,7 @@ public class FateMetrics implements MetricsProducer {
   private void update() {
 
     FateMetricValues metricValues =
-        FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
+        FateMetricValues.getFromZooKeeper(context, fateRootPath, fateStore);
 
     totalCurrentOpsGauge.set(metricValues.getCurrentFateOps());
     totalOpsGauge.set(metricValues.getZkFateChildOpsTotal());
