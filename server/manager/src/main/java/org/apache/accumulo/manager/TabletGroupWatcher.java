@@ -671,7 +671,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         eventHandler.clearNeedsFullScan();
 
         iter = store.iterator(tableMgmtParams);
+        manager.getCompactionCoordinator().getJobQueues().beginFullScan(store.getLevel());
         var tabletMgmtStats = manageTablets(iter, tableMgmtParams, currentTServers, true);
+        manager.getCompactionCoordinator().getJobQueues().endFullScan(store.getLevel());
 
         // If currently looking for volume replacements, determine if the next round needs to look.
         if (lookForTabletsNeedingVolReplacement) {

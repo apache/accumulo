@@ -19,10 +19,15 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
@@ -46,8 +51,35 @@ public class CompactionJobQueues {
 
   private final int queueSize;
 
+  private final Map<DataLevel,AtomicLong> currentGenerations;
+
   public CompactionJobQueues(int queueSize) {
     this.queueSize = queueSize;
+    Map<DataLevel,AtomicLong> cg = new EnumMap<>(DataLevel.class);
+    for (var level : DataLevel.values()) {
+      cg.put(level, new AtomicLong());
+    }
+    currentGenerations = Collections.unmodifiableMap(cg);
+
+  }
+
+  public void beginFullScan(DataLevel level) {
+    currentGenerations.get(level).incrementAndGet();
+  }
+
+  /**
+   * The purpose of this method is to remove any tablets that were added before beginFullScan() was
+   * called. The purpose of this is to handle tablets that were queued for compaction for a while
+   * and because of some change no longer need to compact. If a full scan of the metadata table does
+   * not find any new work for tablet, then any previously queued work for that tablet should be
+   * discarded.
+   *
+   * @param level full metadata scans are done independently per DataLevel, so the tracking what
+   *        needs to be removed must be done per DataLevel
+   */
+  public void endFullScan(DataLevel level) {
+    priorityQueues.values()
+        .forEach(pq -> pq.removeOlderGenerations(level, currentGenerations.get(level).get()));
   }
 
   public void add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
@@ -155,7 +187,8 @@ public class CompactionJobQueues {
 
     var pq = priorityQueues.computeIfAbsent(groupId,
         gid -> new CompactionJobPriorityQueue(gid, queueSize));
-    while (pq.add(tabletMetadata, jobs) < 0) {
+    while (pq.add(tabletMetadata, jobs,
+        currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get()) < 0) {
       // When entering this loop its expected the queue is closed
       Preconditions.checkState(pq.isClosed());
       // This loop handles race condition where poll() closes empty priority queues. The queue could

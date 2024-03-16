@@ -19,8 +19,10 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -33,7 +35,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -43,6 +48,224 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class CompactionJobQueuesTest {
+
+  private CompactionJob newJob(short prio, int file, CompactorGroupId cgi)
+      throws URISyntaxException {
+    Collection<CompactableFile> files = List
+        .of(new CompactableFileImpl(new URI("file://accumulo/tables//123/t-0/f" + file), 100, 100));
+    return new CompactionJobImpl(prio, cgi, files, CompactionKind.SYSTEM, Optional.empty());
+  }
+
+  @Test
+  public void testFullScanHandling() throws Exception {
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
+    var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
+    var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
+
+    var tm1 = TabletMetadata.builder(extent1).build();
+    var tm2 = TabletMetadata.builder(extent2).build();
+    var tm3 = TabletMetadata.builder(extent3).build();
+    var tm4 = TabletMetadata.builder(extent4).build();
+
+    var cg1 = CompactorGroupId.of("CG1");
+    var cg2 = CompactorGroupId.of("CG2");
+    var cg3 = CompactorGroupId.of("CG3");
+
+    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+
+    jobQueues.beginFullScan(DataLevel.USER);
+
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+
+    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
+    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+
+    jobQueues.endFullScan(DataLevel.USER);
+
+    assertEquals(4, jobQueues.getQueuedJobs(cg1));
+    assertEquals(4, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    assertEquals(extent4, jobQueues.poll(cg1).getTabletMetadata().getExtent());
+    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+
+    assertEquals(3, jobQueues.getQueuedJobs(cg1));
+    assertEquals(3, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    jobQueues.beginFullScan(DataLevel.USER);
+
+    // should still be able to poll and get things added in the last full scan
+    assertEquals(extent3, jobQueues.poll(cg1).getTabletMetadata().getExtent());
+    assertEquals(2, jobQueues.getQueuedJobs(cg1));
+    assertEquals(3, jobQueues.getQueuedJobs(cg2));
+
+    // add something new during the full scan
+    jobQueues.add(tm1, List.of(newJob((short) -7, 9, cg2)));
+    assertEquals(2, jobQueues.getQueuedJobs(cg1));
+    assertEquals(4, jobQueues.getQueuedJobs(cg2));
+
+    // should still be able to poll and get things added in the last full scan
+    assertEquals(extent2, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(2, jobQueues.getQueuedJobs(cg1));
+    assertEquals(3, jobQueues.getQueuedJobs(cg2));
+
+    // this should remove anything that was added before begin full scan was called
+    jobQueues.endFullScan(DataLevel.USER);
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(1, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    assertNull(jobQueues.poll(cg1));
+    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // add some things outside of a begin/end full scan calls
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+
+    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
+
+    jobQueues.beginFullScan(DataLevel.USER);
+
+    assertEquals(2, jobQueues.getQueuedJobs(cg1));
+    assertEquals(2, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // add some things inside the begin/end full scan calls
+    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+
+    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+
+    assertEquals(4, jobQueues.getQueuedJobs(cg1));
+    assertEquals(4, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // poll inside the full scan calls
+    assertEquals(extent4, jobQueues.poll(cg1).getTabletMetadata().getExtent());
+    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+
+    assertEquals(3, jobQueues.getQueuedJobs(cg1));
+    assertEquals(3, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // should remove any tablets added before the full scan started
+    jobQueues.endFullScan(DataLevel.USER);
+
+    assertEquals(1, jobQueues.getQueuedJobs(cg1));
+    assertEquals(2, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    assertEquals(extent3, jobQueues.poll(cg1).getTabletMetadata().getExtent());
+    assertEquals(extent3, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(extent4, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+
+    assertNull(jobQueues.poll(cg1));
+    assertNull(jobQueues.poll(cg2));
+    assertNull(jobQueues.poll(cg3));
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // add jobs outside of begin/end full scan
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+
+    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
+    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+
+    jobQueues.beginFullScan(DataLevel.USER);
+
+    // readd some of the tablets added before the beginFullScan, this should prevent those tablets
+    // from being removed by endFullScan
+    jobQueues.add(tm4, List.of(newJob((short) 5, 5, cg2)));
+    jobQueues.add(tm1, List.of(newJob((short) -7, 5, cg2)));
+
+    assertEquals(4, jobQueues.getQueuedJobs(cg1));
+    assertEquals(4, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // should remove all jobs added before begin full scan
+    jobQueues.endFullScan(DataLevel.USER);
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(2, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    // make sure we see what was added last for the tablets
+    assertEquals(5, jobQueues.poll(cg2).getJob().getPriority());
+    assertEquals(-7, jobQueues.poll(cg2).getJob().getPriority());
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg3));
+
+    assertNull(jobQueues.poll(cg1));
+    assertNull(jobQueues.poll(cg2));
+    assertNull(jobQueues.poll(cg3));
+  }
+
+  @Test
+  public void testFullScanLevels() throws Exception {
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
+    var meta = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("l"), new Text("c"));
+    var root = RootTable.EXTENT;
+
+    var tm1 = TabletMetadata.builder(extent1).build();
+    var tm2 = TabletMetadata.builder(extent2).build();
+    var tmm = TabletMetadata.builder(meta).build();
+    var tmr = TabletMetadata.builder(root).build();
+
+    var cg1 = CompactorGroupId.of("CG1");
+    var cg2 = CompactorGroupId.of("CG2");
+    var cg3 = CompactorGroupId.of("CG3");
+
+    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(tmm, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tmr, List.of(newJob((short) 4, 8, cg1)));
+
+    // verify that a begin and end full scan will only drop tablets in its level
+
+    jobQueues.beginFullScan(DataLevel.ROOT);
+    assertEquals(4, jobQueues.getQueuedJobs(cg1));
+    jobQueues.endFullScan(DataLevel.ROOT);
+    assertEquals(3, jobQueues.getQueuedJobs(cg1));
+
+    jobQueues.beginFullScan(DataLevel.USER);
+    assertEquals(3, jobQueues.getQueuedJobs(cg1));
+    jobQueues.endFullScan(DataLevel.USER);
+    assertEquals(1, jobQueues.getQueuedJobs(cg1));
+
+    jobQueues.beginFullScan(DataLevel.METADATA);
+    assertEquals(1, jobQueues.getQueuedJobs(cg1));
+    jobQueues.endFullScan(DataLevel.METADATA);
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+  }
 
   /**
    * When a queue goes empty it is removed. This removal should be done safely and should not cause
@@ -94,13 +317,7 @@ public class CompactionJobQueuesTest {
       // queue for that extent which could throw off the counts
       KeyExtent extent = new KeyExtent(TableId.of("1"), new Text(i + "z"), new Text(i + "a"));
       TabletMetadata tm = TabletMetadata.builder(extent).build();
-
-      Collection<CompactableFile> files = List
-          .of(new CompactableFileImpl(new URI("file://accumulo/tables//123/t-0/f" + i), 100, 100));
-      Collection<CompactionJob> jobs = List.of(new CompactionJobImpl((short) (i % 31),
-          groups[i % groups.length], files, CompactionKind.SYSTEM, Optional.empty()));
-
-      jobQueues.add(tm, jobs);
+      jobQueues.add(tm, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
     }
 
     // Cause the background threads to exit after polling all data
