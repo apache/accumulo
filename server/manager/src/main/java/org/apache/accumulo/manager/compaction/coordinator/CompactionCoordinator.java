@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -584,8 +583,11 @@ public class CompactionCoordinator
           dfv.getTime());
     }).collect(toList());
 
-    FateInstanceType type = FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId());
-    FateId fateId = FateId.from(type, UUID.randomUUID());
+    // The fateId here corresponds to the Fate transaction that is driving a user initiated
+    // compaction. A system initiated compaction has no Fate transaction driving it so its ok to set
+    // it to null. If anything tries to use the id for a system compaction and triggers a NPE it's
+    // probably a bug that needs to be fixed.
+    FateId fateId = null;
     if (metaJob.getJob().getKind() == CompactionKind.USER) {
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
@@ -593,7 +595,8 @@ public class CompactionCoordinator
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateId.toThrift(), overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), fateId == null ? null : fateId.toThrift(),
+        overrides);
   }
 
   @Override
