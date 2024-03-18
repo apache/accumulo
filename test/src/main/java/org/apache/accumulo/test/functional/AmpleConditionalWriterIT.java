@@ -30,12 +30,14 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,7 +63,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -75,6 +79,7 @@ import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -89,17 +94,22 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
@@ -1332,6 +1342,82 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var numTablets = splits.size() + 1;
       assertEquals(numTablets - expected, accepted.get());
       assertEquals(numTablets, total.get());
+    }
+  }
+
+  @Test
+  public void testSuspendMarker() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      final String SUSPEND_RG = "SUSPEND";
+
+      MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
+      cluster.getConfig().getClusterServerConfiguration().addTabletServerResourceGroup(SUSPEND_RG,
+          1);
+      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+      List<Process> processes = cluster.getClusterControl().getTabletServers(SUSPEND_RG);
+      assertNotNull(processes);
+      assertEquals(1, processes.size());
+
+      String tableName = getUniqueNames(2)[1];
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      ntc.setProperties(Map.of(Property.TABLE_SUSPEND_DURATION.getKey(), "3m",
+          TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, SUSPEND_RG));
+      c.tableOperations().create(tableName, ntc);
+
+      c.instanceOperations().waitForBalance();
+
+      TableId suspendTableTid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      TabletMetadata originalTM = null;
+      try (TabletsMetadata tms = TabletsMetadata.builder(c).forTable(suspendTableTid).build()) {
+        assertEquals(1, Iterables.size(tms));
+        originalTM = tms.iterator().next();
+        assertNull(originalTM.getSuspend());
+      }
+
+      cluster.getClusterControl().stopTabletServerGroup(SUSPEND_RG);
+
+      Wait.waitFor(() -> getSuspendedColumn(c, suspendTableTid) != null, 60_000);
+
+      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
+        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
+            .requireSame(originalTM, SUSPEND).putTabletAvailability(TabletAvailability.ONDEMAND)
+            .submit(tabletMetadata -> false);
+
+        // This should fail because the original tablet metadata does not have a suspend column
+        // and the current tablet metadata does.
+        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
+            .equals(Status.REJECTED));
+
+      }
+
+      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+      c.instanceOperations().waitForBalance();
+
+      Wait.waitFor(() -> getSuspendedColumn(c, suspendTableTid) == null, 60_000);
+
+      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
+        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
+            .requireSame(originalTM, SUSPEND).putTabletAvailability(TabletAvailability.ONDEMAND)
+            .submit(tabletMetadata -> false);
+
+        // This should succeed because the original tablet metadata does not have a suspend column
+        // and the current tablet metadata does not also because the tablet server for the SUSPEND
+        // resource group was restarted.
+        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
+            .equals(Status.ACCEPTED));
+
+      }
+    }
+  }
+
+  private static SuspendingTServer getSuspendedColumn(AccumuloClient c, TableId tid) {
+    try (TabletsMetadata tms = TabletsMetadata.builder(c).forTable(tid).build()) {
+      assertEquals(1, Iterables.size(tms));
+      TabletMetadata tm = tms.iterator().next();
+      return tm.getSuspend();
     }
   }
 
