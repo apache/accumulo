@@ -267,7 +267,7 @@ public class ThreadPools {
   @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
-    ThreadPools.PoolBuilder builder;
+    ThreadPoolExecutorBuilder builder;
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "SimpleTimer");
@@ -368,11 +368,11 @@ public class ThreadPools {
     }
   }
 
-  public PoolBuilder getPoolBuilder(@NonNull final String name) {
-    return new PoolBuilder(name);
+  public ThreadPoolExecutorBuilder getPoolBuilder(@NonNull final String name) {
+    return new ThreadPoolExecutorBuilder(name);
   }
 
-  public class PoolBuilder {
+  public class ThreadPoolExecutorBuilder {
     final String name;
     int coreThreads = 0;
     int maxThreads = -1;
@@ -386,7 +386,7 @@ public class ThreadPools {
      * A fluent-style build to create a ThreadPoolExecutor. The name is used when creating
      * named-threads for the pool.
      */
-    PoolBuilder(@NonNull final String name) {
+    ThreadPoolExecutorBuilder(@NonNull final String name) {
       this.name = name;
     }
 
@@ -413,7 +413,7 @@ public class ThreadPools {
      * @param coreThreads the number of core thread, must be 0 or larger.
      * @return fluent-style builder instance
      */
-    public PoolBuilder numCoreThreads(int coreThreads) {
+    public ThreadPoolExecutorBuilder numCoreThreads(int coreThreads) {
       this.coreThreads = coreThreads;
       return this;
     }
@@ -429,7 +429,7 @@ public class ThreadPools {
      *
      * @return fluent-style builder instance
      */
-    public PoolBuilder numMaxThreads(int maxThreads) {
+    public ThreadPoolExecutorBuilder numMaxThreads(int maxThreads) {
       this.maxThreads = maxThreads;
       return this;
     }
@@ -441,7 +441,7 @@ public class ThreadPools {
      * @param units the keep alive time units.
      * @return fluent-style builder instance
      */
-    public PoolBuilder withTimeOut(long timeOut, @NonNull TimeUnit units) {
+    public ThreadPoolExecutorBuilder withTimeOut(long timeOut, @NonNull TimeUnit units) {
       this.timeOut = timeOut;
       this.units = units;
       return this;
@@ -454,12 +454,12 @@ public class ThreadPools {
      * @param queue the work queue used to hold tasks before they are executed.
      * @return fluent-style builder instance
      */
-    public PoolBuilder withQueue(@NonNull final BlockingQueue<Runnable> queue) {
+    public ThreadPoolExecutorBuilder withQueue(@NonNull final BlockingQueue<Runnable> queue) {
       this.queue = queue;
       return this;
     }
 
-    public PoolBuilder atPriority(@NonNull final OptionalInt priority) {
+    public ThreadPoolExecutorBuilder atPriority(@NonNull final OptionalInt priority) {
       this.priority = priority;
       return this;
     }
@@ -473,7 +473,7 @@ public class ThreadPools {
      *
      * @return a fluent-style builder instance
      */
-    public PoolBuilder enableThreadPoolMetrics() {
+    public ThreadPoolExecutorBuilder enableThreadPoolMetrics() {
       this.emitThreadPoolMetrics = true;
       return this;
     }
