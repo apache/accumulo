@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate;
 
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,21 +26,21 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
-import org.apache.accumulo.core.util.FastFormat;
 
 /**
  * A strongly typed FATE Transaction ID. This is used to uniquely identify a FATE transaction.
- * Consists of its {@link FateInstanceType} and its transaction id (long). The canonical string is
- * of the form "FATE:[FateInstanceType]:[hex long tid]" (without the brackets).
+ * Consists of its {@link FateInstanceType} and its transaction {@link UUID}. The canonical string
+ * is of the form "FATE:[FateInstanceType]:[UUID]" (without the brackets).
  */
 public class FateId extends AbstractId<FateId> {
 
   private static final long serialVersionUID = 1L;
   private static final String PREFIX = "FATE:";
-  private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]+$");
+  private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
+  private static final Pattern UUID_PATTERN = Pattern.compile("^" + UUID_REGEX + "$");
   private static final Pattern FATEID_PATTERN = Pattern.compile("^" + PREFIX + "("
-      + Stream.of(FateInstanceType.values()).map(Enum::name).collect(Collectors.joining("|"))
-      + "):[0-9a-fA-F]+$");
+      + Stream.of(FateInstanceType.values()).map(Enum::name).collect(Collectors.joining("|")) + "):"
+      + UUID_REGEX + "$");
 
   private FateId(String canonical) {
     super(canonical);
@@ -53,16 +54,16 @@ public class FateId extends AbstractId<FateId> {
   }
 
   /**
-   * @return the decimal value of the transaction id
+   * @return the transaction {@link UUID}
    */
-  public long getTid() {
-    return Long.parseLong(getHexTid(), 16);
+  public UUID getTxUUID() {
+    return UUID.fromString(getTxUUIDStr());
   }
 
   /**
-   * @return the hexadecimal value of the transaction id
+   * @return the transaction {@link UUID} as a String
    */
-  public String getHexTid() {
+  public String getTxUUIDStr() {
     return canonical().split(":")[2];
   }
 
@@ -70,25 +71,25 @@ public class FateId extends AbstractId<FateId> {
    * Creates a new FateId object from the given parameters
    *
    * @param type the {@link FateInstanceType}
-   * @param tid the decimal transaction id
+   * @param txUUID the {@link UUID}
    * @return a new FateId object
    */
-  public static FateId from(FateInstanceType type, long tid) {
-    return new FateId(PREFIX + type + ":" + formatTid(tid));
+  public static FateId from(FateInstanceType type, UUID txUUID) {
+    return new FateId(PREFIX + type + ":" + txUUID);
   }
 
   /**
    * Creates a new FateId object from the given parameters
    *
    * @param type the {@link FateInstanceType}
-   * @param hexTid the hexadecimal transaction id
+   * @param txUUIDStr the transaction {@link UUID} as a String
    * @return a new FateId object
    */
-  public static FateId from(FateInstanceType type, String hexTid) {
-    if (HEX_PATTERN.matcher(hexTid).matches()) {
-      return new FateId(PREFIX + type + ":" + hexTid);
+  public static FateId from(FateInstanceType type, String txUUIDStr) {
+    if (UUID_PATTERN.matcher(txUUIDStr).matches()) {
+      return new FateId(PREFIX + type + ":" + txUUIDStr);
     } else {
-      throw new IllegalArgumentException("Invalid Hex Transaction ID: " + hexTid);
+      throw new IllegalArgumentException("Invalid Transaction UUID: " + txUUIDStr);
     }
   }
 
@@ -118,7 +119,7 @@ public class FateId extends AbstractId<FateId> {
    */
   public static FateId fromThrift(TFateId tFateId) {
     FateInstanceType type;
-    long tid = tFateId.getTid();
+    String txUUIDStr = tFateId.getTxUUIDStr();
 
     switch (tFateId.getType()) {
       case USER:
@@ -131,7 +132,11 @@ public class FateId extends AbstractId<FateId> {
         throw new IllegalArgumentException("Invalid TFateInstanceType: " + tFateId.getType());
     }
 
-    return new FateId(PREFIX + type + ":" + formatTid(tid));
+    if (UUID_PATTERN.matcher(txUUIDStr).matches()) {
+      return new FateId(PREFIX + type + ":" + txUUIDStr);
+    } else {
+      throw new IllegalArgumentException("Invalid Transaction UUID: " + txUUIDStr);
+    }
   }
 
   /**
@@ -151,13 +156,6 @@ public class FateId extends AbstractId<FateId> {
       default:
         throw new IllegalArgumentException("Invalid FateInstanceType: " + type);
     }
-    return new TFateId(thriftType, getTid());
-  }
-
-  /**
-   * Returns the hex string equivalent of the tid
-   */
-  public static String formatTid(long tid) {
-    return FastFormat.toHexString(tid);
+    return new TFateId(thriftType, getTxUUIDStr());
   }
 }

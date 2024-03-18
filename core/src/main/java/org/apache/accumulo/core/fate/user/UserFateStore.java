@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.accumulo;
-
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+package org.apache.accumulo.core.fate.user;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,9 +42,9 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -58,9 +57,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
-public class AccumuloStore<T> extends AbstractFateStore<T> {
+public class UserFateStore<T> extends AbstractFateStore<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(AccumuloStore.class);
+  private static final Logger log = LoggerFactory.getLogger(UserFateStore.class);
 
   private final ClientContext context;
   private final String tableName;
@@ -70,19 +69,19 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
 
-  public AccumuloStore(ClientContext context, String tableName) {
+  public UserFateStore(ClientContext context, String tableName) {
     this(context, tableName, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public AccumuloStore(ClientContext context, String tableName, int maxDeferred,
+  public UserFateStore(ClientContext context, String tableName, int maxDeferred,
       FateIdGenerator fateIdGenerator) {
     super(maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
 
-  public AccumuloStore(ClientContext context) {
+  public UserFateStore(ClientContext context) {
     this(context, AccumuloTable.FATE.tableName());
   }
 
@@ -116,8 +115,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   public FateId getFateId() {
-    long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-    return FateId.from(fateInstanceType, tid);
+    return FateId.from(fateInstanceType, UUID.randomUUID());
   }
 
   @Override
@@ -250,7 +248,7 @@ public class AccumuloStore<T> extends AbstractFateStore<T> {
   }
 
   public static String getRowId(FateId fateId) {
-    return "tx_" + fateId.getHexTid();
+    return "tx_" + fateId.getTxUUIDStr();
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {

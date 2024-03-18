@@ -20,14 +20,10 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
-import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -109,13 +105,7 @@ class UnloadTabletHandler implements Runnable {
     server.onlineTablets.remove(extent);
 
     try {
-      TServerInstance instance = server.getTabletSession();
-      // ELASTICITY_TODO: Modify Tablet to keep a reference to TableMetadata so that we
-      // can avoid building a tablet metadata that may not have needed information, for example may
-      // need the last location
-      TabletMetadata tm = TabletMetadata.builder(extent).putLocation(Location.current(instance))
-          .putTabletAvailability(TabletAvailability.ONDEMAND)
-          .build(ColumnType.LAST, ColumnType.SUSPEND);
+      TabletMetadata tm = t.getMetadata();
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
               && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -43,7 +44,6 @@ import org.apache.accumulo.core.util.Pair;
  */
 public class TestStore implements FateStore<String> {
 
-  private long nextId = 1;
   private final Map<FateId,Pair<TStatus,Optional<FateKey>>> statuses = new HashMap<>();
   private final Map<FateId,Map<Fate.TxInfo,Serializable>> txInfos = new HashMap<>();
   private final Set<FateId> reserved = new HashSet<>();
@@ -51,7 +51,7 @@ public class TestStore implements FateStore<String> {
 
   @Override
   public FateId create() {
-    FateId fateId = FateId.from(fateInstanceType, nextId++);
+    FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
     statuses.put(fateId, new Pair<>(TStatus.NEW, Optional.empty()));
     return fateId;
   }

@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate.meta;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateOpsCommandsIT;
 
-public class AccumuloFateOpsCommandsIT extends FateOpsCommandsIT {
+public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    testMethod.execute(new AccumuloStore<>(getCluster().getServerContext()),
-        getCluster().getServerContext());
+    ServerContext sctx = getCluster().getServerContext();
+    String path = sctx.getZooKeeperRoot() + Constants.ZFATE;
+    ZooReaderWriter zk = sctx.getZooReaderWriter();
+    testMethod.execute(new MetaFateStore<>(path, zk), sctx);
   }
 }

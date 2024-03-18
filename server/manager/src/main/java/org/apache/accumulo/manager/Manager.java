@@ -77,8 +77,8 @@ import org.apache.accumulo.core.fate.FateCleaner;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -1073,9 +1073,9 @@ public class Manager extends AbstractServer
 
     try {
       var metaInstance = initializeFateInstance(context,
-          new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
+          new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
       var userInstance = initializeFateInstance(context,
-          new AccumuloStore<>(context, AccumuloTable.FATE.tableName()));
+          new UserFateStore<>(context, AccumuloTable.FATE.tableName()));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {

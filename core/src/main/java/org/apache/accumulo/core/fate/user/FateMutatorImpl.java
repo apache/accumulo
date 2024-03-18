@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.accumulo;
+package org.apache.accumulo.core.fate.user;
 
 import static org.apache.accumulo.core.fate.AbstractFateStore.serialize;
-import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRow;
-import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.getRowId;
-import static org.apache.accumulo.core.fate.accumulo.AccumuloStore.invertRepo;
+import static org.apache.accumulo.core.fate.user.UserFateStore.getRow;
+import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
+import static org.apache.accumulo.core.fate.user.UserFateStore.invertRepo;
 
 import java.util.Objects;
 
@@ -41,9 +41,9 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.RepoColumnFamily;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily;
-import org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 

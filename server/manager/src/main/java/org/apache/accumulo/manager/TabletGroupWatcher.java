@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -283,6 +284,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public synchronized void clearNeedsFullScan() {
       needsFullScan = false;
+    }
+
+    public synchronized boolean isNeedsFullScan() {
+      return needsFullScan;
     }
 
     @Override
@@ -640,10 +645,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     boolean lookForTabletsNeedingVolReplacement = true;
 
     while (manager.stillManager()) {
-      // slow things down a little, otherwise we spam the logs when there are many wake-up events
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      // ELASTICITY_TODO above sleep in the case when not doing a full scan to make manager more
-      // responsive
+      if (!eventHandler.isNeedsFullScan()) {
+        // If an event handled by the EventHandler.RangeProcessor indicated
+        // that we need to do a full scan, then do it. Otherwise wait a bit
+        // before re-checking the tablets.
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      }
 
       final long waitTimeBetweenScans = manager.getConfiguration()
           .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
@@ -978,9 +985,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void replaceVolumes(List<VolumeUtil.VolumeReplacements> volumeReplacementsList) {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
       for (VolumeUtil.VolumeReplacements vr : volumeReplacementsList) {
-        // ELASTICITY_TODO can require same on WALS once that is implemented, see #3948
-        var tabletMutator = tabletsMutator.mutateTablet(vr.tabletMeta.getExtent())
-            .requireAbsentOperation().requireAbsentLocation().requireSame(vr.tabletMeta, FILES);
+        var tabletMutator =
+            tabletsMutator.mutateTablet(vr.tabletMeta.getExtent()).requireAbsentOperation()
+                .requireAbsentLocation().requireSame(vr.tabletMeta, FILES, LOGS);
         vr.logsToRemove.forEach(tabletMutator::deleteWal);
         vr.logsToAdd.forEach(tabletMutator::putWal);
 
