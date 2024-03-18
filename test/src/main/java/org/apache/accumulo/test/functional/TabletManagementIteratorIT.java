@@ -346,9 +346,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   // Sets an operation type on all tablets up to the end row
   private void setOperationId(AccumuloClient client, String table, String tableNameToModify,
       Text end, TabletOperationType opType) throws TableNotFoundException {
-    FateInstanceType type = FateInstanceType.fromNamespaceOrTableName(table);
-    FateId fateId = FateId.from(type, 42L);
-    var opid = TabletOperationId.from(opType, fateId);
+    FateInstanceType instanceType = FateInstanceType.fromNamespaceOrTableName(table);
+    var opid = TabletOperationId.from(opType, FateId.from(instanceType, UUID.randomUUID()));
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     try (TabletsMetadata tabletsMetadata =

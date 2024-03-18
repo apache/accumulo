@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.accumulo;
+package org.apache.accumulo.core.fate.user;
 
-import static org.apache.accumulo.core.fate.accumulo.schema.FateSchema.TxColumnFamily.STATUS_COLUMN;
+import static org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily.STATUS_COLUMN;
 
 import java.io.IOException;
 import java.util.Arrays;

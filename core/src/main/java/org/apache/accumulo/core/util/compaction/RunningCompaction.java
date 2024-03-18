@@ -43,11 +43,15 @@ public class RunningCompaction {
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {
-    return updates;
+    synchronized (updates) {
+      return new TreeMap<>(updates);
+    }
   }
 
   public void addUpdate(Long timestamp, TCompactionStatusUpdate update) {
-    this.updates.put(timestamp, update);
+    synchronized (updates) {
+      this.updates.put(timestamp, update);
+    }
   }
 
   public TExternalCompactionJob getJob() {

@@ -29,7 +29,7 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TFateId");
 
   private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)1);
-  private static final org.apache.thrift.protocol.TField TID_FIELD_DESC = new org.apache.thrift.protocol.TField("tid", org.apache.thrift.protocol.TType.I64, (short)2);
+  private static final org.apache.thrift.protocol.TField TX_UUIDSTR_FIELD_DESC = new org.apache.thrift.protocol.TField("txUUIDStr", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TFateIdStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TFateIdTupleSchemeFactory();
@@ -39,7 +39,7 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
    * @see TFateInstanceType
    */
   public @org.apache.thrift.annotation.Nullable TFateInstanceType type; // required
-  public long tid; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String txUUIDStr; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -48,7 +48,7 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
      * @see TFateInstanceType
      */
     TYPE((short)1, "type"),
-    TID((short)2, "tid");
+    TX_UUIDSTR((short)2, "txUUIDStr");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -66,8 +66,8 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
       switch(fieldId) {
         case 1: // TYPE
           return TYPE;
-        case 2: // TID
-          return TID;
+        case 2: // TX_UUIDSTR
+          return TX_UUIDSTR;
         default:
           return null;
       }
@@ -111,15 +111,13 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
   }
 
   // isset id assignments
-  private static final int __TID_ISSET_ID = 0;
-  private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TFateInstanceType.class)));
-    tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.TX_UUIDSTR, new org.apache.thrift.meta_data.FieldMetaData("txUUIDStr", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TFateId.class, metaDataMap);
   }
@@ -129,23 +127,23 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
 
   public TFateId(
     TFateInstanceType type,
-    long tid)
+    java.lang.String txUUIDStr)
   {
     this();
     this.type = type;
-    this.tid = tid;
-    setTidIsSet(true);
+    this.txUUIDStr = txUUIDStr;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public TFateId(TFateId other) {
-    __isset_bitfield = other.__isset_bitfield;
     if (other.isSetType()) {
       this.type = other.type;
     }
-    this.tid = other.tid;
+    if (other.isSetTxUUIDStr()) {
+      this.txUUIDStr = other.txUUIDStr;
+    }
   }
 
   @Override
@@ -156,8 +154,7 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
   @Override
   public void clear() {
     this.type = null;
-    setTidIsSet(false);
-    this.tid = 0;
+    this.txUUIDStr = null;
   }
 
   /**
@@ -193,27 +190,29 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
     }
   }
 
-  public long getTid() {
-    return this.tid;
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getTxUUIDStr() {
+    return this.txUUIDStr;
   }
 
-  public TFateId setTid(long tid) {
-    this.tid = tid;
-    setTidIsSet(true);
+  public TFateId setTxUUIDStr(@org.apache.thrift.annotation.Nullable java.lang.String txUUIDStr) {
+    this.txUUIDStr = txUUIDStr;
     return this;
   }
 
-  public void unsetTid() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __TID_ISSET_ID);
+  public void unsetTxUUIDStr() {
+    this.txUUIDStr = null;
   }
 
-  /** Returns true if field tid is set (has been assigned a value) and false otherwise */
-  public boolean isSetTid() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __TID_ISSET_ID);
+  /** Returns true if field txUUIDStr is set (has been assigned a value) and false otherwise */
+  public boolean isSetTxUUIDStr() {
+    return this.txUUIDStr != null;
   }
 
-  public void setTidIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TID_ISSET_ID, value);
+  public void setTxUUIDStrIsSet(boolean value) {
+    if (!value) {
+      this.txUUIDStr = null;
+    }
   }
 
   @Override
@@ -227,11 +226,11 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
       }
       break;
 
-    case TID:
+    case TX_UUIDSTR:
       if (value == null) {
-        unsetTid();
+        unsetTxUUIDStr();
       } else {
-        setTid((java.lang.Long)value);
+        setTxUUIDStr((java.lang.String)value);
       }
       break;
 
@@ -245,8 +244,8 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
     case TYPE:
       return getType();
 
-    case TID:
-      return getTid();
+    case TX_UUIDSTR:
+      return getTxUUIDStr();
 
     }
     throw new java.lang.IllegalStateException();
@@ -262,8 +261,8 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
     switch (field) {
     case TYPE:
       return isSetType();
-    case TID:
-      return isSetTid();
+    case TX_UUIDSTR:
+      return isSetTxUUIDStr();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -290,12 +289,12 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
         return false;
     }
 
-    boolean this_present_tid = true;
-    boolean that_present_tid = true;
-    if (this_present_tid || that_present_tid) {
-      if (!(this_present_tid && that_present_tid))
+    boolean this_present_txUUIDStr = true && this.isSetTxUUIDStr();
+    boolean that_present_txUUIDStr = true && that.isSetTxUUIDStr();
+    if (this_present_txUUIDStr || that_present_txUUIDStr) {
+      if (!(this_present_txUUIDStr && that_present_txUUIDStr))
         return false;
-      if (this.tid != that.tid)
+      if (!this.txUUIDStr.equals(that.txUUIDStr))
         return false;
     }
 
@@ -310,7 +309,9 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
     if (isSetType())
       hashCode = hashCode * 8191 + type.getValue();
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(tid);
+    hashCode = hashCode * 8191 + ((isSetTxUUIDStr()) ? 131071 : 524287);
+    if (isSetTxUUIDStr())
+      hashCode = hashCode * 8191 + txUUIDStr.hashCode();
 
     return hashCode;
   }
@@ -333,12 +334,12 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetTid(), other.isSetTid());
+    lastComparison = java.lang.Boolean.compare(isSetTxUUIDStr(), other.isSetTxUUIDStr());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTid()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tid, other.tid);
+    if (isSetTxUUIDStr()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.txUUIDStr, other.txUUIDStr);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -375,8 +376,12 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("tid:");
-    sb.append(this.tid);
+    sb.append("txUUIDStr:");
+    if (this.txUUIDStr == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.txUUIDStr);
+    }
     first = false;
     sb.append(")");
     return sb.toString();
@@ -397,8 +402,6 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -433,10 +436,10 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // TID
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.tid = iprot.readI64();
-              struct.setTidIsSet(true);
+          case 2: // TX_UUIDSTR
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.txUUIDStr = iprot.readString();
+              struct.setTxUUIDStrIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -462,9 +465,11 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
         oprot.writeI32(struct.type.getValue());
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(TID_FIELD_DESC);
-      oprot.writeI64(struct.tid);
-      oprot.writeFieldEnd();
+      if (struct.txUUIDStr != null) {
+        oprot.writeFieldBegin(TX_UUIDSTR_FIELD_DESC);
+        oprot.writeString(struct.txUUIDStr);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -487,15 +492,15 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
       if (struct.isSetType()) {
         optionals.set(0);
       }
-      if (struct.isSetTid()) {
+      if (struct.isSetTxUUIDStr()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
       if (struct.isSetType()) {
         oprot.writeI32(struct.type.getValue());
       }
-      if (struct.isSetTid()) {
-        oprot.writeI64(struct.tid);
+      if (struct.isSetTxUUIDStr()) {
+        oprot.writeString(struct.txUUIDStr);
       }
     }
 
@@ -508,8 +513,8 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
         struct.setTypeIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.tid = iprot.readI64();
-        struct.setTidIsSet(true);
+        struct.txUUIDStr = iprot.readString();
+        struct.setTxUUIDStrIsSet(true);
       }
     }
   }

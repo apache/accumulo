@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,12 +44,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -62,14 +63,13 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   public static final FateIdGenerator DEFAULT_FATE_ID_GENERATOR = new FateIdGenerator() {
     @Override
     public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
-      HashCode hashCode = Hashing.murmur3_128().hashBytes(fateKey.getSerialized());
-      long tid = hashCode.asLong() & 0x7fffffffffffffffL;
-      return FateId.from(instanceType, tid);
+      UUID txUUID = UUID.nameUUIDFromBytes(fateKey.getSerialized());
+      return FateId.from(instanceType, txUUID);
     }
   };
 
   protected final Set<FateId> reserved;
-  protected final Map<FateId,Long> deferred;
+  protected final Map<FateId,NanoTime> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
   private final FateIdGenerator fateIdGenerator;
@@ -164,7 +164,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
               synchronized (AbstractFateStore.this) {
                 var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
-                  if ((deferredTime - System.nanoTime()) >= 0) {
+                  if (deferredTime.elapsed().isNegative()) {
+                    // negative elapsed time indicates the deferral time is in the future
                     return false;
                   } else {
                     deferred.remove(fateId);
@@ -186,10 +187,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           long waitTime = 5000;
           synchronized (AbstractFateStore.this) {
             if (!deferred.isEmpty()) {
-              long currTime = System.nanoTime();
-              long minWait =
-                  deferred.values().stream().mapToLong(l -> l - currTime).min().getAsLong();
-              waitTime = TimeUnit.MILLISECONDS.convert(minWait, TimeUnit.NANOSECONDS);
+              var now = NanoTime.now();
+              waitTime = deferred.values().stream()
+                  .mapToLong(nanoTime -> nanoTime.subtract(now).toMillis()).min().getAsLong();
             }
           }
 
@@ -269,9 +269,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       // mean a collision
       if (status == TStatus.NEW) {
         Preconditions.checkState(tFateKey.isPresent(), "Tx Key is missing from tid %s",
-            fateId.getTid());
+            fateId.getTxUUIDStr());
         Preconditions.checkState(fateKey.equals(tFateKey.orElseThrow()),
-            "Collision detected for tid %s", fateId.getTid());
+            "Collision detected for tid %s", fateId.getTxUUIDStr());
         // Case 2: Status is some other state which means already in progress
         // so we can just log and return empty optional
       } else {
@@ -383,9 +383,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     @Override
     public void unreserve(long deferTime, TimeUnit timeUnit) {
-      deferTime = TimeUnit.NANOSECONDS.convert(deferTime, timeUnit);
+      Duration deferDuration = Duration.of(deferTime, timeUnit.toChronoUnit());
 
-      if (deferTime < 0) {
+      if (deferDuration.isNegative()) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
@@ -401,7 +401,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         // and clear the map and set the flag. This will cause the next execution
         // of runnable to process all the transactions and to not defer as we
         // have a large backlog and want to make progress
-        if (deferTime > 0 && !deferredOverflow.get()) {
+        if (deferDuration.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
           if (deferred.size() >= maxDeferred) {
             log.info(
                 "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
@@ -409,7 +409,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(fateId, System.nanoTime() + deferTime);
+            deferred.put(fateId, NanoTime.nowPlus(deferDuration));
           }
         }
       }

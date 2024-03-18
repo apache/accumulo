@@ -73,8 +73,8 @@ public class TabletManagementTest {
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
     FateInstanceType type = FateInstanceType.fromTableId(extent.tableId());
-    FateId fateId56L = FateId.from(type, 56L);
-    FateId fateId59L = FateId.from(type, 59L);
+    FateId fateId1 = FateId.from(type, UUID.randomUUID());
+    FateId fateId2 = FateId.from(type, UUID.randomUUID());
 
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
@@ -85,9 +85,9 @@ public class TabletManagementTest {
     StoredTabletFile bf2 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/bf2")).insert();
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1.getMetadata())
-        .put(fateId56L.canonical());
+        .put(fateId1.canonical());
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2.getMetadata())
-        .put(fateId59L.canonical());
+        .put(fateId2.canonical());
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
