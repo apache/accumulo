@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -253,12 +254,11 @@ public class CompactionCoordinator
   private void idleCompactionWarning() {
 
     long now = System.currentTimeMillis();
-    Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
     TIME_COMPACTOR_LAST_CHECKED.forEach((groupName, lastCheckTime) -> {
       if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+          && jobQueues.getQueuedJobs(groupName) > 0
           && idleCompactors.containsKey(groupName.canonical())) {
-        // ELASTICITY_TODO may want to consider of the group has any jobs queued OR if the group
-        // still exist in configuration
         LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", groupName,
             getMissingCompactorWarningTime());
       }
@@ -304,15 +304,17 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,List<HostAndPort>> getIdleCompactors() {
+  private Map<String,Set<HostAndPort>> getIdleCompactors() {
 
-    Map<String,List<HostAndPort>> allCompactors = ExternalCompactionUtil.getCompactorAddrs(ctx);
+    Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
+    ExternalCompactionUtil.getCompactorAddrs(ctx)
+        .forEach((group, compactorList) -> allCompactors.put(group, new HashSet<>(compactorList)));
 
     Set<String> emptyQueues = new HashSet<>();
 
     // Remove all of the compactors that are running a compaction
     RUNNING_CACHE.values().forEach(rc -> {
-      List<HostAndPort> busyCompactors = allCompactors.get(rc.getGroupName());
+      Set<HostAndPort> busyCompactors = allCompactors.get(rc.getGroupName());
       if (busyCompactors != null
           && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
         if (busyCompactors.isEmpty()) {
