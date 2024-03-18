@@ -23,18 +23,23 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -48,6 +53,8 @@ import com.google.common.base.Preconditions;
  * </p>
  */
 public class CompactionJobPriorityQueue {
+
+  private static final Logger log = LoggerFactory.getLogger(CompactionJobPriorityQueue.class);
 
   private final CompactorGroupId groupId;
 
@@ -99,9 +106,19 @@ public class CompactionJobPriorityQueue {
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
 
+  private static class TabletJobs {
+    final long generation;
+    final HashSet<CjpqKey> jobs;
+
+    private TabletJobs(long generation, HashSet<CjpqKey> jobs) {
+      this.generation = generation;
+      this.jobs = jobs;
+    }
+  }
+
   // This map tracks what jobs a tablet currently has in the queue. Its used to efficiently remove
   // jobs in the queue when new jobs are queued for a tablet.
-  private final Map<KeyExtent,List<CjpqKey>> tabletJobs;
+  private final Map<KeyExtent,TabletJobs> tabletJobs;
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
@@ -116,10 +133,32 @@ public class CompactionJobPriorityQueue {
     this.dequeuedJobs = new AtomicLong(0);
   }
 
+  public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
+    if (closed.get()) {
+      return;
+    }
+
+    List<KeyExtent> removals = new ArrayList<>();
+
+    tabletJobs.forEach((extent, jobs) -> {
+      if (Ample.DataLevel.of(extent.tableId()) == level && jobs.generation < currGeneration) {
+        removals.add(extent);
+      }
+    });
+
+    if (!removals.isEmpty()) {
+      log.trace("Removed {} queued tablets that no longer need compaction for {} {}",
+          removals.size(), groupId, level);
+    }
+
+    removals.forEach(this::removePreviousSubmissions);
+  }
+
   /**
    * @return the number of jobs added. If the queue is closed returns -1
    */
-  public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
+  public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs,
+      long generation) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
     if (closed.get()) {
       return -1;
@@ -127,13 +166,13 @@ public class CompactionJobPriorityQueue {
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
-    List<CjpqKey> newEntries = new ArrayList<>(jobs.size());
+    HashSet<CjpqKey> newEntries = new HashSet<>(jobs.size());
 
     int jobsAdded = 0;
     for (CompactionJob job : jobs) {
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
-        newEntries.add(cjqpKey);
+        checkState(newEntries.add(cjqpKey));
         jobsAdded++;
       } else {
         // The priority for this job was lower than all other priorities and not added
@@ -143,7 +182,8 @@ public class CompactionJobPriorityQueue {
     }
 
     if (!newEntries.isEmpty()) {
-      checkState(tabletJobs.put(tabletMetadata.getExtent(), newEntries) == null);
+      checkState(tabletJobs.put(tabletMetadata.getExtent(), new TabletJobs(generation, newEntries))
+          == null);
     }
 
     return jobsAdded;
@@ -178,7 +218,7 @@ public class CompactionJobPriorityQueue {
     if (first != null) {
       dequeuedJobs.getAndIncrement();
       var extent = first.getValue().getTabletMetadata().getExtent();
-      List<CjpqKey> jobs = tabletJobs.get(extent);
+      Set<CjpqKey> jobs = tabletJobs.get(extent).jobs;
       checkState(jobs.remove(first.getKey()));
       if (jobs.isEmpty()) {
         tabletJobs.remove(extent);
@@ -207,9 +247,9 @@ public class CompactionJobPriorityQueue {
   }
 
   private void removePreviousSubmissions(KeyExtent extent) {
-    List<CjpqKey> prevJobs = tabletJobs.get(extent);
+    TabletJobs prevJobs = tabletJobs.get(extent);
     if (prevJobs != null) {
-      prevJobs.forEach(jobQueue::remove);
+      prevJobs.jobs.forEach(jobQueue::remove);
       tabletJobs.remove(extent);
     }
   }

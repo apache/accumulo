@@ -294,6 +294,7 @@ public class CompactionCoordinatorTest {
     TabletMetadata tm = EasyMock.createNiceMock(TabletMetadata.class);
     expect(tm.getExtent()).andReturn(ke).anyTimes();
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
+    expect(tm.getTableId()).andReturn(ke.tableId()).anyTimes();
 
     EasyMock.replay(tconf, context, creds, tm, security);
 
