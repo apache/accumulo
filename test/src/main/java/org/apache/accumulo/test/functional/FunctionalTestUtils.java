@@ -60,7 +60,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -231,7 +231,8 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
       ZooReaderWriter zk = context.getZooReaderWriter();
-      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      MetaFateStore<String> zs =
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
       return admin.getStatus(zs, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {

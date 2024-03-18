@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -58,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
-import org.apache.accumulo.test.fate.FateTestRunner;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
@@ -365,10 +365,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   @Test
   public void testCreateWithKeyCollision() throws Exception {
-    // Replace the default hasing algorithm with one that always returns the same tid so
+    // Replace the default hashing algorithm with one that always returns the same tid so
     // we can check duplicate detection with different keys
     executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
-        (instanceType, fateKey) -> FateId.from(instanceType, 1000));
+        (instanceType, fateKey) -> FateId.from(instanceType,
+            UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8))));
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
@@ -382,7 +383,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
     try {
       var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
-      assertEquals("Collision detected for tid 1000", e.getMessage());
+      assertEquals(
+          "Collision detected for tid " + UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)),
+          e.getMessage());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
@@ -410,7 +413,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // and use the existing transaction, which we should.
     deleteKey(fateId, sctx);
     var e = assertThrows(IllegalStateException.class, () -> store.createAndReserve(fateKey));
-    assertEquals("Tx Key is missing from tid " + fateId.getTid(), e.getMessage());
+    assertEquals("Tx Key is missing from tid " + fateId.getTxUUIDStr(), e.getMessage());
 
     // We should still be able to reserve and continue when not using a key
     // just like a normal transaction

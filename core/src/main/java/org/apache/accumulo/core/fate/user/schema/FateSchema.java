@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.accumulo.schema;
+package org.apache.accumulo.core.fate.user.schema;
 
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;

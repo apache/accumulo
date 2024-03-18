@@ -692,7 +692,7 @@ public class MergeIT extends AccumuloClusterHarness {
           var tablet = tabletsMutator.mutateTablet(extent);
           ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
           FateInstanceType type = FateInstanceType.fromTableId(tableId);
-          FateId fateId44L = FateId.from(type, 44L);
+          FateId fateId = FateId.from(type, UUID.randomUUID());
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
@@ -700,7 +700,7 @@ public class MergeIT extends AccumuloClusterHarness {
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
           CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
-              CompactionKind.SYSTEM, (short) 2, ceid, false, fateId44L);
+              CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
           tablet.putExternalCompaction(ecid, ecMeta);
           tablet.mutate();
         }

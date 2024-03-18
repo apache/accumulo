@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -147,15 +148,15 @@ public class MetadataConstraintsTest {
     MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
-    FateId fateId5L = FateId.from(FateInstanceType.META, 5L);
-    FateId fateId7L = FateId.from(FateInstanceType.META, 7L);
+    FateId fateId1 = FateId.from(FateInstanceType.META, UUID.randomUUID());
+    FateId fateId2 = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     // loaded marker w/ file
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
@@ -168,7 +169,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 8);
 
     // two files w/ same txid
@@ -176,7 +177,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
@@ -184,7 +185,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
@@ -197,7 +198,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
@@ -205,7 +206,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
-        new Value(fateId7L.canonical()));
+        new Value(fateId2.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
@@ -217,7 +218,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(
         DataFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
@@ -225,7 +226,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 8);
 
     // mutation that looks like split
@@ -233,7 +234,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
@@ -243,7 +244,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
@@ -261,7 +262,7 @@ public class MetadataConstraintsTest {
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata()
             .replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile", "/someFile")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Missing tables directory in path
@@ -270,20 +271,20 @@ public class MetadataConstraintsTest {
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
                 "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 8);
 
     // Bad Json - only path (old format) so should fail parsing
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME, new Text("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - test startRow key is missing so validation should fail
@@ -292,7 +293,7 @@ public class MetadataConstraintsTest {
     m.put(BulkFileColumnFamily.NAME,
         new Text(
             "{\"path\":\"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile\",\"endRow\":\"\"}"),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - test path key replaced with empty string so validation should fail
@@ -301,7 +302,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("path", "")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - test path value missing
@@ -310,7 +311,7 @@ public class MetadataConstraintsTest {
     m.put(BulkFileColumnFamily.NAME,
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replaceFirst("\"path\":\".*\",\"startRow", "\"path\":\"\",\"startRow")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - test startRow key replaced with empty string so validation should fail
@@ -318,7 +319,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME, new Text(StoredTabletFile
         .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("startRow", "")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - test endRow key missing so validation should fail
@@ -326,7 +327,7 @@ public class MetadataConstraintsTest {
     m.put(
         BulkFileColumnFamily.NAME, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("endRow", "")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
     // Bad Json - endRow will be replaced with encoded row without the exclusive byte 0x00 which is
@@ -337,7 +338,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
             .getMetadata().replaceFirst("\"endRow\":\".*\"",
                 "\"endRow\":\"" + encodeRowForMetadata("bad") + "\"")),
-        new Value(fateId5L.canonical()));
+        new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
 
   }
@@ -468,7 +469,8 @@ public class MetadataConstraintsTest {
     assertViolation(mc, m, (short) 9);
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.OPID_COLUMN.put(m, new Value("MERGING:FATE:META:123abc"));
+    ServerColumnFamily.OPID_COLUMN.put(m,
+        new Value("MERGING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }
@@ -478,7 +480,7 @@ public class MetadataConstraintsTest {
     MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
-    FateId fateId = FateId.from(FateInstanceType.META, 42L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     m = new Mutation(new Text("0;foo"));
     ServerColumnFamily.SELECTED_COLUMN.put(m, new Value("bad id"));
@@ -512,7 +514,7 @@ public class MetadataConstraintsTest {
     MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
-    FateId fateId = FateId.from(FateInstanceType.META, 45L);
+    FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
     m = new Mutation(new Text("0;foo"));
     m.put(column, fateId.canonical(), "");

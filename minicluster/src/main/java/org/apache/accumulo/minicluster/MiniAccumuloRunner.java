@@ -150,6 +150,7 @@ public class MiniAccumuloRunner {
    *
    * @param args An optional -p argument can be specified with the path to a valid properties file.
    */
+  @SuppressWarnings("deprecation")
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "UNENCRYPTED_SERVER_SOCKET"},
       justification = "code runs in same security context as user who provided input file name; "
           + "socket need not be encrypted, since this class is provided for testing only")

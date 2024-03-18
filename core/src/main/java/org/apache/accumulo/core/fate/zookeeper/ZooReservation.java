@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
 
-  private static final String DELIMITER = "-";
+  private static final String DELIMITER = "_";
 
   public static boolean attempt(ZooReaderWriter zk, String path, FateId fateId, String debugInfo)
       throws KeeperException, InterruptedException {

@@ -57,9 +57,9 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -771,12 +771,12 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
-    AccumuloStore<Admin> as = new AccumuloStore<>(context);
+    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk);
+    UserFateStore<Admin> ufs = new UserFateStore<>(context);
     Map<FateInstanceType,FateStore<Admin>> fateStores =
-        Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
+        Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores =
-        Map.of(FateInstanceType.META, zs, FateInstanceType.USER, as);
+        Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
 
     if (fateOpsCommand.cancel) {
       cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);

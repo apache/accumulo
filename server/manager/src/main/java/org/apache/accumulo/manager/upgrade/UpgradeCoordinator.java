@@ -38,8 +38,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -307,7 +307,7 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyFateStore<UpgradeCoordinator> fate = new ZooStore<>(
+      final ReadOnlyFateStore<UpgradeCoordinator> fate = new MetaFateStore<>(
           context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
       try (var idStream = fate.list()) {
         if (idStream.findFirst().isPresent()) {
