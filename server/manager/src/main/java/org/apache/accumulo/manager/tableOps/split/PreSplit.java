@@ -30,9 +30,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -63,14 +67,7 @@ public class PreSplit extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-
-    // ELASTICITY_TODO intentionally not getting the table lock because not sure if its needed,
-    // revist later when more operations are moved out of tablet server
-
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
-
-    // ELASTICITY_TODO write IT that spins up 100 threads that all try to add a diff split to
-    // the same tablet.
 
     // ELASTICITY_TODO does FATE prioritize running Fate txs that have already started? If not would
     // be good to look into this so we can finish things that are started before running new txs
@@ -97,6 +94,15 @@ public class PreSplit extends ManagerRepo {
         return 1000;
       }
     } else {
+      // do not set the operation id on the tablet if the table is offline
+      if (manager.getContext().getTableState(splitInfo.getOriginal().tableId())
+          != TableState.ONLINE) {
+        throw new AcceptableThriftTableOperationException(
+            splitInfo.getOriginal().tableId().canonical(), null, TableOperation.SPLIT,
+            TableOperationExceptionType.OFFLINE,
+            "Unable to split tablet because the table is offline");
+      }
+
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
         tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()

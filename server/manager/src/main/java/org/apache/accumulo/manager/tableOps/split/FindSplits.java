@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
@@ -85,6 +86,12 @@ public class FindSplits extends ManagerRepo {
       // points.
       log.debug("Not splitting {} because it has walogs {}", tabletMetadata.getExtent(),
           tabletMetadata.getLogs().size());
+      return null;
+    }
+
+    if (manager.getContext().getTableState(extent.tableId()) != TableState.ONLINE) {
+      // The table is offline, do not bother finding splits
+      log.debug("Not splitting {} because the table is not online", tabletMetadata.getExtent());
       return null;
     }
 

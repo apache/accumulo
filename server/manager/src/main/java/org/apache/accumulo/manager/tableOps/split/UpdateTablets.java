@@ -32,6 +32,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -288,25 +289,15 @@ public class UpdateTablets extends ManagerRepo {
         log.debug("{} deleting unsplittable metadata from {} because of split", fateId, newExtent);
       }
 
-      mutator.submit(tm -> false);
+      // if the tablet no longer exists (because changed prev end row, then the update was
+      // successful.
+      mutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
 
       var result = tabletsMutator.process().get(splitInfo.getOriginal());
 
-      if (result.getStatus() != Status.ACCEPTED) {
-        // Can not use Ample's built in code for checking rejected because we are changing the prev
-        // end row and Ample would try to read the old tablet, so must check it manually.
-
-        var tabletMeta = manager.getContext().getAmple().readTablet(newExtent);
-
-        if (tabletMeta == null || !tabletMeta.getOperationId().equals(opid)
-            || tabletMeta.getLocation() != null) {
-          throw new IllegalStateException("Failed to update existing tablet in split "
-              + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent() + " "
-              + (tabletMeta == null ? null : tabletMeta.getLocation()));
-        } else {
-          // ELASTICITY_TODO
-        }
-      }
+      Preconditions.checkState(result.getStatus() == Status.ACCEPTED,
+          "Failed to update existing tablet in split %s %s %s", fateId, splitInfo.getOriginal(),
+          result.getExtent());
     }
   }
 }
