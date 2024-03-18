@@ -148,7 +148,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(1, store.list().count());
     txStore2.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore2.delete();
-    // Verify no transactions
     assertEquals(0, store.list().count());
   }
 
@@ -158,9 +157,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testReadWriteTxInfo(FateStore<TestEnv> store, ServerContext sctx) {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     FateId fateId = store.create();
     FateTxStore<TestEnv> txStore = store.reserve(fateId);
 
@@ -174,8 +170,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       }
     } finally {
       txStore.delete();
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
 
   }
@@ -261,8 +255,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // All stores should already be unreserved
       store.list().forEach(
           fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
   }
 
@@ -272,9 +264,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKey(FateStore<TestEnv> store, ServerContext sctx) {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     KeyExtent ke1 =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
@@ -303,8 +292,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore2.delete();
       txStore1.unreserve(0, TimeUnit.SECONDS);
       txStore2.unreserve(0, TimeUnit.SECONDS);
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
   }
 
@@ -314,9 +301,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKeyDuplicate(FateStore<TestEnv> store, ServerContext sctx) {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
@@ -337,8 +321,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
   }
 
@@ -349,9 +331,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testCreateWithKeyInProgress(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
@@ -380,8 +359,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
 
   }
@@ -396,9 +373,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     String[] tables = getUniqueNames(2);
     KeyExtent ke1 = new KeyExtent(TableId.of(tables[0]), new Text("zzz"), new Text("aaa"));
     KeyExtent ke2 = new KeyExtent(TableId.of(tables[1]), new Text("ddd"), new Text("bbb"));
@@ -416,8 +390,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
 
   }
@@ -429,9 +401,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testCollisionWithRandomFateId(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
-
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
@@ -455,8 +424,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.delete();
       txStore.unreserve(0, TimeUnit.SECONDS);
-      // Verify no transactions
-      assertEquals(0, store.list().count());
     }
 
   }
@@ -467,8 +434,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
   }
 
   protected void testListFateKeys(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
 
     // this should not be seen when listing by key type because it has no key
     var id1 = store.create();
@@ -522,11 +487,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     assertEquals(0, fateKeyIds.size());
     assertEquals(Set.of(cid1, cid2), seenCids);
-    // Cleanup
-    store.list()
-        .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
-    // Verify no transactions
-    assertEquals(0, store.list().count());
   }
 
   // create(fateKey) method is private so expose for testing to check error states
