@@ -38,6 +38,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -51,6 +53,8 @@ import com.google.common.base.Preconditions;
  * </p>
  */
 public class CompactionJobPriorityQueue {
+
+  private static final Logger log = LoggerFactory.getLogger(CompactionJobPriorityQueue.class);
 
   private final CompactorGroupId groupId;
 
@@ -141,6 +145,11 @@ public class CompactionJobPriorityQueue {
         removals.add(extent);
       }
     });
+
+    if (!removals.isEmpty()) {
+      log.trace("Removed {} queued tablets that no longer need compaction for {} {}",
+          removals.size(), groupId, level);
+    }
 
     removals.forEach(this::removePreviousSubmissions);
   }
