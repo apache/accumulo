@@ -120,7 +120,7 @@ public class CommitCompaction extends ManagerRepo {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
             .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 
-        if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+        if (ecm.getKind() == CompactionKind.USER) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
         }
 
@@ -244,7 +244,7 @@ public class CommitCompaction extends ManagerRepo {
       return false;
     }
 
-    if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+    if (ecm.getKind() == CompactionKind.USER) {
       if (tabletMetadata.getSelectedFiles() == null) {
         // when the compaction is canceled, selected files are deleted
         LOG.debug(

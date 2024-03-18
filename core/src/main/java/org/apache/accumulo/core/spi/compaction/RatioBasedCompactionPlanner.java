@@ -306,8 +306,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
       }
     }
 
-    if (compactionJobs.size() == 1
-        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
+    if (compactionJobs.size() == 1 && params.getKind() == CompactionKind.USER
         && compactionJobs.get(0).size() < params.getCandidates().size()
         && compactionJobs.get(0).size() <= maxFilesToCompact) {
       // USER and SELECTOR compactions must eventually compact all files. When a subset of files
@@ -330,9 +329,8 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     }
 
     if (compactionJobs.isEmpty()) {
-      if ((params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
-          && params.getRunningCompactions().stream()
-              .noneMatch(job -> job.getKind() == params.getKind())) {
+      if (params.getKind() == CompactionKind.USER && params.getRunningCompactions().stream()
+          .noneMatch(job -> job.getKind() == params.getKind())) {
         // These kinds of compaction require files to compact even if none of the files meet the
         // compaction ratio. No files were found using the compaction ratio and no compactions are
         // running, so force a compaction.
