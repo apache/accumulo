@@ -28,12 +28,22 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
@@ -41,15 +51,20 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
+import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public abstract class FateOpsCommandsIT extends ConfigurableMacBase
@@ -82,8 +97,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate blank report, no transactions have started
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW", "-s",
-        "IN_PROGRESS", "-s", "FAILED");
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
     result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
@@ -93,10 +107,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getStatusCounts().isEmpty());
     assertTrue(report.getStepCounts().isEmpty());
     assertTrue(report.getCmdCounts().isEmpty());
-    assertEquals(Set.of("FAILED", "IN_PROGRESS", "NEW"), report.getStatusFilterNames());
+    assertTrue(report.getStatusFilterNames().isEmpty());
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
-    assertEquals(0, report.getFateDetails().size());
+    validateFateDetails(report.getFateDetails(), 0, null);
 
     // create Fate transactions
     FateId fateId1 = fate.startTransaction();
@@ -117,12 +131,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getStatusFilterNames().isEmpty());
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
-    assertEquals(2, report.getFateDetails().size());
-    ArrayList<String> fateIdsFromResult1 = new ArrayList<>();
-    report.getFateDetails().forEach((d) -> {
-      fateIdsFromResult1.add(d.getFateId());
-    });
-    assertTrue(fateIdsFromResult1.containsAll(fateIdsStarted));
+    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
+
+    /*
+     * Test filtering by FateIds
+     */
 
     // validate filtering by both transactions
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
@@ -140,12 +153,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertEquals(2, report.getFateIdFilter().size());
     assertTrue(report.getFateIdFilter().containsAll(fateIdsStarted));
-    assertEquals(2, report.getFateDetails().size());
-    ArrayList<String> fateIdsFromResult2 = new ArrayList<>();
-    report.getFateDetails().forEach((d) -> {
-      fateIdsFromResult2.add(d.getFateId());
-    });
-    assertTrue(fateIdsFromResult2.containsAll(fateIdsStarted));
+    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
 
     // validate filtering by just one transaction
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
@@ -162,12 +170,29 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertEquals(1, report.getFateIdFilter().size());
     assertTrue(report.getFateIdFilter().contains(fateId1.canonical()));
-    assertEquals(1, report.getFateDetails().size());
-    ArrayList<String> fateIdsFromResult3 = new ArrayList<>();
-    report.getFateDetails().forEach((d) -> {
-      fateIdsFromResult3.add(d.getFateId());
-    });
-    assertTrue(fateIdsFromResult3.contains(fateId1.canonical()));
+    validateFateDetails(report.getFateDetails(), 1, fateIdsStarted);
+
+    // validate filtering by non-existent transaction
+    FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
+    p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
+    assertEquals(0, p.getProcess().waitFor());
+    result = p.readStdOut();
+    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    report = FateSummaryReport.fromJson(result);
+    assertNotNull(report);
+    assertNotEquals(0, report.getReportTime());
+    assertFalse(report.getStatusCounts().isEmpty());
+    assertFalse(report.getStepCounts().isEmpty());
+    assertFalse(report.getCmdCounts().isEmpty());
+    assertTrue(report.getStatusFilterNames().isEmpty());
+    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+    assertEquals(1, report.getFateIdFilter().size());
+    assertTrue(report.getFateIdFilter().contains(fakeFateId.canonical()));
+    validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+
+    /*
+     * Test filtering by States
+     */
 
     // validate status filter by including only FAILED transactions, should be none
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
@@ -183,7 +208,27 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
     assertTrue(report.getInstanceTypesFilterNames().isEmpty());
     assertTrue(report.getFateIdFilter().isEmpty());
-    assertEquals(0, report.getFateDetails().size());
+    validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+
+    // validate status filter by including only NEW transactions, should be 2
+    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
+    assertEquals(0, p.getProcess().waitFor());
+    result = p.readStdOut();
+    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    report = FateSummaryReport.fromJson(result);
+    assertNotNull(report);
+    assertNotEquals(0, report.getReportTime());
+    assertFalse(report.getStatusCounts().isEmpty());
+    assertFalse(report.getStepCounts().isEmpty());
+    assertFalse(report.getCmdCounts().isEmpty());
+    assertEquals(Set.of("NEW"), report.getStatusFilterNames());
+    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+    assertTrue(report.getFateIdFilter().isEmpty());
+    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
+
+    /*
+     * Test filtering by FateInstanceType
+     */
 
     // validate FateInstanceType filter by only including transactions with META filter
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
@@ -200,14 +245,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Set.of("META"), report.getInstanceTypesFilterNames());
     assertTrue(report.getFateIdFilter().isEmpty());
     if (store.type() == FateInstanceType.META) {
-      assertEquals(2, report.getFateDetails().size());
-      ArrayList<String> fateIdsFromResult4 = new ArrayList<>();
-      report.getFateDetails().forEach((d) -> {
-        fateIdsFromResult4.add(d.getFateId());
-      });
-      assertTrue(fateIdsFromResult4.containsAll(fateIdsStarted));
+      validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
     } else { // USER
-      assertEquals(0, report.getFateDetails().size());
+      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
     }
 
     // validate FateInstanceType filter by only including transactions with USER filter
@@ -225,14 +265,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Set.of("USER"), report.getInstanceTypesFilterNames());
     assertTrue(report.getFateIdFilter().isEmpty());
     if (store.type() == FateInstanceType.META) {
-      assertEquals(0, report.getFateDetails().size());
+      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
     } else { // USER
-      assertEquals(2, report.getFateDetails().size());
-      ArrayList<String> fateIdsFromResult4 = new ArrayList<>();
-      report.getFateDetails().forEach((d) -> {
-        fateIdsFromResult4.add(d.getFateId());
-      });
-      assertTrue(fateIdsFromResult4.containsAll(fateIdsStarted));
+      validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
     }
 
     fate.shutdown(10, TimeUnit.MINUTES);
@@ -337,6 +372,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     fateIdsFromResult = getFateIdsFromPrint(result);
     assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
 
+    // Filter by non-existent FateId
+    FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
+    p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--print");
+    assertEquals(0, p.getProcess().waitFor());
+    result = p.readStdOut();
+    fateIdsFromResult = getFateIdsFromPrint(result);
+    assertEquals(0, fateIdsFromResult.size());
+
     /*
      * Test filtering by FateInstanceType
      */
@@ -366,6 +409,83 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     }
 
     fate.shutdown(10, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testTransactionNameAndStep() throws Exception {
+    executeTest(this::testTransactionNameAndStep);
+  }
+
+  protected void testTransactionNameAndStep(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    // Since the other tests just use NEW transactions for simplicity, there are some fields of the
+    // summary and print outputs which are null and not tested for (transaction name and transaction
+    // step). This test uses seeded/in progress transactions to test that the summary and print
+    // commands properly output these fields.
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String namespace = "ns1";
+      final String table = namespace + "." + getUniqueNames(1)[0];
+      client.namespaceOperations().create(namespace);
+
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("h"));
+      splits.add(new Text("m"));
+      splits.add(new Text("r"));
+      splits.add(new Text("w"));
+      IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
+      is.addOption("sleepTime", "10000");
+
+      NewTableConfiguration cfg = new NewTableConfiguration();
+      cfg.withSplits(splits);
+      cfg.attachIterator(is, EnumSet.of(IteratorUtil.IteratorScope.majc));
+      client.tableOperations().create(table, cfg);
+
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+      client.tableOperations().flush(table, null, null, true);
+
+      // create 2 Fate transactions
+      client.tableOperations().compact(table, null, null, false, false);
+      client.tableOperations().compact(table, null, null, false, false);
+      List<String> fateIdsStarted = new ArrayList<>();
+
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+
+      String result = p.readStdOut();
+      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      FateSummaryReport report = FateSummaryReport.fromJson(result);
+
+      // Validate transaction name and transaction step from summary command
+
+      for (FateTxnDetails d : report.getFateDetails()) {
+        // Since we could not shut down the COMPACTOR for this test, we need to ignore the Fate
+        // details if it is a COMMIT_COMPACTION transaction
+        if (!d.getTxName().equals("COMMIT_COMPACTION")) {
+          assertEquals("TABLE_COMPACT", d.getTxName());
+          assertEquals("CompactionDriver", d.getStep());
+          fateIdsStarted.add(d.getFateId());
+        }
+      }
+      assertEquals(2, fateIdsStarted.size());
+
+      p = getCluster().exec(Admin.class, "fate", "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+
+      // Validate transaction name and transaction step from print command
+
+      String[] lines = result.split("\n");
+      // Filter out the result to just include the info about the transactions
+      List<String> transactionInfo = Arrays.stream(lines)
+          .filter(
+              line -> line.contains(fateIdsStarted.get(0)) || line.contains(fateIdsStarted.get(1)))
+          .collect(Collectors.toList());
+      assertEquals(2, transactionInfo.size());
+      for (String info : transactionInfo) {
+        assertTrue(info.contains("TABLE_COMPACT"));
+        assertTrue(info.contains("op: CompactionDriver"));
+      }
+    }
   }
 
   @Test
@@ -544,6 +664,27 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       fateIdToStatus.put(d.getFateId(), d.getStatus());
     });
     return fateIdToStatus;
+  }
+
+  /**
+   * Validates the fate details of NEW transactions
+   *
+   * @param details the fate details from the {@link FateSummaryReport}
+   * @param expDetailsSize the expected size of details
+   * @param fateIdsStarted the list of fate ids that have been started
+   */
+  private void validateFateDetails(Set<FateTxnDetails> details, int expDetailsSize,
+      List<String> fateIdsStarted) {
+    assertEquals(expDetailsSize, details.size());
+    for (FateTxnDetails d : details) {
+      assertTrue(fateIdsStarted.contains(d.getFateId()));
+      assertEquals("NEW", d.getStatus());
+      assertEquals("?", d.getStep());
+      assertEquals("?", d.getTxName());
+      assertNotEquals(0, d.getRunning());
+      assertEquals("[]", d.getLocksHeld().toString());
+      assertEquals("[]", d.getLocksWaiting().toString());
+    }
   }
 
   private Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
