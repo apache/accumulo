@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -74,9 +75,13 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
+    MetaFateStore<TestEnv> store =
+        new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator);
 
-    testMethod.execute(
-        new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator), sctx);
+    // Check that the store has no transactions before and after each test
+    assertEquals(0, store.list().count());
+    testMethod.execute(store, sctx);
+    assertEquals(0, store.list().count());
   }
 
   @Override
