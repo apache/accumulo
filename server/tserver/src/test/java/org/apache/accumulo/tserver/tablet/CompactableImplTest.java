@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind;
 import org.junit.jupiter.api.Test;
 
 public class CompactableImplTest {
@@ -305,8 +306,8 @@ public class CompactableImplTest {
     var ecm1 = newECM(fileSet1, newFiles("F00003", "F00004"), CompactionKind.USER, true, true);
 
     var fileSet2 = newFiles("F00003", "F00004");
-    var ecm2 =
-        newECM(fileSet2, newFiles("F00001", "F00002"), CompactionKind.SELECTOR, true, true, null);
+    var ecm2 = newECM(fileSet2, newFiles("F00001", "F00002"), DeprecatedCompactionKind.SELECTOR,
+        true, true, null);
 
     var ecid1 = newEcid();
     var ecid2 = newEcid();
@@ -326,8 +327,8 @@ public class CompactableImplTest {
   @Test
   public void testSelectorWithCompactionId() {
     var fileSet1 = newFiles("F00001", "F00002");
-    var ecm1 =
-        newECM(fileSet1, newFiles("F00003", "F00004"), CompactionKind.SELECTOR, true, true, 5L);
+    var ecm1 = newECM(fileSet1, newFiles("F00003", "F00004"), DeprecatedCompactionKind.SELECTOR,
+        true, true, 5L);
 
     var ecid1 = newEcid();
 
