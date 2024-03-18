@@ -117,10 +117,7 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected long getTServerCheckInterval() {
-      // This is called from CompactionCoordinator.run(). Setting shutdown to true
-      // here will exit the loop in run()
-      this.shutdown = true;
-      return 0L;
+      return 5000L;
     }
 
     @Override
@@ -128,6 +125,13 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
+
+    @Override
+    protected void startIdleCompactionWatcher() {
+      // This is called from CompactionCoordinator.run(). Counting down
+      // the latch will exit the run method
+      this.shutdown.countDown();
+    }
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
