@@ -1362,7 +1362,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(2)[1];
       NewTableConfiguration ntc = new NewTableConfiguration();
       ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
-      ntc.setProperties(Map.of(Property.TABLE_SUSPEND_DURATION.getKey(), "3m",
+      ntc.setProperties(Map.of(Property.TABLE_SUSPEND_DURATION.getKey(), "30s",
           TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, SUSPEND_RG));
       c.tableOperations().create(tableName, ntc);
 
@@ -1394,7 +1394,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       }
 
       cluster.getClusterControl().start(ServerType.TABLET_SERVER);
-      c.instanceOperations().waitForBalance();
 
       Wait.waitFor(() -> getSuspendedColumn(c, suspendTableTid) == null, 60_000);
 
