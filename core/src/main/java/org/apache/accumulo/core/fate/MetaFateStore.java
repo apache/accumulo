@@ -20,7 +20,6 @@ package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -32,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -54,24 +54,25 @@ import com.google.common.base.Suppliers;
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
-public class ZooStore<T> extends AbstractFateStore<T> {
+public class MetaFateStore<T> extends AbstractFateStore<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
+  private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.META;
   private String path;
   private ZooReaderWriter zk;
 
   private String getTXPath(FateId fateId) {
-    return path + "/tx_" + fateId.getHexTid();
+    return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public MetaFateStore(String path, ZooReaderWriter zk)
+      throws KeeperException, InterruptedException {
     this(path, zk, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public ZooStore(String path, ZooReaderWriter zk, int maxDeferred, FateIdGenerator fateIdGenerator)
-      throws KeeperException, InterruptedException {
+  public MetaFateStore(String path, ZooReaderWriter zk, int maxDeferred,
+      FateIdGenerator fateIdGenerator) throws KeeperException, InterruptedException {
     super(maxDeferred, fateIdGenerator);
     this.path = path;
     this.zk = zk;
@@ -82,15 +83,13 @@ public class ZooStore<T> extends AbstractFateStore<T> {
   /**
    * For testing only
    */
-  ZooStore() {}
+  MetaFateStore() {}
 
   @Override
   public FateId create() {
     while (true) {
       try {
-        // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        FateId fateId = FateId.from(fateInstanceType, tid);
+        FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
         zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;
@@ -259,7 +258,7 @@ public class ZooStore<T> extends AbstractFateStore<T> {
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
       verifyReserved(false);
 
-      return ZooStore.this.getTransactionInfo(txInfo, fateId);
+      return MetaFateStore.this.getTransactionInfo(txInfo, fateId);
     }
 
     @Override

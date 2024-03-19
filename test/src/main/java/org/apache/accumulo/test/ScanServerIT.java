@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -270,7 +271,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       // Set operationIds on all the table's tablets so that they won't be loaded.
       FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId = FateId.from(type, 1234L);
+      FateId fateId = FateId.from(type, UUID.randomUUID());
       TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
       Ample ample = getCluster().getServerContext().getAmple();
       ServerAmpleImpl sai = (ServerAmpleImpl) ample;

@@ -274,6 +274,26 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  public void stopTabletServerGroup(String tserverResourceGroup) {
+    synchronized (tabletServerProcesses) {
+      var group = tabletServerProcesses.get(tserverResourceGroup);
+      if (group == null) {
+        return;
+      }
+      group.forEach(process -> {
+        try {
+          cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException e) {
+          log.warn("TabletServer did not fully stop after 30 seconds", e);
+          throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      });
+      tabletServerProcesses.remove(tserverResourceGroup);
+    }
+  }
+
   @Override
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {

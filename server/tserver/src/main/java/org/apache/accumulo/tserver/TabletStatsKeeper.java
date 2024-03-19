@@ -74,6 +74,6 @@ public class TabletStatsKeeper {
   }
 
   public TabletStats getTabletStats() {
-    return new TabletStats(null, null, minor, null, 0, 0, 0);
+    return new TabletStats(null, minor, null, 0, 0, 0);
   }
 }

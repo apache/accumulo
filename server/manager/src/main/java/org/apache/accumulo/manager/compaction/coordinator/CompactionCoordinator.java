@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -37,12 +35,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -163,7 +164,7 @@ public class CompactionCoordinator
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
-  protected volatile Boolean shutdown = false;
+  protected CountDownLatch shutdown = new CountDownLatch(1);
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
@@ -220,7 +221,7 @@ public class CompactionCoordinator
   }
 
   public void shutdown() {
-    shutdown = true;
+    shutdown.countDown();
     var localThread = serviceThread;
     if (localThread != null) {
       try {
@@ -241,6 +242,28 @@ public class CompactionCoordinator
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  protected void startIdleCompactionWatcher() {
+
+    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(this::idleCompactionWarning,
+        getTServerCheckInterval(), getTServerCheckInterval(), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private void idleCompactionWarning() {
+
+    long now = System.currentTimeMillis();
+    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
+    TIME_COMPACTOR_LAST_CHECKED.forEach((groupName, lastCheckTime) -> {
+      if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+          && jobQueues.getQueuedJobs(groupName) > 0
+          && idleCompactors.containsKey(groupName.canonical())) {
+        LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", groupName,
+            getMissingCompactorWarningTime());
+      }
+    });
+
   }
 
   @Override
@@ -270,33 +293,38 @@ public class CompactionCoordinator
 
     startDeadCompactionDetector();
 
-    // ELASTICITY_TODO the main function of the following loop was getting group summaries from
-    // tservers. Its no longer doing that. May be best to remove the loop and make the remaining
-    // task a scheduled one.
+    startIdleCompactionWatcher();
 
-    LOG.info("Starting loop to check for compactors not checking in");
-    while (!shutdown) {
-      long start = System.currentTimeMillis();
-
-      long now = System.currentTimeMillis();
-      TIME_COMPACTOR_LAST_CHECKED.forEach((k, v) -> {
-        if ((now - v) > getMissingCompactorWarningTime()) {
-          // ELASTICITY_TODO may want to consider of the group has any jobs queued OR if the group
-          // still exist in configuration
-          LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", k,
-              getMissingCompactorWarningTime());
-        }
-      });
-
-      long checkInterval = getTServerCheckInterval();
-      long duration = (System.currentTimeMillis() - start);
-      if (checkInterval - duration > 0) {
-        LOG.debug("Waiting {}ms for next group check", (checkInterval - duration));
-        UtilWaitThread.sleep(checkInterval - duration);
-      }
+    try {
+      shutdown.await();
+    } catch (InterruptedException e) {
+      LOG.warn("Interrupted waiting for shutdown latch.", e);
     }
 
     LOG.info("Shutting down");
+  }
+
+  private Map<String,Set<HostAndPort>> getIdleCompactors() {
+
+    Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
+    ExternalCompactionUtil.getCompactorAddrs(ctx)
+        .forEach((group, compactorList) -> allCompactors.put(group, new HashSet<>(compactorList)));
+
+    Set<String> emptyQueues = new HashSet<>();
+
+    // Remove all of the compactors that are running a compaction
+    RUNNING_CACHE.values().forEach(rc -> {
+      Set<HostAndPort> busyCompactors = allCompactors.get(rc.getGroupName());
+      if (busyCompactors != null
+          && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
+        if (busyCompactors.isEmpty()) {
+          emptyQueues.add(rc.getGroupName());
+        }
+      }
+    });
+    // Remove entries with empty queues
+    emptyQueues.forEach(e -> allCompactors.remove(e));
+    return allCompactors;
   }
 
   protected void startDeadCompactionDetector() {
@@ -583,8 +611,11 @@ public class CompactionCoordinator
           dfv.getTime());
     }).collect(toList());
 
-    FateInstanceType type = FateInstanceType.fromTableId(metaJob.getTabletMetadata().getTableId());
-    FateId fateId = FateId.from(type, 0);
+    // The fateId here corresponds to the Fate transaction that is driving a user initiated
+    // compaction. A system initiated compaction has no Fate transaction driving it so its ok to set
+    // it to null. If anything tries to use the id for a system compaction and triggers a NPE it's
+    // probably a bug that needs to be fixed.
+    FateId fateId = null;
     if (metaJob.getJob().getKind() == CompactionKind.USER) {
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
@@ -592,7 +623,8 @@ public class CompactionCoordinator
     return new TExternalCompactionJob(externalCompactionId,
         metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateId.toThrift(), overrides);
+        TCompactionKind.valueOf(ecm.getKind().name()), fateId == null ? null : fateId.toThrift(),
+        overrides);
   }
 
   @Override
@@ -670,7 +702,7 @@ public class CompactionCoordinator
     var localFates = fateInstances.get();
     while (localFates == null) {
       UtilWaitThread.sleep(100);
-      if (shutdown) {
+      if (shutdown.getCount() == 0) {
         return;
       }
       localFates = fateInstances.get();

@@ -45,8 +45,8 @@ struct ActionStats {
 
 struct TabletStats {
   1:data.TKeyExtent extent
-  // ELASTICITY_TODO comment out following field and stop reading it, its not being populated anymore
-  2:ActionStats majors
+  // do not reuse field 2, it was dropped
+  //2:ActionStats majors
   3:ActionStats minors
   4:ActionStats splits
   5:i64 numEntries
