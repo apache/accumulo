@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
@@ -236,6 +237,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             SetEqualityIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
                 fTid -> fTid.canonical().getBytes(UTF_8), UserCompactionRequestedColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+        break;
+      case SUSPEND: {
+        Condition c =
+            new Condition(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getSuspend() != null) {
+          c.setValue(tabletMetadata.getSuspend().server + "|"
+              + tabletMetadata.getSuspend().suspensionTime);
+        }
         mutation.addCondition(c);
       }
         break;
