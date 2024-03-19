@@ -311,8 +311,9 @@ public class LogSorter {
    */
   public void startWatchingForRecoveryLogs(int threadPoolSize)
       throws KeeperException, InterruptedException {
-    ThreadPoolExecutor threadPool = ThreadPools.getServerThreadPools()
-        .createFixedThreadPool(threadPoolSize, this.getClass().getName(), true);
+    ThreadPoolExecutor threadPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(this.getClass().getName())
+            .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
         context).processExistingAndFuture(new LogProcessor(), threadPool);
   }

@@ -80,8 +80,9 @@ public class Splitter {
     // The purpose of this is to avoid reading lots of data into memory if lots of tablets need to
     // split.
     BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(10000);
-    this.splitExecutor = context.threadPools().createThreadPool(numThreads, numThreads, 0,
-        TimeUnit.MILLISECONDS, "split_seeder", queue, true);
+    this.splitExecutor = context.threadPools().getPoolBuilder("split_seeder")
+        .numCoreThreads(numThreads).numMaxThreads(numThreads).withTimeOut(0L, TimeUnit.MILLISECONDS)
+        .withQueue(queue).enableThreadPoolMetrics().build();
 
     // Discard task when the queue is full, this allows the TGW to continue processing task other
     // than splits.

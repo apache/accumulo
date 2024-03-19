@@ -20,6 +20,8 @@ package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import java.io.IOException;
@@ -132,7 +134,7 @@ public class TabletServerResourceManager {
   private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
       final ThreadPoolExecutor tp) {
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        () -> ThreadPools.resizePool(tp, maxThreads, name), 1, 10, TimeUnit.SECONDS));
+        () -> ThreadPools.resizePool(tp, maxThreads, name), 1, 10, SECONDS));
   }
 
   private ThreadPoolExecutor createPriorityExecutor(ScanExecutorConfig sec,
@@ -181,9 +183,10 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().createThreadPool(
-        sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L, TimeUnit.MILLISECONDS,
-        "scan-" + sec.name, queue, sec.priority, true);
+    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder("scan-" + sec.name)
+        .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
+        .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
+        .enableThreadPoolMetrics().build();
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name, es);
     return es;
 
@@ -302,8 +305,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", minorCompactionThreadPool);
 
-    defaultMigrationPool = ThreadPools.getServerThreadPools().createThreadPool(0, 1, 60,
-        TimeUnit.SECONDS, "metadata tablet migration", true);
+    defaultMigrationPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder("metadata tablet migration")
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60L, SECONDS).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_MIGRATE_MAXCONCURRENT, true);
@@ -322,8 +326,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", assignmentPool);
 
-    assignMetaDataPool = ThreadPools.getServerThreadPools().createThreadPool(0, 1, 60,
-        TimeUnit.SECONDS, "metadata tablet assignment", true);
+    assignMetaDataPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("metadata tablet assignment").numCoreThreads(0).numMaxThreads(1)
+        .withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
 
     activeAssignments = new ConcurrentHashMap<>();
 

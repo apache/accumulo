@@ -257,8 +257,8 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker =
-        ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
+    nextLogMaker = ThreadPools.getServerThreadPools().getPoolBuilder("WALog creator")
+        .numCoreThreads(1).enableThreadPoolMetrics().build();
     nextLogMaker.execute(() -> {
       final VolumeManager fs = tserver.getVolumeManager();
       while (!nextLogMaker.isShutdown()) {

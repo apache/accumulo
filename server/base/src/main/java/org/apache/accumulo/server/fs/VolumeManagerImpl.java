@@ -326,8 +326,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       FateId fateId) throws IOException {
     List<Future<Void>> results = new ArrayList<>();
-    ExecutorService workerPool =
-        ThreadPools.getServerThreadPools().createFixedThreadPool(poolSize, poolName, false);
+    ExecutorService workerPool = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
+        .numCoreThreads(poolSize).build();
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {

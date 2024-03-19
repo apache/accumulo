@@ -63,7 +63,7 @@ public class TabletRefresher {
 
     // ELASTICITY_TODO should this thread pool be configurable?
     ThreadPoolExecutor threadPool =
-        context.threadPools().createFixedThreadPool(10, "Tablet refresh " + fateId, false);
+        context.threadPools().getPoolBuilder("Tablet refresh " + fateId).numCoreThreads(10).build();
 
     try (var tablets = context.getAmple().readTablets().forTable(tableId)
         .overlapping(startRow, endRow).checkConsistency()

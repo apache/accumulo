@@ -103,8 +103,8 @@ public class QueueMetrics implements MetricsProducer {
 
   public QueueMetrics(CompactionJobQueues compactionJobQueues) {
     this.compactionJobQueues = compactionJobQueues;
-    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
-        .createScheduledExecutorService(1, "queueMetricsPoller", false);
+    ScheduledExecutorService scheduler =
+        ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "queueMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     ThreadPools.watchNonCriticalScheduledTask(scheduler.scheduleAtFixedRate(this::update,
         DEFAULT_MIN_REFRESH_DELAY, DEFAULT_MIN_REFRESH_DELAY, TimeUnit.MILLISECONDS));

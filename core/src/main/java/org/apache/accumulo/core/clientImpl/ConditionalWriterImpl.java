@@ -372,7 +372,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
-        config.getMaxWriteThreads(), this.getClass().getSimpleName(), false);
+        config.getMaxWriteThreads(), this.getClass().getSimpleName());
     this.locator = new SyncingClientTabletCache(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

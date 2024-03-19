@@ -470,7 +470,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, tableId);
 
     SortedSet<Text> splitsTodo = new TreeSet<>(splits);
-    ExecutorService executor = context.threadPools().createFixedThreadPool(16, "addSplits", false);
+    ExecutorService executor =
+        context.threadPools().getPoolBuilder("addSplits").numCoreThreads(16).build();
+
     try {
       while (!splitsTodo.isEmpty()) {
 
