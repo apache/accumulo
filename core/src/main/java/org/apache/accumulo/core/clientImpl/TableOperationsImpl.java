@@ -495,7 +495,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = context.threadPools().createFixedThreadPool(16, "addSplits", false);
+    ExecutorService executor =
+        context.threadPools().getPoolBuilder("addSplits").numCoreThreads(16).build();
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
