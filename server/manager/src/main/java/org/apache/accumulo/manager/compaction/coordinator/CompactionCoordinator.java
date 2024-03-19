@@ -156,7 +156,6 @@ public class CompactionCoordinator
       new ConcurrentHashMap<>();
 
   /* Map of group name to last time compactor called to get a compaction job */
-  // ELASTICITY_TODO need to clean out groups that are no longer configured..
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
@@ -251,6 +250,18 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
+  protected void startGroupCheckThread() {
+    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(() -> {
+      Set<String> compactorGroups = ExternalCompactionUtil.getCompactorAddrs(ctx).keySet();
+      for (CompactorGroupId groupId : TIME_COMPACTOR_LAST_CHECKED.keySet()) {
+        if (!compactorGroups.contains(groupId.canonical())) {
+          TIME_COMPACTOR_LAST_CHECKED.remove(groupId);
+        }
+      }
+    }, 5, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
   private void idleCompactionWarning() {
 
     long now = System.currentTimeMillis();
@@ -294,6 +305,8 @@ public class CompactionCoordinator
     startDeadCompactionDetector();
 
     startIdleCompactionWatcher();
+
+    startGroupCheckThread();
 
     try {
       shutdown.await();

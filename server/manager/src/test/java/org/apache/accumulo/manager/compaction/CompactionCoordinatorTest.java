@@ -116,6 +116,9 @@ public class CompactionCoordinatorTest {
     protected void startDeadCompactionDetector() {}
 
     @Override
+    protected void startGroupCheckThread() {}
+
+    @Override
     protected long getTServerCheckInterval() {
       return 5000L;
     }
