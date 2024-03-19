@@ -112,6 +112,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -156,6 +157,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -598,7 +600,6 @@ public class Manager extends AbstractServer
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
       case STOP:
         return TabletGoalState.UNASSIGNED;
       default:
@@ -760,7 +761,7 @@ public class Manager extends AbstractServer
     public void run() {
       EventCoordinator.Listener eventListener = nextEvent.getListener();
       while (stillManager()) {
-        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        long wait;
         try {
           switch (getManagerGoalState()) {
             case NORMAL:
@@ -1023,11 +1024,12 @@ public class Manager extends AbstractServer
       }));
     }
     // wait at least 10 seconds
-    final long nanosToWait = Math.max(SECONDS.toNanos(10), MILLISECONDS.toNanos(rpcTimeout) / 3);
-    final long startTime = System.nanoTime();
+    final Duration timeToWait =
+        Comparators.max(Duration.ofSeconds(10), Duration.ofMillis(rpcTimeout / 3));
+    final NanoTime startTime = NanoTime.now();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = ((System.nanoTime() - startTime) > nanosToWait);
+      boolean cancel = (startTime.elapsed().compareTo(timeToWait) > 0);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
@@ -1434,7 +1436,7 @@ public class Manager extends AbstractServer
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
             -1);
       }
 
@@ -1446,7 +1448,9 @@ public class Manager extends AbstractServer
       while (!acquiredLock && !failedToAcquireLock) {
         try {
           wait();
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+          // empty
+        }
       }
     }
   }
@@ -1595,7 +1599,7 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
-      if ((state != null) && (state == TableState.ONLINE)) {
+      if (state == TableState.ONLINE) {
         result.add(tableId);
       }
     }

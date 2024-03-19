@@ -260,8 +260,9 @@ public class ClientContext implements AccumuloClient {
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
     if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, SECONDS,
-          "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
+      scannerReadaheadPool = clientThreadPools.getPoolBuilder("Accumulo scanner read ahead thread")
+          .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
+          .withQueue(new SynchronousQueue<>()).enableThreadPoolMetrics().build();
     }
     return scannerReadaheadPool.submit(c);
   }
@@ -269,8 +270,8 @@ public class ClientContext implements AccumuloClient {
   public synchronized void executeCleanupTask(Runnable r) {
     ensureOpen();
     if (cleanupThreadPool == null) {
-      cleanupThreadPool = clientThreadPools.createFixedThreadPool(1, 3, SECONDS,
-          "Conditional Writer Cleanup Thread", true);
+      cleanupThreadPool = clientThreadPools.getPoolBuilder("Conditional Writer Cleanup Thread")
+          .numCoreThreads(1).withTimeOut(3L, SECONDS).enableThreadPoolMetrics().build();
     }
     this.cleanupThreadPool.execute(r);
   }

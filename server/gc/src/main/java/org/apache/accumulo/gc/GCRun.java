@@ -175,9 +175,8 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      TabletsMetadata tm = TabletsMetadata.builder(context).scanTable(level.metaTable())
-          .checkConsistency().fetch(DIR, FILES, SCANS).build();
-      tabletStream = tm.stream().onClose(tm::close);
+      tabletStream = TabletsMetadata.builder(context).scanTable(level.metaTable())
+          .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
     }
 
     // there is a lot going on in this "one line" so see below for more info
@@ -284,7 +283,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
 
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(config, Property.GC_DELETE_THREADS, false);
+        .createExecutorService(config, Property.GC_DELETE_THREADS);
 
     final Map<Path,Path> replacements = context.getVolumeReplacements();
 
