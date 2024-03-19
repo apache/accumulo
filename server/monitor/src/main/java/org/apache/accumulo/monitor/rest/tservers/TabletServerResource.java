@@ -175,10 +175,9 @@ public class TabletServerResource {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0);
+    total = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    historical =
-        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0);
+    historical = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {
@@ -205,21 +204,11 @@ public class TabletServerResource {
     if (total.minors.elapsed != 0 && total.minors.num != 0) {
       currentMinorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     }
-    if (total.majors.num != 0) {
-      currentMajorAvg = total.majors.elapsed / total.majors.num;
-    }
-    if (total.majors.elapsed != 0 && total.majors.num != 0
-        && total.majors.elapsed > total.majors.num) {
-      currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
-    }
 
     ActionStatsUpdator.update(total.minors, historical.minors);
-    ActionStatsUpdator.update(total.majors, historical.majors);
 
     minorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
-    majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
-    majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
     splitStdDev =
         stddev(historical.splits.elapsed, historical.splits.num, historical.splits.sumDev);
 
@@ -267,7 +256,7 @@ public class TabletServerResource {
   private TabletServerDetailInformation doDetails(int numTablets) {
 
     return new TabletServerDetailInformation(numTablets, total.numEntries, total.minors.status,
-        total.majors.status, historical.splits.status);
+        historical.splits.status);
   }
 
   private List<AllTimeTabletResults> doAllTimeResults(double majorQueueStdDev,
@@ -282,12 +271,6 @@ public class TabletServerResource {
         minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null,
         minorStdDev, total.minors.elapsed));
 
-    // Major Compaction Operation
-    allTime.add(new AllTimeTabletResults("Major&nbsp;Compaction", total.majors.num,
-        total.majors.fail,
-        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null,
-        majorQueueStdDev, total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null,
-        majorStdDev, total.majors.elapsed));
     // Split Operation
     allTime.add(
         new AllTimeTabletResults("Split", historical.splits.num, historical.splits.fail, null, null,
@@ -315,7 +298,6 @@ public class TabletServerResource {
       }
       total.numEntries += info.numEntries;
       ActionStatsUpdator.update(total.minors, info.minors);
-      ActionStatsUpdator.update(total.majors, info.majors);
 
       KeyExtent extent = KeyExtent.fromThrift(info.extent);
       TableId tableId = extent.tableId();
@@ -327,10 +309,7 @@ public class TabletServerResource {
           new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,
               info.queryRate, info.minors.num != 0 ? info.minors.elapsed / info.minors.num : null,
               stddev(info.minors.elapsed, info.minors.num, info.minors.sumDev),
-              info.minors.elapsed != 0 ? info.minors.count / info.minors.elapsed : null,
-              info.majors.num != 0 ? info.majors.elapsed / info.majors.num : null,
-              stddev(info.majors.elapsed, info.majors.num, info.majors.sumDev),
-              info.majors.elapsed != 0 ? info.majors.count / info.majors.elapsed : null));
+              info.minors.elapsed != 0 ? info.minors.count / info.minors.elapsed : null));
     }
 
     return currentOperations;
