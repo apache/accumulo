@@ -144,8 +144,8 @@ public class CompactionCoordinator extends AbstractServer
     super("compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
     schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    summariesExecutor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
-        "Compaction Summary Gatherer", false);
+    summariesExecutor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("Compaction Summary Gatherer").numCoreThreads(10).build();
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();

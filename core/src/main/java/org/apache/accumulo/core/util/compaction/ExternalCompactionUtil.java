@@ -218,9 +218,8 @@ public class ExternalCompactionUtil {
    */
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
-    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
-        "CompactorRunningCompactions", false);
-
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
         rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
@@ -246,9 +245,8 @@ public class ExternalCompactionUtil {
 
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
-    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
-        "CompactorRunningCompactions", false);
-
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
     getCompactorAddrs(context).forEach((q, hp) -> {

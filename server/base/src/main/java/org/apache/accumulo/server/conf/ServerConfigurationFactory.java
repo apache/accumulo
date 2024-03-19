@@ -192,8 +192,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
       Runnable refreshTask = this::verifySnapshotVersions;
 
-      ScheduledThreadPoolExecutor executor = ThreadPools.getServerThreadPools()
-          .createScheduledExecutorService(1, "config-refresh", false);
+      ScheduledThreadPoolExecutor executor =
+          ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "config-refresh");
 
       // scheduleWithFixedDelay - used so only one task will run concurrently.
       // staggering the initial delay prevents synchronization of Accumulo servers communicating
