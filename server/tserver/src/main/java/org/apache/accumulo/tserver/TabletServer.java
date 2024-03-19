@@ -985,7 +985,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     // Start the pool to handle outgoing replications
     final ThreadPoolExecutor replicationThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
+        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 

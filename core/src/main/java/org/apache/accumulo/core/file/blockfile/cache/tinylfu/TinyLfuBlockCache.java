@@ -62,7 +62,7 @@ public final class TinyLfuBlockCache implements BlockCache {
   private final Policy.Eviction<String,Block> policy;
   private final int maxSize;
   private final ScheduledExecutorService statsExecutor = ThreadPools.getServerThreadPools()
-      .createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", false);
+      .createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor");
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
     cache = Caffeine.newBuilder()

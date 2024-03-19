@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.threads;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -43,8 +44,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -64,7 +68,7 @@ public class ThreadPools {
   private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
 
   // the number of seconds before we allow a thread to terminate with non-use.
-  public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
+  public static final long DEFAULT_TIMEOUT_MILLISECS = MINUTES.toMillis(3);
 
   private static final ThreadPools SERVER_INSTANCE = new ThreadPools(Threads.UEH);
 
@@ -77,7 +81,7 @@ public class ThreadPools {
   }
 
   private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
-      getServerThreadPools().createFixedThreadPool(1, "Scheduled Future Checker", false);
+      getServerThreadPools().getPoolBuilder("Scheduled Future Checker").numCoreThreads(1).build();
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
@@ -85,7 +89,7 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable TASK_CHECKER = new Runnable() {
+  private static final Runnable TASK_CHECKER = new Runnable() {
     @Override
     public void run() {
       final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
@@ -100,7 +104,7 @@ public class ThreadPools {
           }
         });
         try {
-          TimeUnit.MINUTES.sleep(1);
+          MINUTES.sleep(1);
         } catch (InterruptedException ie) {
           // This thread was interrupted by something while sleeping. We don't want to exit
           // this thread, so reset the interrupt state on this thread and keep going.
@@ -233,179 +237,246 @@ public class ThreadPools {
   }
 
   /**
+   * Create a thread pool based on a thread pool related property. The pool will not be instrumented
+   * without additional metrics. This method should be preferred, especially for short-lived pools.
+   *
+   * @param conf accumulo configuration
+   * @param p thread pool related property
+   * @return ExecutorService impl
+   * @throws IllegalArgumentException if property is not handled
+   */
+  public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
+      final Property p) {
+    return createExecutorService(conf, p, false);
+  }
+
+  /**
    * Create a thread pool based on a thread pool related property
    *
    * @param conf accumulo configuration
    * @param p thread pool related property
    * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
    *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
+   *        related to it in the static registry. There is no way to clean these leftover objects up
+   *        therefore its recommended that this option only be set true for long-lived thread pools.
+   *        Creating lots of short-lived thread pools and registering them can lead to out of memory
+   *        errors over long time periods.
    * @return ExecutorService impl
-   * @throws RuntimeException if property is not handled
+   * @throws IllegalArgumentException if property is not handled
    */
   @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
-
+    ThreadPoolExecutorBuilder builder;
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
-            emitThreadPoolMetrics);
+        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer");
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p),
-            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS,
-            "bulk import", emitThreadPoolMetrics);
+        builder = getPoolBuilder("bulk import").numCoreThreads(conf.getCount(p)).withTimeOut(
+            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case MANAGER_RENAME_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "bulk move", emitThreadPoolMetrics);
+        builder = getPoolBuilder("bulk move").numCoreThreads(conf.getCount(p));
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case MANAGER_FATE_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p), "Repo Runner", emitThreadPoolMetrics);
+        builder = getPoolBuilder("Repo Runner").numCoreThreads(conf.getCount(p));
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
+        builder = getPoolBuilder("GatherTableInformation");
         int threads = conf.getCount(p);
         if (threads == 0) {
-          return createThreadPool(0, Integer.MAX_VALUE, 60L, SECONDS, "GatherTableInformation",
-              new SynchronousQueue<>(), emitThreadPoolMetrics);
+          builder.numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
+              .withQueue(new SynchronousQueue<>());
         } else {
-          return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
+          builder.numCoreThreads(threads);
         }
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_WORKQ_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "distributed work queue",
-            emitThreadPoolMetrics);
+        builder = getPoolBuilder("distributed work queue").numCoreThreads(conf.getCount(p));
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_MINC_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "minor compactor",
-            emitThreadPoolMetrics);
+        builder = getPoolBuilder("minor compactor").numCoreThreads(conf.getCount(p)).withTimeOut(0L,
+            MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_MIGRATE_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "tablet migration",
-            emitThreadPoolMetrics);
+        builder = getPoolBuilder("tablet migration").numCoreThreads(conf.getCount(p))
+            .withTimeOut(0L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "tablet assignment",
-            emitThreadPoolMetrics);
+        builder = getPoolBuilder("tablet assignment").numCoreThreads(conf.getCount(p))
+            .withTimeOut(0L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
-            "summary file retriever", emitThreadPoolMetrics);
+        builder = getPoolBuilder("summary file retriever").numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_SUMMARY_REMOTE_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS, "summary remote",
-            emitThreadPoolMetrics);
+        builder = getPoolBuilder("summary remote").numCoreThreads(conf.getCount(p)).withTimeOut(60L,
+            MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case TSERV_SUMMARY_PARTITION_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
-            "summary partition", emitThreadPoolMetrics);
+        builder = getPoolBuilder("summary partition").numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       case GC_DELETE_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
+        return getPoolBuilder("deleting").numCoreThreads(conf.getCount(p)).build();
       case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task", emitThreadPoolMetrics);
+        builder = getPoolBuilder("replication task").numCoreThreads(conf.getCount(p));
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+
       default:
-        throw new RuntimeException("Unhandled thread pool property: " + p);
+        throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
   }
 
-  /**
-   * Create a named thread pool
-   *
-   * @param numThreads number of threads
-   * @param name thread pool name
-   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
-   *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
-   * @return ThreadPoolExecutor
-   */
-  public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      boolean emitThreadPoolMetrics) {
-    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
-        emitThreadPoolMetrics);
+  public ThreadPoolExecutorBuilder getPoolBuilder(@NonNull final String name) {
+    return new ThreadPoolExecutorBuilder(name);
   }
 
-  /**
-   * Create a named thread pool
-   *
-   * @param numThreads number of threads
-   * @param name thread pool name
-   * @param queue queue to use for tasks
-   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
-   *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
-   * @return ThreadPoolExecutor
-   */
-  public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
-    return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
-        queue, emitThreadPoolMetrics);
-  }
+  public class ThreadPoolExecutorBuilder {
+    final String name;
+    int coreThreads = 0;
+    int maxThreads = -1;
+    long timeOut = DEFAULT_TIMEOUT_MILLISECS;
+    TimeUnit units = MILLISECONDS;
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+    OptionalInt priority = OptionalInt.empty();
+    boolean emitThreadPoolMetrics = false;
 
-  /**
-   * Create a named thread pool
-   *
-   * @param numThreads number of threads
-   * @param timeOut core thread time out
-   * @param units core thread time out units
-   * @param name thread pool name
-   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
-   *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
-   * @return ThreadPoolExecutor
-   */
-  public ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut, TimeUnit units,
-      final String name, boolean emitThreadPoolMetrics) {
-    return createThreadPool(numThreads, numThreads, timeOut, units, name, emitThreadPoolMetrics);
-  }
+    /**
+     * A fluent-style build to create a ThreadPoolExecutor. The name is used when creating
+     * named-threads for the pool.
+     */
+    ThreadPoolExecutorBuilder(@NonNull final String name) {
+      this.name = name;
+    }
 
-  /**
-   * Create a named thread pool
-   *
-   * @param coreThreads number of threads
-   * @param maxThreads max number of threads
-   * @param timeOut core thread time out
-   * @param units core thread time out units
-   * @param name thread pool name
-   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
-   *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
-   * @return ThreadPoolExecutor
-   */
-  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
-    return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
-        new LinkedBlockingQueue<>(), emitThreadPoolMetrics);
-  }
+    public ThreadPoolExecutor build() {
+      Preconditions.checkArgument(coreThreads >= 0,
+          "The number of core threads must be 0 or larger");
+      if (maxThreads < 0) {
+        // create a fixed pool with maxThread = coreThreads if core threads set.
+        maxThreads = coreThreads == 0 ? 1 : coreThreads;
+      }
+      Preconditions.checkArgument(maxThreads >= coreThreads,
+          "The number of max threads must be greater than 0 and greater than or equal to the number of core threads");
+      Preconditions.checkArgument(
+          priority.orElse(1) >= Thread.MIN_PRIORITY && priority.orElse(1) <= Thread.MAX_PRIORITY,
+          "invalid thread priority, range must be Thread.MIN_PRIORITY <= priority <= Thread.MAX_PRIORITY");
 
-  /**
-   * Create a named thread pool
-   *
-   * @param coreThreads number of threads
-   * @param maxThreads max number of threads
-   * @param timeOut core thread time out
-   * @param units core thread time out units
-   * @param name thread pool name
-   * @param queue queue to use for tasks
-   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
-   *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
-   * @return ThreadPoolExecutor
-   */
-  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue,
-      boolean emitThreadPoolMetrics) {
-    return createThreadPool(coreThreads, maxThreads, timeOut, units, name, queue,
-        OptionalInt.empty(), emitThreadPoolMetrics);
+      return createThreadPool(coreThreads, maxThreads, timeOut, units, name, queue, priority,
+          emitThreadPoolMetrics);
+    }
+
+    /**
+     * Set the number of coreThreads. See {@link java.util.concurrent.ThreadPoolExecutor}
+     *
+     * @param coreThreads the number of core thread, must be 0 or larger.
+     * @return fluent-style builder instance
+     */
+    public ThreadPoolExecutorBuilder numCoreThreads(int coreThreads) {
+      this.coreThreads = coreThreads;
+      return this;
+    }
+
+    /**
+     * Set the maximum number of threads in the pool. See
+     * {@link java.util.concurrent.ThreadPoolExecutor}. If the maxThreads is not set, defaults to
+     * the number of core threads (if set) resulting in a fixed pool. If the number of core threads
+     * is not set, defaults to a single thread.
+     *
+     * @param maxThreads max number of threads. Must be greater than 0 and equal or greater that the
+     *        number of core threads.
+     *
+     * @return fluent-style builder instance
+     */
+    public ThreadPoolExecutorBuilder numMaxThreads(int maxThreads) {
+      this.maxThreads = maxThreads;
+      return this;
+    }
+
+    /**
+     * Set the thread keep-alive time. See {@link java.util.concurrent.ThreadPoolExecutor}
+     *
+     * @param timeOut the thread keep alive time.
+     * @param units the keep alive time units.
+     * @return fluent-style builder instance
+     */
+    public ThreadPoolExecutorBuilder withTimeOut(long timeOut, @NonNull TimeUnit units) {
+      this.timeOut = timeOut;
+      this.units = units;
+      return this;
+    }
+
+    /**
+     * Set the queue that will hold runnable tasks before execution. See
+     * {@link java.util.concurrent.ThreadPoolExecutor}
+     *
+     * @param queue the work queue used to hold tasks before they are executed.
+     * @return fluent-style builder instance
+     */
+    public ThreadPoolExecutorBuilder withQueue(@NonNull final BlockingQueue<Runnable> queue) {
+      this.queue = queue;
+      return this;
+    }
+
+    public ThreadPoolExecutorBuilder atPriority(@NonNull final OptionalInt priority) {
+      this.priority = priority;
+      return this;
+    }
+
+    /**
+     * When set to true will emit metrics and register the metrics in a static registry. After the
+     * thread pool is deleted, there will still be metrics objects related to it in the static
+     * registry. There is no way to clean these leftover objects up therefore its recommended that
+     * this option only be set true for long-lived thread pools. Creating lots of short-lived thread
+     * pools and registering them can lead to out of memory errors over long time periods.
+     *
+     * @return a fluent-style builder instance
+     */
+    public ThreadPoolExecutorBuilder enableThreadPoolMetrics() {
+      this.emitThreadPoolMetrics = true;
+      return this;
+    }
   }
 
   /**
@@ -420,15 +491,16 @@ public class ThreadPools {
    * @param priority thread priority
    * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
    *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
+   *        related to it in the static registry. There is no way to clean these leftover objects up
+   *        therefore its recommended that this option only be set true for long-lived thread pools.
+   *        Creating lots of short-lived thread pools and registering them can lead to out of memory
+   *        errors over long time periods.
    * @return ThreadPoolExecutor
    */
-  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
-      boolean emitThreadPoolMetrics) {
+  private ThreadPoolExecutor createThreadPool(final int coreThreads, final int maxThreads,
+      final long timeOut, final TimeUnit units, final String name,
+      final BlockingQueue<Runnable> queue, final OptionalInt priority,
+      final boolean emitThreadPoolMetrics) {
     LOG.trace(
         "Creating ThreadPoolExecutor for {} with {} core threads and {} max threads {} {} timeout",
         name, coreThreads, maxThreads, timeOut, units);
@@ -436,7 +508,7 @@ public class ThreadPools {
         new NamedThreadFactory(name, priority, handler)) {
 
       @Override
-      public void execute(Runnable arg0) {
+      public void execute(@NonNull Runnable arg0) {
         super.execute(TraceUtil.wrap(arg0));
       }
 
@@ -446,17 +518,20 @@ public class ThreadPools {
       }
 
       @Override
-      public <T> Future<T> submit(Callable<T> task) {
+      @NonNull
+      public <T> Future<T> submit(@NonNull Callable<T> task) {
         return super.submit(TraceUtil.wrap(task));
       }
 
       @Override
-      public <T> Future<T> submit(Runnable task, T result) {
+      @NonNull
+      public <T> Future<T> submit(@NonNull Runnable task, T result) {
         return super.submit(TraceUtil.wrap(task), result);
       }
 
       @Override
-      public Future<?> submit(Runnable task) {
+      @NonNull
+      public Future<?> submit(@NonNull Runnable task) {
         return super.submit(TraceUtil.wrap(task));
       }
     };
@@ -482,63 +557,85 @@ public class ThreadPools {
   }
 
   /**
+   * Create a named ScheduledThreadPool. The pool will not be instrumented without additional
+   * metrics. This method should be preferred, especially for short-lived pools.
+   *
+   * @param numThreads number of threads
+   * @param name thread pool name
+   * @return ScheduledThreadPoolExecutor
+   */
+  public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
+      final String name) {
+    return createScheduledExecutorService(numThreads, name, false);
+  }
+
+  /**
    * Create a named ScheduledThreadPool
    *
    * @param numThreads number of threads
    * @param name thread pool name
    * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
    *        static registry. After the thread pool is deleted, there will still be metrics objects
-   *        related to it in the static registry. There is no way to clean these left over objects
-   *        up therefore its recommended that this option only be set true for long lived thread
-   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
-   *        memory errors over long time periods.
+   *        related to it in the static registry. There is no way to clean these leftover objects up
+   *        therefore its recommended that this option only be set true for long-lived thread pools.
+   *        Creating lots of short-lived thread pools and registering them can lead to out of memory
+   *        errors over long time periods.
    * @return ScheduledThreadPoolExecutor
    */
-  public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
+  private ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean emitThreadPoolMetrics) {
     LOG.trace("Creating ScheduledThreadPoolExecutor for {} with {} threads", name, numThreads);
     var result =
         new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, handler)) {
 
           @Override
-          public void execute(Runnable command) {
+          public void execute(@NonNull Runnable command) {
             super.execute(TraceUtil.wrap(command));
           }
 
           @Override
-          public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+          @NonNull
+          public <V> ScheduledFuture<V> schedule(@NonNull Callable<V> callable, long delay,
+              @NonNull TimeUnit unit) {
             return super.schedule(TraceUtil.wrap(callable), delay, unit);
           }
 
           @Override
-          public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+          @NonNull
+          public ScheduledFuture<?> schedule(@NonNull Runnable command, long delay,
+              @NonNull TimeUnit unit) {
             return super.schedule(TraceUtil.wrap(command), delay, unit);
           }
 
           @Override
-          public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
-              long period, TimeUnit unit) {
+          @NonNull
+          public ScheduledFuture<?> scheduleAtFixedRate(@NonNull Runnable command,
+              long initialDelay, long period, @NonNull TimeUnit unit) {
             return super.scheduleAtFixedRate(TraceUtil.wrap(command), initialDelay, period, unit);
           }
 
           @Override
-          public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-              long delay, TimeUnit unit) {
+          @NonNull
+          public ScheduledFuture<?> scheduleWithFixedDelay(@NonNull Runnable command,
+              long initialDelay, long delay, @NonNull TimeUnit unit) {
             return super.scheduleWithFixedDelay(TraceUtil.wrap(command), initialDelay, delay, unit);
           }
 
           @Override
-          public <T> Future<T> submit(Callable<T> task) {
+          @NonNull
+          public <T> Future<T> submit(@NonNull Callable<T> task) {
             return super.submit(TraceUtil.wrap(task));
           }
 
           @Override
-          public <T> Future<T> submit(Runnable task, T result) {
+          @NonNull
+          public <T> Future<T> submit(@NonNull Runnable task, T result) {
             return super.submit(TraceUtil.wrap(task), result);
           }
 
           @Override
-          public Future<?> submit(Runnable task) {
+          @NonNull
+          public Future<?> submit(@NonNull Runnable task) {
             return super.submit(TraceUtil.wrap(task));
           }
 
