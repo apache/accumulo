@@ -28,7 +28,6 @@ public class TabletServerDetailInformation {
   // Variable names become JSON keys
   public int hostedTablets;
   public int minors;
-  public int majors;
   public int splits;
   public long entries;
 
@@ -40,15 +39,12 @@ public class TabletServerDetailInformation {
    * @param hostedTablets Number of hosted tablets
    * @param entries Number of entries
    * @param minors Number of minor compactions
-   * @param majors Number of major compactions
    * @param splits Number of splits
    */
-  public TabletServerDetailInformation(int hostedTablets, long entries, int minors, int majors,
-      int splits) {
+  public TabletServerDetailInformation(int hostedTablets, long entries, int minors, int splits) {
     this.hostedTablets = hostedTablets;
     this.entries = entries;
     this.minors = minors;
-    this.majors = majors;
     this.splits = splits;
   }
 }

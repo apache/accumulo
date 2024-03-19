@@ -180,9 +180,6 @@ public class MiniAccumuloRunner {
     if (opts.prop.containsKey(INSTANCE_NAME_PROP)) {
       config.setInstanceName(opts.prop.getProperty(INSTANCE_NAME_PROP));
     }
-    if (opts.prop.containsKey(NUM_T_SERVERS_PROP)) {
-      config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
-    }
     if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP)) {
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
     }

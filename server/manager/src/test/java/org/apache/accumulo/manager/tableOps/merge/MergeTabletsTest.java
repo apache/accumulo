@@ -90,7 +90,7 @@ import org.junit.jupiter.api.Test;
 public class MergeTabletsTest {
 
   private static final TableId tableId = TableId.of("789");
-  private static final FateId fateId = FateId.from(FateInstanceType.USER, 1234L);
+  private static final FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
   private static final TabletOperationId opid =
       TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
@@ -296,7 +296,7 @@ public class MergeTabletsTest {
     var currLoc = TabletMetadata.Location.current(tserver);
     testUnexpectedColumn(tmb -> tmb.putLocation(currLoc), "had location", currLoc.toString());
 
-    var otherFateId = FateId.from(FateInstanceType.USER, 4321L);
+    var otherFateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var otherOpid = TabletOperationId.from(TabletOperationType.MERGING, otherFateId);
     testUnexpectedColumn(tmb -> tmb.putOperation(otherOpid), "had unexpected opid",
         otherOpid.toString());

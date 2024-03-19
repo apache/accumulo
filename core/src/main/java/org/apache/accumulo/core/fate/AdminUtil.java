@@ -224,7 +224,7 @@ public class AdminUtil<T> {
    * Get the FATE transaction status and lock information stored in zookeeper, optionally filtered
    * by fate id, status, and fate instance type
    *
-   * @param zs read-only zoostore
+   * @param mfs read-only MetaFateStore
    * @param zk zookeeper reader.
    * @param lockPath the zookeeper path for locks
    * @param fateIdFilter filter results to include only provided fate transaction ids
@@ -234,7 +234,7 @@ public class AdminUtil<T> {
    * @throws KeeperException if zookeeper exception occurs
    * @throws InterruptedException if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyFateStore<T> zs, ZooReader zk,
+  public FateStatus getStatus(ReadOnlyFateStore<T> mfs, ZooReader zk,
       ServiceLock.ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
       EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
@@ -242,15 +242,15 @@ public class AdminUtil<T> {
 
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
-    return getTransactionStatus(Map.of(FateInstanceType.META, zs), fateIdFilter, statusFilter,
+    return getTransactionStatus(Map.of(FateInstanceType.META, mfs), fateIdFilter, statusFilter,
         typesFilter, heldLocks, waitingLocks);
   }
 
-  public FateStatus getStatus(ReadOnlyFateStore<T> as, Set<FateId> fateIdFilter,
+  public FateStatus getStatus(ReadOnlyFateStore<T> ufs, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
       throws KeeperException, InterruptedException {
 
-    return getTransactionStatus(Map.of(FateInstanceType.USER, as), fateIdFilter, statusFilter,
+    return getTransactionStatus(Map.of(FateInstanceType.USER, ufs), fateIdFilter, statusFilter,
         typesFilter, new HashMap<>(), new HashMap<>());
   }
 

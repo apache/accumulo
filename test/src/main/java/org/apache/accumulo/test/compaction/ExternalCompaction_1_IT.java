@@ -77,8 +77,8 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.accumulo.AccumuloStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -232,15 +232,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> zkStore =
-        new ZooStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
+    FateStore<Manager> metaFateStore =
+        new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
-      var fateId = createCompactionCommitAndDeadMetadata(c, zkStore, AccumuloTable.ROOT.tableName(),
-          allCids);
-      verifyCompactionCommitAndDead(zkStore, tableId, fateId, allCids.get(tableId));
+      var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
+          AccumuloTable.ROOT.tableName(), allCids);
+      verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
 
@@ -251,16 +251,16 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> zkStore =
-        new ZooStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
+    FateStore<Manager> metaFateStore =
+        new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
       var tableId = ctx.getTableId(AccumuloTable.METADATA.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
-      var fateId = createCompactionCommitAndDeadMetadata(c, zkStore,
+      var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
           AccumuloTable.METADATA.tableName(), allCids);
-      verifyCompactionCommitAndDead(zkStore, tableId, fateId, allCids.get(tableId));
+      verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
 
@@ -274,7 +274,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      AccumuloStore<Manager> accumuloStore = new AccumuloStore<>(ctx);
+      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
@@ -282,8 +282,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       var tableId = ctx.getTableId(tableName);
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
-      var fateId = createCompactionCommitAndDeadMetadata(c, accumuloStore, tableName, allCids);
-      verifyCompactionCommitAndDead(accumuloStore, tableId, fateId, allCids.get(tableId));
+      var fateId = createCompactionCommitAndDeadMetadata(c, userFateStore, tableName, allCids);
+      verifyCompactionCommitAndDead(userFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
 
@@ -297,9 +297,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String userTable = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      AccumuloStore<Manager> accumuloStore = new AccumuloStore<>(ctx);
-      FateStore<Manager> zkStore =
-          new ZooStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
+      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx);
+      FateStore<Manager> metaFateStore =
+          new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter());
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
@@ -314,7 +314,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           AccumuloTable.METADATA.tableName(), userTable)) {
         var tableId = ctx.getTableId(tableName);
         var fateStore = FateInstanceType.fromTableId(tableId) == FateInstanceType.USER
-            ? accumuloStore : zkStore;
+            ? userFateStore : metaFateStore;
         fateIds.put(tableId,
             createCompactionCommitAndDeadMetadata(c, fateStore, tableName, allCids));
       }
@@ -324,7 +324,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       for (Entry<TableId,FateId> entry : fateIds.entrySet()) {
         var tableId = entry.getKey();
         var fateStore = FateInstanceType.fromTableId(tableId) == FateInstanceType.USER
-            ? accumuloStore : zkStore;
+            ? userFateStore : metaFateStore;
         verifyCompactionCommitAndDead(fateStore, tableId, entry.getValue(), allCids.get(tableId));
       }
     }

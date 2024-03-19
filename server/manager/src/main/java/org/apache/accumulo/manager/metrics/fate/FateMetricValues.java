@@ -98,11 +98,11 @@ class FateMetricValues {
    *
    * @param context Accumulo context
    * @param fateRootPath the zookeeper path to fate info
-   * @param zooStore a readonly zoostore
+   * @param metaFateStore a readonly MetaFateStore
    * @return the current FATE metric values.
    */
   public static FateMetricValues getFromZooKeeper(final ServerContext context,
-      final String fateRootPath, final ReadOnlyFateStore<FateMetrics> zooStore) {
+      final String fateRootPath, final ReadOnlyFateStore<FateMetrics> metaFateStore) {
 
     FateMetricValues.Builder builder = FateMetricValues.builder();
 
@@ -110,8 +110,8 @@ class FateMetricValues {
 
     try {
 
-      List<AdminUtil.TransactionStatus> currFates =
-          admin.getTransactionStatus(Map.of(FateInstanceType.META, zooStore), null, null, null);
+      List<AdminUtil.TransactionStatus> currFates = admin
+          .getTransactionStatus(Map.of(FateInstanceType.META, metaFateStore), null, null, null);
 
       builder.withCurrentFateOps(currFates.size());
 

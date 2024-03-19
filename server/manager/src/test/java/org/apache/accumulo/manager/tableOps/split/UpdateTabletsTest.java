@@ -192,8 +192,8 @@ public class UpdateTabletsTest {
     var loaded1 = newSTF(5);
     var loaded2 = newSTF(6);
 
-    var flid1 = FateId.from(FateInstanceType.USER, 11L);
-    var flid2 = FateId.from(FateInstanceType.USER, 22L);
+    var flid1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var flid2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var loaded = Map.of(loaded1, flid1, loaded2, flid2);
 
     var dfv1 = new DataFileValue(1000, 100, 20);
@@ -207,7 +207,7 @@ public class UpdateTabletsTest {
     var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
     var cid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    var fateId = FateId.from(FateInstanceType.USER, 42L);
+    var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
     var tabletTime = MetadataTime.parse("L30");
     var flushID = OptionalLong.of(40);
@@ -247,11 +247,11 @@ public class UpdateTabletsTest {
     SelectedFiles selectedFiles = EasyMock.mock(SelectedFiles.class);
     EasyMock.expect(selectedFiles.getFateId()).andReturn(null);
     EasyMock.expect(tabletMeta.getSelectedFiles()).andReturn(selectedFiles).atLeastOnce();
-    FateId ucfid1 = FateId.from(FateInstanceType.USER, 55L);
-    FateId ucfid2 = FateId.from(FateInstanceType.USER, 66L);
+    FateId ucfid1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    FateId ucfid2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     EasyMock.expect(tabletMeta.getUserCompactionsRequested()).andReturn(Set.of(ucfid1, ucfid2))
         .atLeastOnce();
-    FateId ucfid3 = FateId.from(FateInstanceType.USER, 77L);
+    FateId ucfid3 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     EasyMock.expect(tabletMeta.getCompacted()).andReturn(Set.of(ucfid1, ucfid3)).atLeastOnce();
     EasyMock.expect(tabletMeta.getScans()).andReturn(List.of(file1, file2)).atLeastOnce();
     EasyMock.expect(tabletMeta.getTime()).andReturn(tabletTime).atLeastOnce();
@@ -375,7 +375,7 @@ public class UpdateTabletsTest {
     TableId tableId = TableId.of("123");
     KeyExtent origExtent = new KeyExtent(tableId, new Text("m"), null);
 
-    var fateId = FateId.from(FateInstanceType.USER, 42L);
+    var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     // Test splitting a tablet with a location
@@ -392,7 +392,7 @@ public class UpdateTabletsTest {
     assertTrue(e.getMessage().contains("null"));
 
     // Test splitting a tablet with an unexpected operation id
-    var fateId2 = FateId.from(FateInstanceType.USER, 24L);
+    var fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var opid2 = TabletOperationId.from(TabletOperationType.SPLITTING, fateId2);
     var tablet3 = TabletMetadata.builder(origExtent).putOperation(opid2).build();
     e = assertThrows(IllegalStateException.class, () -> testError(origExtent, tablet3, fateId));

@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.accumulo;
+package org.apache.accumulo.test.fate;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -58,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
-import org.apache.accumulo.test.fate.FateTestRunner;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
@@ -92,8 +92,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testReadWrite(FateStore<TestEnv> store, ServerContext sctx)
       throws StackOverflowException {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
 
     // Create a new transaction and get the store for it
     FateId fateId = store.create();
@@ -148,7 +146,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(1, store.list().count());
     txStore2.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore2.delete();
-    assertEquals(0, store.list().count());
   }
 
   @Test
@@ -181,8 +178,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
     assertFalse(store.isDeferredOverflow());
 
     // Store 10 transactions that are all deferred
@@ -267,7 +262,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke1 =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
-    long existing = store.list().count();
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 =
         FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
@@ -286,7 +280,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore2.getStatus());
       assertEquals(fateKey2, txStore2.getKey().orElseThrow());
 
-      assertEquals(existing + 2, store.list().count());
+      assertEquals(2, store.list().count());
     } finally {
       txStore1.delete();
       txStore2.delete();
@@ -365,10 +359,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   @Test
   public void testCreateWithKeyCollision() throws Exception {
-    // Replace the default hasing algorithm with one that always returns the same tid so
+    // Replace the default hashing algorithm with one that always returns the same tid so
     // we can check duplicate detection with different keys
     executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
-        (instanceType, fateKey) -> FateId.from(instanceType, 1000));
+        (instanceType, fateKey) -> FateId.from(instanceType,
+            UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8))));
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
@@ -382,7 +377,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
     try {
       var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
-      assertEquals("Collision detected for tid 1000", e.getMessage());
+      assertEquals(
+          "Collision detected for tid " + UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)),
+          e.getMessage());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
@@ -410,7 +407,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // and use the existing transaction, which we should.
     deleteKey(fateId, sctx);
     var e = assertThrows(IllegalStateException.class, () -> store.createAndReserve(fateKey));
-    assertEquals("Tx Key is missing from tid " + fateId.getTid(), e.getMessage());
+    assertEquals("Tx Key is missing from tid " + fateId.getTxUUIDStr(), e.getMessage());
 
     // We should still be able to reserve and continue when not using a key
     // just like a normal transaction
@@ -484,6 +481,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     assertEquals(0, fateKeyIds.size());
     assertEquals(Set.of(cid1, cid2), seenCids);
+    // Cleanup so we don't interfere with other tests
+    store.list()
+        .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
   }
 
   // create(fateKey) method is private so expose for testing to check error states

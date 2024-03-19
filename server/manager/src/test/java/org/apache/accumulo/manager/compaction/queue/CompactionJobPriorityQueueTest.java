@@ -71,7 +71,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertEquals(1, queue.add(tm, List.of(cj1)));
+    assertEquals(1, queue.add(tm, List.of(cj1), 1L));
 
     MetaJob job = queue.peek();
     assertEquals(cj1, job.getJob());
@@ -84,7 +84,7 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(1, queue.getQueuedJobs());
 
     // replace the files for the same tablet
-    assertEquals(1, queue.add(tm, List.of(cj2)));
+    assertEquals(1, queue.add(tm, List.of(cj2), 1L));
 
     job = queue.peek();
     assertEquals(cj2, job.getJob());
@@ -126,7 +126,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
 
     EasyMock.verify(tm, cj1, cj2);
 
@@ -183,7 +183,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2, cj3);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3), 1L));
 
     EasyMock.verify(tm, cj1, cj2, cj3);
 
@@ -234,7 +234,7 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.replay(tm, cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
 
     assertFalse(queue.closeIfEmpty());
 
@@ -257,7 +257,7 @@ public class CompactionJobPriorityQueueTest {
 
     assertTrue(queue.closeIfEmpty());
 
-    assertEquals(-1, queue.add(tm, List.of(cj1, cj2)));
+    assertEquals(-1, queue.add(tm, List.of(cj1, cj2), 1L));
 
   }
 
@@ -295,7 +295,7 @@ public class CompactionJobPriorityQueueTest {
     // create and add 1000 jobs
     for (int x = 0; x < 1000; x++) {
       Pair<TabletMetadata,CompactionJob> pair = createJob();
-      queue.add(pair.getFirst(), Set.of(pair.getSecond()));
+      queue.add(pair.getFirst(), Set.of(pair.getSecond()), 1L);
       expected.add(pair.getSecond());
     }
 
