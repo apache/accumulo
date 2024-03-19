@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-public class ThreadPoolsTest {
+public class ThreadPoolExecutorBuilderTest {
 
   private final ThreadPools serverPool = ThreadPools.getServerThreadPools();
 
