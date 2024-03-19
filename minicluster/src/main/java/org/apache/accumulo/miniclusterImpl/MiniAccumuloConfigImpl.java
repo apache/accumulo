@@ -147,6 +147,9 @@ public class MiniAccumuloConfigImpl {
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       }
 
+      // enable metrics reporting - by default will appear in standard log files.
+      mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
+
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
+
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,9 +30,12 @@ import java.util.concurrent.ExecutorService;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -62,14 +67,14 @@ public class MetricsUtil {
   }
 
   private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
-      String factoryClass, String appName, HostAndPort address, String instanceName)
+      String factoryClasses, String appName, HostAndPort address, String instanceName)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
       SecurityException {
 
-    LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
+    LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClasses);
 
-    if (enabled && factoryClass != null && !factoryClass.isEmpty()) {
+    if (enabled && factoryClasses != null && !factoryClasses.isEmpty()) {
 
       String processName = appName;
       String serviceInstance = System.getProperty("accumulo.metrics.service.instance", "");
@@ -105,14 +110,12 @@ public class MetricsUtil {
         }
       };
 
-      Class<? extends MeterRegistryFactory> clazz =
-          ClassLoaderUtil.loadClass(factoryClass, MeterRegistryFactory.class);
-      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
-
-      MeterRegistry registry = factory.create();
-      registry.config().commonTags(commonTags);
-      registry.config().meterFilter(replicationFilter);
-      Metrics.addRegistry(registry);
+      for (String factoryName : getTrimmedStrings(factoryClasses)) {
+        MeterRegistry registry = getRegistryFromFactory(factoryName);
+        registry.config().commonTags(commonTags);
+        registry.config().meterFilter(replicationFilter);
+        Metrics.addRegistry(registry);
+      }
 
       if (jvmMetricsEnabled) {
         new ClassLoaderMetrics(commonTags).bindTo(Metrics.globalRegistry);
@@ -123,6 +126,33 @@ public class MetricsUtil {
         new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
       }
     }
+  }
+
+  @VisibleForTesting
+  @SuppressWarnings({"deprecation",
+      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
+  static MeterRegistry getRegistryFromFactory(String factoryName)
+      throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
+      InstantiationException, IllegalAccessException {
+    try {
+      Class<? extends MeterRegistryFactory> clazz =
+          ClassLoaderUtil.loadClass(factoryName, MeterRegistryFactory.class);
+      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
+      return factory.create();
+    } catch (ClassCastException ex) {
+      // empty. On exception try deprecated version
+    }
+    try {
+      Class<? extends org.apache.accumulo.core.metrics.MeterRegistryFactory> clazz = ClassLoaderUtil
+          .loadClass(factoryName, org.apache.accumulo.core.metrics.MeterRegistryFactory.class);
+      org.apache.accumulo.core.metrics.MeterRegistryFactory factory =
+          clazz.getDeclaredConstructor().newInstance();
+      return factory.create();
+    } catch (ClassCastException ex) {
+      // empty. No valid metrics factory, fall through and then throw exception.
+    }
+    throw new ClassNotFoundException(
+        "Could not find appropriate class implementing a MetricsFactory for: " + factoryName);
   }
 
   public static void initializeProducers(MetricsProducer... producer) {
