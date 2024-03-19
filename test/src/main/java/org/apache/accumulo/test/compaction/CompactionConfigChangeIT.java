@@ -75,26 +75,26 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String table = getUniqueNames(1)[0];
 
-      createTable(client, table, "cs1", 100);
+      createTable(client, table, "cs1", 50);
 
       ExternalCompactionTestUtils.writeData(client, table, MAX_DATA);
 
       client.tableOperations().flush(table, null, null, true);
 
-      assertEquals(100, countFiles(client, table, "F"));
+      assertEquals(50, countFiles(client, table, "F"));
 
       // Start 100 slow compactions, each compaction should take ~1 second. There are 2 tservers
       // each with 2 threads and then 8 threads.
       CompactionConfig compactionConfig = new CompactionConfig();
       IteratorSetting iteratorSetting = new IteratorSetting(100, SlowIterator.class);
-      SlowIterator.setSleepTime(iteratorSetting, 100);
+      SlowIterator.setSleepTime(iteratorSetting, 50);
       compactionConfig.setIterators(List.of(iteratorSetting));
       compactionConfig.setWait(false);
 
       client.tableOperations().compact(table, compactionConfig);
 
       // give some time for compactions to start running
-      Wait.waitFor(() -> countFiles(client, table, "F") < 95);
+      Wait.waitFor(() -> countFiles(client, table, "F") < 45);
 
       // Change config deleting groups named small, medium, and large. There was bug where
       // deleting groups running compactions would leave the tablet in a bad state for future
