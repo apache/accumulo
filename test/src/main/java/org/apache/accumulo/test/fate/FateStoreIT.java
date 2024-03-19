@@ -92,8 +92,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testReadWrite(FateStore<TestEnv> store, ServerContext sctx)
       throws StackOverflowException {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
 
     // Create a new transaction and get the store for it
     FateId fateId = store.create();
@@ -148,7 +146,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(1, store.list().count());
     txStore2.setStatus(TStatus.SUCCESSFUL); // needed to satisfy the condition on delete
     txStore2.delete();
-    assertEquals(0, store.list().count());
   }
 
   @Test
@@ -181,8 +178,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testDeferredOverflow(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    // Verify no transactions
-    assertEquals(0, store.list().count());
     assertFalse(store.isDeferredOverflow());
 
     // Store 10 transactions that are all deferred
@@ -267,7 +262,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke1 =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
-    long existing = store.list().count();
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 =
         FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
@@ -286,7 +280,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore2.getStatus());
       assertEquals(fateKey2, txStore2.getKey().orElseThrow());
 
-      assertEquals(existing + 2, store.list().count());
+      assertEquals(2, store.list().count());
     } finally {
       txStore1.delete();
       txStore2.delete();
@@ -487,6 +481,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     assertEquals(0, fateKeyIds.size());
     assertEquals(Set.of(cid1, cid2), seenCids);
+    // Cleanup so we don't interfere with other tests
+    store.list()
+        .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
   }
 
   // create(fateKey) method is private so expose for testing to check error states
