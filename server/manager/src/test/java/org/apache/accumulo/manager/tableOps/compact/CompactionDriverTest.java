@@ -82,7 +82,7 @@ public class CompactionDriverTest {
     final InstanceId instance = InstanceId.of(UUID.randomUUID());
     final NamespaceId namespaceId = NamespaceId.of("13");
     final TableId tableId = TableId.of("42");
-    final FateId compactionFateId = FateId.from(FateInstanceType.USER, 123L);
+    final FateId compactionFateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
@@ -115,7 +115,7 @@ public class CompactionDriverTest {
     final InstanceId instance = InstanceId.of(UUID.randomUUID());
     final NamespaceId namespaceId = NamespaceId.of("14");
     final TableId tableId = TableId.of("43");
-    final FateId compactionFateId = FateId.from(FateInstanceType.USER, 123L);
+    final FateId compactionFateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
