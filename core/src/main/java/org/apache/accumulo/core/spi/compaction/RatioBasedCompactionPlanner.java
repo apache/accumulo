@@ -309,7 +309,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     if (compactionJobs.size() == 1 && params.getKind() == CompactionKind.USER
         && compactionJobs.get(0).size() < params.getCandidates().size()
         && compactionJobs.get(0).size() <= maxFilesToCompact) {
-      // USER and SELECTOR compactions must eventually compact all files. When a subset of files
+      // USER compactions must eventually compact all files. When a subset of files
       // that meets the compaction ratio is selected, look ahead and see if the next compaction
       // would also meet the compaction ratio. If not then compact everything to avoid doing
       // more than logarithmic work across multiple comapctions.
