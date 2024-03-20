@@ -404,9 +404,13 @@ public class Retry {
       long numberOfRetries = 0;
       long cumulativeWaitTimeMillis = 0;
       long currentWaitTimeMillis = initialWait.toMillis();
-      long retriesForDurationMillis = retriesForDuration.toMillis();
+      final long retriesForDurationMillis = retriesForDuration.toMillis();
 
-      while (cumulativeWaitTimeMillis + currentWaitTimeMillis <= retriesForDurationMillis) {
+      // set an upper bound for the number of retries
+      final long maxRetries = Duration.ofHours(1).toMillis();
+
+      while (cumulativeWaitTimeMillis + currentWaitTimeMillis <= retriesForDurationMillis
+          && numberOfRetries < maxRetries) {
 
         cumulativeWaitTimeMillis += currentWaitTimeMillis;
         numberOfRetries++;
@@ -421,10 +425,6 @@ public class Retry {
           currentWaitTimeMillis = maxWait.toMillis(); // Ensure wait time does not exceed maxWait
         }
 
-        // prevent an infinite loop
-        if (numberOfRetries >= Integer.MAX_VALUE) {
-          break;
-        }
       }
 
       this.maxRetries = numberOfRetries;
