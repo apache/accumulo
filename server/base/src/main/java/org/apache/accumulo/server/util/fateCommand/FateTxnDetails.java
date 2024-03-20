@@ -75,8 +75,10 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getFateId() != null) {
       fateId = txnStatus.getFateId().canonical();
     }
-    locksHeld = formatLockInfo(txnStatus.getHeldLocks(), idsToNameMap);
-    locksWaiting = formatLockInfo(txnStatus.getWaitingLocks(), idsToNameMap);
+    locksHeld =
+        Collections.unmodifiableList(formatLockInfo(txnStatus.getHeldLocks(), idsToNameMap));
+    locksWaiting =
+        Collections.unmodifiableList(formatLockInfo(txnStatus.getWaitingLocks(), idsToNameMap));
   }
 
   private List<String> formatLockInfo(final List<String> lockInfo,
@@ -114,11 +116,11 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
   }
 
   public List<String> getLocksHeld() {
-    return Collections.unmodifiableList(locksHeld);
+    return locksHeld;
   }
 
   public List<String> getLocksWaiting() {
-    return Collections.unmodifiableList(locksWaiting);
+    return locksWaiting;
   }
 
   /**
