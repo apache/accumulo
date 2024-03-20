@@ -78,6 +78,6 @@ public class UserFateIT extends FateIT {
   }
 
   private static Range getRow(FateId fateId) {
-    return new Range("tx_" + fateId.getTxUUIDStr());
+    return new Range(fateId.getTxUUIDStr());
   }
 }

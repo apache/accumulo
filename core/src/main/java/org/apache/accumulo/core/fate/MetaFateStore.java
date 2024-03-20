@@ -359,8 +359,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   protected Stream<FateIdStatus> getTransactions() {
     try {
       return zk.getChildren(path).stream().map(strTxid -> {
-        String hexTid = strTxid.split("_")[1];
-        FateId fateId = FateId.from(fateInstanceType, hexTid);
+        String txUUIDStr = strTxid.split("_")[1];
+        FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
         // the lookup. Second, if its requested multiple times the result will always be consistent.
         Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(fateId));
