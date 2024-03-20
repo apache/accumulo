@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -122,39 +123,41 @@ public enum TabletGoalState {
             "Expected current tablet location %s %s", tm.getExtent(), tm.getLocation());
         var tsii = new TabletServerIdImpl(tm.getLocation().getServerInstance());
 
-        var resourceGroup = params.getResourceGroup(tm.getLocation().getServerInstance());
+        String resourceGroup = params.getResourceGroup(tm.getLocation().getServerInstance());
 
-        if (resourceGroup != null) {
-          var reassign = balancer.needsReassignment(new TabletBalancer.CurrentAssignment() {
-            @Override
-            public TabletId getTablet() {
-              return new TabletIdImpl(tm.getExtent());
-            }
+        if (resourceGroup == null || resourceGroup.isBlank()) {
+          // The current tserver for the tablet should be in the TabletManagementParams object
+          // which is derived from the LiveTServerSet in the Manager. Not existing here could
+          // either be an issue with the ServiceLock, where the group is not set, or a bug in
+          // the code between the LiveTServerSet and here. Use the default resource group in
+          // this case for determining if the tablet needs to be re-assigned.
+          log.warn(
+              "Resource group for TabletServer {} is not set, using the default resource"
+                  + "group. If this issue persists please submit an issue.",
+              tm.getLocation().getServerInstance(), tm.getExtent());
+          resourceGroup = Constants.DEFAULT_RESOURCE_GROUP_NAME;
+        }
 
-            @Override
-            public TabletServerId getTabletServer() {
-              return tsii;
-            }
-
-            @Override
-            public String getResourceGroup() {
-              return resourceGroup;
-            }
-          });
-
-          if (reassign) {
-            return UNASSIGNED;
+        final String rg = resourceGroup;
+        var reassign = balancer.needsReassignment(new TabletBalancer.CurrentAssignment() {
+          @Override
+          public TabletId getTablet() {
+            return new TabletIdImpl(tm.getExtent());
           }
-        } else {
-          // ELASTICITY_TODO this log level was set to error so that this case can be examined for
-          // bugs. A tablet server should always have a resource group. If there are unavoidable
-          // race conditions for getting tablet servers and their RGs, that that should be handled
-          // in the TabletManagementParameters data acquisition phase so that not all code has to
-          // deal with it. Eventually this log level should possibly be adjusted or converted to an
-          // exception.
-          log.error(
-              "Could not find resource group for tserver {}, so did not consult balancer.  Need to determine the cause of this.",
-              tm.getLocation().getServerInstance());
+
+          @Override
+          public TabletServerId getTabletServer() {
+            return tsii;
+          }
+
+          @Override
+          public String getResourceGroup() {
+            return rg;
+          }
+        });
+
+        if (reassign) {
+          return UNASSIGNED;
         }
       }
 
