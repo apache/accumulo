@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Read only access to a Transaction Store.
@@ -79,9 +79,8 @@ public interface ReadOnlyTStore<T> {
    * @param tid transaction id, previously reserved.
    * @param deferTime time to keep this transaction out of the pool used in the {@link #reserve()
    *        reserve} method. must be non-negative.
-   * @param deferTimeUnit the time unit of deferTime
    */
-  void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit);
+  void unreserve(long tid, Duration deferTime);
 
   /**
    * Get the current operation for the given transaction id.

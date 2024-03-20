@@ -20,9 +20,9 @@ package org.apache.accumulo.core.fate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AgeOffStore.TimeSource;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
@@ -53,7 +53,7 @@ public class AgeOffStoreTest {
     long txid1 = aoStore.create();
     aoStore.reserve(txid1);
     aoStore.setStatus(txid1, TStatus.IN_PROGRESS);
-    aoStore.unreserve(txid1, 0, TimeUnit.MILLISECONDS);
+    aoStore.unreserve(txid1, Duration.ZERO);
 
     aoStore.ageOff();
 
@@ -61,7 +61,7 @@ public class AgeOffStoreTest {
     aoStore.reserve(txid2);
     aoStore.setStatus(txid2, TStatus.IN_PROGRESS);
     aoStore.setStatus(txid2, TStatus.FAILED);
-    aoStore.unreserve(txid2, 0, TimeUnit.MILLISECONDS);
+    aoStore.unreserve(txid2, Duration.ZERO);
 
     tts.time = 6;
 
@@ -69,7 +69,7 @@ public class AgeOffStoreTest {
     aoStore.reserve(txid3);
     aoStore.setStatus(txid3, TStatus.IN_PROGRESS);
     aoStore.setStatus(txid3, TStatus.SUCCESSFUL);
-    aoStore.unreserve(txid3, 0, TimeUnit.MILLISECONDS);
+    aoStore.unreserve(txid3, Duration.ZERO);
 
     Long txid4 = aoStore.create();
 
@@ -102,19 +102,19 @@ public class AgeOffStoreTest {
     long txid1 = testStore.create();
     testStore.reserve(txid1);
     testStore.setStatus(txid1, TStatus.IN_PROGRESS);
-    testStore.unreserve(txid1, 0, TimeUnit.MILLISECONDS);
+    testStore.unreserve(txid1, Duration.ZERO);
 
     long txid2 = testStore.create();
     testStore.reserve(txid2);
     testStore.setStatus(txid2, TStatus.IN_PROGRESS);
     testStore.setStatus(txid2, TStatus.FAILED);
-    testStore.unreserve(txid2, 0, TimeUnit.MILLISECONDS);
+    testStore.unreserve(txid2, Duration.ZERO);
 
     long txid3 = testStore.create();
     testStore.reserve(txid3);
     testStore.setStatus(txid3, TStatus.IN_PROGRESS);
     testStore.setStatus(txid3, TStatus.SUCCESSFUL);
-    testStore.unreserve(txid3, 0, TimeUnit.MILLISECONDS);
+    testStore.unreserve(txid3, Duration.ZERO);
 
     Long txid4 = testStore.create();
 
@@ -137,7 +137,7 @@ public class AgeOffStoreTest {
 
     aoStore.reserve(txid1);
     aoStore.setStatus(txid1, TStatus.FAILED_IN_PROGRESS);
-    aoStore.unreserve(txid1, 0, TimeUnit.MILLISECONDS);
+    aoStore.unreserve(txid1, Duration.ZERO);
 
     tts.time = 30;
 
@@ -148,7 +148,7 @@ public class AgeOffStoreTest {
 
     aoStore.reserve(txid1);
     aoStore.setStatus(txid1, TStatus.FAILED);
-    aoStore.unreserve(txid1, 0, TimeUnit.MILLISECONDS);
+    aoStore.unreserve(txid1, Duration.ZERO);
 
     aoStore.ageOff();
 
