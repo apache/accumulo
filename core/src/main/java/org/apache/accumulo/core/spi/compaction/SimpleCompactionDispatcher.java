@@ -23,15 +23,14 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Dispatcher that supports simple configuration for making tables use compaction services. By
@@ -76,12 +75,15 @@ import org.slf4j.LoggerFactory;
 public class SimpleCompactionDispatcher implements CompactionDispatcher, CustomPropertyValidator {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimpleCompactionDispatcher.class);
+  private static final Pattern VALID_OPTIONS_PATTERN =
+      Pattern.compile("service|service[.][^.]+|service.user[.][^.]+");
 
   private Map<CompactionKind,CompactionDispatch> services;
   private Map<String,CompactionDispatch> userServices;
 
   @Override
   public void init(InitParameters params) {
+    Preconditions.checkArgument(validateOptions(params.getOptions()));
     services = new EnumMap<>(CompactionKind.class);
 
     var defaultService =
@@ -131,46 +133,20 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher, CustomP
     return services.get(params.getCompactionKind());
   }
 
+  public boolean validateOptions(Map<String,String> opts) {
+    boolean allValid =
+        opts.keySet().stream().allMatch(key -> VALID_OPTIONS_PATTERN.matcher(key).matches());
+    if (!allValid) {
+      opts.entrySet().stream().filter(e -> !VALID_OPTIONS_PATTERN.matcher(e.getKey()).matches())
+          .forEach(e -> LOG.warn("Illegal option {} {}", e.getKey(), e.getValue()));
+
+    }
+    return allValid;
+  }
+
   @Override
   public boolean validateConfiguration(PropertyValidationEnvironment env) {
-
-    try {
-      ConfigurationCopy cc = new ConfigurationCopy(env.getConfiguration());
-
-      CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(cc,
-          Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
-
-      if (newDispatcher == null) {
-        LOG.warn(
-            "Null returned for compaction dispatcher for table. Did not return default value, check server log.");
-        return false;
-      }
-
-      Map<String,String> opts =
-          cc.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
-
-      newDispatcher.init(new CompactionDispatcher.InitParameters() {
-
-        @Override
-        public TableId getTableId() {
-          return null;
-        }
-
-        @Override
-        public Map<String,String> getOptions() {
-          return opts;
-        }
-
-        @Override
-        public ServiceEnvironment getServiceEnv() {
-          return null;
-        }
-      });
-      return true;
-    } catch (RuntimeException e) {
-      LOG.warn("Error validating configuration", e);
-      return false;
-    }
+    return validateOptions(env.getPluginOptions());
   }
 
 }

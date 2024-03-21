@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.spi.common;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 
 /**
  * Interface to be used on SPI classes where custom properties are in use. When
@@ -34,8 +37,25 @@ public interface CustomPropertyValidator {
 
   public interface PropertyValidationEnvironment extends ServiceEnvironment {
 
-    public Optional<TableId> getTableId();
+    Optional<TableId> getTableId();
 
+    /**
+     * Some plugins in Accumulo support a map of options that go along with the plugin. If the
+     * plugin being validated follows this pattern, then this method can help get its options.
+     * Accumulo know what plugin it is currently validating and can therefore return appropriate
+     * options for it.
+     *
+     * @return The options for the plugin being validated. This will return different options
+     *         depending on which plugin is being validated. For example if
+     *         {@link org.apache.accumulo.core.spi.compaction.CompactionDispatcher} is being
+     *         validated then will return the same thing as
+     *         {@link CompactionDispatcher.InitParameters#getOptions()}. If a
+     *         {@link org.apache.accumulo.core.spi.scan.ScanDispatcher} plugin is being validated
+     *         then this will return the same thing as
+     *         {@link ScanDispatcher.InitParameters#getOptions()}
+     * @throws IllegalArgumentException if the plugin type being validated does not have options.
+     */
+    Map<String,String> getPluginOptions();
   }
 
   /**

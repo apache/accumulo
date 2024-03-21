@@ -627,6 +627,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner, CustomProper
   @Override
   public boolean validateConfiguration(PropertyValidationEnvironment env) {
 
+    // ELASTICITY_TODO refactor code to validate config using the following plugin opts
+    var opts = env.getPluginOptions();
+
     try {
       CompactionServicesConfig csc =
           new CompactionServicesConfig(new ConfigurationCopy(env.getConfiguration()), log::warn);

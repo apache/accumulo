@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -520,7 +521,7 @@ public class ServerContext extends ClientContext {
         return false;
       }
       CustomPropertyValidator instance = clazz.getDeclaredConstructor().newInstance();
-      return instance.validateConfiguration(createValidationEnvironment(conf));
+      return instance.validateConfiguration(createValidationEnvironment(conf, p));
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       log.error(className + " does not implement no-arg constructor for configuration validation");
@@ -531,7 +532,8 @@ public class ServerContext extends ClientContext {
     }
   }
 
-  private PropertyValidationEnvironment createValidationEnvironment(AccumuloConfiguration config) {
+  private PropertyValidationEnvironment createValidationEnvironment(AccumuloConfiguration config,
+      Property property) {
     return new PropertyValidationEnvironment() {
 
       @Override
@@ -563,6 +565,28 @@ public class ServerContext extends ClientContext {
       public Optional<TableId> getTableId() {
         return (config instanceof TableConfiguration)
             ? Optional.of(((TableConfiguration) config).getTableId()) : Optional.empty();
+      }
+
+      @Override
+      public Map<String,String> getPluginOptions() {
+        switch (property) {
+          case TABLE_COMPACTION_DISPATCHER:
+            return config
+                .getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
+          case TABLE_SCAN_DISPATCHER:
+            return config.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
+          default:
+            // handle different property prefixes in the default case
+            if (property.getKey().startsWith(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey())
+                && property.getKey().endsWith(".planner")) {
+              final String optionsPrefix = property.getKey() + ".opts.";
+              final HashMap<String,String> opts = new HashMap<>();
+              getConfiguration().getWithPrefix(optionsPrefix)
+                  .forEach((k, v) -> opts.put(k.substring(optionsPrefix.length()), v));
+              return opts;
+            }
+            throw new IllegalArgumentException("Unhandled property: " + property);
+        }
       }
     };
   }
