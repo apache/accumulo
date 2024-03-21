@@ -48,6 +48,7 @@ import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -656,6 +657,12 @@ public class TServerUtils {
         Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
       }
     }).start();
+
+    while (!finalServer.isServing()) {
+      // Wait for the thread to start and for the TServer to start
+      // serving events
+      UtilWaitThread.sleep(10);
+    }
 
     // check for the special "bind to everything address"
     if (serverAddress.address.getHost().equals("0.0.0.0")) {
