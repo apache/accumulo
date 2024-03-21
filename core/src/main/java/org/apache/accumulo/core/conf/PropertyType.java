@@ -362,7 +362,7 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    public static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
+    public static final Range<Integer> VALID_RANGE = Range.of(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
