@@ -231,57 +231,22 @@ public class CompactionCoordinator
     }
   }
 
-  protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+  protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future = schedExecutor
+        .scheduleWithFixedDelay(this::cleanUpEmptyCompactorPathInZK, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpInternalState, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  protected void startIdleCompactionWatcher() {
-
-    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(this::idleCompactionWarning,
-        getTServerCheckInterval(), getTServerCheckInterval(), TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  protected void startGroupCheckThread() {
-    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(() -> {
-      Set<String> compactorGroups = ExternalCompactionUtil.getCompactorAddrs(ctx).keySet();
-      for (CompactorGroupId groupId : TIME_COMPACTOR_LAST_CHECKED.keySet()) {
-        if (!compactorGroups.contains(groupId.canonical())) {
-          TIME_COMPACTOR_LAST_CHECKED.remove(groupId);
-        }
-      }
-    }, 5, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  private void idleCompactionWarning() {
-
-    long now = System.currentTimeMillis();
-    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
-    TIME_COMPACTOR_LAST_CHECKED.forEach((groupName, lastCheckTime) -> {
-      if ((now - lastCheckTime) > getMissingCompactorWarningTime()
-          && jobQueues.getQueuedJobs(groupName) > 0
-          && idleCompactors.containsKey(groupName.canonical())) {
-        LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", groupName,
-            getMissingCompactorWarningTime());
-      }
-    });
-
   }
 
   @Override
   public void run() {
 
-    startCompactionCleaner(schedExecutor);
-    startRunningCleaner(schedExecutor);
+    startCompactorZKCleaner(schedExecutor);
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -303,10 +268,7 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
-
-    startIdleCompactionWatcher();
-
-    startGroupCheckThread();
+    startInternalStateCleaner(schedExecutor);
 
     try {
       shutdown.await();
@@ -320,7 +282,7 @@ public class CompactionCoordinator
   private Map<String,Set<HostAndPort>> getIdleCompactors() {
 
     Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
-    ExternalCompactionUtil.getCompactorAddrs(ctx)
+    getRunningCompactors()
         .forEach((group, compactorList) -> allCompactors.put(group, new HashSet<>(compactorList)));
 
     Set<String> emptyQueues = new HashSet<>();
@@ -904,30 +866,6 @@ public class CompactionCoordinator
   }
 
   /**
-   * The RUNNING_CACHE set may contain external compactions that are not actually running. This
-   * method periodically cleans those up.
-   */
-  public void cleanUpRunning() {
-
-    // grab a snapshot of the ids in the set before reading the metadata table. This is done to
-    // avoid removing things that are added while reading the metadata.
-    Set<ExternalCompactionId> idsSnapshot = Set.copyOf(RUNNING_CACHE.keySet());
-
-    // grab the ids that are listed as running in the metadata table. It important that this is done
-    // after getting the snapshot.
-    Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
-
-    var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
-
-    // remove ids that are in the running set but not in the metadata table
-    idsToRemove.forEach(this::recordCompletion);
-
-    if (idsToRemove.size() > 0) {
-      LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
-    }
-  }
-
-  /**
    * Return information about running compactions
    *
    * @param tinfo trace info
@@ -1014,6 +952,11 @@ public class CompactionCoordinator
   }
 
   /* Method exists to be overridden in test to hide static method */
+  protected Map<String,List<HostAndPort>> getRunningCompactors() {
+    return ExternalCompactionUtil.getCompactorAddrs(this.ctx);
+  }
+
+  /* Method exists to be overridden in test to hide static method */
   protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {
     HostAndPort hostPort = HostAndPort.fromString(address);
     ExternalCompactionUtil.cancelCompaction(this.ctx, hostPort, externalCompactionId);
@@ -1029,7 +972,7 @@ public class CompactionCoordinator
     }
   }
 
-  private void cleanUpCompactors() {
+  private void cleanUpEmptyCompactorPathInZK() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
     var zoorw = this.ctx.getZooReaderWriter();
@@ -1063,4 +1006,91 @@ public class CompactionCoordinator
     }
   }
 
+  public void cleanUpInternalState() {
+
+    // This method does the following:
+    //
+    // 1. Removes entries from RUNNING_CACHE that are not really running
+    // 2. Cancels running compactions for groups that are not in the current configuration
+    // 3. Remove groups not in configuration from TIME_COMPACTOR_LAST_CHECKED
+    // 4. Log groups with no compactors
+    // 5. Log compactors with no groups
+    // 6. Log groups with compactors that have not checked in
+
+    // grab a snapshot of the ids in the set before reading the metadata table. This is done to
+    // avoid removing things that are added while reading the metadata.
+    Set<ExternalCompactionId> idsSnapshot = Set.copyOf(RUNNING_CACHE.keySet());
+
+    // grab the ids that are listed as running in the metadata table. It important that this is done
+    // after getting the snapshot.
+    Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+
+    var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
+
+    // remove ids that are in the running set but not in the metadata table
+    idsToRemove.forEach(this::recordCompletion);
+
+    if (idsToRemove.size() > 0) {
+      LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
+    }
+
+    // Get the set of groups being referenced in the current configuration
+    // Needs Dan's changes for this
+    Set<CompactorGroupId> groupsInConfiguration = new HashSet<>();
+
+    // Compaction jobs are created in the TabletGroupWatcher and added to the Coordinator
+    // via the addJobs method which adds the job to the CompactionJobQueues object.
+    Set<CompactorGroupId> groupsWithJobs = jobQueues.getQueueIds();
+
+    Set<CompactorGroupId> jobGroupsNotInConfiguration =
+        Sets.difference(groupsWithJobs, groupsInConfiguration);
+
+    if (jobGroupsNotInConfiguration != null && !jobGroupsNotInConfiguration.isEmpty()) {
+      RUNNING_CACHE.values().forEach(rc -> {
+        if (jobGroupsNotInConfiguration.contains(CompactorGroupId.of(rc.getGroupName()))) {
+          LOG.warn(
+              "External compaction {} running in group {} on compactor {},"
+                  + " but group not found in current configuration. Failing compaction...",
+              rc.getJob().getExternalCompactionId(), rc.getGroupName(), rc.getCompactorAddress());
+          cancelCompactionOnCompactor(rc.getCompactorAddress(),
+              rc.getJob().getExternalCompactionId());
+        }
+      });
+
+      // Remove groups not in configuration from TIME_COMPACTOR_LAST_CHECKED
+      LOG.debug("No longer tracking compactor check-in times for groups: {}",
+          jobGroupsNotInConfiguration);
+      jobGroupsNotInConfiguration.forEach(TIME_COMPACTOR_LAST_CHECKED::remove);
+    }
+
+    final Set<CompactorGroupId> runningCompactorGroups = new HashSet<>();
+    getRunningCompactors().keySet()
+        .forEach(group -> runningCompactorGroups.add(CompactorGroupId.of(group)));
+
+    Set<CompactorGroupId> groupsWithNoCompactors =
+        Sets.difference(groupsInConfiguration, runningCompactorGroups);
+    if (groupsWithNoCompactors != null && !groupsWithNoCompactors.isEmpty()) {
+      LOG.warn("The following groups have no running compactors: {}", groupsWithNoCompactors);
+    }
+
+    Set<CompactorGroupId> compactorsWithNoGroups =
+        Sets.difference(runningCompactorGroups, groupsInConfiguration);
+    if (compactorsWithNoGroups != null && !compactorsWithNoGroups.isEmpty()) {
+      LOG.warn(
+          "The following groups have running compactors, but are not in the current configuration: {}",
+          compactorsWithNoGroups);
+    }
+
+    long now = System.currentTimeMillis();
+    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
+    TIME_COMPACTOR_LAST_CHECKED.forEach((groupName, lastCheckTime) -> {
+      if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+          && jobQueues.getQueuedJobs(groupName) > 0
+          && idleCompactors.containsKey(groupName.canonical())) {
+        LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", groupName,
+            getMissingCompactorWarningTime());
+      }
+    });
+
+  }
 }
