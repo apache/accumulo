@@ -30,15 +30,20 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
+import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
@@ -71,12 +76,16 @@ import org.apache.hadoop.io.Text;
  * server side) and to the client side scanner (which will execute client side).
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
+
   private int size;
 
   private Range range;
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   private SamplerConfiguration iteratorSamplerConfig;
+
+  private final Supplier<ClientContext> context;
+  private final Supplier<TableId> tableId;
 
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
@@ -95,7 +104,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public boolean isFullMajorCompaction() {
-      return false;
+      // The javadocs state this method will throw an ISE when scope is not majc
+      throw new IllegalStateException(
+          "Asked about major compaction type when scope is " + getIteratorScope());
     }
 
     @Override
@@ -121,6 +132,16 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     @Override
     public SamplerConfiguration getSamplerConfiguration() {
       return samplerConfig;
+    }
+
+    @Override
+    public PluginEnvironment getPluginEnv() {
+      return new ClientServiceEnvironmentImpl(context.get());
+    }
+
+    @Override
+    public TableId getTableId() {
+      return tableId.get();
     }
   }
 
@@ -220,6 +241,22 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
     if (samplerConfig != null) {
       setSamplerConfiguration(samplerConfig);
+    }
+
+    if (scanner instanceof ScannerImpl) {
+      var scannerImpl = (ScannerImpl) scanner;
+      this.context = () -> scannerImpl.getClientContext();
+      this.tableId = () -> scannerImpl.getTableId();
+    } else {
+      // These may never be used, so only fail if an attempt is made to use them.
+      this.context = () -> {
+        throw new UnsupportedOperationException(
+            "Do not know how to obtain client context from " + scanner.getClass().getName());
+      };
+      this.tableId = () -> {
+        throw new UnsupportedOperationException(
+            "Do not know how to obtain tableId from " + scanner.getClass().getName());
+      };
     }
   }
 

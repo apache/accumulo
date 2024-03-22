@@ -719,10 +719,6 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_SPLIT: {
         TableOperation tableOp = TableOperation.SPLIT;
 
-        // ELASTICITY_TODO this does not check if table is offline for now, that is usually done in
-        // FATE operation with a table lock. Deferring that check for now as its possible tablet
-        // locks may not be needed.
-
         int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
         if (arguments.size() < (SPLIT_OFFSET + 1)) {
           throw new ThriftTableOperationException(null, null, tableOp,
@@ -752,8 +748,6 @@ class FateServiceHandler implements FateService.Iface {
         endRow = endRow.getLength() == 0 ? null : endRow;
         prevEndRow = prevEndRow.getLength() == 0 ? null : prevEndRow;
 
-        // ELASTICITY_TODO create table stores splits in a file, maybe this operation should do the
-        // same
         SortedSet<Text> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
             .map(ByteBufferUtil::toText).collect(Collectors.toCollection(TreeSet::new));
 

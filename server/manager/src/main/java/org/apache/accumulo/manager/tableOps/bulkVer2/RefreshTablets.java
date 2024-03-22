@@ -22,8 +22,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This Repo asks hosted tablets that were bulk loaded into to refresh their metadata. It works by
@@ -33,8 +31,6 @@ import org.slf4j.LoggerFactory;
  * case the tablet will see the bulk files the next time its hosted somewhere.
  */
 public class RefreshTablets extends ManagerRepo {
-
-  private static final Logger log = LoggerFactory.getLogger(RefreshTablets.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -52,9 +48,8 @@ public class RefreshTablets extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId,
-        bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
-        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
+    TabletRefresher.refresh(manager, fateId, bulkInfo.tableId, bulkInfo.firstSplit,
+        bulkInfo.lastSplit, tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 
     return new CleanUpBulkImport(bulkInfo);
   }

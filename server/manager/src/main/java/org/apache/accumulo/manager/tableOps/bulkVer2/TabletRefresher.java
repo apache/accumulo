@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -57,15 +57,10 @@ public class TabletRefresher {
 
   private static final Logger log = LoggerFactory.getLogger(TabletRefresher.class);
 
-  public static void refresh(ServerContext context,
-      Supplier<Set<TServerInstance>> onlineTserversSupplier, FateId fateId, TableId tableId,
-      byte[] startRow, byte[] endRow, Predicate<TabletMetadata> needsRefresh) {
+  public static void refresh(Manager manager, FateId fateId, TableId tableId, byte[] startRow,
+      byte[] endRow, Predicate<TabletMetadata> needsRefresh) {
 
-    // ELASTICITY_TODO should this thread pool be configurable?
-    ThreadPoolExecutor threadPool =
-        context.threadPools().getPoolBuilder("Tablet refresh " + fateId).numCoreThreads(10).build();
-
-    try (var tablets = context.getAmple().readTablets().forTable(tableId)
+    try (var tablets = manager.getContext().getAmple().readTablets().forTable(tableId)
         .overlapping(startRow, endRow).checkConsistency()
         .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
 
@@ -84,12 +79,10 @@ public class TabletRefresher {
         var refreshesNeeded = batch.stream().collect(groupingBy(TabletMetadata::getLocation,
             mapping(tabletMetadata -> tabletMetadata.getExtent().toThrift(), toList())));
 
-        refreshTablets(threadPool, fateId.canonical(), context, onlineTserversSupplier,
-            refreshesNeeded);
+        refreshTablets(manager.getTabletRefreshThreadPool(), fateId.canonical(),
+            manager.getContext(), () -> manager.onlineTabletServers(), refreshesNeeded);
       });
 
-    } finally {
-      threadPool.shutdownNow();
     }
 
   }
