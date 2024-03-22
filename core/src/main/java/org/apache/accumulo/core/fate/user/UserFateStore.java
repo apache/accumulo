@@ -157,8 +157,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       scanner.setRange(new Range());
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
-        String hexTid = e.getKey().getRow().toString().split("_")[1];
-        FateId fateId = FateId.from(fateInstanceType, hexTid);
+        String txUUIDStr = e.getKey().getRow().toString();
+        FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
@@ -248,7 +248,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   public static String getRowId(FateId fateId) {
-    return "tx_" + fateId.getTxUUIDStr();
+    return fateId.getTxUUIDStr();
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {

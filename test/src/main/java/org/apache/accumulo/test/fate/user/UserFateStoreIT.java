@@ -258,7 +258,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
   private void injectStatus(ClientContext client, String table, FateId fateId, TStatus status)
       throws TableNotFoundException {
     try (BatchWriter writer = client.createBatchWriter(table)) {
-      Mutation mutation = new Mutation(new Text("tx_" + fateId.getTxUUIDStr()));
+      Mutation mutation = new Mutation(new Text(fateId.getTxUUIDStr()));
       FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {
