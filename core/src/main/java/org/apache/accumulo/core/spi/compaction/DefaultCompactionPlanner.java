@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -131,6 +133,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
+
+  private static final long compactRatioWarnPeriod = MINUTES.toNanos(15L);
+  // set the last warn time to be before 2x duration so first message is emitted.
+  private long compactRationLastWarn = System.nanoTime() - MINUTES.toNanos(30L);
 
   private static class ExecutorConfig {
     String type;
@@ -397,13 +403,26 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       }
     }
 
+    // in this case the data must be really skewed, operator intervention may be needed.
+    // print a message at warn every 15 minutes, otherwise log at trace if no files
+    // can be found to compact
     if (found.isEmpty() && lowRatio == 1.0) {
-      // in this case the data must be really skewed, operator intervention may be needed.
-      log.warn(
-          "Attempted to lower compaction ration from {} to {} for {} because there are {} files "
-              + "and the max tablet files is {}, however no set of files to compact were found.",
-          params.getRatio(), highRatio, params.getTableId(), params.getCandidates().size(),
-          maxTabletFiles);
+      long now = System.nanoTime();
+      long delta = now - compactRationLastWarn;
+      if (delta > compactRatioWarnPeriod) {
+        compactRationLastWarn = now;
+        log.warn(
+            "Attempted to lower compaction ration from {} to {} for {} because there are {} files "
+                + "and the max tablet files is {}, however no set of files to compact were found.",
+            params.getRatio(), highRatio, params.getTableId(), params.getCandidates().size(),
+            maxTabletFiles);
+      } else {
+        log.trace(
+            "Attempted to lower compaction ration from {} to {} for {} because there are {} files "
+                + "and the max tablet files is {}, however no set of files to compact were found.",
+            params.getRatio(), highRatio, params.getTableId(), params.getCandidates().size(),
+            maxTabletFiles);
+      }
     }
 
     log.info(
