@@ -329,8 +329,7 @@ class CompactionDriver extends ManagerRepo {
 
     // For any compactions that may have happened before this operation failed, attempt to refresh
     // tablets.
-    TabletRefresher.refresh(env.getContext(), env::onlineTabletServers, fateId, tableId, startRow,
-        endRow, tabletMetadata -> true);
+    TabletRefresher.refresh(env, fateId, tableId, startRow, endRow, tabletMetadata -> true);
   }
 
   /**
