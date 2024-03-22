@@ -72,6 +72,7 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 
 /**
@@ -662,7 +663,7 @@ public class TServerUtils {
       // Wait for the thread to start and for the TServer to start
       // serving events
       UtilWaitThread.sleep(10);
-       Preconditions.checkState(!finalServer.getShouldStop());
+      Preconditions.checkState(!finalServer.getShouldStop());
     }
 
     // check for the special "bind to everything address"
