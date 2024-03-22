@@ -662,6 +662,7 @@ public class TServerUtils {
       // Wait for the thread to start and for the TServer to start
       // serving events
       UtilWaitThread.sleep(10);
+       Preconditions.checkState(!finalServer.getShouldStop());
     }
 
     // check for the special "bind to everything address"
