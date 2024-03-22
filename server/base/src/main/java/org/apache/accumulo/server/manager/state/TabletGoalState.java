@@ -146,15 +146,10 @@ public enum TabletGoalState {
             return UNASSIGNED;
           }
         } else {
-          // ELASTICITY_TODO this log level was set to error so that this case can be examined for
-          // bugs. A tablet server should always have a resource group. If there are unavoidable
-          // race conditions for getting tablet servers and their RGs, that that should be handled
-          // in the TabletManagementParameters data acquisition phase so that not all code has to
-          // deal with it. Eventually this log level should possibly be adjusted or converted to an
-          // exception.
-          log.error(
-              "Could not find resource group for tserver {}, so did not consult balancer.  Need to determine the cause of this.",
-              tm.getLocation().getServerInstance());
+          log.warn("Could not find resource group for tserver {}, did not consult balancer to"
+              + " check if tablet {} needs to be re-assigned. This tablet will be rechecked"
+              + " soon. If this condition is not transient, then it could indicate a bug so"
+              + " please report it.", tm.getLocation().getServerInstance(), tm.getExtent());
         }
       }
 
