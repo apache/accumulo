@@ -230,8 +230,7 @@ public class DeadCompactionDetector {
       this.deadCompactions.keySet().removeAll(toFail);
     }
 
-    // Find and delete any known tables that have unreferenced
-    // compaction tmp files.
+    // Find and delete compaction tmp files that are unreferenced
     if (!tablesWithUnreferencedTmpFiles.isEmpty()) {
 
       Set<TableId> copy = new HashSet<>();
