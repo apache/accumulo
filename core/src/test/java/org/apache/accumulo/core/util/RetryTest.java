@@ -33,6 +33,7 @@ import org.apache.accumulo.core.util.Retry.NeedsTimeIncrement;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -349,6 +350,103 @@ public class RetryTest {
         log.error("Failed on iteration: {}", i);
         throw e;
       }
+    }
+  }
+
+  @Nested
+  public class MaxRetriesWithinDuration {
+
+    @Test
+    public void noIncrement() {
+      Duration retriesForDuration = Duration.ofSeconds(3);
+      Duration retryAfter = Duration.ofMillis(100);
+      Retry retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration)
+          .retryAfter(retryAfter).incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(1000))
+          .backOffFactor(1.0).logInterval(Duration.ofMinutes(3)).createRetry();
+
+      // with no increment, the number of retries should be the duration divided by the retryAfter
+      // (which is used as the initial wait and in this case does not change)
+      long expectedRetries = retriesForDuration.dividedBy(retryAfter);
+      assertEquals(expectedRetries, retry.getMaxRetries());
+
+      // try again with lots of expected retries
+      retriesForDuration = Duration.ofSeconds(30);
+      retryAfter = Duration.ofMillis(10);
+      retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration).retryAfter(retryAfter)
+          .incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(1000)).backOffFactor(1.0)
+          .logInterval(Duration.ofMinutes(3)).createRetry();
+
+      expectedRetries = retriesForDuration.dividedBy(retryAfter);
+      assertEquals(expectedRetries, retry.getMaxRetries());
+    }
+
+    @Test
+    public void withIncrement() {
+      final Duration retriesForDuration = Duration.ofMillis(1500);
+      final Duration retryAfter = Duration.ofMillis(100);
+      final Duration increment = Duration.ofMillis(100);
+
+      Retry retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration)
+          .retryAfter(retryAfter).incrementBy(increment).maxWait(Duration.ofMillis(1000))
+          .backOffFactor(1.0).logInterval(Duration.ofMinutes(3)).createRetry();
+
+      // the max retries should be calculated like this:
+      // 1. 100
+      // 2. 100 + 100 = 200
+      // 3. 200 + 100 = 300
+      // 4. 300 + 100 = 400
+      // 5. 400 + 100 = 500
+
+      // 100 + 200 + 300 + 400 + 500 = 1500
+
+      assertEquals(5, retry.getMaxRetries());
+    }
+
+    @Test
+    public void withBackoffFactorAndMaxWait() {
+      final Duration retriesForDuration = Duration.ofSeconds(4);
+      final Duration retryAfter = Duration.ofMillis(100);
+      Retry retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration)
+          .retryAfter(retryAfter).incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(500))
+          .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
+
+      // max retries should be calculated like this:
+      // 1. 100
+      // 2. 100 * 1.5 = 150
+      // 3. 150 * 1.5 = 225
+      // 4. 225 * 1.5 = 337
+      // 5. 337 * 1.5 = 505 (which is greater than the max wait of 500 so its capped)
+
+      // 100 + 150 + 225 + 337 + 500 + 500 + 500 + 500 + 500 + 500 = 3812
+      assertEquals(10, retry.getMaxRetries());
+    }
+
+    @Test
+    public void smallDuration() {
+      Duration retriesForDuration = Duration.ofMillis(0);
+      final Duration retryAfter = Duration.ofMillis(100);
+      Retry retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration)
+          .retryAfter(retryAfter).incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(500))
+          .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
+      assertEquals(0, retry.getMaxRetries());
+
+      retriesForDuration = Duration.ofMillis(99);
+      assertTrue(retriesForDuration.compareTo(retryAfter) < 0);
+      retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration).retryAfter(retryAfter)
+          .incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(500)).backOffFactor(1.5)
+          .logInterval(Duration.ofMinutes(3)).createRetry();
+      assertEquals(0, retry.getMaxRetries());
+    }
+
+    @Test
+    public void equalDurationAndInitialWait() {
+      final Duration retriesForDuration = Duration.ofMillis(100);
+      final Duration retryAfter = Duration.ofMillis(100);
+      assertEquals(0, retriesForDuration.compareTo(retryAfter));
+      Retry retry = Retry.builder().maxRetriesWithinDuration(retriesForDuration)
+          .retryAfter(retryAfter).incrementBy(Duration.ofMillis(0)).maxWait(Duration.ofMillis(500))
+          .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
+      assertEquals(1, retry.getMaxRetries());
     }
   }
 }
