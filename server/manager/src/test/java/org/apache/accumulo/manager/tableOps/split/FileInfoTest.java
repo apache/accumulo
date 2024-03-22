@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.manager.tableOps.split;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.accumulo.server.util.FileUtil.FileInfo;
+import org.apache.accumulo.manager.split.Splitter.FileInfo;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
