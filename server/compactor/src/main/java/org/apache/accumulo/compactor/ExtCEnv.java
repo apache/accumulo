@@ -90,7 +90,6 @@ public class ExtCEnv implements CompactionEnv {
     switch (job.getKind()) {
       case USER:
         return TCompactionReason.USER;
-      case SELECTOR:
       case SYSTEM:
         return TCompactionReason.SYSTEM;
       default:

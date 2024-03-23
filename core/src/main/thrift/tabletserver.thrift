@@ -116,9 +116,9 @@ struct TExternalCompactionJob {
 }
 
 enum TCompactionKind {
-  SELECTOR
-  SYSTEM
-  USER
+  // SELECTOR was removed and used to be zero
+  SYSTEM = 1
+  USER = 2
 }
 
 struct TCompactionGroupSummary {

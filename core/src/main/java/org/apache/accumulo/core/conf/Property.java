@@ -855,12 +855,6 @@ public enum Property {
           + "specified time.  If a system compaction cancels a hold and runs, then the user compaction"
           + " can reselect and hold files after the system compaction runs.",
       "2.1.0"),
-  TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
-      "A configurable selector for a table that can periodically select file for mandatory "
-          + "compaction, even if the files do not meet the compaction ratio.",
-      "2.1.0"),
-  TABLE_COMPACTION_SELECTOR_OPTS("table.compaction.selector.opts.", null, PropertyType.PREFIX,
-      "Options for the table compaction dispatcher.", "2.1.0"),
   TABLE_COMPACTION_CONFIGURER("table.compaction.configurer", "", PropertyType.CLASSNAME,
       "A plugin that can dynamically configure compaction output files based on input files.",
       "2.1.0"),
@@ -1414,8 +1408,7 @@ public enum Property {
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey()))
+            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey()))
         || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
