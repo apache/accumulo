@@ -304,7 +304,7 @@ public class CompactionCoordinator extends AbstractServer
 
       long now = System.currentTimeMillis();
 
-      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+      Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
       TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
         if ((now - lastCheckTime) > getMissingCompactorWarningTime()
             && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
@@ -325,16 +325,16 @@ public class CompactionCoordinator extends AbstractServer
     LOG.info("Shutting down");
   }
 
-  private Map<String,List<HostAndPort>> getIdleCompactors() {
+  private Map<String,Set<HostAndPort>> getIdleCompactors() {
 
-    Map<String,List<HostAndPort>> allCompactors =
+    Map<String,Set<HostAndPort>> allCompactors =
         ExternalCompactionUtil.getCompactorAddrs(getContext());
 
     Set<String> emptyQueues = new HashSet<>();
 
     // Remove all of the compactors that are running a compaction
     RUNNING_CACHE.values().forEach(rc -> {
-      List<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
+      Set<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
       if (busyCompactors != null
           && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
         if (busyCompactors.isEmpty()) {
