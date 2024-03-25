@@ -467,8 +467,7 @@ public class ServerContext extends ClientContext {
 
   public void validateSpiConfiguration(boolean validateNsAndTables)
       throws AccumuloException, AccumuloSecurityException {
-    boolean valid = validateClasses(getSiteConfiguration(), RootTable.ID);
-    valid = valid && validateClasses(getConfiguration(), RootTable.ID);
+    boolean valid = validateClasses(getConfiguration(), RootTable.ID);
     if (validateNsAndTables) {
       for (String ns : namespaceOperations().list()) {
         NamespaceId nsId = NamespaceId.of(namespaceOperations().namespaceIdMap().get(ns));

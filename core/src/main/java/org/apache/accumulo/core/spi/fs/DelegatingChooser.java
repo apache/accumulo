@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -170,13 +169,12 @@ public class DelegatingChooser implements VolumeChooser, CustomPropertyValidator
 
   @Override
   public boolean validateConfiguration(PropertyValidationEnvironment env) {
-    final Set<String> options = new HashSet<>();
-    String vols = env.getConfiguration().get(Property.INSTANCE_VOLUMES.getKey());
-    for (String vol : vols.split(",")) {
-      options.add(vol);
-    }
     try {
       for (Scope scope : VolumeChooserEnvironment.Scope.values()) {
+        if (scope == Scope.DEFAULT
+            && !env.getConfiguration().getCustom().containsKey(DEFAULT_SCOPED_VOLUME_CHOOSER)) {
+          continue;
+        }
         VolumeChooser chooser = this.getDelegateChooser(new VolumeChooserEnvironment() {
           @Override
           public Text getEndRow() {
