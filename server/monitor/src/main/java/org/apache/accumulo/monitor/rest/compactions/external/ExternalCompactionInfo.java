@@ -19,9 +19,9 @@
 package org.apache.accumulo.monitor.rest.compactions.external;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.net.HostAndPort;
 
@@ -31,7 +31,7 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionInfo {
 
   private Optional<HostAndPort> coordinatorHost;
-  private Map<String,List<HostAndPort>> compactors = new HashMap<>();
+  private Map<String,Set<HostAndPort>> compactors = new HashMap<>();
   private long fetchedTimeMillis;
 
   public void setCoordinatorHost(Optional<HostAndPort> coordinatorHost) {
@@ -42,11 +42,11 @@ public class ExternalCompactionInfo {
     return coordinatorHost;
   }
 
-  public Map<String,List<HostAndPort>> getCompactors() {
+  public Map<String,Set<HostAndPort>> getCompactors() {
     return compactors;
   }
 
-  public void setCompactors(Map<String,List<HostAndPort>> compactors) {
+  public void setCompactors(Map<String,Set<HostAndPort>> compactors) {
     this.compactors = compactors;
   }
 

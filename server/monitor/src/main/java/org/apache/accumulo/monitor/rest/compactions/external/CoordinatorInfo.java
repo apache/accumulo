@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.net.HostAndPort;
 
@@ -35,7 +35,7 @@ public class CoordinatorInfo {
     server = serverOpt.map(HostAndPort::toString).orElse("none");
     var queueToCompactors = ecInfo.getCompactors();
     numQueues = queueToCompactors.size();
-    numCompactors = queueToCompactors.values().stream().mapToInt(List::size).sum();
+    numCompactors = queueToCompactors.values().stream().mapToInt(Set::size).sum();
     lastContact = System.currentTimeMillis() - ecInfo.getFetchedTimeMillis();
   }
 }
