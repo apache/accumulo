@@ -20,12 +20,18 @@ package org.apache.accumulo.core.spi.fs;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +128,7 @@ import org.slf4j.LoggerFactory;
  *
  * @since 2.1.0
  */
-public class PreferredVolumeChooser extends RandomVolumeChooser {
+public class PreferredVolumeChooser extends RandomVolumeChooser implements CustomPropertyValidator {
   private static final Logger log = LoggerFactory.getLogger(PreferredVolumeChooser.class);
 
   private static final String TABLE_CUSTOM_SUFFIX = "volume.preferred";
@@ -236,5 +242,44 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     }
 
     return preferred;
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+
+    final Set<String> options = new HashSet<>();
+    String vols = env.getConfiguration().get(Property.INSTANCE_VOLUMES.getKey());
+    for (String vol : vols.split(",")) {
+      options.add(vol);
+    }
+    try {
+      for (Scope scope : VolumeChooserEnvironment.Scope.values()) {
+        this.getPreferredVolumes(new VolumeChooserEnvironment() {
+          @Override
+          public Text getEndRow() {
+            return null;
+          }
+
+          @Override
+          public Optional<TableId> getTable() {
+            return env.getTableId();
+          }
+
+          @Override
+          public Scope getChooserScope() {
+            return scope;
+          }
+
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return env;
+          }
+        }, options);
+      }
+      return true;
+    } catch (RuntimeException e) {
+      log.warn("Error validating properties", e);
+      return false;
+    }
   }
 }

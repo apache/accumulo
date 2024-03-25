@@ -45,6 +45,18 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
+  public static enum ServerType {
+    COMPACTION_COORDINATOR,
+    COMPACTOR,
+    GARBAGE_COLLECTOR,
+    MANAGER,
+    MONITOR,
+    SCAN_SERVER,
+    TABLET_SERVER,
+    UTILITY
+  }
+
+  private final ServerType serverType;
   private final SiteConfiguration siteConfig;
   private final Configuration hadoopConf;
   private final InstanceId instanceID;
@@ -56,9 +68,10 @@ public class ServerInfo implements ClientInfo {
   private final ServerDirs serverDirs;
   private final Credentials credentials;
 
-  ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
+  ServerInfo(ServerType type, SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
     SingletonManager.setMode(Mode.SERVER);
+    this.serverType = type;
     this.siteConfig = siteConfig;
     this.hadoopConf = new Configuration();
     this.instanceName = instanceName;
@@ -88,8 +101,9 @@ public class ServerInfo implements ClientInfo {
     credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
-  ServerInfo(SiteConfiguration config) {
+  ServerInfo(ServerType type, SiteConfiguration config) {
     SingletonManager.setMode(Mode.SERVER);
+    serverType = type;
     siteConfig = config;
     hadoopConf = new Configuration();
     try {
@@ -107,8 +121,10 @@ public class ServerInfo implements ClientInfo {
     credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
-  ServerInfo(SiteConfiguration config, String instanceName, InstanceId instanceID) {
+  ServerInfo(ServerType type, SiteConfiguration config, String instanceName,
+      InstanceId instanceID) {
     SingletonManager.setMode(Mode.SERVER);
+    serverType = type;
     siteConfig = config;
     hadoopConf = new Configuration();
     try {
@@ -190,5 +206,9 @@ public class ServerInfo implements ClientInfo {
 
   public ServerDirs getServerDirs() {
     return serverDirs;
+  }
+
+  public ServerType getServerType() {
+    return serverType;
   }
 }

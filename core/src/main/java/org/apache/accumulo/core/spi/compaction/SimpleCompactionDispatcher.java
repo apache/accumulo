@@ -23,8 +23,14 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Dispatcher that supports simple configuration for making tables use compaction services. By
@@ -66,13 +72,18 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
  * @see org.apache.accumulo.core.spi.compaction
  */
 
-public class SimpleCompactionDispatcher implements CompactionDispatcher {
+public class SimpleCompactionDispatcher implements CompactionDispatcher, CustomPropertyValidator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleCompactionDispatcher.class);
+  private static final Pattern VALID_OPTIONS_PATTERN =
+      Pattern.compile("service|service[.][^.]+|service.user[.][^.]+");
 
   private Map<CompactionKind,CompactionDispatch> services;
   private Map<String,CompactionDispatch> userServices;
 
   @Override
   public void init(InitParameters params) {
+    Preconditions.checkArgument(validateOptions(params.getOptions()));
     services = new EnumMap<>(CompactionKind.class);
 
     var defaultService =
@@ -120,6 +131,22 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
       }
     }
     return services.get(params.getCompactionKind());
+  }
+
+  public boolean validateOptions(Map<String,String> opts) {
+    boolean allValid =
+        opts.keySet().stream().allMatch(key -> VALID_OPTIONS_PATTERN.matcher(key).matches());
+    if (!allValid) {
+      opts.entrySet().stream().filter(e -> !VALID_OPTIONS_PATTERN.matcher(e.getKey()).matches())
+          .forEach(e -> LOG.warn("Illegal option {} {}", e.getKey(), e.getValue()));
+
+    }
+    return allValid;
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+    return validateOptions(env.getPluginOptions());
   }
 
 }

@@ -22,17 +22,20 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A factory that loads a CryptoService based on {@link TableId}.
  */
-public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
+public class PerTableCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidator {
   private static final Logger log = LoggerFactory.getLogger(PerTableCryptoServiceFactory.class);
   private final ConcurrentHashMap<TableId,CryptoService> cryptoServiceMap =
       new ConcurrentHashMap<>();
@@ -98,5 +101,24 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
 
   public int getCount() {
     return cryptoServiceMap.size();
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+
+    for (CryptoEnvironment.Scope scope : CryptoEnvironment.Scope.values()) {
+      Map<String,String> props = new HashMap<>();
+      CryptoEnvironment cenv = null;
+      if (env.getTableId().isPresent()) {
+        TableId tid = env.getTableId().orElseThrow();
+        cenv = new CryptoEnvironmentImpl(scope, tid, null);
+        env.getConfiguration(tid).forEach((e) -> props.put(e.getKey(), e.getValue()));
+      } else {
+        cenv = new CryptoEnvironmentImpl(scope, null, null);
+        env.getConfiguration().forEach((e) -> props.put(e.getKey(), e.getValue()));
+      }
+      getService(cenv, props);
+    }
+    return true;
   }
 }

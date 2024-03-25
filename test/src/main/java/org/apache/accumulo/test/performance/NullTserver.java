@@ -75,6 +75,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
@@ -327,7 +328,8 @@ public class NullTserver {
     int zkTimeOut =
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
-    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    ServerContext context =
+        ServerContext.override(ServerType.UTILITY, siteConfig, opts.iname, opts.keepers, zkTimeOut);
     ClientServiceHandler csh = new ClientServiceHandler(context, new TransactionWatcher(context));
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 

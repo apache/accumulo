@@ -47,6 +47,7 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -104,7 +105,7 @@ public class ZombieTServer {
 
   public static void main(String[] args) throws Exception {
     int port = random.nextInt(30000) + 2000;
-    var context = new ServerContext(SiteConfiguration.auto());
+    var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
     final ClientServiceHandler csh =
         new ClientServiceHandler(context, new TransactionWatcher(context));
     final ZombieTServerThriftClientHandler tch = new ZombieTServerThriftClientHandler();

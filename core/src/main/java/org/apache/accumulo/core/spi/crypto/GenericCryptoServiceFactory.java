@@ -23,12 +23,19 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Factory that will load a crypto service configured, first checking
  * {@link #GENERAL_SERVICE_NAME_PROP} and then {@link #TABLE_SERVICE_NAME_PROP}. Useful for general
  * purpose on disk encryption, with no Table context.
  */
-public class GenericCryptoServiceFactory implements CryptoServiceFactory {
+public class GenericCryptoServiceFactory implements CryptoServiceFactory, CustomPropertyValidator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GenericCryptoServiceFactory.class);
+
   public static final String GENERAL_SERVICE_NAME_PROP =
       GENERAL_ARBITRARY_PROP_PREFIX + "crypto.service";
   public static final String TABLE_SERVICE_NAME_PROP = TABLE_CRYPTO_PREFIX + "service";
@@ -49,5 +56,24 @@ public class GenericCryptoServiceFactory implements CryptoServiceFactory {
     var cs = newCryptoService(cryptoServiceName);
     cs.init(properties);
     return cs;
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+    String generalService = env.getConfiguration().get(GENERAL_SERVICE_NAME_PROP);
+    if (generalService == null || generalService.isBlank()) {
+      LOG.warn("GenericCryptoServiceFactory configured, but " + GENERAL_SERVICE_NAME_PROP
+          + " is not set.");
+    }
+
+    String tableService = env.getConfiguration().get(TABLE_SERVICE_NAME_PROP);
+    if (tableService == null || tableService.isBlank()) {
+      LOG.warn("GenericCryptoServiceFactory configured, but " + TABLE_SERVICE_NAME_PROP
+          + " is not set.");
+    }
+
+    // Return true because getService falls back to
+    // NoCryptoServiceFactory.NONE
+    return true;
   }
 }

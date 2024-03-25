@@ -22,6 +22,7 @@ import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 
 public class ServerUtilOpts extends ClientOpts {
 
@@ -30,11 +31,11 @@ public class ServerUtilOpts extends ClientOpts {
   public synchronized ServerContext getServerContext() {
     if (context == null) {
       if (getClientConfigFile() == null) {
-        context = new ServerContext(SiteConfiguration.auto());
+        context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
       } else {
         ClientInfo info = ClientInfo.from(getClientProps());
-        context = ServerContext.override(SiteConfiguration.auto(), info.getInstanceName(),
-            info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+        context = ServerContext.override(ServerType.UTILITY, SiteConfiguration.auto(),
+            info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       }
     }
     return context;

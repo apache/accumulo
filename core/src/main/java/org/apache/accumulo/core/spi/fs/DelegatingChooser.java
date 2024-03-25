@@ -18,12 +18,16 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +40,7 @@ import org.slf4j.LoggerFactory;
  *
  * @since 2.1.0
  */
-public class DelegatingChooser implements VolumeChooser {
+public class DelegatingChooser implements VolumeChooser, CustomPropertyValidator {
   private static final Logger log = LoggerFactory.getLogger(DelegatingChooser.class);
   /* Track VolumeChooser instances so they can keep state. */
   private final ConcurrentHashMap<TableId,VolumeChooser> tableSpecificChooserCache =
@@ -161,5 +165,45 @@ public class DelegatingChooser implements VolumeChooser {
         throw new RuntimeException(msg, e);
       }
     });
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+    try {
+      for (Scope scope : VolumeChooserEnvironment.Scope.values()) {
+        if (scope == Scope.DEFAULT
+            && !env.getConfiguration().getCustom().containsKey(DEFAULT_SCOPED_VOLUME_CHOOSER)) {
+          continue;
+        }
+        VolumeChooser chooser = this.getDelegateChooser(new VolumeChooserEnvironment() {
+          @Override
+          public Text getEndRow() {
+            return null;
+          }
+
+          @Override
+          public Optional<TableId> getTable() {
+            return env.getTableId();
+          }
+
+          @Override
+          public Scope getChooserScope() {
+            return scope;
+          }
+
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return env;
+          }
+        });
+        if (chooser instanceof CustomPropertyValidator) {
+          ((CustomPropertyValidator) chooser).validateConfiguration(env);
+        }
+      }
+      return true;
+    } catch (RuntimeException e) {
+      log.warn("Error validating properties", e);
+      return false;
+    }
   }
 }

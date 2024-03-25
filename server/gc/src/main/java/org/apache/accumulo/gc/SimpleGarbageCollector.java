@@ -53,6 +53,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -81,7 +82,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
-    super("gc", opts, args);
+    super(ServerType.GARBAGE_COLLECTOR, "gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
 

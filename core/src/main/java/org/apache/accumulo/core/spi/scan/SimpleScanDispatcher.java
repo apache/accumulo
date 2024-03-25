@@ -30,7 +30,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * If no options are given, then this will default to an executor named {@code default} and
@@ -55,7 +62,9 @@ import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
  * option.
  */
 
-public class SimpleScanDispatcher implements ScanDispatcher {
+public class SimpleScanDispatcher implements ScanDispatcher, CustomPropertyValidator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleScanDispatcher.class);
 
   private final String EXECUTOR_PREFIX = "executor.";
 
@@ -160,5 +169,42 @@ public class SimpleScanDispatcher implements ScanDispatcher {
         throw new IllegalArgumentException("Unexpected scan type " + scanInfo.getScanType());
     }
 
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+
+    if (env.getTableId().isEmpty()) {
+      // Not a table configuration
+      return true;
+    }
+
+    try {
+      Map<String,String> opts = new ConfigurationCopy(env.getConfiguration())
+          .getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
+
+      this.init(new InitParameters() {
+
+        @Override
+        public Map<String,String> getOptions() {
+          return opts;
+        }
+
+        @Override
+        public TableId getTableId() {
+          return env.getTableId().orElseThrow();
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return env;
+        }
+
+      });
+      return true;
+    } catch (RuntimeException e) {
+      LOG.warn("Error validating configuration", e);
+      return false;
+    }
   }
 }

@@ -32,12 +32,13 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 public class GetManagerStats {
   public static void main(String[] args) throws Exception {
     ManagerMonitorInfo stats = null;
-    var context = new ServerContext(SiteConfiguration.auto());
+    var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
     stats = ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
     out(0, "State: " + stats.state.name());

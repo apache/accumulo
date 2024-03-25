@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.Parameter;
@@ -63,7 +64,7 @@ public class ZooKeeperMain implements KeywordExecutable {
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
+    try (var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto())) {
       if (opts.servers == null) {
         opts.servers = context.getZooKeepers();
       }

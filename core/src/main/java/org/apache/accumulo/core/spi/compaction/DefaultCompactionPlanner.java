@@ -30,10 +30,14 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.CustomPropertyValidator;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +132,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @see org.apache.accumulo.core.spi.compaction
  */
 
-public class DefaultCompactionPlanner implements CompactionPlanner {
+public class DefaultCompactionPlanner implements CompactionPlanner, CustomPropertyValidator {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
@@ -618,5 +622,29 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         .thenComparing(CompactableFile::getUri));
 
     return sortedFiles;
+  }
+
+  @Override
+  public boolean validateConfiguration(PropertyValidationEnvironment env) {
+
+    // ELASTICITY_TODO refactor code to validate config using the following plugin opts
+    var opts = env.getPluginOptions();
+
+    try {
+      CompactionServicesConfig csc =
+          new CompactionServicesConfig(new ConfigurationCopy(env.getConfiguration()), log::warn);
+      for (var entry : csc.getPlanners().entrySet()) {
+        if (entry.getKey().equals(this.getClass().getName())) {
+          String serviceId = entry.getKey();
+          CompactionPlannerInitParams params = new CompactionPlannerInitParams(
+              CompactionServiceId.of(serviceId), csc.getOptions().get(serviceId), env);
+          this.init(params);
+        }
+      }
+      return true;
+    } catch (RuntimeException e) {
+      log.warn("Error validating configuration", e);
+      return false;
+    }
   }
 }

@@ -50,6 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -292,7 +293,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String[] args) {
-    var context = new ServerContext(SiteConfiguration.auto());
+    var context = new ServerContext(ServerType.UTILITY, SiteConfiguration.auto());
     getInstance(context).printProblems();
   }
 

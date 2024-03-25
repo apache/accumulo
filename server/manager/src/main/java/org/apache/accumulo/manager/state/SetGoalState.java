@@ -28,6 +28,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.manager.upgrade.RenameMasterDirInZK;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 
 public class SetGoalState {
@@ -45,7 +46,7 @@ public class SetGoalState {
     try {
       var siteConfig = SiteConfiguration.auto();
       SecurityUtil.serverLogin(siteConfig);
-      var context = new ServerContext(siteConfig);
+      var context = new ServerContext(ServerType.UTILITY, siteConfig);
       RenameMasterDirInZK.renameMasterDirInZK(context);
       context.waitForZookeeperAndHdfs();
       context.getZooReaderWriter().putPersistentData(

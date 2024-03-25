@@ -26,6 +26,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,14 +38,14 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   private final String hostname;
   private final Logger log;
 
-  protected AbstractServer(String appName, ServerOpts opts, String[] args) {
+  protected AbstractServer(ServerType type, String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
     SecurityUtil.serverLogin(siteConfig);
-    context = new ServerContext(siteConfig);
+    context = new ServerContext(type, siteConfig);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(appName);

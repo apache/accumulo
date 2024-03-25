@@ -41,6 +41,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -132,8 +133,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      context = ServerContext.override(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-          info.getZooKeepersSessionTimeOut());
+      context = ServerContext.override(ServerInfo.ServerType.UTILITY, siteConfig,
+          info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     }
     return context;
   }

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args) throws AccumuloException, TableNotFoundException {
     var siteConfig = SiteConfiguration.auto();
-    try (ServerContext context = new ServerContext(siteConfig)) {
+    try (ServerContext context = new ServerContext(ServerType.UTILITY, siteConfig)) {
       Credentials creds;
       InstanceId badInstanceID = InstanceId.of(SystemCredentials.class.getName());
       if (args.length < 2) {

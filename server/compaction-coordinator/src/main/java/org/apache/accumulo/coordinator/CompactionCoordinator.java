@@ -79,6 +79,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -138,7 +139,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
-    super("compaction-coordinator", opts, args);
+    super(ServerType.COMPACTION_COORDINATOR, "compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
     schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     compactionFinalizer = createCompactionFinalizer(schedExecutor);

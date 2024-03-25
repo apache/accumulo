@@ -241,6 +241,7 @@ public class UpgradeCoordinator {
         ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
             table + " table configuration");
       }
+      context.validateSpiConfiguration(true);
     } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
         | TableNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);

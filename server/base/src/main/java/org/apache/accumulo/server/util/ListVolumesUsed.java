@@ -28,6 +28,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerInfo.ServerType;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.hadoop.fs.Path;
@@ -35,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(new ServerContext(SiteConfiguration.auto()));
+    listVolumes(new ServerContext(ServerType.UTILITY, SiteConfiguration.auto()));
   }
 
   private static String getTableURI(String rootTabletDir) {
