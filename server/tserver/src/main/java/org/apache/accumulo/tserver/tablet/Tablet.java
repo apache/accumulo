@@ -126,7 +126,6 @@ public class Tablet extends TabletBase {
 
   private final TabletTime tabletTime;
 
-  private Location lastLocation = null;
   private final Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -231,10 +230,6 @@ public class Tablet extends TabletBase {
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
     this.latestMetadata = metadata;
-
-    // TODO look into this.. also last could be null
-    this.lastLocation = metadata.getLast();
-
     this.tabletTime = TabletTime.getInstance(metadata.getTime());
     this.logId = tabletServer.createLogId();
 
@@ -278,7 +273,6 @@ public class Tablet extends TabletBase {
 
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
-          // ELASTICITY_TODO use conditional mutation for update
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
           // intentionally not rereading metadata here because walogs are only used in the
@@ -1578,7 +1572,6 @@ public class Tablet extends TabletBase {
           // the tabletMetadata. Scans sync on the tablet also, so they can not be in this code
           // block at the same time.
 
-          lastLocation = null;
           tabletMemory.finishedMinC();
 
           // the files and in memory map changed, incrementing this will cause scans to switch data
