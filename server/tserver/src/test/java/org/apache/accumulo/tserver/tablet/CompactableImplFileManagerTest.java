@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.core.spi.compaction.CompactionKind.SELECTOR;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.SYSTEM;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.USER;
+import static org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind.SELECTOR;
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

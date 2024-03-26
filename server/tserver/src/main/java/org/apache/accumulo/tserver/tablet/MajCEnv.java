@@ -81,6 +81,7 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public TCompactionReason getReason() {
     switch (kind) {
       case USER:

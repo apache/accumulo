@@ -29,6 +29,7 @@ public class CompactionJobPrioritizer {
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
+  @SuppressWarnings("deprecation")
   public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles) {
 
     int prio = totalFiles + compactingFiles;

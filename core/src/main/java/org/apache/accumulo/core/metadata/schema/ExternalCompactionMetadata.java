@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind;
 
 public class ExternalCompactionMetadata {
 
@@ -50,7 +51,7 @@ public class ExternalCompactionMetadata {
       CompactionExecutorId ceid, boolean propagateDeletes, boolean initiallySelectedAll,
       Long compactionId) {
     if (!initiallySelectedAll && !propagateDeletes
-        && (kind == CompactionKind.SELECTOR || kind == CompactionKind.USER)) {
+        && (kind == DeprecatedCompactionKind.SELECTOR || kind == CompactionKind.USER)) {
       throw new IllegalArgumentException(
           "When user or selector compactions do not propagate deletes, it's expected that all "
               + "files were selected initially.");

@@ -74,8 +74,8 @@ public class CompactionPrioritizerTest {
     var j3 = createJob(CompactionKind.USER, "t-011", 11, 20);
     var j4 = createJob(CompactionKind.SYSTEM, "t-012", 11, 30);
     var j5 = createJob(CompactionKind.SYSTEM, "t-013", 5, 10);
-    var j8 = createJob(CompactionKind.SELECTOR, "t-014", 5, 21);
-    var j9 = createJob(CompactionKind.SELECTOR, "t-015", 7, 20);
+    var j8 = createJob(DeprecatedCompactionKind.SELECTOR, "t-014", 5, 21);
+    var j9 = createJob(DeprecatedCompactionKind.SELECTOR, "t-015", 7, 20);
 
     var expected = List.of(j2, j3, j1, j4, j9, j8, j5);
 
