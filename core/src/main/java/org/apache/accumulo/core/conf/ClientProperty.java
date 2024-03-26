@@ -91,6 +91,8 @@ public enum ClientProperty {
   // Scanner
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
+  SCANNER_CONSISTENCY_SCAN_LEVEL("scanner.consistency.level.eventual", "", PropertyType.STRING,
+      "List of table names that can be scanned via scan servers", "2.1.3", false),
 
   SCAN_SERVER_SELECTOR("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName(),
       PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),

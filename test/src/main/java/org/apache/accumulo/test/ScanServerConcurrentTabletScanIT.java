@@ -106,11 +106,13 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
     startScanServer(true);
 
+    String tableName = getUniqueNames(1)[0];
     Properties clientProperties = getClientProps();
     clientProperties.put(ClientProperty.SCANNER_BATCH_SIZE.getKey(), "100");
+    clientProperties.put(ClientProperty.SCANNER_CONSISTENCY_SCAN_LEVEL.getKey(),
+        "test," + tableName);
 
     try (AccumuloClient client = Accumulo.newClient().from(clientProperties).build()) {
-      String tableName = getUniqueNames(1)[0];
 
       // Create table and ingest 1000 k/v
       final int firstBatchOfEntriesCount =
@@ -120,7 +122,6 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       scanner1.setRange(new Range());
       scanner1.setBatchSize(100);
       scanner1.setReadaheadThreshold(0);
-      scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
       // iter1 should read 1000 k/v
       Iterator<Entry<Key,Value>> iter1 = scanner1.iterator();
@@ -161,6 +162,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
       // A new scan should read all 1100 entries
       try (Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner2.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         int totalEntriesExpected = firstBatchOfEntriesCount + secondBatchOfEntriesCount;
         assertEquals(totalEntriesExpected, Iterables.size(scanner2));
       }
@@ -172,11 +174,13 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
     startScanServer(false);
 
+    String tableName = getUniqueNames(1)[0];
     Properties clientProperties = getClientProps();
     clientProperties.put(ClientProperty.SCANNER_BATCH_SIZE.getKey(), "100");
+    clientProperties.put(ClientProperty.SCANNER_CONSISTENCY_SCAN_LEVEL.getKey(),
+        tableName + ",failed");
 
     try (AccumuloClient client = Accumulo.newClient().from(clientProperties).build()) {
-      String tableName = getUniqueNames(1)[0];
 
       // Create table and ingest 1000 k/v
       final int firstBatchOfEntriesCount =
@@ -186,7 +190,6 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         scanner1.setRange(new Range());
         scanner1.setBatchSize(100);
         scanner1.setReadaheadThreshold(0);
-        scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
         // iter1 should read 1000 k/v
         Iterator<Entry<Key,Value>> iter1 = scanner1.iterator();
