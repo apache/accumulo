@@ -95,8 +95,9 @@ public class ReserveTablets extends ManagerRepo {
           // Its ok to set the operation id on a tablet with a location, but after setting it we
           // must wait for the tablet to have no location before proceeding to actually delete. See
           // the documentation about the opid column in the MetadataSchema class for more details.
-          conditionalMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
-              .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
+          conditionalMutator.mutateTablet(tabletMeta.getExtent(), manager.getManagerLock())
+              .requireAbsentOperation().putOperation(opid)
+              .submit(tm -> opid.equals(tm.getOperationId()));
           submitted++;
         }
       }

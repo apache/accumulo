@@ -22,9 +22,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -41,16 +43,17 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   private final Ample ample;
   private final DataLevel level;
 
-  protected MetaDataStateStore(DataLevel level, ClientContext context, String targetTableName) {
-    super(context);
+  protected MetaDataStateStore(Supplier<ServiceLock> lock, DataLevel level, ClientContext context,
+      String targetTableName) {
+    super(context, lock);
     this.level = level;
     this.context = context;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(DataLevel level, ClientContext context) {
-    this(level, context, AccumuloTable.METADATA.tableName());
+  MetaDataStateStore(Supplier<ServiceLock> lock, DataLevel level, ClientContext context) {
+    this(lock, level, context, AccumuloTable.METADATA.tableName());
   }
 
   @Override
@@ -70,7 +73,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
         if (tm.getSuspend() != null) {
-          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
+          tabletsMutator.mutateTablet(tm.getExtent(), getLock()).requireAbsentOperation()
               .requireSame(tm, SUSPEND).deleteSuspension()
               .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
         }

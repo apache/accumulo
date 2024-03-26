@@ -277,7 +277,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
       ServerAmpleImpl sai = (ServerAmpleImpl) ample;
       try (TabletsMutator tm = sai.mutateTablets()) {
         ample.readTablets().forTable(tid).build().forEach(meta -> {
-          tm.mutateTablet(meta.getExtent()).putOperation(opid).mutate();
+          tm.mutateTablet(meta.getExtent(), getCluster().getMiniLock()).putOperation(opid).mutate();
         });
       }
 

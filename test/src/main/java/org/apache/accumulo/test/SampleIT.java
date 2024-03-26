@@ -67,6 +67,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -162,7 +163,8 @@ public class SampleIT extends AccumuloClusterHarness {
         // Fence off the data to a Range that is a subset of the original data
         Range fenced = new Range(new Text(String.format("r_%06d", 3000)),
             new Text(String.format("r_%06d", 6000)));
-        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, Set.of(fenced));
+        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, Set.of(fenced),
+            ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
         assertEquals(1, countFiles(getServerContext(), tableName));
 
         // Build the map of expected values to be seen by filtering out keys not in the fenced range
@@ -222,7 +224,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
+          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges,
+              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
           assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
         }
 
@@ -430,7 +433,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
+          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges,
+              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
           assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
         }
 
@@ -524,7 +528,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
+          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges,
+              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
           assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
         }
 

@@ -106,9 +106,9 @@ public class CompactionCoordinatorTest {
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
-    public TestCoordinator(ServerContext ctx, SecurityOperation security,
+    public TestCoordinator(ServerContext ctx, SecurityOperation security, Manager manager,
         List<RunningCompaction> runningCompactions) {
-      super(ctx, security, fateInstances);
+      super(ctx, security, manager, fateInstances);
       this.runningCompactions = runningCompactions;
     }
 
@@ -218,9 +218,11 @@ public class CompactionCoordinatorTest {
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    EasyMock.replay(context, security);
+    Manager manager = EasyMock.createMock(Manager.class);
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    EasyMock.replay(manager, context, security);
+
+    var coordinator = new TestCoordinator(context, security, manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
@@ -228,7 +230,7 @@ public class CompactionCoordinatorTest {
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    EasyMock.verify(context, security);
+    EasyMock.verify(manager, context, security);
   }
 
   @Test
@@ -251,9 +253,11 @@ public class CompactionCoordinatorTest {
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    EasyMock.replay(context, job, security);
+    Manager manager = EasyMock.createMock(Manager.class);
 
-    var coordinator = new TestCoordinator(context, security, runningCompactions);
+    EasyMock.replay(manager, context, job, security);
+
+    var coordinator = new TestCoordinator(context, security, manager, runningCompactions);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
@@ -269,7 +273,7 @@ public class CompactionCoordinatorTest {
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
     assertEquals(tserverAddress.toString(), rc.getCompactorAddress());
 
-    EasyMock.verify(context, job, security);
+    EasyMock.verify(manager, context, job, security);
   }
 
   @Test
@@ -296,9 +300,11 @@ public class CompactionCoordinatorTest {
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
     expect(tm.getTableId()).andReturn(ke.tableId()).anyTimes();
 
-    EasyMock.replay(tconf, context, creds, tm, security);
+    Manager manager = EasyMock.createMock(Manager.class);
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    EasyMock.replay(tconf, context, creds, tm, security, manager);
+
+    var coordinator = new TestCoordinator(context, security, manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
     // Use coordinator.run() to populate the internal data structures. This is tested in a different
@@ -331,7 +337,7 @@ public class CompactionCoordinatorTest {
     assertEquals("localhost:10241", entry.getValue().getCompactorAddress());
     assertEquals(eci.toString(), entry.getValue().getJob().getExternalCompactionId());
 
-    EasyMock.verify(tconf, context, creds, tm, security);
+    EasyMock.verify(tconf, context, creds, tm, security, manager);
   }
 
   @Test
@@ -346,14 +352,16 @@ public class CompactionCoordinatorTest {
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
     expect(security.canPerformSystemActions(creds)).andReturn(true);
 
-    EasyMock.replay(context, creds, security);
+    Manager manager = EasyMock.createMock(Manager.class);
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    EasyMock.replay(context, creds, security, manager);
+
+    var coordinator = new TestCoordinator(context, security, manager, new ArrayList<>());
     TExternalCompactionJob job = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
         GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
     assertNull(job.getExternalCompactionId());
 
-    EasyMock.verify(context, creds, security);
+    EasyMock.verify(context, creds, security, manager);
   }
 
   @Test
@@ -367,9 +375,12 @@ public class CompactionCoordinatorTest {
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    EasyMock.replay(context, creds, security);
+    Manager manager = EasyMock.createMock(Manager.class);
 
-    TestCoordinator coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    EasyMock.replay(context, creds, security, manager);
+
+    TestCoordinator coordinator =
+        new TestCoordinator(context, security, manager, new ArrayList<>());
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
@@ -389,7 +400,7 @@ public class CompactionCoordinatorTest {
 
     assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
 
-    EasyMock.verify(context, creds, security);
+    EasyMock.verify(context, creds, security, manager);
 
   }
 

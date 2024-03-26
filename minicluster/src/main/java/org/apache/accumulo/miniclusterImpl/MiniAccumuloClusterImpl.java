@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -80,6 +81,12 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -148,6 +155,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private boolean initialized = false;
   private ExecutorService executor;
+  private ServiceLock miniLock;
 
   /**
    *
@@ -646,6 +654,35 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     control.start(ServerType.COMPACTOR);
 
+    LockWatcher miniLockWatcher = new LockWatcher() {
+
+      @Override
+      public void lostLock(LockLossReason reason) {
+        log.warn("Lost lock: " + reason.toString());
+        miniLock = null;
+      }
+
+      @Override
+      public void unableToMonitorLockNode(Exception e) {
+        log.warn("Unable to monitor lock: " + e.getMessage());
+        miniLock = null;
+      }
+    };
+
+    try {
+      ZooKeeper zk = getServerContext().getZooReaderWriter().getZooKeeper();
+      String miniZPath = getServerContext().getZooKeeperRoot() + "/mini";
+      getServerContext().getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
+          ZooUtil.NodeExistsPolicy.SKIP);
+      ServiceLockPath path = ServiceLock.path(miniZPath);
+      ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
+          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock.tryLock(miniLockWatcher, sld);
+    } catch (KeeperException | InterruptedException e1) {
+      throw new IllegalStateException("Unable to acquire MAC lock", e1);
+    }
+
     verifyUp();
 
     printProcessSummary();
@@ -1091,5 +1128,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public String getClientPropsPath() {
     return config.getClientPropsFile().getAbsolutePath();
+  }
+
+  public ServiceLock getMiniLock() {
+    return miniLock;
   }
 }

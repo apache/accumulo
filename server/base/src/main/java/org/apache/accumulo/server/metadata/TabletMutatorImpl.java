@@ -20,6 +20,7 @@ package org.apache.accumulo.server.metadata;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.server.ServerContext;
@@ -27,16 +28,22 @@ import org.apache.accumulo.server.ServerContext;
 class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
     implements Ample.TabletMutator {
 
-  private BatchWriter writer;
+  private final ServerContext context;
+  private final ServiceLock lock;
+  private final BatchWriter writer;
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
+  TabletMutatorImpl(ServerContext context, ServiceLock lock, KeyExtent extent,
+      BatchWriter batchWriter) {
     super(extent);
+    this.context = context;
+    this.lock = lock;
     this.writer = batchWriter;
   }
 
   @Override
   public void mutate() {
     try {
+      this.putZooLock(this.context.getZooKeeperRoot(), lock);
       writer.addMutation(getMutation());
 
       if (closeAfterMutate != null) {

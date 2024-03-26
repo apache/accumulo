@@ -139,7 +139,7 @@ public class MetadataTableUtil {
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
       KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
       ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent, zooLock);
     tablet.putTime(time);
 
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
@@ -148,16 +148,14 @@ public class MetadataTableUtil {
       tablet.putBulkFile(tf, fateId);
       newFiles.put(tf.insert(), dfv);
     });
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
     return newFiles;
   }
 
   public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent, zooLock);
     scanFiles.forEach(tablet::deleteScan);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 
@@ -246,9 +244,8 @@ public class MetadataTableUtil {
 
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
       final Collection<LogEntry> entries, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent, zooLock);
     entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 

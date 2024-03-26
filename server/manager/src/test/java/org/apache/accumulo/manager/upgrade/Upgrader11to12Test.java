@@ -56,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -346,9 +347,11 @@ public class Upgrader11to12Test {
 
     ServerContext context = createMock(ServerContext.class);
     ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    Manager manager = createMock(Manager.class);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(manager.getContext()).andReturn(context).anyTimes();
 
     Capture<Stat> statCapture = newCapture();
     expect(zrw.getData(eq("/accumulo/" + iid.canonical() + "/root_tablet"), capture(statCapture)))
@@ -366,13 +369,13 @@ public class Upgrader11to12Test {
     expect(zrw.overwritePersistentData(eq("/accumulo/" + iid.canonical() + "/root_tablet"),
         capture(byteCapture), eq(123))).andReturn(true).once();
 
-    replay(context, zrw);
+    replay(context, zrw, manager);
 
-    upgrader.upgradeZookeeper(context);
+    upgrader.upgradeZookeeper(manager);
 
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
-    verify(context, zrw);
+    verify(context, zrw, manager);
   }
 
   @Test

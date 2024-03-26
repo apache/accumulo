@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -155,7 +156,7 @@ public class UpgradeCoordinator {
     System.exit(1);
   }
 
-  public synchronized void upgradeZookeeper(ServerContext context,
+  public synchronized void upgradeZookeeper(Manager manager, ServerContext context,
       EventCoordinator eventCoordinator) {
 
     Preconditions.checkState(status == UpgradeStatus.INITIAL,
@@ -179,7 +180,7 @@ public class UpgradeCoordinator {
           var upgrader = upgraders.get(v);
           Objects.requireNonNull(upgrader,
               "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
-          upgrader.upgradeZookeeper(context);
+          upgrader.upgradeZookeeper(manager);
         }
       }
 
@@ -190,7 +191,7 @@ public class UpgradeCoordinator {
 
   }
 
-  public synchronized Future<Void> upgradeMetadata(ServerContext context,
+  public synchronized Future<Void> upgradeMetadata(Manager manager, ServerContext context,
       EventCoordinator eventCoordinator) {
     if (status == UpgradeStatus.COMPLETE) {
       return CompletableFuture.completedFuture(null);
@@ -210,7 +211,7 @@ public class UpgradeCoordinator {
                 var upgrader = upgraders.get(v);
                 Objects.requireNonNull(upgrader,
                     "upgrade root: failed to find root upgrader for version " + currentVersion);
-                upgraders.get(v).upgradeRoot(context);
+                upgraders.get(v).upgradeRoot(manager);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
@@ -221,7 +222,7 @@ public class UpgradeCoordinator {
                 var upgrader = upgraders.get(v);
                 Objects.requireNonNull(upgrader,
                     "upgrade metadata: failed to find upgrader for version " + currentVersion);
-                upgraders.get(v).upgradeMetadata(context);
+                upgraders.get(v).upgradeMetadata(manager);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 

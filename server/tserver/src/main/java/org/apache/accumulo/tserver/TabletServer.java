@@ -1135,7 +1135,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
+      getContext().getAmple().mutateTablet(oldestKeyExtent, getLock()).deleteHostingRequested()
+          .mutate();
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
@@ -1196,7 +1197,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       try (TabletsMutator tm = getContext().getAmple().mutateTablets()) {
         onDemandTabletsToUnload.forEach(ke -> {
           log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-          tm.mutateTablet(ke).deleteHostingRequested().mutate();
+          tm.mutateTablet(ke, getLock()).deleteHostingRequested().mutate();
         });
       }
     });

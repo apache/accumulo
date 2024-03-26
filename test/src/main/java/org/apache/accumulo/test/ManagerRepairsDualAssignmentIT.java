@@ -132,14 +132,15 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       }
       assertNotNull(moved);
       // throw a mutation in as if we were the dying tablet
-      TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.getExtent());
+      TabletMutator tabletMutator =
+          serverContext.getAmple().mutateTablet(moved.getExtent(), this.cluster.getMiniLock());
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       // wait for the manager to fix the problem
       waitForCleanStore(serverContext, DataLevel.USER);
       // now jam up the metadata table
-      tabletMutator = serverContext.getAmple()
-          .mutateTablet(new KeyExtent(AccumuloTable.METADATA.tableId(), null, null));
+      tabletMutator = serverContext.getAmple().mutateTablet(
+          new KeyExtent(AccumuloTable.METADATA.tableId(), null, null), this.cluster.getMiniLock());
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       waitForCleanStore(serverContext, DataLevel.METADATA);

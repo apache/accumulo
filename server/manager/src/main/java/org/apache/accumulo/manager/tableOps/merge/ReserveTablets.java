@@ -79,8 +79,9 @@ public class ReserveTablets extends ManagerRepo {
 
       for (var tabletMeta : tablets) {
         if (tabletMeta.getOperationId() == null) {
-          tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
-              .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
+          tabletsMutator.mutateTablet(tabletMeta.getExtent(), env.getManagerLock())
+              .requireAbsentOperation().putOperation(opid)
+              .submit(tm -> opid.equals(tm.getOperationId()));
           opsSet++;
         } else if (!tabletMeta.getOperationId().equals(opid)) {
           otherOps++;

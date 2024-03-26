@@ -200,8 +200,8 @@ class CompactionDriver extends ManagerRepo {
           log.trace("{} tablet {} has no files, attempting to mark as compacted ", fateId,
               tablet.getExtent());
           // this tablet has no files try to mark it as done
-          tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-              .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
+          tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
+              .requireAbsentOperation().requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
               .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
           noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
@@ -231,14 +231,15 @@ class CompactionDriver extends ManagerRepo {
           }
           if (filesToCompact.isEmpty()) {
             // no files were selected so mark the tablet as compacted
-            tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(fateId)
+            tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
+                .requireAbsentOperation().requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED)
+                .putCompacted(fateId)
                 .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
 
             noneSelected++;
           } else {
-            var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
+            var mutator = tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
+                .requireAbsentOperation().requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
             var selectedFiles =
                 new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
 
@@ -281,8 +282,8 @@ class CompactionDriver extends ManagerRepo {
             log.trace(
                 "Another compaction exists for {}, Marking {} as needing a user requested compaction",
                 tablet.getExtent(), fateId);
-            var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
+            var mutator = tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
+                .requireAbsentOperation().requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
                 .putUserCompactionRequested(fateId);
             mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
             userCompactionRequested++;
@@ -369,8 +370,8 @@ class CompactionDriver extends ManagerRepo {
         for (TabletMetadata tablet : tablets) {
 
           if (needsUpdate.test(tablet)) {
-            var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, COMPACTED, SELECTED);
+            var mutator = tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
+                .requireAbsentOperation().requireSame(tablet, COMPACTED, SELECTED);
             if (tablet.getSelectedFiles() != null
                 && tablet.getSelectedFiles().getFateId().equals(fateId)) {
               mutator.deleteSelectedFiles();

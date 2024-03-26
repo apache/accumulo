@@ -26,7 +26,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -52,6 +54,13 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -78,6 +87,10 @@ import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
@@ -88,6 +101,8 @@ import com.google.common.net.HostAndPort;
  * performance to be measured by running any client code that writes to a table.
  */
 public class NullTserver {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NullTserver.class);
 
   public static class NullTServerTabletClientHandler
       implements TabletServerClientService.Iface, TabletScanClientService.Iface,
@@ -307,6 +322,34 @@ public class NullTserver {
         10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
         HostAndPort.fromParts("0.0.0.0", opts.port));
 
+    LockWatcher miniLockWatcher = new LockWatcher() {
+
+      @Override
+      public void lostLock(LockLossReason reason) {
+        LOG.warn("Lost lock: " + reason.toString());
+      }
+
+      @Override
+      public void unableToMonitorLockNode(Exception e) {
+        LOG.warn("Unable to monitor lock: " + e.getMessage());
+      }
+    };
+
+    ServiceLock miniLock = null;
+    try {
+      ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
+      String miniZPath = context.getZooKeeperRoot() + "/mini";
+      context.getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
+          ZooUtil.NodeExistsPolicy.SKIP);
+      ServiceLockPath path = ServiceLock.path(miniZPath);
+      ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
+          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock.tryLock(miniLockWatcher, sld);
+    } catch (KeeperException | InterruptedException e1) {
+      throw new IllegalStateException("Unable to acquire MAC lock", e1);
+    }
+
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
     TableId tableId = context.getTableId(opts.tableName);
@@ -325,7 +368,8 @@ public class NullTserver {
       }
     }
     // point them to this server
-    TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+    final ServiceLock lock = miniLock;
+    TabletStateStore store = TabletStateStore.getStoreForLevel(() -> lock, DataLevel.USER, context);
     store.setLocations(assignments);
 
     while (true) {

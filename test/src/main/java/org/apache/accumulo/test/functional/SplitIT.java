@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,6 +67,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
@@ -411,7 +413,8 @@ public class SplitIT extends AccumuloClusterHarness {
       var extent = new KeyExtent(tableId, null, null);
 
       // This column is not expected to be present
-      var tabletMutator = ctx.getAmple().mutateTablet(extent);
+      var tabletMutator = ctx.getAmple().mutateTablet(extent,
+          ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
       tabletMutator.setMerged();
       tabletMutator.mutate();
 
@@ -419,7 +422,10 @@ public class SplitIT extends AccumuloClusterHarness {
           .stream().collect(MoreCollectors.onlyElement());
       assertEquals(extent, tabletMetadata.getExtent());
 
-      tabletMetadata.getKeyValues();
+      // remove the srv:lock column for tests as this will change
+      // because we are changing the metadata from the IT.
+      var original = new TreeMap<>(tabletMetadata.getKeyValues());
+      assertTrue(original.keySet().removeIf(LOCK_COLUMN::hasColumns));
 
       // Split operation should fail because of the unexpected column.
       var splits = new TreeSet<>(List.of(new Text("m")));
@@ -433,11 +439,13 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // tablet should have an operation id set, but nothing else changed
       var kvCopy = new TreeMap<>(tabletMetadata2.getKeyValues());
+      assertTrue(kvCopy.keySet().removeIf(LOCK_COLUMN::hasColumns));
       assertTrue(kvCopy.keySet().removeIf(OPID_COLUMN::hasColumns));
-      assertEquals(tabletMetadata.getKeyValues(), kvCopy);
+      assertEquals(original, kvCopy);
 
       // remove the offending columns
-      tabletMutator = ctx.getAmple().mutateTablet(extent);
+      tabletMutator = ctx.getAmple().mutateTablet(extent,
+          ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
       tabletMutator.deleteMerged();
       tabletMutator.deleteOperation();
       tabletMutator.mutate();

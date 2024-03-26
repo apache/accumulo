@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -53,7 +54,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   }
 
   @Override
-  public Ample.OperationRequirements mutateTablet(KeyExtent extent) {
+  public Ample.OperationRequirements mutateTablet(KeyExtent extent, ServiceLock lock) {
     if (mutatedTablets > BATCH_SIZE) {
       if (backgroundProcessing != null) {
         // a previous batch of mutations was submitted for processing so wait on it.
@@ -77,7 +78,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
       mutatedTablets = 0;
     }
     mutatedTablets++;
-    return bufferingMutator.mutateTablet(extent);
+    return bufferingMutator.mutateTablet(extent, lock);
   }
 
   @Override

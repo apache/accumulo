@@ -21,9 +21,11 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -38,16 +40,22 @@ import com.google.common.base.Preconditions;
 public abstract class AbstractTabletStateStore implements TabletStateStore {
 
   private final Ample ample;
+  private final Supplier<ServiceLock> lock;
 
-  protected AbstractTabletStateStore(ClientContext context) {
+  protected AbstractTabletStateStore(ClientContext context, Supplier<ServiceLock> lock) {
     this.ample = context.getAmple();
+    this.lock = lock;
+  }
+
+  protected ServiceLock getLock() {
+    return lock.get();
   }
 
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
-        var conditionalMutator = tabletsMutator.mutateTablet(assignment.tablet)
+        var conditionalMutator = tabletsMutator.mutateTablet(assignment.tablet, lock.get())
             .requireLocation(TabletMetadata.Location.future(assignment.server))
             .putLocation(TabletMetadata.Location.current(assignment.server))
             .deleteLocation(TabletMetadata.Location.future(assignment.server)).deleteSuspension();
@@ -76,7 +84,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
-        tabletsMutator.mutateTablet(assignment.tablet).requireAbsentOperation()
+        tabletsMutator.mutateTablet(assignment.tablet, lock.get()).requireAbsentOperation()
             .requireAbsentLocation().deleteSuspension()
             .putLocation(TabletMetadata.Location.future(assignment.server))
             .submit(tabletMetadata -> {
@@ -123,8 +131,8 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
           continue;
         }
 
-        var tabletMutator =
-            tabletsMutator.mutateTablet(tm.getExtent()).requireLocation(tm.getLocation());
+        var tabletMutator = tabletsMutator.mutateTablet(tm.getExtent(), lock.get())
+            .requireLocation(tm.getLocation());
 
         if (tm.hasCurrent()) {
 

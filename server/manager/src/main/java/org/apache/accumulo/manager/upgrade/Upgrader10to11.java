@@ -48,6 +48,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -76,9 +77,10 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   @Override
-  public void upgradeZookeeper(final ServerContext context) {
+  public void upgradeZookeeper(final Manager manager) {
     log.info("upgrade of ZooKeeper entries");
 
+    final ServerContext context = manager.getContext();
     var zrw = context.getZooReaderWriter();
     var iid = context.getInstanceID();
 
@@ -101,13 +103,14 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   @Override
-  public void upgradeRoot(final ServerContext context) {
+  public void upgradeRoot(final Manager manager) {
     log.info("upgrade root - skipping, nothing to do");
   }
 
   @Override
-  public void upgradeMetadata(final ServerContext context) {
+  public void upgradeMetadata(final Manager manager) {
     log.info("upgrade metadata entries");
+    final ServerContext context = manager.getContext();
     List<String> replTableFiles = readReplFilesFromMetadata(context);
     deleteReplMetadataEntries(context);
     deleteReplTableFiles(context, replTableFiles);
