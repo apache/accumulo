@@ -536,6 +536,7 @@ public interface Ample {
      * For the specified columns, requires the tablets metadata to be the same at the time of update
      * as what is in the passed in tabletMetadata object.
      */
+
     ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
         ColumnType... otherTypes);
 

@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
+import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -173,9 +174,15 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       }
         break;
       case FILES: {
-        // ELASTICITY_TODO compare values?
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFiles(),
-            stf -> stf.getMetadata().getBytes(UTF_8), DataFileColumnFamily.NAME);
+        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFilesMap(), entry -> {
+          var stf = entry.getKey();
+          var dfv = entry.getValue();
+
+          var key = stf.getMetadata().getBytes(UTF_8);
+          var value = dfv.encode();
+
+          return new AbstractMap.SimpleImmutableEntry<>(key, value);
+        }, DataFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

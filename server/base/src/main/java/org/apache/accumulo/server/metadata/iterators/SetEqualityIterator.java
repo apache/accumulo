@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.Key;
@@ -56,6 +57,9 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   private Key startKey = null;
   private Value topValue = null;
 
+  private boolean includeValue = false;
+  private static final String ENCODE_VALUE_OPTION = "ENCODE_VALUE";
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
@@ -79,19 +83,25 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
       int count = 0;
 
       while (source.hasTop()) {
-        byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
-        dos.writeInt(ba.length);
-        dos.write(ba, 0, ba.length);
+        if (includeValue) {
+          byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
+          byte[] valueData = source.getTopValue().get();
+          byte[] encodedData = encodeKeyValue(ba, valueData);
+          dos.writeInt(encodedData.length);
+          dos.write(encodedData, 0, encodedData.length);
+        } else {
+          // only encode the key/qualifier
+          byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
+          dos.writeInt(ba.length);
+          dos.write(ba, 0, ba.length);
+        }
         source.next();
         count++;
       }
-
       // The lenght is written last so that buffering can be avoided in this iterator.
       dos.writeInt(count);
-
       topValue = new Value(baos.toByteArray());
     }
-
   }
 
   @Override
@@ -139,6 +149,9 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.source = source;
+    String includeValueOption = options.get("includeValue");
+    this.includeValue = includeValueOption != null && Boolean.parseBoolean(includeValueOption);
+
   }
 
   @Override
@@ -184,6 +197,23 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         SetEqualityIterator.class);
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
+  }
+
+  public static <K,T> Condition createCondition(Map<K,T> map,
+      Function<Map.Entry<K,T>,Map.Entry<byte[],byte[]>> entryEncoder, Text family) {
+    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
+        SetEqualityIterator.class);
+    is.addOption(ENCODE_VALUE_OPTION, "true");
+    Function<Map.Entry<K,T>,byte[]> encoder = entry -> {
+      Map.Entry<byte[],byte[]> byteEntry = entryEncoder.apply(entry);
+
+      return encodeKeyValue(byteEntry.getKey(), byteEntry.getValue());
+    };
+    return new Condition(family, EMPTY).setValue(encode(map.entrySet(), encoder)).setIterators(is);
+  }
+
+  private static byte[] encodeKeyValue(byte[] key, byte[] value) {
+    return ByteUtils.concat(ByteUtils.escape(key), ByteUtils.escape(value));
   }
 
 }
