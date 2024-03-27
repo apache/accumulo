@@ -90,6 +90,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
@@ -681,15 +682,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     };
 
     ZooKeeper zk = getServerContext().getZooReaderWriter().getZooKeeper();
-    String miniZPath = getServerContext().getZooKeeperRoot() + "/mini";
+    UUID miniUUID = UUID.randomUUID();
+    String miniZDirPath = getServerContext().getZooKeeperRoot() + "/mini";
+    String miniZInstancePath = miniZDirPath + "/" + miniUUID.toString();
     try {
-      getServerContext().getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
+      getServerContext().getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
+          ZooUtil.NodeExistsPolicy.SKIP);
+      getServerContext().getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
           ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Error creating path in ZooKeeper: " + miniZPath, e);
+      throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
-    UUID miniUUID = UUID.randomUUID();
-    ServiceLockPath path = ServiceLock.path(miniZPath + "/" + miniUUID.toString());
+    ServiceLockPath path = ServiceLock.path(miniZInstancePath);
     ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
         Constants.DEFAULT_RESOURCE_GROUP_NAME);
     miniLock = new ServiceLock(zk, path, UUID.randomUUID());
@@ -698,6 +702,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     verifyUp();
 
     printProcessSummary();
+
+    // If ServerContext is called / used in start(), then SingletonManager.mode is set to SERVER.
+    // We need to reset this back to CLIENT.
+    SingletonManager.reset();
 
   }
 

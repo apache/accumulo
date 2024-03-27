@@ -348,15 +348,18 @@ public class NullTserver {
     ServiceLock miniLock = null;
     try {
       ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
-      String miniZPath = context.getZooKeeperRoot() + "/mini";
+      UUID nullTServerUUID = UUID.randomUUID();
+      String miniZDirPath = context.getZooKeeperRoot() + "/mini";
+      String miniZInstancePath = miniZDirPath + "/" + nullTServerUUID.toString();
       try {
-        context.getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
+        context.getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
+            ZooUtil.NodeExistsPolicy.SKIP);
+        context.getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
             ZooUtil.NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException("Error creating path in ZooKeeper: " + miniZPath, e);
+        throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      UUID nullTServerUUID = UUID.randomUUID();
-      ServiceLockPath path = ServiceLock.path(miniZPath + "/" + nullTServerUUID.toString());
+      ServiceLockPath path = ServiceLock.path(miniZInstancePath);
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
       miniLock = new ServiceLock(zk, path, UUID.randomUUID());
