@@ -82,8 +82,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -654,7 +654,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     control.start(ServerType.COMPACTOR);
 
-    LockWatcher miniLockWatcher = new LockWatcher() {
+    AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
       @Override
       public void lostLock(LockLossReason reason) {
@@ -667,21 +667,32 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         log.warn("Unable to monitor lock: " + e.getMessage());
         miniLock = null;
       }
+
+      @Override
+      public void acquiredLock() {
+        log.warn("Acquired ZK lock for MiniAccumuloClusterImpl");
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        log.warn("Failed to acquire ZK lock for MiniAccumuloClusterImpl");
+        miniLock = null;
+      }
     };
 
+    ZooKeeper zk = getServerContext().getZooReaderWriter().getZooKeeper();
+    String miniZPath = getServerContext().getZooKeeperRoot() + "/mini";
     try {
-      ZooKeeper zk = getServerContext().getZooReaderWriter().getZooKeeper();
-      String miniZPath = getServerContext().getZooKeeperRoot() + "/mini";
       getServerContext().getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
           ZooUtil.NodeExistsPolicy.SKIP);
-      ServiceLockPath path = ServiceLock.path(miniZPath);
-      ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
-          Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
-      miniLock.tryLock(miniLockWatcher, sld);
-    } catch (KeeperException | InterruptedException e1) {
-      throw new IllegalStateException("Unable to acquire MAC lock", e1);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating path in ZooKeeper: " + miniZPath, e);
     }
+    ServiceLockPath path = ServiceLock.path(miniZPath);
+    ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
+        Constants.DEFAULT_RESOURCE_GROUP_NAME);
+    miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+    miniLock.lock(miniLockWatcher, sld);
 
     verifyUp();
 
