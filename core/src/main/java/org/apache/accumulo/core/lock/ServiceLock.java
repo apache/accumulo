@@ -558,6 +558,11 @@ public class ServiceLock implements Watcher {
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
 
+    // Wait for the delete to happen on the server before exiting method
+    while (zooKeeper.exists(pathToDelete, null) != null) {
+      Thread.onSpinWait();
+    }
+
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
 
