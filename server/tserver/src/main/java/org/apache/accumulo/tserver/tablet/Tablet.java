@@ -453,12 +453,11 @@ public class Tablet extends TabletBase {
           // in tablet reading and writing the tablets metadata.
           if (lastTabletMetadata.getFlushId().orElse(-1) < tableFlushID) {
             try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-              var tablet = tabletsMutator.mutateTablet(extent)
+              var tablet = tabletsMutator.mutateTablet(extent, tabletServer.getLock())
                   .requireLocation(Location.current(tabletServer.getTabletSession()))
                   .requireSame(lastTabletMetadata, ColumnType.FLUSH_ID);
 
               tablet.putFlushId(tableFlushID);
-              tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
               tablet
                   .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == tableFlushID);
 
@@ -1311,7 +1310,8 @@ public class Tablet extends TabletBase {
             ? Location.future(tabletServer.getTabletSession())
             : Location.current(tabletServer.getTabletSession());
 
-        var tablet = tabletsMutator.mutateTablet(extent).requireLocation(expectedLocation);
+        var tablet = tabletsMutator.mutateTablet(extent, tabletServer.getLock())
+            .requireLocation(expectedLocation);
 
         Optional<StoredTabletFile> newFile = Optional.empty();
 
@@ -1337,8 +1337,6 @@ public class Tablet extends TabletBase {
         tablet.putFlushNonce(flushNonce);
 
         unusedWalLogs.forEach(tablet::deleteWal);
-
-        tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
 
         // When trying to determine if write was successful, check if the flush nonce was updated.
         // Can not check if the new file exists because of two reasons. First, it could be compacted

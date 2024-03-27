@@ -988,15 +988,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
       for (VolumeUtil.VolumeReplacements vr : volumeReplacementsList) {
         var tabletMutator =
-            tabletsMutator.mutateTablet(vr.tabletMeta.getExtent()).requireAbsentOperation()
-                .requireAbsentLocation().requireSame(vr.tabletMeta, FILES, LOGS);
+            tabletsMutator.mutateTablet(vr.tabletMeta.getExtent(), manager.getManagerLock())
+                .requireAbsentOperation().requireAbsentLocation()
+                .requireSame(vr.tabletMeta, FILES, LOGS);
         vr.logsToRemove.forEach(tabletMutator::deleteWal);
         vr.logsToAdd.forEach(tabletMutator::putWal);
 
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
-
-        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(), manager.getManagerLock());
 
         tabletMutator.submit(
             tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd

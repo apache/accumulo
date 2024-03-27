@@ -158,7 +158,7 @@ class AssignmentHandler implements Runnable {
 
       Assignment assignment =
           new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
-      TabletStateStore.setLocation(server.getContext(), assignment);
+      TabletStateStore.setLocation(() -> server.getLock(), server.getContext(), assignment);
 
       // refresh the tablet metadata after setting the location (See #3358)
       tablet.refreshMetadata(RefreshPurpose.LOAD);

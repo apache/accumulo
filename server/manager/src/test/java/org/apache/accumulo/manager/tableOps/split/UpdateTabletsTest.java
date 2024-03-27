@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -231,6 +232,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
     EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
 
+    ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
+    EasyMock.expect(manager.getManagerLock()).andReturn(managerLock).anyTimes();
+
     // Setup the metadata for the tablet that is going to split, set as many columns as possible on
     // it.
     TabletMetadata tabletMeta = EasyMock.mock(TabletMetadata.class);
@@ -293,7 +297,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
-    EasyMock.expect(tabletsMutator.mutateTablet(newExtent1)).andReturn(tablet1Mutator);
+    EasyMock.expect(tabletsMutator.mutateTablet(newExtent1, managerLock)).andReturn(tablet1Mutator);
 
     // Setup the mutator for creating the second new tablet
     ConditionalTabletMutatorImpl tablet2Mutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
@@ -318,7 +322,7 @@ public class UpdateTabletsTest {
         .andReturn(tablet2Mutator);
     tablet2Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
-    EasyMock.expect(tabletsMutator.mutateTablet(newExtent2)).andReturn(tablet2Mutator);
+    EasyMock.expect(tabletsMutator.mutateTablet(newExtent2, managerLock)).andReturn(tablet2Mutator);
 
     // Setup the mutator for updating the existing tablet
     ConditionalTabletMutatorImpl tablet3Mutator = mock(ConditionalTabletMutatorImpl.class);
@@ -347,7 +351,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet3Mutator.deleteUnSplittable()).andReturn(tablet3Mutator);
     tablet3Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
-    EasyMock.expect(tabletsMutator.mutateTablet(origExtent)).andReturn(tablet3Mutator);
+    EasyMock.expect(tabletsMutator.mutateTablet(origExtent, managerLock)).andReturn(tablet3Mutator);
 
     // setup processing of conditional mutations
     Ample.ConditionalResult cr = EasyMock.niceMock(Ample.ConditionalResult.class);

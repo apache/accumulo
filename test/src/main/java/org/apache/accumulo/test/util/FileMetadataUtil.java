@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
@@ -112,12 +113,13 @@ public class FileMetadataUtil {
   }
 
   public static void splitFilesIntoRanges(final ServerContext ctx, String tableName,
-      Set<Range> fileRanges) throws Exception {
-    splitFilesIntoRanges(ctx, tableName, null, null, fileRanges);
+      Set<Range> fileRanges, ServiceLock lock) throws Exception {
+    splitFilesIntoRanges(ctx, tableName, null, null, fileRanges, lock);
   }
 
   public static void splitFilesIntoRanges(final ServerContext ctx, String tableName,
-      Text tabletStartRow, Text tabletEndRow, Set<Range> fileRanges) throws Exception {
+      Text tabletStartRow, Text tabletEndRow, Set<Range> fileRanges, ServiceLock lock)
+      throws Exception {
 
     Preconditions.checkArgument(!fileRanges.isEmpty(), "Ranges must not be empty");
 
@@ -131,11 +133,12 @@ public class FileMetadataUtil {
                 Integer.max(1, (int) (value.getNumEntries() / fileRanges.size())));
         mutator.putFile(StoredTabletFile.of(file.getPath(), range), newValue);
       });
-    });
+    }, lock);
   }
 
   public static void mutateTabletFiles(final ServerContext ctx, String tableName,
-      Text tabletStartRow, Text tabletEndRow, FileMutator fileMutator) throws Exception {
+      Text tabletStartRow, Text tabletEndRow, FileMutator fileMutator, ServiceLock lock)
+      throws Exception {
 
     final TableId tableId = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
 
@@ -150,7 +153,7 @@ public class FileMetadataUtil {
       for (TabletMetadata tabletMetadata : tabletsMetadata) {
         final KeyExtent ke = tabletMetadata.getExtent();
 
-        TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
+        TabletMutator mutator = ctx.getAmple().mutateTablet(ke, lock);
 
         // Read each file and mutate
         for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()

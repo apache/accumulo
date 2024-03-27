@@ -627,7 +627,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     // hostingRequestInProgress
     try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
       inProgress.forEach(ke -> {
-        mutator.mutateTablet(ke).requireAbsentOperation()
+        mutator.mutateTablet(ke, manager.getManagerLock()).requireAbsentOperation()
             .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
             .setHostingRequested().submit(TabletMetadata::getHostingRequested);
 

@@ -177,8 +177,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return getThis();
   }
 
-  @Override
-  public T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
+  protected T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.LOCK_COLUMN.put(mutation,
         new Value(zooLock.getLockID().serialize(zookeeperRoot + "/")));

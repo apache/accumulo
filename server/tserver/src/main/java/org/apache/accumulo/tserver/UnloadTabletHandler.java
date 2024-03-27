@@ -109,9 +109,9 @@ class UnloadTabletHandler implements Runnable {
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
               && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {
-        TabletStateStore.unassign(server.getContext(), tm, null);
+        TabletStateStore.unassign(() -> server.getLock(), server.getContext(), tm, null);
       } else {
-        TabletStateStore.suspend(server.getContext(), tm, null,
+        TabletStateStore.suspend(() -> server.getLock(), server.getContext(), tm, null,
             requestTimeSkew + NANOSECONDS.toMillis(System.nanoTime()));
       }
     } catch (DistributedStoreException ex) {

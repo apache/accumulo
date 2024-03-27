@@ -195,8 +195,10 @@ public interface Ample {
    *
    * @param extent Mutates a tablet that has this table id and end row. The prev end row is not
    *        considered or checked.
+   * @param lock ServiceLock of the Accumulo server that is attempting to persist table metadata
+   *        updates.
    */
-  default TabletMutator mutateTablet(KeyExtent extent) {
+  default TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock) {
     throw new UnsupportedOperationException();
   }
 
@@ -281,7 +283,7 @@ public interface Ample {
    * may not be persisted.
    */
   public interface TabletsMutator extends AutoCloseable {
-    TabletMutator mutateTablet(KeyExtent extent);
+    TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock);
 
     @Override
     void close();
@@ -320,7 +322,7 @@ public interface Ample {
      * @return A fluent interface to conditional mutating a tablet. Ensure you call
      *         {@link ConditionalTabletMutator#submit(RejectionHandler)} when finished.
      */
-    OperationRequirements mutateTablet(KeyExtent extent);
+    OperationRequirements mutateTablet(KeyExtent extent, ServiceLock lock);
 
     /**
      * Closing ensures that all mutations are processed and their results are reported.
@@ -332,8 +334,9 @@ public interface Ample {
   interface ConditionalTabletsMutator extends AsyncConditionalTabletsMutator {
 
     /**
-     * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
-     * this method to process them using a {@link ConditionalWriter}
+     * After creating one or more conditional mutations using
+     * {@link #mutateTablet(KeyExtent, ServiceLock)}, call this method to process them using a
+     * {@link ConditionalWriter}
      *
      * @return The result from the {@link ConditionalWriter} of processing each tablet.
      */
@@ -363,8 +366,6 @@ public interface Ample {
     T putLocation(Location location);
 
     T deleteLocation(Location location);
-
-    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
 
     T putDirName(String dirName);
 

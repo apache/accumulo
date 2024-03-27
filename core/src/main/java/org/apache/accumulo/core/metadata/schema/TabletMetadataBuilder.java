@@ -51,7 +51,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -141,11 +140,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteLocation(TabletMetadata.Location location) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public TabletMetadataBuilder putZooLock(String zookeeperRoot, ServiceLock zooLock) {
     throw new UnsupportedOperationException();
   }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.manager.Manager;
 
 /**
  * The purpose of this interface is to allow per version upgrade implementations to be created.
@@ -34,23 +34,23 @@ public interface Upgrader {
   /**
    * Update entries in ZooKeeper - called before the root tablet is loaded.
    *
-   * @param context the server context.
+   * @param manager reference to the Manager server object
    */
-  void upgradeZookeeper(ServerContext context);
+  void upgradeZookeeper(Manager manager);
 
   /**
    * Update the root tablet - called after the root tablet is loaded and before the metadata table
    * is loaded.
    *
-   * @param context the server context.
+   * @param manager reference to the Manager server object
    */
-  void upgradeRoot(ServerContext context);
+  void upgradeRoot(Manager manager);
 
   /**
    * Update the metadata table - called after the metadata table is loaded and before loading user
    * tablets.
    *
-   * @param context the server context.
+   * @param manager reference to the Manager server object
    */
-  void upgradeMetadata(ServerContext context);
+  void upgradeMetadata(Manager manager);
 }

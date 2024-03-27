@@ -83,7 +83,7 @@ class PopulateMetadata extends ManagerRepo {
       for (Text split : iter) {
         var extent = new KeyExtent(tableInfo.getTableId(), split, prevSplit);
 
-        var tabletMutator = tabletsMutator.mutateTablet(extent);
+        var tabletMutator = tabletsMutator.mutateTablet(extent, lock);
 
         String dirName = (split == null) ? ServerColumnFamily.DEFAULT_TABLET_DIR_NAME
             : data.get(split).toString();
@@ -91,7 +91,6 @@ class PopulateMetadata extends ManagerRepo {
         tabletMutator.putPrevEndRow(extent.prevEndRow());
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, tableInfo.getTimeType()));
-        tabletMutator.putZooLock(context.getZooKeeperRoot(), lock);
         tabletMutator.putTabletAvailability(tableInfo.getInitialTabletAvailability());
         tabletMutator.mutate();
 

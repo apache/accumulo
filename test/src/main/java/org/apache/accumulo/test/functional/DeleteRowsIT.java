@@ -50,6 +50,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -100,7 +101,8 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
         int fc = 0;
         for (var tabletMeta : tablets) {
           // add 500 files to each tablet
-          var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent());
+          var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent(),
+              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
           for (int i = 0; i < 500; i++) {
             StoredTabletFile f1 = StoredTabletFile.of(new Path(
                 "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + fc++ + ".rf"));

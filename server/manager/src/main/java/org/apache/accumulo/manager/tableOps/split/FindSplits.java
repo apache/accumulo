@@ -129,8 +129,9 @@ public class FindSplits extends ManagerRepo {
           // retry the current fate op vs completing and having the iterator submit a new one.
           log.debug("Setting unsplittable metadata on tablet {}. hashCode: {}",
               tabletMetadata.getExtent(), unSplittableMeta);
-          var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-              .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
+          var mutator =
+              tabletsMutator.mutateTablet(extent, manager.getManagerLock()).requireAbsentOperation()
+                  .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
           mutator.submit(tm -> unSplittableMeta.equals(tm.getUnSplittable()));
 
           // Case 2: If the unsplittable marker has already been previously set, but we do not need
@@ -141,8 +142,8 @@ public class FindSplits extends ManagerRepo {
         } else if (tabletMetadata.getUnSplittable() != null) {
           log.info("Tablet {} no longer needs to split, deleting unsplittable marker.",
               tabletMetadata.getExtent());
-          var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-              .requireSame(tabletMetadata, FILES).deleteUnSplittable();
+          var mutator = tabletsMutator.mutateTablet(extent, manager.getManagerLock())
+              .requireAbsentOperation().requireSame(tabletMetadata, FILES).deleteUnSplittable();
           mutator.submit(tm -> tm.getUnSplittable() == null);
           // Case 3: The table config and/or set of files changed since the tablet mgmt iterator
           // examined this tablet.

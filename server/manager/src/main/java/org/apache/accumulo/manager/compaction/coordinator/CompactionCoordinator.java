@@ -161,6 +161,7 @@ public class CompactionCoordinator
 
   private final ServerContext ctx;
   private final SecurityOperation security;
+  private final Manager manager;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
@@ -175,9 +176,10 @@ public class CompactionCoordinator
 
   private final QueueMetrics queueMetrics;
 
-  public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
+  public CompactionCoordinator(ServerContext ctx, SecurityOperation security, Manager manager,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
     this.ctx = ctx;
+    this.manager = manager;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
 
@@ -558,8 +560,8 @@ public class CompactionCoordinator
 
         // any data that is read from the tablet to make a decision about if it can compact or not
         // must be included in the requireSame call
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
+        var tabletMutator = tabletsMutator.mutateTablet(extent, manager.getManagerLock())
+            .requireAbsentOperation().requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
 
         tabletMutator.putExternalCompaction(externalCompactionId, ecm);
         tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
@@ -761,8 +763,9 @@ public class CompactionCoordinator
       compactions.forEach((ecid, extent) -> {
         try {
           ctx.requireNotDeleted(extent.tableId());
-          tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireCompaction(ecid)
-              .deleteExternalCompaction(ecid).submit(new RejectionHandler() {
+          tabletsMutator.mutateTablet(extent, manager.getManagerLock()).requireAbsentOperation()
+              .requireCompaction(ecid).deleteExternalCompaction(ecid)
+              .submit(new RejectionHandler() {
 
                 @Override
                 public boolean callWhenTabletDoesNotExists() {

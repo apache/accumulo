@@ -126,7 +126,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Test that files with ranges and are fenced work with export/import
       if (fenced) {
         // Split file into 3 ranges of 10000, 20000, and 5000 for a total of 35000
-        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges());
+        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges(),
+            ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
         expected = 35000;
       }
 
@@ -262,7 +263,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Test that files with ranges and are fenced work with export/import
       if (fenced) {
         // Split file into 3 ranges of 10000, 20000, and 5000 for a total of 35000
-        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges());
+        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), srcTable, createRanges(),
+            ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
         expected = 35000;
       }
 

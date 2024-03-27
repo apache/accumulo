@@ -332,7 +332,7 @@ public class Manager extends AbstractServer
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
       new PreUpgradeValidation().validate(getContext(), nextEvent);
-      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
+      upgradeCoordinator.upgradeZookeeper(this, getContext(), nextEvent);
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
@@ -341,7 +341,7 @@ public class Manager extends AbstractServer
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
       }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(this, getContext(), nextEvent);
     }
   }
 
@@ -465,9 +465,12 @@ public class Manager extends AbstractServer
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
-    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context);
-    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context);
-    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+    this.rootTabletStore =
+        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.ROOT, context);
+    this.metadataTabletStore =
+        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.METADATA, context);
+    this.userTabletStore =
+        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.USER, context);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -944,7 +947,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs);
+    compactionCoordinator = new CompactionCoordinator(context, security, this, fateRefs);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
