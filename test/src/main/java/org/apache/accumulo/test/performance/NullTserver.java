@@ -56,8 +56,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -322,7 +322,7 @@ public class NullTserver {
         10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
         HostAndPort.fromParts("0.0.0.0", opts.port));
 
-    LockWatcher miniLockWatcher = new LockWatcher() {
+    AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
       @Override
       public void lostLock(LockLossReason reason) {
@@ -333,47 +333,66 @@ public class NullTserver {
       public void unableToMonitorLockNode(Exception e) {
         LOG.warn("Unable to monitor lock: " + e.getMessage());
       }
+
+      @Override
+      public void acquiredLock() {
+        LOG.debug("Acquired ZooKeeper lock for NullTserver");
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        LOG.warn("Failed to acquire ZK lock for NullTserver, msg: " + e.getMessage());
+      }
     };
 
     ServiceLock miniLock = null;
     try {
       ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
       String miniZPath = context.getZooKeeperRoot() + "/mini";
-      context.getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP);
-      ServiceLockPath path = ServiceLock.path(miniZPath);
-      ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
+      try {
+        context.getZooReaderWriter().putPersistentData(miniZPath, new byte[0],
+            ZooUtil.NodeExistsPolicy.SKIP);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error creating path in ZooKeeper: " + miniZPath, e);
+      }
+      UUID nullTServerUUID = UUID.randomUUID();
+      ServiceLockPath path = ServiceLock.path(miniZPath + "/" + nullTServerUUID.toString());
+      ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
       miniLock = new ServiceLock(zk, path, UUID.randomUUID());
-      miniLock.tryLock(miniLockWatcher, sld);
-    } catch (KeeperException | InterruptedException e1) {
-      throw new IllegalStateException("Unable to acquire MAC lock", e1);
-    }
+      miniLock.lock(miniLockWatcher, sld);
 
-    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
+      HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-    TableId tableId = context.getTableId(opts.tableName);
+      TableId tableId = context.getTableId(opts.tableName);
 
-    // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
-    List<Assignment> assignments = new ArrayList<>();
-    try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
-      long randomSessionID = opts.port;
-      TServerInstance instance = new TServerInstance(addr, randomSessionID);
-      var s = tablets.iterator();
+      // read the locations for the table
+      Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
+      List<Assignment> assignments = new ArrayList<>();
+      try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+        long randomSessionID = opts.port;
+        TServerInstance instance = new TServerInstance(addr, randomSessionID);
+        var s = tablets.iterator();
 
-      while (s.hasNext()) {
-        TabletMetadata next = s.next();
-        assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
+        while (s.hasNext()) {
+          TabletMetadata next = s.next();
+          assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
+        }
       }
-    }
-    // point them to this server
-    final ServiceLock lock = miniLock;
-    TabletStateStore store = TabletStateStore.getStoreForLevel(() -> lock, DataLevel.USER, context);
-    store.setLocations(assignments);
+      // point them to this server
+      final ServiceLock lock = miniLock;
+      TabletStateStore store =
+          TabletStateStore.getStoreForLevel(() -> lock, DataLevel.USER, context);
+      store.setLocations(assignments);
 
-    while (true) {
-      Thread.sleep(SECONDS.toMillis(10));
+      while (true) {
+        Thread.sleep(SECONDS.toMillis(10));
+      }
+
+    } finally {
+      if (miniLock != null) {
+        miniLock.unlock();
+      }
     }
   }
 }

@@ -675,7 +675,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       @Override
       public void failedToAcquireLock(Exception e) {
-        log.warn("Failed to acquire ZK lock for MiniAccumuloClusterImpl");
+        log.warn("Failed to acquire ZK lock for MiniAccumuloClusterImpl, msg: " + e.getMessage());
         miniLock = null;
       }
     };
@@ -688,8 +688,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error creating path in ZooKeeper: " + miniZPath, e);
     }
-    ServiceLockPath path = ServiceLock.path(miniZPath);
-    ServiceLockData sld = new ServiceLockData(UUID.randomUUID(), "localhost", ThriftService.NONE,
+    UUID miniUUID = UUID.randomUUID();
+    ServiceLockPath path = ServiceLock.path(miniZPath + "/" + miniUUID.toString());
+    ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
         Constants.DEFAULT_RESOURCE_GROUP_NAME);
     miniLock = new ServiceLock(zk, path, UUID.randomUUID());
     miniLock.lock(miniLockWatcher, sld);
@@ -1032,6 +1033,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (Process p : cleanup) {
       p.destroy();
       p.waitFor();
+    }
+    if (miniLock != null) {
+      try {
+        miniLock.unlock();
+      } catch (InterruptedException | KeeperException e) {
+        log.error("Error unlocking ServiceLock for MiniAccumuloClusterImpl", e);
+      }
+      miniLock = null;
     }
     miniDFS.set(null);
   }
