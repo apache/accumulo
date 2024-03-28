@@ -168,6 +168,66 @@ function start_service() {
   control_service start "$@"
 }
 
+function start_compactors() {
+  echo -n "Starting compactor servers ..."
+  queues=$COMPACTION_QUEUES
+  if [[ $# -gt 1 ]]; then
+    queues="$2"
+    echo "Only starting servers for group: ${queues}"
+  fi
+  for queue in $queues; do
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in ${!Q}; do
+      start_service "$compactor" compactor "-q" "$queue"
+    done
+  done
+}
+
+function stop_compactors() {
+  echo "Stopping compactor servers ..."
+  queues=$COMPACTION_QUEUES
+  if [[ $# -gt 1 ]]; then
+    queues="$2"
+    echo "Only stopping servers for group: ${queues}"
+  fi
+  for queue in $queues; do
+      Q="COMPACTOR_HOSTS_${queue}"
+      for compactor in ${!Q}; do
+        stop_service "$compactor" compactor "-q" "$queue"
+      done
+  done
+}
+
+function start_scan_servers() {
+  echo "Starting scan servers ..."
+  groups=$SSERVER_GROUPS
+  if [[ $# -gt 1 ]]; then
+    groups="$2"
+    echo "Only starting servers for group: ${groups}"
+    for group in $groups; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        start_service "$sserver" sserver "-g" "$group"
+      done
+    done
+  fi
+}
+
+function stop_scan_servers() {
+  echo "Stopping scan servers ..."
+  groups=$SSERVER_GROUPS
+  if [[ $# -gt 1 ]]; then
+    groups="$2"
+    echo "Only stopping servers for group: ${groups}"
+    for group in $groups; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        stop_service "$sserver" sserver "-g" "$group"
+      done
+    done
+  fi
+}
+
 function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
@@ -563,6 +623,22 @@ EOF
     stop-here)
       parse_config
       stop_here
+      ;;
+    start-compactors)
+      parse_config
+      start_compactors "$@"
+      ;;
+    stop-compactors)
+      parse_config
+      stop_compactors "$@"
+      ;;
+    start-scan-servers)
+      parse_config
+      start_scan_servers "$@"
+      ;;
+    stop-scan-servers)
+      parse_config
+      stop_scan_servers "$@"
       ;;
     *)
       invalid_args "'$1' is an invalid <command>"
