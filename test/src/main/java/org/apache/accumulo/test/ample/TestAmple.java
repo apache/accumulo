@@ -20,6 +20,7 @@ package org.apache.accumulo.test.ample;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -49,6 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -126,6 +128,11 @@ public class TestAmple {
      */
     public void createMetadataFromExisting(AccumuloClient client, TableId tableId)
         throws Exception {
+      createMetadataFromExisting(client, tableId, Set.of());
+    }
+
+    public void createMetadataFromExisting(AccumuloClient client, TableId tableId,
+        Set<ColumnFQ> excludedColumnFq) throws Exception {
       try (Scanner scanner =
           client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(TabletsSection.getRange(tableId));
@@ -139,10 +146,12 @@ public class TestAmple {
             Text row = decodedRow.firstKey().getRow();
             Mutation m = new Mutation(row);
 
-            decodedRow.forEach((k, v) -> {
-              m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
-                  k.getTimestamp(), v);
-            });
+            decodedRow.entrySet().stream()
+                .filter(e -> !excludedColumnFq.contains(new ColumnFQ(e.getKey()))).forEach(e -> {
+                  m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
+                      e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
+                      e.getValue());
+                });
             bw.addMutation(m);
           }
         }
