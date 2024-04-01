@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -38,7 +39,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.ExternalTerminal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -69,8 +70,8 @@ public class HistoryCommandTest {
     baos = new ByteArrayOutputStream();
 
     String input = String.format("!1%n"); // Construct a platform dependent new-line
-    terminal = TerminalBuilder.builder().system(false)
-        .streams(new ByteArrayInputStream(input.getBytes()), baos).build();
+    terminal = new ExternalTerminal("shell", "ansi", new ByteArrayInputStream(input.getBytes()),
+        baos, UTF_8);
     reader = LineReaderBuilder.builder().history(history).terminal(terminal).build();
 
     shell = new Shell(reader);
@@ -80,8 +81,8 @@ public class HistoryCommandTest {
   public void testCorrectNumbering() throws IOException {
     command.execute("", cl, shell);
     terminal.writer().flush();
-
-    assertTrue(baos.toString().contains("2: bar"));
+    assertTrue(baos.toString().contains("2: bar"),
+        "History order is not correct: " + baos.toString());
   }
 
   @Test
