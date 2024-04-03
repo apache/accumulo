@@ -110,8 +110,8 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
-    TTransport transport = context.getTransportPool().getTransport(address,
-        context.getClientTimeoutInMillis(), context);
+    TTransport transport = context.getTransportPool().getTransport(type, address,
+        context.getClientTimeoutInMillis(), context, true);
     return createClient(type, transport);
   }
 
@@ -126,7 +126,8 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
-    TTransport transport = context.getTransportPool().getTransport(address, timeout, context);
+    TTransport transport =
+        context.getTransportPool().getTransport(type, address, timeout, context, true);
     return createClient(type, transport);
   }
 

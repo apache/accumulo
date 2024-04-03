@@ -659,21 +659,24 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           // 1 in 20 chance of doing a filter compaction. This compaction will delete a data set.
           var deletes = tctx.dataTracker.getDeletes();
 
-          // The row has the format <random long>:<generation>, the following gets the generations
-          // from the rows. Expect the generation to be the same for a set of data to delete.
-          String gen = deletes.stream().map(m -> new String(m.getRow(), UTF_8))
-              .map(row -> row.split(":")[1]).distinct().collect(MoreCollectors.onlyElement());
+          if (!deletes.isEmpty()) {
+            // The row has the format <random long>:<generation>, the following gets the generations
+            // from the rows. Expect the generation to be the same for a set of data to delete.
+            String gen = deletes.stream().map(m -> new String(m.getRow(), UTF_8))
+                .map(row -> row.split(":")[1]).distinct().collect(MoreCollectors.onlyElement());
 
-          IteratorSetting iterSetting =
-              new IteratorSetting(100, "genfilter", GenerationFilter.class);
-          iterSetting.addOptions(Map.of("generation", gen));
+            IteratorSetting iterSetting =
+                new IteratorSetting(100, "genfilter", GenerationFilter.class);
+            iterSetting.addOptions(Map.of("generation", gen));
 
-          // run a compaction that deletes every key with the specified generation. Must wait on the
-          // compaction because at the end of the test it will try to verify deleted data is not
-          // present. Must flush the table in case data to delete is still in memory.
-          tctx.client.tableOperations().compact(tctx.table, new CompactionConfig().setFlush(true)
-              .setWait(true).setIterators(List.of(iterSetting)));
-          numFilters++;
+            // run a compaction that deletes every key with the specified generation. Must wait on
+            // the
+            // compaction because at the end of the test it will try to verify deleted data is not
+            // present. Must flush the table in case data to delete is still in memory.
+            tctx.client.tableOperations().compact(tctx.table, new CompactionConfig().setFlush(true)
+                .setWait(true).setIterators(List.of(iterSetting)));
+            numFilters++;
+          }
         }
       }
 

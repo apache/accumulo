@@ -595,7 +595,6 @@ public class Manager extends AbstractServer
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
-        return TabletGoalState.UNASSIGNED;
       case STOP:
         return TabletGoalState.UNASSIGNED;
       default:
@@ -766,7 +765,7 @@ public class Manager extends AbstractServer
     public void run() {
       EventCoordinator.Listener eventListener = nextEvent.getListener();
       while (stillManager()) {
-        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        long wait;
         try {
           switch (getManagerGoalState()) {
             case NORMAL:
@@ -966,7 +965,7 @@ public class Manager extends AbstractServer
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -1497,7 +1496,7 @@ public class Manager extends AbstractServer
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
             -1);
       }
 
@@ -1509,7 +1508,9 @@ public class Manager extends AbstractServer
       while (!acquiredLock && !failedToAcquireLock) {
         try {
           wait();
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+          // empty
+        }
       }
     }
   }
@@ -1655,7 +1656,7 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
-      if ((state != null) && (state == TableState.ONLINE)) {
+      if (state == TableState.ONLINE) {
         result.add(tableId);
       }
     }

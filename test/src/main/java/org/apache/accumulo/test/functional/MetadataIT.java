@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
@@ -42,12 +43,15 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -55,8 +59,10 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -217,5 +223,68 @@ public class MetadataIT extends AccumuloClusterHarness {
       assertEquals(infoEndRow1, testInfoEndRow1);
 
     }
+  }
+
+  // Test that configs related to the correctness of the Root/Metadata tables
+  // are initialized correctly
+  @Test
+  public void testSystemTablesInitialConfigCorrectness() throws Exception {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
+      var rootTableProps = client.tableOperations().getTableProperties(RootTable.NAME);
+      var metadataTableProps = client.tableOperations().getTableProperties(MetadataTable.NAME);
+
+      // Verify root table config
+      testCommonSystemTableConfig(rootTableProps);
+      assertEquals("root",
+          rootTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
+
+      // Verify metadata table config
+      testCommonSystemTableConfig(metadataTableProps);
+      assertEquals("meta",
+          metadataTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
+    }
+  }
+
+  private void testCommonSystemTableConfig(Map<String,String> tableProps) {
+    // Verify properties all have a table. prefix
+    assertTrue(tableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+    // Verify properties are correctly set
+    assertEquals("5", tableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+    assertEquals("sync", tableProps.get(Property.TABLE_DURABILITY.getKey()));
+    assertEquals("false", tableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+    assertEquals("", tableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+    assertEquals("tablet,server", tableProps.get(Property.TABLE_LOCALITY_GROUPS.getKey()));
+    assertEquals(
+        String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,
+            MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME),
+        tableProps.get(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet"));
+    assertEquals(
+        String.format("%s,%s,%s,%s", MetadataSchema.TabletsSection.DataFileColumnFamily.NAME,
+            MetadataSchema.TabletsSection.LogColumnFamily.NAME,
+            MetadataSchema.TabletsSection.ServerColumnFamily.NAME,
+            MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME),
+        tableProps.get(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server"));
+    assertEquals("20," + MetadataBulkLoadFilter.class.getName(),
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter"));
+    assertEquals(SimpleCompactionDispatcher.class.getName(),
+        tableProps.get(Property.TABLE_COMPACTION_DISPATCHER.getKey()));
+
+    // Verify VersioningIterator related properties are correct
+    var iterClass = "10," + VersioningIterator.class.getName();
+    var maxVersions = "1";
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+    assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+    assertEquals(maxVersions,
+        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
   }
 }

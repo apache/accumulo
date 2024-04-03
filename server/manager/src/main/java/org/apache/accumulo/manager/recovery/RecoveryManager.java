@@ -73,8 +73,8 @@ public class RecoveryManager {
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
-    executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
-        "Walog sort starter", false);
+    executor =
+        ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");
     zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =

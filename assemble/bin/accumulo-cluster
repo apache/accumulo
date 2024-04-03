@@ -119,6 +119,11 @@ function parse_config {
   if [[ -z $NUM_SSERVERS ]]; then
     echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
   fi
+
+  if [[ -z $NUM_COMPACTORS ]]; then
+    echo "INFO: ${NUM_COMPACTORS} compactors will be started per host"
+  fi
+
 }
 
 function control_service() {
@@ -130,6 +135,7 @@ function control_service() {
   last_instance_id=1
   [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
   [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
+  [[ $service == "compactor" ]] && last_instance_id=${NUM_COMPACTORS:-1}
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
@@ -510,10 +516,12 @@ tserver:
 # to start on each host. If the following variables are not set, then they default to 1.
 # If the environment variable NUM_TSERVERS is set when running accumulo_cluster
 # then its value will override what is set in this file for tservers_per_host. Likewise if
-# NUM_SSERVERS is set then it will override sservers_per_host.
+# NUM_SSERVERS or NUM_COMPACTORS are set then it will override sservers_per_host and
+# compactors_per_host.
 #
 tservers_per_host: 1
 sservers_per_host: 1
+compactors_per_host: 1
 
 EOF
       ;;

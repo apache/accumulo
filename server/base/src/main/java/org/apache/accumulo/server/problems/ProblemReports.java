@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.problems;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -65,8 +67,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * processed because the whole system is in a really bad state (like HDFS is down) and everything
    * is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = ThreadPools.getServerThreadPools().createThreadPool(0, 1,
-      60, TimeUnit.SECONDS, "acu-problem-reporter", new LinkedBlockingQueue<>(500), false);
+  private final ExecutorService reportExecutor = ThreadPools.getServerThreadPools()
+      .getPoolBuilder("acu-problem-reporter").numCoreThreads(0).numMaxThreads(1)
+      .withTimeOut(60L, SECONDS).withQueue(new LinkedBlockingQueue<>(500)).build();
 
   private final ServerContext context;
 

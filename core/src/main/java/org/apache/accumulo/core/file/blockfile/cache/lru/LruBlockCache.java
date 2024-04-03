@@ -102,8 +102,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = ThreadPools.getServerThreadPools()
-      .createScheduledExecutorService(1, "LRUBlockCacheStats", true);
+  private final ScheduledExecutorService scheduleThreadPool =
+      ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "LRUBlockCacheStats");
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -391,9 +391,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    */
   private class BlockBucket implements Comparable<BlockBucket> {
 
-    private CachedBlockQueue queue;
-    private long totalSize = 0;
-    private long bucketSize;
+    private final CachedBlockQueue queue;
+    private long totalSize;
+    private final long bucketSize;
 
     public BlockBucket(long bytesToFree, long blockSize, long bucketSize) {
       this.bucketSize = bucketSize;
@@ -512,7 +512,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
   private static class EvictionThread extends AccumuloDaemonThread {
-    private WeakReference<LruBlockCache> cache;
+    private final WeakReference<LruBlockCache> cache;
     private boolean running = false;
 
     public EvictionThread(LruBlockCache cache) {
@@ -532,7 +532,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
           running = true;
           try {
             this.wait();
-          } catch (InterruptedException e) {}
+          } catch (InterruptedException e) {
+            // empty
+          }
         }
         LruBlockCache cache = this.cache.get();
         if (cache == null) {

@@ -292,7 +292,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
 
     ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(config, Property.GC_DELETE_THREADS, false);
+        .createExecutorService(config, Property.GC_DELETE_THREADS);
 
     final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
 

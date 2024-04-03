@@ -33,12 +33,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Constructor;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -253,6 +257,27 @@ public class TabletMetadataTest {
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
+  }
+
+  @Test
+  public void testTabletsMetadataAutoClose() throws Exception {
+    AtomicBoolean closeCalled = new AtomicBoolean();
+    AutoCloseable autoCloseable = () -> closeCalled.set(true);
+    Constructor<TabletsMetadata> tmConstructor =
+        TabletsMetadata.class.getDeclaredConstructor(AutoCloseable.class, Iterable.class);
+    tmConstructor.setAccessible(true);
+
+    try (TabletsMetadata ignored = tmConstructor.newInstance(autoCloseable, List.of())) {
+      // test autoCloseable used directly on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
+
+    closeCalled.set(false);
+    try (Stream<TabletMetadata> ignored =
+        tmConstructor.newInstance(autoCloseable, List.of()).stream()) {
+      // test stream delegates to close on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

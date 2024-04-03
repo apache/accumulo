@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public class ConfigCheckUtil {
    * @param entries iterable through configuration keys and values
    * @throws ConfigCheckException if a fatal configuration error is found
    */
-  public static void validate(Iterable<Entry<String,String>> entries) {
+  public static void validate(Iterable<Entry<String,String>> entries, @NonNull String source) {
     String instanceZkTimeoutValue = null;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
@@ -54,12 +55,12 @@ public class ConfigCheckUtil {
       if (prop == null && Property.isValidPropertyKey(key)) {
         continue; // unknown valid property (i.e. has proper prefix)
       } else if (prop == null) {
-        log.warn(PREFIX + "unrecognized property key (" + key + ")");
+        log.warn(PREFIX + "unrecognized property key ({}) for {}", key, source);
       } else if (prop.getType() == PropertyType.PREFIX) {
-        fatal(PREFIX + "incomplete property key (" + key + ")");
+        fatal(PREFIX + "incomplete property key (" + key + ") for " + source);
       } else if (!prop.getType().isValidFormat(value)) {
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
-            + ") : " + value);
+            + ") : " + value + " for " + source);
       }
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
@@ -128,7 +129,7 @@ public class ConfigCheckUtil {
   }
 
   /**
-   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable)} fails.
+   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable, String)} fails.
    */
   public static class ConfigCheckException extends RuntimeException {
     private static final long serialVersionUID = 1L;

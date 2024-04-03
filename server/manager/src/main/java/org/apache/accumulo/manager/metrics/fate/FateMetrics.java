@@ -152,8 +152,8 @@ public class FateMetrics implements MetricsProducer {
     update();
 
     // get fate status is read only operation - no reason to be nice on shutdown.
-    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
-        .createScheduledExecutorService(1, "fateMetricsPoller", false);
+    ScheduledExecutorService scheduler =
+        ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "fateMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {

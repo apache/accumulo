@@ -88,6 +88,7 @@ public class Constants {
 
   public static final String ZNEXT_FILE = "/next_file";
 
+  // TODO: Remove when Property.TSERV_WORKQ_THREADS is removed
   public static final String ZBULK_FAILED_COPYQ = "/bulk_failed_copyq";
 
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
@@ -128,4 +129,5 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+  public static final String DEFAULT_COMPACTION_SERVICE_NAME = "default";
 }

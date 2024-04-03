@@ -121,8 +121,8 @@ public class RemoveEntriesForMissingFiles {
 
     Map<Path,Path> cache = new LRUMap<>(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool =
-        ThreadPools.getServerThreadPools().createFixedThreadPool(16, "CheckFileTasks", false);
+    ExecutorService threadPool = ThreadPools.getServerThreadPools().getPoolBuilder("CheckFileTasks")
+        .numCoreThreads(16).build();
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 

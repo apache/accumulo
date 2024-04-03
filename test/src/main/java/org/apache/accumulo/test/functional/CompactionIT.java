@@ -71,6 +71,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -531,7 +532,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
 
       c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
-      int beforeCount = countFiles(c);
+      int beforeCount = countFiles(c, tableName);
 
       final AtomicBoolean fail = new AtomicBoolean(false);
       final int THREADS = 5;
@@ -561,7 +562,7 @@ public class CompactionIT extends AccumuloClusterHarness {
             "Failed to successfully run all threads, Check the test output for error");
       }
 
-      int finalCount = countFiles(c);
+      int finalCount = countFiles(c, tableName);
       assertTrue(finalCount < beforeCount);
       try {
         getClusterControl().adminStopAll();
@@ -588,7 +589,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1001");
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100.0");
 
-      var beforeCount = countFiles(c);
+      var beforeCount = countFiles(c, tableName);
 
       final int NUM_ENTRIES_AND_FILES = 60;
 
@@ -607,7 +608,7 @@ public class CompactionIT extends AccumuloClusterHarness {
         assertEquals(NUM_ENTRIES_AND_FILES, scanner.stream().count());
       }
 
-      var afterCount = countFiles(c);
+      var afterCount = countFiles(c, tableName);
 
       assertTrue(afterCount >= beforeCount + NUM_ENTRIES_AND_FILES);
 
@@ -623,7 +624,7 @@ public class CompactionIT extends AccumuloClusterHarness {
         assertEquals(0, scanner.stream().count());
       }
 
-      var finalCount = countFiles(c);
+      var finalCount = countFiles(c, tableName);
       assertTrue(finalCount <= beforeCount);
     }
   }
@@ -714,9 +715,14 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
-  private int countFiles(AccumuloClient c) throws Exception {
+  /**
+   * Counts the number of tablets and files in a table.
+   */
+  private int countFiles(AccumuloClient c, String tableName) throws Exception {
+    var tableId = getCluster().getServerContext().getTableId(tableName);
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(new Text(TabletColumnFamily.NAME));
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
       s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));
       return Iterators.size(s.iterator());
     }
