@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -142,13 +143,17 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
 
+      var tableId1 = getServerContext().getTableId(t1);
+      var tableId3 = getServerContext().getTableId(t3);
+      var tableId4 = getServerContext().getTableId(t4);
+
       // Create expected KeyExtents to test output of findTabletsNeedingAttention
-      KeyExtent endR1 = new KeyExtent(TableId.of("1"), new Text("some split"), null);
-      KeyExtent endR3 = new KeyExtent(TableId.of("3"), new Text("some split"), null);
-      KeyExtent endR4 = new KeyExtent(TableId.of("4"), new Text("some split"), null);
-      KeyExtent prevR1 = new KeyExtent(TableId.of("1"), null, new Text("some split"));
-      KeyExtent prevR3 = new KeyExtent(TableId.of("3"), null, new Text("some split"));
-      KeyExtent prevR4 = new KeyExtent(TableId.of("4"), null, new Text("some split"));
+      KeyExtent endR1 = new KeyExtent(tableId1, new Text("some split"), null);
+      KeyExtent endR3 = new KeyExtent(tableId3, new Text("some split"), null);
+      KeyExtent endR4 = new KeyExtent(tableId4, new Text("some split"), null);
+      KeyExtent prevR1 = new KeyExtent(tableId1, null, new Text("some split"));
+      KeyExtent prevR3 = new KeyExtent(tableId3, null, new Text("some split"));
+      KeyExtent prevR4 = new KeyExtent(tableId4, null, new Text("some split"));
       Map<KeyExtent,Set<TabletManagement.ManagementAction>> expected;
 
       TabletManagementParameters tabletMgmtParams = createParameters(client);
@@ -177,46 +182,47 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // t3 is hosted, setting to never will generate a change to unhost tablets
       setTabletAvailability(client, metaCopy1, t3, TabletAvailability.UNHOSTED.name());
       tabletMgmtParams = createParameters(client);
-      assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams).size(),
+      expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE), prevR1, Set.of(NEEDS_LOCATION_UPDATE),
+          endR3, Set.of(NEEDS_LOCATION_UPDATE), prevR3, Set.of(NEEDS_LOCATION_UPDATE));
+      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have four tablets with hosting availability changes");
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
-      expected = Map.of(endR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE),
-          prevR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE));
+      expected =
+          Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE), prevR1, Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have two tablets without a loc");
 
       // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
       // w/o a location. Only one should need attention because of the operation id.
       setOperationId(client, metaCopy1, t1, new Text("some split"), TabletOperationType.SPLITTING);
-      expected = Map.of(prevR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE));
+      expected = Map.of(prevR1, Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have tablets needing attention because of operation id");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
-      expected = Map.of(endR3, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE));
+      expected = Map.of(endR3, Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
 
       // Test the recovery cases
       createLogEntry(client, metaCopy5, t1);
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.UNHOSTED.name());
-      expected = Map.of(endR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE,
-          TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR1,
+          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.ONDEMAND.name());
-      expected = Map.of(endR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE,
-          TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR1,
+          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.HOSTED.name());
       expected = Map.of(endR1,
-          Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE,
-              TabletManagement.ManagementAction.NEEDS_RECOVERY),
-          prevR1, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE));
+          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY), prevR1,
+          Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "2 tablets in table t1 should be returned");
 
@@ -224,8 +230,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // These tablets should not need attention as they have no WALs
       setTabletAvailability(client, metaCopy4, t4, TabletAvailability.HOSTED.name());
       removeLocation(client, metaCopy4, t4);
-      expected = Map.of(endR4, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE),
-          prevR4, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE));
+      expected =
+          Map.of(endR4, Set.of(NEEDS_LOCATION_UPDATE), prevR4, Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Tablets have no location and a tablet availability of hosted, so they should need attention");
 
@@ -242,8 +248,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // for both MERGING and SPLITTING
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       createLogEntry(client, metaCopy4, t4);
-      expected = Map.of(endR4, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE,
-          TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR4,
+          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have a tablet needing attention because of wals");
       // Switch op to SPLITTING which should also need attention like MERGING
@@ -260,8 +266,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // test the bad tablet location state case (inconsistent metadata)
       tabletMgmtParams = createParameters(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      expected = Map.of(prevR3, Set.of(TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE,
-          TabletManagement.ManagementAction.BAD_STATE));
+      expected = Map.of(prevR3,
+          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.BAD_STATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy3, tabletMgmtParams),
           "Should have 1 tablet that needs a metadata repair");
 
