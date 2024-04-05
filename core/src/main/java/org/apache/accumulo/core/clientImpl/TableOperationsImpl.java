@@ -27,11 +27,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
@@ -1305,19 +1307,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Text continueRow = null;
       MapCounter<String> serverCounts = new MapCounter<>();
 
-      try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(AVAILABILITY, HOSTING_REQUESTED, LOCATION, PREV_ROW).build()) {
+      try (TabletsMetadata tablets =
+          TabletsMetadata.builder(context).scanMetadataTable().overRange(range)
+              .fetch(AVAILABILITY, HOSTING_REQUESTED, LOCATION, PREV_ROW, OPID, ECOMP).build()) {
 
         for (TabletMetadata tablet : tablets) {
           total++;
           Location loc = tablet.getLocation();
           TabletAvailability availability = tablet.getTabletAvailability();
+          var opid = tablet.getOperationId();
+          var externalCompactions = tablet.getExternalCompactions();
 
           if ((expectedState == TableState.ONLINE
               && (availability == TabletAvailability.HOSTED
                   || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
-              || (expectedState == TableState.OFFLINE && loc != null)) {
+              || (expectedState == TableState.OFFLINE
+                  && (loc != null || opid != null || !externalCompactions.isEmpty()))) {
             if (continueRow == null) {
               continueRow = tablet.getExtent().toMetaRow();
             }

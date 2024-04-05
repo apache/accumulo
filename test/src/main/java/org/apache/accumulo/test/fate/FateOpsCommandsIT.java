@@ -267,6 +267,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         || result.contains(
             "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
     assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
+
+    fate.shutdown(10, TimeUnit.MINUTES);
   }
 
   @Test
