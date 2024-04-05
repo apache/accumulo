@@ -22,8 +22,8 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 
 import com.google.common.collect.Sets;
 

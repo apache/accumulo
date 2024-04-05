@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.core.metadata.schema.filters;
 
 import java.util.Set;
 import java.util.function.Predicate;
