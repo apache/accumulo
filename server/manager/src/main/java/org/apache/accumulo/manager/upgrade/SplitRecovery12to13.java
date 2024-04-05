@@ -47,8 +47,8 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -148,7 +148,7 @@ public class SplitRecovery12to13 {
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
+      Map<StoredTabletFile,Splitter.FileInfo> firstAndLastRows,
       SortedMap<StoredTabletFile,DataFileValue> datafiles,
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
       SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
@@ -161,7 +161,7 @@ public class SplitRecovery12to13 {
 
       boolean rowsKnown = false;
 
-      FileUtil.FileInfo mfi = firstAndLastRows.get(entry.getKey());
+      Splitter.FileInfo mfi = firstAndLastRows.get(entry.getKey());
 
       if (mfi != null) {
         firstRow = mfi.getFirstRow();
