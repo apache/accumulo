@@ -65,6 +65,7 @@ public class CompactionJobGenerator {
   private final PluginEnvironment env;
   private final Map<FateId,Map<String,String>> allExecutionHints;
   private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
+  private final Cache<String,Long> generateJobsErrorCache;
 
   public CompactionJobGenerator(PluginEnvironment env,
       Map<FateId,Map<String,String>> executionHints) {
@@ -87,42 +88,60 @@ public class CompactionJobGenerator {
     unknownCompactionServiceErrorCache =
         Caches.getInstance().createNewBuilder(CacheName.COMPACTION_SERVICE_UNKNOWN, false)
             .expireAfterWrite(5, TimeUnit.MINUTES).build();
+
+    generateJobsErrorCache =
+        Caches.getInstance().createNewBuilder(CacheName.COMPACTION_SERVICE_UNKNOWN, false)
+            .expireAfterWrite(5, TimeUnit.MINUTES).build();
+
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
+    try {
+      Collection<CompactionJob> systemJobs = Set.of();
 
-    // ELASTICITY_TODO do not want user configured plugins to cause exceptions that prevents tablets
-    // from being
-    // assigned. So probably want to catch exceptions and log, but not too spammily OR some how
-    // report something
-    // back to the manager so it can log.
-
-    Collection<CompactionJob> systemJobs = Set.of();
-
-    if (kinds.contains(CompactionKind.SYSTEM)) {
-      CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
-      systemJobs = planCompactions(serviceId, CompactionKind.SYSTEM, tablet, Map.of());
-    }
-
-    Collection<CompactionJob> userJobs = Set.of();
-
-    if (kinds.contains(CompactionKind.USER) && tablet.getSelectedFiles() != null) {
-      var hints = allExecutionHints.get(tablet.getSelectedFiles().getFateId());
-      if (hints != null) {
-        CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet, hints);
-        userJobs = planCompactions(serviceId, CompactionKind.USER, tablet, hints);
+      if (kinds.contains(CompactionKind.SYSTEM)) {
+        CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
+        systemJobs = planCompactions(serviceId, CompactionKind.SYSTEM, tablet, Map.of());
       }
-    }
 
-    if (userJobs.isEmpty()) {
-      return systemJobs;
-    } else if (systemJobs.isEmpty()) {
-      return userJobs;
-    } else {
-      var all = new ArrayList<CompactionJob>(systemJobs.size() + userJobs.size());
-      all.addAll(systemJobs);
-      all.addAll(userJobs);
-      return all;
+      Collection<CompactionJob> userJobs = Set.of();
+
+      if (kinds.contains(CompactionKind.USER) && tablet.getSelectedFiles() != null) {
+        var hints = allExecutionHints.get(tablet.getSelectedFiles().getFateId());
+        if (hints != null) {
+          CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet, hints);
+          userJobs = planCompactions(serviceId, CompactionKind.USER, tablet, hints);
+        }
+      }
+
+      if (userJobs.isEmpty()) {
+        return systemJobs;
+      } else if (systemJobs.isEmpty()) {
+        return userJobs;
+      } else {
+        var all = new ArrayList<CompactionJob>(systemJobs.size() + userJobs.size());
+        all.addAll(systemJobs);
+        all.addAll(userJobs);
+        return all;
+      }
+    } catch (Exception e) {
+      // The same code that plans compactions also assigns tablets. The intent of this catch is
+      // mainly to defend against user plugins called here that throw an exception from negatively
+      // impacting tablet assignment.
+      String cacheKey = tablet.getTableId() + " " + e.getClass().getName();
+      // This check defends against every tablet in a table having the same problem and therefore
+      // generating an enormous amount of spam for the logs.
+      var last = generateJobsErrorCache.getIfPresent(cacheKey);
+      if (last == null) {
+        log.error("Failed to generate compaction jobs for {}. Other tablets may be experiencing the"
+            + " same error, this log message is temporarily suppressed for the entire table.",
+            tablet.getExtent(), e);
+        generateJobsErrorCache.put(cacheKey, System.currentTimeMillis());
+      }
+
+      log.trace("Failed to generate compaction jobs for {}", tablet.getExtent(), e);
+
+      return Set.of();
     }
   }
 
