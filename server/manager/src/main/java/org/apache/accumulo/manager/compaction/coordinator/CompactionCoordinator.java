@@ -1092,7 +1092,8 @@ public class CompactionCoordinator
 
     long now = System.currentTimeMillis();
     Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
-    TIME_COMPACTOR_LAST_CHECKED.forEach((groupName, lastCheckTime) -> {
+    for (CompactorGroupId groupName : groupsInConfiguration) {
+      long lastCheckTime = TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, 0L);
       if ((now - lastCheckTime) > getMissingCompactorWarningTime()
           && jobQueues.getQueuedJobs(groupName) > 0
           && idleCompactors.containsKey(groupName.canonical())) {
@@ -1102,7 +1103,7 @@ public class CompactionCoordinator
             groupName, idleCompactors.get(groupName.canonical()).size(),
             getMissingCompactorWarningTime());
       }
-    });
+    }
 
   }
 }
