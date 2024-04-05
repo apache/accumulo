@@ -22,13 +22,13 @@ import static org.apache.accumulo.core.client.ConditionalWriter.Status.ACCEPTED;
 import static org.apache.accumulo.core.client.ConditionalWriter.Status.UNKNOWN;
 import static org.apache.accumulo.test.ample.ConditionalWriterInterceptor.withStatus;
 import static org.apache.accumulo.test.ample.TestAmple.mockWithAmple;
+import static org.apache.accumulo.test.ample.TestAmple.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -220,8 +220,7 @@ public class TestAmpleIT extends SharedMiniClusterBase {
           .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
       // Prevent UNSPLITTABLE_COLUMN just in case a system split tried to run on the table
       // before we copied it and inserted the column
-      ample.createMetadataFromExisting(client, tableId,
-          Set.of(SplitColumnFamily.UNSPLITTABLE_COLUMN));
+      ample.createMetadataFromExisting(client, tableId, not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
 
       KeyExtent extent = new KeyExtent(tableId, null, null);
       Manager manager = mockWithAmple(getCluster(), ample);

@@ -21,8 +21,8 @@ package org.apache.accumulo.test.ample;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -68,6 +68,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.MoreCollectors;
 
 public class TestAmple {
+
+  private static final BiPredicate<Key,Value> INCLUDE_ALL_COLUMNS = (k, v) -> true;
+
+  public static BiPredicate<Key,Value> matches(ColumnFQ column) {
+    return (k, v) -> column.equals(new ColumnFQ(k));
+  }
+
+  public static BiPredicate<Key,Value> not(ColumnFQ column) {
+    return matches(column).negate();
+  }
 
   public static Ample create(ServerContext context, Map<DataLevel,String> tables) {
     return new TestServerAmpleImpl(context, tables);
@@ -163,11 +173,11 @@ public class TestAmple {
      */
     public void createMetadataFromExisting(AccumuloClient client, TableId tableId)
         throws Exception {
-      createMetadataFromExisting(client, tableId, Set.of());
+      createMetadataFromExisting(client, tableId, INCLUDE_ALL_COLUMNS);
     }
 
     public void createMetadataFromExisting(AccumuloClient client, TableId tableId,
-        Set<ColumnFQ> excludedColumnFq) throws Exception {
+        BiPredicate<Key,Value> includeColumn) throws Exception {
       try (Scanner scanner =
           client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(TabletsSection.getRange(tableId));
@@ -182,12 +192,10 @@ public class TestAmple {
             Text row = decodedRow.firstKey().getRow();
             Mutation m = new Mutation(row);
 
-            decodedRow.entrySet().stream()
-                .filter(e -> !excludedColumnFq.contains(new ColumnFQ(e.getKey()))).forEach(e -> {
-                  m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
-                      e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
-                      e.getValue());
-                });
+            decodedRow.entrySet().stream().filter(e -> includeColumn.test(e.getKey(), e.getValue()))
+                .forEach(e -> m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
+                    e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
+                    e.getValue()));
             bw.addMutation(m);
           }
         }
