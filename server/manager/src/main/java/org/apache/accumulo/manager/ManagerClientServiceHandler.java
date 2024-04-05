@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -648,9 +649,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       inProgress.forEach(hostingRequestInProgress::remove);
     }
 
-    // ELASTICITY_TODO pass ranges of individual tablets
-    manager.getEventCoordinator().event(success, "Tablet hosting requested for %d tablets in %s",
-        success.size(), tableId);
+    final List<Range> ranges = new ArrayList<>(success.size());
+    success.forEach(ke -> ranges.add(ke.toDataRange()));
+    final List<Range> tabletRanges = Range.mergeOverlapping(ranges);
+    manager.getEventCoordinator().event(success,
+        "Tablet hosting requested for %d tablets in ranges %s in table %s", success.size(),
+        tabletRanges, tableId);
   }
 
   protected TableId getTableId(ClientContext context, String tableName)
