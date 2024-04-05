@@ -238,6 +238,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.CANCELLED);
 
+      // Ensure compaction did not write anything to metadata table after delete table
       try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tid));
         assertEquals(0, scanner.stream().count());
