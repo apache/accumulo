@@ -200,7 +200,7 @@ public class TestAmpleIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testFindSplits() throws Exception {
+  public void testFindSplitsUnsplittable() throws Exception {
 
     String[] tableNames = getUniqueNames(2);
     String metadataTable = tableNames[0];
@@ -234,14 +234,25 @@ public class TestAmpleIT extends SharedMiniClusterBase {
       assertNull(preSplit);
 
       // Verify metadata has unsplittable column
-      var count = new AtomicInteger();
-      try (var tablets = ample.readTablets().forTable(tableId).build().stream()) {
-        tablets.forEach(tm -> {
-          assertNotNull(tm.getUnSplittable());
-          count.incrementAndGet();
-        });
-      }
-      assertEquals(1, count.get());
+      var metadata = ample.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
+      assertNotNull(metadata);
+
+      // Bump max end row size and verify split occurs and unsplittable column is cleaned up
+      client.tableOperations().setProperty(userTable, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "500");
+
+      findSplits = new FindSplits(extent);
+      preSplit = (PreSplit) findSplits.call(FateId.from(FateInstanceType.USER, UUID.randomUUID()),
+          manager);
+
+      // The table SHOULD now need splitting
+      assertNotNull(preSplit);
+
+      // Verify unsplittable metadata is still the same and exists
+      // This will not be cleared until the UpdateTablets repo runs
+      // so if the test is updated to test UpdateTablets this can be checked
+      assertEquals(metadata,
+          ample.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable());
     }
   }
 
