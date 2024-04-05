@@ -573,8 +573,10 @@ public class TabletMetadata {
           }
           break;
         default:
+          log.error(
+              "Unexpected family {} when converting tablet metadata for extent: {}, throwing ISE",
+              fam, row);
           throw new IllegalStateException("Unexpected family " + fam);
-
       }
     }
 

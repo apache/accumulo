@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
@@ -77,6 +78,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
 
   RootTabletMutatorImpl(ServerContext context, ServiceLock lock) {
     super(RootTable.EXTENT);
+    Objects.requireNonNull(lock);
     this.context = context;
     this.lock = lock;
   }

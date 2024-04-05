@@ -522,6 +522,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new IllegalStateException(e);
           }
         }
+        if (!splitsTodo.isEmpty()) {
+          throw new RuntimeException("Some split tasks failed, check the Manager log.");
+        }
       }
     } finally {
       executor.shutdownNow();

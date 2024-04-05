@@ -55,6 +55,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
 
   @Override
   public Ample.OperationRequirements mutateTablet(KeyExtent extent, ServiceLock lock) {
+    Objects.requireNonNull(lock);
     if (mutatedTablets > BATCH_SIZE) {
       if (backgroundProcessing != null) {
         // a previous batch of mutations was submitted for processing so wait on it.

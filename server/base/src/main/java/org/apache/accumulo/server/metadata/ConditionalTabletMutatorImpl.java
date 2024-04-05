@@ -86,6 +86,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       Consumer<ConditionalMutation> mutationConsumer,
       BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
+    Objects.requireNonNull(lock);
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;

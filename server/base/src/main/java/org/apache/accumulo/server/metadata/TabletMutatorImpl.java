@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -35,6 +37,7 @@ class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
   TabletMutatorImpl(ServerContext context, ServiceLock lock, KeyExtent extent,
       BatchWriter batchWriter) {
     super(extent);
+    Objects.requireNonNull(lock);
     this.context = context;
     this.lock = lock;
     this.writer = batchWriter;
