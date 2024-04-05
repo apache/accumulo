@@ -306,7 +306,7 @@ class CompactionDriver extends ManagerRepo {
     // The Fate operation gets a table lock that prevents the table from being deleted while this is
     // running, so seeing zero tablets in the metadata table is unexpected.
     Preconditions.checkState(total > 0,
-        "No tablets were seen for table {} in the compaction range {} {}", tableId,
+        "No tablets were seen for table %s in the compaction range %s %s", tableId,
         new Text(startRow), new Text(endRow));
 
     log.debug(
