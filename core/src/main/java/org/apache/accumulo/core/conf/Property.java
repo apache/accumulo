@@ -367,6 +367,18 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "4.0.0"),
+  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.mininum", "10",
+      PropertyType.COUNT,
+      "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
+          + " are performed (e.g. Bulk Import). This property specifies the number of core threads in a"
+          + " ThreadPool in the Manager that will be used to request these refresh operations.",
+      "4.0.0"),
+  MANAGER_TABLET_REFRESH_MAXTHREADS("manager.tablet.refresh.threads.maximum", "10",
+      PropertyType.COUNT,
+      "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
+          + " are performed (e.g. Bulk Import). This property specifies the maximum number of threads in a"
+          + " ThreadPool in the Manager that will be used to request these refresh operations.",
+      "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,

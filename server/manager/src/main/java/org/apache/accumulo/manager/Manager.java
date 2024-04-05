@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -236,6 +237,7 @@ public class Manager extends AbstractServer
 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
+  private ThreadPoolExecutor tabletRefreshThreadPool;
 
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
@@ -434,6 +436,10 @@ public class Manager extends AbstractServer
 
   public TableManager getTableManager() {
     return getContext().getTableManager();
+  }
+
+  public ThreadPoolExecutor getTabletRefreshThreadPool() {
+    return tabletRefreshThreadPool;
   }
 
   public static void main(String[] args) throws Exception {
@@ -991,6 +997,11 @@ public class Manager extends AbstractServer
     tableInformationStatusPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
 
+    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
+        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
+        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
+        .build();
+
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
@@ -1155,6 +1166,7 @@ public class Manager extends AbstractServer
     }
 
     tableInformationStatusPool.shutdownNow();
+    tabletRefreshThreadPool.shutdownNow();
 
     compactionCoordinator.shutdown();
 

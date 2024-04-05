@@ -45,8 +45,7 @@ public class RefreshTablets extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    TabletRefresher.refresh(manager.getContext(), manager::onlineTabletServers, fateId, tableId,
-        startRow, endRow, tabletMetadata -> true);
+    TabletRefresher.refresh(manager, fateId, tableId, startRow, endRow, tabletMetadata -> true);
 
     return new CleanUp(tableId, namespaceId, startRow, endRow);
   }
