@@ -533,9 +533,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     managerMessages.addLast(m);
   }
 
+  private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
+
   AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
     if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
-      return () -> {};
+      return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
       return recoveryLock::unlock;
