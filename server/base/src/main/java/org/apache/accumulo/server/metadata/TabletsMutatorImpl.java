@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.server.ServerContext;
 
@@ -54,7 +55,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
         return rootWriter;
       } else {
         if (metaWriter == null) {
-          metaWriter = context.createBatchWriter(getMetadataTableName());
+          metaWriter = context.createBatchWriter(getMetadataTableName(DataLevel.USER));
         }
 
         return metaWriter;
@@ -89,7 +90,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
 
   }
 
-  protected String getMetadataTableName() {
-    return AccumuloTable.METADATA.tableName();
+  protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+    return dataLevel.metaTable();
   }
 }

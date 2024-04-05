@@ -40,11 +40,11 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   private long mutatedTablets = 0;
   public static final int BATCH_SIZE = 1000;
 
-  AsyncConditionalTabletsMutatorImpl(ServerContext context,
+  public AsyncConditionalTabletsMutatorImpl(ServerContext context,
       Consumer<Ample.ConditionalResult> resultsConsumer) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
-    this.bufferingMutator = new ConditionalTabletsMutatorImpl(context);
     this.context = context;
+    this.bufferingMutator = newBufferingMutator();
     var creatorId = Thread.currentThread().getId();
     this.executor = Executors.newSingleThreadExecutor(runnable -> Threads.createThread(
         "Async conditional tablets mutator background thread, created by : #" + creatorId,
@@ -73,7 +73,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
         return result;
       });
 
-      bufferingMutator = new ConditionalTabletsMutatorImpl(context);
+      bufferingMutator = newBufferingMutator();
       mutatedTablets = 0;
     }
     mutatedTablets++;
@@ -94,5 +94,9 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     bufferingMutator.process().values().forEach(resultsConsumer);
     bufferingMutator.close();
     executor.shutdownNow();
+  }
+
+  protected ConditionalTabletsMutatorImpl newBufferingMutator() {
+    return new ConditionalTabletsMutatorImpl(context);
   }
 }

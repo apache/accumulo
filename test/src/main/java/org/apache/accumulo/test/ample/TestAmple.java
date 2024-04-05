@@ -20,8 +20,10 @@ package org.apache.accumulo.test.ample;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -48,12 +50,14 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Builder;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
@@ -83,15 +87,46 @@ public class TestAmple {
     public TabletsMutator mutateTablets() {
       return new TabletsMutatorImpl(getContext()) {
         @Override
-        protected String getMetadataTableName() {
-          return TestServerAmpleImpl.this.getMetadataTableName();
+        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
         }
       };
     }
 
     @Override
-    public TabletsMetadata.TableOptions readTablets() {
-      return TabletsMetadata.builder(getContext(), getMetadataTableName());
+    public ConditionalTabletsMutator conditionallyMutateTablets() {
+      return new ConditionalTabletsMutatorImpl(getContext()) {
+        @Override
+        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
+        }
+      };
+    }
+
+    @Override
+    public AsyncConditionalTabletsMutator
+        conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
+      return new AsyncConditionalTabletsMutatorImpl(getContext(), resultsConsumer) {
+        @Override
+        protected ConditionalTabletsMutatorImpl newBufferingMutator() {
+          return new ConditionalTabletsMutatorImpl(getContext()) {
+            @Override
+            protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+              return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
+            }
+          };
+        }
+      };
+    }
+
+    @Override
+    protected TableOptions newBuilder() {
+      return new Builder(getContext()) {
+        @Override
+        protected String getMetadataTable(DataLevel dataLevel) {
+          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
+        }
+      };
     }
 
     /**
@@ -139,7 +174,8 @@ public class TestAmple {
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
 
-        try (BatchWriter bw = client.createBatchWriter(getMetadataTableName())) {
+        try (BatchWriter bw =
+            client.createBatchWriter(getMetadataTableName(DataLevel.of(tableId)))) {
           for (Entry<Key,Value> entry : scanner) {
             final SortedMap<Key,Value> decodedRow =
                 WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
@@ -169,14 +205,15 @@ public class TestAmple {
             return super.createConditionalWriter(dataLevel);
           } else {
             return new ConditionalWriterDelegator(
-                getContext().createConditionalWriter(dataLevel.metaTable()), interceptor);
+                getContext().createConditionalWriter(getMetadataTableName(dataLevel)), interceptor);
           }
         }
       };
     }
 
-    protected String getMetadataTableName() {
-      return tables.get(DataLevel.USER);
+    protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+      return Objects.requireNonNull(tables.get(dataLevel),
+          "A test table for " + dataLevel + " has not been registered");
     }
   }
 

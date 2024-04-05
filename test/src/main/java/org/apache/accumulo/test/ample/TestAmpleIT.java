@@ -54,7 +54,6 @@ import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.test.ample.TestAmple.TestServerAmpleImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -200,8 +199,6 @@ public class TestAmpleIT extends SharedMiniClusterBase {
     }
   }
 
-  // TODO: disable until fixed
-  @Disabled
   @Test
   public void testFindSplits() throws Exception {
 
@@ -221,15 +218,14 @@ public class TestAmpleIT extends SharedMiniClusterBase {
 
       TestServerAmpleImpl ample = (TestServerAmpleImpl) TestAmple
           .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
+      // Prevent UNSPLITTABLE_COLUMN just in case a system split tried to run on the table
+      // before we copied it and inserted the column
       ample.createMetadataFromExisting(client, tableId,
           Set.of(SplitColumnFamily.UNSPLITTABLE_COLUMN));
 
       KeyExtent extent = new KeyExtent(tableId, null, null);
       Manager manager = mockWithAmple(getCluster(), ample);
 
-      // TODO: Need to fix this, the test ample is reading the real metadata table inside
-      // findSplits call and finding an unsplittable column and not reading the test table,
-      // need to figure out why the test impl is not using the test table correctly
       FindSplits findSplits = new FindSplits(extent);
       PreSplit preSplit = (PreSplit) findSplits
           .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager);

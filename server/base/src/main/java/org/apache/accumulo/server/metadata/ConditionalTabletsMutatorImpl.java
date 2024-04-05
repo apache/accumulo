@@ -90,7 +90,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     if (dataLevel == Ample.DataLevel.ROOT) {
       return new RootConditionalWriter(context);
     } else {
-      return context.createConditionalWriter(dataLevel.metaTable());
+      return context.createConditionalWriter(getMetadataTableName(dataLevel));
     }
   }
 
@@ -292,4 +292,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   @Override
   public void close() {}
+
+  protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+    return dataLevel.metaTable();
+  }
 }

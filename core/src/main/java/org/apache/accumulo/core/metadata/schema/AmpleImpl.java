@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 
 public class AmpleImpl implements Ample {
   private final AccumuloClient client;
@@ -37,7 +38,7 @@ public class AmpleImpl implements Ample {
   @Override
   public TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
       ColumnType... colsToFetch) {
-    Options builder = TabletsMetadata.builder(client).forTablet(extent);
+    Options builder = newBuilder().forTablet(extent);
     if (colsToFetch.length > 0) {
       builder.fetch(colsToFetch);
     }
@@ -53,7 +54,10 @@ public class AmpleImpl implements Ample {
 
   @Override
   public TabletsMetadata.TableOptions readTablets() {
-    return TabletsMetadata.builder(this.client);
+    return newBuilder();
   }
 
+  protected TableOptions newBuilder() {
+    return TabletsMetadata.builder(this.client);
+  }
 }
