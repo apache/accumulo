@@ -649,7 +649,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
       log.info("User initiated fetch of External Compaction info");
-      Map<String,List<HostAndPort>> compactors =
+      Map<String,Set<HostAndPort>> compactors =
           ExternalCompactionUtil.getCompactorAddrs(getContext());
       log.debug("Found compactors: " + compactors);
       ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
