@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
@@ -108,7 +107,6 @@ public class TabletMetadata {
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
-  private String lock;
   private SuspendingTServer suspend;
   private String dirName;
   private MetadataTime time;
@@ -148,7 +146,6 @@ public class TabletMetadata {
     CLONED,
     FLUSH_ID,
     FLUSH_NONCE,
-    LOCK,
     LOGS,
     SUSPEND,
     ECOMP,
@@ -308,11 +305,6 @@ public class TabletMetadata {
   public Location getLast() {
     ensureFetched(ColumnType.LAST);
     return last;
-  }
-
-  public String getLock() {
-    ensureFetched(ColumnType.LOCK);
-    return lock;
   }
 
   public SuspendingTServer getSuspend() {
@@ -524,9 +516,6 @@ public class TabletMetadata {
               break;
             case FLUSH_NONCE_QUAL:
               te.flushNonce = OptionalLong.of(Long.parseUnsignedLong(val, 16));
-              break;
-            case LOCK_QUAL:
-              te.lock = val;
               break;
             case OPID_QUAL:
               te.setOperationIdOnce(val);

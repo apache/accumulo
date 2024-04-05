@@ -24,7 +24,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -364,9 +363,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case LOCATION:
             families.add(CurrentLocationColumnFamily.NAME);
             families.add(FutureLocationColumnFamily.NAME);
-            break;
-          case LOCK:
-            qualifiers.add(LOCK_COLUMN);
             break;
           case LOGS:
             families.add(LogColumnFamily.NAME);

@@ -59,12 +59,17 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -85,7 +90,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletServer;
@@ -272,9 +276,25 @@ public class Tablet extends TabletBase {
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
         if (entriesUsedOnTablet.get() == 0) {
-          log.debug("No replayed mutations applied, removing unused entries for {}", extent);
-          MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
-              logEntries, tabletServer.getLock());
+          log.debug("No replayed mutations applied, removing unused walog entries for {}", extent);
+
+          final ServiceLock zooLock = tabletServer.getLock();
+          final Location expectedLocation = Location.future(this.tabletServer.getTabletSession());
+          try (ConditionalTabletsMutator mutator =
+              getContext().getAmple().conditionallyMutateTablets()) {
+            ConditionalTabletMutator mut = mutator.mutateTablet(extent).requireAbsentOperation()
+                .requireLocation(expectedLocation)
+                .putZooLock(getContext().getZooKeeperRoot(), zooLock);
+            logEntries.forEach(mut::deleteWal);
+            mut.submit(tabletMetadata -> tabletMetadata.getLogs().isEmpty());
+
+            ConditionalResult res = mutator.process().get(extent);
+            if (res.getStatus() == Status.REJECTED) {
+              throw new IllegalStateException(
+                  "Unable to remove logs in metadata for extent: " + extent);
+            }
+          }
+
           // intentionally not rereading metadata here because walogs are only used in the
           // constructor
           logEntries.clear();

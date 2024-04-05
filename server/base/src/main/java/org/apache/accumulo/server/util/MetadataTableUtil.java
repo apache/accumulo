@@ -31,7 +31,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -66,10 +65,6 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -246,23 +241,6 @@ public class MetadataTableUtil {
     tablet.getFilesMap().forEach(sizes::put);
 
     return new Pair<>(result, sizes);
-  }
-
-  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final Collection<LogEntry> entries, ServiceLock zooLock) {
-    try (ConditionalTabletsMutator mutator = context.getAmple().conditionallyMutateTablets()) {
-      ConditionalTabletMutator mut = mutator.mutateTablet(extent).requireAbsentOperation()
-          .putZooLock(context.getZooKeeperRoot(), zooLock);
-      entries.forEach(mut::deleteWal);
-      mut.submit(tabletMetadata -> tabletMetadata.getLock()
-          .equals(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/"))
-          && (tabletMetadata.getLogs() == null || tabletMetadata.getLogs().isEmpty()));
-
-      ConditionalResult res = mutator.process().get(extent);
-      if (res.getStatus() == Status.REJECTED) {
-        throw new IllegalStateException("Unable to remove logs in metadata for extent: " + extent);
-      }
-    }
   }
 
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
