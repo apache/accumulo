@@ -60,6 +60,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
@@ -234,23 +235,17 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       wLock.lock();
       try {
-        CachedTablet lastTablet = null;
+        // Want to ignore any entries in the cache w/o a location that were created before the
+        // following time. Entries created after the following time may have been populated by the
+        // following loop, and we want to use those.
+        var cacheCutoff = NanoTime.now();
+
         for (T mutation : notInCache) {
 
           row.set(mutation.getRow());
 
-          // ELASTICITY_TODO using lastTablet avoids doing a metadata table lookup per mutation.
-          // However this still does at least one metadata lookup per tablet. This is not as good as
-          // the pre-elasticity code that would lookup N tablets at once and use them to bin
-          // mutations. So there is further room for improvement in the way this code interacts with
-          // cache and metadata table.
-          CachedTablet tl;
-          if (lastTablet != null && lastTablet.getExtent().contains(row)) {
-            tl = lastTablet;
-          } else {
-            tl = _findTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
-            lastTablet = tl;
-          }
+          CachedTablet tl = _findTablet(context, row, false, false, false, lcSession,
+              LocationNeed.REQUIRED, cacheCutoff);
 
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);
@@ -331,6 +326,11 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     List<Range> failures = new ArrayList<>();
     List<CachedTablet> cachedTablets = new ArrayList<>();
 
+    // Use anything in the cache w/o a location populated after this point in time. Cache entries
+    // w/o a location created before the following time should be ignored and the metadata table
+    // consulted.
+    var cacheCutoff = NanoTime.now();
+
     l1: for (Range range : ranges) {
 
       cachedTablets.clear();
@@ -348,7 +348,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       if (useCache) {
         tl = lcSession.checkLock(findTabletInCache(startRow));
       } else {
-        tl = _findTablet(context, startRow, false, false, false, lcSession, locationNeed);
+        tl = _findTablet(context, startRow, false, false, false, lcSession, locationNeed,
+            cacheCutoff);
       }
 
       if (tl == null) {
@@ -358,6 +359,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       cachedTablets.add(tl);
 
+      // a range may extend over multiple tablets, look for additional tablet that overlap the range
       while (tl.getExtent().endRow() != null
           && !range.afterEndKey(new Key(tl.getExtent().endRow()).followingKey(PartialKey.ROW))) {
         if (useCache) {
@@ -366,7 +368,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           tl = lcSession.checkLock(findTabletInCache(row));
         } else {
           tl = _findTablet(context, tl.getExtent().endRow(), true, false, false, lcSession,
-              locationNeed);
+              locationNeed, cacheCutoff);
         }
 
         if (tl == null) {
@@ -560,7 +562,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
-    CachedTablet tl = _findTablet(context, row, skipRow, false, true, lcSession, locationNeed);
+    CachedTablet tl =
+        _findTablet(context, row, skipRow, false, true, lcSession, locationNeed, NanoTime.now());
 
     if (timer != null) {
       timer.stop();
@@ -610,14 +613,19 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       var currTablet = extent;
 
+      // Use anything in the cache w/o a location populated after this point in time. Cache entries
+      // w/o a location created before the following time should be ignored and the metadata table
+      // consulted.
+      var cacheCutoff = NanoTime.now();
+
       for (int i = 0; i < hostAheadCount; i++) {
         if (currTablet.endRow() == null || hostAheadRange
             .afterEndKey(new Key(currTablet.endRow()).followingKey(PartialKey.ROW))) {
           break;
         }
 
-        CachedTablet followingTablet =
-            _findTablet(context, currTablet.endRow(), true, false, true, lcSession, locationNeed);
+        CachedTablet followingTablet = _findTablet(context, currTablet.endRow(), true, false, true,
+            lcSession, locationNeed, cacheCutoff);
 
         if (followingTablet == null) {
           break;
@@ -679,14 +687,14 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
     for (var cachedTablet : tabletsWithNoLocation) {
-      if (cachedTablet.getAge().compareTo(STALE_DURATION) < 0) {
+      if (cachedTablet.getCreationTime().elapsed().compareTo(STALE_DURATION) < 0) {
         if (cachedTablet.getAvailability() == TabletAvailability.ONDEMAND) {
           if (!cachedTablet.wasHostingRequested()) {
             extentsToBringOnline.add(cachedTablet.getExtent().toThrift());
             log.trace("requesting ondemand tablet to be hosted {}", cachedTablet.getExtent());
           } else {
             log.trace("ignoring ondemand tablet that already has a hosting request in place {} {}",
-                cachedTablet.getExtent(), cachedTablet.getAge());
+                cachedTablet.getExtent(), cachedTablet.getCreationTime().elapsed());
           }
         } else if (cachedTablet.getAvailability() == TabletAvailability.UNHOSTED) {
           throw new InvalidTabletHostingRequestException("Extent " + cachedTablet.getExtent()
@@ -855,10 +863,15 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     return null;
   }
 
+  /**
+   * @param cacheCutoff Tablets w/o locations are cached. When LocationNeed is REQUIRED, this cut
+   *        off is used to determine if cached entries w/o a location should be used or of we should
+   *        instead ignore them and reread the tablet information from the metadata table.
+   */
   protected CachedTablet _findTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException {
+      boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed,
+      NanoTime cacheCutoff) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
 
     if (skipRow) {
       row = new Text(row);
@@ -878,9 +891,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       tl = processInvalidatedAndCheckLock(context, lcSession, row);
     }
 
-    if (tl == null
-        || (locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty())) {
-      // not in cache, so obtain info
+    if (tl == null || (locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()
+        && tl.getCreationTime().compareTo(cacheCutoff) < 0)) {
+      // not in cache OR the cached entry was created before the cut off time, so obtain info from
+      // metadata table
       if (lock) {
         wLock.lock();
         try {
