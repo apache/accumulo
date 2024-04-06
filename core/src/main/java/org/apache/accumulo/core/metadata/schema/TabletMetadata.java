@@ -400,6 +400,8 @@ public class TabletMetadata {
         future = location;
       }
       // only care about the state so don't need walogs and chopped params
+      // Use getExtent() when passing the extent as the private reference may not have been
+      // initialized yet. This will also ensure PREV_ROW was fetched
       var tls = new TabletLocationState(getExtent(), future, current, last, suspend, null);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {

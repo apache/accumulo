@@ -224,7 +224,7 @@ public class TabletMetadataTest {
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
-    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, PREV_ROW);
+    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND);
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -232,6 +232,13 @@ public class TabletMetadataTest {
         .put(ser1.getHostPort());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
+    // PREV_ROW was not fetched
+    final var missingPrevRow =
+        TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    assertThrows(IllegalStateException.class, () -> missingPrevRow.getTabletState(tservers));
+
+    // This should now work as PREV_ROW has been included
+    colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, PREV_ROW);
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
     TabletState state = tm.getTabletState(tservers);
 
