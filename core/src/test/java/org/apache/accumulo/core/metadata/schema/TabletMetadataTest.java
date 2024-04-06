@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -200,6 +201,13 @@ public class TabletMetadataTest {
         .put(ser1.getHostPort());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
+    // PREV_ROW was not fetched
+    final var missingPrevRow =
+        TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    assertThrows(IllegalStateException.class, () -> missingPrevRow.getTabletState(tservers));
+
+    // This should now work as PREV_ROW has been included
+    colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, PREV_ROW);
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
     TabletState state = tm.getTabletState(tservers);
 
