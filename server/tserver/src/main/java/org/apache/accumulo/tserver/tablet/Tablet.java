@@ -1592,9 +1592,11 @@ public class Tablet extends TabletBase {
 
       // if the tablet metadata passed in is stale, then reread it
       if (observedRefreshCount == null || !observedRefreshCount.equals(this.refreshCount)) {
-        log.debug(
-            "Metadata read outside of refresh lock is no longer valid, rereading metadata. {} {} {}",
-            extent, observedRefreshCount, this.refreshCount);
+        if (observedRefreshCount != null) {
+          log.debug(
+              "Metadata read outside of refresh lock is no longer valid, rereading metadata. {} {} {}",
+              extent, observedRefreshCount, this.refreshCount);
+        }
         // do not want to hold tablet lock while doing metadata read as this could negatively impact
         // scans
         tabletMetadata = getContext().getAmple().readTablet(getExtent());
