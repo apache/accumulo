@@ -132,6 +132,7 @@ public class Tablet extends TabletBase {
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
   private volatile TabletMetadata latestMetadata;
+  private long refreshCount = 0;
 
   @Override
   public long getDataSourceDeletions() {
@@ -231,6 +232,7 @@ public class Tablet extends TabletBase {
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
     this.latestMetadata = metadata;
+    this.refreshCount = RANDOM.get().nextLong();
 
     // TODO look into this.. also last could be null
     this.lastLocation = metadata.getLast();
@@ -317,6 +319,12 @@ public class Tablet extends TabletBase {
 
   public TabletMetadata getMetadata() {
     return latestMetadata;
+  }
+
+  public void setMetadata(TabletMetadata tabletMetadata) {
+    Preconditions.checkState(refreshLock.isHeldByCurrentThread());
+    this.latestMetadata = tabletMetadata;
+    refreshCount++;
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
@@ -1537,23 +1545,86 @@ public class Tablet extends TabletBase {
     MINC_COMPLETION, REFRESH_RPC, FLUSH_ID_UPDATE, LOAD
   }
 
-  public void refreshMetadata(RefreshPurpose refreshPurpose) {
+  public class RefreshSession {
+
+    private final long observedRefreshCount;
+
+    private RefreshSession(long observedRefreshCount) {
+      this.observedRefreshCount = observedRefreshCount;
+    }
+
+    /**
+     * Refresh tablet metadata using metadata that was read separately.
+     *
+     * @param tabletMetadata this tablet metadata must have been read after calling
+     *        {@link Tablet#startRefresh()}
+     */
+    public boolean refreshMetadata(RefreshPurpose refreshPurpose, TabletMetadata tabletMetadata) {
+      return Tablet.this.refreshMetadata(refreshPurpose, observedRefreshCount, tabletMetadata);
+    }
+  }
+
+  /**
+   * A refresh session allows code outside of this class to safely read tablet metadata and pass it
+   * back. This is useful for the case where many tablets need to be refreshed and we want to batch
+   * reading their metadata. Creating a refresh session will not block. A refresh session is able to
+   * detect changes in tablet metadata that happen during its existence and reread tablet metadata
+   * if necessary.
+   */
+  public Optional<RefreshSession> startRefresh() {
+    if (refreshLock.tryLock()) {
+      try {
+        return Optional.of(new RefreshSession(refreshCount));
+      } finally {
+        refreshLock.unlock();
+      }
+    } else {
+      // a refresh is in progress, do not want to block
+      return Optional.empty();
+    }
+  }
+
+  private boolean refreshMetadata(RefreshPurpose refreshPurpose, Long observedRefreshCount,
+      TabletMetadata tabletMetadata) {
+
     refreshLock.lock();
     try {
 
-      // do not want to hold tablet lock while doing metadata read as this could negatively impact
-      // scans
-      TabletMetadata tabletMetadata = getContext().getAmple().readTablet(getExtent());
+      // if the tablet metadata passed in is stale, then reread it
+      if (observedRefreshCount == null || !observedRefreshCount.equals(this.refreshCount)) {
+        log.debug(
+            "Metadata read outside of refresh lock is no longer valid, rereading metadata. {} {} {}",
+            extent, observedRefreshCount, this.refreshCount);
+        // do not want to hold tablet lock while doing metadata read as this could negatively impact
+        // scans
+        tabletMetadata = getContext().getAmple().readTablet(getExtent());
+        if (tabletMetadata == null) {
+          log.debug(
+              "Unable to refresh tablet {} for {} because it no longer exists in metadata table",
+              extent, refreshPurpose);
+          return false;
+        }
+      } else {
+        // when observedRefreshCount is not null, tabletMetadata must not be null
+        Preconditions.checkArgument(tabletMetadata != null);
+      }
 
-      Preconditions.checkState(tabletMetadata != null, "Tablet no longer exits %s", getExtent());
-      Preconditions.checkState(
-          tabletServer.getTabletSession().equals(tabletMetadata.getLocation().getServerInstance()),
-          "Tablet %s location %s is not this tserver %s", getExtent(), tabletMetadata.getLocation(),
-          tabletServer.getTabletSession());
+      if (tabletMetadata.getLocation() == null || !tabletServer.getTabletSession()
+          .equals(tabletMetadata.getLocation().getServerInstance())) {
+        log.debug("Unable to refresh tablet {} for {} because it has a different location {}",
+            extent, refreshPurpose, tabletMetadata.getLocation());
+        return false;
+      }
 
       synchronized (this) {
-        var prevMetadata = latestMetadata;
-        latestMetadata = tabletMetadata;
+        if (isClosed()) {
+          log.debug("Unable to refresh tablet {} for {} because the tablet is closed", extent,
+              refreshPurpose);
+          return false;
+        }
+
+        var prevMetadata = getMetadata();
+        setMetadata(tabletMetadata);
 
         // Its expected that what is persisted should be less than equal to the time that tablet has
         // in memory.
@@ -1561,11 +1632,11 @@ public class Tablet extends TabletBase {
             "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
             tabletMetadata.getTime());
 
-        if (log.isDebugEnabled() && !prevMetadata.getFiles().equals(latestMetadata.getFiles())) {
+        if (log.isDebugEnabled() && !prevMetadata.getFiles().equals(getMetadata().getFiles())) {
           SetView<StoredTabletFile> removed =
-              Sets.difference(prevMetadata.getFiles(), latestMetadata.getFiles());
+              Sets.difference(prevMetadata.getFiles(), getMetadata().getFiles());
           SetView<StoredTabletFile> added =
-              Sets.difference(latestMetadata.getFiles(), prevMetadata.getFiles());
+              Sets.difference(getMetadata().getFiles(), prevMetadata.getFiles());
           log.debug("Tablet {} was refreshed because {}. Files removed: [{}] Files added: [{}]",
               this.getExtent(), refreshPurpose,
               removed.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")),
@@ -1587,7 +1658,7 @@ public class Tablet extends TabletBase {
 
           // important to call this after updating latestMetadata and tabletMemory
           computeNumEntries();
-        } else if (!prevMetadata.getFilesMap().equals(latestMetadata.getFilesMap())) {
+        } else if (!prevMetadata.getFilesMap().equals(getMetadata().getFilesMap())) {
 
           // the files changed, incrementing this will cause scans to switch data sources
           dataSourceDeletions.incrementAndGet();
@@ -1603,6 +1674,13 @@ public class Tablet extends TabletBase {
     if (refreshPurpose == RefreshPurpose.REFRESH_RPC) {
       scanfileManager.removeFilesAfterScan(getMetadata().getScans());
     }
+
+    return true;
+  }
+
+  public void refreshMetadata(RefreshPurpose refreshPurpose) {
+    Preconditions.checkState(refreshMetadata(refreshPurpose, null, null), "Failed to refresh %s",
+        extent);
   }
 
   public long getLastAccessTime() {
