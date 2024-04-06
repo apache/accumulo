@@ -391,7 +391,6 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
-    ensureFetched(ColumnType.PREV_ROW);
     try {
       Location current = null;
       Location future = null;
@@ -516,15 +515,17 @@ public class TabletMetadata {
       }
     }
 
-    return tmBuilder.fetchedCols(fetchedColumns).build();
+    return tmBuilder.build(fetchedColumns);
   }
 
   @VisibleForTesting
   static TabletMetadata create(String id, String prevEndRow, String endRow) {
-    return new Builder().table(TableId.of(id)).sawPrevEndRow(true)
-        .prevEndRow(prevEndRow == null ? null : new Text(prevEndRow))
-        .endRow(endRow == null ? null : new Text(endRow))
-        .fetchedCols(EnumSet.of(ColumnType.PREV_ROW)).build();
+    final var tmBuilder = new Builder();
+    tmBuilder.table(TableId.of(id));
+    tmBuilder.sawPrevEndRow(true);
+    tmBuilder.prevEndRow(prevEndRow == null ? null : new Text(prevEndRow));
+    tmBuilder.endRow(endRow == null ? null : new Text(endRow));
+    return tmBuilder.build(EnumSet.of(ColumnType.PREV_ROW));
   }
 
   /**
@@ -585,129 +586,103 @@ public class TabletMetadata {
         ExternalCompactionMetadata> extCompactions = ImmutableMap.builder();
     private boolean merged;
 
-    Builder table(TableId tableId) {
+    void table(TableId tableId) {
       this.tableId = tableId;
-      return this;
     }
 
-    Builder endRow(Text endRow) {
+    void endRow(Text endRow) {
       this.endRow = endRow;
-      return this;
     }
 
-    Builder prevEndRow(Text prevEndRow) {
+    void prevEndRow(Text prevEndRow) {
       this.prevEndRow = prevEndRow;
-      return this;
     }
 
-    Builder sawPrevEndRow(boolean sawPrevEndRow) {
+    void sawPrevEndRow(boolean sawPrevEndRow) {
       this.sawPrevEndRow = sawPrevEndRow;
-      return this;
     }
 
-    Builder oldPrevEndRow(Text oldPrevEndRow) {
+    void oldPrevEndRow(Text oldPrevEndRow) {
       this.oldPrevEndRow = oldPrevEndRow;
-      return this;
     }
 
-    Builder sawOldPrevEndRow(boolean sawOldPrevEndRow) {
+    void sawOldPrevEndRow(boolean sawOldPrevEndRow) {
       this.sawOldPrevEndRow = sawOldPrevEndRow;
-      return this;
     }
 
-    Builder splitRatio(Double splitRatio) {
+    void splitRatio(Double splitRatio) {
       this.splitRatio = splitRatio;
-      return this;
     }
 
-    Builder dirName(String dirName) {
+    void dirName(String dirName) {
       this.dirName = dirName;
-      return this;
     }
 
-    Builder time(MetadataTime time) {
+    void time(MetadataTime time) {
       this.time = time;
-      return this;
     }
 
-    Builder flush(long flush) {
+    void flush(long flush) {
       this.flush = OptionalLong.of(flush);
-      return this;
     }
 
-    Builder compact(long compact) {
+    void compact(long compact) {
       this.compact = OptionalLong.of(compact);
-      return this;
     }
 
-    Builder file(StoredTabletFile stf, DataFileValue dfv) {
+    void file(StoredTabletFile stf, DataFileValue dfv) {
       this.files.put(stf, dfv);
-      return this;
     }
 
-    Builder loadedFile(StoredTabletFile stf, Long tid) {
+    void loadedFile(StoredTabletFile stf, Long tid) {
       this.loadedFiles.put(stf, tid);
-      return this;
     }
 
-    Builder location(String val, String qual, LocationType lt) {
+    void location(String val, String qual, LocationType lt) {
       if (location != null) {
         throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
             + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
       }
       this.location = new Location(val, qual, lt);
-      return this;
     }
 
-    Builder last(Location last) {
+    void last(Location last) {
       this.last = last;
-      return this;
     }
 
-    Builder suspend(SuspendingTServer suspend) {
+    void suspend(SuspendingTServer suspend) {
       this.suspend = suspend;
-      return this;
     }
 
-    Builder scan(StoredTabletFile stf) {
+    void scan(StoredTabletFile stf) {
       this.scans.add(stf);
-      return this;
     }
 
-    Builder cloned(String cloned) {
+    void cloned(String cloned) {
       this.cloned = cloned;
-      return this;
     }
 
-    Builder log(LogEntry log) {
+    void log(LogEntry log) {
       this.logs.add(log);
-      return this;
     }
 
-    Builder extCompaction(ExternalCompactionId id, ExternalCompactionMetadata metadata) {
+    void extCompaction(ExternalCompactionId id, ExternalCompactionMetadata metadata) {
       this.extCompactions.put(id, metadata);
-      return this;
     }
 
-    Builder merged(boolean merged) {
+    void merged(boolean merged) {
       this.merged = merged;
-      return this;
     }
 
-    Builder fetchedCols(EnumSet<ColumnType> fetchedCols) {
-      this.fetchedCols = fetchedCols;
-      return this;
-    }
-
-    Builder keyValue(Key key, Value value) {
+    void keyValue(Key key, Value value) {
       if (this.keyValues == null) {
         this.keyValues = ImmutableSortedMap.naturalOrder();
       }
       this.keyValues.put(key, value);
-      return this;
     }
 
-    TabletMetadata build() {
+    TabletMetadata build(EnumSet<ColumnType> fetchedCols) {
+      this.fetchedCols = fetchedCols;
       return new TabletMetadata(this);
     }
   }
