@@ -44,9 +44,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -67,6 +69,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -112,6 +115,7 @@ class LoadFiles extends ManagerRepo {
     protected FateId fateId;
     protected boolean setTime;
     Ample.ConditionalTabletsMutator conditionalMutator;
+    private Map<KeyExtent,List<TabletFile>> loadingFiles;
 
     private long skipped = 0;
 
@@ -122,6 +126,7 @@ class LoadFiles extends ManagerRepo {
       this.setTime = setTime;
       conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
+      this.loadingFiles = new HashMap<>();
     }
 
     void load(List<TabletMetadata> tablets, Files files) {
@@ -213,6 +218,11 @@ class LoadFiles extends ManagerRepo {
             tabletMutator.putTime(tabletTime.getMetadataTime());
           }
 
+          // Hang on to for logging purposes in the case where the update is a
+          // success.
+          Preconditions.checkState(
+              loadingFiles.put(tablet.getExtent(), List.copyOf(filesToLoad.keySet())) == null);
+
           tabletMutator.submit(tm -> false);
         }
       }
@@ -283,23 +293,25 @@ class LoadFiles extends ManagerRepo {
           results.values().stream().allMatch(result -> result.getStatus() == Status.ACCEPTED)
               && skipped == 0;
 
+      results.forEach((extent, condResult) -> {
+        if (condResult.getStatus() == Status.ACCEPTED) {
+          loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
+        } else {
+          var metadata = condResult.readMetadata();
+          if (metadata == null) {
+            log.debug("Tablet update failed, tablet is gone {} {} {}", fateId, extent,
+                condResult.getStatus());
+          } else {
+            log.debug("Tablet update failed {} {} {} {} {} {}", fateId, extent,
+                condResult.getStatus(), metadata.getOperationId(), metadata.getLocation(),
+                metadata.getLoaded());
+          }
+        }
+      });
+
       long sleepTime = 0;
       if (!allDone) {
         sleepTime = 1000;
-
-        results.forEach((extent, condResult) -> {
-          if (condResult.getStatus() != Status.ACCEPTED) {
-            var metadata = condResult.readMetadata();
-            if (metadata == null) {
-              log.debug("Tablet update failed, tablet is gone {} {} {}", fateId, extent,
-                  condResult.getStatus());
-            } else {
-              log.debug("Tablet update failed {} {} {} {} {} {}", fateId, extent,
-                  condResult.getStatus(), metadata.getOperationId(), metadata.getLocation(),
-                  metadata.getLoaded());
-            }
-          }
-        });
       }
 
       return sleepTime;
