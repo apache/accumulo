@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -58,7 +59,7 @@ public class TabletLocationState {
   public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
       SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped)
       throws BadLocationStateException {
-    this.extent = extent;
+    this.extent = Objects.requireNonNull(extent);
     this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
     this.current = validateLocation(current, TabletMetadata.LocationType.CURRENT);
     this.last = validateLocation(last, TabletMetadata.LocationType.LAST);
