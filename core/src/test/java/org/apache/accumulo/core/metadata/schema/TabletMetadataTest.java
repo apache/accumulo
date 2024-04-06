@@ -26,8 +26,12 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -61,14 +66,17 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -118,6 +126,24 @@ public class TabletMetadataTest {
 
     MERGED_COLUMN.put(mutation, new Value());
 
+    OLD_PREV_ROW_COLUMN.put(mutation, TabletColumnFamily.encodePrevEndRow(new Text("oldPrev")));
+    long suspensionTime = System.currentTimeMillis();
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+    Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
+    SUSPEND_COLUMN.put(mutation, suspend);
+    double splitRatio = .3;
+    SPLIT_RATIO_COLUMN.put(mutation, new Value(Double.toString(splitRatio)));
+
+    ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+    Set<StoredTabletFile> jobFiles =
+        Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
+    ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, jobFiles, tmpFile,
+        "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, false, 44L);
+    mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
+
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
@@ -148,6 +174,11 @@ public class TabletMetadataTest {
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
     assertTrue(tm.hasMerged());
+    assertEquals(new Text("oldPrev"), tm.getOldPrevEndRow());
+    assertTrue(tm.sawOldPrevEndRow());
+    assertEquals(SuspendingTServer.fromValue(suspend), tm.getSuspend());
+    assertEquals(splitRatio, tm.getSplitRatio());
+    assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
   }
 
   @Test
@@ -192,7 +223,7 @@ public class TabletMetadataTest {
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
-    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND);
+    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, PREV_ROW);
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -249,9 +280,8 @@ public class TabletMetadataTest {
 
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier())
-        .put(SuspendingTServer.toValue(ser2, 1000L));
+    mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier()).put(SuspendingTServer.toValue(ser2, 1000L));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
