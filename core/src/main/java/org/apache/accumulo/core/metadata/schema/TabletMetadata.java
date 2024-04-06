@@ -121,7 +121,7 @@ public class TabletMetadata {
     this.files = Objects.requireNonNull(tmBuilder.files.build());
     this.scans = Objects.requireNonNull(tmBuilder.scans.build());
     this.loadedFiles = tmBuilder.loadedFiles.build();
-    this.fetchedCols = tmBuilder.fetchedCols;
+    this.fetchedCols = Objects.requireNonNull(tmBuilder.fetchedCols);
     this.last = tmBuilder.last;
     this.suspend = tmBuilder.suspend;
     this.dirName = tmBuilder.dirName;

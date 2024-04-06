@@ -71,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Builder;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
@@ -336,6 +337,69 @@ public class TabletMetadataTest {
       // test stream delegates to close on TabletsMetadata
     }
     assertTrue(closeCalled.get());
+  }
+
+  @Test
+  public void testTmBuilderImmutable() {
+    TabletMetadata.Builder b = new Builder();
+    var tm = b.build(EnumSet.allOf(ColumnType.class));
+
+    ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+    StoredTabletFile stf = StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf"));
+    Set<StoredTabletFile> jobFiles = Set.of(stf);
+    ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, jobFiles, tmpFile,
+        "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, false, 44L);
+
+    // Verify the various collections are immutable and non-null (except for getKeyValues) if
+    // nothing set on the builder
+    assertTrue(tm.getExternalCompactions().isEmpty());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getExternalCompactions().put(ecid, ecMeta));
+    assertTrue(tm.getFiles().isEmpty());
+    assertTrue(tm.getFilesMap().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getFiles().add(stf));
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
+    assertTrue(tm.getLogs().isEmpty());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getLogs().add(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID())));
+    assertTrue(tm.getScans().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getScans().add(stf));
+    assertTrue(tm.getLoaded().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getLoaded().put(stf, 0L));
+    assertThrows(IllegalStateException.class, tm::getKeyValues);
+
+    // Set some data in the collections and very they are not empty but still immutable
+    b.extCompaction(ecid, ecMeta);
+    b.file(stf, new DataFileValue(0, 0, 0));
+    b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
+    b.scan(stf);
+    b.loadedFile(stf, 0L);
+    b.keyValue(new Key(), new Value());
+    var tm2 = b.build(EnumSet.allOf(ColumnType.class));
+
+    assertEquals(1, tm2.getExternalCompactions().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getExternalCompactions().put(ecid, ecMeta));
+    assertEquals(1, tm2.getFiles().size());
+    assertEquals(1, tm2.getFilesMap().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getFiles().add(stf));
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
+    assertEquals(1, tm2.getLogs().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getLogs().add(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID())));
+    assertEquals(1, tm2.getScans().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getScans().add(stf));
+    assertEquals(1, tm2.getLoaded().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getLoaded().put(stf, 0L));
+    assertEquals(1, tm2.getKeyValues().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getKeyValues().put(new Key(), new Value()));
+
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
