@@ -171,9 +171,6 @@ public class TabletRefresher {
     } catch (TException ex) {
       log.debug("rpc failed server: " + location + ", " + logId + " " + ex.getMessage(), ex);
 
-      // ELASTICITY_TODO are there any other exceptions we should catch in this method and check if
-      // the tserver is till alive?
-
       // something went wrong w/ RPC return all extents as unrefreshed
       return refreshes;
     } finally {

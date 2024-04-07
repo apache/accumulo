@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -107,9 +108,9 @@ public class ExternalCompactionUtil {
   /**
    * @return map of group names to compactor addresses
    */
-  public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
+  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final Map<String,List<HostAndPort>> groupsAndAddresses = new HashMap<>();
+      final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
       final String compactorGroupsPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooReader();
       List<String> groups = zooReader.getChildren(compactorGroupsPath);
@@ -123,7 +124,7 @@ public class ExternalCompactionUtil {
                 zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
-              groupsAndAddresses.putIfAbsent(group, new ArrayList<>());
+              groupsAndAddresses.putIfAbsent(group, new HashSet<>());
               groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
             }
           }

@@ -16,30 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.manager.tableOps.split;
 
-import java.util.Set;
-import java.util.function.Predicate;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.manager.split.Splitter.FileInfo;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Sets;
+public class FileInfoTest {
+  private Text row1;
+  private Text row2;
+  private FileInfo info;
 
-public class HasExternalCompactionsFilter extends TabletMetadataFilter {
-
-  public static final Set<TabletMetadata.ColumnType> COLUMNS =
-      Sets.immutableEnumSet(TabletMetadata.ColumnType.ECOMP);
-
-  private final static Predicate<TabletMetadata> HAS_EXT_COMPS =
-      tabletMetadata -> !tabletMetadata.getExternalCompactions().isEmpty();
-
-  @Override
-  public Set<TabletMetadata.ColumnType> getColumns() {
-    return COLUMNS;
+  @BeforeEach
+  public void setUp() {
+    row1 = new Text("row1");
+    row2 = new Text("row2");
+    info = new FileInfo(row1, row2);
   }
 
-  @Override
-  protected Predicate<TabletMetadata> acceptTablet() {
-    return HAS_EXT_COMPS;
+  @Test
+  public void testGetters() {
+    assertEquals("row1", info.getFirstRow().toString());
+    assertEquals("row2", info.getLastRow().toString());
   }
 }

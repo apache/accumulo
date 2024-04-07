@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.core.metadata.schema.filters;
 
 import java.util.EnumSet;
 import java.util.Map;
@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.RowFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 public abstract class TabletMetadataFilter extends RowFilter {
